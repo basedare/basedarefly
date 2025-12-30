@@ -1,0 +1,33 @@
+# BASEDARE PROJECT DNA & RULES
+
+## 1. THE MISSION
+We are building "BaseDare" — a $20B "Social Stakes" protocol on Base L2.
+Mantra: "Curated Chaos. On-Chain Trust. Instant Payouts."
+Vibe: High-Fidelity Cyberpunk, Liquid Glass, Dark Matter, "The Terminal for the Creator Underworld."
+Mascot: PeeBear (Glitchy, neurotic, high-voltage bear).
+
+## 2. VISUAL LANGUAGE (The "Vibe Code")
+- **Liquid Glass:** All cards/panels use `backdrop-filter: blur(12px) saturate(180%)`, `bg-black/40`, and thin borders `border-white/10`.
+- **Neon Accents:** Primary: Neon Gold (#FACC15) for Money/Honey. Secondary: Deep Purple (#A855F7) for the Void.
+- **Typography:** Headings = 'Press Start 2P' (Pixel retro). Body = 'Inter' or 'Space Mono' (Clinical precision).
+- **Physics:** Buttons must feel "heavy." Use `framer-motion` for spring-based interactions. No linear animations.
+- **The HUD:** The UI should feel like a "Heads Up Display" overlaying a live event.
+
+## 3. TECH STACK (The Tools)
+- **Frontend:** Next.js 15 (App Router), Tailwind CSS, Framer Motion, Lucide React.
+- **Web3:** Wagmi, Viem, RainbowKit (Coinbase Smart Wallet priority).
+- **Backend/Verify:** Supabase (for off-chain metadata), Python/MediaPipe (for AI Referee logic).
+- **Contracts:** Foundry/Hardhat, Solidity 0.8.20 (UUPS Upgradeable).
+
+## 4. STRATEGIC PILLARS (The "Billionaire" Mindset)
+- **The 10-80-10 Rule:** We automate the middle 80%. If a library exists, use it. Do not reinvent wheels.
+- **Asymmetric Design:** The UI must look "expensive" to build trust. Prioritize aesthetics over code cleanliness in the prototype phase.
+- **Mobile Fortress:** The layout must work on mobile, but the Desktop view is the "Command Center."
+
+## 5. SPECIFIC COMPONENT RULES
+- **Connect Wallet:** Must be a "Pill" shape with a glowing pulse indicator.
+- **The Live Pot:** A 3D/Canvas orb that glitches every 45 seconds.
+- **Dare Card:** The "Atomic Unit." Must feature the streamer's face, the bounty in Gold, and a "Ticking Clock."
+
+
+

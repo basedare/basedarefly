@@ -1,0 +1,1802 @@
+@import "tailwindcss";
+
+@source "../app/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../pages/**/*.{js,ts,jsx,tsx,mdx}";
+
+@theme {
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-primary: #FACC15;
+  --color-secondary: #A855F7;
+  --color-peebare-yellow: #FFB800;
+  --color-peebare-orange: #FF6B00;
+  
+  --color-card: #0F0F14;
+  --color-card-foreground: #ffffff;
+  --color-popover: #0F0F14;
+  --color-popover-foreground: #ffffff;
+  --color-primary-foreground: #000000;
+  --color-secondary-foreground: #ffffff;
+  --color-muted: #1A1A2E;
+  --color-muted-foreground: #A0A0B8;
+  --color-accent: #FFD700;
+  --color-accent-foreground: #000000;
+  --color-destructive: #991B1B;
+  --color-destructive-foreground: #FAFAFA;
+  --color-border: #2A2A3E;
+  --color-input: #2A2A3E;
+  --color-ring: #FFD700;
+  
+  --radius: 0.5rem;
+  
+  --animate-pee-bounce: pee-bounce 6s ease-in-out infinite;
+  --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-slow: spin 4s linear infinite;
+  
+  @keyframes pee-bounce {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 0%; /* #000000 */
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 48 96% 53%; /* #FFD700 */
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 270 50% 40%; /* #A855F7 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 30% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 48 96% 53%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 270 30% 20%;
+    --input: 270 30% 20%;
+    --ring: 48 96% 53%;
+
+    --radius: 0.5rem;
+    
+    /* Override the CodePen variables to match BaseDare */
+    --drip-color-primary: #FBBF24; /* Toxic Gold */
+    --drip-color-shadow: #b45309; /* Darker Gold for depth */
+    --drip-highlight: #A855F7; /* Neon Purple reflection (optional but sick) */
+    
+    /* Deep black background */
+    --deep-black: #000000;
+    
+    /* Toxic gold variable */
+    --toxic-gold: #FACC15;
+    --neon-purple: #A855F7;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background: #000000; /* Pure Black Base */
+    color: #ffffff !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+}
+
+/* 3D Card Flip Utilities */
+.backface-hidden { 
+  backface-visibility: hidden; 
+}
+.rotate-y-180 { 
+  transform: rotateY(180deg); 
+}
+.transform-style-3d { 
+  transform-style: preserve-3d; 
+}
+
+/* THE ELECTRIC ROPE ANIMATION */
+@keyframes jolt {
+  0% { opacity: 0; transform: scaleY(0.5); }
+  10% { opacity: 1; transform: scaleY(1.2); }
+  20% { opacity: 0.5; transform: scaleY(0.8); }
+  30% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.2; }
+  100% { opacity: 0; }
+}
+
+.electric-link {
+  animation: jolt 2s infinite ease-out;
+  filter: drop-shadow(0 0 5px #a855f7) drop-shadow(0 0 10px #a855f7);
+}
+
+/* THE MISSING GLASS EFFECTS */
+.glass-pill {
+  background: rgba(15, 15, 20, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+}
+
+.glass-panel {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.honey-drip {
+  filter: drop-shadow(0 4px 10px rgba(255, 184, 0, 0.6));
+}
+
+/* HOLOGRAPHIC BUTTON */
+.holo-gradient {
+  background: linear-gradient(90deg, #00f2ea 0%, #ff0050 50%, #f8d613 100%);
+  background-size: 200% auto;
+  animation: holo 3s linear infinite;
+}
+
+@keyframes holo {
+  to { background-position: 200% center; }
+}
+
+/* Honey drip overlay for header */
+.honey-drip {
+  position: relative;
+}
+
+.honey-drip::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: url('/header-drips.png');
+  background-size: cover;
+  background-position: bottom center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 4px 10px rgba(255, 184, 0, 0.6));
+}
+
+/* PeeBear bounce animation */
+@keyframes pee-bounce {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.pee-bounce {
+  animation: pee-bounce 7s ease-in-out infinite;
+}
+
+/* Utility classes for glass effects */
+.apple-glass-card {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.apple-glass-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.5);
+}
+
+/* CONVEYOR BELT ANIMATION */
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
+
+/* POKEMON CARD HOLO BUTTON - EXTRACTED LOGIC */
+.holo-button {
+  position: relative;
+  overflow: hidden;
+  /* Base styles */
+  background-color: #040712;
+  border-radius: 9999px; /* Pill shape */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform, filter;
+  isolation: isolate;
+}
+
+/* The Holo Gradient Layer */
+.holo-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-position: 50% 50%;
+  background-size: 300% 300%;
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(0, 231, 255, 0.7) 25%, /* Cyan */
+    transparent 47%,
+    transparent 53%,
+    rgba(255, 0, 231, 0.7) 75%, /* Magenta */
+    transparent 100%
+  );
+  opacity: 0.5;
+  mix-blend-mode: color-dodge;
+  z-index: 1;
+  animation: holoGradient 6s ease infinite; /* Constant motion */
+}
+
+/* The Sparkle/Texture Layer */
+.holo-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    url("https://assets.codepen.io/13471/sparkles.gif"), 
+    linear-gradient(125deg, #ff008450 15%, #fca40040 30%, #ffff0030 40%, #00ff8a20 60%, #00cfff40 70%, #cc4cfa50 85%);
+  background-position: 50% 50%;
+  background-size: 160%;
+  background-blend-mode: overlay;
+  z-index: 2;
+  filter: brightness(1) contrast(1);
+  mix-blend-mode: color-dodge;
+  opacity: 0.75;
+  animation: holoSparkle 4s ease infinite; /* Twinkle effect */
+}
+
+/* Hover State - Intense */
+.holo-button:hover {
+  box-shadow: 
+    0 0 30px -5px rgba(255, 255, 255, 0.4),
+    0 0 10px -2px rgba(168, 85, 247, 0.6); /* Purple glow */
+  transform: translateY(-2px) scale(1.05);
+}
+
+.holo-button:hover::before {
+  opacity: 0.9;
+  filter: brightness(1.2) contrast(1.3);
+}
+
+.holo-button:hover::after {
+  opacity: 1;
+}
+
+/* ANIMATIONS */
+@keyframes holoSparkle {
+  0%, 100% { opacity: 0.75; background-position: 50% 50%; filter: brightness(1.2) contrast(1.25); }
+  50% { opacity: 1; background-position: 60% 60%; filter: brightness(1) contrast(1); }
+}
+
+@keyframes slow-pan {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+@keyframes holoGradient {
+  0%, 100% { background-position: 50% 50%; opacity: 0.5; }
+  50% { background-position: 100% 100%; opacity: 0.8; }
+}
+
+/* VOLTAGE LOGO - Constant Subtle Static Electric Purple Glow */
+.voltage-logo {
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.5)) drop-shadow(0 0 15px rgba(168, 85, 247, 0.3));
+}
+
+/* --- BASEDARE POKEMON HOLO CARD --- */
+:root {
+  --mx: 50%;
+  --my: 50%;
+  --s: 1;
+  --o: 0;
+  --rx: 0deg;
+  --ry: 0deg;
+  --posx: 50%;
+  --posy: 50%;
+  --hyp: 0;
+  
+  /* Holo Colors */
+  --color1: rgb(0, 231, 255);
+  --color2: rgb(255, 0, 231);
+  --color3: #FACC15; /* Toxic Gold */
+}
+
+.holo-card {
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  transform: translate3d(0, 0, 0.1px);
+  will-change: transform, visibility;
+  transform-style: preserve-3d;
+  touch-action: none;
+}
+
+.holo-card__translater,
+.holo-card__rotator {
+  display: grid;
+  perspective: 600px;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.holo-card__translater {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform: translate3d(var(--tx), var(--ty), 0) scale(var(--s));
+}
+
+.holo-card__rotator {
+  transform: rotateY(var(--rx)) rotateX(var(--ry));
+  transform-style: preserve-3d;
+  border-radius: 20px;
+  
+  /* Semi-transparent dark glass to show galaxy behind */
+  background: rgba(0, 0, 0, 0.3); /* Semi-transparent dark glass */
+  backdrop-filter: blur(20px);      /* Blur the galaxy behind it */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  transition: box-shadow 0.2s ease;
+  
+  /* Base Shadow + Color Glow */
+  box-shadow: 
+    -5px -5px 5px -5px var(--color1), 
+    5px 5px 5px -5px var(--color2), 
+    -7px -7px 10px -5px transparent, 
+    7px 7px 10px -5px transparent, 
+    0 0 5px 0px rgba(255,255,255,0),
+    0 55px 35px -20px rgba(0, 0, 0, 0.5);
+}
+
+.holo-card__rotator > * {
+  width: 100%;
+  display: grid;
+  grid-area: 1/1;
+  border-radius: 20px;
+  transform-style: preserve-3d;
+}
+
+/* THE CARD FRONT (Content Layer) */
+.holo-card__front {
+  opacity: 1;
+  background: transparent; /* Transparent to show galaxy behind */
+  overflow: visible; /* Allow content to breathe */
+  z-index: 10;
+  backface-visibility: hidden;
+}
+
+/* HOLO GRADIENT LAYER (The Rainbow) */
+.holo-card__rotator::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-position: 50% 50%;
+  background-size: 300% 300%;
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    var(--color1) 25%,
+    transparent 47%,
+    transparent 53%,
+    var(--color2) 75%,
+    transparent 100%
+  );
+  opacity: 0.5;
+  filter: brightness(0.5) contrast(1);
+  mix-blend-mode: color-dodge;
+  z-index: 15; /* Above background, below content if needed, but here it overlays */
+  pointer-events: none;
+  transition: all 0.33s ease;
+}
+
+/* SPARKLES & TEXTURE LAYER */
+.holo-card__rotator::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    url("https://assets.codepen.io/13471/sparkles.gif"), 
+    url("https://assets.codepen.io/13471/holo.png"), 
+    linear-gradient(125deg, #ff008450 15%, #fca40040 30%, #ffff0030 40%, #00ff8a20 60%, #00cfff40 70%, #cc4cfa50 85%);
+  background-position: 50% 50%;
+  background-size: 160%;
+  background-blend-mode: overlay;
+  z-index: 16;
+  filter: brightness(1) contrast(1);
+  mix-blend-mode: color-dodge;
+  opacity: 0.75;
+  pointer-events: none;
+  transition: all 0.33s ease;
+}
+
+/* INTERACTION STATES (Hover / Active) */
+.holo-card.interacting .holo-card__rotator {
+  box-shadow: 
+    -20px -20px 30px -25px var(--color1), 
+    20px 20px 30px -25px var(--color2), 
+    -7px -7px 10px -5px var(--color1), 
+    7px 7px 10px -5px var(--color2), 
+    0 0 13px 4px rgba(255,255,255,0.3),
+    0 55px 35px -20px rgba(0, 0, 0, 0.5);
+}
+
+.holo-card.interacting .holo-card__rotator::before {
+  opacity: 1;
+  background-image: linear-gradient(
+    110deg,
+    transparent 25%,
+    var(--color1) 48%,
+    var(--color3) 50%, /* Gold hit */
+    var(--color2) 52%,
+    transparent 75%
+  );
+  background-position: calc(var(--posx) * 1.2) calc(var(--posy) * 1.2);
+  background-size: 250% 250%;
+  filter: brightness(0.66) contrast(1.33);
+  transition: none;
+}
+
+.holo-card.interacting .holo-card__rotator::after {
+  opacity: 1;
+  background-position: calc(var(--posx) * 1.5) calc(var(--posy) * 1.5);
+  filter: brightness(1.2) contrast(1);
+  transition: none;
+}
+
+/* --- THE HOLO ENGINE (Restored) --- */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.holo-card {
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transform: rotateY(0deg) rotateX(0deg);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2); /* Base glow */
+}
+
+.holo-card:hover {
+  transform: rotateY(10deg) rotateX(5deg) scale(1.05); /* The 3D Pop */
+  box-shadow: 
+    0 0 30px rgba(168, 85, 247, 0.6), 
+    0 0 60px rgba(168, 85, 247, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1); /* Holographic depth */
+  z-index: 50;
+}
+
+/* --- THE TESLA COIL LIGHTNING (Restored) --- */
+@keyframes lightning-pulse {
+  0%, 100% { box-shadow: 0 0 5px #00f3ff, inset 0 0 5px #00f3ff; border-color: rgba(0, 243, 255, 0.5); }
+  50% { box-shadow: 0 0 20px #00f3ff, inset 0 0 10px #00f3ff; border-color: rgba(0, 243, 255, 1); }
+  10%, 90% { transform: skew(0deg); }
+  20% { transform: skew(0.5deg); } /* Jitter effect */
+  80% { transform: skew(-0.5deg); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tesla-coil-border {
+  position: relative;
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  animation: lightning-pulse 3s infinite ease-in-out; /* The Electric Breathing */
+  overflow: hidden;
+}
+
+.tesla-coil-border::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(transparent, rgba(0, 243, 255, 0.8), transparent 30%);
+  animation: rotate 4s linear infinite; /* Rotating electric sweep */
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* HONEY DRIP DECORATION (CSS Only) */
+.honey-drip-overlay {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle at top right, #eab308 0%, transparent 70%);
+  filter: blur(20px);
+  opacity: 0.6;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* METALLIC TEXT EFFECT */
+@keyframes metallic-shine {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.metallic-text {
+  background: linear-gradient(180deg, #ffffff 0%, #c0c0c0 25%, #808080 50%, #c0c0c0 75%, #ffffff 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+  animation: metallic-shine 3s ease-in-out infinite;
+}
+
+/* METALLIC PAINT SHIMMER ANIMATION */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+/* MOLTEN GOLD SHINE ANIMATION */
+@keyframes shine {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-shine {
+  animation: shine 0.8s ease-in-out;
+}
+
+/* HOVER FLOAT ANIMATION */
+@keyframes hover-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-hover {
+  animation: hover-float 6s ease-in-out infinite;
+}
+
+/* SPIN GLOBE ANIMATION */
+@keyframes spinGlobe {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin-globe {
+  animation: spinGlobe 30s linear infinite;
+}
+
+/* SPIN SLOW ANIMATION */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 30s linear infinite;
+}
+
+/* --- CRITICAL: MUST BE IN globals.css --- */
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer layout {
+  .orbit-cards {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    /* Ensure height/width are large enough to contain the orbit */
+    min-block-size: 100vh;
+  }
+  .orbit-tile {
+    --radius: min(450px, 36cqi); /* BIGGER ORBIT — more space around bear */
+    --offset-per-child: calc(360deg / 6);
+    --angle-offset: calc(var(--index) * var(--offset-per-child));
+    --inline-ratio: 1;
+    --block-ratio: 0.45;
+
+    /* Stack all tiles in the same grid cell */
+    grid-area: 1/1;
+    position: absolute;
+
+    /* CSS Trig Function Positioning */
+    translate: calc(cos((var(--angle) + var(--angle-offset))) * var(--radius) * var(--inline-ratio))
+               calc(sin((var(--angle) + var(--angle-offset))) * var(--radius) * var(--block-ratio) * -1);
+
+    animation: orbit-spin 90s linear infinite;
+  }
+  .orbit-glow {
+    position: absolute;
+    inset: 0;
+    filter: blur(3rem);
+    opacity: 0.4;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, #A855F7 0%, transparent 70%);
+  }
+  @keyframes orbit-spin {
+    to { --angle: 360deg; }
+  }
+}
+
+@layer components {
+  /* 1. Gold Electric Crackle Animation (Used on Hover) */
+  @keyframes pulse-gold-electric {
+    0%, 100% { 
+      box-shadow: 0 0 5px rgba(250, 204, 21, 0.5), 0 0 10px rgba(250, 204, 21, 0.2); 
+      border-color: rgba(250, 204, 21, 0.4);
+    }
+    50% { 
+      box-shadow: 0 0 25px rgba(250, 204, 21, 1), 0 0 50px rgba(255, 255, 0, 0.6); /* Aggressive Yellow Core */
+      border-color: rgba(250, 204, 21, 1);
+    }
+  }
+
+  /* 2. Purple Idle Animation (New Default Pulse) */
+  @keyframes pulse-purple-idle {
+    0%, 100% { 
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); 
+      border-color: rgba(168, 85, 247, 0.4);
+    }
+    50% { 
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+      border-color: rgba(168, 85, 247, 0.7);
+    }
+  }
+
+  /* 3. Update the existing .electric-tile to use the new animations */
+  .electric-tile {
+    /* ... existing glassmorphism background/blur ... */
+    background: rgba(10, 5, 20, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 2rem;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    cursor: pointer;
+
+    /* DEFAULT STATE: Use purple colors and the purple animation */
+    border: 3px solid rgba(168, 85, 247, 0.4);
+    animation: pulse-purple-idle 4s ease-in-out infinite;
+  }
+
+  /* HOVER STATE: Golden Static Electric Crackling (No Pulse, No Purple) */
+  .electric-tile:hover {
+    /* Stop the purple animation and apply golden static effect */
+    animation: none; /* Override the purple pulse */
+    box-shadow: 
+      0 0 2px #fff, /* White-hot center */
+      0 0 25px rgba(250, 204, 21, 1), /* Sharp Gold Core */
+      0 0 50px rgba(255, 255, 0, 0.6); /* Wide Toxic Halo */
+    border-color: rgba(250, 204, 21, 1); /* Solid gold border */
+    transform: scale(1.05);
+  }
+
+  .electric-inner-glow {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(250, 204, 21, 0.1) 50%, transparent 100%);
+    pointer-events: none;
+  }
+}
+
+/* Electric Honey Pulse Glow */
+@keyframes pulse-border-glow {
+  0% { box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(250, 204, 21, 0.9), 0 0 60px rgba(250, 204, 21, 0.3); }
+  100% { box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+}
+
+.animate-electric-glow {
+  animation: pulse-border-glow 3s ease-in-out infinite;
+}
+
+/* --- CRITICAL: MUST BE IN globals.css --- */
+
+/* 1. Base Gold Electric Crackle Animation */
+@keyframes pulse-gold-electric {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(250, 204, 21, 0.5), 0 0 10px rgba(250, 204, 21, 0.2); 
+    border-color: rgba(250, 204, 21, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(250, 204, 21, 1), 0 0 40px rgba(255, 255, 0, 0.6); /* Aggressive Yellow Core */
+    border-color: rgba(250, 204, 21, 1);
+  }
+}
+
+/* 2. Base Purple Idle Animation */
+@keyframes pulse-purple {
+  0%, 100% { 
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5); 
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.8);
+    border-color: rgba(168, 85, 247, 0.6);
+  }
+}
+
+/* 3. Apply the styles to a generic component class (e.g., .orbit-tile-wrapper) */
+.orbit-tile-wrapper {
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  /* DEFAULT STATE: Always pulsing purple */
+  animation: pulse-purple 4s ease-in-out infinite;
+}
+
+/* HOVER STATE: Override with Gold Electric Pulse */
+.orbit-tile-wrapper:hover {
+  animation: pulse-gold-electric 0.5s ease-in-out infinite alternate; /* Faster, more immediate pulse */
+  transform: scale(1.05);
+}
+
+/* Slow Glitter Animation */
+@keyframes slowGlitter {
+  from { background-position: 0% 0%, center; }
+  to { background-position: 100% 100%, center; }
+}
+
+/* Ultra Slow Glitter Animation (5x slower) */
+@keyframes ultraSlowGlitter {
+  from { 
+    background-position: 0% 0%, center; 
+  }
+  to { 
+    background-position: 100% 100%, center; 
+  }
+}
+
+/* Rotate Background Animation (for synced pace with Orb) */
+@keyframes rotateBackground {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Smoke Flow Animations for 2-Color Collision */
+@keyframes flowSmokeA {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes flowSmokeB {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Slow Pulse Animation */
+@keyframes slowPulse {
+  from { opacity: 0.5; transform: scale(1); }
+  to { opacity: 0.8; transform: scale(1.15); }
+}
+
+/* Slow Holo Flow Animation */
+@keyframes slowHoloFlow {
+  /* Creates slow movement for the holographic background */
+  0% { background-position: 0% 0%, 50% 50%; }
+  100% { background-position: 100% 100%, 50% 50%; }
+}
+
+/* Slow Glow Pulse Animation */
+@keyframes slowGlowPulse {
+  /* Slow breathing effect for the ambient glow */
+  0%, 100% { opacity: 0.2; transform: scale(1.0); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* PULSE GLOW ANIMATION FOR NAVBAR */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(168, 85, 247, 0.6);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+/* SVG Filter Container - Hidden but positioned */
+svg.w-0.h-0 {
+  position: absolute;
+}
+
+/* Base styling for the hidden SVG filter */
+.svg-filter-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* SVG Filter Container - Hide the div container */
+.svg-filter-hidden-container {
+  display: none;
+}
+
+/* Main Content Wrapper - Padding for Footer and FixedBountyPot */
+.main-content-wrapper {
+  padding-bottom: 270px; /* Adjust based on exact Footer height + Pot height + spacing */
+}
+
+/* Bounce Slow Animation */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Header Container Styles */
+:root {
+  --toxic-gold: #FACC15;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 4rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  background: rgba(5, 5, 5, 0.8); /* Deep Black blur */
+  backdrop-filter: blur(10px);
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  flex: 1; /* Pushes links to the sides */
+}
+
+.logo-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--toxic-gold);
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+/* BASEDARE Dripping Logo */
+.basedare-logo-dripping {
+  position: relative;
+  font-family: inherit;
+  line-height: 1.1;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+}
+
+.basedare-logo-dripping span:first-child {
+  color: #FACC15;
+  text-shadow: 
+    0 0 20px rgba(250, 204, 21, 0.8),
+    0 0 40px rgba(250, 204, 21, 0.5),
+    0 0 60px rgba(250, 204, 21, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 0 15px rgba(250, 204, 21, 0.6));
+}
+
+.basedare-logo-dripping span:last-child {
+  color: #A855F7;
+  text-shadow: 
+    0 0 20px rgba(168, 85, 247, 0.8),
+    0 0 40px rgba(168, 85, 247, 0.5),
+    0 0 60px rgba(168, 85, 247, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.6));
+}
+
+/* Dripping effect using pseudo-elements */
+.basedare-logo-dripping::after {
+  content: '';
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  height: 40px;
+  background: 
+    radial-gradient(ellipse at 12% 0%, #FACC15 0%, transparent 60%),
+    radial-gradient(ellipse at 28% 0%, #FACC15 0%, transparent 60%),
+    radial-gradient(ellipse at 45% 0%, #FACC15 0%, transparent 60%),
+    radial-gradient(ellipse at 62% 0%, #A855F7 0%, transparent 60%),
+    radial-gradient(ellipse at 78% 0%, #A855F7 0%, transparent 60%),
+    radial-gradient(ellipse at 88% 0%, #A855F7 0%, transparent 60%);
+  background-size: 8% 100%, 10% 100%, 12% 100%, 8% 100%, 10% 100%, 6% 100%;
+  background-repeat: no-repeat;
+  background-position: 8% 0, 25% 0, 42% 0, 58% 0, 73% 0, 85% 0;
+  opacity: 0.9;
+  filter: blur(1.5px) drop-shadow(0 0 8px rgba(250, 204, 21, 0.4)) drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
+  animation: drip-fall 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes drip-fall {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0) scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateX(-50%) translateY(15px) scaleY(1.2);
+    opacity: 0.7;
+  }
+}
+
+/* Hero Container */
+.hero-container {
+  /* 1. The Container (The Plate) */
+  position: relative; /* Essential for z-index to work */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-logo-masthead {
+  /* 1. FORCE DIMENSIONS: Prevent 0px collapse */
+  width: 100%; 
+  max-width: 650px; /* Limits it from being massive */
+  height: auto; 
+  
+  /* 2. LAYER ORDER: Force it above the bear/video */
+  position: relative;
+  z-index: 50; 
+  
+  /* 3. VISIBILITY CHECK: Ensure no accidental hiding */
+  display: block;
+  opacity: 1;
+  
+  /* 4. POSITIONING: Pull it closer to the bear if needed */
+  margin-bottom: -60px; /* Overlap effect */
+  margin-top: 100px; /* clear the navbar */
+  
+  /* 5. TRANSPARENT CUTOUT: Ensure beautiful transparent background */
+  background: transparent;
+  background-color: transparent;
+  mix-blend-mode: normal;
+  
+  /* 6. IMAGE RENDERING: Sharp, beautiful display */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  object-fit: contain;
+  
+  /* 7. GLOW EFFECTS: Enhanced visual appeal while preserving transparency */
+  filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.6)) 
+          drop-shadow(0 0 40px rgba(168, 85, 247, 0.4))
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  
+  /* 8. ENSURE NO BACKGROUND SHOWS */
+  border: none;
+  outline: none;
+}
+
+/* 2. The Bear Head (Bottom Layer) */
+.bear-head-container {
+  position: relative;
+  z-index: 1; /* Lowest priority */
+}
+
+/* 3. The Gold Drip Animation (Middle Layer) */
+.gold-drip-effect {
+  position: absolute; /* Allows it to float freely */
+  top: 55%; /* Adjust this to align exactly where the text sits */
+  left: 50%;
+  transform: translate(-50%, -50%); /* Centers it perfectly */
+  
+  width: 100%; /* Spans the width of the text */
+  pointer-events: none; /* Lets clicks pass through to buttons */
+  z-index: 2; /* Sits ABOVE the bear */
+  
+  /* Debug Mode: Uncomment this if you still can't see it */
+  /* border: 2px solid red; */ 
+}
+
+/* 4. The "Control The Stream" Text (Top Layer) */
+.hero-headline {
+  position: relative;
+  z-index: 3; /* Highest priority - always on top */
+  color: transparent; /* If using background-clip for gold text */
+  /* ... your existing font styles ... */
+}
+
+/* Goo Filter - Metallic/Molten Effect */
+.goo-filter {
+  /* Adjust contrast to make it look metallic/molten rather than soft jelly */
+  filter: contrast(20);
+}
+
+/* AI Referee Canvas Background */
+.ai-referee-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0; /* Behind everything */
+  pointer-events: none; /* Let clicks pass through to text */
+  opacity: 0.6; /* Subtle effect */
+}
+
+/* Zap Glitch Animation for Live Pot Value */
+@keyframes zap-glitch {
+  /* 0% to 90% is silence (no animation) */
+  0%, 90% { transform: translate(0); filter: brightness(1); }
+  
+  /* The Glitch Phase (The last 0.7 seconds) */
+  92% { transform: translate(-3px, 2px) skew(5deg); filter: brightness(2) contrast(1.5); }
+  94% { transform: translate(3px, -2px); text-shadow: -2px 0 red, 2px 0 cyan; }
+  96% { transform: translate(-1px, 0) skew(-10deg); filter: hue-rotate(90deg); }
+  98% { transform: translate(2px, 2px); filter: brightness(3); }
+  100% { transform: translate(0); filter: brightness(1); }
+}
+
+.live-pot-value {
+  color: var(--toxic-gold);
+  /* Play a 7-second loop where the actual glitch is a tiny fraction */
+  animation: zap-glitch 7s infinite;
+  display: inline-block;
+}
+
+/* Moat Section Styles */
+.moat-section-container {
+  position: relative;
+  overflow: hidden;
+  background: var(--deep-black, #020204);
+  padding: 4rem 2rem;
+  min-height: 100vh;
+}
+
+.moat-bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.moat-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: 3rem;
+  letter-spacing: 0.05em;
+  color: white;
+}
+
+.gold-text {
+  color: var(--toxic-gold);
+  text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
+}
+
+.red-text {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.pillar-card {
+  background: rgba(10, 5, 20, 0.6);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.pillar-card:hover {
+  border-color: rgba(250, 204, 21, 0.5);
+  box-shadow: 0 0 30px rgba(250, 204, 21, 0.3), 0 8px 32px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-number {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--toxic-gold);
+  opacity: 0.6;
+}
+
+.pillar-card h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0;
+  color: white;
+  letter-spacing: 0.02em;
+}
+
+.pillar-highlight {
+  color: var(--toxic-gold);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 1rem 0;
+  line-height: 1.5;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+}
+
+.pillar-detail {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-top: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.live-pulse {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+.comparison-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-row:last-child {
+  border-bottom: none;
+}
+
+.comparison-row .label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vs-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.vs-bar .bad {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.vs-bar .good {
+  color: var(--toxic-gold);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+/* Moat Closer Quote */
+.moat-closer {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4rem;
+  padding: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+.moat-closer::before {
+  content: '"';
+  font-size: 3rem;
+  color: var(--toxic-gold);
+  opacity: 0.5;
+  line-height: 0;
+  vertical-align: -0.3em;
+  margin-right: 0.5rem;
+}
+
+.moat-closer::after {
+  content: '"';
+  font-size: 3rem;
+  color: var(--toxic-gold);
+  opacity: 0.5;
+  line-height: 0;
+  vertical-align: -0.3em;
+  margin-left: 0.5rem;
+}
+
+/* Zap Animation */
+.zap-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(250, 204, 21, 0.2) 50%,
+    transparent 70%
+  );
+  background-size: 200% 200%;
+  animation: zap-flow 3s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes zap-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .pillars-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+  }
+  
+  .moat-closer {
+    font-size: 1.25rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Tech Specs Minimalist Styling */
+.tech-specs-minimal {
+  width: 100%;
+  padding: 20px 0 80px 0; /* Breathing room below */
+  display: flex;
+  justify-content: center;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Faint closure line */
+}
+
+.specs-content {
+  width: 100%;
+  max-width: 1000px; /* Keep it tighter than the main content for focus */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* Columns */
+.spec-column {
+  flex: 1;
+  padding: 0 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The "Apple" Header Style */
+.spec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.spec-label {
+  font-family: 'Inter', sans-serif; /* Clean sans */
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.4); /* Very muted */
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* The BaseDare Twist: Tiny glowing dots instead of big icons */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-dot.green { 
+  background: #10B981; 
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); 
+}
+
+.status-dot.gold { 
+  background: #FBBF24; 
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); 
+}
+
+.status-dot.purple { 
+  background: #A855F7; 
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4); 
+}
+
+/* Typography */
+.spec-column h3 {
+  font-family: 'Inter', sans-serif; /* Keep it clean, not the aggressive font */
+  font-weight: 500; /* Regular weight, not bold */
+  font-size: 1.2rem;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.5px; /* Tight tracking like Apple */
+}
+
+.spec-column p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: #888; /* Standard dark mode grey */
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* The Hairline Dividers */
+.spec-hairline {
+  width: 1px;
+  height: 60px; /* Not full height, just floating */
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 10px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .specs-content {
+    flex-direction: column;
+    gap: 40px;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .spec-hairline {
+    width: 60px;
+    height: 1px;
+  }
+  
+  .spec-header {
+    justify-content: center;
+  }
+}
+
+/* --- 3D HOLO CARD ENGINE --- */
+.holo-card-container {
+  perspective: 1000px;
+}
+
+.holo-card-3d {
+  position: relative;
+  overflow: hidden;
+  background: rgba(10, 10, 15, 0.9); /* Deep Cyberpunk Black */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-style: preserve-3d;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.holo-card-3d:hover {
+  transform: translateY(-10px) scale(1.05) rotateX(5deg);
+  border-color: rgba(34, 211, 238, 0.6); /* Cyan Glow */
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(34, 211, 238, 0.2);
+}
+
+/* TESLA DISCHARGE ANIMATION */
+@keyframes discharge {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+
+.tesla-discharge-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.tesla-discharge-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, #22d3ee, #ffffff, #22d3ee, transparent);
+  transform: translateX(-150%);
+  animation: discharge 3s infinite linear;
+  filter: blur(2px);
+}
+
+/* NOISE TEXTURE */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* --- BASE44 CRYSTAL BALL PHYSICS --- */
+:root {
+  color-scheme: light dark; /* Required for light-dark() to work */
+}
+.glass-surface { 
+  position: relative; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  overflow: hidden; 
+  transition: opacity 0.26s ease-out; 
+}
+
+/* The Refractive Lens Layer */
+.glass-surface--svg { 
+  /* High Transparency for 'Crystal' look */ 
+  background: light-dark(hsl(0 0% 100% / var(--glass-frost, 0.01)), hsl(0 0% 0% / var(--glass-frost, 0.01)));
+
+  /* The Optical Distortion Link */ 
+  backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1.8)); 
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1.8));
+
+  /* The 'Thick Glass' Inner Shadows */ 
+  box-shadow: 
+    0 0 2px 1px light-dark(color-mix(in oklch, black, transparent 85%), color-mix(in oklch, white, transparent 65%)) inset, 
+    0 0 10px 4px light-dark(color-mix(in oklch, black, transparent 90%), color-mix(in oklch, white, transparent 85%)) inset, 
+    0px 4px 16px rgba(17, 17, 26, 0.05), 
+    0px 8px 24px rgba(17, 17, 26, 0.05), 
+    0px 16px 56px rgba(17, 17, 26, 0.05);
+
+  border: 1px solid rgba(255, 255, 255, 0.1); 
+}
+
+/* Fallback for browsers without advanced filters */ 
+.glass-surface--fallback { 
+  background: rgba(255, 255, 255, 0.05); 
+  backdrop-filter: blur(12px) saturate(1.8); 
+  border: 1px solid rgba(255, 255, 255, 0.15); 
+}
+
+/* The Pulse Animation for the Navbar Logo */
+@keyframes pulse-core {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+    box-shadow: 0 0 10px 2px rgba(168, 85, 247, 0.2);
+  }
+}
+.animate-pulse-core {
+  animation: pulse-core 3s infinite ease-in-out;
+}
+
+/* --- DEEP SPACE ATMOSPHERE --- */
+.bg {
+    background: url(https://i.ibb.co/87GbbFP/2799006.jpg) no-repeat;
+    background-size: cover;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -50; /* Deepest Layer */
+}
+.bg:before {
+    content: "";
+    width: 100%;
+    height: 100%;
+    background: #030014; /* Base44 Void Tint */
+    position: fixed;
+    z-index: -49;
+    top: 0;
+    left: 0;
+    opacity: 0.8; /* Darken the nebula slightly so text pops */
+}
+
+/* STAR FIELD ANIMATION */
+.star-field {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    perspective: 600px;
+    -webkit-perspective: 600px;
+    z-index: -40; /* Sits in front of nebula, behind Plexus */
+}
+.star-field .layer {
+    box-shadow: -411px -476px #cccccc, 777px -407px #d4d4d4, -387px -477px #fcfcfc, -91px -235px #d4d4d4, 491px -460px #f7f7f7, 892px -128px #f7f7f7, 758px -277px #ededed, 596px 378px #cccccc, 647px 423px whitesmoke, 183px 389px #c7c7c7, 524px -237px #f0f0f0, 679px -535px #e3e3e3, 158px 399px #ededed, 157px 249px #ededed, 81px -450px #ebebeb, 719px -360px #c2c2c2, -499px 473px #e8e8e8, -158px -349px #d4d4d4, 870px -134px #cfcfcf, 446px 404px #c2c2c2, 440px 490px #d4d4d4, 414px 507px #e6e6e6, -12px 246px #fcfcfc, -384px 369px #e3e3e3, 641px -413px #fcfcfc, 822px 516px #dbdbdb, 449px 132px #c2c2c2, 727px 146px #f7f7f7, -315px -488px #e6e6e6, 952px -70px #e3e3e3, -869px -29px #dbdbdb, 502px 80px #dedede, 764px 342px #e0e0e0, -150px -380px #dbdbdb, 654px -426px #e3e3e3, -325px -263px #c2c2c2, 755px -447px #c7c7c7, 729px -177px #c2c2c2, -682px -391px #e6e6e6, 554px -176px #ededed, -85px -428px #d9d9d9, 714px 55px #e8e8e8, 359px -285px #cfcfcf, -362px -508px #dedede, 468px -265px #fcfcfc, 74px -500px #c7c7c7, -514px 383px #dbdbdb, 730px -92px #cfcfcf, -112px 287px #c9c9c9, -853px 79px #d6d6d6, 828px 475px #d6d6d6, -681px 13px #fafafa, -176px 209px #f0f0f0, 758px 457px #fafafa, -383px -454px #ededed, 813px 179px #d1d1d1, 608px 98px whitesmoke, -860px -65px #c4c4c4, -572px 272px #f7f7f7, 459px 533px #fcfcfc, 624px -481px #e6e6e6, 790px 477px #dedede, 731px -403px #ededed, 70px -534px #cccccc, -23px 510px #cfcfcf, -652px -237px whitesmoke, -690px 367px #d1d1d1, 810px 536px #d1d1d1, 774px 293px #c9c9c9, -362px 97px #c2c2c2, 563px 47px #dedede, 313px 475px #e0e0e0, 839px -491px #e3e3e3, -217px 377px #d4d4d4, -581px 239px #c2c2c2, -857px 72px #cccccc, -23px 340px #dedede, -837px 246px white, 170px -502px #cfcfcf, 822px -443px #e0e0e0, 795px 497px #e0e0e0, -814px -337px #cfcfcf, 206px -339px #f2f2f2, -779px 108px #e6e6e6, 808px 2px #d4d4d4, 665px 41px #d4d4d4, -564px 64px #cccccc, -380px 74px #cfcfcf, -369px -60px #f7f7f7, 47px -495px #e3e3e3, -383px 368px #f7f7f7, 419px 288px #d1d1d1, -598px -50px #c2c2c2, -833px 187px #c4c4c4, 378px 325px whitesmoke, -703px 375px #d6d6d6, 392px 520px #d9d9d9, -492px -60px #c4c4c4, 759px 288px #ebebeb, 98px -412px #c4c4c4, -911px -277px #c9c9c9;
+    transform-style: preserve-3d;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 4px;
+    width: 4px;
+    border-radius: 2px;
+}
+.star-field .layer:nth-child(1) {
+    animation: sf-fly-by-1 5s linear infinite;
+}
+.star-field .layer:nth-child(2) {
+    animation: sf-fly-by-2 5s linear infinite;
+}
+.star-field .layer:nth-child(3) {
+    animation: sf-fly-by-3 5s linear infinite;
+}
+
+@keyframes sf-fly-by-1 {
+    from {
+        transform: translateZ(-600px);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateZ(0);
+        opacity: 0.5;
+    }
+}
+@keyframes sf-fly-by-2 {
+    from {
+        transform: translateZ(-1200px);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateZ(-600px);
+        opacity: 0.5;
+    }
+}
+@keyframes sf-fly-by-3 {
+    from {
+        transform: translateZ(-1800px);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateZ(-1200px);
+        opacity: 0.5;
+    }
+}
+
+/* --- UTILITY: HIDE SCROLLBAR --- */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* SCANNING LINE SHINE ANIMATION FOR DARE GENERATOR */
+@keyframes shine-scan {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}
+
+/* GOLD BUTTON SHINE ANIMATION */
+@keyframes shine {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+/* ——— LIQUID GLASS DNA ——— */
+.liquid-glass {
+  /* Deep purple-black base with high transparency */
+  background: rgba(10, 10, 15, 0.4); 
+  
+  /* The Blur - Essential for depth */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* The Border - Thin, glowing purple edge */
+  border: 1px solid rgba(255, 255, 255, 0.08); 
+  
+  /* The Shadow - Inner lighting and outer void shadow */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 20px rgba(168, 85, 247, 0.1); /* Subtle Outer purple glow */
+    
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden; 
+}
+
+/* The Moving Shine (Subtle) */
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.03), 
+    transparent 
+  );
+  animation: liquid-shine 8s infinite linear;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes liquid-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(50%); }
+}
+
+/* --- HALL OF SHAME 3D SHADOWBOX STYLES --- */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.shame-card {
+  box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);
+  transform-style: preserve-3d;
+}
+
+/* The Angular Light Beam Effect */
+.light-spill {
+  background: linear-gradient(
+    180deg, 
+    rgba(220, 38, 38, 0.15) 0%, 
+    rgba(220, 38, 38, 0.05) 30%, 
+    transparent 80%
+  );
+  clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+}
+
+/* The Recessed Content Box */
+.shame-content-box {
+  background: rgba(10, 5, 10, 0.6);
+  border-radius: 12px;
+  padding: 24px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 20px rgba(0,0,0,0.8);
+  position: relative;
+}

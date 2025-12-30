@@ -1,0 +1,38 @@
+:root {
+  /* Self-contained SVG Noise - No External Requests */
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ROTATING SHEEN ANIMATION */
+@keyframes holoShift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+.holo-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none; /* CRITICAL FOR MOBILE TOUCH */
+  z-index: 10;
+  mix-blend-mode: color-dodge;
+  opacity: 0.5;
+  
+  /* THE STACK: Noise + Rainbow Gradient */
+  background-image: 
+    var(--grain),
+    linear-gradient(125deg, 
+      rgba(255,0,132,0.3) 0%, 
+      rgba(252,164,0,0.2) 33%, 
+      rgba(0,255,213,0.2) 66%, 
+      rgba(0,98,255,0.3) 100%
+    );
+    
+  background-size: 200px 200px, 200% 200%;
+  background-blend-mode: overlay;
+  
+  /* Animate the gradient position */
+  animation: holoShift 6s ease-in-out infinite alternate;
+  
+  filter: contrast(1.2) brightness(1.1);
+}
