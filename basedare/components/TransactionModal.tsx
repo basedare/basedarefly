@@ -16,12 +16,12 @@ export default function TransactionModal({ isOpen, status, title, hash, onClose 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-2xl bg-black/20">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(168,85,247,0.2)]"
+          className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(168,85,247,0.2)]"
         >
           
           {/* STATUS ICON */}

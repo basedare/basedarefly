@@ -8,7 +8,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import Footer from "@/components/Footer";
 
 const FAQ_ITEMS = [
   {
@@ -121,7 +120,7 @@ export default function FAQPage() {
           >
             <p className="text-gray-400 mb-4">Still confused?</p>
             <a
-              href="https://twitter.com/basedare"
+              href="https://x.com/basedare_xyz"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition"
@@ -131,8 +130,6 @@ export default function FAQPage() {
           </motion.div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

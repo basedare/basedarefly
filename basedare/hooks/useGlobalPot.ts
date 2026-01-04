@@ -26,11 +26,12 @@ export function useGlobalPot() {
 
     return {
         balance: formattedBalance,
-        rawValue: data?.value || 0n,
+        rawValue: data?.value || BigInt(0),
         isLoading,
         isError
     };
 }
+
 
 
 

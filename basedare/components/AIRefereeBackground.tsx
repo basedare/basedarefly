@@ -32,6 +32,8 @@ const AIRefereeBackground = () => {
     // --- THE LOGIC (Ported from CodePen) ---
     // This is where you paste the particle logic from the Pen
     // Example logic for a "Blockchain Node" effect:
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
     const particles: Particle[] = [];
     class Particle {
       x: number;
@@ -41,8 +43,8 @@ const AIRefereeBackground = () => {
       size: number;
 
       constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * canvasWidth;
+        this.y = Math.random() * canvasHeight;
         this.vx = (Math.random() - 0.5) * 1; // Speed
         this.vy = (Math.random() - 0.5) * 1;
         this.size = Math.random() * 2 + 1;
@@ -51,14 +53,14 @@ const AIRefereeBackground = () => {
         this.x += this.vx;
         this.y += this.vy;
         // Bounce off walls
-        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        if (this.x < 0 || this.x > canvasWidth) this.vx *= -1;
+        if (this.y < 0 || this.y > canvasHeight) this.vy *= -1;
       }
-      draw() {
-        ctx.fillStyle = particleColor;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+      draw(context: CanvasRenderingContext2D) {
+        context.fillStyle = particleColor;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fill();
       }
     }
 
@@ -90,7 +92,7 @@ const AIRefereeBackground = () => {
       // Update & Draw Particles
       particles.forEach(p => {
         p.update();
-        p.draw();
+        p.draw(ctx);
       });
 
       animationFrameId = requestAnimationFrame(render);

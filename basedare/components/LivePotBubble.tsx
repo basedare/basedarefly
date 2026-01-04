@@ -12,13 +12,22 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     // Orb Container: Size increased to w-44 h-44, transparent base, and crucial overflow-hidden
     <motion.div
       className={`fixed bottom-10 right-10 w-44 h-44 
-                  rounded-full flex flex-col justify-center items-center p-2 z-50 
+                  rounded-full flex flex-col justify-center items-center p-2 z-40 
                   border-2 border-purple-500/50 backdrop-blur-sm overflow-hidden 
                   shadow-[0_0_20px_rgba(168,85,247,0.4)]
                   ${className || ''}`}
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       transition={{ type: 'spring', stiffness: 150, delay: 0.5 }}
+      whileHover={{ 
+        scale: 1.08,
+        transition: { 
+          type: "spring", 
+          stiffness: 200, 
+          damping: 15,
+          duration: 0.6
+        } 
+      }}
     >
       
       {/* 1. PRIMARY SPINNING VORTEX (z-0) */}

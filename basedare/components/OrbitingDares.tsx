@@ -1,108 +1,218 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import HoloCard from '@/components/ui/holo-card';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { motion, useTime, useTransform } from 'framer-motion';
+import Image from 'next/image';
 
-// Card data for orbiting display
-const CARDS = [
-  { id: 1, dare: "SHAVE EYEBROW", bounty: "2,500 BD", time: "12:00m", streamer: "@xQc_Warlord" },
-  { id: 2, dare: "EAT REAPER", bounty: "5,000 BD", time: "01:20s", streamer: "@Kai_Cenat" },
-  { id: 3, dare: "JUMP THE GAP", bounty: "1,000 BD", time: "00:45s", streamer: "@Speed_Official" },
-  { id: 4, dare: "DELETE VOD", bounty: "7,500 BD", time: "05:00m", streamer: "@Trainwreck" },
-  { id: 5, dare: "CALL YOUR EX", bounty: "10,000 BD", time: "00:30s", streamer: "@Pokimane" },
-];
-
-// PHYSICS CONSTANTS (2x Speed)
-const RADIUS_X = 320; // Tighter orbit for smaller bear
-const RADIUS_Y = 45;
-const SPEED = 0.004;
-
-interface OrbitingDaresProps {
-  setActiveChat?: (card: typeof CARDS[0]) => void;
+interface Dare {
+  id: string;
+  description: string;
+  stake_amount: number;
+  streamer_name?: string;
+  status: string;
+  video_url?: string;
+  expiry_timer?: string;
+  image_url?: string;
 }
 
-export default function OrbitingDares({ setActiveChat }: OrbitingDaresProps = {}) {
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const positionsRef = useRef<Array<{ x: number; y: number; z: number; scale: number; opacity: number; zIndex: number }>>(
-    CARDS.map(() => ({ x: 0, y: 0, z: 0, scale: 1, opacity: 1, zIndex: 100 }))
-  );
-  const requestRef = useRef<number>();
-  const timeRef = useRef(0);
+// PHYSICS CONSTANTS - Slower, majestic rotation
+const ORBIT_RADIUS = 450; // Increased radius for better spacing
+const ROTATION_DURATION = 75000; // 75 seconds for full orbit (majestic)
 
-  useEffect(() => {
-    const animate = () => {
-      timeRef.current += SPEED;
+interface OrbitingDaresProps {
+  dares?: Dare[];
+  setActiveChat?: (card: any) => void;
+}
 
-      CARDS.forEach((_, index) => {
-        // Orbit Logic
-        const angle = timeRef.current + (index / CARDS.length) * (2 * Math.PI);
-        const x = Math.cos(angle) * RADIUS_X;
-        const z = Math.sin(angle) * RADIUS_X;
-        const y = Math.sin(angle) * RADIUS_Y;
+interface Card {
+  id: string;
+  dare: string;
+  bounty: string;
+  time: string;
+  streamer: string;
+  original: Dare | null;
+}
 
-        // Perspective & Layering
-        const scale = (z + 1200) / 1200; // Smoother scale
-        const opacity = Math.max(0.4, (z + 600) / 900);
-        const zIndex = Math.round(z < 0 ? 50 : 150);
+// Helper function to format bounty
+const formatBounty = (amount: number): string => {
+  if (amount >= 1000) {
+    return `${(amount / 1000).toFixed(1)}K`;
+  }
+  return `${amount}`;
+};
 
-        // Store position for render
-        positionsRef.current[index] = { x, y, z, scale, opacity, zIndex };
+// Helper function to format time from expiry_timer or default
+const formatTime = (expiryTimer?: string): string => {
+  if (!expiryTimer) return "24:00h";
+  try {
+    const expiry = new Date(expiryTimer);
+    const now = new Date();
+    const diff = expiry.getTime() - now.getTime();
+    if (diff <= 0) return "EXPIRED";
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}:${minutes.toString().padStart(2, '0')}h`;
+  } catch {
+    return expiryTimer;
+  }
+};
+
+export default function OrbitingDares({ dares = [], setActiveChat }: OrbitingDaresProps = {}) {
+  // Map dares to card format
+  const CARDS = useMemo((): Card[] => {
+    if (dares.length === 0) {
+      return [
+        { id: '1', dare: "LOADING...", bounty: "0", time: "00:00h", streamer: "@BaseDare", original: null },
+        { id: '2', dare: "LOADING...", bounty: "0", time: "00:00h", streamer: "@BaseDare", original: null },
+        { id: '3', dare: "LOADING...", bounty: "0", time: "00:00h", streamer: "@BaseDare", original: null },
+        { id: '4', dare: "LOADING...", bounty: "0", time: "00:00h", streamer: "@BaseDare", original: null },
+        { id: '5', dare: "LOADING...", bounty: "0", time: "00:00h", streamer: "@BaseDare", original: null },
+      ];
+    }
+    
+    const mapped: Card[] = dares.slice(0, 8).map((dare) => ({
+      id: dare.id,
+      dare: dare.description?.toUpperCase() || "UNKNOWN DARE",
+      bounty: formatBounty(dare.stake_amount || 0),
+      time: formatTime(dare.expiry_timer),
+      streamer: dare.streamer_name ? `@${dare.streamer_name.replace(/[@$]/g, '')}` : "@Unknown",
+      original: dare,
+    }));
+    
+    while (mapped.length < 5) {
+      mapped.push({
+        id: `placeholder-${mapped.length}`,
+        dare: "MORE DARES COMING...",
+        bounty: "0",
+        time: "00:00h",
+        streamer: "@BaseDare",
+        original: null,
       });
+    }
+    
+    return mapped;
+  }, [dares]);
 
-      // Force re-render by updating refs
-      CARDS.forEach((_, index) => {
-        const card = cardsRef.current[index];
-        if (!card) return;
-        const pos = positionsRef.current[index];
-        card.style.transform = `translate3d(${pos.x}px, ${pos.y}px, ${pos.z}px) scale(${pos.scale})`;
-        card.style.opacity = pos.opacity.toString();
-        card.style.zIndex = pos.zIndex.toString();
-      });
-
-      requestRef.current = requestAnimationFrame(animate);
-    };
-
-    requestRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-    };
-  }, []);
+  // Framer Motion rotation
+  const time = useTime();
+  const rotateY = useTransform(time, [0, ROTATION_DURATION], [0, 360], { clamp: false });
+  const rotateYReverse = useTransform(rotateY, (value) => -value);
 
   return (
-    <div className="absolute pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-      {/* 2. ORBITING CARDS */}
-      {CARDS.map((card, index) => {
-        const pos = positionsRef.current[index] || { x: 0, y: 0, z: 0, scale: 1, opacity: 1, zIndex: 100 };
-        const { x, y, z, scale, opacity, zIndex } = pos;
+    <div className="relative w-full h-[600px] flex items-center justify-center overflow-hidden perspective-[2000px]">
+      {/* Rotating container with preserve-3d */}
+      <motion.div
+        className="relative w-[900px] h-[900px] flex items-center justify-center"
+        style={{
+          rotateY: rotateY,
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* PeeBear Head (centered, counter-rotates to stay facing forward) */}
+        <motion.div
+          className="absolute w-64 h-64 md:w-96 md:h-96 z-[50]"
+          style={{
+            rotateY: rotateYReverse,
+            z: 0,
+          }}
+          animate={{ y: [-15, 15, -15], scale: [1, 1.02, 1] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="absolute inset-0 bg-yellow-500/10 blur-[80px] rounded-full animate-pulse" />
+          <Image
+            src="/assets/peebear-head.png"
+            alt="PeeBear Mascot"
+            fill
+            className="object-contain drop-shadow-[0_0_50px_rgba(234,179,8,0.4)]"
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </motion.div>
 
-        return (
-          <div
-            key={card.id}
-            ref={(el) => {
-              cardsRef.current[index] = el;
-            }}
-            className="absolute pointer-events-auto"
-          >
-            <div className="-translate-x-1/2 -translate-y-1/2">
+        {/* Orbiting Cards */}
+        {CARDS.map((card, index) => {
+          const angle = (index / CARDS.length) * 360;
+
+          return (
+            <div
+              key={card.id}
+              className="absolute top-1/2 left-1/2 -mt-32 -ml-32"
+              style={{
+                transform: `rotateY(${angle}deg) translateZ(${ORBIT_RADIUS}px)`,
+                transformStyle: 'preserve-3d',
+              }}
+            >
               <motion.div
-                whileHover={{ scale: 1.1, y: -20, zIndex: 100 }}
-                onClick={() => setActiveChat?.(card)}
-                className="cursor-pointer"
+                style={{
+                  rotateY: rotateYReverse,
+                }}
+                className="w-64 h-80"
               >
-                <HoloCard
-                  title={card.dare}
-                  bounty={card.bounty}
-                  streamer={card.streamer}
-                  time={card.time}
-                  className="w-80 h-96 transition-all duration-300 hover:scale-105 hover:z-50"
-                />
+                {/* Frosted Glass Card */}
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10, z: 20 }}
+                  onClick={() => setActiveChat?.(card.original || card)}
+                  className="relative w-full h-full cursor-pointer group"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  <div className="absolute inset-0 rounded-3xl bg-white/8 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] overflow-hidden">
+                    {/* Subtle inner gradient tint */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-purple-500/5 opacity-50" />
+                    
+                    {/* Content */}
+                    <div className="relative z-10 h-full flex flex-col justify-between p-6 text-white">
+                      {/* Header */}
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="text-[10px] font-mono text-white/60 font-bold tracking-widest uppercase">
+                          DARE #{index + 1}
+                        </span>
+                        <span className="px-3 py-1 text-[9px] font-black uppercase tracking-widest border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 rounded-full">
+                          LIVE
+                        </span>
+                      </div>
+
+                      {/* Dare Text */}
+                      <div className="flex-grow flex items-center mb-6">
+                        <h3 className="text-xl font-black italic uppercase leading-tight drop-shadow-lg line-clamp-3">
+                          {card.dare}
+                        </h3>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="space-y-4 pt-4 border-t border-white/10">
+                        {/* Bounty */}
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
+                            BOUNTY
+                          </span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-yellow-400 tracking-tighter drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">
+                              ${card.bounty}
+                            </span>
+                            <span className="text-xs font-bold text-white/60">USDC</span>
+                          </div>
+                        </div>
+
+                        {/* Streamer & Time */}
+                        <div className="flex justify-between items-center text-[10px] font-mono">
+                          <span className="text-white/70">{card.streamer}</span>
+                          <span className="text-white/50 border border-white/10 px-2 py-1 rounded">
+                            {card.time}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hover glow effect */}
+                    <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-yellow-500/10 via-purple-500/10 to-transparent pointer-events-none" />
+                  </div>
+                </motion.div>
               </motion.div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </motion.div>
     </div>
   );
 }

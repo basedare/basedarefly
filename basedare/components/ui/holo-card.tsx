@@ -49,8 +49,8 @@ export default function HoloCard({
       >
         {/* FRONT */}
         <div className="absolute inset-0 backface-hidden">
-            <div className={`absolute inset-0 bg-[#050505] rounded-xl border ${borderColor} overflow-hidden shadow-2xl`}>
-              <div className={`absolute inset-0 bg-gradient-to-br ${glowColor} via-black to-black opacity-60`} />
+            <div className={`absolute inset-0 backdrop-blur-xl bg-black/10 rounded-xl border ${borderColor} overflow-hidden shadow-2xl`}>
+              <div className={`absolute inset-0 bg-gradient-to-br ${glowColor} via-transparent to-transparent opacity-60`} />
               <div className="absolute inset-0 border-2 border-transparent group-hover:border-purple-500/50 rounded-xl transition-all duration-300" />
               
               <div className="relative z-10 h-full flex flex-col justify-between p-6">
@@ -88,7 +88,7 @@ export default function HoloCard({
 
         {/* BACK (Certificate) */}
         <div className="absolute inset-0 backface-hidden rotate-y-180">
-            <div className={`absolute inset-0 bg-[#0a0a0a] rounded-xl border ${borderColor} overflow-hidden shadow-2xl p-6 flex flex-col justify-between`}>
+            <div className={`absolute inset-0 backdrop-blur-xl bg-black/10 rounded-xl border ${borderColor} overflow-hidden shadow-2xl p-6 flex flex-col justify-between`}>
               <div className="relative z-10 text-center space-y-2">
                 <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center border mb-4 ${isShame ? 'border-red-600 bg-red-900/20 text-red-600' : 'border-[#FFD700]/50 bg-[#FFD700]/10 text-[#FFD700]'}`}>
                   {isShame ? <Ban className="w-6 h-6"/> : <Fingerprint className="w-6 h-6"/>}

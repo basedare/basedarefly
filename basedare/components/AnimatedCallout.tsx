@@ -9,11 +9,6 @@ const pulseVariants = {
       "0 0 15px #fff, 0 0 25px #fff",
       "0 0 10px #fff, 0 0 20px #fff"
     ],
-    transition: {
-      duration: 1.5,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
   }
 };
 
@@ -25,8 +20,13 @@ const AnimatedCallout = () => {
       <motion.h1
         className="text-3xl md:text-5xl font-extrabold text-black uppercase tracking-widest px-4 py-1"
         variants={pulseVariants}
-        initial="animate" // Start the animation immediately
+        initial="animate"
         animate="animate"
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
       >
         MAKE 'EM EARN IT
       </motion.h1>

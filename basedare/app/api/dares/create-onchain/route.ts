@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWalletClient, PROTOCOL_CONTRACT_ADDRESS, PROTOCOL_ABI, publicClient } from '@/lib/contracts';
 import { parseUnits } from 'viem';
-import { base44 } from '@/lib/base44Client';
+import { prisma } from '@/lib/prisma';
 import type { Address } from 'viem';
 
 /**
@@ -69,19 +69,22 @@ export async function POST(request: NextRequest) {
       // This is a placeholder - adjust based on actual event structure
     }
 
-    // Optionally sync to Base44 after successful on-chain creation
-    let base44Dare = null;
+    // Optionally sync to Prisma after successful on-chain creation
+    let prismaDare = null;
     if (base44Data && hash) {
       try {
-        base44Dare = await base44.entities.Dare.create({
-          ...base44Data,
-          onchain_tx_hash: hash,
-          onchain_dare_id: dareId?.toString(),
-          status: 'pending',
+        const dareIdString = dareId !== null ? String(dareId) : null;
+        prismaDare = await prisma.dare.create({
+          data: {
+            ...base44Data,
+            onchain_tx_hash: hash,
+            onchain_dare_id: dareIdString,
+            status: 'PENDING',
+          } as any,
         });
-      } catch (base44Error) {
-        console.error('Failed to sync to Base44, but on-chain creation succeeded:', base44Error);
-        // Don't fail the request if Base44 sync fails
+      } catch (prismaError) {
+        console.error('Failed to sync to Prisma, but on-chain creation succeeded:', prismaError);
+        // Don't fail the request if Prisma sync fails
       }
     }
 
@@ -90,8 +93,8 @@ export async function POST(request: NextRequest) {
       data: {
         transactionHash: hash,
         receipt,
-        dareId: dareId?.toString(),
-        base44Dare,
+        dareId: dareId !== null ? String(dareId) : null,
+        dare: prismaDare,
       },
     });
   } catch (error: any) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { base44 } from '@/lib/base44Client';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/dares/[id]
@@ -19,10 +19,10 @@ export async function GET(
       );
     }
 
-    // Fetch all dares and find the one with matching ID
-    // Note: Base44 SDK might have a getById method - adjust based on actual API
-    const dares = await base44.entities.Dare.list();
-    const dare = dares.find((d: any) => d.id === id);
+    // Fetch dare from Prisma
+    const dare = await prisma.dare.findUnique({
+      where: { id },
+    });
 
     if (!dare) {
       return NextResponse.json(
@@ -63,8 +63,11 @@ export async function PUT(
       );
     }
 
-    // Update dare in Base44
-    const updatedDare = await base44.entities.Dare.update(id, body);
+    // Update dare in Prisma
+    const updatedDare = await prisma.dare.update({
+      where: { id },
+      data: body,
+    });
 
     return NextResponse.json({
       success: true,
@@ -97,9 +100,10 @@ export async function DELETE(
       );
     }
 
-    // Delete dare from Base44
-    // Note: Adjust based on actual Base44 SDK methods
-    await base44.entities.Dare.delete?.(id);
+    // Delete dare from Prisma
+    await prisma.dare.delete({
+      where: { id },
+    });
 
     return NextResponse.json({
       success: true,

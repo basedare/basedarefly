@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+model User {
+  id String @id @default(cuid())
+  walletAddress String @unique
+  baseTag String @unique
+  reputationScore Int @default(0)
+  dares Dare[]
+  referrals Referral[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Dare {
+  id String @id @default(cuid())
+  title String
+  bounty Float
+  streamerHandle String
+  status String
+  videoUrl String?
+  proofHash String?
+  creatorId String
+  creator User @relation(fields: [creatorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Referral {
+  id String @id @default(cuid())
+  code String @unique
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  usageCount Int @default(0)
+  totalEarned Float @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

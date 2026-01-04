@@ -17,14 +17,6 @@ const FixedBountyPot: React.FC<FixedBountyPotProps> = ({ totalPot, countdown }) 
         animate: {
             y: 0,
             opacity: 1,
-            transition: {
-                type: "spring",
-                stiffness: 100,
-                damping: 10,
-                duration: 1.5,
-                repeat: Infinity,
-                repeatType: "reverse" as const,
-            }
         },
     };
 
@@ -35,6 +27,14 @@ const FixedBountyPot: React.FC<FixedBountyPotProps> = ({ totalPot, countdown }) 
             initial="initial"
             animate="animate"
             whileTap={{ scale: 0.95 }}
+            transition={{
+                type: "spring",
+                stiffness: 100,
+                damping: 10,
+                duration: 1.5,
+                repeat: Infinity,
+                repeatType: "reverse" as const,
+            }}
         >
             <Link href="/bounty-pot" className="block">
                 <div className="flex items-center justify-center gap-2 mb-2">

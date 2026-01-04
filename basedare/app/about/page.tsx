@@ -1,11 +1,14 @@
 'use client';
+import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import React from "react";
 import { Zap, Shield, Users } from "lucide-react";
-import Footer from "@/components/Footer";
 
 export default function About() {
   return (
     <div className="relative min-h-screen">
+      {/* Gradual Blur Overlay */}
+      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      
       {/* HERO MANIFESTO */}
       <section className="relative z-10 container mx-auto px-6 py-24 mb-24 text-center">
         <div className="inline-block px-4 py-1 rounded-full bg-white/5 border border-white/10 text-[#FFD700] font-mono text-xs uppercase tracking-widest mb-6">
@@ -58,11 +61,6 @@ export default function About() {
           </div>
         </div>
       </section>
-
-      {/* FOOTER */}
-      <div className="mt-auto">
-        <Footer />
-      </div>
     </div>
   );
 }

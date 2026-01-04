@@ -37,27 +37,23 @@ export default function HyperspaceBackground() {
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
       
-      // 1. Optional: Deep Purple Vignette for depth
-      const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-      gradient.addColorStop(0, 'rgba(50, 0, 100, 0)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
+      // No black fill - let galaxy background show through fully
+      // Just render the network nodes and connections
 
-      // 2. Render High-Voltage Network
+      // Render High-Voltage Network (Fully visible)
       const time = Date.now() / 2000;
       points.forEach((p, i) => {
         // Organic Movement
-        p.x = p.originX + Math.sin(time + p.phase) * 20;
-        p.y = p.originY + Math.cos(time + p.phase) * 20;
+        p.x = p.originX + Math.sin(time + p.phase) * 15;
+        p.y = p.originY + Math.cos(time + p.phase) * 15;
 
-        // Draw Node
+        // Draw Node (fully visible)
         ctx.beginPath();
         ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#D8B4FE';
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.6)'; // Much more visible
         ctx.fill();
 
-        // Draw Connections
+        // Draw Connections (fully visible)
         for (let j = i + 1; j < points.length; j++) {
           const p2 = points[j];
           const dx = p.x - p2.x;
@@ -67,8 +63,8 @@ export default function HyperspaceBackground() {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-            // Electric Purple Line
-            const alpha = (1 - dist / CONNECTION_DIST) * 0.7; // High max opacity
+            // Fully visible purple lines
+            const alpha = (1 - dist / CONNECTION_DIST) * 0.5; // Much higher opacity
             ctx.strokeStyle = `rgba(168, 85, 247, ${alpha})`;
             ctx.lineWidth = 1.2;
             ctx.stroke();

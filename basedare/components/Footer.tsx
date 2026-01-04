@@ -1,96 +1,136 @@
 'use client';
+
 import React from 'react';
+import { Twitter, Shield, FileText, Activity } from 'lucide-react';
 import Link from 'next/link';
-import { Twitter, Github, MessageCircle, Zap, ExternalLink } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 bg-black/80 border-t border-purple-500/30 shadow-[0_-4px_20px_rgba(168,85,247,0.1)]">
-      <div className="container mx-auto px-6 py-16 relative z-10">
-        <div className="grid md:grid-cols-4 gap-12 mb-16">
+    <footer className="w-full relative z-50 overflow-hidden">
+      {/* LIQUID GLASS BACKDROP - Matching Navbar style */}
+      <div 
+        className="absolute inset-0 glass-surface glass-surface--fallback"
+        style={{
+          '--glass-frost': '0.02',
+          '--glass-saturation': '1.8',
+        } as React.CSSProperties}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
+        <div className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl p-12 shadow-2xl"
+             style={{
+               boxShadow: '0 8px 32px rgba(0,0,0,0.37), inset 0 2px 20px rgba(255,255,255,0.05)',
+               background: 'rgba(255,255,255,0.03)'
+             }}>
           
-          {/* BRAND IDENTITY */}
-          <div className="col-span-2 space-y-6">
-            <Link href="/" className="inline-flex items-center gap-2 group">
-              <div className="w-10 h-10 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.3)] group-hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all">
-                <Zap className="w-6 h-6 fill-black" />
+          <div className="grid md:grid-cols-4 gap-12 text-center md:text-left">
+            
+            {/* COL 1: LOGO + IDENTITY */}
+            <div className="col-span-1 md:col-span-2">
+              {/* BASEDDARE LOGO - Image */}
+              <div className="mb-6">
+                <img 
+                  src="/assets/basedare-logo.png" 
+                  alt="BaseDare" 
+                  className="h-32 md:h-40 w-auto mb-4 drop-shadow-[0_0_30px_rgba(255,215,0,0.3)]"
+                />
+                <p className="text-xs text-gray-500 font-mono leading-relaxed max-w-sm mt-3">
+                  The decentralized protocol for verifiable social chaos. 
+                  Smart contract settlement on Base L2. 
+                  <br /><span className="text-purple-500/50">Code is Law. Dares are Forever.</span>
+                </p>
               </div>
-              <span className="text-3xl font-black italic tracking-tighter text-white">
-                BASE<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">DARE</span>
-              </span>
-            </Link>
-            <p className="text-gray-500 font-mono text-sm max-w-sm leading-relaxed">
-              The first decentralized attention marketplace. Built on Base L2. 
-              We monetize viral chaos through atomic settlement layers.
+              
+              {/* SYSTEM STATUS */}
+              <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 bg-green-900/10 border border-green-500/20 rounded-full">
+                <div className="relative">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <div className="absolute inset-0 bg-green-500 rounded-full blur animate-ping" />
+                </div>
+                <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">
+                  BASE MAINNET: ONLINE
+                </span>
+              </div>
+            </div>
+
+            {/* COL 2: CONNECT */}
+            <div>
+               <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-6 border-l-2 border-purple-500 pl-3">
+                 Connect
+               </h3>
+               <a 
+                  href="https://x.com/basedare_xyz" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 text-gray-400 hover:text-[#1DA1F2] transition-colors mb-4"
+               >
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#1DA1F2] transition-colors">
+                    <Twitter className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-mono uppercase tracking-wider">Twitter / X</span>
+               </a>
+               <a 
+                  href="#" 
+                  className="group flex items-center gap-3 text-gray-400 hover:text-[#5865F2] transition-colors"
+               >
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#5865F2] transition-colors">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-mono uppercase tracking-wider">Discord</span>
+               </a>
+            </div>
+
+            {/* COL 3: LEGAL */}
+            <div>
+               <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-6 border-l-2 border-[#FFD700] pl-3">
+                 Legal
+               </h3>
+               <ul className="space-y-4">
+                 <li>
+                   <Link href="/terms" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-[#FFD700] transition-colors uppercase tracking-wider group">
+                      <FileText className="w-3 h-3 group-hover:text-[#FFD700]" />
+                      Terms of Chaos
+                   </Link>
+                 </li>
+                 <li>
+                   <Link href="/privacy" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-cyan-400 transition-colors uppercase tracking-wider group">
+                      <Shield className="w-3 h-3 group-hover:text-cyan-400" />
+                      Privacy Policy
+                   </Link>
+                 </li>
+               </ul>
+            </div>
+          </div>
+
+          {/* COPYRIGHT — TINY & ELEGANT */}
+          <div className="mt-16 pt-8 border-t border-white/10 text-center">
+            <p className="text-gray-500 text-sm">
+              © 2026 BaseDare Protocol Labs. Built by degens who actually deliver.
             </p>
             
-            {/* SYSTEM STATUS */}
-            <div className="flex items-center gap-2 text-[10px] font-mono text-green-500 bg-green-900/10 border border-green-500/20 px-3 py-1.5 rounded-full w-fit">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              PROTOCOL OPERATIONAL v2.0.4
+            <div className="mt-6 flex justify-center gap-8 text-gray-400 text-xs">
+              <Link href="/terms" className="hover:text-yellow-400 transition">
+                Terms & Conditions
+              </Link>
+              <span className="text-white/30">•</span>
+              <Link href="/privacy" className="hover:text-yellow-400 transition">
+                Privacy Policy
+              </Link>
             </div>
-          </div>
 
-          {/* NAVIGATION */}
-          <div>
-            <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-6 flex items-center gap-2">
-              <span className="w-1 h-4 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)]" /> Platform
-            </h4>
-            <ul className="space-y-3">
-              {[
-                { name: 'Dashboard', path: '/dashboard' },
-                { name: 'Create Dare', path: '/create' },
-                { name: 'Verify', path: '/verify' },
-                { name: 'Leaderboard', path: '/leaderboard' }
-              ].map((item) => (
-                <li key={item.name}>
-                  <Link 
-                    href={item.path} 
-                    className="text-gray-400 hover:text-[#FFD700] transition-colors font-mono text-xs uppercase tracking-wide flex items-center gap-2 group"
-                  >
-                    <span className="w-0 group-hover:w-2 h-[1px] bg-[#FFD700] transition-all duration-300" />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* COMMUNITY */}
-          <div>
-            <h4 className="text-white font-bold uppercase tracking-widest text-xs mb-6 flex items-center gap-2">
-              <span className="w-1 h-4 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" /> Network
-            </h4>
-            <div className="flex gap-3 mb-6">
-              {[
-                { Icon: Twitter, href: 'https://twitter.com/basedare' },
-                { Icon: MessageCircle, href: '#' },
-                { Icon: Github, href: '#' }
-              ].map(({ Icon, href }, i) => (
-                <a 
-                  key={i} 
-                  href={href} 
-                  target={href !== '#' ? '_blank' : undefined}
-                  rel={href !== '#' ? 'noopener noreferrer' : undefined}
-                  className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 hover:border-purple-500/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all group"
-                >
-                  <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </a>
-              ))}
+            <div className="mt-4 text-right">
+              <a 
+                href="https://x.com/basedare_xyz" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#00ff41] hover:text-[#00ff41]/80 transition"
+                style={{ textShadow: '0 0 10px rgba(0, 255, 65, 0.5)' }}
+              >
+                Questions? DM @basedare on X · Built on Base ⚡
+              </a>
             </div>
-            <a href="#" className="inline-flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-white transition-colors">
-              Documentation <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        </div>
-
-        {/* LEGAL ROW */}
-        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-gray-600 font-mono uppercase tracking-wider">
-          <div>&copy; 2025 BASEDARE PROTOCOL. POWERED BY BASE L2.</div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-gray-400 transition-colors">Smart Contracts</a>
-            <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-400 transition-colors">Terms of Chaos</a>
           </div>
         </div>
       </div>

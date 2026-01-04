@@ -13,7 +13,7 @@ const HoloPatternOverlay: React.FC = () => {
     return (
         <motion.div
             className="absolute inset-0 pointer-events-none z-0"
-            style={HOLO_PATTERN}
+            style={HOLO_PATTERN as React.CSSProperties}
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.7 }}
             transition={{ duration: 1 }}

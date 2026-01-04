@@ -3,11 +3,11 @@ import React from 'react';
 
 export default function LiquidBackground() {
   return (
-    <div className="fixed inset-0 z-[-50] bg-black pointer-events-none overflow-hidden">
+    <div className="fixed inset-0 z-[-50] bg-transparent pointer-events-none overflow-hidden">
       
-      {/* 1. Deep Base */}
-      <div className="absolute inset-0 bg-black" />
-
+      {/* 1. Subtle Space Void Base */}
+      <div className="absolute inset-0 bg-black/10" />
+      
       {/* 2. The Liquid Oil SVG Filter (3% Opacity as requested) */}
       <div className="absolute -inset-[100%] w-[300%] h-[300%] opacity-[0.03] mix-blend-color-dodge animate-grain">
         <svg className='w-full h-full' xmlns='http://www.w3.org/2000/svg'>
@@ -24,8 +24,8 @@ export default function LiquidBackground() {
         </svg>
       </div>
 
-      {/* 3. Vignette to focus the eye on your Galaxy */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,1)_100%)]" />
+      {/* 3. Vignette to focus the eye on your Galaxy (more subtle) */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
 
       <style jsx>{`
         @keyframes grain {

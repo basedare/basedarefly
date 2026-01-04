@@ -1,80 +1,70 @@
-import React from "react";
-import Footer from "@/components/Footer";
+'use client';
 
-export const metadata = {
-  title: "Privacy Policy | BaseDare",
-  description: "How we handle your data on the BaseDare protocol.",
-};
+import React from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Eye, Lock, Database } from 'lucide-react';
+import LiquidBackground from '@/components/LiquidBackground';
 
-export default function PrivacyPage() {
+export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-purple-100 relative overflow-hidden">
+    <main className="min-h-screen bg-[#050505] text-white selection:bg-cyan-500/30 font-sans relative overflow-hidden">
+      <LiquidBackground />
       
-      {/* BACKGROUND EFFECTS */}
-      <div className="fixed top-0 right-0 w-full h-full pointer-events-none z-0">
-         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/10 blur-[120px] rounded-full" />
-      </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-24">
+        {/* NAV BACK */}
+        <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors mb-12 font-mono text-sm uppercase tracking-widest group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Return to Base
+        </Link>
 
-      <div className="flex-1 py-20 relative z-10 mt-12">
-        <div className="container mx-auto px-6 max-w-4xl">
-          
-          <h1 className="text-5xl md:text-6xl font-black text-center mb-12 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-            Privacy Policy
-          </h1>
-          
-          <div className="space-y-8 text-lg leading-relaxed text-gray-300">
-            <p className="text-white font-medium">Last updated: November 09, 2025</p>
-            <p>BASEDARE collects minimal data to make dares work. Here is what you need to know:</p>
+        {/* HEADER */}
+        <div className="mb-16 border-b border-white/10 pb-8">
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600">
+                PRIVACY PROTOCOL
+            </h1>
+            <p className="font-mono text-gray-500 uppercase tracking-widest text-xs">
+                // DATA TRANSPARENCY REPORT //
+            </p>
+        </div>
+
+        {/* CONTENT */}
+        <div className="space-y-12 text-gray-300 leading-relaxed">
             
-            <div className="space-y-12">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors">
-                <h2 className="text-2xl font-bold text-purple-300 mb-4">What We Collect</h2>
-                <ul className="list-disc pl-6 space-y-2 marker:text-purple-500">
-                  <li>Wallet address (for <span className="text-[#FFD700]">$BARE</span> payouts)</li>
-                  <li>Username and email (for account management)</li>
-                  <li>Dare activity (what you post, accept, complete)</li>
-                  <li>Chat messages (on dare pages)</li>
-                </ul>
-              </div>
+            <section className="bg-white/5 p-8 rounded-3xl border border-white/10">
+                <div className="flex items-center gap-3 mb-4 text-cyan-400">
+                    <Eye className="w-6 h-6" />
+                    <h2 className="text-xl font-black italic uppercase">1. The Public Ledger</h2>
+                </div>
+                <p className="font-mono text-sm opacity-80">
+                    BaseDare is built on public blockchains. <strong>We do not hide your data because we cannot.</strong> Your wallet address, transaction history, and staked amounts are publicly visible on the Base block explorer. If you require absolute anonymity, use a fresh wallet mixed via privacy protocols before interacting.
+                </p>
+            </section>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors">
-                <h2 className="text-2xl font-bold text-purple-300 mb-4">What We Don&apos;t Do</h2>
-                <ul className="list-disc pl-6 space-y-2 marker:text-green-500">
-                  <li>Sell your data to advertisers</li>
-                  <li>Track you across other sites</li>
-                  <li>Share your wallet address publicly (outside of blockchain txs)</li>
-                </ul>
-              </div>
+            <section>
+                <h2 className="text-2xl font-black italic uppercase mb-4 text-white flex items-center gap-2">
+                    <Database className="w-5 h-5 text-gray-500" /> No Database, No Problem
+                </h2>
+                <p className="font-mono text-sm opacity-80 mb-4">
+                    We do not maintain a traditional Web2 database of user emails, passwords, or physical addresses. Your account is your wallet. We do not know who you are, only what you own.
+                </p>
+            </section>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors">
-                <h2 className="text-2xl font-bold text-purple-300 mb-4">Your Rights</h2>
-                <ul className="list-disc pl-6 space-y-2 marker:text-blue-500">
-                  <li>Delete your account anytime</li>
-                  <li>Export your dare history</li>
-                  <li>Opt out of marketing emails</li>
-                </ul>
-              </div>
+            <section>
+                <h2 className="text-2xl font-black italic uppercase mb-4 text-white flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-gray-500" /> Cookies & Local Storage
+                </h2>
+                <p className="font-mono text-sm opacity-80 mb-4">
+                    We use local storage on your device only to remember your "Chaos vs Control" view preference. We do not use third-party tracking pixels to sell your soul to advertisers.
+                </p>
+            </section>
+
+            <div className="pt-12 border-t border-white/10 mt-12 flex items-center justify-between">
+                <span className="font-mono text-xs text-gray-600 uppercase">Status: ENCRYPTED (MOSTLY)</span>
+                <span className="font-mono text-xs text-gray-600 uppercase">v.1.0</span>
             </div>
 
-            <div className="text-center mt-20">
-              <p className="text-xl font-bold text-purple-300 mb-4">
-                Questions?
-              </p>
-              <a 
-                href="https://twitter.com/basedare" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-8 py-3 rounded-full bg-purple-500/20 border border-purple-500 text-purple-200 hover:bg-purple-500 hover:text-white transition-all font-bold"
-              >
-                DM us on X: @basedare
-              </a>
-            </div>
-          </div>
         </div>
       </div>
-      <Footer />
-    </div>
+    </main>
   );
 }
-
-

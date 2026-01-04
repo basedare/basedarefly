@@ -3,11 +3,14 @@ import React from "react";
 import Link from "next/link";
 import { Wallet, Trophy, Target, Zap, Plus, AlertCircle } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
-import Footer from "@/components/Footer";
+import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 
 export default function Dashboard() {
   return (
     <div className="relative min-h-screen flex flex-col">
+      {/* Gradual Blur Overlay - Desktop Only */}
+      <div className="hidden md:block fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      
       {/* 1. DASHBOARD OVERVIEW */}
       <div className="container mx-auto px-6 py-24 mb-12 flex-grow">
         <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8 border-b border-white/10 pb-6">
@@ -98,7 +101,7 @@ export default function Dashboard() {
                   <span className="text-blue-400">@Community_DAO</span>
                 </div>
               </div>
-              <div className="flex items-start gap-3 text-xs text-gray-500 bg-black/40 p-4 rounded-xl border border-white/5">
+              <div className="flex items-start gap-3 text-xs text-gray-500 backdrop-blur-xl bg-black/10 p-4 rounded-xl border border-white/5">
                 <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
                 Proof must be single-take video, unedited, showing face and empty chip package.
               </div>
@@ -106,18 +109,13 @@ export default function Dashboard() {
           </div>
 
           {/* RIGHT: EVIDENCE UPLOAD */}
-          <div className="bg-black/40 border border-white/10 rounded-3xl p-8 flex flex-col justify-center relative overflow-hidden">
+          <div className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 flex flex-col justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
             <div className="relative z-10">
               <SubmitEvidence />
             </div>
           </div>
         </div>
-      </div>
-
-      {/* PUSH FOOTER TO BOTTOM */}
-      <div className="mt-auto">
-        <Footer />
       </div>
     </div>
   );

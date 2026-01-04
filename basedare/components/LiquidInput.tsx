@@ -18,9 +18,9 @@ export function LiquidInput({ className, prefix, ...props }: LiquidInputProps) {
         <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#000_0%,#000_20%,#A855F7_35%,#fff_45%,#3B82F6_60%,#000_80%,#000_100%)] animate-[spin_4s_linear_infinite] opacity-100 blur-[2px] contrast-150" />
       </div>
 
-      {/* 3. The Input Itself (Black Glass) */}
-      <div className="relative bg-black rounded-xl p-[1px] backface-hidden transform translate-z-0">
-        <div className="relative bg-[#050505] rounded-xl flex items-center h-16 px-6 border border-white/5 shadow-2xl">
+      {/* 3. The Input Itself (Black Inner) */}
+      <div className="relative rounded-xl p-[2px] backface-hidden transform translate-z-0">
+        <div className="relative bg-[#120a00] rounded-[10px] flex items-center h-16 px-6 border border-purple-500/20 shadow-2xl">
           {prefix && (
             <span className="mr-2 text-[#FFD700] font-black text-2xl select-none drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
               {prefix}
@@ -29,7 +29,7 @@ export function LiquidInput({ className, prefix, ...props }: LiquidInputProps) {
           <input
             {...props}
             className={cn(
-              "w-full bg-transparent border-none text-xl font-bold text-white placeholder:text-gray-600 focus:ring-0 focus:outline-none font-mono tracking-wide",
+              "w-full bg-transparent border-none text-xl font-bold text-white placeholder:text-white/40 focus:ring-0 focus:outline-none font-mono tracking-wide",
               className
             )}
           />

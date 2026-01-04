@@ -53,7 +53,7 @@ export default function LeaderboardPage() {
                 {/* 2ND PLACE (Silver) */}
                 <div className="order-2 md:order-1 w-full md:w-[30%] h-[320px] transform md:translate-y-8">
                     <ElectricCard color="#94a3b8" variant="swirl" className="h-full rounded-2xl p-6">
-                        <div className="flex flex-col items-center justify-end h-full text-center bg-black/50 rounded-2xl border border-white/10">
+                        <div className="flex flex-col items-center justify-end h-full text-center backdrop-blur-xl bg-black/10 rounded-2xl border border-white/10">
                             <div className="absolute top-4 left-4 text-[#94a3b8] opacity-50"><Medal size={24} /></div>
                             <div className="w-20 h-20 rounded-full border-4 border-[#94a3b8] p-1 mb-4 shadow-[0_0_20px_rgba(148,163,184,0.3)] relative overflow-hidden">
                                 <Image src={SECOND.avatar} alt={SECOND.user} fill sizes="80px" style={{ objectFit: 'cover' }} priority />
@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
                 {/* 1ST PLACE (Gold) */}
                 <div className="order-1 md:order-2 w-full md:w-[35%] h-[380px] z-20 relative">
                     <ElectricCard color="#FACC15" variant="hue" className="h-full rounded-2xl p-6">
-                        <div className="flex flex-col items-center justify-end h-full text-center bg-black/50 rounded-2xl border border-white/10">
+                        <div className="flex flex-col items-center justify-end h-full text-center backdrop-blur-xl bg-black/10 rounded-2xl border border-white/10">
                             <div className="w-28 h-28 rounded-full border-4 border-[#FACC15] p-1 mb-6 shadow-[0_0_40px_rgba(250,204,21,0.4)] relative overflow-hidden">
                                 <Image src={FIRST.avatar} alt={FIRST.user} fill sizes="112px" style={{ objectFit: 'cover' }} priority />
                             </div>
@@ -82,7 +82,7 @@ export default function LeaderboardPage() {
                 {/* 3RD PLACE (Bronze) */}
                 <div className="order-3 w-full md:w-[30%] h-[300px] transform md:translate-y-16">
                     <ElectricCard color="#cd7f32" variant="swirl" className="h-full rounded-2xl p-6">
-                        <div className="flex flex-col items-center justify-end h-full text-center bg-black/50 rounded-2xl border border-white/10">
+                        <div className="flex flex-col items-center justify-end h-full text-center backdrop-blur-xl bg-black/10 rounded-2xl border border-white/10">
                             <div className="absolute top-4 right-4 text-[#cd7f32] opacity-50"><Medal size={24} /></div>
                             <div className="w-16 h-16 rounded-full border-4 border-[#cd7f32] p-1 mb-4 shadow-[0_0_20px_rgba(205,127,50,0.3)] relative overflow-hidden">
                                 <Image src={THIRD.avatar} alt={THIRD.user} fill sizes="64px" style={{ objectFit: 'cover' }} priority />

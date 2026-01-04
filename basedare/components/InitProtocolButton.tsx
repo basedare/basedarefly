@@ -7,7 +7,7 @@ import { Zap } from 'lucide-react';
 export default function InitProtocolButton({ className }: { className?: string }) {
   return (
     <button className={cn(
-      "relative group w-full md:w-auto min-w-[200px] h-16 px-8 bg-black rounded-xl flex items-center justify-center overflow-hidden transition-transform active:scale-95",
+      "relative group w-full md:w-auto min-w-[200px] h-16 px-8 backdrop-blur-xl bg-black/10 rounded-xl flex items-center justify-center overflow-hidden transition-transform active:scale-95",
       className
     )}>
       

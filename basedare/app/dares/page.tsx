@@ -42,7 +42,7 @@ const LiveDareFeed = () => {
 
 export default function DaresPage() {
     return (
-        <div className="min-h-screen pt-24 pb-20 px-4 relative overflow-hidden bg-black text-white">
+        <div className="min-h-screen pt-24 pb-20 px-4 relative overflow-hidden bg-transparent text-white">
             
             {/* Background Chaos */}
             <div className="absolute inset-0 z-0 pointer-events-none">

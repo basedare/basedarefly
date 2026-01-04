@@ -1,33 +1,44 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChatSidebar from "./ChatSidebar";
-
-const BETS = [
-  { user: "@MrBeast", action: "staked", amount: "$50,000", target: "Eat a Scorpion", status: "live" },
-  { user: "@xQc", action: "failed", amount: "-$10,000", target: "Silent Stream", status: "failed" },
-  { user: "@KaiCenat", action: "won", amount: "+$24,000", target: "No Laugh Challenge", status: "won" },
-  { user: "@Speed", action: "staked", amount: "$500", target: "Bark at strangers", status: "live" },
-  { user: "@Pokimane", action: "staked", amount: "$1,000", target: "Cosplay", status: "live" },
-  { user: "@Trainwreck", action: "staked", amount: "$100,000", target: "Open Cases", status: "live" },
-];
 
 export default function ConveyorBar() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedDare, setSelectedDare] = useState<any>(null);
+  const [dares, setDares] = useState<any[]>([]);
 
-  const handleBetClick = (bet: typeof BETS[0]) => {
-    // Transform bet data to match ChatSidebar's expected dare structure
-    const dare = {
-      title: bet.target,
-      streamer_name: bet.user.replace('@', ''),
-      stake_amount: bet.amount.replace(/[^0-9]/g, ''), // Extract numeric value
-      status: bet.status === 'live' ? 'accepted' : bet.status,
-      user: bet.user,
-      action: bet.action,
-      target: bet.target,
+  // Fetch dares from API on mount
+  useEffect(() => {
+    const fetchDares = async () => {
+      try {
+        const response = await fetch('/api/dares');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setDares(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dares:', error);
+        setDares([]); // Fallback to empty array on error
+      }
     };
-    setSelectedDare(dare);
+
+    fetchDares();
+  }, []);
+
+  const handleBetClick = (dare: any) => {
+    // Transform dare data to match ChatSidebar's expected structure
+    const transformedDare = {
+      title: dare.title,
+      streamer_name: dare.streamer_name || dare.streamer || '',
+      stake_amount: dare.stake_amount || dare.stakeAmount || 0,
+      status: dare.status === 'VERIFIED' || dare.status === 'PENDING' ? 'accepted' : dare.status?.toLowerCase(),
+      user: dare.streamer_name ? `@${dare.streamer_name}` : '',
+      action: 'staked',
+      target: dare.title,
+      ...dare,
+    };
+    setSelectedDare(transformedDare);
     setIsChatOpen(true);
   };
 
@@ -47,37 +58,47 @@ export default function ConveyorBar() {
         {/* The Scrolling Track */}
         <div className="flex animate-scroll whitespace-nowrap min-w-max items-center">
           {/* Tripled list for smooth infinite loop */}
-          {[...BETS, ...BETS, ...BETS].map((bet, i) => (
-            <button 
-              key={i} 
-              onClick={() => handleBetClick(bet)}
-              className="inline-flex items-center gap-3 mx-6 px-4 py-1.5 rounded-full border border-white/5 bg-black/20 hover:bg-white/10 hover:border-[#FACC15]/50 transition-all group"
-            >
-              {/* Status Dot */}
-              <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${
-                  bet.status === 'live' ? 'bg-[#FACC15] text-[#FACC15] animate-pulse' : 
-                  bet.status === 'failed' ? 'bg-red-500 text-red-500' : 'bg-green-500 text-green-500'
-              }`}></div>
+          {dares.length > 0 ? (
+            [...dares, ...dares, ...dares].map((dare, i) => {
+              const status = dare.status === 'VERIFIED' || dare.status === 'PENDING' ? 'live' : dare.status?.toLowerCase() || 'live';
+              const amount = `$${dare.stake_amount || dare.stakeAmount || 0}`;
+              const user = dare.streamer_name ? `@${dare.streamer_name}` : `@${dare.streamer || 'unknown'}`;
               
-              <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors tracking-wide">
-                {bet.user}
-              </span>
-              
-              <span className="text-xs text-gray-500 font-mono uppercase">
-                {bet.action}
-              </span>
-              
-              <span className={`text-xs font-black tracking-wider ${
-                  bet.status === 'failed' ? 'text-red-500' : 'text-[#FACC15] drop-shadow-sm'
-              }`}>
-                {bet.amount}
-              </span>
-              
-              <span className="text-xs text-gray-500 truncate max-w-[120px] hidden sm:block border-l border-white/10 pl-3">
-                {bet.target}
-              </span>
-            </button>
-          ))}
+              return (
+                <button 
+                  key={`${dare.id || i}-${i}`} 
+                  onClick={() => handleBetClick(dare)}
+                  className="inline-flex items-center gap-3 mx-6 px-4 py-1.5 rounded-full border border-white/5 bg-black/20 hover:bg-white/10 hover:border-[#FACC15]/50 transition-all group"
+                >
+                  {/* Status Dot */}
+                  <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${
+                      status === 'live' || status === 'verified' || status === 'pending' ? 'bg-[#FACC15] text-[#FACC15] animate-pulse' : 
+                      status === 'failed' ? 'bg-red-500 text-red-500' : 'bg-green-500 text-green-500'
+                  }`}></div>
+                  
+                  <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors tracking-wide">
+                    {user}
+                  </span>
+                  
+                  <span className="text-xs text-gray-500 font-mono uppercase">
+                    staked
+                  </span>
+                  
+                  <span className={`text-xs font-black tracking-wider ${
+                      status === 'failed' ? 'text-red-500' : 'text-[#FACC15] drop-shadow-sm'
+                  }`}>
+                    {amount}
+                  </span>
+                  
+                  <span className="text-xs text-gray-500 truncate max-w-[120px] hidden sm:block border-l border-white/10 pl-3">
+                    {dare.title}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <div className="text-xs text-gray-500 font-mono px-6">Loading dares...</div>
+          )}
         </div>
       </div>
 

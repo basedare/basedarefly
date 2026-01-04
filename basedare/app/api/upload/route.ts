@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { base44 } from '@/lib/base44Client';
 
 /**
  * POST /api/upload
- * Upload a file (image, video, etc.) using Base44's file upload service
+ * Upload a file (image, video, etc.)
+ * NOTE: This endpoint needs to be reimplemented with your file storage solution
  */
 export async function POST(request: NextRequest) {
   try {
@@ -17,24 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert File to a format Base44 SDK expects
-    // This may need adjustment based on actual Base44 SDK API
-    const fileBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([fileBuffer], { type: file.type });
-
-    // Upload file using Base44 integration
-    const result = await base44.integrations.Core.UploadFile({
-      file: fileBlob,
-      filename: file.name,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        file_url: result.file_url,
-        file_id: result.file_id,
-      },
-    });
+    // TODO: Implement file upload with your storage solution (S3, Cloudinary, etc.)
+    // For now, return a placeholder response
+    return NextResponse.json(
+      { success: false, error: 'File upload not yet implemented. Please use a file storage service.' },
+      { status: 501 }
+    );
   } catch (error: any) {
     console.error('Error uploading file:', error);
     return NextResponse.json(

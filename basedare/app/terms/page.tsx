@@ -1,44 +1,73 @@
-import React from "react";
-import Footer from "@/components/Footer";
+'use client';
 
-export const metadata = {
-  title: "Terms of Service | BaseDare",
-};
+import React from 'react';
+import Link from 'next/link';
+import { ArrowLeft, AlertTriangle, ShieldAlert, Gavel } from 'lucide-react';
+import LiquidBackground from '@/components/LiquidBackground';
 
-export default function TermsPage() {
+export default function TermsOfChaos() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-purple-100">
+    <main className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30 font-sans relative overflow-hidden">
+      <LiquidBackground />
       
-      {/* BACKGROUND BLUR */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
-         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full" />
-      </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-24">
+        {/* NAV BACK */}
+        <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#FFD700] transition-colors mb-12 font-mono text-sm uppercase tracking-widest group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Return to Base
+        </Link>
 
-      <div className="flex-1 py-20 relative z-10 mt-12">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-black text-center mb-12 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-            Terms of Service
-          </h1>
-          <div className="space-y-8 text-lg leading-relaxed text-gray-300">
-            <p className="text-white">Last updated: November 09, 2025</p>
-            <p>BASEDARE is a dare platform on Base blockchain. By using this site you agree:</p>
-            <ul className="list-disc pl-8 space-y-4 marker:text-purple-500">
-              <li>No illegal dares (drugs, violence, etc.) — <span className="text-red-400 font-bold">instant ban</span></li>
-              <li>All bounties paid in <span className="text-yellow-400 font-bold">$BARE</span></li>
-              <li>10% platform fee on all completed dares</li>
-              <li>We can revoke any dare at any time</li>
-              <li>No refunds on expired dares</li>
-              <li>PeeBear is watching you</li>
-            </ul>
-            <p className="text-center mt-16 text-2xl font-bold text-white animate-pulse">
-              Have fun. Get based. Don&apos;t get pissed on.
+        {/* HEADER */}
+        <div className="mb-16 border-b border-white/10 pb-8">
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-orange-600">
+                TERMS OF CHAOS
+            </h1>
+            <p className="font-mono text-purple-400 uppercase tracking-widest text-xs">
+                // LEGAL PROTOCOL V1.0 // READ BEFORE INTERACTING
             </p>
-          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="space-y-12 text-gray-300 leading-relaxed">
+            
+            <section className="bg-white/5 p-8 rounded-3xl border border-white/10">
+                <div className="flex items-center gap-3 mb-4 text-[#FFD700]">
+                    <AlertTriangle className="w-6 h-6" />
+                    <h2 className="text-xl font-black italic uppercase">1. The Protocol is Experimental</h2>
+                </div>
+                <p className="font-mono text-sm opacity-80">
+                    BaseDare is a decentralized social coordination protocol running on the Base L2 network. By interacting with the smart contracts, you acknowledge that the protocol is experimental code. Use at your own risk. Funds sent to dare pools are locked until settlement conditions are met via zKML (Zero-Knowledge Machine Learning) verification.
+                </p>
+            </section>
+
+            <section>
+                <h2 className="text-2xl font-black italic uppercase mb-4 text-white">2. Immutable Actions</h2>
+                <p className="font-mono text-sm opacity-80 mb-4">
+                    Blockchain transactions are irreversible. Once you pledge funds to a dare or initiate a bounty, you cannot "undo" the transaction. The blockchain does not care about your regret.
+                </p>
+            </section>
+
+            <section>
+                <h2 className="text-2xl font-black italic uppercase mb-4 text-white">3. Physical Safety & Liability</h2>
+                <p className="font-mono text-sm opacity-80 mb-4">
+                    BaseDare is a platform for digital dares. We strictly prohibit challenges that encourage self-harm, illegal acts, or physical danger. However, BaseDare (the developers) holds <strong>ZERO LIABILITY</strong> for the actions taken by streamers or users. If you dare someone to do a backflip and they fail, that is gravity's fault, not ours.
+                </p>
+            </section>
+
+            <section>
+                <h2 className="text-2xl font-black italic uppercase mb-4 text-white">4. Token Volatility</h2>
+                <p className="font-mono text-sm opacity-80 mb-4">
+                    The value of assets ($BD tokens or ETH) staked in dares may fluctuate wildly. 1 BD = 1 BD, but the market may disagree. Do not stake money you cannot afford to lose to the void.
+                </p>
+            </section>
+
+            <div className="pt-12 border-t border-white/10 mt-12 flex items-center justify-between">
+                <span className="font-mono text-xs text-gray-600 uppercase">Last Updated: BLOCK 9827341</span>
+                <Gavel className="w-6 h-6 text-gray-700" />
+            </div>
+
         </div>
       </div>
-      <Footer />
-    </div>
+    </main>
   );
 }
-
-
