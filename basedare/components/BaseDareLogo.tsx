@@ -86,3 +86,4 @@ export const BaseDareLogo = ({ className = "" }: { className?: string }) => {
     </motion.div>
   );
 };
+

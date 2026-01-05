@@ -27,20 +27,17 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* 1. LOGO (Responsive Colors) */}
+          {/* 1. LOGO (Image) */}
           <div className="flex items-center gap-2 z-50">
             <Link 
               href="/" 
-              // MOBILE & DESKTOP: BASE is always Yellow
-              className="text-2xl font-black italic text-[#FFD700] tracking-tighter uppercase relative group"
+              className="relative group"
             >
-              BASE
-              <span 
-                // MOBILE & DESKTOP: DARE is always Purple
-                className="text-purple-500"
-              >
-                DARE
-              </span>
+              <img 
+                src="/assets/basedare-logo.png" 
+                alt="BaseDare" 
+                className="h-[84px] md:h-[106px] w-auto object-contain drop-shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105 transition-transform"
+              />
             </Link>
           </div>
 

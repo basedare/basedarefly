@@ -23,18 +23,18 @@ interface HeroProps {
 
 export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroProps) {
   const items = (dares.length > 0 ? dares : MOCK_DARES).slice(0, 6);
-  
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeRef = useRef(0);
   const requestRef = useRef<number>(0);
   
+  // Adjusted radius for better mobile view
   const radiiRef = useRef({ x: 550, y: 50, z: 70 });
 
   useEffect(() => {
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
       radiiRef.current = {
-        x: isMobile ? 220 : 550,
+        x: isMobile ? 180 : 550, // Much tighter radius on mobile to prevent overflow
         y: isMobile ? 20 : 50,
         z: isMobile ? 30 : 70
       };
@@ -61,9 +61,6 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
       const z = Math.sin(angle) * rz;
 
       const scale = Math.max(0.7, (z + 1000) / 1000);
-      
-      // Adjusted z-index range: -60 to +60 becomes -10 to +110
-      // Bear at z-50 sits in middle: back cards (<50) behind, front cards (>50) in front
       const zIndex = Math.round(z) + 50;
 
       el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${scale})`;
@@ -79,9 +76,12 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
   }, [items]);
 
   return (
-    <div className="relative w-full h-[800px] flex items-center justify-center perspective-[1200px] overflow-visible">
+    <div className="relative w-full h-[800px] flex items-center justify-center perspective-[1200px] overflow-hidden">
       
-      {/* CARDS - orbit underneath portal */}
+      {/* 1. PORTAL VORTEX - Background Layer */}
+      <PortalVortex />
+
+      {/* 2. ORBITING CARDS */}
       <div className="absolute top-1/2 left-1/2 w-0 h-0">
         {items.map((dare, index) => (
           <div
@@ -104,34 +104,19 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
         ))}
       </div>
 
-      {/* PORTAL - underneath layer (z-10), background vortex */}
-      <PortalVortex />
-
-      {/* BEAR CONTAINER - positioned above, only affects vertical */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ marginTop: '-200px' }}>
-        {/* PEEBEAR HEAD - mid-layer (z-50), centered horizontally, dips into portal */}
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[50]"
-        >
-          <div className="relative w-96 h-96 flex items-center justify-center">
+      {/* 3. PEEBEAR HEAD - Center */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
+        <div className="relative w-64 h-64 md:w-96 md:h-96 z-[50]">
             <div className="absolute inset-0 bg-purple-600/30 blur-[60px] animate-pulse" />
-            <div className="absolute inset-0 bg-gradient-to-t from-purple-600/40 to-transparent blur-2xl scale-y-[-0.8] translate-y-20 opacity-40" />
+            
+            {/* Using standard img for stability instead of motion.img if causing issues */}
             <motion.img 
               src="/assets/peebear-head.png" 
               alt="BaseDare God" 
               className="w-full h-full object-contain drop-shadow-[0_0_40px_rgba(168,85,247,0.8)] relative z-10"
-              animate={{ 
-                y: [0, -15, 20, 0],        // normal → slight rise → dip into portal → emerge
-                scale: [1, 1.02, 0.98, 1]  // slight shrink when dipping
-              }}
-              transition={{ 
-                duration: 8, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                times: [0, 0.35, 0.65, 1]  // timing: rise, hold, dip, recover
-              }}
+              animate={{ y: [0, -15, 20, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             />
-          </div>
         </div>
       </div>
     </div>
