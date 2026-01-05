@@ -24,7 +24,7 @@ export default function HowItWorks() {
             {
               step: "01",
               title: "The Pledge",
-              desc: "You stake $BARE tokens into the escrow pot. The money is real. The pressure is visible.",
+              desc: "You stake USDC tokens into the escrow pot. The money is real. The pressure is visible.",
               icon: "💰"
             },
             {

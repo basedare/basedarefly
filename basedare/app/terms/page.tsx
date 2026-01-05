@@ -57,7 +57,7 @@ export default function TermsOfChaos() {
             <section>
                 <h2 className="text-2xl font-black italic uppercase mb-4 text-white">4. Token Volatility</h2>
                 <p className="font-mono text-sm opacity-80 mb-4">
-                    The value of assets ($BD tokens or ETH) staked in dares may fluctuate wildly. 1 BD = 1 BD, but the market may disagree. Do not stake money you cannot afford to lose to the void.
+                    The value of assets (USDC tokens or ETH) staked in dares may fluctuate wildly. 1 USDC = 1 USDC, but the market may disagree. Do not stake money you cannot afford to lose to the void.
                 </p>
             </section>
 

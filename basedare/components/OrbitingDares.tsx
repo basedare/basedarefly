@@ -109,7 +109,7 @@ export default function OrbitingDares({ dares = [], setActiveChat }: OrbitingDar
       >
         {/* PeeBear Head (centered, counter-rotates to stay facing forward) */}
         <motion.div
-          className="absolute w-64 h-64 md:w-96 md:h-96 z-[50]"
+          className="absolute w-[154px] h-[154px] md:w-[230px] md:h-[230px] z-[50]"
           style={{
             rotateY: rotateYReverse,
             z: 0,

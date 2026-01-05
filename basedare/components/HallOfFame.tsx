@@ -3,9 +3,9 @@ import React from 'react';
 import HoloCard from '@/components/ui/holo-card';
 
 const LEGENDS = [
-  { streamer: "$xQc", dare: "EAT REAPER CHIP", bounty: "15,000 BD", date: "OCT 12", mint: "#042" },
-  { streamer: "$Kai", dare: "CALL EX GIRLFRIEND", bounty: "25,000 BD", date: "NOV 01", mint: "#088" },
-  { streamer: "$Speed", dare: "BARK AT POLICE", bounty: "50,000 BD", date: "DEC 05", mint: "#102" }
+  { streamer: "$xQc", dare: "EAT REAPER CHIP", bounty: "15,000 USDC", date: "OCT 12", mint: "#042" },
+  { streamer: "$Kai", dare: "CALL EX GIRLFRIEND", bounty: "25,000 USDC", date: "NOV 01", mint: "#088" },
+  { streamer: "$Speed", dare: "BARK AT POLICE", bounty: "50,000 USDC", date: "DEC 05", mint: "#102" }
 ];
 
 // The Electric Rope SVG Component

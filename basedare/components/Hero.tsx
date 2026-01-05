@@ -12,7 +12,7 @@ export default function Hero() {
       <div className="relative z-10 w-full max-w-4xl mx-auto text-center flex flex-col items-center">
         
         {/* PEEBEAR HEAD: Optimized & Stable */}
-        <div className="relative w-32 h-32 md:w-48 md:h-48 mb-6">
+        <div className="relative w-[77px] h-[77px] md:w-[115px] md:h-[115px] mb-6">
             <div className="absolute inset-0 bg-[#FFD700] rounded-full blur-[50px] opacity-20 animate-pulse" />
             {/* Standard img tag is more stable for simple assets than Next/Image with complex props */}
             <img 

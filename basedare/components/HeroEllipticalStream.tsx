@@ -97,7 +97,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               <ElectricCard
                 badge={dare.expiry_timer || "24H"}
                 title={dare.description || dare.title}
-                description={`${dare.stake_amount} BD | ${dare.streamer_name || "@Anon"}`}
+                description={`${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}
               />
             </div>
           </div>
@@ -105,8 +105,8 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
       </div>
 
       {/* 3. PEEBEAR HEAD - Center */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
-        <div className="relative w-64 h-64 md:w-96 md:h-96 z-[50]">
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center" style={{ marginTop: '-100px' }}>
+        <div className="relative w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] z-[50]">
             <div className="absolute inset-0 bg-purple-600/30 blur-[60px] animate-pulse" />
             
             {/* Using standard img for stability instead of motion.img if causing issues */}

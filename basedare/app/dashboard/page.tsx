@@ -90,7 +90,7 @@ export default function Dashboard() {
               <div className="space-y-4 font-mono text-sm text-gray-400 mb-8">
                 <div className="flex justify-between border-b border-white/10 pb-2">
                   <span>BOUNTY LOCKED:</span>
-                  <span className="text-white">5,000 BD</span>
+                  <span className="text-white">5,000 USDC</span>
                 </div>
                 <div className="flex justify-between border-b border-white/10 pb-2">
                   <span>TIME REMAINING:</span>

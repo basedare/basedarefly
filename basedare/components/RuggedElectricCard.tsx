@@ -16,7 +16,7 @@ export default function RuggedElectricCard({
   className = "",
 }: CardProps) {
   const id = useId().replace(/:/g, "");
-  // Parse description: "50000 BD | @xQc"
+  // Parse description: "50000 USDC | @xQc"
   const [bounty, streamer] = description.includes('|') ? description.split('|').map(s => s.trim()) : [description, ''];
 
   return (

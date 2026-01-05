@@ -105,7 +105,7 @@ export default function LiveChatOverlay({ target, onClose }: ChatOverlayProps) {
           <div className="text-right">
              <div className="text-[10px] text-purple-400 font-mono uppercase tracking-widest">Current Pot</div>
              <div className="text-xl font-black text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
-               {target.stake_amount ? `${target.stake_amount} BD` : target.bounty || "0 BD"}
+               {target.stake_amount ? `${target.stake_amount} USDC` : target.bounty || "0 USDC"}
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">

@@ -39,7 +39,7 @@ export function StakeCard() {
                 <img 
                   src="/assets/peebear-head.png" 
                   alt="PeeBear" 
-                  className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-[0_0_30px_rgba(250,204,21,0.4)]" 
+                  className="w-[77px] h-[77px] md:w-96 md:h-96 object-contain drop-shadow-[0_0_30px_rgba(250,204,21,0.4)]" 
                 />
                 <h2 className="text-2xl font-black text-white tracking-[0.2em] font-serif uppercase">
                   Create Dare

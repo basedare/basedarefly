@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, Activity } from 'lucide-react';
+import { Twitter, Shield, FileText, Activity, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -88,6 +88,12 @@ export default function Footer() {
                  Legal
                </h3>
                <ul className="space-y-4">
+                 <li>
+                   <Link href="/faq" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-purple-400 transition-colors uppercase tracking-wider group">
+                      <HelpCircle className="w-3 h-3 group-hover:text-purple-400" />
+                      FAQ
+                   </Link>
+                 </li>
                  <li>
                    <Link href="/terms" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-[#FFD700] transition-colors uppercase tracking-wider group">
                       <FileText className="w-3 h-3 group-hover:text-[#FFD700]" />

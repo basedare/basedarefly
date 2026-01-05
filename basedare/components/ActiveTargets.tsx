@@ -2,9 +2,9 @@
 import React from 'react';
 import HoloCard from '@/components/ui/holo-card';
 const LIVE = [
-  { s: "$Speed", d: "BARK AT COP", b: "50,000 BD", t: "48:00:00" },
-  { s: "$Kai", d: "CALL EX", b: "25,000 BD", t: "23:59:59" },
-  { s: "$xQc", d: "EAT CHIP", b: "15,000 BD", t: "12:00:00" },
+  { s: "$Speed", d: "BARK AT COP", b: "50,000 USDC", t: "48:00:00" },
+  { s: "$Kai", d: "CALL EX", b: "25,000 USDC", t: "23:59:59" },
+  { s: "$xQc", d: "EAT CHIP", b: "15,000 USDC", t: "12:00:00" },
 ];
 export default function ActiveTargets() {
   return (
