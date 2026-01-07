@@ -43,7 +43,7 @@ export const ElectricCard = ({
   if (variant === "cosmos") filterURL = `url(#${ids.cosmos})`;
 
   return (
-    <div className={`ec-wrap ${className}`}>
+    <div className={`ec-wrap w-full max-w-full ${className}`}>
       
       {/* --- SVG FILTERS --- */}
       <svg className="svg-container" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -144,6 +144,8 @@ export const ElectricCard = ({
           display: inline-block;
           color-scheme: light dark;
           width: 100%;
+          max-width: 100%;
+          overflow: hidden;
         }
 
         .svg-container {
@@ -193,7 +195,8 @@ export const ElectricCard = ({
         }
 
         .main-card {
-          width: ${width};
+          width: 100%;
+          max-width: 100%;
           aspect-ratio: ${aspectRatio};
           border-radius: 1.5em;
           border: 2px solid var(--electric-border-color);
@@ -328,7 +331,7 @@ export const ElectricCard = ({
 
         /* TITLE */
         .title {
-          font-size: 2.2em;
+          font-size: 1.65em;
           font-weight: 900;
           font-style: italic;
           letter-spacing: -0.02em;
@@ -338,7 +341,9 @@ export const ElectricCard = ({
           -webkit-background-clip: text;
           background-clip: text;
           text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-          font-family: monospace; 
+          font-family: monospace;
+          line-height: 1.1;
+          word-wrap: break-word;
         }
 
         .description {

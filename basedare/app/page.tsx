@@ -88,15 +88,21 @@ export default function Home() {
               </div>
 
               {/* TITLE */}
-              <div className="flex flex-col items-center justify-center -space-y-4 md:-space-y-8 z-10 mb-8 relative z-30">
+              <div className="flex flex-col items-center justify-center -space-y-4 md:-space-y-8 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
                 {/* CONTROL (Existing) */}
-                <GlitchText glowColor="#FFD700" className="text-yellow-400 text-6xl md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
+                <GlitchText glowColor="#FFD700" className="text-yellow-400 text-[12vw] leading-none md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
                 
                 {/* THE STREAM (New Chrome Look) */}
-                <div className="w-full max-w-6xl relative z-10">
+                <div className="w-full max-w-6xl relative z-10 px-4">
                   <ChromeText 
                     text="THE STREAM" 
-                    className="text-5xl md:text-8xl lg:text-9xl"
+                    className="
+                      /* MOBILE FIX: Use viewport width (13vw) so it never overflows */
+                      text-[13vw] leading-none
+                      
+                      /* DESKTOP: Keep your massive sizes */
+                      md:text-8xl lg:text-9xl
+                    "
                   />
                 </div>
               </div>

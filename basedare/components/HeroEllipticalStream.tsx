@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import ElectricCard from "./ElectricCard";
 import PortalVortex from "./PortalVortex";
@@ -26,9 +26,18 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeRef = useRef(0);
   const requestRef = useRef<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Adjusted radius for better mobile view
   const radiiRef = useRef({ x: 550, y: 50, z: 70 });
+  
+  // Detect mobile for reduced animation
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -106,7 +115,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
 
       {/* 3. PEEBEAR HEAD - Center */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center" style={{ marginTop: '-100px' }}>
-        <div className="relative w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] z-[50]">
+        <div className="relative w-[90%] max-w-[350px] h-auto md:w-[1200px] md:h-[1200px] md:max-w-none z-[50]">
             <div className="absolute inset-0 bg-purple-600/30 blur-[60px] animate-pulse" />
             
             {/* Using motion.img for the smooth floating animation */}
@@ -114,7 +123,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               src="/assets/peebear-head.png" 
               alt="BaseDare God" 
               className="w-full h-full object-contain drop-shadow-[0_0_40px_rgba(168,85,247,0.8)] relative z-10"
-              animate={{ y: [0, -15, 20, 0] }}
+              animate={{ y: isMobile ? [0, -8, 10, 0] : [0, -15, 20, 0] }}
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             />
         </div>

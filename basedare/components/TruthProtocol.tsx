@@ -6,11 +6,11 @@ import { ElectricCard } from '@/components/ui/electric-card';
 export default function TruthProtocol() {
   return (
     // 1. INCREASED VERTICAL PADDING (py-24 -> py-32 md:py-48)
-    <section className="relative z-20 py-24 md:py-48 px-6 overflow-hidden">
-      <div className="max-w-7xl mx-auto relative">
+    <section className="relative z-20 py-24 md:py-32 px-4 md:px-6 overflow-hidden">
+      <div className="max-w-[1600px] mx-auto relative">
         
         {/* HEADER */}
-        <div className="text-center mb-20 md:mb-24 relative z-10">
+        <div className="text-center mb-16 md:mb-24 relative z-10">
           <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6">
             THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">TRUTH PROTOCOL</span>
           </h2>
@@ -20,34 +20,34 @@ export default function TruthProtocol() {
         </div>
 
         {/* CARDS GRID */}
-        {/* Increased gap (gap-10) and alignment */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 justify-center items-start">
+        {/* Mobile: 1 col, Desktop: 2/3 cols */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 justify-center items-start">
           
-          {/* Card 1: Purple - Cosmos Variant */}
+          {/* Card 1: Purple */}
           <div className="flex justify-center w-full">
             <ElectricCard 
-              variant="cosmos" 
-              color="#d946ef" // Magenta/Fuchsia accent looks best with the nebula
+              variant="hue" 
+              color="#A855F7"
               badge="01 // PROOF"
               title="VERIFICATION"
               description="zkML Sentinel analyzes stream frames to provide mathematically certain proof of completion."
               width="100%"
               aspectRatio="3/4"
-              className="max-w-[480px]" // <--- 20% bigger (Was 400px)
+              className="w-full max-w-[90vw] md:max-w-[450px]"
             />
           </div>
 
-          {/* Card 2: Yellow (Hue variant = Smooth) */}
+          {/* Card 2: Yellow */}
           <div className="flex justify-center w-full">
             <ElectricCard 
               variant="hue" 
-              color="#FACC15" // Yellow
+              color="#FACC15"
               badge="02 // ESCROW"
               title="SETTLEMENT"
               description="Funds released instantly via smart contracts upon verification. Code is law."
               width="100%"
               aspectRatio="3/4"
-              className="max-w-[400px]" // <--- UPGRADED SIZE
+              className="w-full max-w-[90vw] md:max-w-[450px]"
             />
           </div>
 
@@ -55,13 +55,13 @@ export default function TruthProtocol() {
           <div className="flex justify-center w-full">
             <ElectricCard 
               variant="hue" 
-              color="#3B82F6" // Blue
+              color="#3B82F6"
               badge="03 // SCALE"
               title="NETWORK"
               description="Immutable, low-fee execution powered by Base L2, secured by Ethereum mainnet."
               width="100%"
               aspectRatio="3/4"
-              className="max-w-[400px]" // <--- UPGRADED SIZE
+              className="w-full max-w-[90vw] md:max-w-[450px]"
             />
           </div>
 

@@ -11,9 +11,18 @@ interface LivePotBubbleProps {
 export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const [translateY, setTranslateY] = useState(0); // Combined offset + bounce
   const [triggerBounce, setTriggerBounce] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const potRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0); // Track previous to detect entry
+
+  // Detect mobile for scale
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // --- THE ELEVATOR SCRIPT (GPU-Accelerated + Basketball Bounce - Bulletproof) ---
   useEffect(() => {
@@ -74,14 +83,23 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     // Orb Container: Size increased to w-44 h-44, transparent base, and crucial overflow-hidden
     <motion.div
       ref={potRef}
-      className={`fixed bottom-6 right-6 w-44 h-44 
-                  rounded-full flex flex-col justify-center items-center p-2 z-40 
-                  border-2 border-purple-500/50 backdrop-blur-sm overflow-hidden 
-                  shadow-[0_0_20px_rgba(168,85,247,0.4)]
-                  will-change-transform origin-bottom
-                  ${className || ''}`}
+      className={`
+        fixed z-40 will-change-transform origin-bottom-right
+        rounded-full flex flex-col justify-center items-center p-2
+        border-2 border-purple-500/50 backdrop-blur-sm overflow-hidden 
+        shadow-[0_0_20px_rgba(168,85,247,0.4)]
+        w-44 h-44
+        
+        /* MOBILE: Smaller, tucked into corner */
+        bottom-4 right-2 scale-75
+        
+        /* DESKTOP: Full size, standard position */
+        md:bottom-6 md:right-6 md:scale-100
+        
+        ${className || ''}
+      `}
       style={{ 
-        // 1. GPU Acceleration: Use transform instead of bottom
+        // 1. GPU Acceleration: Use translateY for collision detection
         transform: `translateY(${translateY}px)`,
         // 2. The Physics Curve: Disable transition during bounce for smooth animation
         transition: triggerBounce ? 'none' : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)'

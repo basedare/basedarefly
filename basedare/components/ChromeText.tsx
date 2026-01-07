@@ -9,7 +9,7 @@ interface ChromeTextProps {
 
 export default function ChromeText({ text, className }: ChromeTextProps) {
   return (
-    <div className={cn("relative flex justify-center items-center", className)}>
+    <div className={cn("relative flex justify-center items-center w-full max-w-full overflow-hidden", className)}>
       {/* 1. THE CHROME LAYER (Main Text) */}
       <h1 
         className="
