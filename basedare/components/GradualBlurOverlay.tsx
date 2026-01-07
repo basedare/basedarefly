@@ -5,14 +5,13 @@ import React from 'react';
 export default function GradualBlurOverlay() {
   // We stack multiple layers with varying blur amounts and gradient masks
   // This creates a smooth "fade to blur" effect from top to bottom
+  // Reduced blur intensity for better visibility
   const layers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '20%' }, // Clear at top
-    { blur: '1px',   maskStart: '20%', maskEnd: '35%' },
-    { blur: '2px',   maskStart: '35%', maskEnd: '50%' },
-    { blur: '4px',   maskStart: '50%', maskEnd: '65%' },
-    { blur: '8px',   maskStart: '65%', maskEnd: '80%' },
-    { blur: '16px',  maskStart: '80%', maskEnd: '90%' },
-    { blur: '32px',  maskStart: '90%', maskEnd: '100%' }, // Heaviest blur at bottom
+    { blur: '0px',   maskStart: '0%', maskEnd: '40%' }, // Clear at top (extended)
+    { blur: '1px',   maskStart: '40%', maskEnd: '60%' },
+    { blur: '2px',   maskStart: '60%', maskEnd: '75%' },
+    { blur: '4px',   maskStart: '75%', maskEnd: '90%' },
+    { blur: '6px',   maskStart: '90%', maskEnd: '100%' }, // Much lighter blur at bottom
   ];
 
   return (
@@ -53,4 +52,5 @@ export default function GradualBlurOverlay() {
     </div>
   );
 }
+
 

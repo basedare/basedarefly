@@ -151,7 +151,7 @@ export default function SubmitEvidence() {
         onChange={handleFileInputChange}
         className="hidden"
       />
-
+      
       {/* CONTENT */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
         {uploaded ? (
@@ -250,27 +250,27 @@ export default function SubmitEvidence() {
                   isDragging ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'
                 }`} />
               )}
-            </div>
-            <div>
+        </div>
+        <div>
               <h3 className="text-xl font-black text-white uppercase tracking-wider mb-1">
                 {isDragging ? 'Drop File Here' : 'Submit Evidence'}
               </h3>
-              <p className="text-xs font-mono text-gray-500 max-w-[200px]">
+          <p className="text-xs font-mono text-gray-500 max-w-[200px]">
                 {isDragging 
                   ? 'Release to upload' 
                   : 'DRAG VIDEO FILE HERE OR CLICK TO BROWSE SECURE STORAGE'
                 }
-              </p>
-            </div>
+          </p>
+        </div>
             {error && (
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono max-w-[200px]">
                 <AlertCircle className="w-4 h-4" />
                 {error}
               </div>
             )}
-            <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-              zkML Verification Ready
-            </div>
+        <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+          zkML Verification Ready
+        </div>
           </>
         )}
       </div>

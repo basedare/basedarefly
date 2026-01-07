@@ -71,9 +71,9 @@ export default function FAQPage() {
             {/* Peebear Head Container - Tight Fit for Badge */}
             <div className="relative w-80 h-80 mx-auto mb-8">
                <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-xl animate-pulse" />
-               <motion.img
+            <motion.img
                  src="/assets/peebear-head.png"
-                 alt="BaseDare Bear"
+              alt="BaseDare Bear"
                  className="w-full h-full object-contain relative z-10"
                  animate={{ 
                    rotate: [0, 5, -5, 0],
@@ -153,13 +153,13 @@ export default function FAQPage() {
                 </p>
                 <a
                   href="https://x.com/basedare_xyz"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              target="_blank"
+              rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#1DA1F2]/10 border border-[#1DA1F2]/30 text-[#1DA1F2] font-black px-8 py-4 rounded-full hover:bg-[#1DA1F2] hover:text-white transition-all text-sm uppercase tracking-wider group"
-                >
+            >
                   <MessageCircle className="w-5 h-5" />
                   DM @basedare_xyz
-                </a>
+            </a>
             </div>
           </motion.div>
         </div>

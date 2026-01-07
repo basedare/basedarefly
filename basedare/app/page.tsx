@@ -5,8 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
-import LivePotBubble from "@/components/LivePotBubble";
 import GlitchText from "@/components/GlitchText";
+import ChromeText from "@/components/ChromeText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import LiquidBackground from "@/components/LiquidBackground";
@@ -62,7 +62,6 @@ export default function Home() {
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
       
       <ViewToggle view={view} setView={setView} />
-      <LivePotBubble />
 
       <AnimatePresence mode="wait">
         
@@ -89,9 +88,17 @@ export default function Home() {
               </div>
 
               {/* TITLE */}
-              <div className="flex flex-col items-center justify-center -space-y-4 mb-12 mt-[-50px] relative z-30">
-                <GlitchText glowColor="#FFD700" className="text-yellow-400 text-6xl md:text-9xl font-black italic tracking-tighter">CONTROL</GlitchText>
-                <GlitchText glowColor="#A855F7" className="text-purple-500 text-4xl md:text-8xl font-black italic tracking-tighter">THE STREAM</GlitchText>
+              <div className="flex flex-col items-center justify-center -space-y-4 md:-space-y-8 z-10 mb-8 relative z-30">
+                {/* CONTROL (Existing) */}
+                <GlitchText glowColor="#FFD700" className="text-yellow-400 text-6xl md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
+                
+                {/* THE STREAM (New Chrome Look) */}
+                <div className="w-full max-w-6xl relative z-10">
+                  <ChromeText 
+                    text="THE STREAM" 
+                    className="text-5xl md:text-8xl lg:text-9xl"
+                  />
+                </div>
               </div>
 
               {/* INPUTS */}

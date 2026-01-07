@@ -47,6 +47,12 @@ const config: Config = {
         'drip': 'drip 3s infinite ease-in-out',
         'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 8s linear infinite',
+        'chrome-shine': 'chromeShine 5s ease-in-out infinite',
+        'chromeFlow': 'chromeFlow 12s ease-in-out infinite',
+        'spotlightPulse': 'spotlightPulse 8s ease-in-out infinite alternate',
+        'float-slow': 'float 6s ease-in-out infinite',
+        'god-pulse': 'godPulse 8s ease-in-out infinite',
+        'basketball-bounce': 'basketballBounce 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55)',
       },
       keyframes: {
         drip: {
@@ -56,7 +62,50 @@ const config: Config = {
         'pulse-glow': {
           '0%, 100%': { opacity: '1', boxShadow: '0 0 20px -5px rgba(250, 204, 21, 0.4)' },
           '50%': { opacity: '0.8', boxShadow: '0 0 30px -5px rgba(250, 204, 21, 0.6)' },
-        }
+        },
+        chromeShine: {
+          '0%, 100%': { backgroundPosition: '200% center' },
+          '50%': { backgroundPosition: '-200% center' },
+        },
+        chromeFlow: {
+          '0%, 100%': { backgroundPosition: '50% 50%' },
+          '50%': { backgroundPosition: '100% 100%' },
+        },
+        spotlightPulse: {
+          '0%': { opacity: '0.6', transform: 'translate(-50%, -50%) scale(1)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1.1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' }, // Moves up 20px
+        },
+        godPulse: {
+          '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.1)' },
+        },
+        basketballBounce: {
+          '0%': { 
+            transform: 'translateY(0) scaleY(1) scaleX(1)',
+          },
+          '20%': { 
+            transform: 'translateY(-80px) scaleY(0.85) scaleX(1.1)', // Big rebound + squash/stretch
+          },
+          '40%': { 
+            transform: 'translateY(0) scaleY(1.15) scaleX(0.9)', // Hit + stretch
+          },
+          '55%': { 
+            transform: 'translateY(-40px) scaleY(0.95) scaleX(1.05)', // Medium bounce
+          },
+          '70%': { 
+            transform: 'translateY(0) scaleY(1.05) scaleX(0.95)',
+          },
+          '85%': { 
+            transform: 'translateY(-15px)',
+          },
+          '100%': { 
+            transform: 'translateY(0) scaleY(1) scaleX(1)',
+          },
+        },
       }
     },
   },

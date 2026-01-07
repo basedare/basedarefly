@@ -109,7 +109,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
         <div className="relative w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] z-[50]">
             <div className="absolute inset-0 bg-purple-600/30 blur-[60px] animate-pulse" />
             
-            {/* Using standard img for stability instead of motion.img if causing issues */}
+            {/* Using motion.img for the smooth floating animation */}
             <motion.img 
               src="/assets/peebear-head.png" 
               alt="BaseDare God" 

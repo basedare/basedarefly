@@ -2,130 +2,115 @@
 
 import React, { useMemo } from "react";
 
-type Variant = "swirl" | "hue";
+type Variant = "swirl" | "hue" | "cosmos"; // Added 'cosmos'
 
 export type ElectricCardProps = {
-  /** Visual style: "swirl" = displacement + traveling turbulence; "hue" = animated hue turbulence */
+  /** Visual style: "swirl", "hue", or the new "cosmos" */
   variant?: Variant;
-  /** Accent / border color (any valid CSS color). Defaults to brand gold. */
+  /** Accent / border color. For cosmos, this tints the stars/nebula. */
   color?: string;
-  /** Badge text in the top pill. */
   badge?: string;
-  /** Title text. */
   title?: string;
-  /** Description text. */
   description?: string;
-
-  /** Fixed card width (e.g. "22rem", "360px"). Default is 22rem (matches your demo). */
   width?: string;
-  /** Aspect ratio of the card (e.g. "7 / 10", "3 / 4"). */
   aspectRatio?: string;
-
-  /** Extra class names for the outer wrapper (optional). */
   className?: string;
-  
-  /** Custom content - if provided, badge/title/description are ignored */
-  children?: React.ReactNode;
 };
 
-/**
- * ElectricCard - Premium Liquid Glass + Cyberpunk
- * Animated, dramatic glass/electric card with SVG filters and layered glow.
- * Designed for BaseDare's billion-dollar aesthetic.
- *
- * Render multiple instances safely — filter IDs are unique per component.
- */
-const ElectricCard = ({
+export const ElectricCard = ({
   variant = "swirl",
-  color = "#FACC15", // Brand Gold
-  badge,
-  title,
-  description,
-  width = "22rem",
-  aspectRatio = "7 / 10",
+  color = "#dd8448",
+  badge = "Dramatic",
+  title = "Original",
+  description = "In case you'd like to emphasize something very dramatically.",
+  width = "100%", 
+  aspectRatio = "4 / 5", 
   className = "",
-  children,
 }: ElectricCardProps) => {
-  // Make unique IDs so multiple components don't clash
+  
   const ids = useMemo(() => {
     const key = Math.random().toString(36).slice(2, 8);
     return {
       swirl: `swirl-${key}`,
       hue: `hue-${key}`,
+      cosmos: `cosmos-${key}`, // New ID
     };
   }, []);
 
-  // Map variant -> CSS var that points to the proper filter url(#...)
-  const filterURL = variant === "hue" ? `url(#${ids.hue})` : `url(#${ids.swirl})`;
+  // Map variant to filter
+  let filterURL = `url(#${ids.swirl})`;
+  if (variant === "hue") filterURL = `url(#${ids.hue})`;
+  if (variant === "cosmos") filterURL = `url(#${ids.cosmos})`;
 
   return (
     <div className={`ec-wrap ${className}`}>
-      {/* Inline SVG defs with animated filters (unique IDs per instance) */}
+      
+      {/* --- SVG FILTERS --- */}
       <svg className="svg-container" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          {/* SWIRL (Premium displacement + traveling turbulence) */}
+          {/* 1. SWIRL FILTER */}
           <filter id={ids.swirl} colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1" seed="1" />
             <feOffset in="noise1" dx="0" dy="0" result="offsetNoise1">
               <animate attributeName="dy" values="700; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
             </feOffset>
-
             <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2" seed="1" />
             <feOffset in="noise2" dx="0" dy="0" result="offsetNoise2">
               <animate attributeName="dy" values="0; -700" dur="6s" repeatCount="indefinite" calcMode="linear" />
             </feOffset>
-
-            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise3" seed="2" />
-            <feOffset in="noise3" dx="0" dy="0" result="offsetNoise3">
-              <animate attributeName="dx" values="490; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
-            </feOffset>
-
-            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise4" seed="2" />
-            <feOffset in="noise4" dx="0" dy="0" result="offsetNoise4">
-              <animate attributeName="dx" values="0; -490" dur="6s" repeatCount="indefinite" calcMode="linear" />
-            </feOffset>
-
-            <feComposite in="offsetNoise1" in2="offsetNoise2" result="part1" />
-            <feComposite in="offsetNoise3" in2="offsetNoise4" result="part2" />
-            <feBlend in="part1" in2="part2" mode="color-dodge" result="combinedNoise" />
-
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="combinedNoise"
-              scale="30"
-              xChannelSelector="R"
-              yChannelSelector="B"
-            />
+            <feBlend in="offsetNoise1" in2="offsetNoise2" mode="color-dodge" result="combinedNoise" />
+            <feDisplacementMap in="SourceGraphic" in2="combinedNoise" scale="30" xChannelSelector="R" yChannelSelector="B" />
           </filter>
 
-          {/* HUE (Animated hue turbulence - cyberpunk rainbow effect) */}
+          {/* 2. HUE FILTER */}
           <filter id={ids.hue} colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="7" />
-            <feColorMatrix type="hueRotate" result="pt1">
+            <feColorMatrix type="hueRotate">
               <animate attributeName="values" values="0;360;" dur=".6s" repeatCount="indefinite" calcMode="paced" />
             </feColorMatrix>
-            <feComposite />
-            <feTurbulence type="turbulence" baseFrequency="0.03" numOctaves="7" seed="5" />
-            <feColorMatrix type="hueRotate" result="pt2">
-              <animate
-                attributeName="values"
-                values="0; 333; 199; 286; 64; 168; 256; 157; 360;"
-                dur="5s"
-                repeatCount="indefinite"
-                calcMode="paced"
-              />
-            </feColorMatrix>
-            <feBlend in="pt1" in2="pt2" mode="normal" result="combinedNoise" />
             <feDisplacementMap in="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="B" />
+          </filter>
+
+          {/* 3. COSMOS VORTEX FILTER (New) */}
+          <filter id={ids.cosmos} colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+            {/* Fractal noise creates the "cloud/nebula" texture */}
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="5" result="nebula" />
+            
+            {/* Shift the nebula slowly to make it feel alive */}
+            <feOffset in="nebula" dx="0" dy="0" result="movedNebula">
+               <animate attributeName="dx" values="0; -100" dur="20s" repeatCount="indefinite" />
+            </feOffset>
+
+            {/* Distort the source graphic (the spinning vortex) with the nebula texture */}
+            <feDisplacementMap in="SourceGraphic" in2="movedNebula" scale="40" xChannelSelector="R" yChannelSelector="G" />
+            
+            {/* Add a subtle glow/blur to smooth the stars */}
+            <feGaussianBlur stdDeviation="0.5" />
           </filter>
         </defs>
       </svg>
 
-      <div className="card-container" style={{ ["--electric-border-color" as any]: color, ["--f" as any]: filterURL }}>
+      {/* --- CARD STRUCTURE --- */}
+      <div 
+        className={`card-container ${variant === "cosmos" ? "variant-cosmos" : ""}`}
+        style={{ 
+          ["--electric-border-color" as any]: color, 
+          ["--f" as any]: filterURL 
+        }}
+      >
         <div className="inner-container">
           <div className="border-outer">
-            {/* this is the element that gets the SVG filter */}
-            <div className="main-card" />
+            {/* The Main Card Background */}
+            <div className="main-card">
+              {variant === "cosmos" && (
+                <>
+                  {/* The Spinning Vortex Layer */}
+                  <div className="cosmos-vortex" />
+                  {/* The Star Shimmer Layer */}
+                  <div className="cosmos-stars" />
+                </>
+              )}
+            </div>
           </div>
           <div className="glow-layer-1" />
           <div className="glow-layer-2" />
@@ -136,23 +121,16 @@ const ElectricCard = ({
         <div className="background-glow" />
 
         <div className="content-container">
-          {children ? children : (
-            <>
-              <div className="content-top">
-                {badge && <div className="scrollbar-glass">{badge}</div>}
-                {title && <p className="title">{title}</p>}
-              </div>
+          <div className="content-top">
+            <div className="scrollbar-glass">{badge}</div>
+            <p className="title">{title}</p>
+          </div>
 
-              {description && (
-                <>
-                  <hr className="divider" />
-                  <div className="content-bottom">
-                    <p className="description">{description}</p>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+          <hr className="divider" />
+
+          <div className="content-bottom">
+            <p className="description">{description}</p>
+          </div>
         </div>
       </div>
 
@@ -165,6 +143,7 @@ const ElectricCard = ({
           position: relative;
           display: inline-block;
           color-scheme: light dark;
+          width: 100%;
         }
 
         .svg-container {
@@ -178,30 +157,33 @@ const ElectricCard = ({
           padding: 2px;
           border-radius: 1.5em;
           position: relative;
-          /* Premium liquid glass gradient background */
+          
+          /* Default Colors */
           --electric-light-color: oklch(from var(--electric-border-color) l c h);
           --gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
 
-          background: 
-            linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
+          background: linear-gradient(-30deg, var(--gradient-color), transparent, var(--gradient-color)),
             linear-gradient(to bottom, var(--color-neutral-900), var(--color-neutral-900));
           color: oklch(0.985 0 0);
-          
-          /* Premium hover lift */
-          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                      box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+          /* Hover Physics */
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
         }
 
-        .ec-wrap:hover .card-container {
+        /* COSMOS VARIANT OVERRIDES */
+        .card-container.variant-cosmos {
+          --electric-light-color: #d8b4fe; /* Light Purple */
+          --gradient-color: #581c87;      /* Dark Purple */
+          background: linear-gradient(to bottom, #0f0518, #2e1065); /* Deep cosmic bg */
+        }
+
+        .card-container:hover {
           transform: translateY(-8px) scale(1.02);
-          box-shadow: 
-            0 20px 60px -10px var(--electric-border-color),
-            0 0 40px -5px var(--electric-border-color);
+          box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.4);
+          z-index: 10;
         }
 
-        .inner-container {
-          position: relative;
-        }
+        .inner-container { position: relative; }
 
         .border-outer {
           border: 2px solid oklch(from var(--electric-border-color) l c h / 0.5);
@@ -218,95 +200,105 @@ const ElectricCard = ({
           margin-top: -4px;
           margin-left: -4px;
           filter: var(--f);
-          /* Premium liquid glass base */
-          background: 
-            linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-            oklch(0.145 0 0);
-          backdrop-filter: blur(20px) saturate(180%);
-          box-shadow: 
-            inset 0 1px 1px rgba(255, 255, 255, 0.1),
-            inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+          background: oklch(0.145 0 0);
+          position: relative;
+          overflow: hidden;
         }
 
-        /* Premium Glow effects - Multiple layers for depth */
-        .glow-layer-1,
-        .glow-layer-2,
-        .overlay-1,
-        .overlay-2,
-        .background-glow {
+        /* --- COSMOS VORTEX & STARS --- */
+        
+        .cosmos-vortex {
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          /* The Vortex Gradient */
+          background: conic-gradient(
+            from 0deg at 50% 50%,
+            transparent 0deg,
+            var(--electric-border-color) 40deg,
+            transparent 80deg,
+            #4c1d95 120deg, /* Violet */
+            transparent 160deg,
+            var(--electric-border-color) 200deg,
+            transparent 240deg,
+            #0f172a 280deg, /* Dark Slate */
+            transparent 360deg
+          );
+          opacity: 0.6;
+          animation: vortexSpin 20s linear infinite;
+        }
+
+        .cosmos-stars {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            radial-gradient(white 1px, transparent 1px),
+            radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px);
+          background-size: 40px 40px, 90px 90px;
+          background-position: 0 0, 20px 20px;
+          opacity: 0.5;
+          mix-blend-mode: overlay;
+          animation: starShimmer 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes vortexSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes starShimmer {
+          0% { opacity: 0.3; transform: scale(0.9); }
+          100% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        /* --------------------------- */
+
+        .glow-layer-1, .glow-layer-2, .overlay-1, .overlay-2, .background-glow {
           border-radius: 24px;
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          pointer-events: none;
+          inset: 0;
         }
 
         .glow-layer-1 {
           border: 2px solid oklch(from var(--electric-border-color) l c h / 0.6);
           filter: blur(1px);
-          animation: pulse-glow 2s ease-in-out infinite;
         }
 
         .glow-layer-2 {
           border: 2px solid var(--electric-light-color);
           filter: blur(4px);
-          opacity: 0.7;
         }
 
-        .overlay-1,
-        .overlay-2 {
+        .overlay-1, .overlay-2 {
           mix-blend-mode: overlay;
           transform: scale(1.1);
           filter: blur(16px);
           background: linear-gradient(-30deg, white, transparent 30%, transparent 70%, white);
         }
-
-        .overlay-1 {
-          opacity: 1;
-        }
-        .overlay-2 {
-          opacity: 0.5;
-        }
+        .overlay-1 { opacity: 1; }
+        .overlay-2 { opacity: 0.5; }
 
         .background-glow {
           filter: blur(32px);
           transform: scale(1.1);
           opacity: 0.3;
           z-index: -1;
-          background: linear-gradient(
-            -30deg,
-            var(--electric-light-color),
-            transparent,
-            var(--electric-border-color)
-          );
-          animation: pulse-glow 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse-glow {
-          0%, 100% {
-            opacity: 0.3;
-          }
-          50% {
-            opacity: 0.5;
-          }
+          background: linear-gradient(-30deg, var(--electric-light-color), transparent, var(--electric-border-color));
         }
 
         .content-container {
           position: absolute;
           inset: 0;
-          width: 100%;
-          height: 100%;
           display: flex;
           flex-direction: column;
-          z-index: 10;
         }
 
         .content-top {
           display: flex;
           flex-direction: column;
-          padding: 48px;
+          padding: 24px;
           padding-bottom: 16px;
           height: 100%;
         }
@@ -314,73 +306,45 @@ const ElectricCard = ({
         .content-bottom {
           display: flex;
           flex-direction: column;
-          padding: 48px;
+          padding: 24px;
           padding-top: 16px;
         }
 
-        /* Premium glass badge - Liquid glass effect */
         .scrollbar-glass {
-          background: 
-            radial-gradient(
-              47.2% 50% at 50.39% 88.37%,
-              rgba(255, 255, 255, 0.12) 0%,
-              rgba(255, 255, 255, 0) 100%
-            ),
-            rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(12px) saturate(180%);
+          background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%), rgba(255, 255, 255, 0.04);
           position: relative;
-          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          transition: background 0.3s ease;
           border-radius: 14px;
           width: fit-content;
-          height: fit-content;
           padding: 0.5em 1em;
           text-transform: uppercase;
           font-weight: bold;
           font-size: 0.85em;
-          color: rgba(255, 255, 255, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
         }
-        
         .scrollbar-glass:hover {
-          background: 
-            radial-gradient(
-              47.2% 50% at 50.39% 88.37%,
-              rgba(255, 255, 255, 0.18) 0%,
-              rgba(255, 255, 255, 0) 100%
-            ),
-            rgba(255, 255, 255, 0.08);
-          transform: scale(1.05);
-        }
-        
-        .scrollbar-glass::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          padding: 1px;
-          background: linear-gradient(
-            150deg,
-            rgba(255, 255, 255, 0.48) 16.73%,
-            rgba(255, 255, 255, 0.08) 30.2%,
-            rgba(255, 255, 255, 0.08) 68.2%,
-            rgba(255, 255, 255, 0.6) 81.89%
-          );
-          border-radius: inherit;
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask-composite: xor;
-          -webkit-mask-composite: xor;
-          pointer-events: none;
+          background: radial-gradient(47.2% 50% at 50.39% 88.37%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%), rgba(255, 255, 255, 0.08);
         }
 
+        /* TITLE */
         .title {
-          font-size: 2.25em;
-          font-weight: 500;
+          font-size: 2.2em;
+          font-weight: 900;
+          font-style: italic;
+          letter-spacing: -0.02em;
           margin-top: auto;
-          text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+          color: transparent;
+          background: linear-gradient(180deg, #ffffff, #a5a5a5);
+          -webkit-background-clip: text;
+          background-clip: text;
+          text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+          font-family: monospace; 
         }
 
         .description {
-          opacity: 0.7;
+          opacity: 0.8; /* Increased opacity for readability on dark cards */
           font-size: 0.95em;
+          line-height: 1.5;
         }
 
         .divider {
@@ -395,7 +359,4 @@ const ElectricCard = ({
       `}</style>
     </div>
   );
-}
-
-export { ElectricCard };
-export default ElectricCard;
+};

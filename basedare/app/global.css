@@ -1954,3 +1954,109 @@ svg.w-0.h-0 {
   pointer-events: none;
   z-index: 1000;
 }
+
+/* =========================================
+   MOBILE PERFORMANCE V2: "THE SPEED PATCH"
+   ========================================= */
+
+@media screen and (max-width: 768px) {
+
+    /* 1. REPLACE HEAVY PARTICLES WITH STATIC CYBER-GRID
+       Instead of a black void, we use a CSS pattern that looks like a grid.
+       Zero download size, instant render. */
+    #particles-js, canvas, .video-background-container {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    body {
+        /* Deep blue/black background */
+        background-color: #020205 !important;
+        /* A subtle 20px grid pattern */
+        background-image: linear-gradient(rgba(0, 82, 255, 0.05) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(0, 82, 255, 0.05) 1px, transparent 1px) !important;
+        background-size: 20px 20px !important;
+        
+        /* HARDWARE HACK: Stops the "rubber band" bounce on iOS */
+        overscroll-behavior: none !important;
+        overflow-x: hidden;
+    }
+
+    /* 2. THE "FAKE GLASS" HACK (Massive FPS Boost)
+       Replaces expensive blur with a slick dark gradient. */
+    .glass-card, .card, .navbar, .overlay, .blur-element {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        
+        /* The Gradient: Dark at top, slightly transparent at bottom */
+        background: linear-gradient(180deg, rgba(10, 15, 25, 0.98) 0%, rgba(5, 5, 10, 0.90) 100%) !important;
+        border: 1px solid rgba(0, 82, 255, 0.2) !important; /* Base Blue accent */
+        box-shadow: none !important;
+    }
+
+    /* 3. GPU ACCELERATION FOR SCROLLING ELEMENTS
+       Tells the phone "Get the GPU ready" for these items. */
+    .card, .live-pot-container, video, .bounty-item {
+        will-change: transform, opacity !important;
+        transform: translateZ(0) !important; /* Forces hardware compositing */
+    }
+
+    /* 4. FIX THE POT (UI Cleanup) */
+    .live-pot-container { 
+        backdrop-filter: none !important;
+        background: #000000 !important;
+        border: 1px solid #0052FF !important;
+        transform: scale(0.9); 
+        bottom: 20px;
+        right: 15px;
+    }
+
+    /* 5. TEXT SHARPNESS 
+       Since we removed blur, text needs to pop against the grid. */
+    h1, h2, h3, p {
+        text-shadow: 0px 2px 4px rgba(0,0,0,1);
+    }
+}
+
+/* =========================================
+   DESKTOP PERFORMANCE BOOST (Grok's Strategy)
+   ========================================= */
+
+@media screen and (min-width: 769px) {
+
+    /* 1. OPTIMIZE THE GLASS (The Frame Rate Killer)
+       Grok suggested lowering blur radius. 
+       Standard glass is usually 16px-20px. We drop it to 10px. 
+       Visually identical, computationally 50% cheaper. */
+    .glass-card, .card, .navbar, .overlay, .live-pot-container {
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        
+        /* Force GPU Layer Promotion */
+        transform: translateZ(0); 
+        will-change: backdrop-filter;
+        
+        /* Optimization: Use a slightly more opaque background 
+           so the browser doesn't have to blend as many pixels behind it. */
+        background: rgba(15, 20, 35, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* 2. OPTIMIZE THE PARTICLES CANVAS
+       This tells the browser "This element is going to move, don't repaint the whole page." */
+    #particles-js, canvas, .video-background-container {
+        will-change: transform;
+        transform: translateZ(0);
+        
+        /* Optional: If the background is too sharp/heavy, 
+           this slightly lowers rendering cost */
+        image-rendering: optimizeSpeed; 
+    }
+
+    /* 3. HARDWARE ACCELERATION FOR VIDEO
+       If you have the smoking bear video on desktop, this keeps it smooth. */
+    video {
+        will-change: transform;
+        transform: translateZ(0);
+    }
+}

@@ -87,3 +87,4 @@ export const BaseDareLogo = ({ className = "" }: { className?: string }) => {
   );
 };
 
+

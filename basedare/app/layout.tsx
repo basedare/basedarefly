@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import MobileNavbar from "@/components/MobileNavbar";
 import Footer from "@/components/Footer";
 import LivePotBubble from "@/components/LivePotBubble";
+import LivePotPortal from "@/components/LivePotPortal";
 import { LiquidFilter } from "@/components/ui/LiquidFilter";
 import CosmicLayer from "@/components/CosmicLayer";
 import HyperspaceBackground from "@/components/HyperspaceBackground";
@@ -48,7 +49,9 @@ export default function RootLayout({
             </div>
             
             {/* Render the fixed Live Pot Bubble */}
-            <LivePotBubble />
+            <LivePotPortal>
+              <LivePotBubble />
+            </LivePotPortal>
           </Providers>
         </ClientLoader>
       </body>

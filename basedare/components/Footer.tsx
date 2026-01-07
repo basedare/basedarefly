@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="w-full relative z-50 overflow-hidden">
+    <footer id="site-footer" className="w-full relative z-50 overflow-hidden">
       {/* LIQUID GLASS BACKDROP - Matching Navbar style */}
       <div 
         className="absolute inset-0 glass-surface glass-surface--fallback"
