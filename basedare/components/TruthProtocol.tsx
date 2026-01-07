@@ -20,8 +20,29 @@ export default function TruthProtocol() {
         </div>
 
         {/* CARDS GRID */}
-        {/* Mobile: 1 col, Desktop: 2/3 cols */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 justify-center items-start">
+        {/* Mobile: Simple static cards */}
+        <div className="md:hidden space-y-6">
+          <div className="p-8 bg-black/50 border border-white/10 rounded-2xl backdrop-blur-sm">
+            <p className="text-purple-400 font-bold uppercase text-sm tracking-widest">01 // PROOF</p>
+            <h3 className="text-2xl font-black italic mt-4 text-white">VERIFICATION</h3>
+            <p className="text-gray-400 mt-4 text-sm leading-relaxed">zkML Sentinel analyzes stream frames to provide mathematically certain proof of completion.</p>
+          </div>
+          
+          <div className="p-8 bg-black/50 border border-white/10 rounded-2xl backdrop-blur-sm">
+            <p className="text-[#FACC15] font-bold uppercase text-sm tracking-widest">02 // ESCROW</p>
+            <h3 className="text-2xl font-black italic mt-4 text-white">SETTLEMENT</h3>
+            <p className="text-gray-400 mt-4 text-sm leading-relaxed">Funds released instantly via smart contracts upon verification. Code is law.</p>
+          </div>
+          
+          <div className="p-8 bg-black/50 border border-white/10 rounded-2xl backdrop-blur-sm">
+            <p className="text-cyan-400 font-bold uppercase text-sm tracking-widest">03 // SCALE</p>
+            <h3 className="text-2xl font-black italic mt-4 text-white">NETWORK</h3>
+            <p className="text-gray-400 mt-4 text-sm leading-relaxed">Immutable, low-fee execution powered by Base L2, secured by Ethereum mainnet.</p>
+          </div>
+        </div>
+
+        {/* Desktop: Full electric cards */}
+        <div className="hidden md:grid md:grid-cols-2 xl:grid-cols-3 gap-8 justify-center items-start">
           
           {/* Card 1: Purple */}
           <div className="flex justify-center w-full">
@@ -33,7 +54,7 @@ export default function TruthProtocol() {
               description="zkML Sentinel analyzes stream frames to provide mathematically certain proof of completion."
               width="100%"
               aspectRatio="3/4"
-              className="w-full max-w-[90vw] md:max-w-[450px]"
+              className="w-full max-w-[450px]"
             />
           </div>
 
@@ -47,7 +68,7 @@ export default function TruthProtocol() {
               description="Funds released instantly via smart contracts upon verification. Code is law."
               width="100%"
               aspectRatio="3/4"
-              className="w-full max-w-[90vw] md:max-w-[450px]"
+              className="w-full max-w-[450px]"
             />
           </div>
 
@@ -61,7 +82,7 @@ export default function TruthProtocol() {
               description="Immutable, low-fee execution powered by Base L2, secured by Ethereum mainnet."
               width="100%"
               aspectRatio="3/4"
-              className="w-full max-w-[90vw] md:max-w-[450px]"
+              className="w-full max-w-[450px]"
             />
           </div>
 

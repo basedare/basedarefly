@@ -30,11 +30,17 @@ export default function RootLayout({
         {/* SVG Filter for Refractive Glass Effect */}
         <LiquidFilter />
         
-        {/* LAYER 0 & 1: Deep Space Nebula + Flying Stars */}
-        <CosmicLayer />
+        {/* Mobile: Static background (no particles) */}
+        <div className="fixed inset-0 -z-50 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
         
-        {/* LAYER 2: Purple Plexus Network */}
-        <HyperspaceBackground />
+        {/* Desktop: Full particle effects */}
+        <div className="hidden md:block">
+          {/* LAYER 0 & 1: Deep Space Nebula + Flying Stars */}
+          <CosmicLayer />
+          
+          {/* LAYER 2: Purple Plexus Network */}
+          <HyperspaceBackground />
+        </div>
         
         <ClientLoader>
           <Providers>
