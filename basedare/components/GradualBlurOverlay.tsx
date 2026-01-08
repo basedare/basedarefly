@@ -5,13 +5,12 @@ import React from 'react';
 export default function GradualBlurOverlay() {
   // We stack multiple layers with varying blur amounts and gradient masks
   // This creates a smooth "fade to blur" effect from top to bottom
-  // Reduced blur intensity for better visibility
   const layers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '40%' }, // Clear at top (extended)
+    { blur: '0px',   maskStart: '0%', maskEnd: '40%' }, 
     { blur: '1px',   maskStart: '40%', maskEnd: '60%' },
     { blur: '2px',   maskStart: '60%', maskEnd: '75%' },
     { blur: '4px',   maskStart: '75%', maskEnd: '90%' },
-    { blur: '6px',   maskStart: '90%', maskEnd: '100%' }, // Much lighter blur at bottom
+    { blur: '6px',   maskStart: '90%', maskEnd: '100%' }, 
   ];
 
   return (
@@ -20,10 +19,12 @@ export default function GradualBlurOverlay() {
         .gradual-blur-container {
           position: fixed;
           inset: 0;
-          z-index: 10; /* Sits above background, but below main content */
+          z-index: 10;
           pointer-events: none;
-          /* Optimization: Isolates render layer */
           isolation: isolate; 
+          /* GPU OPTIMIZATION: */
+          transform: translateZ(0);
+          will-change: transform;
         }
         
         .blur-layer {
@@ -31,8 +32,9 @@ export default function GradualBlurOverlay() {
           inset: 0;
           width: 100%;
           height: 100%;
-          /* Force GPU acceleration for smooth scrolling */
-          will-change: backdrop-filter;
+          /* GPU OPTIMIZATION: */
+          transform: translateZ(0);
+          will-change: backdrop-filter, transform;
         }
       `}</style>
 
@@ -43,7 +45,6 @@ export default function GradualBlurOverlay() {
           style={{
             backdropFilter: `blur(${layer.blur})`,
             WebkitBackdropFilter: `blur(${layer.blur})`,
-            // The mask creates the transition area for this specific blur amount
             maskImage: `linear-gradient(to bottom, transparent ${layer.maskStart}, black ${layer.maskEnd})`,
             WebkitMaskImage: `linear-gradient(to bottom, transparent ${layer.maskStart}, black ${layer.maskEnd})`,
           }}
@@ -52,5 +53,3 @@ export default function GradualBlurOverlay() {
     </div>
   );
 }
-
-

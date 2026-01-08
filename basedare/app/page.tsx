@@ -23,6 +23,9 @@ import LiveChatOverlay from "@/components/LiveChatOverlay";
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
 
+// === FIXED IMPORT PATH ===
+import { useIgnition } from "@/app/context/IgnitionContext";
+
 interface Dare {
   id: string;
   description: string;
@@ -38,8 +41,10 @@ export default function Home() {
   const [view, setView] = useState<'FAN' | 'BUSINESS'>('FAN');
   const [dares, setDares] = useState<Dare[]>([]);
   const [activeChatTarget, setActiveChatTarget] = useState<any>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const fetchDares = async () => {
       try {
         const response = await fetch('/api/dares');
@@ -54,60 +59,40 @@ export default function Home() {
     fetchDares();
   }, []);
 
+  if (!isClient) {
+    return <div className="min-h-screen bg-black" />;
+  }
+
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
-      
-      {/* GLOBAL BACKGROUNDS */}
       <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
-      
       <ViewToggle view={view} setView={setView} />
 
       <AnimatePresence mode="wait">
-        
         {view === 'FAN' && (
           <motion.div 
             key="fan-view"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="w-full flex flex-col items-center"
           >
-            {/* 1. HERO SECTION (Relative - Scrolls naturally) */}
             <div className="w-full flex flex-col items-center relative z-20">
-              
-              {/* ORBIT SYSTEM */}
               <div className="w-full relative">
                 <div className="hidden md:block">
-                  <HeroEllipticalStream 
-                    dares={dares} 
-                    onCardClick={(dare) => setActiveChatTarget(dare)} 
-                  />
+                  <HeroEllipticalStream dares={dares} onCardClick={setActiveChatTarget} />
                 </div>
                 <div className="block md:hidden pt-32 pb-12">
                   <PeeBearConveyor dares={dares} />
                 </div>
               </div>
 
-              {/* TITLE */}
               <div className="flex flex-col items-center justify-center -space-y-4 md:-space-y-8 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
-                {/* CONTROL (Existing) */}
                 <GlitchText glowColor="#FFD700" className="text-yellow-400 text-[12vw] leading-none md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
-                
-                {/* THE STREAM (New Chrome Look) */}
                 <div className="w-full max-w-6xl relative z-10 px-4">
-                  <ChromeText 
-                    text="THE STREAM" 
-                    className="
-                      /* MOBILE FIX: Use viewport width (13vw) so it never overflows */
-                      text-[13vw] leading-none
-                      
-                      /* DESKTOP: Keep your massive sizes */
-                      md:text-8xl lg:text-9xl
-                    "
-                  />
+                  <ChromeText text="THE STREAM" className="text-[13vw] leading-none md:text-8xl lg:text-9xl" />
                 </div>
               </div>
 
-              {/* INPUTS */}
               <div className="w-full max-w-4xl px-6 mb-24 relative z-30">
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
                   <div className="w-full md:flex-[2]">
@@ -117,58 +102,48 @@ export default function Home() {
                     <InitProtocolButton className="w-full md:w-auto" />
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-500 text-center font-mono mt-6 tracking-[0.2em] uppercase">
-                  USE <span className="text-[#FFD700] font-bold">$BASETAGS</span> FOR INSTANT ROUTING
-                </p>
               </div>
 
-              {/* 2. HOW IT WORKS (System Protocol) */}
               <HowItWorks />
-
-              {/* 3. MINT ANNOUNCEMENT */}
               <MintAnnouncement />
 
-              {/* 4. LIVE BOUNTIES (MOLTEN CARDS) */}
-              <LiveBounties />
+              {/* 4. LIVE BOUNTIES - DATA CONNECTED */}
+              <LiveBounties dares={dares} onCardClick={setActiveChatTarget} />
 
-              {/* 5. TRUTH PROTOCOL (SCANNER) */}
+              {/* SENTINEL STATUS - POSITIONED UNDER BOUNTIES */}
+              <div className="mt-8 mb-16 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-green-400 font-mono text-xs uppercase tracking-wider">
+                    SENTINEL ONLINE • MONITORING {dares.length} DARES
+                  </span>
+                </div>
+              </div>
+
+              {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
               <TruthProtocol />
 
-              {/* 6. HALL OF SHAME */}
               <div className="w-full border-t border-white/5 bg-black/50">
                   <HallOfShame />
               </div>
-
             </div>
-            
           </motion.div>
         )}
 
-        {/* === VIEW 2: CONTROL (BUSINESS) === */}
-        {/* THIS IS WHERE THE SALES MACHINE GOES - UNDER THE SWITCH */}
         {view === 'BUSINESS' && (
           <motion.div 
             key="business-view"
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             className="w-full min-h-screen flex flex-col items-center justify-center pt-32 pb-24 backdrop-blur-xl bg-black/10 border border-white/10"
           >
-            {/* Replaced empty content with BusinessDossier */}
             <BusinessDossier />
           </motion.div>
         )}
-
       </AnimatePresence>
 
-      {/* CHAT OVERLAY */}
       <AnimatePresence>
-        {activeChatTarget && (
-          <LiveChatOverlay
-            target={activeChatTarget}
-            onClose={() => setActiveChatTarget(null)}
-          />
-        )}
+        {activeChatTarget && <LiveChatOverlay target={activeChatTarget} onClose={() => setActiveChatTarget(null)} />}
       </AnimatePresence>
-
     </main>
   );
 }

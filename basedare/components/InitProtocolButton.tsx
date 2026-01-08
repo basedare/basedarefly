@@ -1,35 +1,69 @@
 'use client';
 
 import React from 'react';
-import { cn } from "@/lib/utils";
-import { Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+// ONLY THIS LINE CHANGED: Adding /app to find the folder
+import { useIgnition } from '@/app/context/IgnitionContext';
 
-export default function InitProtocolButton({ className }: { className?: string }) {
+interface InitProtocolButtonProps {
+  className?: string;
+  onClick?: () => void;
+}
+
+export default function InitProtocolButton({ className, onClick }: InitProtocolButtonProps) {
+  const { ignitionActive, triggerIgnition } = useIgnition();
+
+  const handleAction = () => {
+    // 1. Fire the global reactor ignition (Haptics + Background)
+    triggerIgnition();
+    
+    // 2. Fire any additional click logic (like opening a modal)
+    if (onClick) onClick();
+  };
+
   return (
-    <button className={cn(
-      "relative group w-full md:w-auto min-w-[200px] h-16 px-8 backdrop-blur-xl bg-black/10 rounded-xl flex items-center justify-center overflow-hidden transition-transform active:scale-95",
-      className
-    )}>
-      
-      {/* 1. Outer Gold Glow */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-[#FFD700] to-[#B8860B] rounded-xl blur opacity-20 group-hover:opacity-60 transition duration-500 group-hover:duration-200" />
-      
-      {/* 2. Spinning Gold Chrome Border */}
-      <div className="absolute inset-0 rounded-xl overflow-hidden p-[2px]">
-        <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#422006_0%,#B8860B_20%,#FFD700_35%,#fff_45%,#B8860B_60%,#422006_80%,#422006_100%)] animate-[spin_3s_linear_infinite] blur-[1px] contrast-125 group-hover:contrast-150" />
-      </div>
+    <motion.button
+      whileTap={{ scale: 0.96 }}
+      animate={{ 
+        scale: ignitionActive ? 1.05 : 1,
+        boxShadow: ignitionActive 
+          ? '0 0 50px rgba(250, 204, 21, 0.6), inset 0 0 20px rgba(250, 204, 21, 0.4)' 
+          : '0 0 0px rgba(250, 204, 21, 0)'
+      }}
+      transition={{ type: "spring", stiffness: 400, damping: 12 }}
+      onClick={handleAction}
+      className={`
+        relative px-10 py-5 bg-black border-2 border-purple-500/40 rounded-2xl 
+        overflow-hidden group transition-colors duration-300
+        ${ignitionActive ? 'border-yellow-400/80' : 'hover:border-purple-400'}
+        ${className}
+      `}
+    >
+      {/* GLOWING TEXT */}
+      <span className={`
+        relative z-10 font-black italic uppercase tracking-tighter text-xl
+        transition-colors duration-300
+        ${ignitionActive ? 'text-yellow-400' : 'text-white'}
+      `}>
+        {ignitionActive ? "IGNITING..." : "INITIATE PROTOCOL"}
+      </span>
 
-      {/* 3. Inner Button (Dark Gold/Black) */}
-      <div className="absolute inset-[2px] bg-[#120a00] rounded-[10px] flex items-center justify-center border border-[#FFD700]/20">
-        
-        {/* Shine Sweep Effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 translate-x-[-200%] group-hover:animate-shine pointer-events-none" />
-        
-        <div className="relative flex items-center gap-2 text-[#FFD700] font-black text-sm md:text-base tracking-widest uppercase leading-none drop-shadow-[0_2px_10px_rgba(255,215,0,0.3)]">
-          <Zap className="fill-[#FFD700] w-4 h-4 md:w-5 md:h-5" /> 
-          INIT PROTOCOL
-        </div>
-      </div>
-    </button>
+      {/* THE KINETIC SHOCKWAVE */}
+      {ignitionActive && (
+        <motion.div
+          initial={{ scale: 0.8, opacity: 1 }}
+          animate={{ scale: 2.5, opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full bg-yellow-400/40 pointer-events-none z-0"
+        />
+      )}
+
+      {/* AMBER SCANLINE PULSE */}
+      <div className={`
+        absolute inset-0 bg-gradient-to-b from-transparent via-yellow-500/10 to-transparent 
+        -translate-y-full group-hover:translate-y-full transition-transform duration-1000
+        ${ignitionActive ? 'opacity-100' : 'opacity-0'}
+      `} />
+    </motion.button>
   );
 }

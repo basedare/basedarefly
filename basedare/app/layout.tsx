@@ -12,6 +12,9 @@ import CosmicLayer from "@/components/CosmicLayer";
 import HyperspaceBackground from "@/components/HyperspaceBackground";
 import ClientLoader from "@/components/ClientLoader";
 
+// FIXED PATH
+import { IgnitionProvider } from "@/app/context/IgnitionContext";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -27,38 +30,29 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
-        {/* SVG Filter for Refractive Glass Effect */}
         <LiquidFilter />
-        
-        {/* Mobile: Static background (no particles) */}
         <div className="fixed inset-0 -z-50 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
-        
-        {/* Desktop: Full particle effects */}
         <div className="hidden md:block">
-          {/* LAYER 0 & 1: Deep Space Nebula + Flying Stars */}
           <CosmicLayer />
-          
-          {/* LAYER 2: Purple Plexus Network */}
           <HyperspaceBackground />
         </div>
         
         <ClientLoader>
-          <Providers>
-            <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <MobileNavbar />
-              <main className="flex-grow pt-24 pb-24 md:pb-0">
-                {children}
-              </main>
-              
-              <Footer />
-            </div>
-            
-            {/* Render the fixed Live Pot Bubble */}
-            <LivePotPortal>
-              <LivePotBubble />
-            </LivePotPortal>
-          </Providers>
+          <IgnitionProvider>
+            <Providers>
+              <div className="flex flex-col min-h-screen">
+                <Navbar />
+                <MobileNavbar />
+                <main className="flex-grow pt-24 pb-24 md:pb-0">
+                  {children}
+                </main>
+                <Footer />
+              </div>
+              <LivePotPortal>
+                <LivePotBubble />
+              </LivePotPortal>
+            </Providers>
+          </IgnitionProvider>
         </ClientLoader>
       </body>
     </html>
