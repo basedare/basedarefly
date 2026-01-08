@@ -53,6 +53,17 @@ export default function Footer() {
                   BASE MAINNET: ONLINE
                 </span>
               </div>
+
+              {/* WAITLIST BUTTON */}
+              <div className="mt-6">
+                <Link 
+                  href="/waitlist"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-black italic uppercase rounded-xl hover:bg-purple-400 transition-all transform hover:scale-105 active:scale-[0.98] tracking-tighter text-sm shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]"
+                >
+                  <span>Enter the Vault</span>
+                  <span className="text-purple-600">→</span>
+                </Link>
+              </div>
             </div>
 
             {/* COL 2: CONNECT */}
