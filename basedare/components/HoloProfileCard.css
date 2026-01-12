@@ -1,0 +1,106 @@
+/* --- CSS Variables & Setup --- */
+:root {
+  --card-radius: 20px;
+}
+
+.holo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px;
+  padding: 50px;
+}
+
+/* --- The Card --- */
+.holo-card {
+  width: 300px;
+  height: 450px;
+  position: relative;
+  z-index: 10;
+  transform-style: preserve-3d;
+  /* Use the rotation variables set by JS */
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+  border-radius: var(--card-radius);
+  background: #ffffff; /* Pure white base */
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+}
+
+.holo-card__rotator,
+.holo-card__front {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  position: relative;
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+/* --- Holographic Shine Layer --- */
+.holo-card__shine {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.3s ease;
+  /* This blend mode makes the colors pop on the white background */
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+
+  /* Define the holographic gradient colors */
+  --h: 21;
+  --s: 70%;
+  --l: 50%;
+  --bar-bg: rgb(10, 10, 10);
+  --bar-color: rgba(255, 255, 255, 0.6);
+  
+  background-image:
+    /* The diagonal sheen */
+    repeating-linear-gradient(
+        90deg,
+        var(--bar-bg) calc(var(--bars) * 2),
+        var(--bar-color) calc(var(--bars) * 3),
+        var(--bar-bg) calc(var(--bars) * 3.5),
+        var(--bar-color) calc(var(--bars) * 4),
+        var(--bar-bg) calc(var(--bars) * 5),
+        var(--bar-bg) calc(var(--bars) * 12)
+    ),
+    /* The rainbow bars */
+    repeating-linear-gradient(
+        90deg,
+        hsl(calc(var(--h) * 0), var(--s), var(--l)) 0%,
+        hsl(calc(var(--h) * 1), var(--s), var(--l)) 10%,
+        hsl(calc(var(--h) * 2), var(--s), var(--l)) 20%,
+        hsl(calc(var(--h) * 3), var(--s), var(--l)) 30%,
+        hsl(calc(var(--h) * 4), var(--s), var(--l)) 40%,
+        hsl(calc(var(--h) * 5), var(--s), var(--l)) 50%,
+        hsl(calc(var(--h) * 6), var(--s), var(--l)) 60%,
+        hsl(calc(var(--h) * 7), var(--s), var(--l)) 70%,
+        hsl(calc(var(--h) * 8), var(--s), var(--l)) 80%,
+        hsl(calc(var(--h) * 9), var(--s), var(--l)) 90%,
+        hsl(calc(var(--h) * 0), var(--s), var(--l)) 100%
+    );
+
+  background-size: 200% 200%;
+  background-position: calc(((50% - var(--posx)) * 2.5) + 50%) center;
+  /* Adjust brightness based on distance from center */
+  filter: brightness(calc((var(--hyp) * 0.5) + 0.8)) contrast(2) saturate(1.2);
+}
+
+/* Show the shine on hover */
+.holo-card:hover .holo-card__shine {
+  opacity: 1;
+}
+
+/* --- Card Content --- */
+.holo-card__content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #333;
+}

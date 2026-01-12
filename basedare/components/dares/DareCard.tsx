@@ -1,6 +1,6 @@
 'use client';
 
-import ElectricCard from "@/components/ui/electric-card";
+import { ElectricCard } from "@/components/ui/electric-card";
 import { useBountyStake } from '@/hooks/useBountyStake';
 import { useAccount } from 'wagmi';
 
@@ -45,6 +45,12 @@ export default function DareCard({
       await stake(dareId, streamerAddress, referrer, amount);
       
       // The wallet will now pop up for Approval, then for Staking.
+      
+      // === VIRAL X LOOP ===
+      const tweetText = `I just staked ${amount} USDC on @${streamerAddress?.slice(0,6)}... with my @base account on BaseDare. Match me! 🛡️⚔️`;
+      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+      window.open(tweetUrl, '_blank');
+
     } catch (error) {
       console.error("Staking failed or was rejected by user:", error);
     }
@@ -59,6 +65,7 @@ export default function DareCard({
             color={cardColor} 
             variant={variant}
             className="h-full"
+            // ... (rest of props)
         >
             <div className="flex flex-col h-full justify-between items-center text-center p-2">
                 
@@ -90,7 +97,7 @@ export default function DareCard({
                         isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7]/20 border border-[#A855F7] text-white'
                     }`}
                 >
-                    {amount ? `Back this Dare (${amount} USDC)` : 'Stake Now'}
+                    {amount ? `Lock Bounty (${amount} USDC)` : 'Lock Bounty'}
                 </button>
             </div>
         </ElectricCard>

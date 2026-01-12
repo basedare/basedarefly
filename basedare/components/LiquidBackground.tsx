@@ -49,6 +49,8 @@ export default function LiquidBackground() {
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
 
+      <div className="absolute inset-0 bg-black" style={{ opacity: 0.65 }} />
+
       {/* IGNITION SHOCKWAVE LAYER */}
       {ignitionActive && (
         <div 

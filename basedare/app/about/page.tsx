@@ -1,16 +1,16 @@
 'use client';
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
-import React from "react";
 import { Zap, Shield, Users } from "lucide-react";
+import ProfileCard from "@/components/ProfileCard";
+import LiquidBackground from "@/components/LiquidBackground";
 
 export default function About() {
   return (
     <div className="relative min-h-screen">
-      {/* Gradual Blur Overlay */}
+      <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
       
-      {/* HERO MANIFESTO */}
-      <section className="relative z-10 container mx-auto px-6 py-24 mb-24 text-center">
+      <section className="relative z-10 container mx-auto px-6 pt-24 pb-12 text-center">
         <div className="inline-block px-4 py-1 rounded-full bg-white/5 border border-white/10 text-[#FFD700] font-mono text-xs uppercase tracking-widest mb-6">
           The Protocol
         </div>
@@ -23,11 +23,25 @@ export default function About() {
         </p>
       </section>
 
-      {/* CORE FEATURES GRID */}
-      <section className="relative z-10 container mx-auto px-6 mb-32">
+      <section className="relative z-10 container mx-auto px-6 py-12 flex flex-col items-center">
+        <div className="mb-8 text-center">
+           <span className="font-mono text-xs text-purple-400 uppercase tracking-widest mb-2 block">
+             Access Level: God Mode
+           </span>
+           <h2 className="text-3xl font-black italic uppercase text-white">Meet The C.H.O.</h2>
+        </div>
+        
+        <div className="w-full max-w-[350px]">
+          <ProfileCard
+            name="MANAGER" 
+            title="Chief Honey Officer" 
+            handle="@BaseDareManager" 
+          />
+        </div>
+      </section>
+
+      <section className="relative z-10 container mx-auto px-6 py-24 mb-32">
         <div className="grid md:grid-cols-3 gap-6">
-          
-          {/* CARD 1 */}
           <div className="group p-8 rounded-3xl bg-black/40 border border-white/10 hover:border-[#FFD700]/50 transition-all duration-500 hover:bg-black/60">
             <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Zap className="w-6 h-6 text-purple-400" />
@@ -38,7 +52,6 @@ export default function About() {
             </p>
           </div>
 
-          {/* CARD 2 */}
           <div className="group p-8 rounded-3xl bg-black/40 border border-white/10 hover:border-[#FFD700]/50 transition-all duration-500 hover:bg-black/60">
             <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Shield className="w-6 h-6 text-blue-400" />
@@ -49,7 +62,6 @@ export default function About() {
             </p>
           </div>
 
-          {/* CARD 3 */}
           <div className="group p-8 rounded-3xl bg-black/40 border border-white/10 hover:border-[#FFD700]/50 transition-all duration-500 hover:bg-black/60">
             <div className="w-12 h-12 bg-[#FFD700]/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <Users className="w-6 h-6 text-[#FFD700]" />

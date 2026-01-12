@@ -15,6 +15,7 @@ export type ElectricCardProps = {
   width?: string;
   aspectRatio?: string;
   className?: string;
+  children?: React.ReactNode;
 };
 
 export const ElectricCard = ({
@@ -26,6 +27,7 @@ export const ElectricCard = ({
   width = "100%", 
   aspectRatio = "4 / 5", 
   className = "",
+  children,
 }: ElectricCardProps) => {
   
   const ids = useMemo(() => {
@@ -120,18 +122,25 @@ export const ElectricCard = ({
         <div className="overlay-2" />
         <div className="background-glow" />
 
-        <div className="content-container">
-          <div className="content-top">
-            <div className="scrollbar-glass">{badge}</div>
-            <p className="title">{title}</p>
+        {/* Support for children override */}
+        {children ? (
+          <div className="content-container">
+            {children}
           </div>
+        ) : (
+          <div className="content-container">
+            <div className="content-top">
+              <div className="scrollbar-glass">{badge}</div>
+              <p className="title">{title}</p>
+            </div>
 
-          <hr className="divider" />
+            <hr className="divider" />
 
-          <div className="content-bottom">
-            <p className="description">{description}</p>
+            <div className="content-bottom">
+              <p className="description">{description}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <style jsx>{`

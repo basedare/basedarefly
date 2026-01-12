@@ -85,7 +85,7 @@ const LIVE_TARGETS = [
   },
 ];
 
-export default function LiveBounties({ dares = [], onCardClick }: { dares?: any[], onCardClick?: (dare: any) => void }) {
+export default function LiveBounties({ dares = [] }: { dares?: any[] }) {
   const userLevel = 1;
 
   return (
@@ -102,16 +102,12 @@ export default function LiveBounties({ dares = [], onCardClick }: { dares?: any[
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 perspective-container">
+        <div className="grid md:grid-cols-3 gap-8 perspective-container">
            {/* RENDER THE HARDCODED PRESETS FIRST */}
            {LIVE_TARGETS.map((target) => {
              const isLocked = target.minLevel > userLevel;
              return (
-               <div 
-                 key={target.id} 
-                 className="relative cursor-pointer group"
-                 onClick={() => onCardClick && onCardClick(target)}
-               >
+               <div key={target.id} className="relative cursor-pointer group">
                   {isLocked && (
                     <div className="absolute inset-0 z-50 bg-[#050505]/90 backdrop-blur-md flex flex-col items-center justify-center rounded-3xl border border-[#FFD700]/20">
                         <Crown className="w-8 h-8 text-[#FFD700] mb-4 shadow-[0_0_30px_rgba(255,215,0,0.3)]" />

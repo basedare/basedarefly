@@ -4,12 +4,13 @@ import Link from "next/link";
 import { Wallet, Trophy, Target, Zap, Plus, AlertCircle } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import LiquidBackground from "@/components/LiquidBackground";
 
 export default function Dashboard() {
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* Gradual Blur Overlay - Desktop Only */}
-      <div className="hidden md:block fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      <LiquidBackground />
+      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
       
       {/* 1. DASHBOARD OVERVIEW */}
       <div className="container mx-auto px-6 py-24 mb-12 flex-grow">
@@ -110,7 +111,6 @@ export default function Dashboard() {
 
           {/* RIGHT: EVIDENCE UPLOAD */}
           <div className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 flex flex-col justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
             <div className="relative z-10">
               <SubmitEvidence />
             </div>

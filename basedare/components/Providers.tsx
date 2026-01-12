@@ -1,46 +1,45 @@
 "use client";
 
-import * as React from "react";
+import { WagmiProvider, createConfig, http } from 'wagmi';
+import { base } from 'viem/chains';
+import { coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { useState } from 'react';
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { base } from 'wagmi/chains';
-import '@rainbow-me/rainbowkit/styles.css';
-import { WalletProvider } from '@/context/WalletContext';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { ReactNode, useState } from 'react';
 
-// Configure Wagmi with Base chain
-const config = getDefaultConfig({
-  appName: 'BaseDare',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
+const config = createConfig({
   chains: [base],
-  ssr: true, // Enable server-side rendering support
+  connectors: [
+    coinbaseWallet({
+      appName: 'BaseDare',
+      preference: 'smartWalletOnly', // Triggers invisible FaceID/passkey flow
+    }),
+  ],
+  transports: { [base.id]: http() },
+  ssr: true,
 });
 
-export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+  const apiKey = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY;
+
+  if (!apiKey) console.warn('Missing OnchainKit API key!');
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <WalletProvider>
-            {children}
-          </WalletProvider>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
+        <OnchainKitProvider 
+          apiKey={apiKey || ''} 
+          chain={base}
+          config={{ 
+            appearance: { mode: 'auto', theme: 'default' }, 
+            // Paymaster for gasless tx - will work if env var is set, otherwise standard gas
+            paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
+          }}
+        > 
+          {children} 
+        </OnchainKitProvider> 
+      </QueryClientProvider> 
+    </WagmiProvider> 
+  ); 
 }
-

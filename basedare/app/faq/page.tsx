@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/accordion";
 import { MessageCircle, Bot, AlertTriangle } from 'lucide-react';
 import TextPressure from "@/components/TextPressure";
+import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import LiquidBackground from "@/components/LiquidBackground";
 
 const FAQ_ITEMS = [
   {
@@ -53,11 +55,8 @@ const FAQ_ITEMS = [
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[150px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-[150px]" />
-      </div>
+      <LiquidBackground />
+      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
       <div className="relative z-10 pt-16 pb-32 px-4 flex-1 mt-12">
         <div className="max-w-3xl mx-auto">

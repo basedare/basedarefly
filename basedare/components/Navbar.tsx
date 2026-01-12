@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
 import GlassSurface from './GlassSurface';
+import { IdentityButton } from './IdentityButton';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
@@ -81,32 +82,7 @@ export default function Navbar() {
                 <div className="w-px h-5 bg-white/10 mx-3" />
 
                 {/* CONNECT BUTTON */}
-                {isConnected ? (
-                  <button 
-                    onClick={disconnect}
-                    className="group relative pl-4 pr-5 py-2 bg-green-900/20 hover:bg-green-900/30 border border-green-500/50 rounded-full flex items-center gap-2 transition-all duration-300"
-                  >
-                    <div className="relative flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full z-10 shadow-[0_0_8px_rgba(34,197,94,1)]" />
-                    </div>
-                    <span className="text-[10px] font-black text-white tracking-[0.15em] uppercase">
-                      {address?.slice(0, 6)}...{address?.slice(-4)}
-                    </span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={connect}
-                    className="group relative pl-4 pr-5 py-2 backdrop-blur-xl bg-black/10 hover:bg-black/20 border border-white/10 rounded-full flex items-center gap-2 transition-all duration-300"
-                  >
-                    <div className="relative flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full z-10 shadow-[0_0_8px_rgba(250,204,21,1)]" />
-                      <div className="absolute w-full h-full bg-yellow-400 rounded-full animate-ping opacity-75" />
-                    </div>
-                    <span className="text-[10px] font-black text-white tracking-[0.15em] uppercase">
-                      Connect
-                    </span>
-                  </button>
-                )}
+                <IdentityButton />
               </div>
             </GlassSurface>
           </div>
@@ -115,10 +91,9 @@ export default function Navbar() {
           <div className="flex items-center gap-4 z-50">
             
             {/* Desktop Connect Button (Hidden on Mobile) - Fallback if GlassSurface doesn't work */}
-            <button className="hidden md:hidden items-center gap-2 px-5 py-2 bg-[#FFD700] hover:bg-[#ffea00] text-black font-black text-xs rounded-full uppercase tracking-widest shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105 transition-all">
-              <span className="w-2 h-2 bg-black rounded-full animate-pulse" />
-              Connect
-            </button>
+            <div className="hidden md:hidden">
+               <IdentityButton />
+            </div>
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
             <button 
@@ -169,29 +144,7 @@ export default function Navbar() {
 
             {/* Mobile Connect Button */}
             <div className="mt-auto mb-12">
-              {isConnected ? (
-                <button 
-                  onClick={() => {
-                    disconnect();
-                    setIsOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-green-900/30 border border-green-500/50 text-green-400 font-black text-lg rounded-xl uppercase tracking-widest"
-                >
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  {address?.slice(0, 6)}...{address?.slice(-4)}
-                </button>
-              ) : (
-                <button 
-                  onClick={() => {
-                    connect();
-                    setIsOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#FFD700] text-black font-black text-lg rounded-xl uppercase tracking-widest shadow-lg"
-                >
-                  <Wallet className="w-5 h-5" />
-                  Connect Wallet
-                </button>
-              )}
+               <IdentityButton />
             </div>
           </motion.div>
         )}

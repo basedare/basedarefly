@@ -3,10 +3,12 @@ import React from "react";
 import { Shield } from "lucide-react";
 import TruthOracle from "@/components/TruthOracle";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import LiquidBackground from "@/components/LiquidBackground";
 
 export default function Verify() {
   return (
     <div className="relative min-h-screen flex flex-col py-24 px-4 md:px-8">
+      <LiquidBackground />
       {/* Gradual Blur Overlay */}
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
       

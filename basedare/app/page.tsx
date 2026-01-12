@@ -15,13 +15,15 @@ import PeeBearConveyor from "@/components/PeeBearConveyor";
 
 // === FEATURE COMPONENTS ===
 import HeroEllipticalStream from "@/components/HeroEllipticalStream";
-import TruthProtocol from "@/components/TruthProtocol"; 
-import LiveBounties from "@/components/LiveBounties";   
-import HallOfShame from "@/components/HallOfShame"; 
+import TruthProtocol from "@/components/TruthProtocol";
+import Feed from "@/components/Feed";
+import PremiumBentoGrid from "@/components/PremiumBentoGrid";
+import HallOfShame from "@/components/HallOfShame";
 import BusinessDossier from "@/components/BusinessDossier"; 
 import LiveChatOverlay from "@/components/LiveChatOverlay";
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
+
 
 // === FIXED IMPORT PATH ===
 import { useIgnition } from "@/app/context/IgnitionContext";
@@ -76,7 +78,7 @@ export default function Home() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="w-full flex flex-col items-center"
           >
-            <div className="w-full flex flex-col items-center relative z-20">
+            <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
                 <div className="hidden md:block">
                   <HeroEllipticalStream dares={dares} onCardClick={setActiveChatTarget} />
@@ -107,16 +109,27 @@ export default function Home() {
               <HowItWorks />
               <MintAnnouncement />
 
-              {/* 4. LIVE BOUNTIES - DATA CONNECTED */}
-              <LiveBounties dares={dares} onCardClick={setActiveChatTarget} />
+              <div className="w-full flex flex-col items-center py-20 z-30">
+                <div className="mb-12 flex flex-col items-center">
+                  <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
+                  <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />
+                </div>
 
-              {/* SENTINEL STATUS - POSITIONED UNDER BOUNTIES */}
-              <div className="mt-8 mb-16 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-mono text-xs uppercase tracking-wider">
-                    SENTINEL ONLINE • MONITORING {dares.length} DARES
-                  </span>
+                <PremiumBentoGrid
+                  dares={dares}
+                  onDareClick={(dareId) => {
+                    const dare = dares.find((d) => d.id === dareId);
+                    if (dare) setActiveChatTarget(dare);
+                  }}
+                />
+
+                <div className="mt-12 text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-green-400 font-mono text-xs uppercase tracking-wider">
+                      SENTINEL ONLINE • MONITORING {dares.length} DARES
+                    </span>
+                  </div>
                 </div>
               </div>
 

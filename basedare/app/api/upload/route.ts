@@ -1,36 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { PinataSDK } from 'pinata';
 
-/**
- * POST /api/upload
- * Upload a file (image, video, etc.)
- * NOTE: This endpoint needs to be reimplemented with your file storage solution
- */
-export async function POST(request: NextRequest) {
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+const pinata = new PinataSDK({
+  pinataJwt: process.env.PINATA_JWT!,
+  pinataGateway: process.env.PINATA_GATEWAY || 'purple-void-gateway.pinata.cloud',
+});
+
+export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
+    const dareId = formData.get('dareId') as string | null;
 
     if (!file) {
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { error: 'No file provided' },
         { status: 400 }
       );
     }
 
-    // TODO: Implement file upload with your storage solution (S3, Cloudinary, etc.)
-    // For now, return a placeholder response
-    return NextResponse.json(
-      { success: false, error: 'File upload not yet implemented. Please use a file storage service.' },
-      { status: 501 }
-    );
+    if (!process.env.PINATA_JWT) {
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+
+    const upload = await pinata.upload.public
+      .file(file)
+      .name(`BaseDare_Proof_${dareId || 'anonymous'}`)
+      .keyvalues({ dareId: dareId || 'unknown', app: 'basedare' });
+
+    return NextResponse.json({ cid: upload.cid }, { status: 200 });
   } catch (error: any) {
-    console.error('Error uploading file:', error);
+    console.error('Pinata upload error:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to upload file' },
+      { error: error.message || 'Failed to upload file' },
       { status: 500 }
     );
   }
 }
-
-
-
