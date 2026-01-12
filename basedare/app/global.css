@@ -342,6 +342,24 @@
   50% { background-position: 100% 100%; opacity: 0.8; }
 }
 
+@keyframes liquid-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.liquid-metal-border {
+  background: linear-gradient(90deg, #4b4b4b, #ffffff, #4b4b4b, #ffffff);
+  background-size: 200% 200%;
+  animation: liquid-flow 4s linear infinite;
+}
+
 /* VOLTAGE LOGO - Constant Subtle Static Electric Purple Glow */
 .voltage-logo {
   filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.5)) drop-shadow(0 0 15px rgba(168, 85, 247, 0.3));
