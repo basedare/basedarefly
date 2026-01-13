@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, Activity, HelpCircle } from 'lucide-react';
+import { Twitter, Shield, FileText, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -32,9 +32,9 @@ export default function Footer() {
               {/* BASEDDARE LOGO - Image */}
               <div className="mb-6">
                 <img 
-                  src="/assets/basedare-logo.png" 
+                  src="/assets/basedarenew.png" 
                   alt="BaseDare" 
-                  className="h-32 md:h-40 w-auto mb-4 drop-shadow-[0_0_30px_rgba(255,215,0,0.3)]"
+                  className="h-9 max-h-[36px] w-auto mb-4 object-contain md:h-[80px] md:max-h-none drop-shadow-[0_0_30px_rgba(255,215,0,0.3)]"
                 />
                 <p className="text-xs text-gray-500 font-mono leading-relaxed max-w-sm mt-3">
                   The decentralized protocol for verifiable social chaos. 
@@ -81,15 +81,6 @@ export default function Footer() {
                     <Twitter className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-mono uppercase tracking-wider">Twitter / X</span>
-               </a>
-               <a 
-                  href="#" 
-                  className="group flex items-center gap-3 text-gray-400 hover:text-[#5865F2] transition-colors"
-               >
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#5865F2] transition-colors">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-mono uppercase tracking-wider">Discord</span>
                </a>
             </div>
 

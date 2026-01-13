@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Wallet } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
@@ -20,7 +20,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const { isConnected, address, connect, disconnect } = useWallet();
+  useWallet();
 
   return (
     <>
@@ -35,9 +35,9 @@ export default function Navbar() {
               className="relative group"
             >
               <img 
-                src="/assets/basedare-logo.png" 
+                src="/assets/basedarenew.png" 
                 alt="BaseDare" 
-                className="h-12 max-h-[48px] w-auto object-contain md:h-[106px] md:max-h-none drop-shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105 transition-transform"
+                className="h-9 max-h-[36px] w-auto object-contain md:h-[80px] md:max-h-none drop-shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105 transition-transform"
               />
             </Link>
           </div>
