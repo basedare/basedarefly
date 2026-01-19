@@ -33,9 +33,10 @@ export default function About() {
         
         <div className="w-full max-w-[350px]">
           <ProfileCard
-            name="MANAGER" 
-            title="Chief Honey Officer" 
-            handle="@BaseDareManager" 
+            name="MANAGER"
+            title="Chief Honey Officer"
+            handle="@BaseDareManager"
+            onContactClick={() => window.open('https://x.com/messages/compose?recipient_id=basedare_xyz', '_blank')}
           />
         </div>
       </section>
