@@ -1,8 +1,9 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useSearchParams } from 'next/navigation';
 import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle } from "lucide-react";
 import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -32,6 +33,7 @@ const CreateBountySchema = z.object({
 type FormData = z.infer<typeof CreateBountySchema>;
 
 export default function CreateDare() {
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ dareId: string; simulated?: boolean } | null>(null);
   const { toast } = useToast();
@@ -55,9 +57,23 @@ export default function CreateDare() {
     },
   });
 
+  // Pre-fill form from URL params (coming from home page)
+  useEffect(() => {
+    const streamer = searchParams.get('streamer');
+    const title = searchParams.get('title');
+    if (streamer) setValue('streamerTag', streamer);
+    if (title) setValue('title', title);
+  }, [searchParams, setValue]);
+
   const watchAmount = watch('amount');
 
+  // Debug: log validation errors
+  const onError = (errors: any) => {
+    console.log('[CREATE] Validation errors:', errors);
+  };
+
   const onSubmit = async (data: FormData) => {
+    console.log('[CREATE] Form submitted with data:', data);
     setIsSubmitting(true);
     setSuccessData(null);
 
@@ -150,7 +166,20 @@ export default function CreateDare() {
         )}
 
         {/* FORM */}
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit, onError)}>
+          {/* Error Summary */}
+          {Object.keys(errors).length > 0 && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+              <p className="text-red-400 font-bold text-sm mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside text-red-400/80 text-sm space-y-1">
+                {errors.streamerTag && <li>{errors.streamerTag.message}</li>}
+                {errors.title && <li>{errors.title.message}</li>}
+                {errors.amount && <li>{errors.amount.message}</li>}
+                {errors.timeValue && <li>{errors.timeValue.message}</li>}
+              </ul>
+            </div>
+          )}
+
           <div className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_0_50px_rgba(168,85,247,0.15)] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent opacity-50" />
             <div className="space-y-12">

@@ -1,30 +1,124 @@
+// ✅ STRICT JSON ABI for BaseDareBounty contract
 export const BOUNTY_ABI = [
-  "function stakeBounty(uint256 _dareId, address _streamer, address _referrer, uint256 _amount) external",
-  "function bounties(uint256) view returns (uint256 amount, address streamer, address referrer, bool isVerified)",
-  "function AI_REFEREE_ADDRESS() view returns (address)",
-  "function USDC() view returns (address)"
+  {
+    "inputs": [
+      { "name": "_dareId", "type": "uint256" },
+      { "name": "_streamer", "type": "address" },
+      { "name": "_referrer", "type": "address" },
+      { "name": "_amount", "type": "uint256" }
+    ],
+    "name": "stakeBounty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "_dareId", "type": "uint256" },
+      { "name": "_newAmount", "type": "uint256" }
+    ],
+    "name": "stealBounty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "_dareId", "type": "uint256" }
+    ],
+    "name": "verifyAndPayout",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "_dareId", "type": "uint256" },
+      { "name": "_staker", "type": "address" }
+    ],
+    "name": "refundStaker",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "", "type": "uint256" }
+    ],
+    "name": "bounties",
+    "outputs": [
+      { "name": "amount", "type": "uint256" },
+      { "name": "streamer", "type": "address" },
+      { "name": "referrer", "type": "address" },
+      { "name": "staker", "type": "address" },
+      { "name": "isVerified", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "AI_REFEREE_ADDRESS",
+    "outputs": [
+      { "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "USDC",
+    "outputs": [
+      { "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "HOUSE_WALLET",
+    "outputs": [
+      { "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "dareId", "type": "uint256" },
+      { "indexed": true, "name": "oldStaker", "type": "address" },
+      { "indexed": true, "name": "newStaker", "type": "address" },
+      { "indexed": false, "name": "oldAmount", "type": "uint256" },
+      { "indexed": false, "name": "newAmount", "type": "uint256" },
+      { "indexed": false, "name": "houseFee", "type": "uint256" }
+    ],
+    "name": "BountyStolen",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "dareId", "type": "uint256" },
+      { "indexed": true, "name": "staker", "type": "address" },
+      { "indexed": false, "name": "amount", "type": "uint256" }
+    ],
+    "name": "BountyStaked",
+    "type": "event"
+  }
 ] as const;
 
-// ✅ STRICT JSON ABI (Fixes the "Cannot use 'in' operator" error)
+// ✅ STRICT JSON ABI for USDC
 export const USDC_ABI = [
   {
     "constant": false,
     "inputs": [
-      {
-        "name": "_spender",
-        "type": "address"
-      },
-      {
-        "name": "_value",
-        "type": "uint256"
-      }
+      { "name": "_spender", "type": "address" },
+      { "name": "_value", "type": "uint256" }
     ],
     "name": "approve",
     "outputs": [
-      {
-        "name": "",
-        "type": "bool"
-      }
+      { "name": "", "type": "bool" }
     ],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -33,21 +127,12 @@ export const USDC_ABI = [
   {
     "constant": true,
     "inputs": [
-      {
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "name": "_spender",
-        "type": "address"
-      }
+      { "name": "_owner", "type": "address" },
+      { "name": "_spender", "type": "address" }
     ],
     "name": "allowance",
     "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
+      { "name": "", "type": "uint256" }
     ],
     "payable": false,
     "stateMutability": "view",
@@ -56,26 +141,29 @@ export const USDC_ABI = [
   {
     "constant": true,
     "inputs": [
-      {
-        "name": "_owner",
-        "type": "address"
-      }
+      { "name": "_owner", "type": "address" }
     ],
     "name": "balanceOf",
     "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
+      { "name": "balance", "type": "uint256" }
     ],
     "payable": false,
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      { "name": "_from", "type": "address" },
+      { "name": "_to", "type": "address" },
+      { "name": "_value", "type": "uint256" }
+    ],
+    "name": "transferFrom",
+    "outputs": [
+      { "name": "", "type": "bool" }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ] as const;
-
-
-
-
-
-

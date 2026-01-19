@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
@@ -11,7 +12,7 @@ import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
-import PeeBearConveyor from "@/components/PeeBearConveyor"; 
+import PeeBearConveyor from "@/components/PeeBearConveyor";
 
 // === FEATURE COMPONENTS ===
 import HeroEllipticalStream from "@/components/HeroEllipticalStream";
@@ -19,7 +20,7 @@ import TruthProtocol from "@/components/TruthProtocol";
 import Feed from "@/components/Feed";
 import PremiumBentoGrid from "@/components/PremiumBentoGrid";
 import HallOfShame from "@/components/HallOfShame";
-import BusinessDossier from "@/components/BusinessDossier"; 
+import BusinessDossier from "@/components/BusinessDossier";
 import LiveChatOverlay from "@/components/LiveChatOverlay";
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
@@ -40,10 +41,35 @@ interface Dare {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [view, setView] = useState<'FAN' | 'BUSINESS'>('FAN');
   const [dares, setDares] = useState<Dare[]>([]);
   const [activeChatTarget, setActiveChatTarget] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [dareInput, setDareInput] = useState('');
+  const [selectedStreamer, setSelectedStreamer] = useState('');
+
+  // Parse dare input to extract streamer tag and dare title
+  const parseDareInput = (input: string) => {
+    const tagMatch = input.match(/@\w+/);
+    const streamerTag = tagMatch ? tagMatch[0] : '';
+    // Remove "I dare @tag to" pattern and clean up the title
+    const title = input
+      .replace(/^I dare\s*/i, '')
+      .replace(/@\w+\s*to\s*/i, '')
+      .replace(/@\w+\s*/i, '')
+      .trim();
+    return { streamerTag, title };
+  };
+
+  // Handle Initiate Protocol click - navigate to /create with parsed data
+  const handleInitiateProtocol = () => {
+    const { streamerTag, title } = parseDareInput(dareInput);
+    const params = new URLSearchParams();
+    if (streamerTag) params.set('streamer', streamerTag);
+    if (title) params.set('title', title);
+    router.push(`/create${params.toString() ? '?' + params.toString() : ''}`);
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -98,10 +124,20 @@ export default function Home() {
               <div className="w-full max-w-4xl px-6 mb-24 relative z-30">
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
                   <div className="w-full md:flex-[2]">
-                    <LiquidInput placeholder="I dare @xQc to..." prefix="$" className="text-xl" />
+                    <LiquidInput
+                      placeholder="I dare @xQc to..."
+                      prefix="$"
+                      className="text-xl"
+                      value={dareInput}
+                      onChange={setDareInput}
+                      onStreamerSelect={setSelectedStreamer}
+                    />
                   </div>
                   <div className="w-full md:w-auto">
-                    <InitProtocolButton className="w-full md:w-auto" />
+                    <InitProtocolButton
+                      className="w-full md:w-auto"
+                      onClick={handleInitiateProtocol}
+                    />
                   </div>
                 </div>
               </div>

@@ -25,6 +25,9 @@ const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 // Check if contract address is a valid Ethereum address (not a placeholder UUID)
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
+// Force simulated mode for development (set SIMULATE_BOUNTIES=true in .env.local)
+const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+
 // ============================================================================
 // $BARE TAG TO ADDRESS MAPPING (Mock for development)
 // ============================================================================
@@ -97,6 +100,13 @@ const StakeBountySchema = z.object({
     .refine((addr) => isAddress(addr), 'Address checksum invalid')
     .optional(),
 
+  // Referrer tag for 1% fee tracking
+  referrerTag: z
+    .string()
+    .max(20, 'Tag must be 20 characters or less')
+    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
+    .optional(),
+
   // Optional: client-provided dareId (for idempotency)
   dareId: z.string().optional(),
 });
@@ -143,9 +153,9 @@ interface StreamVerificationResult {
 }
 
 async function verifyStreamActive(streamId: string): Promise<StreamVerificationResult> {
-  // Dev mode: skip verification if no API key
-  if (!LIVEPEER_API_KEY) {
-    console.warn('[LIVEPEER] API key not set, skipping stream verification (dev mode)');
+  // Dev mode: skip verification if no API key or if using dev stream ID
+  if (!LIVEPEER_API_KEY || streamId.startsWith('dev-')) {
+    console.warn('[LIVEPEER] Skipping stream verification (dev mode)');
     return { active: true, streamName: 'dev-stream' };
   }
 
@@ -221,7 +231,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, amount, streamId, streamerTag, referrerAddress, dareId } =
+    const { title, description, amount, streamId, streamerTag, referrerAddress, referrerTag, dareId } =
       validation.data;
 
     // -------------------------------------------------------------------------
@@ -261,15 +271,24 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // 4. CHECK CONTRACT DEPLOYMENT STATUS
+    // 4. CHECK CONTRACT DEPLOYMENT STATUS / SIMULATION MODE
     // -------------------------------------------------------------------------
-    if (!isContractDeployed) {
-      // Contract not deployed yet - return simulated response for frontend testing
-      console.warn('[BOUNTY] Contract not deployed, returning simulated response');
+    if (!isContractDeployed || FORCE_SIMULATION) {
+      // Contract not deployed or simulation mode - return simulated response
+      console.warn('[BOUNTY] Running in simulated mode (contract not deployed or SIMULATE_BOUNTIES=true)');
 
       // -----------------------------------------------------------------------
       // WRITE TO PRISMA DATABASE (Simulated Mode)
       // -----------------------------------------------------------------------
+
+      // Resolve referrer tag to address (mock mapping)
+      let resolvedReferrerAddress: string | null = null;
+      if (referrerTag) {
+        const referrerResolution = resolveTagToAddress(referrerTag);
+        resolvedReferrerAddress = referrerResolution.address;
+        console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
+      }
+
       const dbDare = await prisma.dare.create({
         data: {
           title,
@@ -279,10 +298,12 @@ export async function POST(request: NextRequest) {
           streamId,
           txHash: null,
           isSimulated: true,
+          referrerTag: referrerTag || null,
+          referrerAddress: resolvedReferrerAddress,
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
 
       return NextResponse.json({
         success: true,
@@ -365,6 +386,15 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 11. WRITE TO PRISMA DATABASE (Real Contract Mode)
     // -------------------------------------------------------------------------
+
+    // Resolve referrer tag to address (mock mapping)
+    let resolvedReferrerAddress: string | null = null;
+    if (referrerTag) {
+      const referrerResolution = resolveTagToAddress(referrerTag);
+      resolvedReferrerAddress = referrerResolution.address;
+      console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
+    }
+
     const dbDare = await prisma.dare.create({
       data: {
         title,
@@ -374,6 +404,8 @@ export async function POST(request: NextRequest) {
         streamId,
         txHash,
         isSimulated: false,
+        referrerTag: referrerTag || null,
+        referrerAddress: resolvedReferrerAddress,
       },
     });
 
@@ -531,8 +563,30 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Simulated mode - return mock bounty if found
-      if (!isContractDeployed) {
+      // Simulated mode - return from database or mock
+      if (!isContractDeployed || FORCE_SIMULATION) {
+        // First try database
+        const dbBounty = await prisma.dare.findUnique({
+          where: { id: dareId },
+        });
+
+        if (dbBounty) {
+          return NextResponse.json({
+            success: true,
+            simulated: true,
+            data: {
+              dareId: dbBounty.id,
+              title: dbBounty.title,
+              amount: dbBounty.bounty,
+              streamerTag: dbBounty.streamerHandle,
+              status: dbBounty.status,
+              createdAt: dbBounty.createdAt.toISOString(),
+              potSize: Math.floor(dbBounty.bounty * 1.2),
+            },
+          });
+        }
+
+        // Fallback to mock bounties
         const mockBounty = MOCK_BOUNTIES.find((b) => b.dareId === dareId);
         if (mockBounty) {
           return NextResponse.json({
@@ -583,32 +637,51 @@ export async function GET(request: NextRequest) {
     // -------------------------------------------------------------------------
     const sort = searchParams.get('sort') || 'recent'; // 'recent' | 'amount'
 
-    // Simulated mode - return mock bounties
-    if (!isContractDeployed) {
-      let sortedBounties = [...MOCK_BOUNTIES];
+    // Simulated mode or no indexer - fetch from database + mock data
+    if (!isContractDeployed || FORCE_SIMULATION) {
+      // Fetch real bounties from database
+      const dbBounties = await prisma.dare.findMany({
+        where: { status: 'PENDING' },
+        orderBy: sort === 'amount' ? { bounty: 'desc' } : { createdAt: 'desc' },
+        take: 50,
+      });
+
+      // Transform database bounties to API format
+      const realBounties = dbBounties.map((dare) => ({
+        dareId: dare.id,
+        title: dare.title,
+        amount: dare.bounty,
+        streamerTag: dare.streamerHandle,
+        status: dare.status as 'PENDING' | 'VERIFIED' | 'FAILED',
+        createdAt: dare.createdAt.toISOString(),
+        potSize: Math.floor(dare.bounty * 1.2), // Simulated pot multiplier
+      }));
+
+      // Combine with mock bounties if database is empty
+      let allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
 
       if (sort === 'amount') {
-        sortedBounties.sort((a, b) => b.amount - a.amount);
+        allBounties.sort((a, b) => b.amount - a.amount);
       } else {
-        sortedBounties.sort(
+        allBounties.sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       }
 
-      const totalPot = sortedBounties.reduce((sum, b) => sum + b.potSize, 0);
+      const totalPot = allBounties.reduce((sum, b) => sum + b.potSize, 0);
 
       return NextResponse.json({
         success: true,
         simulated: true,
         data: {
-          bounties: sortedBounties,
-          total: sortedBounties.length,
+          bounties: allBounties,
+          total: allBounties.length,
           totalPot,
         },
       });
     }
 
-    // Contract deployed - would read from chain/indexer
+    // Contract deployed with indexer - would read from chain
     // For now, return empty if contract is deployed but no indexer
     return NextResponse.json({
       success: true,

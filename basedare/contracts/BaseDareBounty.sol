@@ -3,23 +3,26 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Contract deployed on Base L2 (assuming USDC address is known)
-contract BaseDareBounty is Ownable {
+contract BaseDareBounty is Ownable, ReentrancyGuard {
     // --- STATE VARIABLES ---
-    IERC20 public immutable USDC; 
+    IERC20 public immutable USDC;
     address public immutable HOUSE_WALLET;
 
     // Fees are 1% for referrer and 10% for house (11% total)
     uint256 private constant REFERRAL_FEE_PERCENT = 1; // 1%
     uint256 private constant HOUSE_FEE_PERCENT = 10; // 10%
     uint256 private constant TOTAL_FEE_PERCENT = REFERRAL_FEE_PERCENT + HOUSE_FEE_PERCENT; // 11%
+    uint256 private constant STEAL_FEE_PERCENT = 5; // 5% fee to house on steal
 
     // Struct to hold locked bounty data
     struct Bounty {
         uint256 amount;
         address payable streamer;
         address payable referrer;
+        address staker;
         bool isVerified;
     }
 
@@ -30,10 +33,16 @@ contract BaseDareBounty is Ownable {
     event BountyStaked(uint256 indexed dareId, address indexed staker, uint256 amount);
     event BountyPayout(uint256 indexed dareId, uint256 streamerAmount, uint256 houseFee, uint256 referrerFee);
     event BountyRefund(uint256 indexed dareId, address indexed refundRecipient, uint256 amount);
+    event BountyStolen(uint256 indexed dareId, address indexed oldStaker, address indexed newStaker, uint256 oldAmount, uint256 newAmount, uint256 houseFee);
 
     // --- MODIFIERS ---
     modifier bountyExists(uint256 _dareId) {
         require(bounties[_dareId].amount > 0, "Bounty: Does not exist");
+        _;
+    }
+
+    modifier onlyActive(uint256 _dareId) {
+        require(!bounties[_dareId].isVerified, "Bounty: Already processed");
         _;
     }
 
@@ -61,11 +70,11 @@ contract BaseDareBounty is Ownable {
         address _streamer,
         address _referrer,
         uint256 _amount
-    ) external {
+    ) external nonReentrant {
         // 1. Basic checks
         require(_amount > 0, "Bounty: Amount must be greater than zero");
         require(bounties[_dareId].amount == 0, "Bounty: Already exists");
-        
+
         // 2. Lock the USDC (requires pre-approval from staker)
         require(USDC.transferFrom(msg.sender, address(this), _amount), "Bounty: USDC transfer failed");
 
@@ -74,16 +83,52 @@ contract BaseDareBounty is Ownable {
             amount: _amount,
             streamer: payable(_streamer),
             referrer: payable(_referrer),
+            staker: msg.sender,
             isVerified: false
         });
 
         emit BountyStaked(_dareId, msg.sender, _amount);
     }
 
-    // --- EXECUTION FUNCTION: PAYOUT (Called by AI Referee) ---
-    function verifyAndPayout(uint256 _dareId) external onlyReferee bountyExists(_dareId) {
+    // --- STEAL FUNCTION: Outbid existing bounty ---
+    function stealBounty(
+        uint256 _dareId,
+        uint256 _newAmount
+    ) external nonReentrant bountyExists(_dareId) onlyActive(_dareId) {
         Bounty storage bounty = bounties[_dareId];
-        require(!bounty.isVerified, "Bounty: Already processed");
+
+        // CHECKS
+        require(_newAmount > bounty.amount, "Steal: New amount must exceed current");
+        require(msg.sender != bounty.staker, "Steal: Cannot steal own bounty");
+
+        // Cache old values before state changes
+        address oldStaker = bounty.staker;
+        uint256 oldAmount = bounty.amount;
+
+        // Calculate 5% fee on the refund to original staker
+        uint256 houseFee = (oldAmount * STEAL_FEE_PERCENT) / 100;
+        uint256 refundAmount = oldAmount - houseFee;
+
+        // EFFECTS - Update state before external calls
+        bounty.amount = _newAmount;
+        bounty.staker = msg.sender;
+
+        // INTERACTIONS - External calls last
+        // 1. Pull new USDC from thief
+        require(USDC.transferFrom(msg.sender, address(this), _newAmount), "Steal: USDC transfer failed");
+
+        // 2. Refund original staker (minus 5% fee)
+        require(USDC.transfer(oldStaker, refundAmount), "Steal: Refund transfer failed");
+
+        // 3. Send 5% fee to house
+        require(USDC.transfer(HOUSE_WALLET, houseFee), "Steal: House fee transfer failed");
+
+        emit BountyStolen(_dareId, oldStaker, msg.sender, oldAmount, _newAmount, houseFee);
+    }
+
+    // --- EXECUTION FUNCTION: PAYOUT (Called by AI Referee) ---
+    function verifyAndPayout(uint256 _dareId) external nonReentrant onlyReferee bountyExists(_dareId) onlyActive(_dareId) {
+        Bounty storage bounty = bounties[_dareId];
 
         // Mark as processed immediately
         bounty.isVerified = true;
@@ -113,9 +158,8 @@ contract BaseDareBounty is Ownable {
 
     // --- FAILURE FUNCTION: REFUND / RAGE FUNNEL (Called by AI Referee) ---
     // For now, only the original staker can get the funds back upon expiry.
-    function refundStaker(uint256 _dareId, address _staker) external onlyReferee bountyExists(_dareId) {
+    function refundStaker(uint256 _dareId, address _staker) external nonReentrant onlyReferee bountyExists(_dareId) onlyActive(_dareId) {
         Bounty storage bounty = bounties[_dareId];
-        require(!bounty.isVerified, "Bounty: Already processed");
 
         // Mark as processed
         bounty.isVerified = true;

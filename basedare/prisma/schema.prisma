@@ -33,9 +33,16 @@ model Dare {
   // Verification & Appeal
   verifiedAt DateTime?
   verifyTxHash String?
+  verifyConfidence Float?
   appealStatus String? // NONE, PENDING, APPROVED, REJECTED
   appealReason String?
   appealedAt DateTime?
+  // Referral tracking
+  referrerTag String?
+  referrerAddress String?
+  referrerPayout Float?
+  // Staker tracking
+  stakerAddress String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
