@@ -6,6 +6,7 @@ import { baseSepolia } from 'viem/chains';
 import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 
 // ============================================================================
 // ENVIRONMENT & CONFIG
@@ -207,6 +208,32 @@ function mockSunderReputation(streamerHandle: string): void {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  // -------------------------------------------------------------------------
+  // 0. RATE LIMITING - Prevent abuse of AI Referee
+  // -------------------------------------------------------------------------
+  const clientIp = getClientIp(req);
+  const rateLimitResult = checkRateLimit(clientIp, {
+    ...RateLimiters.verification,
+    keyPrefix: 'verify-proof',
+  });
+
+  if (!rateLimitResult.allowed) {
+    console.log(`[RATE_LIMIT] Blocked ${clientIp} - exceeded ${rateLimitResult.limit} requests per 5 minutes`);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many verification requests. Please wait before trying again.',
+        code: 'RATE_LIMITED',
+        retryAfter: Math.ceil(rateLimitResult.resetIn / 1000),
+      },
+      {
+        status: 429,
+        headers: createRateLimitHeaders(rateLimitResult),
+      }
+    );
+  }
+
   try {
     // -------------------------------------------------------------------------
     // 1. VALIDATE INPUT
@@ -431,6 +458,32 @@ const AppealSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
+  // -------------------------------------------------------------------------
+  // RATE LIMITING - Prevent appeal spam (3 per hour)
+  // -------------------------------------------------------------------------
+  const clientIp = getClientIp(req);
+  const rateLimitResult = checkRateLimit(clientIp, {
+    ...RateLimiters.appeal,
+    keyPrefix: 'appeal',
+  });
+
+  if (!rateLimitResult.allowed) {
+    console.log(`[RATE_LIMIT] Blocked appeal from ${clientIp} - exceeded ${rateLimitResult.limit} requests per hour`);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many appeal submissions. Please wait before trying again.',
+        code: 'RATE_LIMITED',
+        retryAfter: Math.ceil(rateLimitResult.resetIn / 1000),
+      },
+      {
+        status: 429,
+        headers: createRateLimitHeaders(rateLimitResult),
+      }
+    );
+  }
+
   try {
     const body = await req.json();
     const validation = AppealSchema.safeParse(body);

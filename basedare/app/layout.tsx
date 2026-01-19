@@ -10,6 +10,7 @@ import LivePotPortal from "@/components/LivePotPortal";
 import { LiquidFilter } from "@/components/ui/LiquidFilter";
 import ClientLoader from "@/components/ClientLoader";
 import BackgroundLayers from "@/components/BackgroundLayers";
+import { Toaster } from "@/components/ui/toaster";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -50,6 +51,7 @@ export default function RootLayout({
                 <LivePotBubble />
               </LivePotPortal>
             </IgnitionProvider>
+            <Toaster />
           </Providers>
         </ClientLoader>
       </body>

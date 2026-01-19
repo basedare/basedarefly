@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 type VerificationStatus = 'idle' | 'uploading' | 'verifying' | 'verified' | 'failed';
 
@@ -24,6 +25,7 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
   const [appealSubmitted, setAppealSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { toast } = useToast();
 
   const handleFileSelect = (selectedFile: File) => {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
@@ -146,6 +148,16 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
           reason: result.verification?.reason,
         });
         onVerificationComplete?.({ status: 'VERIFIED', confidence: result.verification?.confidence });
+
+        // Show success toast
+        toast({
+          variant: 'success',
+          title: 'Dare Verified!',
+          description: result.verification?.confidence
+            ? `Beta AI Referee verified with ${(result.verification.confidence * 100).toFixed(0)}% confidence. Payout processing.`
+            : 'Your proof has been verified. Payout is being processed.',
+          duration: 8000,
+        });
       } else if (result.status === 'FAILED') {
         setStatus('failed');
         setVerificationResult({
@@ -154,11 +166,28 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
           appealable: result.appealable,
         });
         onVerificationComplete?.({ status: 'FAILED', confidence: result.verification?.confidence });
+
+        // Show failure toast
+        toast({
+          variant: 'destructive',
+          title: 'Verification Failed',
+          description: result.verification?.reason || 'The Beta AI Referee could not verify dare completion. You can submit an appeal.',
+          duration: 10000,
+        });
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to upload and verify. Please try again.');
+      const errorMessage = err.message || 'Failed to upload and verify. Please try again.';
+      setError(errorMessage);
       setStatus('idle');
       console.error('[EVIDENCE] Error:', err);
+
+      // Show error toast
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   };
 
@@ -186,8 +215,24 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
 
       setAppealSubmitted(true);
       setError(null);
+
+      // Show appeal submitted toast
+      toast({
+        title: 'Appeal Submitted',
+        description: 'Your appeal has been submitted for review. You will be notified of the outcome within 24-48 hours.',
+        duration: 8000,
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to submit appeal.');
+      const errorMessage = err.message || 'Failed to submit appeal.';
+      setError(errorMessage);
+
+      // Show appeal error toast
+      toast({
+        variant: 'destructive',
+        title: 'Appeal Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   };
 
@@ -226,8 +271,13 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
                 : 'Your proof has been verified'}
             </p>
           </div>
-          <div className="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-[10px] font-bold text-green-400 uppercase tracking-widest">
-            Payout Processing
+          <div className="flex flex-col items-center gap-2">
+            <div className="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-[10px] font-bold text-green-400 uppercase tracking-widest">
+              Payout Processing
+            </div>
+            <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider">
+              Verified by Beta AI Referee
+            </div>
           </div>
         </div>
       </div>
@@ -330,8 +380,13 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
                   : 'AI Referee analyzing proof'}
               </p>
             </div>
-            <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
-              {status === 'uploading' ? 'IPFS Upload' : 'zkML Processing'}
+            <div className="flex flex-col items-center gap-2">
+              <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+                {status === 'uploading' ? 'IPFS Upload' : 'AI Analysis'}
+              </div>
+              <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider">
+                Beta Referee
+              </div>
             </div>
           </>
         ) : preview ? (
@@ -413,8 +468,14 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
                 {error}
               </div>
             )}
-            <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-              zkML Verification Ready
+            <div className="flex flex-col items-center gap-2">
+              <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                AI Referee Ready
+              </div>
+              <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
+                Beta • Testnet
+              </div>
             </div>
           </>
         )}

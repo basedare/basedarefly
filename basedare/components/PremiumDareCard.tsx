@@ -276,11 +276,14 @@ export default function PremiumDareCard({
                 isAuditOpen ? 'block' : 'hidden'
               } group-hover:block group-active:block group-focus-within:block w-64 p-3 bg-[#0f0f1a]/95 border border-yellow-500/30 rounded-lg backdrop-blur-xl shadow-xl text-xs font-mono text-yellow-200 z-40`}
             >
-              <p className="font-medium">Sentinel Audit in Progress</p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-medium">Beta AI Referee Audit</p>
+                <span className="px-1 py-0.5 bg-yellow-500/20 border border-yellow-500/40 rounded text-[7px] text-yellow-400">BETA</span>
+              </div>
               <p className="mt-1 opacity-80">
                 ~{Math.max(0, Math.floor(livenessLeft / 60))}m {livenessLeft % 60}s remaining
               </p>
-              <p className="mt-2 text-[9px] opacity-60">Proof under optimistic review. Dispute possible via UMA.</p>
+              <p className="mt-2 text-[9px] opacity-60">Proof under mock verification. Full ZKML coming soon.</p>
             </div>
           </div>
           <div className="absolute inset-0 rounded-3xl border-2 border-yellow-500/20 pointer-events-none animate-pulse-slow opacity-60" />
@@ -288,15 +291,18 @@ export default function PremiumDareCard({
       ) : null}
 
       {status === 'completed' ? (
-        <div className="absolute top-4 right-4 z-30 flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/50 px-2 py-1 rounded-md backdrop-blur-md translate-y-14">
-          <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <span className="text-[10px] font-mono text-emerald-400 uppercase">VERIFIED</span>
+        <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-1 translate-y-14">
+          <div className="flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/50 px-2 py-1 rounded-md backdrop-blur-md">
+            <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-[10px] font-mono text-emerald-400 uppercase">VERIFIED</span>
+          </div>
+          <span className="text-[7px] font-mono text-yellow-400/60 uppercase tracking-wider px-1">Beta AI Referee</span>
         </div>
       ) : null}
 

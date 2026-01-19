@@ -34,18 +34,33 @@ export function Toast({
 
   if (!isVisible) return null
 
+  const variantStyles = {
+    default: {
+      className: "border-purple-500/40 bg-purple-500/15 text-white",
+      shadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(168,85,247,0.2)',
+    },
+    success: {
+      className: "border-green-500/40 bg-green-500/15 text-white",
+      shadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2)',
+    },
+    destructive: {
+      className: "border-red-500/50 bg-red-500/15 text-white",
+      shadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(239,68,68,0.2)',
+    },
+  };
+
+  const currentVariant = variantStyles[variant] || variantStyles.default;
+
   return (
     <div
       className={cn(
         "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-4 pr-10 backdrop-blur-xl animate-in slide-in-from-top-full transition-opacity duration-300",
-        variant === "destructive" 
-          ? "border-red-500/50 bg-red-500/10 text-white" 
-          : "border-green-500/40 bg-[#10b981]/15 text-white",
+        currentVariant.className,
         className
       )}
       style={{
         zIndex: 9999,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2)',
+        boxShadow: currentVariant.shadow,
         borderRadius: '12px'
       }}
     >

@@ -42,7 +42,12 @@ export default function VerifyRealityModal({
       <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-black/60 shadow-[0_0_60px_rgba(168,85,247,0.25)] overflow-hidden">
         <div className="p-6 flex items-center justify-between border-b border-white/10">
           <div className="flex flex-col">
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-[0.3em]">VERIFY REALITY</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-[0.3em]">VERIFY REALITY</span>
+              <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/40 text-[8px] font-mono text-yellow-400 uppercase tracking-wider">
+                Beta
+              </span>
+            </div>
             <span className="text-white font-black uppercase tracking-tight">{stepLabel}</span>
           </div>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white font-mono text-xs uppercase">
@@ -98,8 +103,13 @@ export default function VerifyRealityModal({
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                 <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest">
-                  {step === 'pinning' ? 'Pinning to IPFS...' : 'Submitting to Oracle...'}
+                  {step === 'pinning' ? 'Pinning to IPFS...' : 'Beta AI Referee analyzing...'}
                 </div>
+                {step === 'verifying' && (
+                  <div className="px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/70 uppercase">
+                    Testnet • Mock Verification
+                  </div>
+                )}
               </div>
             </div>
           ) : null}

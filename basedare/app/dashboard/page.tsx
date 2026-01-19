@@ -1,11 +1,12 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload } from "lucide-react";
+import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload, LogIn } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
+import { coinbaseWallet } from 'wagmi/connectors';
 
 interface Dare {
   id: string;
@@ -20,6 +21,7 @@ interface Dare {
 
 export default function Dashboard() {
   const { address, isConnected } = useAccount();
+  const { connect, isPending: isConnecting } = useConnect();
   const [dares, setDares] = useState<Dare[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
@@ -28,6 +30,16 @@ export default function Dashboard() {
     activeBounties: 0,
     completedBounties: 0,
   });
+
+  // Format wallet address for display
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  // Handle wallet connection
+  const handleConnect = () => {
+    connect({ connector: coinbaseWallet() });
+  };
 
   // Fetch user's dares from API
   useEffect(() => {
@@ -109,12 +121,29 @@ export default function Dashboard() {
       <div className="container mx-auto px-6 py-24 mb-12 flex-grow relative z-20">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8 border-b border-white/10 pb-6">
-          <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.5)]">
-              <Wallet className="w-6 h-6" />
-            </div>
-            COMMAND <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">CENTER</span>
-          </h1>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.5)]">
+                <Wallet className="w-6 h-6" />
+              </div>
+              COMMAND <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">CENTER</span>
+            </h1>
+            {/* Wallet Identity Badge */}
+            {isConnected && address ? (
+              <div className="flex items-center gap-2 ml-16">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-xs font-mono text-gray-400">Connected as</span>
+                <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-xs font-mono text-purple-300">
+                  {formatAddress(address)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 ml-16">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                <span className="text-xs font-mono text-gray-500">Wallet not connected</span>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-4">
             <Link href="/create">
@@ -138,9 +167,23 @@ export default function Dashboard() {
 
         {/* CONNECTION STATUS */}
         {!isConnected && (
-          <div className="mb-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
-            <p className="text-yellow-400 text-sm font-mono">Connect your wallet to see your personal stats and bounties</p>
+          <div className="mb-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0" />
+              <p className="text-yellow-400 text-sm font-mono">Connect your wallet to see your personal stats and bounties</p>
+            </div>
+            <button
+              onClick={handleConnect}
+              disabled={isConnecting}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-400 font-bold text-xs uppercase tracking-wider transition-colors disabled:opacity-50 shrink-0"
+            >
+              {isConnecting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4" />
+              )}
+              Connect
+            </button>
           </div>
         )}
 
@@ -151,9 +194,11 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Wallet className="w-12 h-12 text-[#FFD700]" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Total Staked</div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Total Staked</div>
             <div className="relative z-10 text-3xl font-black text-white">
-              {loading ? (
+              {!isConnected ? (
+                <span className="text-gray-500">--</span>
+              ) : loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>{stats.totalStaked.toLocaleString()} <span className="text-[#FFD700]">USDC</span></>
@@ -169,9 +214,11 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Target className="w-12 h-12 text-purple-500" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Active Bounties</div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Active Bounties</div>
             <div className="relative z-10 text-3xl font-black text-white">
-              {loading ? (
+              {!isConnected ? (
+                <span className="text-gray-500">--</span>
+              ) : loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>{stats.activeBounties} <span className="text-purple-500">DARES</span></>
@@ -185,9 +232,11 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Trophy className="w-12 h-12 text-green-500" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Completed</div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Completed</div>
             <div className="relative z-10 text-3xl font-black text-white">
-              {loading ? (
+              {!isConnected ? (
+                <span className="text-gray-500">--</span>
+              ) : loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>{stats.completedBounties} <span className="text-green-500">VERIFIED</span></>
@@ -207,7 +256,22 @@ export default function Dashboard() {
               Your Bounties
             </h3>
 
-            {loading ? (
+            {!isConnected ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center">
+                  <Wallet className="w-8 h-8 text-yellow-400" />
+                </div>
+                <p className="text-gray-400 font-mono text-sm mb-2">Wallet not connected</p>
+                <p className="text-gray-500 font-mono text-xs mb-4">Connect to view your personal bounties</p>
+                <button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  className="px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-400 rounded-lg font-bold text-sm uppercase tracking-wider transition-colors disabled:opacity-50"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                </button>
+              </div>
+            ) : loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
               </div>
@@ -216,7 +280,8 @@ export default function Dashboard() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
                   <Target className="w-8 h-8 text-gray-500" />
                 </div>
-                <p className="text-gray-400 font-mono text-sm mb-4">No bounties yet</p>
+                <p className="text-gray-400 font-mono text-sm mb-2">No bounties yet</p>
+                <p className="text-gray-500 font-mono text-xs mb-4">Create your first dare to get started</p>
                 <Link href="/create">
                   <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-sm uppercase tracking-wider transition-colors">
                     Create Your First Dare
