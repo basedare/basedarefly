@@ -15,6 +15,19 @@ import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
 
 // ============================================================================
+// SHORT ID GENERATOR
+// ============================================================================
+
+function generateShortId(length = 8): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// ============================================================================
 // ENVIRONMENT & CONFIG
 // ============================================================================
 
@@ -289,6 +302,10 @@ export async function POST(request: NextRequest) {
         console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
       }
 
+      // Set expiry to 24 hours from now
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const shortId = generateShortId();
+
       const dbDare = await prisma.dare.create({
         data: {
           title,
@@ -298,12 +315,14 @@ export async function POST(request: NextRequest) {
           streamId,
           txHash: null,
           isSimulated: true,
+          expiresAt,
+          shortId,
           referrerTag: referrerTag || null,
           referrerAddress: resolvedReferrerAddress,
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
 
       return NextResponse.json({
         success: true,
@@ -326,6 +345,9 @@ export async function POST(request: NextRequest) {
           txHash: null,
           blockNumber: '0',
           status: 'PENDING',
+          expiresAt: expiresAt.toISOString(),
+          shortId,
+          shareUrl: `/dare/${shortId}`,
         },
       });
     }
@@ -395,6 +417,10 @@ export async function POST(request: NextRequest) {
       console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
     }
 
+    // Set expiry to 24 hours from now
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const shortId = generateShortId();
+
     const dbDare = await prisma.dare.create({
       data: {
         title,
@@ -404,6 +430,8 @@ export async function POST(request: NextRequest) {
         streamId,
         txHash,
         isSimulated: false,
+        expiresAt,
+        shortId,
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
       },
@@ -438,6 +466,9 @@ export async function POST(request: NextRequest) {
         txHash,
         blockNumber: receipt.blockNumber.toString(),
         status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        expiresAt: expiresAt.toISOString(),
+        shortId,
+        shareUrl: `/dare/${shortId}`,
       },
     });
   } catch (error: unknown) {

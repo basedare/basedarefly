@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import DareVisual from './DareVisual';
 import ElectricBorder from './ElectricBorder';
+import BountyQRCode from './BountyQRCode';
 import './PremiumDareCard.css';
 
 export type PremiumDareCardStatus =
@@ -16,6 +17,7 @@ export type PremiumDareCardStatus =
 
 export type PremiumDareCardProps = {
   id: string;
+  shortId: string;
   dare: string;
   bounty: number;
   streamer: string;
@@ -23,6 +25,7 @@ export type PremiumDareCardProps = {
   emoji: string;
   status: PremiumDareCardStatus;
   timeRemaining?: string;
+  expiresAt?: string | null;
   livenessLeftSeconds?: number;
   proofUrl?: string;
   isOpenBounty?: boolean;
@@ -48,7 +51,25 @@ export function SentinelSkeleton() {
   );
 }
 
+// Helper to format time remaining
+function formatTimeRemaining(ms: number): string {
+  if (ms <= 0) return 'EXPIRED';
+
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m left`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds}s left`;
+  } else {
+    return `${seconds}s left`;
+  }
+}
+
 export default function PremiumDareCard({
+  shortId,
   dare,
   bounty,
   streamer,
@@ -56,6 +77,7 @@ export default function PremiumDareCard({
   emoji,
   status,
   timeRemaining,
+  expiresAt,
   livenessLeftSeconds,
   proofUrl,
   isOpenBounty = false,
@@ -63,8 +85,36 @@ export default function PremiumDareCard({
   onViewProof,
 }: PremiumDareCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [livenessLeft, setLivenessLeft] = useState(livenessLeftSeconds ?? 3600);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [liveTimeRemaining, setLiveTimeRemaining] = useState(timeRemaining || '');
+
+  // Handle double-click to flip card
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFlipped((prev) => !prev);
+  };
+
+  // Live countdown timer based on expiresAt
+  useEffect(() => {
+    if (!expiresAt || status === 'expired' || status === 'completed' || status === 'restricted') {
+      setLiveTimeRemaining(timeRemaining || '');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const expiry = new Date(expiresAt).getTime();
+      const diff = expiry - now;
+      setLiveTimeRemaining(formatTimeRemaining(diff));
+    };
+
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [expiresAt, status, timeRemaining]);
 
   useEffect(() => {
     if (status !== 'pending_verification') return;
@@ -138,21 +188,28 @@ export default function PremiumDareCard({
     ) : null;
 
   return (
-    <ElectricBorder
-      active={isHovered}
-      color="#8B5CF6"
-      borderRadius={24}
-      chaos={0.15}
-      speed={1.2}
+    <div
+      className="premium-card-flip-container"
+      onDoubleClick={handleDoubleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <motion.div
-        className={`premium-dare-card group ${status === 'expired' ? 'premium-dare-card--expired' : ''}`}
-        onClick={onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        whileHover={{ scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-      >
+      <div className={`premium-card-flip-inner ${isFlipped ? 'flipped' : ''}`}>
+        {/* FRONT OF CARD */}
+        <ElectricBorder
+          active={isHovered && !isFlipped}
+          color="#8B5CF6"
+          borderRadius={24}
+          chaos={0.15}
+          speed={1.2}
+          className="premium-card-front"
+        >
+          <motion.div
+            className={`premium-dare-card group ${status === 'expired' ? 'premium-dare-card--expired' : ''}`}
+            onClick={onClick}
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
       <div className="premium-card-background" aria-hidden="true">
         <DareVisual
           imageUrl={streamerImage}
@@ -186,7 +243,7 @@ export default function PremiumDareCard({
               <span className="premium-bounty-currency">USDC</span>
             </div>
 
-            {timeRemaining ? <div className="premium-time-remaining">{timeRemaining}</div> : null}
+            {liveTimeRemaining ? <div className="premium-time-remaining">{liveTimeRemaining}</div> : null}
           </div>
 
           {status === 'expired' ? <div className="premium-expired-tag">EXPIRED. EXPIRED</div> : null}
@@ -242,7 +299,39 @@ export default function PremiumDareCard({
           <span className="text-[10px] font-mono text-emerald-400 uppercase">VERIFIED</span>
         </div>
       ) : null}
+
+      {/* Double-click hint */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-mono text-white/20 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
+        Double-click for QR
+      </div>
     </motion.div>
-    </ElectricBorder>
+        </ElectricBorder>
+
+        {/* BACK OF CARD - QR Code */}
+        <div className="premium-card-back premium-dare-card">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] rounded-3xl" />
+          <div className="relative z-10 h-full flex flex-col items-center justify-center p-6">
+            <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-4">
+              Scan to Pledge
+            </div>
+            <BountyQRCode
+              shortId={shortId}
+              bountyAmount={bounty}
+              dareTitle={dare}
+              size={160}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFlipped(false);
+              }}
+              className="mt-4 text-[10px] font-mono text-purple-400 hover:text-purple-300 uppercase tracking-wider transition-colors"
+            >
+              ← Back to Card
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

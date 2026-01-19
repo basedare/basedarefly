@@ -38,6 +38,7 @@
     "next": "16.0.8",
     "ogl": "^1.0.11",
     "pinata": "^2.5.2",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.1",
     "react-day-picker": "^9.12.0",
     "react-dom": "19.2.1",

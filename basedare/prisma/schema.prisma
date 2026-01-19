@@ -17,6 +17,7 @@ model User {
 }
 model Dare {
   id String @id @default(cuid())
+  shortId String? @unique
   title String
   bounty Float
   streamerHandle String
@@ -30,6 +31,8 @@ model Dare {
   streamId String?
   txHash String?
   isSimulated Boolean @default(false)
+  // Expiry tracking
+  expiresAt DateTime?
   // Verification & Appeal
   verifiedAt DateTime?
   verifyTxHash String?

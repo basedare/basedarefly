@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       streamer_name: dare.streamerHandle,
       status: dare.status,
       video_url: dare.videoUrl,
-      expiry_timer: "24h",
+      expires_at: dare.expiresAt?.toISOString() || null,
+      short_id: dare.shortId || dare.id.slice(0, 8),
       image_url: ""
     }));
 

@@ -17,6 +17,8 @@ type Dare = {
   status?: string;
   image_url?: string;
   video_url?: string;
+  expires_at?: string | null;
+  short_id?: string;
 };
 
 type PremiumBentoGridProps = {
@@ -125,6 +127,28 @@ function normalizeStatus(status?: string): PremiumDareCardStatus {
   return 'live';
 }
 
+function calculateTimeRemaining(expiresAt?: string | null): { display: string; secondsLeft: number } {
+  if (!expiresAt) return { display: '24h left', secondsLeft: 86400 };
+
+  const now = Date.now();
+  const expiry = new Date(expiresAt).getTime();
+  const diff = expiry - now;
+
+  if (diff <= 0) return { display: 'EXPIRED', secondsLeft: 0 };
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  if (hours > 0) {
+    return { display: `${hours}h ${minutes}m left`, secondsLeft: Math.floor(diff / 1000) };
+  } else if (minutes > 0) {
+    return { display: `${minutes}m ${seconds}s left`, secondsLeft: Math.floor(diff / 1000) };
+  } else {
+    return { display: `${seconds}s left`, secondsLeft: Math.floor(diff / 1000) };
+  }
+}
+
 export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGridProps) {
   const [filter, setFilter] = useState<Filter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,6 +170,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
 
   type Card = {
       id: string;
+      shortId: string;
       dare: string;
       bounty: number;
       streamer: string;
@@ -153,6 +178,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
       emoji: string;
       status: PremiumDareCardStatus;
       timeRemaining?: string;
+      expiresAt?: string | null;
       isOpenBounty: boolean;
       proofUrl?: string;
   };
@@ -161,6 +187,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
     // Map LIVE_TARGETS (featured streamers) first
     const liveTargetCards: Card[] = LIVE_TARGETS.map((target) => ({
       id: target.id,
+      shortId: target.id,
       dare: target.dare,
       bounty: target.bounty,
       streamer: target.streamer,
@@ -179,18 +206,30 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
       const streamerName = d.streamer_name || '';
       const streamerImage = getStreamerImage(streamerName) || d.image_url;
       const proof = d.video_url;
-      const status: PremiumDareCardStatus =
+
+      // Calculate real time remaining from expiresAt
+      const timeInfo = calculateTimeRemaining(d.expires_at);
+      const isExpired = timeInfo.secondsLeft <= 0;
+
+      // Override status to expired if time ran out
+      let status: PremiumDareCardStatus =
         normalizedStatus === 'live' && streamerName.trim().length === 0 ? 'open' : normalizedStatus;
+
+      if (isExpired && status === 'live') {
+        status = 'expired';
+      }
 
       return {
         id: d.id,
+        shortId: d.short_id || d.id.slice(0, 8),
         dare: d.description,
         bounty: d.stake_amount,
         streamer: streamerName,
         streamerImage,
         emoji: getDareEmoji(d.description),
         status,
-        timeRemaining: status === 'live' ? '02:00h left' : undefined,
+        timeRemaining: status === 'live' || status === 'open' ? timeInfo.display : (isExpired ? 'EXPIRED' : undefined),
+        expiresAt: d.expires_at,
         isOpenBounty: status === 'open',
         proofUrl: proof,
       };
@@ -200,6 +239,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
     const openDefaults: Card[] = [
       {
         id: 'open-1',
+        shortId: 'open-1',
         dare: 'CHUG A COKE (NO BURP)',
         bounty: 50,
         streamer: 'OPEN TO ALL',
@@ -212,6 +252,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
       },
       {
         id: 'open-2',
+        shortId: 'open-2',
         dare: 'EAT A CHEESEBURGER IN 1 BITE',
         bounty: 150,
         streamer: 'OPEN TO ALL',
@@ -228,6 +269,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
     const locked: Card[] = [
       {
         id: 'locked-1',
+        shortId: 'locked-1',
         dare: 'SHAVE HEAD LIVE',
         bounty: 0,
         streamer: '???',
@@ -240,6 +282,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
       },
       {
         id: 'locked-2',
+        shortId: 'locked-2',
         dare: 'TATTOO LOGO ON FACE',
         bounty: 0,
         streamer: '???',
@@ -317,6 +360,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
               <PremiumDareCard
                 key={card.id}
                 id={card.id}
+                shortId={card.shortId}
                 dare={card.dare}
                 bounty={card.bounty}
                 streamer={card.streamer}
@@ -324,6 +368,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
                 emoji={card.emoji}
                 status={card.status}
                 timeRemaining={card.timeRemaining}
+                expiresAt={card.expiresAt}
                 isOpenBounty={card.isOpenBounty}
                 proofUrl={card.proofUrl}
                 onViewProof={(url) => setProofUrl(url)}
