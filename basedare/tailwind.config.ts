@@ -53,6 +53,7 @@ const config: Config = {
         'float-slow': 'float 6s ease-in-out infinite',
         'god-pulse': 'godPulse 8s ease-in-out infinite',
         'basketball-bounce': 'basketballBounce 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55)',
+        'shimmer': 'shimmer 2s infinite',
       },
       keyframes: {
         drip: {
@@ -84,26 +85,31 @@ const config: Config = {
           '50%': { opacity: '0.8', transform: 'scale(1.1)' },
         },
         basketballBounce: {
-          '0%': { 
+          '0%': {
             transform: 'translateY(0) scaleY(1) scaleX(1)',
           },
-          '20%': { 
+          '20%': {
             transform: 'translateY(-80px) scaleY(0.85) scaleX(1.1)', // Big rebound + squash/stretch
           },
-          '40%': { 
+          '40%': {
             transform: 'translateY(0) scaleY(1.15) scaleX(0.9)', // Hit + stretch
           },
-          '55%': { 
+          '55%': {
             transform: 'translateY(-40px) scaleY(0.95) scaleX(1.05)', // Medium bounce
           },
-          '70%': { 
+          '70%': {
             transform: 'translateY(0) scaleY(1.05) scaleX(0.95)',
           },
-          '85%': { 
+          '85%': {
             transform: 'translateY(-15px)',
           },
-          '100%': { 
+          '100%': {
             transform: 'translateY(0) scaleY(1) scaleX(1)',
+          },
+        },
+        shimmer: {
+          '100%': {
+            transform: 'translateX(100%)',
           },
         },
       }

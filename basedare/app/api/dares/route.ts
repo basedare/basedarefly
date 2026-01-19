@@ -1,27 +1,34 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Adjust path to '@/src/lib/prisma' if needed
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // 1. Fetch real data from the "Brain"
+    const { searchParams } = new URL(request.url);
+    const includeAll = searchParams.get('includeAll') === 'true';
+
+    // Fetch dares from database
     const dares = await prisma.dare.findMany({
-      where: {
-        status: { in: ['VERIFIED', 'PENDING'] } // Show only active/verified stuff
-      },
+      where: includeAll
+        ? {} // Include all statuses for dashboard
+        : { status: { in: ['VERIFIED', 'PENDING'] } }, // Only active for public feed
       orderBy: { createdAt: 'desc' }
     });
 
-    // 2. Translate it for the "Body" (Frontend)
+    // If includeAll (Dashboard mode), return full dare objects
+    if (includeAll) {
+      return NextResponse.json(dares);
+    }
+
+    // Otherwise, format for the public feed (legacy format)
     const formattedDares = dares.map(dare => ({
       id: dare.id,
-      description: dare.title,           // Map 'title' -> 'description'
-      stake_amount: dare.bounty,         // Map 'bounty' -> 'stake_amount'
-      streamer_name: dare.streamerHandle,// Map 'streamerHandle' -> 'streamer_name'
+      description: dare.title,
+      stake_amount: dare.bounty,
+      streamer_name: dare.streamerHandle,
       status: dare.status,
       video_url: dare.videoUrl,
-      // Add defaults for UI fields not in DB yet
-      expiry_timer: "24h", 
-      image_url: "" 
+      expiry_timer: "24h",
+      image_url: ""
     }));
 
     return NextResponse.json(formattedDares);

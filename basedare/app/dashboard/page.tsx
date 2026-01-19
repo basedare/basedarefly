@@ -1,19 +1,107 @@
 'use client';
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Wallet, Trophy, Target, Zap, Plus, AlertCircle } from "lucide-react";
+import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
+import { useAccount } from 'wagmi';
+
+interface Dare {
+  id: string;
+  title: string;
+  bounty: number;
+  streamerHandle: string;
+  status: string;
+  videoUrl?: string;
+  createdAt: string;
+  isSimulated?: boolean;
+}
 
 export default function Dashboard() {
+  const { address, isConnected } = useAccount();
+  const [dares, setDares] = useState<Dare[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
+  const [stats, setStats] = useState({
+    totalStaked: 0,
+    activeBounties: 0,
+    completedBounties: 0,
+  });
+
+  // Fetch user's dares from API
+  useEffect(() => {
+    const fetchDares = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/dares?includeAll=true');
+        if (response.ok) {
+          const data = await response.json();
+          setDares(data);
+
+          // Calculate stats
+          const active = data.filter((d: Dare) => d.status === 'PENDING').length;
+          const completed = data.filter((d: Dare) => d.status === 'VERIFIED').length;
+          const total = data.reduce((sum: number, d: Dare) => sum + d.bounty, 0);
+
+          setStats({
+            totalStaked: total,
+            activeBounties: active,
+            completedBounties: completed,
+          });
+
+          // Auto-select first pending dare for evidence submission
+          const pendingDare = data.find((d: Dare) => d.status === 'PENDING');
+          if (pendingDare) {
+            setSelectedDare(pendingDare);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch dares:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDares();
+  }, []);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30 flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Pending
+          </span>
+        );
+      case 'VERIFIED':
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400 rounded-full border border-green-500/30 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" /> Verified
+          </span>
+        );
+      case 'FAILED':
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-400 rounded-full border border-red-500/30 flex items-center gap-1">
+            <XCircle className="w-3 h-3" /> Failed
+          </span>
+        );
+      default:
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-gray-500/20 text-gray-400 rounded-full border border-gray-500/30">
+            {status}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
-      
-      {/* 1. DASHBOARD OVERVIEW */}
-      <div className="container mx-auto px-6 py-24 mb-12 flex-grow">
+
+      <div className="container mx-auto px-6 py-24 mb-12 flex-grow relative z-20">
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8 border-b border-white/10 pb-6">
           <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter flex items-center gap-4">
             <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.5)]">
@@ -21,99 +109,211 @@ export default function Dashboard() {
             </div>
             COMMAND <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">CENTER</span>
           </h1>
-          
+
           <div className="flex gap-4">
-            {/* CREATE DARE BUTTON */}
             <Link href="/create">
-              <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-lg uppercase font-bold text-xs hover:bg-white/10 hover:border-white/30 transition-all">
+              <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-lg uppercase font-bold text-xs hover:bg-white/10 hover:border-white/30 transition-all text-white">
                 <Plus className="w-4 h-4" /> Create Dare
               </button>
             </Link>
-            {/* LIVE FEED BUTTON (Fixed Visibility: Neon DNA) */}
-            <button className="group relative px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg border border-purple-400/50 uppercase font-black tracking-widest text-xs text-white shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105 hover:shadow-[0_0_40px_rgba(168,85,247,0.8)] transition-all duration-300">
-              <span className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            <Link href="/">
+              <button className="group relative px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg border border-purple-400/50 uppercase font-black tracking-widest text-xs text-white shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105 hover:shadow-[0_0_40px_rgba(168,85,247,0.8)] transition-all duration-300">
+                <span className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                  LIVE FEED
                 </span>
-                LIVE FEED
-              </span>
-            </button>
+              </button>
+            </Link>
           </div>
         </div>
 
+        {/* CONNECTION STATUS */}
+        {!isConnected && (
+          <div className="mb-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400" />
+            <p className="text-yellow-400 text-sm font-mono">Connect your wallet to see your personal stats and bounties</p>
+          </div>
+        )}
+
         {/* USER STATS GRID */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {/* Card 1: Balance */}
-          <div className="liquid-glass p-6 relative group hover:border-[#FFD700]/30 transition-colors">
+          {/* Card 1: Total Staked */}
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-[#FFD700]/30 transition-colors">
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Wallet className="w-12 h-12 text-[#FFD700]" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Wallet Balance</div>
-            <div className="relative z-10 text-3xl font-black text-white">4.205 <span className="text-[#FFD700]">ETH</span></div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Total Staked</div>
+            <div className="relative z-10 text-3xl font-black text-white">
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <>{stats.totalStaked.toLocaleString()} <span className="text-[#FFD700]">USDC</span></>
+              )}
+            </div>
             <div className="relative z-10 text-xs text-green-400 mt-2 font-mono flex items-center gap-1">
-              <Zap className="w-3 h-3" /> +12% this week
+              <Zap className="w-3 h-3" /> On Base L2
             </div>
           </div>
+
           {/* Card 2: Active Bounties */}
-          <div className="liquid-glass p-6 relative group hover:border-purple-500/30 transition-colors">
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-purple-500/30 transition-colors">
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Target className="w-12 h-12 text-purple-500" />
             </div>
             <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Active Bounties</div>
-            <div className="relative z-10 text-3xl font-black text-white">3 <span className="text-purple-500">DARES</span></div>
-            <div className="relative z-10 text-xs text-purple-400 mt-2 font-mono">Pending Verification</div>
-          </div>
-          {/* Card 3: Reputation */}
-          <div className="liquid-glass p-6 relative group hover:border-blue-500/30 transition-colors">
-            <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
-              <Trophy className="w-12 h-12 text-blue-500" />
+            <div className="relative z-10 text-3xl font-black text-white">
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <>{stats.activeBounties} <span className="text-purple-500">DARES</span></>
+              )}
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Reputation Score</div>
-            <div className="relative z-10 text-3xl font-black text-white">850 <span className="text-blue-500">PTS</span></div>
-            <div className="relative z-10 text-xs text-blue-400 mt-2 font-mono">Rank: Agent</div>
+            <div className="relative z-10 text-xs text-purple-400 mt-2 font-mono">Awaiting Verification</div>
+          </div>
+
+          {/* Card 3: Completed */}
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-green-500/30 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
+              <Trophy className="w-12 h-12 text-green-500" />
+            </div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Completed</div>
+            <div className="relative z-10 text-3xl font-black text-white">
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <>{stats.completedBounties} <span className="text-green-500">VERIFIED</span></>
+              )}
+            </div>
+            <div className="relative z-10 text-xs text-green-400 mt-2 font-mono">Successfully Paid Out</div>
           </div>
         </div>
 
-        {/* --- ACTIVE MISSION & UPLOAD --- */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-24">
-          
-          {/* LEFT: MISSION DETAILS */}
-          <div className="liquid-glass p-8 relative group">
-            <div className="absolute top-0 right-0 px-4 py-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl border-b border-l border-purple-500/30 z-20">
-              Status: In Progress
-            </div>
-            
-            <div className="relative z-10">
-              <h3 className="text-2xl font-black text-white mb-2">CURRENT MISSION</h3>
-              <h2 className="text-4xl font-black text-[#FFD700] mb-6 italic">&quot;EAT THE REAPER CHIP&quot;</h2>
-              
-              <div className="space-y-4 font-mono text-sm text-gray-400 mb-8">
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span>BOUNTY LOCKED:</span>
-                  <span className="text-white">5,000 USDC</span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span>TIME REMAINING:</span>
-                  <span className="text-red-400 animate-pulse">01:22:45</span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-2">
-                  <span>VERIFIER:</span>
-                  <span className="text-blue-400">@Community_DAO</span>
-                </div>
+        {/* MAIN CONTENT GRID */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-12">
+
+          {/* LEFT: BOUNTY LIST */}
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+            <h3 className="text-xl font-black text-white uppercase tracking-wider mb-6 flex items-center gap-3">
+              <Target className="w-5 h-5 text-purple-400" />
+              Your Bounties
+            </h3>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
               </div>
-              <div className="flex items-start gap-3 text-xs text-gray-500 backdrop-blur-xl bg-black/10 p-4 rounded-xl border border-white/5">
-                <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
-                Proof must be single-take video, unedited, showing face and empty chip package.
+            ) : dares.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                  <Target className="w-8 h-8 text-gray-500" />
+                </div>
+                <p className="text-gray-400 font-mono text-sm mb-4">No bounties yet</p>
+                <Link href="/create">
+                  <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-sm uppercase tracking-wider transition-colors">
+                    Create Your First Dare
+                  </button>
+                </Link>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {dares.map((dare) => (
+                  <div
+                    key={dare.id}
+                    onClick={() => setSelectedDare(dare)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                      selectedDare?.id === dare.id
+                        ? 'bg-purple-500/10 border-purple-500/50'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <h4 className="font-bold text-white text-sm line-clamp-1">{dare.title}</h4>
+                      {getStatusBadge(dare.status)}
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-gray-400">{dare.streamerHandle}</span>
+                      <span className="text-[#FFD700] font-bold">{dare.bounty} USDC</span>
+                    </div>
+                    {dare.isSimulated && (
+                      <span className="mt-2 inline-block px-2 py-0.5 text-[10px] font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded">
+                        Simulated
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* RIGHT: EVIDENCE UPLOAD */}
-          <div className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 flex flex-col justify-center relative overflow-hidden">
-            <div className="relative z-10">
-              <SubmitEvidence />
-            </div>
+          {/* RIGHT: SELECTED DARE DETAILS & EVIDENCE */}
+          <div className="space-y-6">
+            {/* MISSION DETAILS */}
+            {selectedDare ? (
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative">
+                <div className="absolute top-0 right-0 px-4 py-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl border-b border-l border-purple-500/30 z-20">
+                  Status: {selectedDare.status}
+                </div>
+
+                <div className="relative z-10">
+                  <h3 className="text-lg font-black text-white mb-2 uppercase tracking-wider">Current Mission</h3>
+                  <h2 className="text-2xl md:text-3xl font-black text-[#FFD700] mb-6 italic">&quot;{selectedDare.title}&quot;</h2>
+
+                  <div className="space-y-3 font-mono text-sm text-gray-400 mb-6">
+                    <div className="flex justify-between border-b border-white/10 pb-2">
+                      <span>BOUNTY LOCKED:</span>
+                      <span className="text-white">{selectedDare.bounty} USDC</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/10 pb-2">
+                      <span>TARGET:</span>
+                      <span className="text-purple-400">{selectedDare.streamerHandle}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/10 pb-2">
+                      <span>CREATED:</span>
+                      <span className="text-gray-300">{new Date(selectedDare.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  {selectedDare.status === 'PENDING' && (
+                    <div className="flex items-start gap-3 text-xs text-gray-500 backdrop-blur-xl bg-black/10 p-4 rounded-xl border border-white/5">
+                      <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
+                      <span>Upload video proof to verify completion. AI Referee will analyze within 60 seconds.</span>
+                    </div>
+                  )}
+
+                  {selectedDare.status === 'VERIFIED' && (
+                    <div className="flex items-start gap-3 text-xs backdrop-blur-xl bg-green-500/10 p-4 rounded-xl border border-green-500/30">
+                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                      <span className="text-green-400">This dare has been verified and paid out!</span>
+                    </div>
+                  )}
+
+                  {selectedDare.status === 'FAILED' && (
+                    <div className="flex items-start gap-3 text-xs backdrop-blur-xl bg-red-500/10 p-4 rounded-xl border border-red-500/30">
+                      <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                      <span className="text-red-400">Verification failed. Bounty has been refunded to stakers.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 flex items-center justify-center min-h-[200px]">
+                <p className="text-gray-500 font-mono text-sm">Select a bounty to view details</p>
+              </div>
+            )}
+
+            {/* EVIDENCE UPLOAD - Only show for pending dares */}
+            {selectedDare && selectedDare.status === 'PENDING' && (
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-black text-white uppercase tracking-wider mb-4 flex items-center gap-3">
+                  <Upload className="w-5 h-5 text-cyan-400" />
+                  Submit Evidence
+                </h3>
+                <SubmitEvidence />
+              </div>
+            )}
           </div>
         </div>
       </div>
