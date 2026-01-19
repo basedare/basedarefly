@@ -12,7 +12,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
   const { balance, isLoading } = useGlobalPot();
   return (
     <motion.div
-      className={`relative w-80 h-80 md:w-96 md:h-96 rounded-full border-4 border-purple-500/50 bg-black/60 shadow-[0_0_60px_rgba(168,85,247,0.8)] backdrop-blur-sm overflow-hidden flex items-center justify-center ${className || ''}`}
+      className={`relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-full border-4 border-purple-500/50 bg-black/60 shadow-[0_0_60px_rgba(168,85,247,0.8)] backdrop-blur-sm overflow-hidden flex items-center justify-center ${className || ''}`}
       initial={{ scale: 0.85, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 100, damping: 18 }}

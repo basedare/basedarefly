@@ -98,7 +98,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
   }, [items]);
 
   return (
-    <div className="relative w-full h-[800px] flex items-center justify-center perspective-[1200px] overflow-hidden">
+    <div className="relative w-full h-[500px] sm:h-[600px] md:h-[800px] flex items-center justify-center perspective-[1200px] overflow-hidden">
       
       <PortalVortex />
 

@@ -27,10 +27,13 @@ type PremiumBentoGridProps = {
 const STREAMER_IMAGES: Record<string, string> = {
   kaicenat: '/assets/KAICENAT.jpeg',
   'kai cenat': '/assets/KAICENAT.jpeg',
+  '@kaicenat': '/assets/KAICENAT.jpeg',
   adinross: '/assets/adinross.png',
   'adin ross': '/assets/adinross.png',
+  '@adinross': '/assets/adinross.png',
   ishowspeed: '/assets/Ishowspeed.jpg',
   '1showspeed': '/assets/Ishowspeed.jpg',
+  '@ishowspeed': '/assets/Ishowspeed.jpg',
   speed: '/assets/Ishowspeed.jpg',
 };
 
@@ -39,9 +42,9 @@ const DARE_EMOJIS: Record<string, string> = {
   pepper: '🌶️',
   spicy: '🌶️',
   hot: '🌶️',
-  skydiving: '☂️',
-  skydive: '☂️',
-  jump: '☂️',
+  skydiving: '🪂',
+  skydive: '🪂',
+  jump: '🪂',
   call: '💔',
   ex: '💔',
   phone: '💔',
@@ -55,7 +58,47 @@ const DARE_EMOJIS: Record<string, string> = {
   dance: '🎯',
   read: '🎯',
   mail: '🎯',
+  shave: '💈',
+  head: '💈',
+  tattoo: '🎨',
 };
+
+// LIVE TARGETS - Featured bounties with real streamers
+const LIVE_TARGETS = [
+  {
+    id: 'live-101',
+    dare: 'EAT THE REAPER',
+    bounty: 5000,
+    time: '02:00h left',
+    streamer: '@KaiCenat',
+    imgUrl: '/assets/KAICENAT.jpeg',
+    emoji: '🌶️',
+    isVulnerable: false,
+    status: 'live' as const,
+  },
+  {
+    id: 'live-102',
+    dare: 'SKYDIVING IRL',
+    bounty: 12000,
+    time: 'EXPIRED',
+    streamer: '@IShowSpeed',
+    imgUrl: '/assets/Ishowspeed.jpg',
+    emoji: '🪂',
+    isVulnerable: true,
+    status: 'expired' as const,
+  },
+  {
+    id: 'live-103',
+    dare: 'CALL YOUR EX',
+    bounty: 500,
+    time: '00:30m left',
+    streamer: '@AdinRoss',
+    imgUrl: '/assets/adinross.png',
+    emoji: '💔',
+    isVulnerable: false,
+    status: 'live' as const,
+  },
+];
 
 function getStreamerImage(streamerName?: string): string | undefined {
   if (!streamerName) return undefined;
@@ -115,6 +158,21 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
   };
 
   const cards = useMemo<Card[]>(() => {
+    // Map LIVE_TARGETS (featured streamers) first
+    const liveTargetCards: Card[] = LIVE_TARGETS.map((target) => ({
+      id: target.id,
+      dare: target.dare,
+      bounty: target.bounty,
+      streamer: target.streamer,
+      streamerImage: target.imgUrl,
+      emoji: target.emoji,
+      status: target.status,
+      timeRemaining: target.status === 'live' ? target.time : target.status === 'expired' ? 'EXPIRED' : undefined,
+      isOpenBounty: false,
+      proofUrl: undefined,
+    }));
+
+    // Map incoming dares from database
     const mapped = dares.map((d) => {
       const normalizedStatus = normalizeStatus(d.status);
 
@@ -132,22 +190,23 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
         streamerImage,
         emoji: getDareEmoji(d.description),
         status,
-        timeRemaining: status === 'live' ? '02:00h left REMAINING' : undefined,
+        timeRemaining: status === 'live' ? '02:00h left' : undefined,
         isOpenBounty: status === 'open',
         proofUrl: proof,
       };
     });
 
+    // Open bounties - available to anyone
     const openDefaults: Card[] = [
       {
         id: 'open-1',
         dare: 'CHUG A COKE (NO BURP)',
         bounty: 50,
-        streamer: '',
-        streamerImage: undefined,
-        emoji: getDareEmoji('CHUG A COKE (NO BURP)'),
+        streamer: 'OPEN TO ALL',
+        streamerImage: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800',
+        emoji: '🥤',
         status: 'open',
-        timeRemaining: undefined,
+        timeRemaining: 'OPEN BOUNTY',
         isOpenBounty: true,
         proofUrl: undefined,
       },
@@ -155,44 +214,45 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
         id: 'open-2',
         dare: 'EAT A CHEESEBURGER IN 1 BITE',
         bounty: 150,
-        streamer: '',
-        streamerImage: undefined,
-        emoji: getDareEmoji('EAT A CHEESEBURGER IN 1 BITE'),
+        streamer: 'OPEN TO ALL',
+        streamerImage: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800',
+        emoji: '🍔',
         status: 'open',
-        timeRemaining: undefined,
+        timeRemaining: 'OPEN BOUNTY',
         isOpenBounty: true,
         proofUrl: undefined,
       },
     ];
 
+    // Locked/Restricted bounties - require Genesis Pass
     const locked: Card[] = [
       {
         id: 'locked-1',
-        dare: 'RESTRICTED',
+        dare: 'SHAVE HEAD LIVE',
         bounty: 0,
-        streamer: '',
-        streamerImage: undefined as string | undefined,
-        emoji: '👑',
+        streamer: '???',
+        streamerImage: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800',
+        emoji: '🔒',
         status: 'restricted' as const,
-        timeRemaining: undefined as string | undefined,
+        timeRemaining: 'LOCKED',
         isOpenBounty: false,
         proofUrl: undefined,
       },
       {
         id: 'locked-2',
-        dare: 'RESTRICTED',
+        dare: 'TATTOO LOGO ON FACE',
         bounty: 0,
-        streamer: '',
-        streamerImage: undefined as string | undefined,
-        emoji: '👑',
+        streamer: '???',
+        streamerImage: 'https://images.unsplash.com/photo-1562962230-16bc46364924?auto=format&fit=crop&w=800',
+        emoji: '🔒',
         status: 'restricted' as const,
-        timeRemaining: undefined as string | undefined,
+        timeRemaining: 'LOCKED',
         isOpenBounty: false,
         proofUrl: undefined,
       },
     ];
 
-    return [...mapped, ...openDefaults, ...locked];
+    return [...liveTargetCards, ...mapped, ...openDefaults, ...locked];
   }, [dares]);
 
   const filteredCards = useMemo(() => {

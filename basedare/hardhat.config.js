@@ -1,5 +1,12 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+require("dotenv").config({ path: '.env.local' });
+
+// Use REFEREE_PRIVATE_KEY as fallback if DEPLOYER_PRIVATE_KEY not set
+const getPrivateKey = () => {
+  const key = process.env.DEPLOYER_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
+  if (!key) return [];
+  return [key.trim().replace(/[\[\]]/g, '')];
+};
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -15,7 +22,7 @@ module.exports = {
   networks: {
     "base-sepolia": {
       url: "https://sepolia.base.org",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY.trim().replace(/[\[\]]/g, '')] : [],
+      accounts: getPrivateKey(),
       chainId: 84532,
     },
   },

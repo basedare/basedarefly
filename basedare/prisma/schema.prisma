@@ -20,11 +20,22 @@ model Dare {
   title String
   bounty Float
   streamerHandle String
-  status String
+  status String @default("PENDING")
   videoUrl String?
   proofHash String?
-  creatorId String
-  creator User @relation(fields: [creatorId], references: [id])
+  // Optional user relation for anonymous dares
+  creatorId String?
+  creator User? @relation(fields: [creatorId], references: [id])
+  // On-chain tracking
+  streamId String?
+  txHash String?
+  isSimulated Boolean @default(false)
+  // Verification & Appeal
+  verifiedAt DateTime?
+  verifyTxHash String?
+  appealStatus String? // NONE, PENDING, APPROVED, REJECTED
+  appealReason String?
+  appealedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

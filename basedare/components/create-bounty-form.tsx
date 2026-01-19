@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { isAddress } from 'viem';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 
-// Frontend validation schema - matches API requirements
+// Frontend validation schema - uses streamerTag instead of address
 const CreateBountySchema = z.object({
   title: z
     .string()
@@ -22,10 +21,11 @@ const CreateBountySchema = z.object({
     .number({ message: 'Amount must be a number' })
     .min(5, 'Minimum bounty is $5 USDC')
     .max(10000, 'Maximum bounty is $10,000 USDC'),
-  streamerAddress: z
+  streamerTag: z
     .string()
-    .min(1, 'Wallet address is required')
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address format'),
+    .min(3, 'Tag must be at least 3 characters')
+    .max(20, 'Tag must be 20 characters or less')
+    .regex(/^@[a-zA-Z0-9_]+$/, 'Tag must start with @ and contain only letters, numbers, and underscores'),
   streamId: z.string().min(1, 'Stream ID is required'),
 });
 
@@ -50,7 +50,7 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
     defaultValues: {
       title: '',
       amount: 5,
-      streamerAddress: '',
+      streamerTag: '',
       streamId: defaultStreamId,
     },
   });
@@ -58,17 +58,6 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
   const onSubmit = async (data: CreateBountyFormData) => {
     setIsSubmitting(true);
     setSuccessData(null);
-
-    // Additional checksum validation
-    if (!isAddress(data.streamerAddress)) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid address',
-        description: 'Please enter a valid Ethereum address',
-      });
-      setIsSubmitting(false);
-      return;
-    }
 
     try {
       const response = await fetch('/api/bounties', {
@@ -86,8 +75,8 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
         });
 
         toast({
-          title: 'Bounty Created',
-          description: `Truth Machine Dare ID: ${result.data.dareId}${result.simulated ? ' (simulated)' : ''}`,
+          title: result.simulated ? 'SIMULATION SUCCESS' : 'Bounty Created',
+          description: `Truth Machine Dare ID: ${result.data.dareId}`,
           duration: 6000,
         });
 
@@ -153,18 +142,21 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
             )}
           </div>
 
-          {/* Streamer Wallet Address */}
+          {/* Streamer Tag */}
           <div className="space-y-2">
-            <Label htmlFor="streamerAddress">Streamer Wallet Address</Label>
+            <Label htmlFor="streamerTag">Streamer Tag</Label>
             <Input
-              id="streamerAddress"
-              placeholder="0x..."
-              className="bg-white/5 border-white/20 text-white placeholder:text-white/40 font-mono text-sm"
-              {...register('streamerAddress')}
+              id="streamerTag"
+              placeholder="@KaiCenat"
+              className="bg-white/5 border-white/20 text-white placeholder:text-white/40"
+              {...register('streamerTag')}
             />
-            {errors.streamerAddress && (
-              <p className="text-red-400 text-sm">{errors.streamerAddress.message}</p>
+            {errors.streamerTag && (
+              <p className="text-red-400 text-sm">{errors.streamerTag.message}</p>
             )}
+            <p className="text-white/40 text-xs">
+              We'll map your tag to an address later
+            </p>
           </div>
 
           {/* Hidden Stream ID for dev/testing */}
@@ -182,17 +174,19 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
           {/* Success Message */}
           {successData && (
             <div className="mt-4 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-              <p className="text-green-400 font-semibold text-sm">
-                Bounty Created Successfully
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-green-400 font-semibold text-sm">
+                  {successData.simulated ? 'SIMULATION SUCCESS' : 'Bounty Created'}
+                </p>
+                {successData.simulated && (
+                  <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded">
+                    Simulated
+                  </span>
+                )}
+              </div>
               <p className="text-green-400/80 text-xs mt-1 font-mono">
                 Dare ID: {successData.dareId}
               </p>
-              {successData.simulated && (
-                <p className="text-yellow-400/80 text-xs mt-1">
-                  (Simulated - contract not deployed)
-                </p>
-              )}
             </div>
           )}
         </form>
