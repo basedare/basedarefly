@@ -150,6 +150,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               }}
             />
 
+            {/* PeeBear with bottom fade mask - creates illusion of dipping into vortex */}
             <motion.img
               src="/assets/peebear-head.png"
               alt="BaseDare God"
@@ -157,12 +158,29 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               style={{
                 filter: 'drop-shadow(0 0 30px rgba(168,85,247,0.6))',
                 transform: 'translateZ(0)',
-                willChange: 'transform'
+                willChange: 'transform',
+                maskImage: 'linear-gradient(to bottom, black 0%, black 65%, transparent 95%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 65%, transparent 95%)',
               }}
               animate={{ y: isMobile ? [0, -8, 0] : [0, -12, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             />
         </div>
+      </div>
+
+      {/* Event horizon overlay - renders ABOVE PeeBear to complete the dipping illusion */}
+      <div
+        className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center z-[60]"
+        style={{ marginTop: '120px' }}
+      >
+        <div
+          className="w-[180px] h-[180px] md:w-[280px] md:h-[280px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0.7) 60%, transparent 75%)',
+            transform: 'rotateX(75deg)',
+            boxShadow: 'inset 0 0 60px rgba(168,85,247,0.4), 0 0 40px rgba(0,0,0,0.8)',
+          }}
+        />
       </div>
     </div>
   );
