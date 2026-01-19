@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
@@ -7,6 +8,7 @@ interface ViewToggleProps {
 }
 
 export default function ViewToggle({ view, setView }: ViewToggleProps) {
+  const router = useRouter();
   const isControl = view === 'BUSINESS';
 
   return (
@@ -37,7 +39,14 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
 
           {/* Premium Neon Toggle Switch */}
           <button
-            onClick={() => setView(isControl ? 'FAN' : 'BUSINESS')}
+            onClick={() => {
+              if (!isControl) {
+                // Switching to Control mode - show mode selection
+                setView('BUSINESS');
+              } else {
+                setView('FAN');
+              }
+            }}
             className="relative w-14 h-7 focus:outline-none"
             aria-label={isControl ? 'Switch to Chaos mode' : 'Switch to Control mode'}
           >

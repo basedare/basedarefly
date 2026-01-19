@@ -49,6 +49,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [dareInput, setDareInput] = useState('');
   const [selectedStreamer, setSelectedStreamer] = useState('');
+  const [showDossier, setShowDossier] = useState(false);
 
   // Parse dare input to extract streamer tag and dare title
   const parseDareInput = (input: string) => {
@@ -95,7 +96,9 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
       <LiquidBackground />
-      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <GradualBlurOverlay intensity={view === 'BUSINESS' ? 'light' : 'full'} />
+      </div>
       <ViewToggle view={view} setView={setView} />
 
       <AnimatePresence mode="wait">
@@ -193,12 +196,96 @@ export default function Home() {
         )}
 
         {view === 'BUSINESS' && (
-          <motion.div 
+          <motion.div
             key="business-view"
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="w-full min-h-screen flex flex-col items-center justify-center pt-32 pb-24 backdrop-blur-xl bg-black/10 border border-white/10"
+            className="w-full min-h-screen flex flex-col items-center justify-center pt-32 pb-24"
           >
-            <BusinessDossier />
+            {/* Control Mode Selection */}
+            <div className="text-center mb-16">
+              <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 bg-clip-text text-transparent mb-4">
+                CONTROL MODE
+              </h1>
+              <p className="text-zinc-400 text-lg max-w-md mx-auto">
+                The B2B infrastructure for programmatic attention marketing
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto px-6">
+              {/* Brand Portal Card */}
+              <button
+                onClick={() => router.push('/brands/portal')}
+                className="group relative p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-purple-500/50 transition-all text-left overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-4xl mb-4">🏢</div>
+                  <h2 className="text-2xl font-bold mb-2">Brand Portal</h2>
+                  <p className="text-zinc-400 mb-4">
+                    Create campaigns, set budgets, and let the Shadow Army hunt creators for you.
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded">Value Menu</span>
+                    <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded">Auto-Verify</span>
+                    <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded">USDC Settlement</span>
+                  </div>
+                  <div className="mt-6 flex items-center gap-2 text-purple-400 font-semibold">
+                    Enter Portal
+                    <span className="group-hover:translate-x-2 transition-transform">→</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Scout Dashboard Card */}
+              <button
+                onClick={() => router.push('/scouts/dashboard')}
+                className="group relative p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-pink-500/50 transition-all text-left overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative">
+                  <div className="text-4xl mb-4">🕵️</div>
+                  <h2 className="text-2xl font-bold mb-2">Shadow Army</h2>
+                  <p className="text-zinc-400 mb-4">
+                    Hunt creators, claim bounty slots, and earn permanent rake on every win.
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 bg-pink-500/20 border border-pink-500/30 rounded">Bounty Board</span>
+                    <span className="px-2 py-1 bg-pink-500/20 border border-pink-500/30 rounded">0.5% Discovery</span>
+                    <span className="px-2 py-1 bg-pink-500/20 border border-pink-500/30 rounded">0.5% Active</span>
+                  </div>
+                  <div className="mt-6 flex items-center gap-2 text-pink-400 font-semibold">
+                    Join the Army
+                    <span className="group-hover:translate-x-2 transition-transform">→</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Investor Dossier Link */}
+            <div className="mt-12">
+              <button
+                onClick={() => setShowDossier(!showDossier)}
+                className="text-zinc-500 hover:text-zinc-300 text-sm flex items-center gap-2 transition"
+              >
+                <span>📊</span>
+                <span>{showDossier ? 'Hide Investor Dossier' : 'View Investor Dossier'}</span>
+                <span className={`transition-transform ${showDossier ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+            </div>
+
+            {/* Business Dossier - Numbers breakdown */}
+            <AnimatePresence>
+              {showDossier && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="w-full mt-8 overflow-hidden"
+                >
+                  <BusinessDossier />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

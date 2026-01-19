@@ -2,21 +2,39 @@
   position: relative;
   width: 100%;
   aspect-ratio: 4/5;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(5, 5, 5, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.premium-dare-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%, rgba(255, 255, 255, 0.02) 100%);
+  pointer-events: none;
+  z-index: 6;
 }
 
 .premium-dare-card:hover {
-  border-color: rgba(255, 215, 0, 0.4);
-  box-shadow: 0 0 40px rgba(255, 215, 0, 0.2), 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 0 60px rgba(255, 215, 0, 0.15),
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .premium-dare-card--skeleton {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(5, 5, 5, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
@@ -88,24 +106,25 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
+  padding: 4px 10px;
+  border-radius: 10px;
   font-size: 8px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .premium-status-badge--live {
-  background: rgba(220, 38, 38, 0.3);
-  border: 1px solid rgba(220, 38, 38, 0.5);
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.3);
   color: #ef4444;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.2);
 }
 
 .premium-status-badge--expired {
-  background: rgba(107, 114, 128, 0.3);
-  border: 1px solid rgba(107, 114, 128, 0.5);
+  background: rgba(107, 114, 128, 0.2);
+  border: 1px solid rgba(107, 114, 128, 0.3);
   color: #9ca3af;
 }
 
@@ -162,9 +181,9 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .premium-card-header {
@@ -275,45 +294,50 @@
   right: 12px;
   z-index: 10;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  border: none;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .premium-action-button--active {
-  background: rgba(239, 68, 68, 0.9);
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.4);
   color: white;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
 }
 
 .premium-action-button--active:hover {
-  background: rgba(239, 68, 68, 1);
+  background: rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.6);
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
 }
 
 .premium-action-button--expired {
-  background: rgba(107, 114, 128, 0.3);
+  background: rgba(107, 114, 128, 0.15);
+  border-color: rgba(107, 114, 128, 0.2);
   color: rgba(255, 255, 255, 0.4);
   cursor: not-allowed;
 }
 
 .premium-action-button--proof {
-  background: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
   color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
 }
 
 .premium-action-button--proof:hover {
-  background: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.35);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.25);
 }
 
 .premium-under-review {
@@ -338,8 +362,13 @@
 }
 
 .premium-dare-card--restricted {
-  background: linear-gradient(135deg, rgba(10, 0, 20, 0.95), rgba(30, 0, 60, 0.95));
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: rgba(5, 5, 10, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 30px rgba(255, 215, 0, 0.03);
 }
 
 .premium-restricted-content {
@@ -368,22 +397,26 @@
 }
 
 .premium-genesis-button {
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: rgba(5, 5, 5, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.3);
   font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  color: black;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #fbbf24;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
 }
 
 .premium-genesis-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.25);
+  background: rgba(251, 191, 36, 0.1);
 }
 
 .premium-card-shine {
@@ -459,20 +492,26 @@
 .premium-card-back {
   transform: rotateY(180deg);
   z-index: 1;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 20px;
+  box-shadow:
+    0 0 40px rgba(139, 92, 246, 0.1),
+    0 0 60px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  background: rgba(5, 5, 10, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 .premium-card-back::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: 20px;
   background:
-    radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
   pointer-events: none;
 }
 

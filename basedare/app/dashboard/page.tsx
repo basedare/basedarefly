@@ -5,6 +5,7 @@ import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCi
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
+import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import { useAccount, useConnect } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
 
@@ -398,6 +399,11 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* LIVE POT & LEADERBOARD */}
+        <div className="mt-8">
+          <LivePotLeaderboard />
         </div>
       </div>
     </div>
