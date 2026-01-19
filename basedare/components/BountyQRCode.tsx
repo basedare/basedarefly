@@ -8,13 +8,15 @@ interface BountyQRCodeProps {
   bountyAmount: number;
   dareTitle: string;
   size?: number;
+  compact?: boolean;
 }
 
 export default function BountyQRCode({
   shortId,
   bountyAmount,
   dareTitle,
-  size = 180,
+  size = 120,
+  compact = false,
 }: BountyQRCodeProps) {
   const [copied, setCopied] = useState(false);
 
@@ -40,13 +42,50 @@ export default function BountyQRCode({
           url: shareUrl,
         });
       } catch (err) {
-        // User cancelled or share failed, fallback to copy
         handleCopy();
       }
     } else {
       handleCopy();
     }
   };
+
+  if (compact) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        {/* QR Code with PeeBear logo - compact */}
+        <div className="relative bg-white p-2 rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+          <QRCodeSVG
+            value={shareUrl}
+            size={size}
+            level="H"
+            includeMargin={false}
+            bgColor="#ffffff"
+            fgColor="#0a0a0a"
+            imageSettings={{
+              src: '/assets/peebear-head.png',
+              height: size * 0.22,
+              width: size * 0.22,
+              excavate: true,
+            }}
+          />
+        </div>
+
+        {/* Compact bounty badge */}
+        <div className="flex items-center gap-1 px-2 py-1 bg-purple-600/20 border border-purple-500/30 rounded-full">
+          <span className="text-sm font-bold text-white">{bountyAmount.toLocaleString()}</span>
+          <span className="text-[8px] font-mono text-purple-400">USDC</span>
+        </div>
+
+        {/* Copy/Share button */}
+        <button
+          onClick={handleShare}
+          className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white font-bold text-[9px] uppercase tracking-wider rounded-lg transition-all"
+        >
+          {copied ? 'Copied!' : 'Share'}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-4">

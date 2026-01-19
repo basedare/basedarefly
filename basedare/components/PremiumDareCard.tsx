@@ -309,25 +309,26 @@ export default function PremiumDareCard({
 
         {/* BACK OF CARD - QR Code */}
         <div className="premium-card-back premium-dare-card">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] rounded-3xl" />
-          <div className="relative z-10 h-full flex flex-col items-center justify-center p-6">
-            <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-4">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]" />
+          <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-3 sm:p-4">
+            <div className="text-[8px] sm:text-[9px] font-mono text-white/40 uppercase tracking-widest mb-2">
               Scan to Pledge
             </div>
             <BountyQRCode
               shortId={shortId}
               bountyAmount={bounty}
               dareTitle={dare}
-              size={160}
+              size={80}
+              compact={true}
             />
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setIsFlipped(false);
               }}
-              className="mt-4 text-[10px] font-mono text-purple-400 hover:text-purple-300 uppercase tracking-wider transition-colors"
+              className="mt-2 text-[8px] sm:text-[9px] font-mono text-purple-400 hover:text-purple-300 uppercase tracking-wider transition-colors"
             >
-              ← Back to Card
+              ← Back
             </button>
           </div>
         </div>
