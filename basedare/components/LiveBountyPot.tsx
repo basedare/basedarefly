@@ -18,7 +18,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
       transition={{ type: 'spring', stiffness: 100, damping: 18 }}
     >
       {/* 1. Dark Void Base */}
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           background: "rgba(4, 7, 18, 0.6)",
@@ -27,7 +27,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
       />
 
       {/* 2. Deep Purple Ambient Glow */}
-      <div 
+      <div
         className="absolute inset-0"
         style={{
           background: "radial-gradient(circle at center, #A855F7 0%, #6B21A8 50%, transparent 80%)",
@@ -37,7 +37,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
       />
 
       {/* 3. Cosmic Dust / Holo Conic Spin (SYNCHRONIZED COLOR & ROTATION) */}
-      <div 
+      <div
         className="absolute inset-0 opacity-90 mix-blend-color-dodge pointer-events-none"
         style={{
           // HoloButton's primary conic gradient (Purple -> Honey)
@@ -50,12 +50,12 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
       />
 
       {/* 4. Liquid Distortion Layer */}
-      <div 
+      <div
         className="absolute inset-0 opacity-30 mix-blend-overlay pointer-events-none"
         style={{ filter: "url(#orb-liquid)" }}
       >
         {/* Counter-rotation for liquid: spin-slow 20s linear infinite reverse */}
-        <div className="w-full h-full bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-spin-slow" /> 
+        <div className="w-full h-full bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-spin-slow" />
       </div>
 
       {/* 5. Spherical Shading + Glass Depth */}
@@ -73,7 +73,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
         <p className="text-xl md:text-2xl uppercase tracking-widest text-purple-300 mb-6 drop-shadow-2xl">
           Total Bounty Pot
         </p>
-        <p 
+        <p
           className="text-6xl md:text-7xl font-extrabold text-[#FACC15] drop-shadow-2xl" // Slightly reduced font size for fitting (md:text-7xl)
           style={{ textShadow: '0 0 60px rgba(250,204,21,0.9)' }}
         >

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ElectricCard } from '@/components/ui/electric-card';
+import BubbleCard from '@/components/BubbleCard';
+import Shuffle from '@/components/Shuffle';
 
 export default function TruthProtocol() {
   const staticCards = [
@@ -33,23 +34,37 @@ export default function TruthProtocol() {
       <div className="max-w-[1600px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6">
-            THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">TRUTH PROTOCOL</span>
+            <span className="mr-3">THE</span>
+            <Shuffle
+              text="TRUTH PROTOCOL"
+              tag="span"
+              className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 inline-block"
+              duration={0.8}
+              stagger={0.03}
+              shuffleTimes={4}
+              triggerOnHover={true}
+            />
           </h2>
-          <p className="text-gray-400 font-mono text-sm uppercase tracking-widest">
-            Zero-Knowledge Verification • On-Chain Settlement • Base L2
-          </p>
+          <Shuffle
+            text="Zero-Knowledge Verification • On-Chain Settlement • Base L2"
+            tag="p"
+            className="text-gray-400 font-mono text-sm uppercase tracking-widest"
+            duration={0.6}
+            stagger={0.01}
+            shuffleTimes={2}
+            triggerOnHover={true}
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {staticCards.map((card) => (
-            <ElectricCard 
+            <BubbleCard
               key={card.id}
-              variant="hue"
               color={card.color}
               badge={card.badge}
               title={card.title}
               description={card.description}
-              className="w-full md:w-auto max-w-full md:max-w-[600px]"
+              className="w-full max-w-[280px] mx-auto"
             />
           ))}
         </div>

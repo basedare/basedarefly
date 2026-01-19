@@ -10,7 +10,7 @@ interface FixedBountyPotProps {
 }
 
 const FixedBountyPot: React.FC<FixedBountyPotProps> = ({ totalPot, countdown }) => {
-    
+
     // Framer Motion variants for the floating/breathing effect
     const bounceVariants = {
         initial: { y: 15, opacity: 0.8 },
@@ -63,11 +63,3 @@ const FixedBountyPot: React.FC<FixedBountyPotProps> = ({ totalPot, countdown }) 
 };
 
 export default FixedBountyPot;
-
-
-
-
-
-
-
-
