@@ -122,6 +122,13 @@ const StakeBountySchema = z.object({
 
   // Optional: client-provided dareId (for idempotency)
   dareId: z.string().optional(),
+
+  // Staker wallet address (for filtering dashboard)
+  stakerAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid staker address')
+    .refine((addr) => isAddress(addr), 'Address checksum invalid')
+    .optional(),
 });
 
 const GetBountySchema = z.object({
@@ -244,7 +251,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, amount, streamId, streamerTag, referrerAddress, referrerTag, dareId } =
+    const { title, description, amount, streamId, streamerTag, referrerAddress, referrerTag, dareId, stakerAddress } =
       validation.data;
 
     // -------------------------------------------------------------------------
@@ -319,10 +326,11 @@ export async function POST(request: NextRequest) {
           shortId,
           referrerTag: referrerTag || null,
           referrerAddress: resolvedReferrerAddress,
+          stakerAddress: stakerAddress?.toLowerCase() || null,
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, staker: ${stakerAddress || 'anonymous'}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
 
       return NextResponse.json({
         success: true,
@@ -434,6 +442,7 @@ export async function POST(request: NextRequest) {
         shortId,
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
+        stakerAddress: stakerAddress?.toLowerCase() || null,
       },
     });
 

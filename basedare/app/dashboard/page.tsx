@@ -34,7 +34,13 @@ export default function Dashboard() {
     const fetchDares = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/dares?includeAll=true');
+        // Include user address to filter for their dares only
+        const params = new URLSearchParams({ includeAll: 'true' });
+        if (address) {
+          params.set('userAddress', address);
+        }
+
+        const response = await fetch(`/api/dares?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
           setDares(data);
@@ -64,7 +70,7 @@ export default function Dashboard() {
     };
 
     fetchDares();
-  }, []);
+  }, [address]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -311,7 +317,19 @@ export default function Dashboard() {
                   <Upload className="w-5 h-5 text-cyan-400" />
                   Submit Evidence
                 </h3>
-                <SubmitEvidence />
+                <SubmitEvidence
+                  dareId={selectedDare.id}
+                  onVerificationComplete={(result) => {
+                    // Refresh dares list on verification complete
+                    if (result.status === 'VERIFIED' || result.status === 'FAILED') {
+                      setDares((prev) =>
+                        prev.map((d) =>
+                          d.id === selectedDare.id ? { ...d, status: result.status } : d
+                        )
+                      );
+                    }
+                  }}
+                />
               </div>
             )}
           </div>

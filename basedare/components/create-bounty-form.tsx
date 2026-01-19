@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAllowanceCheck } from '@/hooks/useAllowanceCheck';
+import { ContractStatusBadge } from '@/components/ContractStatus';
+import { useAccount } from 'wagmi';
 
 // Frontend validation schema - uses streamerTag instead of address
 const CreateBountySchema = z.object({
@@ -49,6 +51,7 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
   const [showAllowanceWarning, setShowAllowanceWarning] = useState(false);
   const { toast } = useToast();
   const { checkAllowance, isChecking, checkResult } = useAllowanceCheck();
+  const { address } = useAccount();
 
   const {
     register,
@@ -103,6 +106,7 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
         body: JSON.stringify({
           ...data,
           referrerTag: data.referrerTag || undefined,
+          stakerAddress: address || undefined,
         }),
       });
 
@@ -152,7 +156,10 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
   return (
     <Card className="w-full max-w-md border-white/10 bg-black/60 backdrop-blur-xl">
       <CardHeader>
-        <CardTitle className="text-white text-xl">Create Bounty</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-xl">Create Bounty</CardTitle>
+          <ContractStatusBadge />
+        </div>
         <CardDescription className="text-white/60">
           Stake USDC on a dare for your favorite streamer
         </CardDescription>

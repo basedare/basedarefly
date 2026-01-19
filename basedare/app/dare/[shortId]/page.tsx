@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import BountyQRCode from '@/components/BountyQRCode';
@@ -34,15 +34,32 @@ function formatTimeRemaining(expiresAt: string | null): string {
   return `${minutes}m remaining`;
 }
 
+// Store referral in sessionStorage for tracking
+function storeReferral(ref: string, dareId: string) {
+  if (typeof window !== 'undefined' && ref) {
+    const referralData = { ref, dareId, timestamp: Date.now() };
+    sessionStorage.setItem('basedare_referral', JSON.stringify(referralData));
+  }
+}
+
 export default function DareDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const shortId = params.shortId as string;
+  const referrer = searchParams.get('ref');
 
   const [dare, setDare] = useState<DareDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
+
+  // Track referral on page load
+  useEffect(() => {
+    if (referrer) {
+      storeReferral(referrer, shortId);
+    }
+  }, [referrer, shortId]);
 
   useEffect(() => {
     const fetchDare = async () => {
@@ -197,11 +214,22 @@ export default function DareDetailPage() {
           {!isExpired && !isVerified && (
             <div className="p-6 border-t border-white/10">
               <button
-                onClick={() => router.push(`/create?pledge=${shortId}`)}
+                onClick={() => {
+                  // Include referral if present
+                  const pledgeUrl = referrer
+                    ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
+                    : `/create?pledge=${shortId}`;
+                  router.push(pledgeUrl);
+                }}
                 className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_40px_rgba(239,68,68,0.5)]"
               >
                 Add to Bounty Pool
               </button>
+              {referrer && (
+                <p className="text-center text-[10px] text-purple-400 mt-2 font-mono">
+                  Referred by {referrer}
+                </p>
+              )}
               <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
                 Increase the stakes. Make them sweat.
               </p>

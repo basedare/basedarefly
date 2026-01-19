@@ -1,17 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAddress } from 'viem';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const includeAll = searchParams.get('includeAll') === 'true';
+    const userAddress = searchParams.get('userAddress');
+
+    // Build where clause
+    type WhereClause = {
+      status?: { in: string[] };
+      stakerAddress?: string;
+    };
+
+    const where: WhereClause = {};
+
+    // Filter by status unless includeAll is true
+    if (!includeAll) {
+      where.status = { in: ['VERIFIED', 'PENDING'] };
+    }
+
+    // Filter by user address if provided and valid
+    if (userAddress && isAddress(userAddress)) {
+      where.stakerAddress = userAddress.toLowerCase();
+    }
 
     // Fetch dares from database
     const dares = await prisma.dare.findMany({
-      where: includeAll
-        ? {} // Include all statuses for dashboard
-        : { status: { in: ['VERIFIED', 'PENDING'] } }, // Only active for public feed
-      orderBy: { createdAt: 'desc' }
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 100, // Limit results for performance
     });
 
     // If includeAll (Dashboard mode), return full dare objects

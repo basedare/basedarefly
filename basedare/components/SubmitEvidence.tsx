@@ -1,27 +1,38 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, X, CheckCircle, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
 
-export default function SubmitEvidence() {
+type VerificationStatus = 'idle' | 'uploading' | 'verifying' | 'verified' | 'failed';
+
+interface SubmitEvidenceProps {
+  dareId: string;
+  onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
+}
+
+export default function SubmitEvidence({ dareId, onVerificationComplete }: SubmitEvidenceProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
+  const [status, setStatus] = useState<VerificationStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [verificationResult, setVerificationResult] = useState<{
+    confidence?: number;
+    reason?: string;
+    appealable?: boolean;
+  } | null>(null);
+  const [appealText, setAppealText] = useState('');
+  const [appealSubmitted, setAppealSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileSelect = (selectedFile: File) => {
-    // Validate file type
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
     if (!validTypes.includes(selectedFile.type)) {
       setError('Invalid file type. Please upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).');
       return;
     }
 
-    // Validate file size (max 120MB)
-    const maxSize = 120 * 1024 * 1024; // 120MB
+    const maxSize = 120 * 1024 * 1024;
     if (selectedFile.size > maxSize) {
       setError('File too large. Maximum size is 120MB.');
       return;
@@ -29,9 +40,9 @@ export default function SubmitEvidence() {
 
     setFile(selectedFile);
     setError(null);
-    setUploaded(false);
+    setStatus('idle');
+    setVerificationResult(null);
 
-    // Create preview
     if (selectedFile.type.startsWith('video/')) {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(selectedFile);
@@ -60,7 +71,6 @@ export default function SubmitEvidence() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) {
       handleFileSelect(droppedFile);
@@ -74,61 +84,215 @@ export default function SubmitEvidence() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleUploadAndVerify = async () => {
+    if (!file || !dareId) return;
 
-    setUploading(true);
+    setStatus('uploading');
     setError(null);
 
     try {
+      // Step 1: Upload file to IPFS via Pinata
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('dareId', dareId);
 
-      const response = await fetch('/api/upload', {
+      const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.error || 'Upload failed');
+      }
+
+      const videoUrl = uploadData.url || uploadData.ipfsUrl || uploadData.data?.url;
+      console.log('[EVIDENCE] File uploaded:', videoUrl);
+
+      // Step 2: Trigger verification
+      setStatus('verifying');
+
+      const verifyResponse = await fetch('/api/verify-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dareId,
+          proofData: {
+            videoUrl,
+            timestamp: Date.now(),
+          },
+        }),
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (!verifyResponse.ok && !verifyData.success) {
+        // Handle specific error codes
+        if (verifyData.code === 'ALREADY_VERIFIED') {
+          setStatus('verified');
+          setVerificationResult({ reason: 'This dare has already been verified!' });
+          return;
+        }
+        throw new Error(verifyData.error || 'Verification failed');
+      }
+
+      // Handle verification result
+      const result = verifyData.data;
+      if (result.status === 'VERIFIED') {
+        setStatus('verified');
+        setVerificationResult({
+          confidence: result.verification?.confidence,
+          reason: result.verification?.reason,
+        });
+        onVerificationComplete?.({ status: 'VERIFIED', confidence: result.verification?.confidence });
+      } else if (result.status === 'FAILED') {
+        setStatus('failed');
+        setVerificationResult({
+          confidence: result.verification?.confidence,
+          reason: result.verification?.reason,
+          appealable: result.appealable,
+        });
+        onVerificationComplete?.({ status: 'FAILED', confidence: result.verification?.confidence });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload and verify. Please try again.');
+      setStatus('idle');
+      console.error('[EVIDENCE] Error:', err);
+    }
+  };
+
+  const handleAppeal = async () => {
+    if (!appealText || appealText.length < 10) {
+      setError('Please provide a detailed reason for your appeal (at least 10 characters).');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-proof', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dareId,
+          reason: appealText,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || 'Appeal submission failed');
       }
 
-      setUploaded(true);
-      // TODO: Handle successful upload (e.g., save file URL to state, trigger verification, etc.)
-      console.log('File uploaded successfully:', data);
+      setAppealSubmitted(true);
+      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to upload file. Please try again.');
-      console.error('Upload error:', err);
-    } finally {
-      setUploading(false);
+      setError(err.message || 'Failed to submit appeal.');
     }
   };
 
   const handleRemove = () => {
     setFile(null);
     setPreview(null);
-    setUploaded(false);
+    setStatus('idle');
     setError(null);
+    setVerificationResult(null);
+    setAppealText('');
+    setAppealSubmitted(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const handleClick = () => {
-    if (!uploaded && !uploading) {
+    if (status === 'idle' && !file) {
       fileInputRef.current?.click();
     }
   };
 
+  // Render verification status UI
+  if (status === 'verified') {
+    return (
+      <div className="group relative h-full bg-green-500/5 border-2 border-green-500/50 rounded-3xl overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
+            <ShieldCheck className="w-8 h-8 text-green-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-green-400 uppercase tracking-wider mb-1">Verified!</h3>
+            <p className="text-xs font-mono text-gray-400 max-w-[200px]">
+              {verificationResult?.confidence
+                ? `Confidence: ${(verificationResult.confidence * 100).toFixed(1)}%`
+                : 'Your proof has been verified'}
+            </p>
+          </div>
+          <div className="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-[10px] font-bold text-green-400 uppercase tracking-widest">
+            Payout Processing
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="group relative h-full bg-red-500/5 border-2 border-red-500/50 rounded-3xl overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50">
+            <ShieldX className="w-7 h-7 text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-red-400 uppercase tracking-wider mb-1">Verification Failed</h3>
+            <p className="text-xs font-mono text-gray-400 max-w-[220px]">
+              {verificationResult?.reason || 'The AI could not verify dare completion'}
+            </p>
+          </div>
+
+          {verificationResult?.appealable && !appealSubmitted && (
+            <div className="w-full max-w-[240px] space-y-2">
+              <textarea
+                value={appealText}
+                onChange={(e) => setAppealText(e.target.value)}
+                placeholder="Why should this be reconsidered?"
+                className="w-full p-2 bg-black/40 border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 resize-none h-16"
+                maxLength={500}
+              />
+              <button
+                onClick={handleAppeal}
+                className="w-full px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-400 font-bold text-xs rounded-lg uppercase tracking-wider transition-colors"
+              >
+                Submit Appeal
+              </button>
+              {error && (
+                <p className="text-[10px] text-red-400">{error}</p>
+              )}
+            </div>
+          )}
+
+          {appealSubmitted && (
+            <div className="px-3 py-2 rounded bg-yellow-500/10 border border-yellow-500/30 text-[10px] font-mono text-yellow-400">
+              Appeal submitted. Review in 24-48hrs.
+            </div>
+          )}
+
+          <button
+            onClick={handleRemove}
+            className="text-[10px] font-mono text-gray-500 hover:text-white uppercase tracking-wider transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div 
+    <div
       className={`group relative h-full bg-white/5 border-2 border-dashed transition-all duration-300 overflow-hidden rounded-3xl ${
-        isDragging 
-          ? 'border-cyan-400 bg-cyan-500/10' 
-          : uploaded 
-            ? 'border-green-500/50 bg-green-500/5' 
+        isDragging
+          ? 'border-cyan-400 bg-cyan-500/10'
+          : status === 'uploading' || status === 'verifying'
+            ? 'border-purple-500/50 bg-purple-500/5'
             : error
               ? 'border-red-500/50 bg-red-500/5'
               : 'border-white/10 hover:border-cyan-400/50'
@@ -138,12 +302,10 @@ export default function SubmitEvidence() {
       onDrop={handleDrop}
       onClick={handleClick}
     >
-      {/* SCANNING LASER EFFECT */}
       <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent transition-opacity duration-300 ${
-        isDragging || uploading ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'
+        isDragging || status === 'uploading' || status === 'verifying' ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'
       }`} />
-      
-      {/* HIDDEN FILE INPUT */}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -151,43 +313,40 @@ export default function SubmitEvidence() {
         onChange={handleFileInputChange}
         className="hidden"
       />
-      
-      {/* CONTENT */}
+
       <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
-        {uploaded ? (
+        {status === 'uploading' || status === 'verifying' ? (
           <>
-            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
-              <CheckCircle className="w-8 h-8 text-green-400" />
+            <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/50">
+              <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-green-400 uppercase tracking-wider mb-1">Evidence Submitted</h3>
+              <h3 className="text-xl font-black text-purple-400 uppercase tracking-wider mb-1">
+                {status === 'uploading' ? 'Uploading...' : 'Verifying...'}
+              </h3>
               <p className="text-xs font-mono text-gray-400 max-w-[200px]">
-                Your proof is being verified by zkML
+                {status === 'uploading'
+                  ? 'Uploading to secure storage'
+                  : 'AI Referee analyzing proof'}
               </p>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemove();
-              }}
-              className="px-4 py-2 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-mono text-gray-400 hover:text-white transition-colors uppercase tracking-widest"
-            >
-              Remove & Upload New
-            </button>
+            <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+              {status === 'uploading' ? 'IPFS Upload' : 'zkML Processing'}
+            </div>
           </>
         ) : preview ? (
           <>
             <div className="relative w-full max-w-xs mb-4">
               {file?.type.startsWith('video/') ? (
-                <video 
-                  src={preview} 
+                <video
+                  src={preview}
                   className="w-full rounded-xl border border-white/10"
                   controls
                 />
               ) : (
-                <img 
-                  src={preview} 
-                  alt="Preview" 
+                <img
+                  src={preview}
+                  alt="Preview"
                   className="w-full rounded-xl border border-white/10"
                 />
               )}
@@ -217,65 +376,50 @@ export default function SubmitEvidence() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleUpload();
+                  handleUploadAndVerify();
                 }}
-                disabled={uploading || !!error}
+                disabled={!!error}
                 className="w-full px-6 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-black text-sm rounded-xl uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Submit Evidence
-                  </>
-                )}
+                <Upload className="w-4 h-4" />
+                Submit & Verify
               </button>
             </div>
           </>
         ) : (
           <>
             <div className={`w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border transition-all duration-300 ${
-              isDragging 
-                ? 'scale-110 border-cyan-400 bg-cyan-500/10' 
+              isDragging
+                ? 'scale-110 border-cyan-400 bg-cyan-500/10'
                 : 'border-white/10 group-hover:scale-110 group-hover:border-cyan-400'
             }`}>
-              {uploading ? (
-                <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
-              ) : (
-                <Upload className={`w-6 h-6 transition-colors ${
-                  isDragging ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'
-                }`} />
-              )}
-        </div>
-        <div>
+              <Upload className={`w-6 h-6 transition-colors ${
+                isDragging ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'
+              }`} />
+            </div>
+            <div>
               <h3 className="text-xl font-black text-white uppercase tracking-wider mb-1">
                 {isDragging ? 'Drop File Here' : 'Submit Evidence'}
               </h3>
-          <p className="text-xs font-mono text-gray-500 max-w-[200px]">
-                {isDragging 
-                  ? 'Release to upload' 
-                  : 'DRAG VIDEO FILE HERE OR CLICK TO BROWSE SECURE STORAGE'
-                }
-          </p>
-        </div>
+              <p className="text-xs font-mono text-gray-500 max-w-[200px]">
+                {isDragging
+                  ? 'Release to upload'
+                  : 'DRAG VIDEO FILE HERE OR CLICK TO BROWSE'}
+              </p>
+            </div>
             {error && (
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono max-w-[200px]">
                 <AlertCircle className="w-4 h-4" />
                 {error}
               </div>
             )}
-        <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-          zkML Verification Ready
-        </div>
+            <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+              zkML Verification Ready
+            </div>
           </>
         )}
       </div>
 
-      {/* CORNER ACCENTS */}
       <div className="absolute top-0 left-0 w-4 h-4 border-l-2 border-t-2 border-white/20" />
       <div className="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-white/20" />
       <div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-white/20" />

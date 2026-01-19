@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
+import { useAccount } from 'wagmi';
 
 interface BountyQRCodeProps {
   shortId: string;
@@ -9,6 +10,7 @@ interface BountyQRCodeProps {
   dareTitle: string;
   size?: number;
   compact?: boolean;
+  referrerTag?: string; // Optional explicit referrer tag
 }
 
 export default function BountyQRCode({
@@ -17,11 +19,17 @@ export default function BountyQRCode({
   dareTitle,
   size = 120,
   compact = false,
+  referrerTag,
 }: BountyQRCodeProps) {
   const [copied, setCopied] = useState(false);
+  const { address } = useAccount();
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const shareUrl = `${baseUrl}/dare/${shortId}`;
+  // Include referral parameter if user is connected or explicit tag provided
+  const refParam = referrerTag || (address ? `@${address.slice(0, 6)}...${address.slice(-4)}` : '');
+  const shareUrl = refParam
+    ? `${baseUrl}/dare/${shortId}?ref=${encodeURIComponent(refParam)}`
+    : `${baseUrl}/dare/${shortId}`;
 
   const handleCopy = async () => {
     try {

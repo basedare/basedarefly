@@ -1,5 +1,9 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAccount, useBalance, useConnect, useDisconnect } from 'wagmi';
+import { coinbaseWallet } from 'wagmi/connectors';
+import { base } from 'viem/chains';
+import { formatUnits } from 'viem';
 
 type WalletState = {
   isConnected: boolean;
@@ -8,37 +12,67 @@ type WalletState = {
   reputation: number;
   connect: () => Promise<void>;
   disconnect: () => void;
+  isConnecting: boolean;
 };
 
 const WalletContext = createContext<WalletState>({} as WalletState);
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState("0.00");
+  const { address, isConnected } = useAccount();
+  const { data: balanceData } = useBalance({ address, chainId: base.id });
+  const { connectAsync, isPending: isConnecting } = useConnect();
+  const { disconnectAsync } = useDisconnect();
   const [reputation, setReputation] = useState(0);
 
-  // Simulate connection delay
+  // Fetch user reputation from API when connected
+  useEffect(() => {
+    if (address) {
+      fetch(`/api/users/${address}/reputation`)
+        .then((res) => res.ok ? res.json() : { reputation: 0 })
+        .then((data) => setReputation(data.reputation || 0))
+        .catch(() => setReputation(0));
+    } else {
+      setReputation(0);
+    }
+  }, [address]);
+
   const connect = async () => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        setIsConnected(true);
-        setAddress("0x71C...9A2");
-        setBalance("4.20"); // 4.20 ETH, naturally
-        setReputation(850);
-        resolve();
-      }, 1000);
-    });
+    try {
+      await connectAsync({
+        connector: coinbaseWallet({
+          appName: 'BaseDare',
+          preference: 'smartWalletOnly',
+        }),
+      });
+    } catch (err) {
+      console.error('[WalletContext] Connect failed:', err);
+    }
   };
 
-  const disconnect = () => {
-    setIsConnected(false);
-    setAddress(null);
-    setBalance("0.00");
+  const disconnect = async () => {
+    try {
+      await disconnectAsync();
+    } catch (err) {
+      console.error('[WalletContext] Disconnect failed:', err);
+    }
   };
+
+  const formattedBalance = balanceData
+    ? parseFloat(formatUnits(balanceData.value, balanceData.decimals)).toFixed(4)
+    : '0.00';
 
   return (
-    <WalletContext.Provider value={{ isConnected, address, balance, reputation, connect, disconnect }}>
+    <WalletContext.Provider
+      value={{
+        isConnected,
+        address: address || null,
+        balance: formattedBalance,
+        reputation,
+        connect,
+        disconnect,
+        isConnecting,
+      }}
+    >
       {children}
     </WalletContext.Provider>
   );
