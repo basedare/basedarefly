@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import DareVisual from './DareVisual';
+import ElectricBorder from './ElectricBorder';
 import './PremiumDareCard.css';
 
 export type PremiumDareCardStatus =
@@ -137,14 +138,21 @@ export default function PremiumDareCard({
     ) : null;
 
   return (
-    <motion.div
-      className={`premium-dare-card group ${status === 'expired' ? 'premium-dare-card--expired' : ''}`}
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
+    <ElectricBorder
+      active={isHovered}
+      color="#8B5CF6"
+      borderRadius={24}
+      chaos={0.15}
+      speed={1.2}
     >
+      <motion.div
+        className={`premium-dare-card group ${status === 'expired' ? 'premium-dare-card--expired' : ''}`}
+        onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.2 }}
+      >
       <div className="premium-card-background" aria-hidden="true">
         <DareVisual
           imageUrl={streamerImage}
@@ -235,5 +243,6 @@ export default function PremiumDareCard({
         </div>
       ) : null}
     </motion.div>
+    </ElectricBorder>
   );
 }

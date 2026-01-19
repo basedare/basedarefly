@@ -34,10 +34,10 @@ export default function Navbar() {
               href="/" 
               className="relative group"
             >
-              <img 
-                src="/assets/basedarenew.png" 
-                alt="BaseDare" 
-                className="h-9 max-h-[36px] w-auto object-contain md:h-[80px] md:max-h-none drop-shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:scale-105 transition-transform"
+              <img
+                src="/assets/BASEDAREGOO.png"
+                alt="BaseDare"
+                className="h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none drop-shadow-[0_0_25px_rgba(255,215,0,0.4)] hover:scale-105 transition-transform"
               />
             </Link>
           </div>

@@ -31,10 +31,10 @@ export default function Footer() {
             <div className="col-span-1 md:col-span-2">
               {/* BASEDDARE LOGO - Image */}
               <div className="mb-6">
-                <img 
-                  src="/assets/basedarenew.png" 
-                  alt="BaseDare" 
-                  className="h-9 max-h-[36px] w-auto mb-4 object-contain md:h-[80px] md:max-h-none drop-shadow-[0_0_30px_rgba(255,215,0,0.3)]"
+                <img
+                  src="/assets/BASEDAREGOO.png"
+                  alt="BaseDare"
+                  className="h-10 max-h-[40px] w-auto mb-4 object-contain md:h-[56px] md:max-h-none drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]"
                 />
                 <p className="text-xs text-gray-500 font-mono leading-relaxed max-w-sm mt-3">
                   The decentralized protocol for verifiable social chaos. 
