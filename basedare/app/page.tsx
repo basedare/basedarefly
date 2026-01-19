@@ -25,6 +25,7 @@ import LiveChatOverlay from "@/components/LiveChatOverlay";
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
 import CreateBountyForm from "@/components/create-bounty-form";
+import { FuelTheRocket } from "@/components/FuelTheRocket";
 
 // === FIXED IMPORT PATH ===
 import { useIgnition } from "@/app/context/IgnitionContext";
@@ -176,6 +177,9 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
+
+                {/* FUEL THE ROCKET - Donation link */}
+                <FuelTheRocket />
               </div>
 
               {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
