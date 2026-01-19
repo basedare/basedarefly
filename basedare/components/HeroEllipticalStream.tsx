@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import ElectricCard from "./ElectricCard";
 import PortalVortex from "./PortalVortex";
 
-const SPEED = 0.005;
+// Radians per second (consistent regardless of frame rate)
+const ROTATION_SPEED = 0.15;
 
 // MOCK_DARES preserved as fallback only
 const MOCK_DARES = [
@@ -40,9 +41,10 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
 
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeRef = useRef(0);
+  const lastFrameTimeRef = useRef(0);
   const requestRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const radiiRef = useRef({ x: 550, y: 50, z: 70 });
   
   useEffect(() => {
@@ -66,9 +68,19 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const animate = () => {
-    timeRef.current += SPEED;
-    
+  const animate = (currentTime: number) => {
+    // Initialize on first frame
+    if (lastFrameTimeRef.current === 0) {
+      lastFrameTimeRef.current = currentTime;
+    }
+
+    // Delta time in seconds for consistent speed regardless of frame rate
+    const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
+    lastFrameTimeRef.current = currentTime;
+
+    // Update rotation based on elapsed time (not frame count)
+    timeRef.current += ROTATION_SPEED * deltaTime;
+
     items.forEach((_, index) => {
       const el = cardRefs.current[index];
       if (!el) return;
@@ -78,11 +90,12 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
 
       const { x: rx, y: ry, z: rz } = radiiRef.current;
 
-      const x = Math.cos(angle) * rx;
-      const y = Math.sin(angle) * ry;
-      const z = Math.sin(angle) * rz;
+      // Round to 2 decimal places to prevent sub-pixel jitter
+      const x = Math.round(Math.cos(angle) * rx * 100) / 100;
+      const y = Math.round(Math.sin(angle) * ry * 100) / 100;
+      const z = Math.round(Math.sin(angle) * rz * 100) / 100;
 
-      const scale = Math.max(0.7, (z + 1000) / 1000);
+      const scale = Math.round(Math.max(0.7, (z + 1000) / 1000) * 1000) / 1000;
       const zIndex = Math.round(z) + 50;
 
       el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${scale})`;
@@ -93,6 +106,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
   };
 
   useEffect(() => {
+    lastFrameTimeRef.current = 0;
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
   }, [items]);
@@ -125,15 +139,28 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
       </div>
 
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center" style={{ marginTop: '-100px' }}>
-        <div className="relative w-[90%] max-w-[350px] h-auto md:w-[1200px] md:h-[1200px] md:max-w-none z-[50]">
-            <div className="absolute inset-0 bg-purple-600/30 blur-[60px] animate-pulse" />
-            
-            <motion.img 
-              src="/assets/peebear-head.png" 
-              alt="BaseDare God" 
-              className="w-full h-full object-contain drop-shadow-[0_0_40px_rgba(168,85,247,0.8)] relative z-10"
-              animate={{ y: isMobile ? [0, -8, 10, 0] : [0, -15, 20, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        <div className="relative w-[90%] max-w-[350px] h-auto md:w-[800px] md:h-[800px] md:max-w-none z-[50]">
+            {/* Optimized glow - smaller blur, GPU accelerated */}
+            <div
+              className="absolute inset-[10%] bg-purple-600/20 rounded-full animate-pulse"
+              style={{
+                filter: 'blur(40px)',
+                transform: 'translateZ(0)',
+                willChange: 'opacity'
+              }}
+            />
+
+            <motion.img
+              src="/assets/peebear-head.png"
+              alt="BaseDare God"
+              className="w-full h-full object-contain relative z-10"
+              style={{
+                filter: 'drop-shadow(0 0 30px rgba(168,85,247,0.6))',
+                transform: 'translateZ(0)',
+                willChange: 'transform'
+              }}
+              animate={{ y: isMobile ? [0, -8, 0] : [0, -12, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             />
         </div>
       </div>

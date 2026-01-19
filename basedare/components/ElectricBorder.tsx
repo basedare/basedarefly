@@ -167,17 +167,20 @@ export default function ElectricBorder({
     const displacement = 60;
     const borderOffset = 60;
 
+    // Cache DPR to avoid recalculating every frame
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
     const updateSize = () => {
       const rect = container.getBoundingClientRect();
-      const width = rect.width + borderOffset * 2;
-      const height = rect.height + borderOffset * 2;
+      // Round to integers to prevent sub-pixel flickering
+      const width = Math.round(rect.width + borderOffset * 2);
+      const height = Math.round(rect.height + borderOffset * 2);
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       return { width, height };
     };
@@ -191,10 +194,10 @@ export default function ElectricBorder({
       timeRef.current += deltaTime * speed;
       lastFrameTimeRef.current = currentTime;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Reset transform and clear (use cached dpr)
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
