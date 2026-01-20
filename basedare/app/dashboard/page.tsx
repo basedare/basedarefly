@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload, LogIn } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
+import InitProtocolButton from "@/components/InitProtocolButton";
 import { useAccount, useConnect } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
 
@@ -21,6 +23,7 @@ interface Dare {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { connect, isPending: isConnecting } = useConnect();
   const [dares, setDares] = useState<Dare[]>([]);
@@ -127,7 +130,7 @@ export default function Dashboard() {
               <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.5)]">
                 <Wallet className="w-6 h-6" />
               </div>
-              COMMAND <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">CENTER</span>
+              <span className="text-[#FACC15]">COMMAND</span> <span className="text-[#A855F7]">BASE</span>
             </h1>
             {/* Wallet Identity Badge */}
             {isConnected && address ? (
@@ -282,12 +285,8 @@ export default function Dashboard() {
                   <Target className="w-8 h-8 text-gray-500" />
                 </div>
                 <p className="text-gray-400 font-mono text-sm mb-2">No bounties yet</p>
-                <p className="text-gray-500 font-mono text-xs mb-4">Create your first dare to get started</p>
-                <Link href="/create">
-                  <button className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-sm uppercase tracking-wider transition-colors">
-                    Create Your First Dare
-                  </button>
-                </Link>
+                <p className="text-gray-500 font-mono text-xs mb-6">Create your first dare to get started</p>
+                <InitProtocolButton onClick={() => router.push('/create')} />
               </div>
             ) : (
               <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
