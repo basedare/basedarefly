@@ -472,12 +472,12 @@ export default function BrandPortalPage() {
 
         {/* Value Menu / Create Campaign */}
         {showCreateCampaign ? (
-          <div className="mb-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className="mb-8 bg-white/90 backdrop-blur-xl border border-zinc-200 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Create Campaign</h2>
+              <h2 className="text-xl font-bold text-zinc-900">Create Campaign</h2>
               <button
                 onClick={() => setShowCreateCampaign(false)}
-                className="text-zinc-400 hover:text-white"
+                className="text-zinc-500 hover:text-zinc-900"
               >
                 ✕
               </button>
@@ -485,7 +485,7 @@ export default function BrandPortalPage() {
 
             {/* Tier Selection - Value Menu Style */}
             <div className="mb-6">
-              <label className="block text-sm text-zinc-400 mb-3">Select Tier</label>
+              <label className="block text-sm text-zinc-600 mb-3">Select Tier</label>
               <div className="grid grid-cols-4 gap-3">
                 {(Object.keys(TIER_INFO) as Array<keyof typeof TIER_INFO>).map((tier) => {
                   const info = TIER_INFO[tier];
@@ -502,23 +502,23 @@ export default function BrandPortalPage() {
                       }
                       className={`p-4 rounded-xl border transition-all ${
                         isSelected
-                          ? `bg-gradient-to-br ${info.color} border-transparent`
-                          : `bg-zinc-900/50 ${info.borderColor} hover:border-zinc-600`
+                          ? `bg-gradient-to-br ${info.color} border-transparent text-white`
+                          : `bg-white ${info.borderColor} hover:border-zinc-400 text-zinc-900`
                       }`}
                     >
                       <div className="font-semibold">{info.name}</div>
-                      <div className="text-xs text-zinc-300 mt-1">{info.description}</div>
+                      <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>{info.description}</div>
                       <div className="mt-3 text-xs space-y-1 text-left">
                         <div className="flex justify-between">
-                          <span className="text-zinc-400">Min:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Min:</span>
                           <span>${info.minPayout}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-zinc-400">Window:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Window:</span>
                           <span>{info.window}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-zinc-400">Bonus:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Bonus:</span>
                           <span>{info.bonus}</span>
                         </div>
                       </div>
@@ -532,30 +532,30 @@ export default function BrandPortalPage() {
             <div className="grid grid-cols-2 gap-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Campaign Title</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Campaign Title</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g., Summer Energy Challenge"
-                    className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Description</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Brief description of the campaign..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none resize-none"
+                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400 resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-2">Creator Count</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Creator Count</label>
                     <input
                       type="number"
                       value={formData.creatorCountTarget}
@@ -567,11 +567,11 @@ export default function BrandPortalPage() {
                       }
                       min={1}
                       max={1000}
-                      className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-2">
+                    <label className="block text-sm text-zinc-600 mb-2">
                       Payout Per Creator ($)
                     </label>
                     <input
@@ -584,7 +584,7 @@ export default function BrandPortalPage() {
                         })
                       }
                       min={TIER_INFO[formData.tier].minPayout}
-                      className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                     />
                   </div>
                 </div>
@@ -592,7 +592,7 @@ export default function BrandPortalPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Target Niche</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
                   <input
                     type="text"
                     value={formData.targetingCriteria.niche}
@@ -603,12 +603,12 @@ export default function BrandPortalPage() {
                       })
                     }
                     placeholder="e.g., Gaming, Fitness, Tech"
-                    className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Min Followers</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
                   <input
                     type="number"
                     value={formData.targetingCriteria.minFollowers}
@@ -622,12 +622,12 @@ export default function BrandPortalPage() {
                       })
                     }
                     min={0}
-                    className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">Required Hashtags</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Required Hashtags</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -635,11 +635,11 @@ export default function BrandPortalPage() {
                       onChange={(e) => setHashtagInput(e.target.value)}
                       placeholder="#BaseDare"
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
-                      className="flex-1 px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
                     <button
                       onClick={addHashtag}
-                      className="px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700"
+                      className="px-4 py-3 bg-zinc-100 border border-zinc-300 rounded-lg hover:bg-zinc-200 text-zinc-700"
                     >
                       Add
                     </button>
@@ -648,7 +648,7 @@ export default function BrandPortalPage() {
                     {formData.verificationCriteria.hashtagsRequired.map((tag, i) => (
                       <span
                         key={i}
-                        className="px-2 py-1 bg-purple-500/20 border border-purple-500/40 rounded text-sm text-purple-300"
+                        className="px-2 py-1 bg-purple-100 border border-purple-300 rounded text-sm text-purple-700"
                       >
                         {tag}
                         <button
@@ -664,7 +664,7 @@ export default function BrandPortalPage() {
                               },
                             })
                           }
-                          className="ml-2 text-purple-400 hover:text-white"
+                          className="ml-2 text-purple-600 hover:text-purple-900"
                         >
                           ×
                         </button>
@@ -675,14 +675,14 @@ export default function BrandPortalPage() {
 
                 {(formData.tier === 'CHALLENGE' || formData.tier === 'APEX') && (
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-2">
+                    <label className="block text-sm text-zinc-600 mb-2">
                       Sync Time (for Strike Bonus)
                     </label>
                     <input
                       type="datetime-local"
                       value={formData.syncTime}
                       onChange={(e) => setFormData({ ...formData, syncTime: e.target.value })}
-                      className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                     />
                   </div>
                 )}
@@ -690,15 +690,15 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Budget Summary */}
-            <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4 mb-6">
-              <div className="text-sm text-zinc-400 mb-2">Budget Summary</div>
+            <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-4 mb-6">
+              <div className="text-sm text-zinc-600 mb-2">Budget Summary</div>
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold">${budget.gross.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-zinc-900">${budget.gross.toLocaleString()}</div>
                   <div className="text-xs text-zinc-500">Creator Payouts</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-purple-400">
+                  <div className="text-2xl font-bold text-purple-600">
                     ${budget.rake.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500">
@@ -706,13 +706,13 @@ export default function BrandPortalPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-400">
+                  <div className="text-2xl font-bold text-green-600">
                     ${budget.total.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500">Total Budget</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-zinc-900">
                     {formData.creatorCountTarget} × ${formData.payoutPerCreator}
                   </div>
                   <div className="text-xs text-zinc-500">Slots × Payout</div>
@@ -721,14 +721,14 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Guarantee Banner */}
-            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
+            <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl p-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">⚡</span>
                 <div>
-                  <div className="font-semibold text-green-400">
+                  <div className="font-semibold text-green-700">
                     All Deliverables Auto-Verified by AI Vision
                   </div>
-                  <div className="text-sm text-zinc-400">
+                  <div className="text-sm text-zinc-600">
                     USDC Payment on Completion. No Bots. No Waste.
                   </div>
                 </div>
@@ -740,13 +740,13 @@ export default function BrandPortalPage() {
               <button
                 onClick={handleCreateCampaign}
                 disabled={!formData.title.trim()}
-                className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
+                className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
               >
                 CREATE CAMPAIGN (${budget.total.toLocaleString()} USDC)
               </button>
               <button
                 onClick={() => setShowCreateCampaign(false)}
-                className="px-6 py-4 bg-zinc-800 border border-zinc-700 rounded-xl hover:bg-zinc-700 transition"
+                className="px-6 py-4 bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 text-zinc-700 transition"
               >
                 Cancel
               </button>

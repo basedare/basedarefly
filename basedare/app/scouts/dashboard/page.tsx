@@ -475,10 +475,10 @@ export default function ScoutDashboardPage() {
 
                     {/* Claim Form */}
                     {isClaimingThis && (
-                      <div className="border-t border-white/10 p-4 bg-black/30 backdrop-blur-sm">
+                      <div className="border-t border-zinc-200 p-4 bg-zinc-50">
                         <div className="grid grid-cols-4 gap-4 mb-4">
                           <div>
-                            <label className="block text-xs text-zinc-500 mb-1">
+                            <label className="block text-xs text-zinc-600 mb-1">
                               Creator Wallet
                             </label>
                             <input
@@ -488,11 +488,11 @@ export default function ScoutDashboardPage() {
                                 setClaimForm({ ...claimForm, creatorAddress: e.target.value })
                               }
                               placeholder="0x..."
-                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-zinc-500 mb-1">
+                            <label className="block text-xs text-zinc-600 mb-1">
                               Creator Handle
                             </label>
                             <input
@@ -502,11 +502,11 @@ export default function ScoutDashboardPage() {
                                 setClaimForm({ ...claimForm, creatorHandle: e.target.value })
                               }
                               placeholder="@username"
-                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-zinc-500 mb-1">Followers</label>
+                            <label className="block text-xs text-zinc-600 mb-1">Followers</label>
                             <input
                               type="number"
                               value={claimForm.creatorFollowers}
@@ -516,11 +516,11 @@ export default function ScoutDashboardPage() {
                                   creatorFollowers: parseInt(e.target.value) || 0,
                                 })
                               }
-                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-zinc-500 mb-1">
+                            <label className="block text-xs text-zinc-600 mb-1">
                               Why This Creator?
                             </label>
                             <input
@@ -530,13 +530,13 @@ export default function ScoutDashboardPage() {
                                 setClaimForm({ ...claimForm, claimRationale: e.target.value })
                               }
                               placeholder="Great engagement..."
-                              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm focus:border-purple-500 focus:outline-none"
+                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                             />
                           </div>
                         </div>
                         <button
                           onClick={() => handleClaimSlot(campaign.id)}
-                          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold hover:opacity-90 transition"
+                          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
                         >
                           🎯 Claim This Slot
                         </button>
