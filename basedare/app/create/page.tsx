@@ -133,7 +133,7 @@ export default function CreateDare() {
 
         {/* HEADER */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter mb-4">
+          <h1 className="text-5xl md:text-7xl font-display font-black uppercase italic tracking-tighter mb-4">
             INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-[#FACC15]/70">PROTOCOL</span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-xs md:text-sm">

@@ -174,7 +174,7 @@ export default function DaresPage() {
                     <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/30 font-mono uppercase tracking-widest mb-2">
                         <Zap className="w-3 h-3 mr-1" /> Live Feed
                     </Badge>
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">
+                    <h1 className="text-5xl md:text-7xl font-display font-black tracking-tighter leading-none">
                         <span className="block text-white">THE DEGEN</span>
                         <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-600 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]">
                             COLOSSEUM

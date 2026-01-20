@@ -17,10 +17,13 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", ...defaultTheme.fontFamily.sans],
-        // Additional font families preserved
+        // Body text - Alpha Lyrae (clean, tech)
+        sans: ["var(--font-alpha)", ...defaultTheme.fontFamily.sans],
+        // Headlines - Bricolage Grotesque (edgy, variable)
+        display: ["var(--font-bricolage)", ...defaultTheme.fontFamily.sans],
+        // Fallbacks
         serif: ["var(--font-cinzel)", ...defaultTheme.fontFamily.serif],
-        inter: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
+        mono: ["JetBrains Mono", ...defaultTheme.fontFamily.mono],
       },
       colors: {
         // THE VOID

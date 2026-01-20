@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque } from "next/font/google";
+import localFont from "next/font/local";
 import "./global.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
@@ -15,7 +16,19 @@ import { Toaster } from "@/components/ui/toaster";
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
 
-const inter = Inter({ subsets: ["latin"] });
+// Headlines - Bricolage Grotesque (edgy, variable)
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
+
+// Body - Alpha Lyrae (clean, tech)
+const alphaLyrae = localFont({
+  src: "../public/fonts/AlphaLyrae-Medium.woff2",
+  variable: "--font-alpha",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "BaseDare | Force Streamers",
@@ -29,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
+      <body className={`${alphaLyrae.variable} ${bricolage.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
         <LiquidFilter />
         <div className="fixed inset-0 -z-50 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
         <div className="hidden md:block">

@@ -18,8 +18,8 @@ export default function GlitchText({
   glowColor = '#FFD700'
 }: GlitchTextProps) {
   return (
-    <div 
-      className={`glitch-text ${className}`}
+    <div
+      className={`glitch-text font-display ${className}`}
       data-text={children}
       style={{
         '--glitch-speed': `${speed}s`,

@@ -197,7 +197,7 @@ export default function Home() {
           >
             {/* Control Mode Selection */}
             <div className="text-center mb-16">
-              <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 bg-clip-text text-transparent mb-4">
+              <h1 className="text-5xl md:text-7xl font-display font-black bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 bg-clip-text text-transparent mb-4">
                 CONTROL MODE
               </h1>
               <p className="text-zinc-400 text-lg max-w-md mx-auto">

@@ -28,9 +28,9 @@ export default function MoltenGold({ children, className, variant = 'gold' }: Mo
         {children}
       </h1>
 
-      <h1 
+      <h1
         className={cn(
-            "relative z-10 font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]",
+            "relative z-10 font-display font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]",
             mainGradient
         )}
         data-text={children}

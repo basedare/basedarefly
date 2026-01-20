@@ -15,7 +15,7 @@ export default function ChromeText({ text, className = '' }: ChromeTextProps) {
       <h1
         className="
           block md:hidden
-          font-black italic tracking-tighter
+          font-display font-black italic tracking-tighter
           text-[13vw] leading-none
           text-transparent bg-clip-text
           bg-gradient-to-b from-white to-gray-400
@@ -30,7 +30,7 @@ export default function ChromeText({ text, className = '' }: ChromeTextProps) {
       <h1
         className="
           hidden md:block
-          font-black italic tracking-tighter
+          font-display font-black italic tracking-tighter
           text-7xl lg:text-8xl xl:text-9xl leading-tight
           text-transparent bg-clip-text
           select-none
