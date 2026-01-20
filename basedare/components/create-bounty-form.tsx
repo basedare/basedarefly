@@ -263,7 +263,7 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
           <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
             {/* Spinning liquid metal border */}
             <div
-              className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#737373_20%,#fff_25%,#737373_30%,#1a1a1a_50%,#737373_70%,#fff_75%,#737373_80%,#1a1a1a_100%)] animate-[spin_3s_linear_infinite] opacity-60 group-hover:opacity-100 transition-opacity duration-500"
+              className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#737373_20%,#fff_25%,#737373_30%,#1a1a1a_50%,#737373_70%,#fff_75%,#737373_80%,#1a1a1a_100%)] group-hover:animate-[spin_3s_linear_infinite] opacity-60 group-hover:opacity-100 transition-all duration-500"
               aria-hidden="true"
             />
             <button

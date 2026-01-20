@@ -97,7 +97,7 @@ export function LiquidInput({ className, prefix, value, onChange, onStreamerSele
 
       {/* 2. The Spinning Liquid Border */}
       <div className="absolute -inset-[1px] rounded-xl overflow-hidden pointer-events-none">
-        <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#000_0%,#000_20%,#A855F7_35%,#fff_45%,#3B82F6_60%,#000_80%,#000_100%)] animate-[spin_4s_linear_infinite] opacity-100 blur-[2px] contrast-150" />
+        <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#000_0%,#000_20%,#A855F7_35%,#fff_45%,#3B82F6_60%,#000_80%,#000_100%)] group-hover:animate-[spin_4s_linear_infinite] opacity-100 blur-[2px] contrast-150 transition-all duration-500" />
       </div>
 
       {/* 3. The Input Itself (Black Inner) */}
