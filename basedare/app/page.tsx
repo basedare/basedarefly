@@ -21,7 +21,7 @@ import Feed from "@/components/Feed";
 import PremiumBentoGrid from "@/components/PremiumBentoGrid";
 import HallOfShame from "@/components/HallOfShame";
 import BusinessDossier from "@/components/BusinessDossier";
-import LiveChatOverlay from "@/components/LiveChatOverlay";
+// Chat removed for MVP - LiveChatOverlay was here
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
 import CreateBountyForm from "@/components/create-bounty-form";
@@ -45,7 +45,7 @@ export default function Home() {
   const router = useRouter();
   const [view, setView] = useState<'FAN' | 'BUSINESS'>('FAN');
   const [dares, setDares] = useState<Dare[]>([]);
-  const [activeChatTarget, setActiveChatTarget] = useState<any>(null);
+  // Chat removed for MVP
   const [isClient, setIsClient] = useState(false);
   const [dareInput, setDareInput] = useState('');
   const [selectedStreamer, setSelectedStreamer] = useState('');
@@ -111,7 +111,7 @@ export default function Home() {
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
                 <div className="hidden md:block">
-                  <HeroEllipticalStream dares={dares} onCardClick={setActiveChatTarget} />
+                  <HeroEllipticalStream />
                 </div>
                 <div className="block md:hidden pt-32 pb-12">
                   <PeeBearConveyor dares={dares} />
@@ -164,13 +164,7 @@ export default function Home() {
                   <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />
                 </div>
 
-                <PremiumBentoGrid
-                  dares={dares}
-                  onDareClick={(dareId) => {
-                    const dare = dares.find((d) => d.id === dareId);
-                    if (dare) setActiveChatTarget(dare);
-                  }}
-                />
+                <PremiumBentoGrid dares={dares} />
 
                 <div className="mt-12 text-center">
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
@@ -290,9 +284,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {activeChatTarget && <LiveChatOverlay target={activeChatTarget} onClose={() => setActiveChatTarget(null)} />}
-      </AnimatePresence>
+      {/* Chat removed for MVP */}
     </main>
   );
 }

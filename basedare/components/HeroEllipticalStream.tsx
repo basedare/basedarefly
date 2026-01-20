@@ -8,33 +8,31 @@ import PortalVortex from "./PortalVortex";
 // Radians per second (consistent regardless of frame rate)
 const ROTATION_SPEED = 0.15;
 
-// MOCK_DARES preserved as fallback only
-const MOCK_DARES = [
-  { id: '1', description: "EAT REAPER CHIP", stake_amount: 5000, streamer_name: "@KaiCenat", expiry_timer: "01:20s" },
-  { id: '2', description: "SHAVE EYEBROW", stake_amount: 2500, streamer_name: "@Speed", expiry_timer: "12:00m" },
-  { id: '3', description: "CALL YOUR EX", stake_amount: 10000, streamer_name: "@Adin", expiry_timer: "00:30s" },
-  { id: '4', description: "TATTOO FACE", stake_amount: 100000, streamer_name: "@Steve", expiry_timer: "24:00h" },
-  { id: '5', description: "DRINK LAKE WATER", stake_amount: 1000, streamer_name: "@Beast", expiry_timer: "05:00m" },
-  { id: '6', description: "DELETE CHANNEL", stake_amount: 1000000, streamer_name: "@Pewds", expiry_timer: "PERM" },
+// Featured dares - attention grabbing examples
+const FEATURED_DARES = [
+  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@KaiCenat", expiry_timer: "🔥 HOT" },
+  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@Speed", expiry_timer: "😈 LIVE" },
+  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@xQc", expiry_timer: "💀 PERM" },
+  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@Adin", expiry_timer: "🤮 NOW" },
+  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@Poki", expiry_timer: "💔 YOLO" },
+  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@Ludwig", expiry_timer: "✂️ GONE" },
 ];
 
 interface HeroProps {
-  dares?: any[];
-  onCardClick?: (dare: any) => void;
+  dares?: any[]; // Kept for interface compatibility but not used
 }
 
-export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroProps) {
+export default function HeroEllipticalStream({ dares = [] }: HeroProps) {
   // --- SURGICAL DATA MAPPING START ---
-  // Ensure we use real dares if they exist, otherwise use MOCK_DARES
-  const rawItems = dares.length > 0 ? dares : MOCK_DARES;
-  
-  // Transform real data into the format ElectricCard expects
+  // Always use featured dares for the rotating display (visual only, no click)
+  const rawItems = FEATURED_DARES;
+
+  // Transform to the format ElectricCard expects
   const items = rawItems.slice(0, 6).map((dare, index) => ({
     id: dare.id || index.toString(),
-    // Logic: use title/task_name for real data, fall back to description for mocks
-    displayTitle: dare.title || dare.task_name || dare.description || "Untitled Dare",
-    displayBounty: dare.stake_amount || dare.bounty || dare.amount || 0,
-    displayStreamer: dare.streamer_name || dare.target_streamer || "@Anon",
+    displayTitle: dare.description || "Untitled Dare",
+    displayBounty: dare.stake_amount || 0,
+    displayStreamer: dare.streamer_name || "@Anon",
     displayTimer: dare.expiry_timer || "24H"
   }));
   // --- SURGICAL DATA MAPPING END ---
@@ -124,9 +122,8 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
             className="absolute pointer-events-auto will-change-transform"
             style={{ transform: `translate3d(0px, 0px, -100px) scale(0)` }}
           >
-            <div 
-              className="-translate-x-1/2 -translate-y-1/2 cursor-pointer"
-              onClick={() => onCardClick && onCardClick(dare)}
+            <div
+              className="-translate-x-1/2 -translate-y-1/2"
             >
               <ElectricCard
                 badge={dare.displayTimer}

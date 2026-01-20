@@ -23,7 +23,6 @@ type Dare = {
 
 type PremiumBentoGridProps = {
   dares: Dare[];
-  onDareClick?: (dareId: string) => void;
 };
 
 const STREAMER_IMAGES: Record<string, string> = {
@@ -149,7 +148,7 @@ function calculateTimeRemaining(expiresAt?: string | null): { display: string; s
   }
 }
 
-export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGridProps) {
+export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const [filter, setFilter] = useState<Filter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -372,7 +371,6 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
                 isOpenBounty={card.isOpenBounty}
                 proofUrl={card.proofUrl}
                 onViewProof={(url) => setProofUrl(url)}
-                onClick={() => onDareClick?.(card.id)}
               />
             ))}
       </div>

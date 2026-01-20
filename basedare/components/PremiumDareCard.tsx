@@ -49,7 +49,6 @@ export type PremiumDareCardProps = {
   livenessLeftSeconds?: number;
   proofUrl?: string;
   isOpenBounty?: boolean;
-  onClick?: () => void;
   onViewProof?: (proofUrl: string) => void;
 };
 
@@ -101,7 +100,6 @@ export default function PremiumDareCard({
   livenessLeftSeconds,
   proofUrl,
   isOpenBounty = false,
-  onClick,
   onViewProof,
 }: PremiumDareCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -110,8 +108,8 @@ export default function PremiumDareCard({
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [liveTimeRemaining, setLiveTimeRemaining] = useState(timeRemaining || '');
 
-  // Handle double-click to flip card
-  const handleDoubleClick = (e: React.MouseEvent) => {
+  // Handle click to flip card
+  const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsFlipped((prev) => !prev);
   };
@@ -200,17 +198,17 @@ export default function PremiumDareCard({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          onClick?.();
+          setIsFlipped(true);
         }}
       >
-        {isOpenBounty ? 'OPEN BOUNTY' : 'STEAL BOUNTY'}
+        {isOpenBounty ? 'ADD TO POT' : 'ADD TO POT'}
       </button>
     ) : null;
 
   return (
     <div
       className="premium-card-flip-container"
-      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -226,7 +224,6 @@ export default function PremiumDareCard({
         >
           <motion.div
             className={`premium-dare-card group ${status === 'expired' ? 'premium-dare-card--expired' : ''}`}
-            onClick={onClick}
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
@@ -336,9 +333,9 @@ export default function PremiumDareCard({
         </div>
       ) : null}
 
-      {/* Double-click hint */}
+      {/* Click hint */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-mono text-white/20 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
-        Double-click for QR
+        Click for QR
       </div>
     </motion.div>
         </ElectricBorder>
