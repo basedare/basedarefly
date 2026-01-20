@@ -94,10 +94,5 @@ export function ContractStatusBadge() {
     );
   }
 
-  return (
-    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse" />
-      <span className="text-[9px] font-mono text-yellow-400 uppercase tracking-wider">Simulation</span>
-    </div>
-  );
+  return null;
 }

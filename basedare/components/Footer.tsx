@@ -43,17 +43,6 @@ export default function Footer() {
                 </p>
               </div>
               
-              {/* SYSTEM STATUS */}
-              <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 bg-green-900/10 border border-green-500/20 rounded-full">
-                <div className="relative">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <div className="absolute inset-0 bg-green-500 rounded-full blur animate-ping" />
-                </div>
-                <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">
-                  BASE MAINNET: ONLINE
-                </span>
-              </div>
-
               {/* WAITLIST BUTTON */}
               <div className="mt-6">
                 <Link 
@@ -129,12 +118,12 @@ export default function Footer() {
             </div>
 
             <div className="mt-4 text-right">
-              <a 
-                href="https://x.com/basedare_xyz" 
+              <a
+                href="https://x.com/basedare_xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-[#00ff41] hover:text-[#00ff41]/80 transition"
-                style={{ textShadow: '0 0 10px rgba(0, 255, 65, 0.5)' }}
+                className="text-xs text-[#FACC15] hover:text-[#FACC15]/80 transition"
+                style={{ textShadow: '0 0 10px rgba(250, 204, 21, 0.5)' }}
               >
                 Questions? DM @basedare on X · Built on Base ⚡
               </a>
