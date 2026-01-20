@@ -2102,3 +2102,16 @@ button[data-testid='ockConnectWalletButton']:hover {
   transform: scale(1.02) !important;
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.6) !important;
 }
+
+/* =========================================
+   HIDE WALLET SDK OVERLAYS (Minimal)
+   ========================================= */
+
+/* Coinbase SDK popups only */
+.cbwsdk-extension-dialog,
+.cbwsdk-snackbar,
+.cbwsdk-snackbar-container,
+iframe[src*="keys.coinbase.com"],
+#cbw-sdk-modal {
+  display: none !important;
+}

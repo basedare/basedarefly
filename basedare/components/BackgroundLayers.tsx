@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const HyperspaceBackground = dynamic(() => import('@/components/HyperspaceBackground'), {
   ssr: false,
-  loading: () => <div className="fixed inset-0 bg-[#060010]" />,
+  loading: () => null, // No loading placeholder - prevents black box overlay
 });
 
 const CosmicLayer = dynamic(() => import('@/components/CosmicLayer'), { ssr: false });

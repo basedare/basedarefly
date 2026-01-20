@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -109,7 +110,7 @@ const TIER_INFO = {
 
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
 
   const [brand, setBrand] = useState<Brand | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -265,8 +266,21 @@ export default function BrandPortalPage() {
   // Not connected
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-6">
+      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
+        {/* Matte glass background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+
+        {/* Back button */}
+        <Link
+          href="/"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back to Home</span>
+        </Link>
+
+        <div className="text-center space-y-6 relative z-10">
           <div className="text-6xl mb-4">🎮</div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
             CONTROL MODE
@@ -276,7 +290,7 @@ export default function BrandPortalPage() {
             Connect your wallet to access the brand dashboard.
           </p>
           <button
-            onClick={() => connect({ connector: coinbaseWallet() })}
+            onClick={() => connectors[0] && connect({ connector: connectors[0] })}
             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:opacity-90 transition"
           >
             Connect Wallet
@@ -289,8 +303,10 @@ export default function BrandPortalPage() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-pulse text-zinc-400">Loading Control Mode...</div>
+      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+        <div className="animate-pulse text-zinc-400 relative z-10">Loading Control Mode...</div>
       </div>
     );
   }
@@ -298,8 +314,21 @@ export default function BrandPortalPage() {
   // Register brand
   if (showRegister) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-6">
+      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center p-4 relative">
+        {/* Matte glass background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+
+        {/* Back button */}
+        <Link
+          href="/"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back to Home</span>
+        </Link>
+
+        <div className="max-w-md w-full space-y-6 relative z-10">
           <div className="text-center">
             <div className="text-5xl mb-4">🏢</div>
             <h1 className="text-2xl font-bold">Register Your Brand</h1>
@@ -308,7 +337,7 @@ export default function BrandPortalPage() {
             </p>
           </div>
 
-          <div className="space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+          <div className="space-y-4 bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-white/10">
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Brand Name</label>
               <input
@@ -316,13 +345,13 @@ export default function BrandPortalPage() {
                 value={registerName}
                 onChange={(e) => setRegisterName(e.target.value)}
                 placeholder="e.g., Red Bull, Monster Energy"
-                className="w-full px-4 py-3 bg-black border border-zinc-700 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:border-purple-500 focus:outline-none backdrop-blur-sm"
               />
             </div>
 
             <div>
               <label className="block text-sm text-zinc-400 mb-2">Wallet Address</label>
-              <div className="px-4 py-3 bg-black/50 border border-zinc-800 rounded-lg text-zinc-500 font-mono text-sm">
+              <div className="px-4 py-3 bg-black/30 border border-white/10 rounded-lg text-zinc-500 font-mono text-sm">
                 {address}
               </div>
             </div>
@@ -343,11 +372,22 @@ export default function BrandPortalPage() {
   const budget = calculateBudget();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white relative">
+      {/* Matte glass background */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_50%)] pointer-events-none" />
+      <div className="fixed inset-0 backdrop-blur-3xl pointer-events-none" />
+
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
+      <header className="relative z-10 border-b border-white/10 px-6 py-4 bg-white/5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Back button */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
             <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
               CONTROL
             </div>
@@ -372,26 +412,26 @@ export default function BrandPortalPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Total Spend</div>
             <div className="text-2xl font-bold">${brand?.totalSpend.toLocaleString() || 0}</div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Active Campaigns</div>
             <div className="text-2xl font-bold">
               {campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length}
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Total Creators</div>
             <div className="text-2xl font-bold">
               {campaigns.reduce((sum, c) => sum + c.slotCounts.completed, 0)}
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Avg Completion</div>
             <div className="text-2xl font-bold">
               {campaigns.length > 0
@@ -411,7 +451,7 @@ export default function BrandPortalPage() {
 
         {/* Value Menu / Create Campaign */}
         {showCreateCampaign ? (
-          <div className="mb-8 bg-zinc-900/30 border border-zinc-800 rounded-2xl p-6">
+          <div className="mb-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">Create Campaign</h2>
               <button
@@ -629,7 +669,7 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Budget Summary */}
-            <div className="bg-black/50 border border-zinc-800 rounded-xl p-4 mb-6">
+            <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4 mb-6">
               <div className="text-sm text-zinc-400 mb-2">Budget Summary</div>
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
@@ -718,7 +758,7 @@ export default function BrandPortalPage() {
                 return (
                   <div
                     key={campaign.id}
-                    className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition"
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">

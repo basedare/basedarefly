@@ -2,7 +2,7 @@
 
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base } from 'viem/chains';
-import { coinbaseWallet } from 'wagmi/connectors';
+import { injected } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { ReactNode, useState } from 'react';
@@ -10,10 +10,7 @@ import { ReactNode, useState } from 'react';
 const config = createConfig({
   chains: [base],
   connectors: [
-    coinbaseWallet({
-      appName: 'BaseDare',
-      preference: 'smartWalletOnly', // Triggers invisible FaceID/passkey flow
-    }),
+    injected(), // Uses browser wallet extension directly - no popup overlay
   ],
   transports: { [base.id]: http() },
   ssr: true,

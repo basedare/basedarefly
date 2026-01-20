@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 // ============================================================================
 // SHADOW ARMY - SCOUT DASHBOARD
@@ -96,7 +97,7 @@ const CAMPAIGN_TIER_COLORS = {
 
 export default function ScoutDashboardPage() {
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
 
   const [scout, setScout] = useState<Scout | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -201,8 +202,21 @@ export default function ScoutDashboardPage() {
   // Not connected
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-6">
+      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
+        {/* Matte glass background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+
+        {/* Back button */}
+        <Link
+          href="/"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back to Home</span>
+        </Link>
+
+        <div className="text-center space-y-6 relative z-10">
           <div className="text-6xl mb-4">🕵️</div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
             SHADOW ARMY
@@ -212,7 +226,7 @@ export default function ScoutDashboardPage() {
             Connect your wallet to join the Army.
           </p>
           <button
-            onClick={() => connect({ connector: coinbaseWallet() })}
+            onClick={() => connectors[0] && connect({ connector: connectors[0] })}
             className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:opacity-90 transition"
           >
             Connect Wallet
@@ -225,8 +239,10 @@ export default function ScoutDashboardPage() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-pulse text-zinc-400">Initializing Shadow Army...</div>
+      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+        <div className="animate-pulse text-zinc-400 relative z-10">Initializing Shadow Army...</div>
       </div>
     );
   }
@@ -235,15 +251,26 @@ export default function ScoutDashboardPage() {
   const tierBadge = TIER_BADGES[scout?.tier as keyof typeof TIER_BADGES] || '🐕';
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white relative">
+      {/* Matte glass background */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_50%)] pointer-events-none" />
+      <div className="fixed inset-0 backdrop-blur-3xl pointer-events-none" />
+
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4">
+      <header className="relative z-10 border-b border-white/10 px-6 py-4 bg-white/5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Back button */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
             <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
               SHADOW ARMY
             </div>
-            <div className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs text-zinc-400">
+            <div className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-zinc-400">
               SCOUT DASHBOARD
             </div>
           </div>
@@ -265,10 +292,10 @@ export default function ScoutDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Scout Stats */}
         <div className="grid grid-cols-5 gap-4 mb-8">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Reputation</div>
             <div className="text-2xl font-bold flex items-center gap-2">
               {scout?.reputationScore || 50}
@@ -279,11 +306,11 @@ export default function ScoutDashboardPage() {
               </span>
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Campaigns</div>
             <div className="text-2xl font-bold">{scout?.totalCampaigns || 0}</div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Success Rate</div>
             <div className="text-2xl font-bold">
               {scout && scout.successfulSlots + scout.failedSlots > 0
@@ -294,13 +321,13 @@ export default function ScoutDashboardPage() {
               %
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Discovery Rake</div>
             <div className="text-2xl font-bold text-green-400">
               ${scout?.totalDiscoveryRake.toFixed(2) || '0.00'}
             </div>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
             <div className="text-zinc-400 text-sm">Active Rake</div>
             <div className="text-2xl font-bold text-purple-400">
               ${scout?.totalActiveRake.toFixed(2) || '0.00'}
@@ -309,7 +336,7 @@ export default function ScoutDashboardPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-zinc-800">
+        <div className="flex gap-4 mb-6 border-b border-white/10">
           <button
             onClick={() => setActiveTab('bounties')}
             className={`pb-3 px-2 font-semibold transition ${
@@ -357,7 +384,7 @@ export default function ScoutDashboardPage() {
                 return (
                   <div
                     key={campaign.id}
-                    className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden"
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden"
                   >
                     {/* Campaign Header */}
                     <div className="p-4 flex items-center justify-between">
@@ -434,7 +461,7 @@ export default function ScoutDashboardPage() {
 
                     {/* Claim Form */}
                     {isClaimingThis && (
-                      <div className="border-t border-zinc-800 p-4 bg-black/30">
+                      <div className="border-t border-white/10 p-4 bg-black/30 backdrop-blur-sm">
                         <div className="grid grid-cols-4 gap-4 mb-4">
                           <div>
                             <label className="block text-xs text-zinc-500 mb-1">
@@ -525,7 +552,7 @@ export default function ScoutDashboardPage() {
                 return (
                   <div
                     key={creator.id}
-                    className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex items-center justify-between"
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl">
@@ -588,7 +615,7 @@ export default function ScoutDashboardPage() {
               scout.slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex items-center justify-between"
+                  className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4">
                     <div
