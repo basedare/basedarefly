@@ -1,26 +1,79 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import GalaxyBackground from "@/components/GalaxyBackground";
 import MoltenGold from "@/components/ui/MoltenGold";
-import ElectricCard from "@/components/ui/electric-card";
+import { ElectricCard } from "@/components/ui/electric-card";
 import LeaderboardList from "@/components/LeaderboardList";
-import { Medal } from "lucide-react";
+import { Medal, Loader2, Trophy } from "lucide-react";
 import Image from 'next/image';
 
-// Mock Data (Updated to use repPoints for LeaderboardList compatibility)
-const LEADERBOARD = [
-  { rank: 1, user: "Limsnerrand", avatar: "/assets/avatars/1.jpg", staked: "$2.45M", repPoints: 98, color: "#FACC15" },
-  { rank: 2, user: "Countdown", avatar: "/assets/avatars/2.jpg", staked: "$2.05M", repPoints: 85, color: "#94a3b8" },
-  { rank: 3, user: "Navalyston", avatar: "/assets/avatars/3.jpg", staked: "$1.50M", repPoints: 72, color: "#cd7f32" },
-  { rank: 4, user: "KicanyHadd", avatar: "/assets/avatars/4.jpg", staked: "$200K", repPoints: 65 },
-  { rank: 5, user: "Shraby Jona", avatar: "/assets/avatars/5.jpg", staked: "$150K", repPoints: 50 },
-  { rank: 6, user: "Tirichlnendz", avatar: "/assets/avatars/6.jpg", staked: "$100K", repPoints: 45 },
-  { rank: 7, user: "Dovedicnards", avatar: "/assets/avatars/7.jpg", staked: "$75K", repPoints: 30 },
-  { rank: 8, user: "XQC_Clone", avatar: "/assets/avatars/8.jpg", staked: "$50K", repPoints: 25 },
-];
+interface LeaderboardEntry {
+  rank: number;
+  user: string;
+  avatar: string;
+  staked: string;
+  repPoints: number;
+  color?: string;
+}
+
+interface APILeaderboardEntry {
+  rank: number;
+  handle: string;
+  totalVolume: number;
+  totalCompletions: number;
+}
+
+function formatVolume(volume: number): string {
+  if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(2)}M`;
+  if (volume >= 1_000) return `$${(volume / 1_000).toFixed(0)}K`;
+  return `$${volume.toLocaleString()}`;
+}
+
+function mapAPIToLeaderboard(entries: APILeaderboardEntry[]): LeaderboardEntry[] {
+  const colors = ['#FACC15', '#94a3b8', '#cd7f32'];
+  return entries.map((entry, index) => ({
+    rank: entry.rank,
+    user: entry.handle || `Creator ${index + 1}`,
+    avatar: `/assets/avatars/${(index % 8) + 1}.jpg`,
+    staked: formatVolume(entry.totalVolume),
+    repPoints: Math.min(100, entry.totalCompletions * 10 + 20),
+    color: colors[index] || undefined,
+  }));
+}
 
 export default function LeaderboardPage() {
-  const [FIRST, SECOND, THIRD] = LEADERBOARD;
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/leaderboard?type=CREATOR&limit=20');
+        if (!res.ok) throw new Error('Failed to fetch leaderboard');
+        const json = await res.json();
+
+        if (json.success && json.data?.leaderboard) {
+          setLeaderboard(mapAPIToLeaderboard(json.data.leaderboard));
+        } else {
+          setLeaderboard([]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLeaderboard();
+  }, []);
+
+  // Get top 3 for podium
+  const FIRST = leaderboard[0] || { user: '---', avatar: '/assets/avatars/1.jpg', staked: '$0', repPoints: 0 };
+  const SECOND = leaderboard[1] || { user: '---', avatar: '/assets/avatars/2.jpg', staked: '$0', repPoints: 0 };
+  const THIRD = leaderboard[2] || { user: '---', avatar: '/assets/avatars/3.jpg', staked: '$0', repPoints: 0 };
 
   return (
     <main className="min-h-screen w-full bg-[#020204] relative overflow-hidden pt-32 pb-20">
@@ -103,7 +156,26 @@ export default function LeaderboardPage() {
 
       {/* 4. THE LIST (Ranks 4+) */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 w-full">
-        <LeaderboardList data={LEADERBOARD.slice(3)} />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="text-purple-500 animate-spin mb-4" size={40} />
+            <p className="text-gray-400">Loading rankings...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-red-400">{error}</p>
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Trophy className="text-gray-600 mb-4" size={48} />
+            <h2 className="text-2xl font-bold text-white mb-2">No Rankings Yet</h2>
+            <p className="text-gray-400 max-w-md">
+              Complete dares to appear on the leaderboard!
+            </p>
+          </div>
+        ) : leaderboard.length > 3 ? (
+          <LeaderboardList data={leaderboard.slice(3)} />
+        ) : null}
       </div>
     </main>
   );

@@ -318,7 +318,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
   return (
     <div className="w-full flex flex-col items-center">
       <div className="premium-filter-row flex flex-wrap items-center justify-between w-full max-w-[1400px] mb-12 px-6 gap-4">
-        <div className="flex gap-2 p-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+        <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
           {FILTERS.map((cat) => (
             <button
               key={cat}
@@ -327,10 +327,10 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
                 triggerLoading();
                 setFilter(cat);
               }}
-              className={`px-5 py-2 rounded-full font-mono text-[9px] tracking-[0.2em] transition-all ${
+              className={`px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.2em] uppercase transition-all duration-300 ${
                 filter === cat
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.3)]'
-                  : 'text-white/30 hover:text-white/60 uppercase'
+                  ? 'bg-[#FACC15]/90 text-black font-black shadow-[0_0_20px_rgba(250,204,21,0.3)]'
+                  : 'text-white/40 hover:text-white/70 hover:bg-white/[0.05]'
               }`}
             >
               {cat}
@@ -339,7 +339,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
         </div>
 
         <div className="premium-search relative group min-w-[300px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-purple-400 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#FACC15] transition-colors" />
           <input
             type="text"
             placeholder="SEARCH TARGET OR DARE..."
@@ -348,7 +348,7 @@ export default function PremiumBentoGrid({ dares, onDareClick }: PremiumBentoGri
               triggerLoading();
               setSearchQuery(e.target.value);
             }}
-            className="premium-search-input w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/20 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all backdrop-blur-md"
+            className="premium-search-input w-full bg-white/[0.03] border border-white/[0.08] rounded-xl py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-[#FACC15]/40 focus:bg-white/[0.05] transition-all backdrop-blur-2xl"
           />
         </div>
       </div>

@@ -218,7 +218,7 @@ export default function ScoutDashboardPage() {
 
         <div className="text-center space-y-6 relative z-10">
           <div className="text-6xl mb-4">🕵️</div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-[#FACC15]">
             SHADOW ARMY
           </h1>
           <p className="text-zinc-400 max-w-md">
@@ -267,7 +267,7 @@ export default function ScoutDashboardPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+            <div className="text-2xl font-bold text-[#FACC15]">
               SHADOW ARMY
             </div>
             <div className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-zinc-400">

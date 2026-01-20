@@ -27,10 +27,6 @@ export default function Verify() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 mt-4 md:mt-0 flex-shrink-0">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[10px] sm:text-xs font-mono text-green-400 uppercase tracking-widest whitespace-nowrap">Oracle Online</span>
-          </div>
         </div>
 
         {/* THE ORACLE INTERFACE */}

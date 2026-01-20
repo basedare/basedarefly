@@ -134,7 +134,7 @@ export default function CreateDare() {
         {/* HEADER */}
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter mb-4">
-            INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-orange-500">PROTOCOL</span>
+            INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-[#FACC15]/70">PROTOCOL</span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-xs md:text-sm">
             Deploy a new smart contract dare on Base L2
@@ -180,8 +180,10 @@ export default function CreateDare() {
             </div>
           )}
 
-          <div className="backdrop-blur-xl bg-black/10 border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_0_50px_rgba(168,85,247,0.15)] relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent opacity-50" />
+          <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.08] rounded-3xl p-8 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-black/20 pointer-events-none rounded-3xl" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FACC15]/50 to-transparent" />
             <div className="space-y-12">
 
               {/* 1. TARGET */}
@@ -192,7 +194,7 @@ export default function CreateDare() {
                 <input
                   {...register('streamerTag')}
                   placeholder="@xQc, @KaiCenat..."
-                  className="w-full h-16 backdrop-blur-md bg-black/10 border border-white/10 text-xl font-bold text-white placeholder:text-gray-600 rounded-xl pl-6 focus:border-purple-500 focus:outline-none transition-colors"
+                  className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all"
                 />
                 {errors.streamerTag && (
                   <p className="text-red-400 text-sm">{errors.streamerTag.message}</p>
@@ -211,7 +213,7 @@ export default function CreateDare() {
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="w-full min-h-[150px] backdrop-blur-md bg-black/10 border border-white/10 text-lg text-white placeholder:text-gray-600 rounded-xl p-6 focus:border-purple-500 focus:outline-none transition-colors resize-none font-mono"
+                  className="w-full min-h-[150px] backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-lg text-white placeholder:text-white/20 rounded-xl p-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all resize-none font-mono"
                 />
                 {errors.title && (
                   <p className="text-red-400 text-sm">{errors.title.message}</p>
@@ -221,7 +223,7 @@ export default function CreateDare() {
               {/* 3. BOUNTY & TIME */}
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="flex items-center gap-3 text-sm font-bold text-[#FFD700] uppercase tracking-widest">
+                  <label className="flex items-center gap-3 text-sm font-bold text-[#FACC15] uppercase tracking-widest">
                     <Wallet className="w-4 h-4" /> Total Bounty
                   </label>
                   <div className="relative">
@@ -229,7 +231,7 @@ export default function CreateDare() {
                       type="number"
                       {...register('amount', { valueAsNumber: true })}
                       placeholder="100"
-                      className="w-full h-16 backdrop-blur-md bg-black/10 border border-white/10 text-2xl font-black text-[#FFD700] placeholder:text-gray-700 rounded-xl pl-6 pr-24 focus:border-[#FFD700] focus:outline-none"
+                      className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-6 pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all"
                     />
                     <span className="absolute right-6 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
                       USDC
@@ -241,7 +243,7 @@ export default function CreateDare() {
                   <p className="text-xs text-gray-500 font-mono">Min: $5 • Max: $10,000</p>
                 </div>
                 <div className="space-y-4">
-                  <label className="flex items-center gap-3 text-sm font-bold text-blue-400 uppercase tracking-widest">
+                  <label className="flex items-center gap-3 text-sm font-bold text-purple-400 uppercase tracking-widest">
                     <Clock className="w-4 h-4" /> Time Limit
                   </label>
                   <div className="grid grid-cols-2 gap-4">
@@ -249,11 +251,11 @@ export default function CreateDare() {
                       type="number"
                       {...register('timeValue', { valueAsNumber: true })}
                       placeholder="24"
-                      className="w-full h-16 backdrop-blur-md bg-black/10 border border-white/10 text-xl font-bold text-white text-center rounded-xl focus:border-blue-500 focus:outline-none"
+                      className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all"
                     />
                     <select
                       {...register('timeUnit')}
-                      className="h-16 backdrop-blur-md bg-black/10 border border-white/10 text-white rounded-xl px-4 focus:border-blue-500 focus:outline-none font-bold uppercase cursor-pointer"
+                      className="h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-white rounded-xl px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all"
                     >
                       <option value="Hours">Hours</option>
                       <option value="Days">Days</option>
@@ -271,7 +273,7 @@ export default function CreateDare() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-20 text-2xl font-black uppercase tracking-widest bg-[#FFD700] text-black hover:bg-[#FFD700] hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(255,215,0,0.4)] transition-all rounded-xl relative overflow-hidden group flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full h-20 text-2xl font-black uppercase tracking-widest bg-[#FACC15] text-black hover:bg-[#FACC15] hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(250,204,21,0.4)] transition-all rounded-xl relative overflow-hidden group flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300 skew-y-12 pointer-events-none" />
                   {isSubmitting ? (

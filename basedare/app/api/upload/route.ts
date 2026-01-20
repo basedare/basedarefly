@@ -34,7 +34,10 @@ export async function POST(request: Request) {
       .name(`BaseDare_Proof_${dareId || 'anonymous'}`)
       .keyvalues({ dareId: dareId || 'unknown', app: 'basedare' });
 
-    return NextResponse.json({ cid: upload.cid }, { status: 200 });
+    const gateway = process.env.PINATA_GATEWAY || 'gateway.pinata.cloud';
+    const url = `https://${gateway}/ipfs/${upload.cid}`;
+
+    return NextResponse.json({ cid: upload.cid, url }, { status: 200 });
   } catch (error: any) {
     console.error('Pinata upload error:', error);
     return NextResponse.json(

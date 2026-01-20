@@ -5,7 +5,7 @@ import Image from 'next/image';
 import ReputationCapsule from './ui/ReputationCapsule';
 import { ChevronDown, ChevronUp, Trophy, Medal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ElectricCard from './ui/electric-card';
+import { ElectricCard } from './ui/electric-card';
 
 interface LeaderboardUser {
     rank: number;
