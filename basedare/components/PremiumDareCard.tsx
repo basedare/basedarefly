@@ -2,10 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Share2 } from 'lucide-react';
 import DareVisual from './DareVisual';
 import ElectricBorder from './ElectricBorder';
 import BountyQRCode from './BountyQRCode';
 import './PremiumDareCard.css';
+
+function shareDareOnX(dare: string, bounty: number, streamer: string, shortId: string, e: React.MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
+  const dareUrl = `${baseUrl}/dare/${shortId}`;
+
+  const text = `🎯 $${bounty.toLocaleString()} USDC bounty on @${streamer.replace('@', '')}
+
+"${dare}"
+
+Add to the pot 👇
+
+#BaseDare #Base`;
+
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
+  window.open(twitterUrl, '_blank', 'width=550,height=420');
+}
 
 export type PremiumDareCardStatus =
   | 'live'
@@ -222,6 +242,16 @@ export default function PremiumDareCard({
       {statusBadge}
 
       <div className="premium-emoji-badge">{emoji}</div>
+
+      {/* Share Button */}
+      <button
+        onClick={(e) => shareDareOnX(dare, bounty, streamer, shortId, e)}
+        className="absolute top-4 left-4 z-20 p-2 bg-black/60 hover:bg-black/80 border border-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+        title="Share on X"
+        type="button"
+      >
+        <Share2 className="w-4 h-4 text-white" />
+      </button>
 
       <div className="premium-card-content">
         <div className="premium-card-header">

@@ -3,7 +3,26 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Zap, Loader2, Clock, CheckCircle } from "lucide-react";
+import { ArrowRight, Zap, Loader2, Clock, CheckCircle, Share2 } from "lucide-react";
+
+function shareDareOnX(dare: Dare, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
+    const dareUrl = `${baseUrl}/dare/${dare.short_id}`;
+
+    const text = `🎯 $${dare.stake_amount?.toLocaleString() || '0'} USDC bounty on @${dare.streamer_name}
+
+"${dare.description}"
+
+Think they'll do it? 👇
+
+#BaseDare #Base`;
+
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
+    window.open(twitterUrl, '_blank', 'width=550,height=420');
+}
 
 interface Dare {
     id: string;
@@ -71,6 +90,15 @@ function LiveDareFeed({ dares, loading, error }: { dares: Dare[]; loading: boole
                                shadow-[0_0_20px_rgba(168,85,247,0.1)] hover:shadow-[0_0_40px_rgba(250,204,21,0.3)]
                                transition-all duration-300 transform hover:scale-[1.02] cursor-pointer group relative overflow-hidden"
                 >
+                    {/* Share Button */}
+                    <button
+                        onClick={(e) => shareDareOnX(dare, e)}
+                        className="absolute top-3 right-3 z-20 p-2 bg-black/60 hover:bg-black/80 border border-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                        title="Share on X"
+                    >
+                        <Share2 className="w-4 h-4 text-white" />
+                    </button>
+
                     <div className="relative z-10 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="secondary" className="bg-purple-600/50 text-white border-purple-400">

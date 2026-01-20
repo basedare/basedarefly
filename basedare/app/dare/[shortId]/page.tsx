@@ -4,8 +4,25 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Share2 } from 'lucide-react';
 import BountyQRCode from '@/components/BountyQRCode';
 import LiquidBackground from '@/components/LiquidBackground';
+
+function shareDareOnX(dare: { title: string; bounty: number; streamerHandle: string }, shortId: string) {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
+  const dareUrl = `${baseUrl}/dare/${shortId}`;
+
+  const text = `🎯 $${dare.bounty.toLocaleString()} USDC bounty on @${dare.streamerHandle.replace('@', '')}
+
+"${dare.title}"
+
+Think they'll do it? Add to the pot or watch them sweat 👇
+
+#BaseDare #Base`;
+
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
+  window.open(twitterUrl, '_blank', 'width=550,height=420');
+}
 
 interface DareDetail {
   id: string;
@@ -197,10 +214,24 @@ export default function DareDetailPage() {
             </div>
           </div>
 
+          {/* Share on X Button */}
+          <div className="p-6 border-b border-white/10">
+            <button
+              onClick={() => shareDareOnX(dare, shortId)}
+              className="w-full py-4 bg-black hover:bg-zinc-900 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 group"
+            >
+              <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span>Share on X</span>
+            </button>
+            <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
+              Spread the dare. Build the pot.
+            </p>
+          </div>
+
           {/* QR Code */}
           <div className="p-8 flex flex-col items-center">
             <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-6">
-              Share this Bounty
+              Or scan to share
             </div>
             <BountyQRCode
               shortId={shortId}
