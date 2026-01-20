@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import ParticleNetwork from '@/components/ParticleNetwork';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -266,15 +268,22 @@ export default function BrandPortalPage() {
   // Not connected
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
-        {/* Matte glass background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
+        {/* Control mode particle background */}
+        <div className="fixed inset-0 z-0">
+          <ParticleNetwork
+            particleCount={80}
+            minDist={120}
+            particleColor="rgba(0, 0, 0, 0.5)"
+            lineColor="rgba(0, 0, 0,"
+            speed={0.25}
+          />
+        </div>
 
         {/* Back button */}
         <Link
-          href="/"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+          href="/?mode=control"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back to Home</span>
@@ -282,16 +291,16 @@ export default function BrandPortalPage() {
 
         <div className="text-center space-y-6 relative z-10">
           <div className="text-6xl mb-4">🎮</div>
-          <h1 className="text-3xl font-bold text-[#FACC15]">
+          <h1 className="text-3xl font-bold text-zinc-900">
             CONTROL MODE
           </h1>
-          <p className="text-zinc-400 max-w-md">
+          <p className="text-zinc-600 max-w-md">
             The B2B portal for programmatic attention marketing.
             Connect your wallet to access the brand dashboard.
           </p>
           <button
             onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:opacity-90 transition"
+            className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
           >
             Connect Wallet
           </button>
@@ -303,10 +312,11 @@ export default function BrandPortalPage() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
-        <div className="animate-pulse text-zinc-400 relative z-10">Loading Control Mode...</div>
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
+        <div className="fixed inset-0 z-0">
+          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+        </div>
+        <div className="animate-pulse text-zinc-500 relative z-10">Loading Control Mode...</div>
       </div>
     );
   }
@@ -314,15 +324,16 @@ export default function BrandPortalPage() {
   // Register brand
   if (showRegister) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center p-4 relative">
-        {/* Matte glass background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center p-4 overflow-auto">
+        {/* Control mode particle background */}
+        <div className="fixed inset-0 z-0">
+          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+        </div>
 
         {/* Back button */}
         <Link
-          href="/"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+          href="/?mode=control"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back to Home</span>
@@ -331,27 +342,27 @@ export default function BrandPortalPage() {
         <div className="max-w-md w-full space-y-6 relative z-10">
           <div className="text-center">
             <div className="text-5xl mb-4">🏢</div>
-            <h1 className="text-2xl font-bold">Register Your Brand</h1>
-            <p className="text-zinc-400 mt-2">
+            <h1 className="text-2xl font-bold text-zinc-900">Register Your Brand</h1>
+            <p className="text-zinc-600 mt-2">
               Enter Control Mode and start creating campaigns
             </p>
           </div>
 
-          <div className="space-y-4 bg-white/5 backdrop-blur-xl p-6 rounded-xl border border-white/10">
+          <div className="space-y-4 bg-white/80 backdrop-blur-xl p-6 rounded-xl border border-zinc-200">
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Brand Name</label>
+              <label className="block text-sm text-zinc-600 mb-2">Brand Name</label>
               <input
                 type="text"
                 value={registerName}
                 onChange={(e) => setRegisterName(e.target.value)}
                 placeholder="e.g., Red Bull, Monster Energy"
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg focus:border-purple-500 focus:outline-none backdrop-blur-sm"
+                className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-yellow-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Wallet Address</label>
-              <div className="px-4 py-3 bg-black/30 border border-white/10 rounded-lg text-zinc-500 font-mono text-sm">
+              <label className="block text-sm text-zinc-600 mb-2">Wallet Address</label>
+              <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-500 font-mono text-sm">
                 {address}
               </div>
             </div>
@@ -359,7 +370,7 @@ export default function BrandPortalPage() {
             <button
               onClick={handleRegister}
               disabled={!registerName.trim()}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
+              className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition disabled:opacity-50"
             >
               Register Brand
             </button>
@@ -372,42 +383,52 @@ export default function BrandPortalPage() {
   const budget = calculateBudget();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white relative">
-      {/* Matte glass background */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 backdrop-blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto">
+      {/* Control mode particle background */}
+      <div className="fixed inset-0 z-0">
+        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+      </div>
 
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 px-6 py-4 bg-white/5 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Back button */}
             <Link
-              href="/"
-              className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition"
+              href="/?mode=control"
+              className="flex items-center gap-2 px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-2xl font-bold text-[#FACC15]">
+            <div className="text-2xl font-bold text-zinc-900">
               CONTROL
             </div>
-            <div className="px-2 py-1 bg-purple-500/20 border border-purple-500/40 rounded text-xs text-purple-400">
+            <div className="px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
               BRAND PORTAL
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="font-semibold">{brand?.name}</div>
+              <div className="font-semibold text-zinc-900">{brand?.name}</div>
               <div className="text-xs text-zinc-500 font-mono">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
             </div>
             {brand?.verified && (
-              <div className="px-2 py-1 bg-green-500/20 border border-green-500/40 rounded text-xs text-green-400">
+              <div className="px-2 py-1 bg-green-100 border border-green-400 rounded text-xs text-green-700">
                 ✓ Verified
               </div>
             )}
+
+            {/* Mode Switch - Go to Chaos with Reality Shift */}
+            <Link
+              href="/?from=control"
+              className="flex items-center gap-2 px-3 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition text-sm font-semibold"
+            >
+              <span className="text-purple-400">CHAOS</span>
+              <span className="text-zinc-500">→</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -415,25 +436,25 @@ export default function BrandPortalPage() {
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Total Spend</div>
-            <div className="text-2xl font-bold">${brand?.totalSpend.toLocaleString() || 0}</div>
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Total Spend</div>
+            <div className="text-2xl font-bold text-zinc-900">${brand?.totalSpend.toLocaleString() || 0}</div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Active Campaigns</div>
-            <div className="text-2xl font-bold">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Active Campaigns</div>
+            <div className="text-2xl font-bold text-zinc-900">
               {campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length}
             </div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Total Creators</div>
-            <div className="text-2xl font-bold">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Total Creators</div>
+            <div className="text-2xl font-bold text-zinc-900">
               {campaigns.reduce((sum, c) => sum + c.slotCounts.completed, 0)}
             </div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Avg Completion</div>
-            <div className="text-2xl font-bold">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Avg Completion</div>
+            <div className="text-2xl font-bold text-zinc-900">
               {campaigns.length > 0
                 ? Math.round(
                     (campaigns.reduce(

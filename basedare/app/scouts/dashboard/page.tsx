@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import ParticleNetwork from '@/components/ParticleNetwork';
 
 // ============================================================================
 // SHADOW ARMY - SCOUT DASHBOARD
@@ -202,15 +204,16 @@ export default function ScoutDashboardPage() {
   // Not connected
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
-        {/* Matte glass background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
+        {/* Control mode particle background */}
+        <div className="fixed inset-0 z-0">
+          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+        </div>
 
         {/* Back button */}
         <Link
-          href="/"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm hover:bg-white/10 transition z-10"
+          href="/?mode=control"
+          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back to Home</span>
@@ -218,16 +221,16 @@ export default function ScoutDashboardPage() {
 
         <div className="text-center space-y-6 relative z-10">
           <div className="text-6xl mb-4">🕵️</div>
-          <h1 className="text-3xl font-bold text-[#FACC15]">
+          <h1 className="text-3xl font-bold text-zinc-900">
             SHADOW ARMY
           </h1>
-          <p className="text-zinc-400 max-w-md">
+          <p className="text-zinc-600 max-w-md">
             The Scout Dashboard for hunting creators and claiming bounties.
             Connect your wallet to join the Army.
           </p>
           <button
             onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:opacity-90 transition"
+            className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
           >
             Connect Wallet
           </button>
@@ -239,10 +242,11 @@ export default function ScoutDashboardPage() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white flex items-center justify-center relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 backdrop-blur-3xl" />
-        <div className="animate-pulse text-zinc-400 relative z-10">Initializing Shadow Army...</div>
+      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
+        <div className="fixed inset-0 z-0">
+          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+        </div>
+        <div className="animate-pulse text-zinc-500 relative z-10">Initializing Shadow Army...</div>
       </div>
     );
   }
@@ -251,43 +255,53 @@ export default function ScoutDashboardPage() {
   const tierBadge = TIER_BADGES[scout?.tier as keyof typeof TIER_BADGES] || '🐕';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black/95 via-purple-950/20 to-black/95 text-white relative">
-      {/* Matte glass background */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 backdrop-blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto">
+      {/* Control mode particle background */}
+      <div className="fixed inset-0 z-0">
+        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+      </div>
 
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 px-6 py-4 bg-white/5 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Back button */}
             <Link
-              href="/"
-              className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition"
+              href="/?mode=control"
+              className="flex items-center gap-2 px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-2xl font-bold text-[#FACC15]">
+            <div className="text-2xl font-bold text-zinc-900">
               SHADOW ARMY
             </div>
-            <div className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-zinc-400">
+            <div className="px-2 py-1 bg-purple-100 border border-purple-400 rounded text-xs text-purple-700 font-semibold">
               SCOUT DASHBOARD
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div
-              className={`px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-sm font-semibold flex items-center gap-2`}
+              className={`px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-sm font-semibold flex items-center gap-2 text-white`}
             >
               <span>{tierBadge}</span>
               <span>{scout?.tier}</span>
             </div>
             <div className="text-right">
-              <div className="font-semibold">{scout?.handle || 'Anonymous Scout'}</div>
+              <div className="font-semibold text-zinc-900">{scout?.handle || 'Anonymous Scout'}</div>
               <div className="text-xs text-zinc-500 font-mono">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
             </div>
+
+            {/* Mode Switch - Go to Chaos with Reality Shift */}
+            <Link
+              href="/?from=control"
+              className="flex items-center gap-2 px-3 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition text-sm font-semibold"
+            >
+              <span className="text-purple-400">CHAOS</span>
+              <span className="text-zinc-500">→</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -295,24 +309,24 @@ export default function ScoutDashboardPage() {
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Scout Stats */}
         <div className="grid grid-cols-5 gap-4 mb-8">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Reputation</div>
-            <div className="text-2xl font-bold flex items-center gap-2">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Reputation</div>
+            <div className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
               {scout?.reputationScore || 50}
               <span
-                className={`text-sm ${(scout?.reputationScore || 50) >= 70 ? 'text-green-400' : 'text-zinc-500'}`}
+                className={`text-sm ${(scout?.reputationScore || 50) >= 70 ? 'text-green-600' : 'text-zinc-400'}`}
               >
                 {(scout?.reputationScore || 50) >= 70 ? '✓ Auto-Accept' : ''}
               </span>
             </div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Campaigns</div>
-            <div className="text-2xl font-bold">{scout?.totalCampaigns || 0}</div>
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Campaigns</div>
+            <div className="text-2xl font-bold text-zinc-900">{scout?.totalCampaigns || 0}</div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Success Rate</div>
-            <div className="text-2xl font-bold">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Success Rate</div>
+            <div className="text-2xl font-bold text-zinc-900">
               {scout && scout.successfulSlots + scout.failedSlots > 0
                 ? Math.round(
                     (scout.successfulSlots / (scout.successfulSlots + scout.failedSlots)) * 100
@@ -321,28 +335,28 @@ export default function ScoutDashboardPage() {
               %
             </div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Discovery Rake</div>
-            <div className="text-2xl font-bold text-green-400">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Discovery Rake</div>
+            <div className="text-2xl font-bold text-green-600">
               ${scout?.totalDiscoveryRake.toFixed(2) || '0.00'}
             </div>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
-            <div className="text-zinc-400 text-sm">Active Rake</div>
-            <div className="text-2xl font-bold text-purple-400">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
+            <div className="text-zinc-500 text-sm">Active Rake</div>
+            <div className="text-2xl font-bold text-purple-600">
               ${scout?.totalActiveRake.toFixed(2) || '0.00'}
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-white/10">
+        <div className="flex gap-4 mb-6 border-b border-zinc-200">
           <button
             onClick={() => setActiveTab('bounties')}
             className={`pb-3 px-2 font-semibold transition ${
               activeTab === 'bounties'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
             🎯 Bounty Board
@@ -351,8 +365,8 @@ export default function ScoutDashboardPage() {
             onClick={() => setActiveTab('creators')}
             className={`pb-3 px-2 font-semibold transition ${
               activeTab === 'creators'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
             👥 My Creators ({scout?.discoveredCreators.length || 0})
@@ -361,8 +375,8 @@ export default function ScoutDashboardPage() {
             onClick={() => setActiveTab('activity')}
             className={`pb-3 px-2 font-semibold transition ${
               activeTab === 'activity'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
             📊 Activity
@@ -373,7 +387,7 @@ export default function ScoutDashboardPage() {
         {activeTab === 'bounties' && (
           <div className="space-y-4">
             {campaigns.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500">
+              <div className="text-center py-12 text-zinc-400">
                 No open campaigns right now. Check back soon for new bounties.
               </div>
             ) : (
@@ -384,7 +398,7 @@ export default function ScoutDashboardPage() {
                 return (
                   <div
                     key={campaign.id}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden"
+                    className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl overflow-hidden"
                   >
                     {/* Campaign Header */}
                     <div className="p-4 flex items-center justify-between">
@@ -404,14 +418,14 @@ export default function ScoutDashboardPage() {
 
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <div className="text-lg font-bold text-green-400">
+                          <div className="text-lg font-bold text-green-600">
                             ${campaign.payoutPerCreator}
                           </div>
                           <div className="text-xs text-zinc-500">per creator</div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-lg font-bold">
+                          <div className="text-lg font-bold text-zinc-900">
                             {campaign.slotCounts.open}/{campaign.slotCounts.total}
                           </div>
                           <div className="text-xs text-zinc-500">slots open</div>
@@ -419,7 +433,7 @@ export default function ScoutDashboardPage() {
 
                         {campaign.syncTime && (
                           <div className="text-right">
-                            <div className="text-sm font-semibold text-purple-400">
+                            <div className="text-sm font-semibold text-purple-600">
                               {campaign.precisionMultiplier}x Bonus
                             </div>
                             <div className="text-xs text-zinc-500">
@@ -433,10 +447,10 @@ export default function ScoutDashboardPage() {
                           disabled={campaign.slotCounts.open === 0}
                           className={`px-4 py-2 rounded-lg font-semibold transition ${
                             campaign.slotCounts.open === 0
-                              ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                              ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                               : isClaimingThis
-                                ? 'bg-zinc-700 text-white'
-                                : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90'
+                                ? 'bg-zinc-300 text-zinc-700'
+                                : 'bg-zinc-900 text-white hover:bg-zinc-800'
                           }`}
                         >
                           {isClaimingThis ? 'Cancel' : 'Claim Slot'}

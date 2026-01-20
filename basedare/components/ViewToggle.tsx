@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-import { useRouter } from 'next/navigation';
 
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
@@ -8,108 +7,114 @@ interface ViewToggleProps {
 }
 
 export default function ViewToggle({ view, setView }: ViewToggleProps) {
-  const router = useRouter();
   const isControl = view === 'BUSINESS';
 
   return (
     <div className="fixed top-24 right-6 z-[90]">
-      {/* Premium Cutout Container - Liquid Glass with Notch */}
-      <div 
-        className="relative px-6 py-3 backdrop-blur-xl bg-black/30 border border-white/10 rounded-2xl"
-        style={{
-          clipPath: 'polygon(0% 0%, calc(100% - 20px) 0%, 100% 20px, 100% 100%, 20px 100%, 0% calc(100% - 20px))',
-          boxShadow: `
-            0 0 20px -5px rgba(168, 85, 247, 0.3),
-            inset 0 1px 1px rgba(255, 255, 255, 0.1),
-            inset 0 -1px 1px rgba(0, 0, 0, 0.3)
-          `
-        }}
-      >
-        {/* Inner glow */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-        
-        {/* Content */}
-        <div className="relative flex items-center gap-3">
-          {/* Labels */}
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
-            !isControl ? 'text-purple-400' : 'text-gray-500'
-          }`}>
-            CHAOS
-          </span>
+      {/* Premium Neumorphic Switch */}
+      <div className="relative flex items-center gap-4">
+        {/* CHAOS Label */}
+        <span className={`text-xs font-black uppercase tracking-widest transition-all duration-500 ${
+          !isControl ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'text-zinc-600'
+        }`}>
+          CHAOS
+        </span>
 
-          {/* Premium Neon Toggle Switch */}
-          <button
-            onClick={() => {
-              if (!isControl) {
-                // Switching to Control mode - show mode selection
-                setView('BUSINESS');
-              } else {
-                setView('FAN');
-              }
+        {/* The Switch Track */}
+        <button
+          onClick={() => setView(isControl ? 'FAN' : 'BUSINESS')}
+          className="relative cursor-pointer flex items-center w-[180px] h-[72px] rounded-full focus:outline-none"
+          style={{
+            background: 'linear-gradient(145deg, #0a0a0f, #15151f)',
+            boxShadow: `
+              inset 4px 4px 8px rgba(0, 0, 0, 0.8),
+              inset -4px -4px 8px rgba(40, 40, 60, 0.4),
+              0 0 20px rgba(0, 0, 0, 0.5)
+            `
+          }}
+          aria-label={isControl ? 'Switch to Chaos mode' : 'Switch to Control mode'}
+        >
+          {/* Left Indicator (CHAOS/Purple) */}
+          <div
+            className="absolute left-[8%] w-[36%] h-[55%] rounded-l-full overflow-hidden transition-all duration-500"
+            style={{
+              background: !isControl
+                ? 'linear-gradient(180deg, #E9D5FF 10%, #C084FC 30%, #A855F7 60%, #9333EA 75%, #7C3AED)'
+                : 'linear-gradient(180deg, #1a1a2e, #0f0f1a 60%, #1a1a2e)',
+              boxShadow: !isControl
+                ? 'inset 0 0 2px rgba(168, 85, 247, 0.6), inset 0 0 8px rgba(168, 85, 247, 0.4), 0 0 20px rgba(168, 85, 247, 0.5)'
+                : 'inset 0 0 10px rgba(0, 0, 0, 0.9), inset 8px 8px 12px rgba(0, 0, 0, 0.8)'
             }}
-            className="relative w-14 h-7 focus:outline-none"
-            aria-label={isControl ? 'Switch to Chaos mode' : 'Switch to Control mode'}
           >
-            {/* Track */}
+            {/* Noise texture overlay */}
             <div
-              className={`absolute inset-0 rounded-full transition-all duration-300 ${
-                isControl
-                  ? 'bg-gradient-to-r from-[#A855F7] via-[#C084FC] to-[#FACC15] shadow-[0_0_20px_rgba(168,85,247,0.6),inset_0_0_10px_rgba(250,204,21,0.2)]'
-                  : 'bg-black/40 border border-white/10 shadow-[inset_0_0_10px_rgba(168,85,247,0.1)]'
-              }`}
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMDAnIGhlaWdodD0nMjAwJz48ZmlsdGVyIGlkPSduJyB4PScwJyB5PScwJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC43JyBudW1PY3RhdmVzPSczJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9JzIwMCcgaGVpZ2h0PScyMDAnIGZpbHRlcj0ndXJsKCNuKScgb3BhY2l0eT0nMC41Jy8+PC9zdmc+")`
+              }}
             />
+          </div>
 
-            {/* Thumb/Slider */}
+          {/* Right Indicator (CONTROL/Gold) */}
+          <div
+            className="absolute right-[8%] w-[36%] h-[55%] rounded-r-full overflow-hidden transition-all duration-500"
+            style={{
+              background: isControl
+                ? 'linear-gradient(180deg, #FEF9C3 10%, #FDE047 30%, #FACC15 60%, #EAB308 75%, #CA8A04)'
+                : 'linear-gradient(180deg, #1a1a2e, #0f0f1a 60%, #1a1a2e)',
+              boxShadow: isControl
+                ? 'inset 0 0 2px rgba(250, 204, 21, 0.6), inset 0 0 8px rgba(250, 204, 21, 0.4), 0 0 20px rgba(250, 204, 21, 0.5)'
+                : 'inset 0 0 10px rgba(0, 0, 0, 0.9), inset -8px 8px 12px rgba(0, 0, 0, 0.8)'
+            }}
+          >
+            {/* Noise texture overlay */}
             <div
-              className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-300 ease-out transform ${
-                isControl ? 'translate-x-7' : 'translate-x-0'
-              } ${
-                isControl
-                  ? 'bg-white shadow-[0_0_15px_rgba(255,255,255,0.8),0_0_30px_rgba(250,204,21,0.4)]'
-                  : 'bg-white/20 border border-white/30 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
-              }`}
-            >
-              {/* Inner glow for ON state */}
-              {isControl && (
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white to-yellow-200/50 blur-sm opacity-60" />
-              )}
-            </div>
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMDAnIGhlaWdodD0nMjAwJz48ZmlsdGVyIGlkPSduJyB4PScwJyB5PScwJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC43JyBudW1PY3RhdmVzPSczJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9JzIwMCcgaGVpZ2h0PScyMDAnIGZpbHRlcj0ndXJsKCNuKScgb3BhY2l0eT0nMC41Jy8+PC9zdmc+")`
+              }}
+            />
+          </div>
 
-            {/* Animated glow ring when ON */}
-            {isControl && (
-              <div className="absolute inset-0 rounded-full animate-ping opacity-20">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-yellow-500" />
-              </div>
-            )}
-          </button>
+          {/* The Sliding Button */}
+          <div
+            className="absolute z-10 w-[50%] h-[75%] rounded-full transition-all duration-500 ease-[cubic-bezier(1,0,1,1)]"
+            style={{
+              left: isControl ? '45%' : '5%',
+              background: 'linear-gradient(160deg, #e8e8f0 40%, #a0a0b0 70%)',
+              boxShadow: `
+                2px 2px 4px rgba(0, 0, 0, 0.6),
+                4px 4px 8px rgba(0, 0, 0, 0.4),
+                8px 12px 16px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4)
+              `
+            }}
+          >
+            {/* Left circle detail */}
+            <div
+              className="absolute left-[8%] top-[12%] w-[38%] h-[76%] rounded-full"
+              style={{
+                background: 'linear-gradient(-50deg, #f0f0f5 20%, #c8c8d0 80%)',
+                boxShadow: 'inset 1px 1px 3px rgba(255, 255, 255, 0.8)'
+              }}
+            />
+            {/* Right circle detail */}
+            <div
+              className="absolute right-[8%] top-[12%] w-[38%] h-[76%] rounded-full"
+              style={{
+                background: 'linear-gradient(-50deg, #f0f0f5 20%, #b8b8c5 80%)',
+                boxShadow: 'inset 1px 1px 2px rgba(255, 255, 255, 0.6)'
+              }}
+            />
+          </div>
+        </button>
 
-          {/* Labels */}
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
-            isControl ? 'text-yellow-400' : 'text-gray-500'
-          }`}>
-            CONTROL
-          </span>
-        </div>
-
-        {/* Corner accent - Premium cutout detail */}
-        <div 
-          className="absolute top-0 right-0 w-6 h-6 pointer-events-none"
-          style={{
-            clipPath: 'polygon(100% 0%, 100% 100%, 0% 100%)',
-            background: 'linear-gradient(135deg, rgba(250, 204, 21, 0.2), transparent)',
-            borderLeft: '1px solid rgba(250, 204, 21, 0.3)',
-            borderBottom: '1px solid rgba(250, 204, 21, 0.3)'
-          }}
-        />
-        <div 
-          className="absolute bottom-0 left-0 w-6 h-6 pointer-events-none"
-          style={{
-            clipPath: 'polygon(0% 0%, 100% 0%, 0% 100%)',
-            background: 'linear-gradient(315deg, rgba(168, 85, 247, 0.2), transparent)',
-            borderRight: '1px solid rgba(168, 85, 247, 0.3)',
-            borderTop: '1px solid rgba(168, 85, 247, 0.3)'
-          }}
-        />
+        {/* CONTROL Label */}
+        <span className={`text-xs font-black uppercase tracking-widest transition-all duration-500 ${
+          isControl ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'text-zinc-600'
+        }`}>
+          CONTROL
+        </span>
       </div>
     </div>
   );

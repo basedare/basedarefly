@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PlayCircle, BarChart3, Globe, Zap, Settings } from 'lucide-react';
+import { PlayCircle, BarChart3, Globe, Zap } from 'lucide-react';
 
 export default function BusinessDossier() {
   return (
@@ -9,14 +9,10 @@ export default function BusinessDossier() {
       
       {/* HEADER */}
       <div className="text-center mb-16">
-         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-900/20 border border-purple-500/30 text-purple-400 text-xs font-mono mb-4 uppercase tracking-widest">
-            <Settings className="w-3 h-3 animate-spin-slow" />
-            <span>Corporate Access Granted</span>
-         </div>
-         <h1 className="text-5xl md:text-8xl font-black italic text-white tracking-tighter uppercase mb-4">
-            THE SALES <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500">MACHINE</span>
+         <h1 className="text-5xl md:text-8xl font-black italic text-zinc-900 tracking-tighter uppercase mb-4">
+            THE SALES MACHINE
          </h1>
-         <p className="text-gray-400 font-mono max-w-2xl mx-auto text-sm md:text-base">
+         <p className="text-zinc-600 font-mono max-w-2xl mx-auto text-sm md:text-base">
             Algorithmic Brand Injection. Synchronized Viral Moments.
          </p>
       </div>
@@ -54,14 +50,14 @@ export default function BusinessDossier() {
       {/* METRICS GRID */}
       <div className="grid md:grid-cols-3 gap-8">
          {[
-            { label: "Global Reach", value: "450M+", icon: Globe, color: "text-cyan-400" },
-            { label: "Conversion Rate", value: "8.5%", icon: BarChart3, color: "text-[#FFD700]" },
-            { label: "Viral Velocity", value: "12x", icon: Zap, color: "text-purple-400" },
+            { label: "Global Reach", value: "450M+", icon: Globe, color: "text-cyan-600" },
+            { label: "Conversion Rate", value: "8.5%", icon: BarChart3, color: "text-amber-600" },
+            { label: "Viral Velocity", value: "12x", icon: Zap, color: "text-purple-600" },
          ].map((stat, i) => (
-            <div key={i} className="p-8 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors group">
+            <div key={i} className="p-8 bg-white/70 backdrop-blur-xl border border-zinc-200 rounded-2xl hover:border-zinc-300 hover:shadow-lg transition-all group">
                <stat.icon className={`w-8 h-8 ${stat.color} mb-4 group-hover:scale-110 transition-transform`} />
-               <div className="text-4xl font-black text-white mb-2">{stat.value}</div>
-               <div className="text-xs font-mono text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors">{stat.label}</div>
+               <div className="text-4xl font-black text-zinc-900 mb-2">{stat.value}</div>
+               <div className="text-xs font-mono text-zinc-500 uppercase tracking-widest group-hover:text-zinc-800 transition-colors">{stat.label}</div>
             </div>
          ))}
       </div>

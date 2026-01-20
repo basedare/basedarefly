@@ -16,45 +16,42 @@ export default function MetallicText({ text, className }: MetallicTextProps) {
     let cancelled = false;
 
     const generateTextMask = async () => {
-      // 1. Wait for fonts to load so we don't snapshot a blank or wrong font
+      // 1. Wait for fonts to load
       await document.fonts.ready;
-      
+
       if (cancelled) return;
 
       const canvas = document.createElement('canvas');
-      // 'willReadFrequently' optimizes the canvas for the heavy getImageData operation
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
       if (!ctx) return;
 
-      // 2. High Resolution for crisp edges on 4K/Retina screens
-      const baseSize = 1800;
-      canvas.width = baseSize * 1.5; 
-      canvas.height = baseSize;
+      // 2. Size for crisp text - balanced for quality
+      const fontSize = 500;
+      const padding = 60;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Measure text to get proper canvas size
+      ctx.font = `900 italic ${fontSize}px "Bricolage Grotesque", system-ui, sans-serif`;
+      const metrics = ctx.measureText(text.toUpperCase());
 
-      // 3. CRITICAL FIX: White text (#FFFFFF) creates the mask.
-      // Black text would be invisible in the metallic shader.
+      const width = Math.ceil(metrics.width + padding * 2);
+      const height = Math.ceil(fontSize * 1.3 + padding * 2);
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // 3. WHITE background - shader makes this transparent
       ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+
+      // 4. BLACK text - shader makes this the liquid metal
+      ctx.fillStyle = '#000000';
+      ctx.font = `900 italic ${fontSize}px "Bricolage Grotesque", system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.fillText(text.toUpperCase(), width / 2, height / 2);
 
-      // 4. FONT CONFIGURATION
-      // Make sure this matches your website's main font family!
-      // '900 italic' gives it that thick, speedy "BaseDare" look.
-      ctx.font = '900 italic 420px system-ui, -apple-system, sans-serif'; 
-
-      // OPTIONAL: Add a stroke to make the letters bolder/fatter
-      // This gives the liquid effect more surface area to shine.
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 25;
-      ctx.strokeText(text.toUpperCase(), canvas.width / 2, canvas.height / 2);
-
-      // Fill the text
-      ctx.fillText(text.toUpperCase(), canvas.width / 2, canvas.height / 2);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, width, height);
 
       if (!cancelled) {
         setLogoData(imageData);
@@ -86,11 +83,11 @@ export default function MetallicText({ text, className }: MetallicTextProps) {
         <MetallicPaint
           imageData={logoData}
           params={{
-            edge: 0.02,         // Sharpness of the edges
-            patternScale: 2.5,  // Size of the liquid ripples
-            refraction: 0.02,   // How much it distorts the background
-            speed: 0.4,         // Speed of the flow
-            liquid: 1.2,        // Viscosity (higher = more liquid)
+            edge: 1,            // Sharpness of the edges (higher = sharper)
+            patternScale: 2,    // Size of the liquid ripples
+            refraction: 0.015,  // How much it distorts
+            speed: 0.3,         // Speed of the flow
+            liquid: 0.07,       // Viscosity
           }}
         />
       )}
