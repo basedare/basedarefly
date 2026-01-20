@@ -33,12 +33,21 @@ export default function TruthProtocol() {
     <section className="relative z-20 py-24 px-4 md:px-6 overflow-hidden">
       <div className="max-w-[1600px] mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6">
+          <h2 className="text-4xl md:text-6xl font-display font-black italic uppercase tracking-tighter text-white mb-6">
             <span className="mr-3">THE</span>
             <Shuffle
-              text="TRUTH PROTOCOL"
+              text="TRUTH"
               tag="span"
-              className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 inline-block"
+              className="text-[#FACC15] inline-block mr-3"
+              duration={0.8}
+              stagger={0.03}
+              shuffleTimes={4}
+              triggerOnHover={true}
+            />
+            <Shuffle
+              text="PROTOCOL"
+              tag="span"
+              className="text-[#A855F7] inline-block"
               duration={0.8}
               stagger={0.03}
               shuffleTimes={4}
