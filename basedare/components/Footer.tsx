@@ -122,8 +122,7 @@ export default function Footer() {
                 href="https://x.com/basedare_xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-[#FACC15] hover:text-[#FACC15]/80 transition"
-                style={{ textShadow: '0 0 10px rgba(250, 204, 21, 0.5)' }}
+                className="text-xs text-zinc-700 hover:text-zinc-900 transition"
               >
                 Questions? DM @basedare on X · Built on Base ⚡
               </a>

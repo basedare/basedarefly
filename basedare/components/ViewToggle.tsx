@@ -111,7 +111,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
 
         {/* CONTROL Label */}
         <span className={`text-xs font-black uppercase tracking-widest transition-all duration-500 ${
-          isControl ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'text-zinc-600'
+          isControl ? 'text-zinc-900' : 'text-zinc-600'
         }`}>
           CONTROL
         </span>
