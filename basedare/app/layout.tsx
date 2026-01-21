@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
+import { ViewProvider } from "@/app/context/ViewContext";
 
 // Headlines - Bricolage Grotesque (edgy, variable)
 const bricolage = Bricolage_Grotesque({
@@ -51,19 +52,21 @@ export default function RootLayout({
         
         <ClientLoader>
           <Providers>
-            <IgnitionProvider>
-              <div className="flex flex-col min-h-screen">
-                <Navbar />
-                <MobileNavbar />
-                <main className="flex-grow pt-24 pb-24 md:pb-0">
-                  {children}
-                </main>
-                <Footer />
-              </div>
-              <LivePotPortal>
-                <LivePotBubble />
-              </LivePotPortal>
-            </IgnitionProvider>
+            <ViewProvider>
+              <IgnitionProvider>
+                <div className="flex flex-col min-h-screen">
+                  <Navbar />
+                  <MobileNavbar />
+                  <main className="flex-grow pt-24 pb-24 md:pb-0">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <LivePotPortal>
+                  <LivePotBubble />
+                </LivePotPortal>
+              </IgnitionProvider>
+            </ViewProvider>
             <Toaster />
           </Providers>
         </ClientLoader>

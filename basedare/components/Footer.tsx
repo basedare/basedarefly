@@ -3,8 +3,11 @@
 import React from 'react';
 import { Twitter, Shield, FileText, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useView } from '@/app/context/ViewContext';
 
 export default function Footer() {
+  const { isControlMode } = useView();
+
   return (
     <footer id="site-footer" className="w-full relative z-50 overflow-hidden">
       {/* LIQUID GLASS BACKDROP - Matching Navbar style */}
@@ -29,12 +32,20 @@ export default function Footer() {
             
             {/* COL 1: LOGO + IDENTITY */}
             <div className="col-span-1 md:col-span-2">
-              {/* BASEDDARE LOGO - Image */}
+              {/* BASEDDARE LOGO - Image with noir filter in Control mode */}
               <div className="mb-6">
                 <img
                   src="/assets/BASEDAREGOO.png"
                   alt="BaseDare"
-                  className="h-10 max-h-[40px] w-auto mb-4 object-contain md:h-[56px] md:max-h-none drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]"
+                  className={`h-10 max-h-[40px] w-auto mb-4 object-contain md:h-[56px] md:max-h-none transition-all duration-500 ${
+                    isControlMode
+                      ? 'drop-shadow-[0_0_30px_rgba(100,100,100,0.4)]'
+                      : 'drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]'
+                  }`}
+                  style={{
+                    filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
+                    WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
+                  }}
                 />
                 <p className="text-xs text-gray-500 font-mono leading-relaxed max-w-sm mt-3">
                   The decentralized protocol for verifiable social chaos. 

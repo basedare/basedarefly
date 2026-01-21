@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
+import { useView } from '@/app/context/ViewContext';
 import GlassSurface from './GlassSurface';
 import { IdentityButton } from './IdentityButton';
 
@@ -20,6 +21,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { isControlMode } = useView();
   useWallet();
 
   return (
@@ -28,16 +30,24 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 overflow-x-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
           
-          {/* 1. LOGO (Image) */}
+          {/* 1. LOGO (Image) - Noir filter in Control mode */}
           <div className="flex items-center gap-2 z-50 flex-shrink-0">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="relative group"
             >
               <img
                 src="/assets/BASEDAREGOO.png"
                 alt="BaseDare"
-                className="h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none drop-shadow-[0_0_25px_rgba(255,215,0,0.4)] hover:scale-105 transition-transform"
+                className={`h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none hover:scale-105 transition-all duration-500 ${
+                  isControlMode
+                    ? 'grayscale contrast-110 brightness-95 drop-shadow-[0_0_25px_rgba(100,100,100,0.4)]'
+                    : 'drop-shadow-[0_0_25px_rgba(255,215,0,0.4)]'
+                }`}
+                style={{
+                  filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
+                  WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
+                }}
               />
             </Link>
           </div>

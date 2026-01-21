@@ -3,17 +3,14 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { useView } from '@/app/context/ViewContext';
 
 interface LivePotBubbleProps {
   className?: string;
 }
 
-// Control mode routes where LivePot should be hidden
-const CONTROL_MODE_ROUTES = ['/brands/portal', '/scouts/dashboard'];
-
 export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
-  const pathname = usePathname();
+  const { isControlMode } = useView(); // Use global context
   const [translateY, setTranslateY] = useState(0);
   const [triggerBounce, setTriggerBounce] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -21,22 +18,16 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0);
 
-  // Check if on Control mode pages
-  const isControlMode = CONTROL_MODE_ROUTES.some(route => pathname?.startsWith(route));
-
   // Detect mobile for scale
   useEffect(() => {
-    if (isControlMode) return;
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // THE ELEVATOR SCRIPT (GPU-Accelerated + Basketball Bounce)
   useEffect(() => {
-    if (isControlMode) return;
-
     const updatePosition = () => {
       const footer = document.getElementById('site-footer');
       const pot = potRef.current;
@@ -83,27 +74,28 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     };
   }, [triggerBounce]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Return null AFTER all hooks have been called
-  if (isControlMode) {
-    return null;
-  }
-
   return (
     <motion.div
       ref={potRef}
       className={`
         fixed z-40 will-change-transform origin-bottom-right
         rounded-full flex flex-col justify-center items-center p-2
-        border-2 border-purple-500/50 backdrop-blur-sm overflow-hidden
-        shadow-[0_0_20px_rgba(168,85,247,0.4)]
+        border-2 backdrop-blur-sm overflow-hidden
         w-44 h-44
         bottom-4 right-2 scale-75
         md:bottom-6 md:right-6 md:scale-100
+        ${isControlMode
+          ? 'border-zinc-400/50 shadow-[0_0_20px_rgba(120,120,120,0.4)]'
+          : 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+        }
         ${className || ''}
       `}
       style={{
-        transform: `translateY(${translateY}px)`,
-        transition: triggerBounce ? 'none' : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)'
+        transform: `translateY(${translateY}px) translateZ(0)`,
+        transition: triggerBounce ? 'none' : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+        // Noir filter for Control mode
+        filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
+        WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
       }}
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
@@ -160,13 +152,17 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       <div className="absolute top-8 left-10 w-8 h-4 bg-white/30 rounded-full blur-sm -rotate-12 pointer-events-none z-[26]" />
       <div className="absolute top-12 left-14 w-6 h-3 bg-white/40 rounded-full blur-[2px] -rotate-45 pointer-events-none z-[27]" />
 
-      {/* LIQUID GLASS SURFACE */}
+      {/* LIQUID GLASS SURFACE - Safari fix: explicit webkit prefix + GPU layer */}
       <div
         className="absolute inset-0 z-20 rounded-full pointer-events-none"
         style={{
+          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
           backdropFilter: 'blur(8px) saturate(180%)',
           background: 'rgba(0, 0, 0, 0.2)',
           boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+          isolation: 'isolate',
         }}
       />
 

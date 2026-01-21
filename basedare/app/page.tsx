@@ -33,6 +33,7 @@ import MatrixRain from "@/components/MatrixRain";
 
 // === FIXED IMPORT PATH ===
 import { useIgnition } from "@/app/context/IgnitionContext";
+import { useView } from "@/app/context/ViewContext";
 
 interface Dare {
   id: string;
@@ -48,7 +49,7 @@ interface Dare {
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [view, setView] = useState<'FAN' | 'BUSINESS'>('FAN');
+  const { view, setView } = useView(); // Use global context
   const [dares, setDares] = useState<Dare[]>([]);
   // Chat removed for MVP
   const [isClient, setIsClient] = useState(false);
@@ -67,7 +68,7 @@ export default function Home() {
       // Chaos → Control: Matrix rain
       setTriggerMatrixRain(true);
     }
-    setView(newView);
+    setView(newView); // Updates global context
   };
 
   // Check URL params for mode on mount

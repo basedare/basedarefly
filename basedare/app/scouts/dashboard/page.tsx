@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 
@@ -101,6 +100,9 @@ export default function ScoutDashboardPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
 
+  // Hydration guard to prevent SSR/client mismatch flickering
+  const [mounted, setMounted] = useState(false);
+
   const [scout, setScout] = useState<Scout | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +116,11 @@ export default function ScoutDashboardPage() {
     creatorFollowers: 10000,
     claimRationale: '',
   });
+
+  // Mark as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch scout and open campaigns
   useEffect(() => {
@@ -201,65 +208,91 @@ export default function ScoutDashboardPage() {
     }
   };
 
-  // Not connected
-  if (!isConnected) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
-        {/* Control mode particle background */}
-        <div className="fixed inset-0 z-0">
-          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
-        </div>
-
-        {/* Back button */}
-        <Link
-          href="/?mode=control"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </Link>
-
-        <div className="text-center space-y-6 relative z-10">
-          <div className="text-6xl mb-4">🕵️</div>
-          <h1 className="text-3xl font-bold text-zinc-900">
-            SHADOW ARMY
-          </h1>
-          <p className="text-zinc-600 max-w-md">
-            The Scout Dashboard for hunting creators and claiming bounties.
-            Connect your wallet to join the Army.
-          </p>
-          <button
-            onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-            className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
-        <div className="fixed inset-0 z-0">
-          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
-        </div>
-        <div className="animate-pulse text-zinc-500 relative z-10">Initializing Shadow Army...</div>
-      </div>
-    );
-  }
-
   const tierColor = TIER_COLORS[scout?.tier as keyof typeof TIER_COLORS] || TIER_COLORS.BLOODHOUND;
   const tierBadge = TIER_BADGES[scout?.tier as keyof typeof TIER_BADGES] || '🐕';
 
+  // Determine current view state
+  const showNotConnected = mounted && !isConnected;
+  const showLoading = mounted && isConnected && loading;
+  const showDashboard = mounted && isConnected && !loading;
+
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto">
-      {/* Control mode particle background */}
+    <div
+      className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto"
+      style={{
+        filter: 'grayscale(1) contrast(1.05)',
+        WebkitFilter: 'grayscale(1) contrast(1.05)',
+      }}
+    >
+      {/* VHS Scan Lines Overlay - old film aesthetic */}
+      <div
+        className="fixed inset-0 z-[200] pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+          backgroundSize: '100% 4px',
+        }}
+      />
+
+      {/* Subtle film grain noise */}
+      <div
+        className="fixed inset-0 z-[199] pointer-events-none opacity-[0.015] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Control mode particle background - rendered once, persists across all states */}
       <div className="fixed inset-0 z-0">
         <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
       </div>
+
+      {/* Pre-hydration skeleton */}
+      {!mounted && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <div className="animate-pulse text-zinc-400">Loading...</div>
+        </div>
+      )}
+
+      {/* Not connected state */}
+      {showNotConnected && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <Link
+            href="/?mode=control"
+            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Home</span>
+          </Link>
+
+          <div className="text-center space-y-6">
+            <div className="text-6xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🕵️</div>
+            <h1 className="text-3xl font-bold text-zinc-900">
+              SHADOW ARMY
+            </h1>
+            <p className="text-zinc-600 max-w-md">
+              The Scout Dashboard for hunting creators and claiming bounties.
+              Connect your wallet to join the Army.
+            </p>
+            <button
+              onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+              className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {showLoading && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <div className="animate-pulse text-zinc-500">Initializing Shadow Army...</div>
+        </div>
+      )}
+
+      {/* Main dashboard */}
+      {showDashboard && (
+        <>
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
@@ -284,7 +317,7 @@ export default function ScoutDashboardPage() {
             <div
               className={`px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-sm font-semibold flex items-center gap-2 text-white`}
             >
-              <span>{tierBadge}</span>
+              <span style={{ filter: 'grayscale(1)' }}>{tierBadge}</span>
               <span>{scout?.tier}</span>
             </div>
             <div className="text-right">
@@ -359,7 +392,7 @@ export default function ScoutDashboardPage() {
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
-            🎯 Bounty Board
+            <span style={{ filter: 'grayscale(1)' }}>🎯</span> Bounty Board
           </button>
           <button
             onClick={() => setActiveTab('creators')}
@@ -369,7 +402,7 @@ export default function ScoutDashboardPage() {
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
-            👥 My Creators ({scout?.discoveredCreators.length || 0})
+            <span style={{ filter: 'grayscale(1)' }}>👥</span> My Creators ({scout?.discoveredCreators.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('activity')}
@@ -379,7 +412,7 @@ export default function ScoutDashboardPage() {
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
-            📊 Activity
+            <span style={{ filter: 'grayscale(1)' }}>📊</span> Activity
           </button>
         </div>
 
@@ -461,15 +494,15 @@ export default function ScoutDashboardPage() {
                     {/* Targeting Info */}
                     <div className="px-4 pb-2 flex gap-4 text-xs text-zinc-500">
                       {targeting.niche && (
-                        <span className="px-2 py-1 bg-zinc-800 rounded">📍 {targeting.niche}</span>
+                        <span className="px-2 py-1 bg-zinc-800 rounded"><span style={{ filter: 'grayscale(1)' }}>📍</span> {targeting.niche}</span>
                       )}
                       {targeting.minFollowers && (
                         <span className="px-2 py-1 bg-zinc-800 rounded">
-                          👥 {targeting.minFollowers.toLocaleString()}+ followers
+                          <span style={{ filter: 'grayscale(1)' }}>👥</span> {targeting.minFollowers.toLocaleString()}+ followers
                         </span>
                       )}
                       <span className="px-2 py-1 bg-zinc-800 rounded">
-                        ⏰ {campaign.windowHours}h window
+                        <span style={{ filter: 'grayscale(1)' }}>⏰</span> {campaign.windowHours}h window
                       </span>
                     </div>
 
@@ -538,7 +571,7 @@ export default function ScoutDashboardPage() {
                           onClick={() => handleClaimSlot(campaign.id)}
                           className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
                         >
-                          🎯 Claim This Slot
+                          <span style={{ filter: 'grayscale(1)' }}>🎯</span> Claim This Slot
                         </button>
                       </div>
                     )}
@@ -569,7 +602,7 @@ export default function ScoutDashboardPage() {
                     className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl" style={{ filter: 'grayscale(1)' }}>
                         👤
                       </div>
                       <div>
@@ -606,7 +639,7 @@ export default function ScoutDashboardPage() {
                       >
                         {creator.bindingStatus === 'BOUND'
                           ? decayWarning
-                            ? '⚠️ Decay Soon'
+                            ? <><span style={{ filter: 'grayscale(1)' }}>⚠️</span> Decay Soon</>
                             : '✓ Bound'
                           : 'Unbound'}
                       </div>
@@ -681,6 +714,8 @@ export default function ScoutDashboardPage() {
           </div>
         )}
       </main>
+      </>
+      )}
     </div>
   );
 }

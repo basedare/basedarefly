@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 
@@ -114,6 +113,9 @@ export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
 
+  // Hydration guard to prevent SSR/client mismatch flickering
+  const [mounted, setMounted] = useState(false);
+
   const [brand, setBrand] = useState<Brand | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +140,11 @@ export default function BrandPortalPage() {
     },
   });
   const [hashtagInput, setHashtagInput] = useState('');
+
+  // Mark as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch brand and campaigns
   useEffect(() => {
@@ -265,129 +272,142 @@ export default function BrandPortalPage() {
     return { gross, rake, total: gross + rake };
   };
 
-  // Not connected
-  if (!isConnected) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
-        {/* Control mode particle background */}
-        <div className="fixed inset-0 z-0">
-          <ParticleNetwork
-            particleCount={80}
-            minDist={120}
-            particleColor="rgba(0, 0, 0, 0.5)"
-            lineColor="rgba(0, 0, 0,"
-            speed={0.25}
-          />
-        </div>
-
-        {/* Back button */}
-        <Link
-          href="/?mode=control"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </Link>
-
-        <div className="text-center space-y-6 relative z-10">
-          <div className="text-6xl mb-4">🎮</div>
-          <h1 className="text-3xl font-bold text-zinc-900">
-            CONTROL MODE
-          </h1>
-          <p className="text-zinc-600 max-w-md">
-            The B2B portal for programmatic attention marketing.
-            Connect your wallet to access the brand dashboard.
-          </p>
-          <button
-            onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-            className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center overflow-auto">
-        <div className="fixed inset-0 z-0">
-          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
-        </div>
-        <div className="animate-pulse text-zinc-500 relative z-10">Loading Control Mode...</div>
-      </div>
-    );
-  }
-
-  // Register brand
-  if (showRegister) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 flex items-center justify-center p-4 overflow-auto">
-        {/* Control mode particle background */}
-        <div className="fixed inset-0 z-0">
-          <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
-        </div>
-
-        {/* Back button */}
-        <Link
-          href="/?mode=control"
-          className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition z-10"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </Link>
-
-        <div className="max-w-md w-full space-y-6 relative z-10">
-          <div className="text-center">
-            <div className="text-5xl mb-4">🏢</div>
-            <h1 className="text-2xl font-bold text-zinc-900">Register Your Brand</h1>
-            <p className="text-zinc-600 mt-2">
-              Enter Control Mode and start creating campaigns
-            </p>
-          </div>
-
-          <div className="space-y-4 bg-white/80 backdrop-blur-xl p-6 rounded-xl border border-zinc-200">
-            <div>
-              <label className="block text-sm text-zinc-600 mb-2">Brand Name</label>
-              <input
-                type="text"
-                value={registerName}
-                onChange={(e) => setRegisterName(e.target.value)}
-                placeholder="e.g., Red Bull, Monster Energy"
-                className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-yellow-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-zinc-600 mb-2">Wallet Address</label>
-              <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-500 font-mono text-sm">
-                {address}
-              </div>
-            </div>
-
-            <button
-              onClick={handleRegister}
-              disabled={!registerName.trim()}
-              className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition disabled:opacity-50"
-            >
-              Register Brand
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const budget = calculateBudget();
 
+  // Determine current view state
+  const showNotConnected = mounted && !isConnected;
+  const showLoading = mounted && isConnected && loading;
+  const showRegisterView = mounted && isConnected && !loading && showRegister;
+  const showDashboard = mounted && isConnected && !loading && !showRegister;
+
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto">
-      {/* Control mode particle background */}
+    <div
+      className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto"
+      style={{
+        filter: 'grayscale(1) contrast(1.05)',
+        WebkitFilter: 'grayscale(1) contrast(1.05)',
+      }}
+    >
+      {/* VHS Scan Lines Overlay - old film aesthetic */}
+      <div
+        className="fixed inset-0 z-[200] pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+          backgroundSize: '100% 4px',
+        }}
+      />
+
+      {/* Subtle film grain noise */}
+      <div
+        className="fixed inset-0 z-[199] pointer-events-none opacity-[0.015] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Control mode particle background - rendered once, persists across all states */}
       <div className="fixed inset-0 z-0">
         <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
       </div>
+
+      {/* Pre-hydration skeleton */}
+      {!mounted && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <div className="animate-pulse text-zinc-400">Loading...</div>
+        </div>
+      )}
+
+      {/* Not connected state */}
+      {showNotConnected && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <Link
+            href="/?mode=control"
+            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Home</span>
+          </Link>
+
+          <div className="text-center space-y-6">
+            <div className="text-6xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🎮</div>
+            <h1 className="text-3xl font-bold text-zinc-900">
+              CONTROL MODE
+            </h1>
+            <p className="text-zinc-600 max-w-md">
+              The B2B portal for programmatic attention marketing.
+              Connect your wallet to access the brand dashboard.
+            </p>
+            <button
+              onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+              className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {showLoading && (
+        <div className="flex items-center justify-center h-full relative z-10">
+          <div className="animate-pulse text-zinc-500">Loading Control Mode...</div>
+        </div>
+      )}
+
+      {/* Register brand state */}
+      {showRegisterView && (
+        <div className="flex items-center justify-center h-full p-4 relative z-10">
+          <Link
+            href="/?mode=control"
+            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Home</span>
+          </Link>
+
+          <div className="max-w-md w-full space-y-6">
+            <div className="text-center">
+              <div className="text-5xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🏢</div>
+              <h1 className="text-2xl font-bold text-zinc-900">Register Your Brand</h1>
+              <p className="text-zinc-600 mt-2">
+                Enter Control Mode and start creating campaigns
+              </p>
+            </div>
+
+            <div className="space-y-4 bg-white/80 backdrop-blur-xl p-6 rounded-xl border border-zinc-200">
+              <div>
+                <label className="block text-sm text-zinc-600 mb-2">Brand Name</label>
+                <input
+                  type="text"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                  placeholder="e.g., Red Bull, Monster Energy"
+                  className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-600 mb-2">Wallet Address</label>
+                <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-500 font-mono text-sm">
+                  {address}
+                </div>
+              </div>
+
+              <button
+                onClick={handleRegister}
+                disabled={!registerName.trim()}
+                className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition disabled:opacity-50"
+              >
+                Register Brand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main dashboard */}
+      {showDashboard && (
+        <>
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
@@ -723,7 +743,7 @@ export default function BrandPortalPage() {
             {/* Guarantee Banner */}
             <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl p-4 mb-6">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">⚡</span>
+                <span className="text-2xl" style={{ filter: 'grayscale(1)' }}>⚡</span>
                 <div>
                   <div className="font-semibold text-green-700">
                     All Deliverables Auto-Verified by AI Vision
@@ -857,6 +877,8 @@ export default function BrandPortalPage() {
           )}
         </div>
       </main>
+      </>
+      )}
     </div>
   );
 }
