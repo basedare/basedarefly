@@ -47,6 +47,26 @@ const FAQ_ITEMS = [
     a: "Fail a dare. Chicken out. Upload a fake video. We publicly roast verified failures on the homepage. It's an honor, really."
   },
   {
+    q: "What's the CHAOS / CONTROL switch?",
+    a: "It's a vibe selector. **CHAOS mode** is for degens who want to stake, dare, and watch streamers suffer. **CONTROL mode** is for brands and scouts who want to weaponize that chaos for profit. Same protocol, different energy. Pick your poison."
+  },
+  {
+    q: "What is Control Mode / Brand Portal?",
+    a: "The **Brand Portal** is where suits turn marketing budgets into viral moments. Brands create campaigns, set budgets, and define what counts as 'verified content'. Our AI referee does the rest. No influencer DMs. No fake engagement. Just algorithmic brand injection."
+  },
+  {
+    q: "What is the Shadow Army?",
+    a: "The **Shadow Army** is our scout network. They hunt creators, claim bounty slots, and match brands with streamers. In return, they earn **permanent rake** on every successful payout: 0.5% discovery rake + 0.5% active rake. Find one good creator, collect forever. It's passive income for professional stalkers."
+  },
+  {
+    q: "How do Scout tiers work?",
+    a: "You start as a **BLOODHOUND** 🐕. Complete campaigns successfully and level up to **ARBITER** ⚖️, then **ARCHON** 👑. Higher tiers = auto-accepted slot claims, priority access, and flex rights. Fail too many and watch your reputation decay. The Shadow Army has standards."
+  },
+  {
+    q: "Why does Control Mode look like a 1940s film?",
+    a: "Because business is **noir**. While CHAOS mode is vibrant and unhinged, CONTROL mode runs in black and white like the boardrooms it was built for. It's an aesthetic choice. Also, it looks sick."
+  },
+  {
     q: "Can I collab or report a bug?",
     a: "Slide into the DMs. If it's a good idea, we build it. If it's a bug, we fix it."
   }
