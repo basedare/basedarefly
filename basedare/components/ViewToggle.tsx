@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { useView } from '@/app/context/ViewContext';
 
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
@@ -11,9 +10,6 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
   const isControl = view === 'BUSINESS';
   const [isPressed, setIsPressed] = useState(false);
 
-  // For mobile, use context directly to ensure it works
-  const context = useView();
-
   // Haptic feedback helper
   const triggerHaptic = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -21,13 +17,22 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
     }
   };
 
-  // Mobile switch handler - uses context directly
+  // Mobile switch handler - uses prop setView for consistency with desktop
   const handleMobileSwitch = () => {
-    const currentView = context.view;
-    const newView = currentView === 'BUSINESS' ? 'FAN' : 'BUSINESS';
-    console.log('[ViewToggle] MOBILE switching from', currentView, 'to', newView);
-    context.setView(newView);
-    triggerHaptic();
+    try {
+      const newView = isControl ? 'FAN' : 'BUSINESS';
+      console.log('[ViewToggle] MOBILE CLICK DETECTED - switching to', newView);
+      console.log('[ViewToggle] Current isControl:', isControl, 'view prop:', view);
+
+      // Click confirmed working - removed debug alert
+
+      // Use the same setView as desktop (handleViewChange from page.tsx)
+      setView(newView);
+      console.log('[ViewToggle] setView called with', newView);
+      triggerHaptic();
+    } catch (error) {
+      console.error('[ViewToggle] ERROR in handleMobileSwitch:', error);
+    }
   };
 
   return (
@@ -139,35 +144,14 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
       </div>
 
       {/* ============================================
-          MOBILE - 3D Liquid Metal Toggle Button
+          MOBILE - Tap Target Wrapper + Visual Button
           ============================================ */}
-      <button
-        type="button"
-        className="md:hidden fixed top-20 right-4 z-[9999] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-100 touch-manipulation overflow-hidden select-none cursor-pointer"
+      <div
+        className="md:hidden fixed top-[72px] right-1 z-[9999] touch-manipulation select-none cursor-pointer"
         style={{
-          minWidth: '130px',
-          minHeight: '52px',
-          padding: '16px 22px',
+          // Large invisible tap area - less top padding, more bottom to align tap with visual
+          padding: '8px 16px 24px 16px',
           WebkitTapHighlightColor: 'transparent',
-          // 3D transform based on press state
-          transform: isPressed
-            ? 'perspective(200px) rotateX(8deg) translateY(2px) scale(0.97)'
-            : 'perspective(200px) rotateX(0deg) translateY(0px) scale(1)',
-          transformStyle: 'preserve-3d',
-          // Liquid metal gradient
-          background: context.isControlMode
-            ? 'linear-gradient(175deg, #ffffff 0%, #f0f0f0 20%, #d8d8d8 45%, #c5c5c5 55%, #e0e0e0 80%, #f5f5f5 100%)'
-            : 'linear-gradient(175deg, #3a3a42 0%, #28282e 20%, #1a1a1e 45%, #151518 55%, #222226 80%, #2e2e34 100%)',
-          color: context.isControlMode ? '#1a1a1a' : '#ffffff',
-          border: 'none',
-          // Dynamic shadow based on press state
-          boxShadow: isPressed
-            ? context.isControlMode
-              ? 'inset 0 4px 8px rgba(0,0,0,0.15), inset 0 -1px 2px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.2)'
-              : 'inset 0 4px 8px rgba(0,0,0,0.4), inset 0 -1px 2px rgba(255,255,255,0.05), 0 1px 3px rgba(0,0,0,0.3)'
-            : context.isControlMode
-              ? 'inset 0 2px 4px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.1)'
-              : 'inset 0 2px 3px rgba(255,255,255,0.12), inset 0 -3px 6px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.25)',
         }}
         onClick={() => {
           triggerHaptic();
@@ -179,63 +163,38 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
         onTouchStart={() => setIsPressed(true)}
         onTouchEnd={() => setIsPressed(false)}
       >
-        {/* Top chrome highlight */}
+        {/* Visual Button - Smaller */}
         <div
-          className="absolute inset-x-0 top-0 h-[2px] pointer-events-none rounded-t-2xl"
+          className="rounded-xl font-bold text-[10px] uppercase tracking-wide transition-all duration-100 flex items-center justify-center gap-1.5"
           style={{
-            background: context.isControlMode
-              ? 'linear-gradient(90deg, transparent 5%, rgba(255,255,255,1) 20%, rgba(255,255,255,1) 80%, transparent 95%)'
-              : 'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.2) 20%, rgba(255,255,255,0.25) 80%, transparent 95%)',
-            opacity: isPressed ? 0.3 : 1,
-          }}
-        />
-
-        {/* Bottom shadow line */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-[2px] pointer-events-none rounded-b-2xl"
-          style={{
-            background: context.isControlMode
-              ? 'linear-gradient(90deg, transparent 5%, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.15) 80%, transparent 95%)'
-              : 'linear-gradient(90deg, transparent 5%, rgba(0,0,0,0.4) 20%, rgba(0,0,0,0.5) 80%, transparent 95%)',
-            opacity: isPressed ? 0.5 : 1,
-          }}
-        />
-
-        {/* Content */}
-        <span
-          className="relative z-10 flex items-center justify-center gap-2"
-          style={{
-            transform: isPressed ? 'translateY(1px)' : 'translateY(0)',
-            transition: 'transform 0.1s ease',
-            textShadow: context.isControlMode
-              ? 'none'
-              : '0 1px 2px rgba(0,0,0,0.3)',
+            padding: '10px 14px',
+            transform: isPressed ? 'scale(0.96)' : 'scale(1)',
+            background: isControl
+              ? 'linear-gradient(175deg, #ffffff 0%, #f0f0f0 20%, #d8d8d8 45%, #c5c5c5 55%, #e0e0e0 80%, #f5f5f5 100%)'
+              : 'linear-gradient(175deg, #3a3a42 0%, #28282e 20%, #1a1a1e 45%, #151518 55%, #222226 80%, #2e2e34 100%)',
+            color: isControl ? '#1a1a1a' : '#ffffff',
+            boxShadow: isPressed
+              ? isControl
+                ? 'inset 0 2px 4px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1)'
+                : 'inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2)'
+              : isControl
+                ? 'inset 0 1px 2px rgba(255,255,255,0.9), 0 4px 12px rgba(0,0,0,0.15)'
+                : 'inset 0 1px 2px rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.4)',
           }}
         >
-          {context.isControlMode ? (
+          {isControl ? (
             <>
-              <span style={{ color: '#A855F7', filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }}>◀</span>
+              <span style={{ color: '#A855F7' }}>◀</span>
               <span>CHAOS</span>
             </>
           ) : (
             <>
               <span>CONTROL</span>
-              <span style={{ color: '#FACC15', filter: 'drop-shadow(0 0 4px rgba(250,204,21,0.5))' }}>▶</span>
+              <span style={{ color: '#FACC15' }}>▶</span>
             </>
           )}
-        </span>
-
-        {/* Ambient glow */}
-        <div
-          className="absolute inset-0 pointer-events-none rounded-2xl"
-          style={{
-            background: context.isControlMode
-              ? 'radial-gradient(ellipse at 50% -20%, rgba(250,204,21,0.1) 0%, transparent 50%)'
-              : 'radial-gradient(ellipse at 50% -20%, rgba(168,85,247,0.15) 0%, transparent 50%)',
-            opacity: isPressed ? 0.5 : 1,
-          }}
-        />
-      </button>
+        </div>
+      </div>
     </>
   );
 }

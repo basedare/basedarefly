@@ -4,7 +4,6 @@ import localFont from "next/font/local";
 import "./global.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
-import MobileNavbar from "@/components/MobileNavbar";
 import Footer from "@/components/Footer";
 import LivePotBubble from "@/components/LivePotBubble";
 import LivePotPortal from "@/components/LivePotPortal";
@@ -56,8 +55,7 @@ export default function RootLayout({
               <IgnitionProvider>
                 <div className="flex flex-col min-h-screen">
                   <Navbar />
-                  <MobileNavbar />
-                  <main className="flex-grow pt-24 pb-24 md:pb-0">
+                  <main className="flex-grow pt-24">
                     {children}
                   </main>
                   <Footer />
