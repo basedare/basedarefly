@@ -6,44 +6,44 @@ import Link from 'next/link';
 
 const headlines = [
   {
-    text: "Stake it or eat it – force streamers to do YOUR dares",
-    sub: "Winner takes 2x pot. Loser cries on stream.",
+    text: "Fund it or forfeit – challenge streamers to do YOUR dares",
+    sub: "Creator completes = they earn. No completion = full refund.",
     cta: "Dare Someone Now",
     color: "from-[#00ff41] to-green-400",
     action: "create"
   },
   {
-    text: "$42,069 → @farokh eats ghost pepper in 23h 41m",
-    sub: "or loses everything to 69 degens",
+    text: "$42,069 bounty → @farokh eats ghost pepper in 23h 41m",
+    sub: "Will they do it? The community is watching.",
     cta: "Add to bounty → make it $50k",
     color: "from-pink-400 to-purple-400",
     action: "scroll"
   },
   {
-    text: "Pay $XDARE. Force any streamer. No mercy.",
-    sub: "One click = total control. 10% rake fuels chaos.",
-    cta: "Stake $XDARE now",
+    text: "Fund bounties. Challenge any streamer. No mercy.",
+    sub: "One click = total control. 10% platform fee.",
+    cta: "Fund a dare now",
     color: "from-orange-400 to-red-500",
     action: "scroll"
   },
   {
-    text: "Stake $XDARE. Bully streamers for fun & profit.",
-    sub: "They complete → you win 2×",
+    text: "Fund bounties. Challenge streamers. Watch chaos.",
+    sub: "They complete → they earn the reward",
     cta: "Create your first dare",
     color: "from-emerald-400 to-teal-500",
     action: "create"
   },
   {
-    text: "$XDARE = remote control for streamers",
+    text: "Bounties = remote control for streamers",
     sub: "Farokh just accepted your $666 dare",
-    cta: "Watch him suffer live",
+    cta: "Watch them perform live",
     color: "from-purple-400 to-pink-400",
     action: "scroll"
   },
   {
-    text: "🔥 PRESALE LIVE – Get $XDARE before launch",
-    sub: "Top 50 wallets get 0% rake forever",
-    cta: "Join Presale",
+    text: "🔥 LAUNCH LIVE – Start funding dares now",
+    sub: "Top backers get featured on leaderboard",
+    cta: "Get Started",
     color: "from-[#00ff41] to-yellow-400",
     action: "presale"
   },

@@ -33,7 +33,7 @@ export default function TheMechanism() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-3">The Pledge</h3>
                 <p className="text-gray-400 leading-relaxed">
-                    You stake <span className="text-[#FACC15]">$BARE</span> tokens into the escrow pot. The money is real. The pressure is visible.
+                    You fund a bounty with <span className="text-[#FACC15]">USDC</span> held in escrow. The money is real. The pressure is visible.
                 </p>
             </div>
 

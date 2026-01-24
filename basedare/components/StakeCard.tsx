@@ -82,7 +82,7 @@ export function StakeCard() {
                    <span className="text-xl">🐻</span>
                 </div>
                 <h2 className="text-xl font-bold text-white tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]">
-                  STAKE
+                  FUND
                 </h2>
               </div>
 
@@ -91,7 +91,7 @@ export function StakeCard() {
                 
                 {/* Stake Amount Input */}
                 <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Stake Amount ($BARE)</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Bounty Amount (USDC)</label>
                     <div className="relative group">
                         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-purple-500/20 blur opacity-50 group-hover:opacity-100 transition duration-500" />
                         <Input 
@@ -127,7 +127,7 @@ export function StakeCard() {
                         className="cursor-pointer"
                      />
                      <div className="text-center text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">
-                        10% Rake Taken Instantly
+                        10% Platform Fee
                      </div>
                 </div>
 
@@ -141,7 +141,7 @@ export function StakeCard() {
                     
                     {/* Text Glow */}
                     <span className="relative z-10 font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-purple-200 group-hover:from-yellow-200 group-hover:to-yellow-500 drop-shadow-[0_2px_10px_rgba(168,85,247,0.5)]">
-                        STAKE DARE
+                        FUND DARE
                     </span>
                  </Button>
               </div>

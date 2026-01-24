@@ -49,7 +49,7 @@ export function StakeCard() {
               {/* 2. THE MONEY INPUT (THE HERO) */}
               <div className="flex flex-col items-center justify-center mb-8 relative">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mb-2">
-                    Total Stake
+                    Bounty Amount
                 </label>
                 
                 <div className="relative flex items-center justify-center w-full">
@@ -90,11 +90,11 @@ export function StakeCard() {
               {/* 5. ACTION BUTTON */}
               <div className="mt-auto">
                  <Button className="w-full h-16 bg-[#FACC15] hover:bg-[#EAB308] text-black font-black text-xl tracking-wide shadow-[0_0_40px_rgba(250,204,21,0.3)] transition-all transform hover:scale-[1.01] active:scale-95 rounded-2xl border-b-[6px] border-yellow-700 active:border-b-0 active:translate-y-1 active:shadow-none">
-                    STAKE NOW
+                    FUND BOUNTY
                  </Button>
-                 
+
                  <p className="text-center text-[9px] text-purple-400/60 mt-4 font-mono uppercase tracking-widest">
-                    The House Always Wins • 10% Rake
+                    10% Platform Fee
                  </p>
               </div>
 

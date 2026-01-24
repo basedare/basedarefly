@@ -5,14 +5,13 @@ import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 const BOUNTY_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as `0x${string}`;
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 
-export function useBountyStake() {
+export function useBountyFund() {
     const { writeContractAsync, data: hash } = useWriteContract();
 
-    // This is the "Confirmation Watcher"
-    const { isLoading: isConfirming, isSuccess: isConfirmed } = 
+    const { isLoading: isConfirming, isSuccess: isConfirmed } =
         useWaitForTransactionReceipt({ hash });
 
-    const stake = async (dareId: number, streamer: string, referrer: string, amount: string) => {
+    const fund = async (dareId: number, streamer: string, referrer: string, amount: string) => {
         try {
             const amountInUnits = parseUnits(amount, 6);
 
@@ -24,7 +23,7 @@ export function useBountyStake() {
                 args: [BOUNTY_ADDRESS, amountInUnits],
             });
 
-            // 2. STAKE
+            // 2. FUND BOUNTY (calls stakeBounty on deployed contract)
             return await writeContractAsync({
                 address: BOUNTY_ADDRESS,
                 abi: BOUNTY_ABI,
@@ -36,11 +35,5 @@ export function useBountyStake() {
         }
     };
 
-    return { stake, hash, isConfirming, isConfirmed };
+    return { fund, hash, isConfirming, isConfirmed };
 }
-
-
-
-
-
-

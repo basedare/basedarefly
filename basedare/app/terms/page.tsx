@@ -36,14 +36,14 @@ export default function TermsOfChaos() {
                     <h2 className="text-xl font-black italic uppercase">1. The Protocol is Experimental</h2>
                 </div>
                 <p className="font-mono text-sm opacity-80">
-                    BaseDare is a decentralized social coordination protocol running on the Base L2 network. By interacting with the smart contracts, you acknowledge that the protocol is experimental code. Use at your own risk. Funds sent to dare pools are locked until settlement conditions are met via zKML (Zero-Knowledge Machine Learning) verification.
+                    BaseDare is a decentralized bounty platform running on the Base L2 network. By interacting with the smart contracts, you acknowledge that the protocol is experimental code. Use at your own risk. Funds contributed to bounties are held in escrow until completion conditions are verified.
                 </p>
             </section>
 
             <section>
                 <h2 className="text-2xl font-black italic uppercase mb-4 text-white">2. Immutable Actions</h2>
                 <p className="font-mono text-sm opacity-80 mb-4">
-                    Blockchain transactions are irreversible. Once you pledge funds to a dare or initiate a bounty, you cannot "undo" the transaction. The blockchain does not care about your regret.
+                    Blockchain transactions are irreversible. Once you fund a bounty, you cannot "undo" the transaction. The blockchain does not care about your regret.
                 </p>
             </section>
 
@@ -57,7 +57,7 @@ export default function TermsOfChaos() {
             <section>
                 <h2 className="text-2xl font-black italic uppercase mb-4 text-white">4. Token Volatility</h2>
                 <p className="font-mono text-sm opacity-80 mb-4">
-                    The value of assets (USDC tokens or ETH) staked in dares may fluctuate wildly. 1 USDC = 1 USDC, but the market may disagree. Do not stake money you cannot afford to lose to the void.
+                    The value of crypto assets may fluctuate. 1 USDC = 1 USDC, but market conditions may vary. Only fund bounties with amounts you can afford.
                 </p>
             </section>
 

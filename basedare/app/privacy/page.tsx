@@ -36,7 +36,7 @@ export default function PrivacyPolicy() {
                     <h2 className="text-xl font-black italic uppercase">1. The Public Ledger</h2>
                 </div>
                 <p className="font-mono text-sm opacity-80">
-                    BaseDare is built on public blockchains. <strong>We do not hide your data because we cannot.</strong> Your wallet address, transaction history, and staked amounts are publicly visible on the Base block explorer. If you require absolute anonymity, use a fresh wallet mixed via privacy protocols before interacting.
+                    BaseDare is built on public blockchains. <strong>We do not hide your data because we cannot.</strong> Your wallet address, transaction history, and bounty contributions are publicly visible on the Base block explorer. If you require absolute anonymity, use a fresh wallet mixed via privacy protocols before interacting.
                 </p>
             </section>
 

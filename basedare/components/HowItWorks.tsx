@@ -24,7 +24,7 @@ export default function HowItWorks() {
             {
               step: "01",
               title: "The Pledge",
-              desc: "You stake USDC tokens into the escrow pot. The money is real. The pressure is visible.",
+              desc: "You fund a bounty with USDC tokens held in escrow. The money is real. The pressure is visible.",
               icon: "💰"
             },
             {

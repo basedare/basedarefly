@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # IMPORTANT: Keep concise (under 200 lines). For deep logic, use `.claude/rules/`.
 
 ## Project Overview
-BaseDare: A "Social Stakes" protocol on Base L2. Verified human performance (stunts/dares) meets institutional capital via ZKML/Livepeer verification and on-chain USDC payouts.
+BaseDare: A decentralized bounty platform on Base L2. Verified human performance (challenges/dares) meets community funding via ZKML/Livepeer verification and on-chain USDC payouts. NOT gambling - backers fund specific challenges, creators earn rewards for completion.
 
 ## Commands
 ```bash
@@ -31,9 +31,9 @@ npx prisma studio                            # Visual DB editor
 ```
 
 ## Key Files
-- `contracts/BaseDareBounty.sol` - Main escrow (stake/payout/refund)
+- `contracts/BaseDareBounty.sol` - Main escrow (fund/payout/refund)
 - `lib/contracts.ts` - Viem clients (NEVER import in client components)
-- `hooks/useBountyStake.ts` - Client-side staking flow
+- `hooks/useBountyFund.ts` - Client-side bounty funding flow
 - `app/api/verify-proof/route.ts` - AI Referee endpoint
 - `components/Providers.tsx` - Wagmi/OnchainKit/TanStack Query setup
 

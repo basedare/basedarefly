@@ -84,7 +84,7 @@ export default function MyDaresPage() {
   }, [address]);
 
   // Calculate stats from real data
-  const totalStaked = dares.reduce((sum, d) => sum + (d.bounty || 0), 0);
+  const totalFunded = dares.reduce((sum, d) => sum + (d.bounty || 0), 0);
   const activeCount = dares.filter(d => d.status === 'PENDING').length;
   return (
     <main className="min-h-screen w-full bg-[#020204] relative overflow-hidden pt-32 pb-20">
@@ -112,9 +112,9 @@ export default function MyDaresPage() {
             {/* Stats Summary */}
             <div className="flex gap-4">
                 <div className="px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">
-                    <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Total Staked</div>
+                    <div className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Total Funded</div>
                     <div className="text-2xl font-black text-white">
-                      {loading ? '...' : `$${totalStaked.toLocaleString()}`}
+                      {loading ? '...' : `$${totalFunded.toLocaleString()}`}
                     </div>
                 </div>
                 <div className="px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md">

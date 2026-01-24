@@ -40,7 +40,7 @@ const FixedBountyPot: React.FC<FixedBountyPotProps> = ({ totalPot, countdown }) 
                 <div className="flex items-center justify-center gap-2 mb-2">
                     <Trophy className="w-4 h-4 text-yellow-400" />
                     <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
-                        Total Bounty Pot
+                        Creator Rewards
                     </span>
                 </div>
 

@@ -33,7 +33,7 @@ const alphaLyrae = localFont({
 
 export const metadata: Metadata = {
   title: "BaseDare | Force Streamers",
-  description: "Stake or Die.",
+  description: "Fund dares. Watch chaos unfold.",
 };
 
 export default function RootLayout({ 

@@ -19,7 +19,7 @@ export default function About() {
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-purple-400 to-purple-900">CHAOS.</span>
         </h1>
         <p className="max-w-2xl mx-auto text-xl text-gray-400 font-mono leading-relaxed">
-          BaseDare is the first decentralized attention marketplace. We turn viral moments into liquid markets. Stake on the outcome. Own the moment.
+          BaseDare is the first decentralized attention marketplace. We turn viral moments into funded challenges. Back the creators. Own the moment.
         </p>
       </section>
 
@@ -69,7 +69,7 @@ export default function About() {
             </div>
             <h3 className="text-2xl font-black text-white mb-2 uppercase italic">Social Liquidity</h3>
             <p className="text-sm text-gray-500 font-mono">
-              High reputation unlocks lower fees and higher staking limits. Your clout is now your collateral.
+              High reputation unlocks lower fees and higher funding limits. Your clout is now your credential.
             </p>
           </div>
         </div>

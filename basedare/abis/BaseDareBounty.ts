@@ -1,4 +1,4 @@
-// ✅ STRICT JSON ABI for BaseDareBounty contract
+// ABI for BaseDareBounty contract
 export const BOUNTY_ABI = [
   {
     "inputs": [
@@ -8,16 +8,6 @@ export const BOUNTY_ABI = [
       { "name": "_amount", "type": "uint256" }
     ],
     "name": "stakeBounty",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "name": "_dareId", "type": "uint256" },
-      { "name": "_newAmount", "type": "uint256" }
-    ],
-    "name": "stealBounty",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -34,7 +24,7 @@ export const BOUNTY_ABI = [
   {
     "inputs": [
       { "name": "_dareId", "type": "uint256" },
-      { "name": "_staker", "type": "address" }
+      { "name": "_backer", "type": "address" }
     ],
     "name": "refundStaker",
     "outputs": [],
@@ -87,28 +77,36 @@ export const BOUNTY_ABI = [
     "anonymous": false,
     "inputs": [
       { "indexed": true, "name": "dareId", "type": "uint256" },
-      { "indexed": true, "name": "oldStaker", "type": "address" },
-      { "indexed": true, "name": "newStaker", "type": "address" },
-      { "indexed": false, "name": "oldAmount", "type": "uint256" },
-      { "indexed": false, "name": "newAmount", "type": "uint256" },
-      { "indexed": false, "name": "houseFee", "type": "uint256" }
+      { "indexed": true, "name": "staker", "type": "address" },
+      { "indexed": false, "name": "amount", "type": "uint256" }
     ],
-    "name": "BountyStolen",
+    "name": "BountyStaked",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
       { "indexed": true, "name": "dareId", "type": "uint256" },
-      { "indexed": true, "name": "staker", "type": "address" },
+      { "indexed": false, "name": "streamerAmount", "type": "uint256" },
+      { "indexed": false, "name": "platformFee", "type": "uint256" },
+      { "indexed": false, "name": "referrerFee", "type": "uint256" }
+    ],
+    "name": "BountyPayout",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "dareId", "type": "uint256" },
+      { "indexed": true, "name": "refundRecipient", "type": "address" },
       { "indexed": false, "name": "amount", "type": "uint256" }
     ],
-    "name": "BountyStaked",
+    "name": "BountyRefund",
     "type": "event"
   }
 ] as const;
 
-// ✅ STRICT JSON ABI for USDC
+// ABI for USDC
 export const USDC_ABI = [
   {
     "constant": false,

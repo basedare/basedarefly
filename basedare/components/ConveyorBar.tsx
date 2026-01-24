@@ -34,7 +34,7 @@ export default function ConveyorBar() {
       stake_amount: dare.stake_amount || dare.stakeAmount || 0,
       status: dare.status === 'VERIFIED' || dare.status === 'PENDING' ? 'accepted' : dare.status?.toLowerCase(),
       user: dare.streamer_name ? `@${dare.streamer_name}` : '',
-      action: 'staked',
+      action: 'funded',
       target: dare.title,
       ...dare,
     };

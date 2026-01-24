@@ -10,8 +10,8 @@ import {
 } from '@/lib/fee-splitter';
 
 // ============================================================================
-// LIVE POT (SUNDER POOL) API
-// Community War Chest - Progressive Jackpot
+// CREATOR FUND API
+// Community Rewards Pool - Performance-based Distribution
 // ============================================================================
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'basedare-admin-2024';

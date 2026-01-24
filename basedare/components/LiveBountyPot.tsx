@@ -71,7 +71,7 @@ export default function LiveBountyPot({ className }: LiveBountyPotProps = {}) {
       {/* Pot Content (Adjusted Sizing) */}
       <div className="relative z-10 text-center px-8"> {/* Added horizontal padding (px-8) */}
         <p className="text-xl md:text-2xl uppercase tracking-widest text-purple-300 mb-6 drop-shadow-2xl">
-          Total Bounty Pot
+          Creator Rewards Pool
         </p>
         <p
           className="text-6xl md:text-7xl font-extrabold text-[#FACC15] drop-shadow-2xl" // Slightly reduced font size for fitting (md:text-7xl)

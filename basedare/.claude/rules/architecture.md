@@ -2,16 +2,16 @@
 
 ## Core Flow
 
-1. **User stakes USDC** → Frontend calls `stakeBounty()` on BaseDareBounty contract
-2. **Streamer completes dare** → Uploads video proof via `/api/upload`
+1. **Backer funds bounty** → Frontend calls `fundBounty()` on BaseDareBounty contract
+2. **Creator completes dare** → Uploads video proof via `/api/upload`
 3. **AI Referee verifies** → Backend calls `verifyAndPayout()` with REFEREE_PRIVATE_KEY
-4. **Payout splits**: 89% streamer, 10% house, 1% referrer
+4. **Payout splits**: 89% creator, 10% platform, 1% referrer
 
 ## Contract Interaction Pattern
 
 Always use Viem/Wagmi for contract calls:
 - **Read operations**: Use `publicClient` from `lib/contracts.ts`
-- **Write operations**: Use hooks from `hooks/` (e.g., `useBountyStake`)
+- **Write operations**: Use hooks from `hooks/` (e.g., `useBountyFund`)
 - **Server-side writes**: Use `getWalletClient()` with referee key
 
 ## Component Organization
@@ -39,7 +39,7 @@ return NextResponse.json({ success: false, error: message }, { status: 4xx });
 ## File Naming
 
 - Components: PascalCase (`LiveBountyCard.tsx`)
-- Hooks: camelCase with `use` prefix (`useBountyStake.ts`)
+- Hooks: camelCase with `use` prefix (`useBountyFund.ts`)
 - Utils/lib: camelCase (`contracts.ts`)
 - CSS modules: Match component name (`HoloProfileCard.css`)
 Architecture Details: See @.claude/rules/architecture.md for full stack, state management, and file naming conventions.

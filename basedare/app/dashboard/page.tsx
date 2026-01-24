@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
   const [stats, setStats] = useState({
-    totalStaked: 0,
+    totalFunded: 0,
     activeBounties: 0,
     completedBounties: 0,
   });
@@ -67,7 +67,7 @@ export default function Dashboard() {
           const total = data.reduce((sum: number, d: Dare) => sum + d.bounty, 0);
 
           setStats({
-            totalStaked: total,
+            totalFunded: total,
             activeBounties: active,
             completedBounties: completed,
           });
@@ -198,14 +198,14 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Wallet className="w-12 h-12 text-[#FFD700]" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Total Staked</div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Total Funded</div>
             <div className="relative z-10 text-3xl font-black text-white">
               {!isConnected ? (
                 <span className="text-gray-500">--</span>
               ) : loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
-                <>{stats.totalStaked.toLocaleString()} <span className="text-[#FFD700]">USDC</span></>
+                <>{stats.totalFunded.toLocaleString()} <span className="text-[#FFD700]">USDC</span></>
               )}
             </div>
             <div className="relative z-10 text-xs text-green-400 mt-2 font-mono flex items-center gap-1">

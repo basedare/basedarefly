@@ -181,7 +181,7 @@ export default function DaresPage() {
                         </span>
                     </h1>
                     <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                        View the active Dares, stake your crypto, and call the shot. If they refuse to comply, you get 100% back.
+                        View active challenges, fund a bounty, and call the shot. If they don't complete it, you get a full refund.
                     </p>
                 </div>
 
@@ -197,7 +197,7 @@ export default function DaresPage() {
                             Don&apos;t see a Dare you like?
                         </span>
                         <span className="ml-2 font-black text-yellow-400 hover:text-yellow-300 flex items-center">
-                            Create a New Pot <ArrowRight className="w-4 h-4 ml-1" />
+                            Create a New Bounty <ArrowRight className="w-4 h-4 ml-1" />
                         </span>
                     </Link>
                 </div>

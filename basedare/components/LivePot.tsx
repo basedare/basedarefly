@@ -7,7 +7,7 @@ export default function LivePot({ amount }: { amount?: string }) {
       <div className="relative px-8 py-6 bg-black/80 backdrop-blur-xl rounded-2xl leading-none flex items-center border border-white/10 shadow-2xl">
         <div className="flex flex-col items-center">
           <span className="text-[10px] text-neutral-400 font-mono uppercase tracking-[0.3em] mb-2">
-            Current Colosseum Pot
+            Creator Rewards Pool
           </span>
           <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-400 to-purple-500 italic tracking-tighter">
             {amount || "$42,069"}

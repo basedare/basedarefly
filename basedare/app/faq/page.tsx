@@ -20,7 +20,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What exactly is BaseDare?",
-    a: "It's a marketplace for **social chaos**. You stake ETH or USDC to dare streamers to do things. If they do it, they get the bag. If they chicken out, YOU win the pot (2x payout). It's prediction markets meets Jackass."
+    a: "It's a **bounty platform** for creator challenges. You fund a dare with USDC, and if the creator completes it, they earn the reward. If they don't complete it within the deadline, you get a full refund. It's crowdfunded challenges meets entertainment."
   },
   {
     q: "Who judges the proof? Can streamers cheat?",
@@ -40,7 +40,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "When does a dare expire?",
-    a: "That's up to you. You set the expiry timer when you create the dare (e.g., 24h, 3 days, 1 week). If the timer hits zero with no proof submitted, the smart contract **automatically refunds your stake**. We don't hold your money hostage."
+    a: "That's up to you. You set the expiry timer when you create the dare (e.g., 24h, 3 days, 1 week). If the timer hits zero with no proof submitted, the smart contract **automatically refunds your contribution**. We don't hold your money hostage."
   },
   {
     q: "How do I get on the Hall of Shame?",
@@ -48,7 +48,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the CHAOS / CONTROL switch?",
-    a: "It's a vibe selector. **CHAOS mode** is for degens who want to stake, dare, and watch streamers suffer. **CONTROL mode** is for brands and scouts who want to weaponize that chaos for profit. Same protocol, different energy. Pick your poison."
+    a: "It's a vibe selector. **CHAOS mode** is for fans who want to fund dares and watch streamers perform. **CONTROL mode** is for brands and scouts who want to leverage creator challenges for campaigns. Same protocol, different energy. Pick your poison."
   },
   {
     q: "What is Control Mode / Brand Portal?",

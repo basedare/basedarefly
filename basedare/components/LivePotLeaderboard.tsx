@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================================================
-// LIVE POT & LEADERBOARD
-// The Progressive Jackpot + Competitive Rankings
+// CREATOR FUND & LEADERBOARD
+// Performance-based Rewards + Competitive Rankings
 // ============================================================================
 
 interface PotData {
@@ -117,13 +117,13 @@ export default function LivePotLeaderboard() {
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span className="text-2xl">🏆</span>
-              Live Pot
+              Creator Fund
               <span className="px-2 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-xs text-green-400 animate-pulse">
                 LIVE
               </span>
             </h2>
             <p className="text-sm text-zinc-500 mt-1">
-              Community War Chest • Top 3 share 5% weekly
+              Community Rewards • Top 3 share 5% weekly
             </p>
           </div>
           <div className="text-right">
@@ -327,7 +327,7 @@ export default function LivePotLeaderboard() {
           <span className="text-zinc-400">🥈 30%</span> •{' '}
           <span className="text-amber-600">🥉 20%</span>
           <span className="mx-2">|</span>
-          Top 3 split 5% of pot weekly
+          Top 3 split 5% of fund weekly
         </div>
       </div>
     </div>

@@ -168,7 +168,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
 
       {/* Content */}
       <div className={`absolute inset-0 z-30 flex flex-col justify-center items-center text-center p-2 ${triggerBounce ? 'animate-basketball-bounce' : ''}`}>
-        <div className="text-xs font-semibold text-purple-300 uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">LIVE POT</div>
+        <div className="text-xs font-semibold text-purple-300 uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">CREATOR FUND</div>
         <div className="live-pot-value text-3xl font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">$86,227</div>
       </div>
     </motion.div>
