@@ -7,13 +7,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { ReactNode, useState } from 'react';
 
+// Use Coinbase RPC if API key available, otherwise fallback to public
+const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
+  ? `https://api.developer.coinbase.com/rpc/v1/base/${process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}`
+  : undefined;
+
 const config = createConfig({
   chains: [base],
   connectors: [
     injected(), // Desktop browser wallet extensions
     coinbaseWallet({ appName: 'BaseDare', preference: 'smartWalletOnly' }), // Mobile-friendly
   ],
-  transports: { [base.id]: http() },
+  transports: { [base.id]: http(rpcUrl) },
   ssr: true,
 });
 
