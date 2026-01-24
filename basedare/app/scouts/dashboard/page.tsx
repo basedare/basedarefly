@@ -299,71 +299,74 @@ export default function ScoutDashboardPage() {
         <>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-20 border-b border-zinc-200 px-4 md:px-6 py-3 md:py-4 bg-white/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Back button */}
             <Link
               href="/?mode=control"
-              className="flex items-center gap-2 px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
+              className="flex items-center gap-2 px-2 md:px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-2xl font-bold text-zinc-900">
+            <div className="text-lg md:text-2xl font-bold text-zinc-900">
               SHADOW ARMY
             </div>
-            <div className="px-2 py-1 bg-purple-100 border border-purple-400 rounded text-xs text-purple-700 font-semibold">
+            <div className="hidden md:block px-2 py-1 bg-purple-100 border border-purple-400 rounded text-xs text-purple-700 font-semibold">
               SCOUT DASHBOARD
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4">
             <div
-              className={`px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-sm font-semibold flex items-center gap-2 text-white`}
+              className={`px-2 md:px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-xs md:text-sm font-semibold flex items-center gap-1 md:gap-2 text-white`}
             >
               <span style={{ filter: 'grayscale(1)' }}>{tierBadge}</span>
-              <span>{scout?.tier}</span>
+              <span className="hidden md:inline">{scout?.tier}</span>
             </div>
             <div className="text-right">
-              <div className="font-semibold text-zinc-900">{scout?.handle || 'Anonymous Scout'}</div>
+              <div className="font-semibold text-zinc-900 text-sm md:text-base">{scout?.handle || 'Anonymous Scout'}</div>
               <div className="text-xs text-zinc-500 font-mono">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
             </div>
 
             {/* Mode Switch - Go to Chaos with Reality Shift */}
-            <Link
-              href="/?from=control"
-              className="flex items-center gap-2 px-3 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition text-sm font-semibold"
-            >
-              <span className="text-purple-400">CHAOS</span>
-              <span className="text-zinc-500">→</span>
-            </Link>
+            <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
+              <Link
+                href="/?from=control"
+                className="flex items-center gap-1 md:gap-2 px-3 md:px-3 py-3 md:py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 active:scale-95 transition text-xs md:text-sm font-semibold"
+                style={{ minHeight: '44px' }}
+              >
+                <span className="text-purple-400">CHAOS</span>
+                <span className="text-zinc-500">→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Scout Stats */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Reputation</div>
-            <div className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Reputation</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900 flex items-center gap-1 md:gap-2">
               {scout?.reputationScore || 50}
               <span
-                className={`text-sm ${(scout?.reputationScore || 50) >= 70 ? 'text-green-600' : 'text-zinc-400'}`}
+                className={`text-xs md:text-sm ${(scout?.reputationScore || 50) >= 70 ? 'text-green-600' : 'text-zinc-400'}`}
               >
-                {(scout?.reputationScore || 50) >= 70 ? '✓ Auto-Accept' : ''}
+                {(scout?.reputationScore || 50) >= 70 ? '✓' : ''}
               </span>
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Campaigns</div>
-            <div className="text-2xl font-bold text-zinc-900">{scout?.totalCampaigns || 0}</div>
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Campaigns</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">{scout?.totalCampaigns || 0}</div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Success Rate</div>
-            <div className="text-2xl font-bold text-zinc-900">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Success Rate</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">
               {scout && scout.successfulSlots + scout.failedSlots > 0
                 ? Math.round(
                     (scout.successfulSlots / (scout.successfulSlots + scout.failedSlots)) * 100
@@ -372,45 +375,45 @@ export default function ScoutDashboardPage() {
               %
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Discovery Rake</div>
-            <div className="text-2xl font-bold text-green-600">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Discovery Rake</div>
+            <div className="text-xl md:text-2xl font-bold text-green-600">
               ${scout?.totalDiscoveryRake.toFixed(2) || '0.00'}
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Active Rake</div>
-            <div className="text-2xl font-bold text-purple-600">
+          <div className="col-span-2 md:col-span-1 bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Active Rake</div>
+            <div className="text-xl md:text-2xl font-bold text-purple-600">
               ${scout?.totalActiveRake.toFixed(2) || '0.00'}
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-zinc-200">
+        <div className="flex gap-2 md:gap-4 mb-6 border-b border-zinc-200 overflow-x-auto">
           <button
             onClick={() => setActiveTab('bounties')}
-            className={`pb-3 px-2 font-semibold transition ${
+            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
               activeTab === 'bounties'
                 ? 'text-purple-600 border-b-2 border-purple-600'
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
-            <span style={{ filter: 'grayscale(1)' }}>🎯</span> Bounty Board
+            <span style={{ filter: 'grayscale(1)' }}>🎯</span> <span className="hidden md:inline">Bounty </span>Board
           </button>
           <button
             onClick={() => setActiveTab('creators')}
-            className={`pb-3 px-2 font-semibold transition ${
+            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
               activeTab === 'creators'
                 ? 'text-purple-600 border-b-2 border-purple-600'
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}
           >
-            <span style={{ filter: 'grayscale(1)' }}>👥</span> My Creators ({scout?.discoveredCreators.length || 0})
+            <span style={{ filter: 'grayscale(1)' }}>👥</span> Creators ({scout?.discoveredCreators.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('activity')}
-            className={`pb-3 px-2 font-semibold transition ${
+            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
               activeTab === 'activity'
                 ? 'text-purple-600 border-b-2 border-purple-600'
                 : 'text-zinc-400 hover:text-zinc-600'
@@ -438,38 +441,38 @@ export default function ScoutDashboardPage() {
                     className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl overflow-hidden"
                   >
                     {/* Campaign Header */}
-                    <div className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 md:gap-4">
                         <div
-                          className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+                          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-semibold ${
                             CAMPAIGN_TIER_COLORS[campaign.tier as keyof typeof CAMPAIGN_TIER_COLORS]
                           }`}
                         >
                           {campaign.tier.replace('_', ' ')}
                         </div>
                         <div>
-                          <div className="font-semibold">{campaign.title}</div>
-                          <div className="text-sm text-zinc-500">by {campaign.brand.name}</div>
+                          <div className="font-semibold text-sm md:text-base">{campaign.title}</div>
+                          <div className="text-xs md:text-sm text-zinc-500">by {campaign.brand.name}</div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">
+                      <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
+                        <div className="text-center md:text-right">
+                          <div className="text-base md:text-lg font-bold text-green-600">
                             ${campaign.payoutPerCreator}
                           </div>
                           <div className="text-xs text-zinc-500">per creator</div>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-zinc-900">
+                        <div className="text-center md:text-right">
+                          <div className="text-base md:text-lg font-bold text-zinc-900">
                             {campaign.slotCounts.open}/{campaign.slotCounts.total}
                           </div>
-                          <div className="text-xs text-zinc-500">slots open</div>
+                          <div className="text-xs text-zinc-500">slots</div>
                         </div>
 
                         {campaign.syncTime && (
-                          <div className="text-right">
+                          <div className="hidden md:block text-right">
                             <div className="text-sm font-semibold text-purple-600">
                               {campaign.precisionMultiplier}x Bonus
                             </div>
@@ -482,7 +485,7 @@ export default function ScoutDashboardPage() {
                         <button
                           onClick={() => setClaimingSlot(isClaimingThis ? null : campaign.id)}
                           disabled={campaign.slotCounts.open === 0}
-                          className={`px-4 py-2 rounded-lg font-semibold transition ${
+                          className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm ${
                             campaign.slotCounts.open === 0
                               ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                               : isClaimingThis
@@ -490,30 +493,30 @@ export default function ScoutDashboardPage() {
                                 : 'bg-zinc-900 text-white hover:bg-zinc-800'
                           }`}
                         >
-                          {isClaimingThis ? 'Cancel' : 'Claim Slot'}
+                          {isClaimingThis ? 'Cancel' : 'Claim'}
                         </button>
                       </div>
                     </div>
 
                     {/* Targeting Info */}
-                    <div className="px-4 pb-2 flex gap-4 text-xs text-zinc-500">
+                    <div className="px-3 md:px-4 pb-2 flex flex-wrap gap-2 md:gap-4 text-xs text-zinc-500">
                       {targeting.niche && (
                         <span className="px-2 py-1 bg-zinc-800 rounded"><span style={{ filter: 'grayscale(1)' }}>📍</span> {targeting.niche}</span>
                       )}
                       {targeting.minFollowers && (
                         <span className="px-2 py-1 bg-zinc-800 rounded">
-                          <span style={{ filter: 'grayscale(1)' }}>👥</span> {targeting.minFollowers.toLocaleString()}+ followers
+                          <span style={{ filter: 'grayscale(1)' }}>👥</span> {targeting.minFollowers.toLocaleString()}+
                         </span>
                       )}
                       <span className="px-2 py-1 bg-zinc-800 rounded">
-                        <span style={{ filter: 'grayscale(1)' }}>⏰</span> {campaign.windowHours}h window
+                        <span style={{ filter: 'grayscale(1)' }}>⏰</span> {campaign.windowHours}h
                       </span>
                     </div>
 
                     {/* Claim Form */}
                     {isClaimingThis && (
-                      <div className="border-t border-zinc-200 p-4 bg-zinc-50">
-                        <div className="grid grid-cols-4 gap-4 mb-4">
+                      <div className="border-t border-zinc-200 p-3 md:p-4 bg-zinc-50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
                           <div>
                             <label className="block text-xs text-zinc-600 mb-1">
                               Creator Wallet

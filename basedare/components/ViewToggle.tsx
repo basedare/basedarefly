@@ -147,10 +147,11 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           MOBILE - Tap Target Wrapper + Visual Button
           ============================================ */}
       <div
-        className="md:hidden fixed top-[72px] right-1 z-[9999] touch-manipulation select-none cursor-pointer"
+        className="md:hidden fixed top-[68px] right-0 z-[9999] touch-manipulation select-none cursor-pointer"
         style={{
-          // Large invisible tap area - less top padding, more bottom to align tap with visual
-          padding: '8px 16px 24px 16px',
+          // Large invisible tap area - extended in all directions for easier mobile taps
+          padding: '16px 20px 40px 24px',
+          margin: '-8px -8px -24px -12px',
           WebkitTapHighlightColor: 'transparent',
         }}
         onClick={() => {
@@ -167,7 +168,8 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
         <div
           className="rounded-xl font-bold text-[10px] uppercase tracking-wide transition-all duration-100 flex items-center justify-center gap-1.5"
           style={{
-            padding: '10px 14px',
+            padding: '12px 16px',
+            minHeight: '44px',
             transform: isPressed ? 'scale(0.96)' : 'scale(1)',
             background: isControl
               ? 'linear-gradient(175deg, #ffffff 0%, #f0f0f0 20%, #d8d8d8 45%, #c5c5c5 55%, #e0e0e0 80%, #f5f5f5 100%)'

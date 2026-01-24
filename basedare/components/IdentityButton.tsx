@@ -25,7 +25,10 @@ export function IdentityButton() {
     if (isConnected) {
       setShowDropdown(!showDropdown);
     } else {
-      const connector = connectors[0];
+      // Prefer coinbaseWallet for mobile compatibility, fallback to injected for desktop extensions
+      const coinbaseConnector = connectors.find(c => c.id === 'coinbaseWalletSDK');
+      const injectedConnector = connectors.find(c => c.id === 'injected');
+      const connector = coinbaseConnector || injectedConnector || connectors[0];
       if (connector) {
         connect({ connector });
       }

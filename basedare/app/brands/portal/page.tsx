@@ -414,71 +414,74 @@ export default function BrandPortalPage() {
         <>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 px-6 py-4 bg-white/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-20 border-b border-zinc-200 px-4 md:px-6 py-3 md:py-4 bg-white/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Back button */}
             <Link
               href="/?mode=control"
-              className="flex items-center gap-2 px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
+              className="flex items-center gap-2 px-2 md:px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-2xl font-bold text-zinc-900">
+            <div className="text-lg md:text-2xl font-bold text-zinc-900">
               CONTROL
             </div>
-            <div className="px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
+            <div className="hidden md:block px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
               BRAND PORTAL
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4">
             <div className="text-right">
-              <div className="font-semibold text-zinc-900">{brand?.name}</div>
+              <div className="font-semibold text-zinc-900 text-sm md:text-base">{brand?.name}</div>
               <div className="text-xs text-zinc-500 font-mono">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
             </div>
             {brand?.verified && (
               <div className="px-2 py-1 bg-green-100 border border-green-400 rounded text-xs text-green-700">
-                ✓ Verified
+                ✓
               </div>
             )}
 
             {/* Mode Switch - Go to Chaos with Reality Shift */}
-            <Link
-              href="/?from=control"
-              className="flex items-center gap-2 px-3 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition text-sm font-semibold"
-            >
-              <span className="text-purple-400">CHAOS</span>
-              <span className="text-zinc-500">→</span>
-            </Link>
+            <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
+              <Link
+                href="/?from=control"
+                className="flex items-center gap-1 md:gap-2 px-3 md:px-3 py-3 md:py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 active:scale-95 transition text-xs md:text-sm font-semibold"
+                style={{ minHeight: '44px' }}
+              >
+                <span className="text-purple-400">CHAOS</span>
+                <span className="text-zinc-500">→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Total Spend</div>
-            <div className="text-2xl font-bold text-zinc-900">${brand?.totalSpend.toLocaleString() || 0}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Total Spend</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">${brand?.totalSpend.toLocaleString() || 0}</div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Active Campaigns</div>
-            <div className="text-2xl font-bold text-zinc-900">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Active Campaigns</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">
               {campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length}
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Total Creators</div>
-            <div className="text-2xl font-bold text-zinc-900">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Total Creators</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">
               {campaigns.reduce((sum, c) => sum + c.slotCounts.completed, 0)}
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-4">
-            <div className="text-zinc-500 text-sm">Avg Completion</div>
-            <div className="text-2xl font-bold text-zinc-900">
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Avg Completion</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">
               {campaigns.length > 0
                 ? Math.round(
                     (campaigns.reduce(
@@ -510,7 +513,7 @@ export default function BrandPortalPage() {
             {/* Tier Selection - Value Menu Style */}
             <div className="mb-6">
               <label className="block text-sm text-zinc-600 mb-3">Select Tier</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
                 {(Object.keys(TIER_INFO) as Array<keyof typeof TIER_INFO>).map((tier) => {
                   const info = TIER_INFO[tier];
                   const isSelected = formData.tier === tier;
@@ -553,7 +556,7 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Campaign Details */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-zinc-600 mb-2">Campaign Title</label>
@@ -714,29 +717,29 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Budget Summary */}
-            <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-4 mb-6">
+            <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 md:p-4 mb-6">
               <div className="text-sm text-zinc-600 mb-2">Budget Summary</div>
-              <div className="grid grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-zinc-900">${budget.gross.toLocaleString()}</div>
+                  <div className="text-lg md:text-2xl font-bold text-zinc-900">${budget.gross.toLocaleString()}</div>
                   <div className="text-xs text-zinc-500">Creator Payouts</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-lg md:text-2xl font-bold text-purple-600">
                     ${budget.rake.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    Platform Fee ({TIER_INFO[formData.tier].rake})
+                    Fee ({TIER_INFO[formData.tier].rake})
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-lg md:text-2xl font-bold text-green-600">
                     ${budget.total.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500">Total Budget</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-zinc-900">
+                  <div className="text-lg md:text-2xl font-bold text-zinc-900">
                     {formData.creatorCountTarget} × ${formData.payoutPerCreator}
                   </div>
                   <div className="text-xs text-zinc-500">Slots × Payout</div>
@@ -760,17 +763,17 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <button
                 onClick={handleCreateCampaign}
                 disabled={!formData.title.trim()}
-                className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
+                className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                CREATE CAMPAIGN (${budget.total.toLocaleString()} USDC)
+                CREATE (${budget.total.toLocaleString()} USDC)
               </button>
               <button
                 onClick={() => setShowCreateCampaign(false)}
-                className="px-6 py-4 bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 text-zinc-700 transition"
+                className="px-6 py-3 md:py-4 bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 text-zinc-700 transition"
               >
                 Cancel
               </button>
@@ -803,41 +806,41 @@ export default function BrandPortalPage() {
                 return (
                   <div
                     key={campaign.id}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 transition"
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 md:p-4 hover:border-white/20 transition"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 md:gap-4">
                         <div
-                          className={`px-3 py-1 rounded-lg bg-gradient-to-r ${tierInfo.color} text-sm font-semibold`}
+                          className={`px-2 md:px-3 py-1 rounded-lg bg-gradient-to-r ${tierInfo.color} text-xs md:text-sm font-semibold whitespace-nowrap`}
                         >
                           {tierInfo.name}
                         </div>
                         <div>
-                          <div className="font-semibold">{campaign.title}</div>
-                          <div className="text-sm text-zinc-500">
+                          <div className="font-semibold text-sm md:text-base">{campaign.title}</div>
+                          <div className="text-xs md:text-sm text-zinc-500">
                             {new Date(campaign.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div className="text-lg font-bold">
+                      <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
+                        <div className="text-center md:text-right">
+                          <div className="text-base md:text-lg font-bold">
                             ${campaign.budgetUsdc.toLocaleString()}
                           </div>
                           <div className="text-xs text-zinc-500">Budget</div>
                         </div>
 
-                        <div className="text-right">
-                          <div className="text-lg font-bold">
+                        <div className="text-center md:text-right">
+                          <div className="text-base md:text-lg font-bold">
                             {campaign.slotCounts.assigned + campaign.slotCounts.completed}/
                             {campaign.slotCounts.total}
                           </div>
-                          <div className="text-xs text-zinc-500">Slots Filled</div>
+                          <div className="text-xs text-zinc-500">Slots</div>
                         </div>
 
                         <div
-                          className={`px-3 py-1 rounded-lg text-sm ${
+                          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm ${
                             campaign.status === 'RECRUITING'
                               ? 'bg-green-500/20 text-green-400'
                               : campaign.status === 'LIVE'
