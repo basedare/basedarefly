@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { name: "VERIFY", href: "/verify" },
   { name: "DASHBOARD", href: "/dashboard" },
   { name: "ABOUT", href: "/about" },
+  { name: "FAQ", href: "/faq" },
 ];
 
 export default function Navbar() {

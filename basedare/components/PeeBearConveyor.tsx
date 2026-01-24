@@ -18,14 +18,14 @@ interface PeeBearConveyorProps {
   dares?: Dare[];
 }
 
-// Sample dares for when API returns empty - matches desktop featured dares
+// Sample dares - EXACT MATCH with HeroEllipticalStream FEATURED_DARES
 const SAMPLE_DARES = [
-  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@KaiCenat", status: "active" },
-  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@Speed", status: "active" },
-  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@xQc", status: "active" },
-  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@Adin", status: "active" },
-  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@Poki", status: "active" },
-  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@Ludwig", status: "active" },
+  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@KaiCenat", status: "active", expiry_timer: "🔥 HOT" },
+  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@Speed", status: "active", expiry_timer: "😈 LIVE" },
+  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@xQc", status: "active", expiry_timer: "💀 PERM" },
+  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@Adin", status: "active", expiry_timer: "🤮 NOW" },
+  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@Poki", status: "active", expiry_timer: "💔 YOLO" },
+  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@Ludwig", status: "active", expiry_timer: "✂️ GONE" },
 ];
 
 // Helper function to format bounty
@@ -46,7 +46,8 @@ export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {
       const title = dare.description?.toUpperCase() || "UNKNOWN DARE";
       const bounty = formatBounty(dare.stake_amount || 0);
       const streamer = dare.streamer_name || "@Anon";
-      return `${title} (${bounty}) ${streamer}`;
+      const tag = dare.expiry_timer || "";
+      return tag ? `${title} ${tag} (${bounty}) ${streamer}` : `${title} (${bounty}) ${streamer}`;
     });
   }, [activeDares]);
 

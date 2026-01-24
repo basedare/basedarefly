@@ -88,35 +88,35 @@ export function IdentityButton() {
         >
           {/* Liquid metal base - brighter chrome */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               background: 'linear-gradient(160deg, #3a3a42 0%, #28282e 25%, #1e1e24 50%, #28282e 75%, #3a3a42 100%)',
             }}
           />
           {/* Top highlight band */}
           <div
-            className="absolute inset-x-0 top-0 h-[2px]"
+            className="absolute inset-x-0 top-0 h-[2px] pointer-events-none"
             style={{
               background: 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.4) 50%, transparent 90%)',
             }}
           />
           {/* Inner top shine */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 40%)',
             }}
           />
           {/* Bottom shadow for depth */}
           <div
-            className="absolute inset-x-0 bottom-0 h-[1px]"
+            className="absolute inset-x-0 bottom-0 h-[1px] pointer-events-none"
             style={{
               background: 'rgba(0,0,0,0.4)',
             }}
           />
           {/* Chrome border */}
           <div
-            className="absolute inset-0 rounded-xl"
+            className="absolute inset-0 rounded-xl pointer-events-none"
             style={{
               border: '1px solid rgba(255,255,255,0.12)',
             }}

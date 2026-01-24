@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut, User } from "lucide-react";
+import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut, User, HelpCircle } from "lucide-react";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
     { href: "/verify", icon: Target, label: "Verify" },
     { href: "/dashboard", icon: Trophy, label: "Dashboard" },
     { href: "/about", icon: Zap, label: "About" },
+    { href: "/faq", icon: HelpCircle, label: "FAQ" },
   ];
 
   return (

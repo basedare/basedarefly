@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React from 'react';
 
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
@@ -120,118 +120,62 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
       {/* ============================================
           MOBILE - Compact iOS-style Slider
           ============================================ */}
-      <MobileSlider view={view} setView={setView} isControl={isControl} />
-    </>
-  );
-}
-
-// Separate component for mobile slider with drag support
-function MobileSlider({ view, setView, isControl }: { view: 'FAN' | 'BUSINESS'; setView: (v: 'FAN' | 'BUSINESS') => void; isControl: boolean }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const hasDraggedRef = useRef(false);
-  const startXRef = useRef(0);
-  const startPosRef = useRef(0);
-  const currentPosRef = useRef(isControl ? 1 : 0);
-  const [renderPos, setRenderPos] = useState(isControl ? 1 : 0);
-
-  useEffect(() => {
-    const newPos = isControl ? 1 : 0;
-    currentPosRef.current = newPos;
-    setRenderPos(newPos);
-  }, [isControl]);
-
-  const handleStart = useCallback((clientX: number) => {
-    setIsDragging(true);
-    hasDraggedRef.current = false;
-    startXRef.current = clientX;
-    startPosRef.current = currentPosRef.current;
-  }, []);
-
-  const handleMove = useCallback((clientX: number) => {
-    if (!isDragging || !trackRef.current) return;
-    const deltaX = clientX - startXRef.current;
-    if (Math.abs(deltaX) > 5) hasDraggedRef.current = true;
-    const trackWidth = trackRef.current.offsetWidth;
-    const maxTravel = trackWidth - 28 - 6;
-    let newPos = startPosRef.current + (deltaX / maxTravel);
-    newPos = Math.max(0, Math.min(1, newPos));
-    currentPosRef.current = newPos;
-    setRenderPos(newPos);
-  }, [isDragging]);
-
-  const handleEnd = useCallback(() => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (hasDraggedRef.current) {
-      if (currentPosRef.current > 0.5) {
-        setView('BUSINESS');
-        currentPosRef.current = 1;
-        setRenderPos(1);
-      } else {
-        setView('FAN');
-        currentPosRef.current = 0;
-        setRenderPos(0);
-      }
-    } else {
-      const newView = isControl ? 'FAN' : 'BUSINESS';
-      setView(newView);
-      const newPos = newView === 'BUSINESS' ? 1 : 0;
-      currentPosRef.current = newPos;
-      setRenderPos(newPos);
-    }
-    hasDraggedRef.current = false;
-  }, [isDragging, isControl, setView]);
-
-  const thumbLeft = 3 + renderPos * 38;
-
-  return (
-    <div className="md:hidden fixed top-20 right-4 z-[80]">
-      <div className="flex items-center gap-2">
-        <span className={`text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
-          !isControl ? 'text-[#A855F7]' : 'text-zinc-500'
-        }`}>
-          Chaos
-        </span>
-
-        <div
-          ref={trackRef}
-          className="relative w-[72px] h-[32px] rounded-full cursor-pointer select-none touch-none"
-          style={{
-            background: isControl ? 'rgba(250, 204, 21, 0.25)' : 'rgba(168, 85, 247, 0.25)',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            transition: isDragging ? 'none' : 'background 0.3s ease',
+      <div
+        className="md:hidden fixed top-16 right-4 z-[9999]"
+        style={{ isolation: 'isolate' }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            const newView = isControl ? 'FAN' : 'BUSINESS';
+            console.log('[ViewToggle] Mobile clicked! Current:', view, '-> New:', newView);
+            setView(newView);
           }}
-          onMouseDown={(e) => { e.preventDefault(); handleStart(e.clientX); }}
-          onMouseMove={(e) => handleMove(e.clientX)}
-          onMouseUp={handleEnd}
-          onMouseLeave={() => { if (isDragging) handleEnd(); }}
-          onTouchStart={(e) => handleStart(e.touches[0].clientX)}
-          onTouchMove={(e) => { e.preventDefault(); handleMove(e.touches[0].clientX); }}
-          onTouchEnd={handleEnd}
+          className="flex items-center gap-2 p-3 rounded-2xl active:scale-95 transition-transform touch-manipulation select-none cursor-pointer"
+          style={{
+            background: isControl ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: isControl ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.2)',
+            WebkitTapHighlightColor: 'transparent',
+            boxShadow: isControl
+              ? '0 4px 20px rgba(0,0,0,0.15)'
+              : '0 4px 20px rgba(0,0,0,0.5)',
+          }}
         >
+          <span className={`text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+            !isControl ? 'text-[#A855F7]' : 'text-zinc-400'
+          }`}>
+            Chaos
+          </span>
+
           <div
-            className="absolute top-[3px] w-[26px] h-[26px] rounded-full pointer-events-none"
+            className="relative w-[56px] h-[28px] rounded-full pointer-events-none"
             style={{
-              left: `${thumbLeft}px`,
-              transition: isDragging ? 'none' : 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              background: 'linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.15)',
+              background: isControl ? 'rgba(250, 204, 21, 0.4)' : 'rgba(168, 85, 247, 0.3)',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+              border: isControl ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.15)',
             }}
           >
-            <div className="absolute inset-[1px] rounded-full" style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 60%)',
-            }} />
+            <div
+              className="absolute top-[2px] w-[24px] h-[24px] rounded-full transition-all duration-300 ease-out pointer-events-none"
+              style={{
+                left: isControl ? '28px' : '2px',
+                background: isControl
+                  ? 'linear-gradient(145deg, #FACC15 0%, #EAB308 100%)'
+                  : 'linear-gradient(145deg, #A855F7 0%, #9333EA 100%)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              }}
+            />
           </div>
-        </div>
 
-        <span className={`text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
-          isControl ? 'text-[#FACC15]' : 'text-zinc-500'
-        }`}>
-          Control
-        </span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+            isControl ? 'text-[#B8860B]' : 'text-zinc-500'
+          }`}>
+            Control
+          </span>
+        </button>
       </div>
-    </div>
+    </>
   );
 }
