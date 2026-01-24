@@ -80,10 +80,13 @@ export function IdentityButton() {
           ============================================ */}
       <div className="md:hidden relative" ref={!showDropdown ? dropdownRef : undefined}>
         <button
+          type="button"
           onClick={handleClick}
-          className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl overflow-hidden transition-all active:scale-95"
+          className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl overflow-hidden transition-all active:scale-95 touch-manipulation select-none cursor-pointer"
           style={{
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+            WebkitTapHighlightColor: 'transparent',
+            minHeight: '44px',
           }}
         >
           {/* Liquid metal base - brighter chrome */}

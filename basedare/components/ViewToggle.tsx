@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useView } from '@/app/context/ViewContext';
 
 interface ViewToggleProps {
@@ -10,7 +10,6 @@ interface ViewToggleProps {
 export default function ViewToggle({ view, setView }: ViewToggleProps) {
   const isControl = view === 'BUSINESS';
   const [isPressed, setIsPressed] = useState(false);
-  const touchHandled = useRef(false);
 
   // For mobile, use context directly to ensure it works
   const context = useView();
@@ -18,15 +17,15 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
   // Haptic feedback helper
   const triggerHaptic = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(15); // Short haptic pulse
+      navigator.vibrate(15);
     }
   };
 
-  // Unified switch handler
-  const handleSwitch = () => {
+  // Mobile switch handler - uses context directly
+  const handleMobileSwitch = () => {
     const currentView = context.view;
     const newView = currentView === 'BUSINESS' ? 'FAN' : 'BUSINESS';
-    console.log('[ViewToggle] Switching from', currentView, 'to', newView);
+    console.log('[ViewToggle] MOBILE switching from', currentView, 'to', newView);
     context.setView(newView);
     triggerHaptic();
   };
@@ -144,11 +143,12 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           ============================================ */}
       <button
         type="button"
-        className="md:hidden fixed top-20 right-4 z-[9999] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-100 touch-manipulation overflow-hidden select-none"
+        className="md:hidden fixed top-20 right-4 z-[9999] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-100 touch-manipulation overflow-hidden select-none cursor-pointer"
         style={{
           minWidth: '130px',
           minHeight: '52px',
           padding: '16px 22px',
+          WebkitTapHighlightColor: 'transparent',
           // 3D transform based on press state
           transform: isPressed
             ? 'perspective(200px) rotateX(8deg) translateY(2px) scale(0.97)'
@@ -169,34 +169,15 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
               ? 'inset 0 2px 4px rgba(255,255,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.1)'
               : 'inset 0 2px 3px rgba(255,255,255,0.12), inset 0 -3px 6px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.25)',
         }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          setIsPressed(true);
+        onClick={() => {
           triggerHaptic();
-          touchHandled.current = true;
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          setIsPressed(false);
-          if (touchHandled.current) {
-            handleSwitch();
-            touchHandled.current = false;
-          }
-        }}
-        onTouchCancel={() => {
-          setIsPressed(false);
-          touchHandled.current = false;
-        }}
-        onClick={(e) => {
-          // Only handle click if touch didn't handle it
-          if (!touchHandled.current) {
-            handleSwitch();
-          }
-          touchHandled.current = false;
+          handleMobileSwitch();
         }}
         onMouseDown={() => setIsPressed(true)}
         onMouseUp={() => setIsPressed(false)}
         onMouseLeave={() => setIsPressed(false)}
+        onTouchStart={() => setIsPressed(true)}
+        onTouchEnd={() => setIsPressed(false)}
       >
         {/* Top chrome highlight */}
         <div
