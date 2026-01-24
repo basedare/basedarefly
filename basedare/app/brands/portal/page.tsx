@@ -339,7 +339,11 @@ export default function BrandPortalPage() {
             </p>
             <button
               onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-              className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition"
+              className="px-6 py-4 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition touch-manipulation select-none cursor-pointer active:scale-95"
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: '52px',
+              }}
             >
               Connect Wallet
             </button>

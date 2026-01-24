@@ -79,13 +79,20 @@ export function IdentityButton() {
           MOBILE - Premium Liquid Metal Chrome Button
           ============================================ */}
       <div className="md:hidden relative" ref={!showDropdown ? dropdownRef : undefined}>
-        <button
-          type="button"
+        {/* Tap target wrapper for extended hit area */}
+        <div
+          className="touch-manipulation cursor-pointer select-none"
+          style={{
+            padding: '8px 12px 16px 12px',
+            margin: '-8px -12px -16px -12px',
+            WebkitTapHighlightColor: 'transparent',
+          }}
           onClick={handleClick}
-          className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl overflow-hidden transition-all active:scale-95 touch-manipulation select-none cursor-pointer"
+        >
+        <div
+          className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl overflow-hidden transition-all active:scale-95"
           style={{
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
-            WebkitTapHighlightColor: 'transparent',
             minHeight: '44px',
           }}
         >
@@ -136,7 +143,8 @@ export function IdentityButton() {
               {isConnected ? truncatedAddress : 'Login'}
             </span>
           </div>
-        </button>
+        </div>
+        </div>
 
         {showDropdown && isConnected && (
           <div
