@@ -38,8 +38,9 @@ export default function PortalVortex() {
       <div
         className="relative w-[650px] h-[650px] will-change-transform"
         style={{
-          transform: 'rotateX(75deg)',
-          transformStyle: 'preserve-3d'
+          transform: 'rotateX(75deg) translateZ(0)',
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
         }}
       >
         <div className="relative w-full h-full rounded-full flex items-center justify-center overflow-visible">

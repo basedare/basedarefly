@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
 import GlitchText from "@/components/GlitchText";
-import ChromeText from "@/components/ChromeText";
 import MetallicText from "@/components/MetallicText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
@@ -164,19 +163,44 @@ export default function Home() {
           >
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
+                {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden md:block">
                   <HeroEllipticalStream />
                 </div>
-                <div className="block md:hidden pt-32 pb-12">
+
+                {/* Mobile: Simplified hero with PeeBear + Conveyor */}
+                <div className="block md:hidden pt-24 pb-8">
+                  {/* Mobile PeeBear Head - Static with glow */}
+                  <div className="relative w-full flex justify-center mb-6">
+                    <div className="relative w-[200px] h-[200px]">
+                      {/* Glow effect */}
+                      <div
+                        className="absolute inset-0 bg-purple-600/30 rounded-full blur-3xl"
+                        style={{ transform: 'scale(1.2)' }}
+                      />
+                      {/* PeeBear image */}
+                      <img
+                        src="/assets/peebear-head.png"
+                        alt="BaseDare God"
+                        className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]"
+                        style={{
+                          maskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
+                          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mobile Conveyor Strip */}
                   <PeeBearConveyor dares={dares} />
                 </div>
               </div>
 
-              <div className="flex flex-col items-center justify-center -space-y-4 md:-space-y-8 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
+              <div className="flex flex-col items-center justify-center -space-y-2 md:-space-y-4 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
                 <GlitchText glowColor="#FFD700" className="text-yellow-400 text-[12vw] leading-none md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
-                <div className="w-full max-w-6xl relative z-10 px-4">
-                  <ChromeText text="THE STREAM" className="text-[13vw] leading-none md:text-8xl lg:text-9xl" />
-                </div>
+                <h2 className="text-white text-[11vw] md:text-7xl lg:text-8xl font-black italic tracking-tighter uppercase">
+                  THE STREAM
+                </h2>
               </div>
 
               <div className="w-full max-w-4xl px-6 mb-24 relative z-30">

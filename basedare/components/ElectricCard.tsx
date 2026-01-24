@@ -24,10 +24,16 @@ export default function ElectricCard({
     : [description, ''];
 
   return (
-    <div className={`relative group w-[240px] h-[320px] ${className} perspective-1000`}>
-      
-      {/* 1. OUTER GLOW (Pulsing) */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-[#FFD700] to-[#A855F7] rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-500" />
+    <div
+      className={`relative group w-[240px] h-[320px] ${className} perspective-1000`}
+      style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
+    >
+
+      {/* 1. OUTER GLOW - GPU accelerated, no blur transition to prevent flicker */}
+      <div
+        className="absolute -inset-1 bg-gradient-to-r from-[#FFD700] to-[#A855F7] rounded-2xl opacity-50 group-hover:opacity-100"
+        style={{ filter: 'blur(4px)', transform: 'translateZ(0)' }}
+      />
 
       {/* 2. CARD BODY */}
       <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-white/10 flex flex-col">

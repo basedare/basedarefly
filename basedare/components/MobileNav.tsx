@@ -2,8 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { usePathname } from "next/navigation";
+import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut, User } from "lucide-react";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -12,134 +12,200 @@ interface MobileNavProps {
 }
 
 export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
+  const pathname = usePathname();
+
   const handleLogout = () => {
-    // Mock logout
     window.location.reload();
   };
+
+  const navItems = [
+    { href: "/", icon: Home, label: "Home" },
+    { href: "/create", icon: PlusCircle, label: "Create Dare" },
+    { href: "/verify", icon: Target, label: "Verify" },
+    { href: "/dashboard", icon: Trophy, label: "Dashboard" },
+    { href: "/about", icon: Zap, label: "About" },
+  ];
 
   return (
     <>
       {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] transition-opacity duration-300 ${
+      <div
+        className={`fixed inset-0 z-[90] transition-all duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
+        style={{
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
         onClick={onClose}
       />
-      
-      {/* Sidebar */}
-      <div 
-        className={`fixed top-0 left-0 h-full w-80 bg-background border-r border-white/10 z-[100] transform transition-transform duration-300 ease-out ${
+
+      {/* Sidebar - Premium Glass */}
+      <div
+        className={`fixed top-0 left-0 h-full w-[280px] z-[100] transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{
+          background: 'linear-gradient(180deg, rgba(12, 12, 16, 0.98) 0%, rgba(8, 8, 12, 0.99) 100%)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+          boxShadow: '20px 0 60px rgba(0, 0, 0, 0.6)',
+        }}
       >
         <div className="flex flex-col h-full">
+
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/bear-mascot.png"
-                alt="BASEDARE Bear"
-                className="w-8 h-8 object-contain"
-              />
-              <span className="text-xl font-bold text-[#FFB800]">BASEDARE</span>
-            </div>
-            <button 
+          <div
+            className="flex items-center justify-between p-5"
+            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}
+          >
+            <img
+              src="/assets/BASEDAREGOO.png"
+              alt="BASEDARE"
+              className="h-8 w-auto object-contain"
+            />
+            <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-zinc-500 hover:text-white transition-all"
+              style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+              }}
             >
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Nav Links */}
-          <nav className="flex-1 p-6 space-y-2">
-            <Link 
-              href="/"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-[#FFB800] hover:bg-[#FFB800]/10 rounded-lg transition-all"
-            >
-              <Home className="w-5 h-5" />
-              <span className="font-medium">Home</span>
-            </Link>
+          <nav className="flex-1 p-4 space-y-1">
+            {navItems.map(({ href, icon: Icon, label }) => {
+              const isActive = pathname === href;
 
-            <Link 
-              href="/create"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-[#FFB800] hover:bg-[#FFB800]/10 rounded-lg transition-all"
-            >
-              <PlusCircle className="w-5 h-5" />
-              <span className="font-medium">Create Dare</span>
-            </Link>
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className="relative block rounded-xl overflow-hidden transition-all duration-200 active:scale-[0.98]"
+                >
+                  {/* Active state - Liquid Metal Chrome */}
+                  {isActive && (
+                    <>
+                      {/* Base chrome gradient */}
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(135deg, #2a2a30 0%, #1a1a1e 40%, #252528 70%, #1e1e22 100%)',
+                        }}
+                      />
+                      {/* Top shine */}
+                      <div
+                        className="absolute inset-x-0 top-0 h-[1px]"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
+                        }}
+                      />
+                      {/* Inner glow */}
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%)',
+                        }}
+                      />
+                    </>
+                  )}
 
-            <Link 
-              href="/my-dares"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-[#FFB800] hover:bg-[#FFB800]/10 rounded-lg transition-all"
-            >
-              <Target className="w-5 h-5" />
-              <span className="font-medium">My Dares</span>
-            </Link>
+                  {/* Hover state for inactive */}
+                  {!isActive && (
+                    <div className="absolute inset-0 bg-transparent hover:bg-white/[0.02] transition-colors" />
+                  )}
 
-            <Link 
-              href="/leaderboard"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-[#FFB800] hover:bg-[#FFB800]/10 rounded-lg transition-all"
-            >
-              <Trophy className="w-5 h-5" />
-              <span className="font-medium">Leaderboard</span>
-            </Link>
+                  {/* Content */}
+                  <div className={`relative flex items-center gap-3 px-4 py-3.5 ${
+                    isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}>
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium text-[15px]">{label}</span>
 
-            <Link 
-              href="/about"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-[#FFB800] hover:bg-[#FFB800]/10 rounded-lg transition-all"
-            >
-              <Zap className="w-5 h-5" />
-              <span className="font-medium">About</span>
-            </Link>
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="ml-auto w-1 h-4 rounded-full bg-gradient-to-b from-white/60 to-white/20" />
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
 
-            <div className="pt-6 mt-6 border-t border-white/10">
-              <Link 
+            {/* CTA - Premium Gold */}
+            <div className="pt-5 mt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
+              <Link
                 href="/streamers"
                 onClick={onClose}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-black font-bold rounded-lg hover:scale-105 transition-transform"
+                className="relative block rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
               >
-                <Zap className="w-4 h-4" />
-                <span>Streamers: Earn $5k-$50k</span>
+                {/* Gold base */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(145deg, #FACC15 0%, #EAB308 50%, #CA8A04 100%)',
+                  }}
+                />
+                {/* Shine */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+                  }}
+                />
+                {/* Content */}
+                <div className="relative flex items-center justify-center gap-2 px-4 py-3.5">
+                  <Zap className="w-4 h-4 text-black" />
+                  <span className="font-bold text-sm text-black">Streamers: Earn $$$</span>
+                </div>
               </Link>
             </div>
           </nav>
 
-          {/* User Profile / Logout */}
+          {/* User Profile */}
           {user && (
-            <div className="p-6 border-t border-white/10">
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar className="w-10 h-10 bg-gradient-to-br from-[#FFB800] to-[#FF6B00]">
-                  <AvatarFallback className="bg-transparent text-white font-semibold">
-                    {user.full_name?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+            <div className="p-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
+              <div
+                className="flex items-center gap-3 p-3 rounded-xl"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    background: '#A855F7',
+                  }}
+                >
+                  <User className="w-5 h-5 text-white" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium text-sm truncate">
                     {user.full_name || 'Streamer'}
                   </p>
-                  <p className="text-gray-400 text-xs truncate">{user.email}</p>
+                  <p className="text-zinc-600 text-xs truncate">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 w-full px-4 py-2 text-gray-300 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                className="flex items-center gap-2 w-full px-3 py-2.5 mt-2 text-zinc-600 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-sm"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="font-medium text-sm">Logout</span>
+                <span>Sign Out</span>
               </button>
             </div>
           )}
+
+          <div className="h-6" />
         </div>
       </div>
     </>
   );
 }
-
-

@@ -45,7 +45,7 @@ export default function MobileNavbar() {
           <ConnectWallet className="!p-0 !bg-transparent !border-0 !shadow-none">
             <div className={`flex items-center justify-center transition-colors ${isConnected ? 'text-[#FFD700]' : 'text-gray-500'}`}>
               {isConnected ? (
-                <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 ring-2 ring-[#FFD700]/50" />
+                <div className="w-5 h-5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]" />
               ) : (
                 <Wallet className="w-5 h-5" />
               )}

@@ -98,15 +98,15 @@ export default function Navbar() {
           </div>
 
           {/* 3. RIGHT SIDE ACTIONS */}
-          <div className="flex items-center gap-4 z-50">
-            
-            {/* Desktop Connect Button (Hidden on Mobile) - Fallback if GlassSurface doesn't work */}
-            <div className="hidden md:hidden">
+          <div className="flex items-center gap-2 md:gap-4 z-50">
+
+            {/* Mobile Connect Button - Visible on mobile, hidden on desktop (desktop has it in GlassSurface) */}
+            <div className="md:hidden">
                <IdentityButton />
             </div>
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
-            <button 
+            <button
               onClick={() => setIsOpen(!isOpen)}
               className="md:hidden w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
             >
@@ -125,8 +125,8 @@ export default function Navbar() {
             exit={{ opacity: 0, y: -20 }}
             className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl md:hidden flex flex-col pt-32 px-6"
           >
-            {/* Mobile Links */}
-            <div className="flex flex-col gap-8">
+            {/* Mobile Links - Liquid Metal Chrome */}
+            <div className="flex flex-col gap-4">
               {NAV_LINKS.map((link, i) => {
                 const isActive = pathname === link.href;
                 return (
@@ -136,16 +136,48 @@ export default function Navbar() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    <Link 
+                    <Link
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className={`text-4xl font-black italic uppercase tracking-tighter ${
-                        isActive
-                          ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500'
-                          : 'text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-white hover:from-purple-500 hover:to-cyan-500'
-                      }`}
+                      className="relative block rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
                     >
-                      {link.name}
+                      {/* Active state - Liquid Metal Chrome */}
+                      {isActive && (
+                        <>
+                          {/* Chrome base gradient */}
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'linear-gradient(135deg, #2a2a30 0%, #1a1a1e 40%, #252528 70%, #1e1e22 100%)',
+                            }}
+                          />
+                          {/* Top shine line */}
+                          <div
+                            className="absolute inset-x-0 top-0 h-[1px]"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+                            }}
+                          />
+                          {/* Inner glow */}
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%)',
+                            }}
+                          />
+                        </>
+                      )}
+
+                      {/* Link content */}
+                      <div className={`relative px-5 py-3 text-3xl font-black italic uppercase tracking-tight ${
+                        isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}>
+                        {link.name}
+                        {/* Active indicator bar */}
+                        {isActive && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-gradient-to-b from-white/60 to-white/20" />
+                        )}
+                      </div>
                     </Link>
                   </motion.div>
                 );

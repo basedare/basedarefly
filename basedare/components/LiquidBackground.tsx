@@ -1,47 +1,55 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 // THE ONLY FIX: Pointing to the correct folder
 import { useIgnition } from '@/app/context/IgnitionContext';
 
 export default function LiquidBackground() {
   const { ignitionActive } = useIgnition();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[-50] bg-transparent pointer-events-none overflow-hidden [transform:translateZ(0)] will-change-transform"
       style={{
-        filter: ignitionActive 
-          ? 'saturate(1.8) brightness(1.2)' 
+        filter: ignitionActive
+          ? 'saturate(1.8) brightness(1.2)'
           : 'saturate(1) brightness(1)',
-        transition: ignitionActive 
-          ? 'none' 
+        transition: ignitionActive
+          ? 'none'
           : 'filter 0.8s ease-out'
       }}
     >
-      
+
       <div className="absolute inset-0 bg-black/10" />
-      
-      {/* HIGH-FIDELITY SVG GRAIN LAYER */}
-      <div 
+
+      {/* HIGH-FIDELITY SVG GRAIN LAYER - Simplified on mobile for performance */}
+      <div
         className="absolute -inset-[100%] w-[300%] h-[300%] mix-blend-color-dodge [transform:translateZ(0)] will-change-transform"
         style={{
-          opacity: ignitionActive ? 0.15 : 0.03, // Surge on ignition
-          animationDuration: ignitionActive ? '30s' : '60s', // Speed double
-          animationName: 'grain',
+          opacity: ignitionActive ? 0.15 : (isMobile ? 0.02 : 0.03), // Lower opacity on mobile
+          animationDuration: ignitionActive ? '30s' : (isMobile ? '90s' : '60s'), // Slower on mobile
+          animationName: isMobile ? undefined : 'grain', // No animation on mobile
           animationIterationCount: 'infinite',
           animationTimingFunction: 'ease-in-out',
-          transition: 'opacity 0.2s ease-out, animation-duration 0.8s ease-out'
+          transition: 'opacity 0.2s ease-out'
         }}
       >
         <svg className='w-full h-full' xmlns='http://www.w3.org/2000/svg'>
           <filter id='noiseFilter'>
-            <feTurbulence 
-              type='fractalNoise' 
-              baseFrequency='0.6' 
-              numOctaves='3' 
-              stitchTiles='stitch' 
+            <feTurbulence
+              type='fractalNoise'
+              baseFrequency={isMobile ? '0.8' : '0.6'} // Coarser grain on mobile = less computation
+              numOctaves={isMobile ? 2 : 3} // Fewer octaves on mobile
+              stitchTiles='stitch'
             />
-            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" /> 
+            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" />
           </filter>
           <rect width='100%' height='100%' filter='url(#noiseFilter)' />
         </svg>
