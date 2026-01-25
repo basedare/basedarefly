@@ -14,8 +14,8 @@ const NAV_LINKS = [
   { name: "HOME", href: "/" },
   { name: "CREATE", href: "/create" },
   { name: "VERIFY", href: "/verify" },
+  { name: "CREATORS", href: "/streamers" },
   { name: "DASHBOARD", href: "/dashboard" },
-  { name: "ABOUT", href: "/about" },
   { name: "FAQ", href: "/faq" },
 ];
 

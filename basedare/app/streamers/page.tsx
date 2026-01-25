@@ -1,220 +1,205 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, TrendingUp, Trophy, Zap, Crown } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { DollarSign, Users, TrendingUp, Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight } from "lucide-react";
+import LiquidBackground from "@/components/LiquidBackground";
+import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 
-// --- MOCK DATA ---
-const MOCK_USER = { email: "streamer@basedare.com", full_name: "Streamer X" };
-
-export default function StreamersPage() {
-  const [user, setUser] = useState<any>(null);
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [badgeClaimed, setBadgeClaimed] = useState(false);
-  const { toast } = useToast();
-
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<any[]>([]);
-  const animationFrameRef = useRef(0);
-
-  // Simulate Auth
-  useEffect(() => {
-    setTimeout(() => setUser(MOCK_USER), 500);
-  }, []);
-
-  // --- PARTICLE SYSTEM ---
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const updateCanvasSize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    updateCanvasSize();
-
-    class XBoltCoin {
-      x: number; y: number; speedX: number; speedY: number; size: number;
-      constructor() {
-        this.x = Math.random() * (canvas?.width || 0);
-        this.y = Math.random() * (canvas?.height || 0);
-        this.speedX = (Math.random() - 0.5) * 0.5;
-        this.speedY = 0.5 + Math.random() * 1;
-        this.size = 2 + Math.random() * 3;
-      }
-      update() {
-        this.y += this.speedY;
-        this.x += this.speedX;
-        if (this.y > (canvas?.height || 0)) this.y = -10;
-      }
-      draw() {
-        if (!ctx) return;
-        ctx.fillStyle = "rgba(168, 85, 247, 0.4)";
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    particlesRef.current = Array.from({ length: 20 }, () => new XBoltCoin());
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particlesRef.current.forEach(p => { p.update(); p.draw(); });
-      animationFrameRef.current = requestAnimationFrame(animate);
-    }
-    animate();
-
-    window.addEventListener('resize', updateCanvasSize);
-
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-      cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, []);
-
-  const handleClaimBadge = () => {
-    if (!walletConnected) {
-      setWalletConnected(true);
-      toast({
-        title: "Wallet Connected!",
-        description: "Mock wallet connected successfully",
-        className: "bg-green-500/20 border-green-500/50 text-white",
-      });
-      setTimeout(() => handleClaimBadge(), 500); 
-      return;
-    }
-
-    setBadgeClaimed(true);
-    toast({
-      title: "🎉 Streamer Badge Claimed!",
-      description: "You're now officially a BASEDARE streamer. Start creating dares!",
-      className: "bg-gradient-to-r from-[#FFB800]/20 to-[#FF6B00]/20 border-[#FFB800]/50 text-white",
-      duration: 5000,
-    });
-  };
-
+export default function CreatorsPage() {
   const features = [
-    { icon: DollarSign, title: "Earn $5k-$50k/month", description: "Top streamers banking serious cash from dare bounties" },
-    { icon: Users, title: "Instant Audience", description: "Tap into our engaged community of 100k+ dare watchers" },
-    { icon: TrendingUp, title: "Grow Your Brand", description: "Viral moments = more followers, more sponsors, more money" },
-    { icon: Trophy, title: "Leaderboard Fame", description: "Top streamers get legendary status + exclusive perks" },
+    { icon: DollarSign, title: "Earn Big", description: "Top creators bank $5k-$50k/month from dare bounties" },
+    { icon: Users, title: "Instant Audience", description: "100k+ dare watchers ready to fund your challenges" },
+    { icon: TrendingUp, title: "Grow Your Brand", description: "Viral moments = more followers, more sponsors" },
+    { icon: Trophy, title: "Leaderboard Fame", description: "Top creators get legendary status + perks" },
+  ];
+
+  const verificationSteps = [
+    { icon: Tag, title: "Claim Your Tag", description: "Choose a unique @tag linked to your wallet" },
+    { icon: Shield, title: "Verify Identity", description: "Connect Twitter, Twitch, YouTube, or Kick" },
+    { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every bounty you complete" },
+  ];
+
+  const platforms = [
+    { name: "Twitter/X", icon: "𝕏" },
+    { name: "Twitch", icon: "📺" },
+    { name: "YouTube", icon: "▶" },
+    { name: "Kick", icon: "⚡" },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[rgb(15,15,20)] to-[rgb(20,15,30)] relative overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 0 }}
-      />
+    <div className="relative min-h-screen flex flex-col">
+      <LiquidBackground />
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        <GradualBlurOverlay />
+      </div>
 
-      <div className="flex-1 p-4 md:p-8 pb-24 relative z-10 mt-12">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-16"
-          >
-            <div className="inline-flex items-center gap-2 bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-full px-4 py-2 mb-4">
-              <Crown className="w-4 h-4 text-[#FFB800]" />
-              <span className="text-sm text-[#FFB800] font-medium">For Streamers</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black text-white mb-6">
-              Turn Dares Into <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB800] to-[#FF6B00]">Dollars</span>
-            </h1>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              Join the #1 platform where streamers get paid to do wild challenges. Your audience dares, you deliver, everyone wins.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={handleClaimBadge}
-                disabled={badgeClaimed}
-                className="bg-gradient-to-r from-[#FFB800] to-[#FF6B00] hover:from-[#FF6B00] hover:to-[#FFB800] text-white text-lg px-8 py-6 h-auto disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="container mx-auto px-6 py-24 flex-grow relative z-20">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2 mb-4">
+            <Zap className="w-4 h-4 text-purple-400" />
+            <span className="text-sm text-purple-400 font-medium tracking-wide">FOR CREATORS</span>
+          </div>
+
+          <h1 className="text-3xl md:text-5xl font-black text-white mb-3 tracking-tight">
+            Turn Dares Into{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
+              Dollars
+            </span>
+          </h1>
+
+          <p className="text-gray-400 font-mono text-sm max-w-md mx-auto mb-8">
+            Your audience dares, you deliver, everyone wins. Get paid to do wild challenges.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+            <Link href="/claim-tag" className="flex-1">
+              <LiquidMetalButton className="w-full" size="md">
+                <Tag className="w-4 h-4" />
+                Claim Your Tag
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </LiquidMetalButton>
+            </Link>
+            <Link href="/leaderboard" className="flex-1">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="w-full px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
               >
-                {badgeClaimed ? (
-                  <>
-                    <Crown className="w-5 h-5 mr-2" />
-                    Badge Claimed ✓
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 mr-2" />
-                    {walletConnected ? 'Claim Streamer Badge' : 'Connect Wallet to Start'}
-                  </>
-                )}
-              </Button>
-              <Link href="/create">
-                <Button
-                  variant="outline"
-                  className="bg-white/5 border-white/20 text-white hover:bg-white/10 text-lg px-8 py-6 h-auto"
-                >
-                  Post Your First Dare
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                Leaderboard
+              </motion.button>
+            </Link>
+          </div>
+        </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid md:grid-cols-2 gap-6 mb-16"
-          >
+        {/* How It Works */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="max-w-xl mx-auto mb-10"
+        >
+          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight">
+            How It Works
+          </h2>
+          <div className="space-y-3">
+            {verificationSteps.map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + index * 0.1 }}
+                className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0">
+                    <step.icon className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-white">{step.title}</h3>
+                    <p className="text-xs text-gray-500 font-mono">{step.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Features Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-xl mx-auto mb-10"
+        >
+          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight">
+            Why Join?
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
+                transition={{ delay: 0.35 + index * 0.05 }}
+                className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
               >
-                <Card className="bg-gradient-to-br from-[rgb(30,30,40)] to-[rgb(20,20,30)] border-[rgb(40,40,52)] hover:border-[#FFB800]/50 transition-all h-full">
-                  <CardHeader>
-                    <feature.icon className="w-12 h-12 text-[#FFB800] mb-4" />
-                    <CardTitle className="text-2xl text-white">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-400 text-lg">{feature.description}</p>
-                  </CardContent>
-                </Card>
+                <div className="w-10 h-10 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center mb-3">
+                  <feature.icon className="w-5 h-5 text-yellow-400" />
+                </div>
+                <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
+                <p className="text-[11px] text-gray-500 font-mono leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
+        </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-gradient-to-r from-[#FFB800]/20 to-[#FF6B00]/20 border border-[#FFB800]/50 rounded-3xl p-8 md:p-12 text-center"
-          >
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-              🔥 Currently 6,847 viewers waiting for dares
+        {/* Platform Verification */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="max-w-md mx-auto mb-6"
+        >
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 text-center">
+            <h2 className="text-lg font-black text-white mb-4">
+              Verify With Your Platform
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
-              The audience is ready. Are you?
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={handleClaimBadge}
-                disabled={badgeClaimed}
-                className="bg-gradient-to-r from-[#FFB800] to-[#FF6B00] hover:from-[#FF6B00] hover:to-[#FFB800] text-white text-xl px-10 py-7 h-auto disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Zap className="w-6 h-6 mr-2" />
-                {badgeClaimed ? 'Badge Claimed ✓' : 'Claim Streamer Badge Now'}
-              </Button>
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {platforms.map((platform) => (
+                <div
+                  key={platform.name}
+                  className="p-3 bg-white/5 border border-white/10 rounded-xl"
+                >
+                  <div className="text-2xl mb-1">{platform.icon}</div>
+                  <div className="text-[9px] font-medium text-gray-400">{platform.name}</div>
+                </div>
+              ))}
             </div>
-          </motion.div>
-        </div>
+            <p className="text-[10px] text-gray-600 font-mono">
+              Instant OAuth verification. Kick requires manual review.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="max-w-md mx-auto"
+        >
+          <div className="backdrop-blur-xl bg-purple-500/5 border border-purple-500/30 rounded-2xl p-6 text-center relative overflow-hidden">
+            {/* Subtle gradient accent */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-yellow-500/5 pointer-events-none" />
+
+            <div className="relative z-10">
+              <h2 className="text-xl font-black text-white mb-2">
+                Ready to Get Paid?
+              </h2>
+              <p className="text-sm text-gray-400 mb-6 font-mono">
+                Claim your tag in under 2 minutes.
+              </p>
+              <Link href="/claim-tag">
+                <LiquidMetalButton className="w-full" size="lg">
+                  <Zap className="w-5 h-5" />
+                  Claim Your Tag Now
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </LiquidMetalButton>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
       </div>
     </div>
   );
 }
-
-

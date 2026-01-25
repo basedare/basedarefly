@@ -133,7 +133,7 @@ export default function Dashboard() {
               <span className="text-[#FACC15]">COMMAND</span> <span className="text-[#A855F7]">BASE</span>
             </h1>
             {/* Wallet Identity Badge */}
-            {isConnected && address ? (
+            {isConnected && address && (
               <div className="flex items-center gap-2 ml-16">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-xs font-mono text-gray-400">Connected as</span>
@@ -141,32 +141,14 @@ export default function Dashboard() {
                   {formatAddress(address)}
                 </span>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 ml-16">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                <span className="text-xs font-mono text-gray-500">Wallet not connected</span>
-              </div>
             )}
           </div>
 
-          <div className="flex gap-4">
-            <Link href="/create">
-              <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-lg uppercase font-bold text-xs hover:bg-white/10 hover:border-white/30 transition-all text-white">
-                <Plus className="w-4 h-4" /> Create Dare
-              </button>
-            </Link>
-            <Link href="/">
-              <button className="group relative px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg border border-purple-400/50 uppercase font-black tracking-widest text-xs text-white shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105 hover:shadow-[0_0_40px_rgba(168,85,247,0.8)] transition-all duration-300">
-                <span className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                  </span>
-                  LIVE FEED
-                </span>
-              </button>
-            </Link>
-          </div>
+          <Link href="/create">
+            <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-lg uppercase font-bold text-xs hover:bg-white/10 hover:border-white/30 transition-all text-white">
+              <Plus className="w-4 h-4" /> Create Dare
+            </button>
+          </Link>
         </div>
 
         {/* CONNECTION STATUS */}

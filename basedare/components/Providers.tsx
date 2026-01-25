@@ -5,6 +5,7 @@ import { base } from 'viem/chains';
 import { injected, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
@@ -29,20 +30,22 @@ export function Providers({ children }: { children: ReactNode }) {
   if (!apiKey) console.warn('Missing OnchainKit API key!');
 
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <OnchainKitProvider 
-          apiKey={apiKey || ''} 
-          chain={base}
-          config={{ 
-            appearance: { mode: 'auto', theme: 'default' }, 
-            // Paymaster for gasless tx - will work if env var is set, otherwise standard gas
-            paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
-          }}
-        > 
-          {children} 
-        </OnchainKitProvider> 
-      </QueryClientProvider> 
-    </WagmiProvider> 
+    <SessionProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <OnchainKitProvider
+            apiKey={apiKey || ''}
+            chain={base}
+            config={{
+              appearance: { mode: 'auto', theme: 'default' },
+              // Paymaster for gasless tx - will work if env var is set, otherwise standard gas
+              paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
+            }}
+          >
+            {children}
+          </OnchainKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </SessionProvider>
   ); 
 }

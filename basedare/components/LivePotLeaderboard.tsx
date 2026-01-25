@@ -118,9 +118,6 @@ export default function LivePotLeaderboard() {
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span className="text-2xl">🏆</span>
               Creator Fund
-              <span className="px-2 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-xs text-green-400 animate-pulse">
-                LIVE
-              </span>
             </h2>
             <p className="text-sm text-zinc-500 mt-1">
               Community Rewards • Top 3 share 5% weekly

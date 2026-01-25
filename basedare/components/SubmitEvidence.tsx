@@ -469,9 +469,6 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
               </div>
             )}
             <div className="flex flex-col items-center gap-2">
-              <div className="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                AI Referee Ready
-              </div>
               <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                 Beta • Testnet
