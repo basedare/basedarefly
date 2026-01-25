@@ -181,7 +181,7 @@ export default function AdminAppealsPage() {
             </form>
 
             <p className="mt-6 text-[10px] font-mono text-gray-500 text-center">
-              Default secret: basedare-admin-2024
+              Secret configured in ADMIN_SECRET env var
             </p>
           </div>
         </div>

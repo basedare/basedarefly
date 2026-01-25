@@ -10,9 +10,14 @@ import {
   type Address,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
+
+// Network selection based on environment
+const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+const activeChain = IS_MAINNET ? base : baseSepolia;
+const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
 // ============================================================================
 // SHORT ID GENERATOR
@@ -148,14 +153,14 @@ function getServerClients() {
   const account = privateKeyToAccount(privateKey as `0x${string}`);
 
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
+    chain: activeChain,
+    transport: http(rpcUrl),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
-    transport: http(),
+    chain: activeChain,
+    transport: http(rpcUrl),
   });
 
   return { publicClient, walletClient, account };

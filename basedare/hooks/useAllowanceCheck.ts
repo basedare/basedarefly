@@ -2,8 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { createPublicClient, http, formatUnits, parseUnits, type Address } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
+
+// Network selection based on environment
+const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+const activeChain = IS_MAINNET ? base : baseSepolia;
+const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
 // Contract addresses
 const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
@@ -13,8 +18,8 @@ const REFEREE_WALLET = '0xC9ECB9407e8aD2618310DF9D4EFC494F3B90115E' as Address;
 const MIN_ETH_FOR_GAS = 0.001; // Minimum ETH needed for gas
 
 const publicClient = createPublicClient({
-  chain: baseSepolia,
-  transport: http(),
+  chain: activeChain,
+  transport: http(rpcUrl),
 });
 
 export interface AllowanceCheckResult {

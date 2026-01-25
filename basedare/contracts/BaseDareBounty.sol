@@ -119,17 +119,20 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
     }
 
     // --- REFUND FUNCTION (Called by AI Referee on expiry/failure) ---
-    function refundBacker(uint256 _dareId, address _backer) external nonReentrant onlyReferee bountyExists(_dareId) onlyActive(_dareId) {
+    // SECURITY FIX: Uses stored backer address, not caller-provided
+    function refundBacker(uint256 _dareId) external nonReentrant onlyReferee bountyExists(_dareId) onlyActive(_dareId) {
         Bounty storage bounty = bounties[_dareId];
 
-        // Mark as processed
+        // Mark as processed (CEI pattern - Checks-Effects-Interactions)
         bounty.isVerified = true;
         uint256 totalAmount = bounty.amount;
+        address originalBacker = bounty.backer;
 
-        // Refund the full amount to backer
-        require(USDC.transfer(_backer, totalAmount), "Refund: Backer transfer failed");
+        // SECURITY: Refund to STORED backer address, not caller-provided
+        require(originalBacker != address(0), "Refund: Invalid backer address");
+        require(USDC.transfer(originalBacker, totalAmount), "Refund: Backer transfer failed");
 
-        emit BountyRefund(_dareId, _backer, totalAmount);
+        emit BountyRefund(_dareId, originalBacker, totalAmount);
         delete bounties[_dareId];
     }
 

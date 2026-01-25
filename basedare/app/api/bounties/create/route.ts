@@ -3,8 +3,13 @@ import { z } from 'zod';
 import { Livepeer } from 'livepeer';
 import { createPublicClient, createWalletClient, http, parseUnits, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
+
+// Network selection based on environment
+const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+const activeChain = IS_MAINNET ? base : baseSepolia;
+const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
 // Environment validation (server-side only)
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
@@ -20,7 +25,7 @@ const CreateBountySchema = z.object({
   referrerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid referrer address').optional(),
 });
 
-// Server-side clients (Base Sepolia for testnet)
+// Server-side clients (auto-selects mainnet or sepolia)
 function getServerClients() {
   const privateKey = process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
@@ -30,14 +35,14 @@ function getServerClients() {
   const account = privateKeyToAccount(privateKey as `0x${string}`);
 
   const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
+    chain: activeChain,
+    transport: http(rpcUrl),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
-    transport: http(),
+    chain: activeChain,
+    transport: http(rpcUrl),
   });
 
   return { publicClient, walletClient, account };
