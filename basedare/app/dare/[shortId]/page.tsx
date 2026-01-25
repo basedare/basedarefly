@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Share2 } from 'lucide-react';
+import { Share2, Clock, Copy, CheckCircle } from 'lucide-react';
 import BountyQRCode from '@/components/BountyQRCode';
 import LiquidBackground from '@/components/LiquidBackground';
 
@@ -33,6 +33,11 @@ interface DareDetail {
   status: string;
   expiresAt: string | null;
   videoUrl: string | null;
+  // Invite flow fields
+  inviteToken: string | null;
+  claimDeadline: string | null;
+  targetWalletAddress: string | null;
+  awaitingClaim: boolean;
 }
 
 function formatTimeRemaining(expiresAt: string | null): string {
@@ -70,6 +75,7 @@ export default function DareDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Track referral on page load
   useEffect(() => {
@@ -147,6 +153,26 @@ export default function DareDetailPage() {
 
   const isExpired = dare.status === 'EXPIRED' || timeRemaining === 'EXPIRED';
   const isVerified = dare.status === 'VERIFIED';
+  const isAwaitingClaim = dare.status === 'AWAITING_CLAIM' || dare.awaitingClaim;
+
+  // Build invite link for awaiting claim dares
+  const inviteLink = isAwaitingClaim && dare.inviteToken
+    ? `/claim-tag?invite=${dare.inviteToken}&handle=${encodeURIComponent(dare.streamerHandle.replace('@', ''))}`
+    : null;
+
+  // Format claim deadline
+  const formatClaimDeadline = (deadline: string | null) => {
+    if (!deadline) return null;
+    const date = new Date(deadline);
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+    if (days <= 0) return 'Expired';
+    if (days === 1) return '1 day left to claim';
+    if (days <= 7) return `${days} days left to claim`;
+    return `Claim by ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
 
   return (
     <main className="min-h-screen bg-black relative overflow-hidden">
@@ -179,6 +205,11 @@ export default function DareDetailPage() {
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-full">
                     <span className="text-[10px] font-mono text-red-400 uppercase tracking-wider">Expired</span>
                   </div>
+                ) : isAwaitingClaim ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider">Awaiting Creator</span>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/40 rounded-full">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -187,7 +218,9 @@ export default function DareDetailPage() {
                 )}
               </div>
               <div className="font-mono text-xs text-white/40">
-                {timeRemaining}
+                {isAwaitingClaim && dare.claimDeadline
+                  ? formatClaimDeadline(dare.claimDeadline)
+                  : timeRemaining}
               </div>
             </div>
 
@@ -241,8 +274,67 @@ export default function DareDetailPage() {
             />
           </div>
 
+          {/* Awaiting Claim - Invite Creator */}
+          {isAwaitingClaim && inviteLink && (
+            <div className="p-6 border-t border-white/10 bg-gradient-to-b from-yellow-500/5 to-transparent">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-5 h-5 text-yellow-400" />
+                <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
+                  Creator Not Yet Claimed
+                </span>
+              </div>
+
+              <p className="text-sm text-gray-300 mb-4">
+                {dare.streamerHandle} hasn&apos;t claimed their tag yet. Share the invite link
+                to let them know about this bounty!
+              </p>
+
+              {/* Invite Link */}
+              <div className="mb-4 p-3 bg-black/40 rounded-xl border border-yellow-500/20">
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs text-yellow-400 font-mono truncate">
+                    {typeof window !== 'undefined' ? `${window.location.origin}${inviteLink}` : inviteLink}
+                  </code>
+                  <button
+                    onClick={() => {
+                      const fullUrl = `${window.location.origin}${inviteLink}`;
+                      navigator.clipboard.writeText(fullUrl);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition-colors shrink-0"
+                  >
+                    {copied ? (
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-yellow-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Share on X to invite creator */}
+              <button
+                onClick={() => {
+                  const fullUrl = `${window.location.origin}${inviteLink}`;
+                  const text = `Hey ${dare.streamerHandle}! Someone put up a $${dare.bounty.toLocaleString()} USDC bounty for you:\n\n"${dare.title}"\n\nClaim your tag to accept it 👇\n\n#BaseDare`;
+                  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(fullUrl)}`;
+                  window.open(twitterUrl, '_blank', 'width=550,height=420');
+                }}
+                className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.5)] flex items-center justify-center gap-3"
+              >
+                <Share2 className="w-5 h-5" />
+                Invite Creator on X
+              </button>
+
+              <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
+                Tag them so they can claim their bounty!
+              </p>
+            </div>
+          )}
+
           {/* Pledge Button */}
-          {!isExpired && !isVerified && (
+          {!isExpired && !isVerified && !isAwaitingClaim && (
             <div className="p-6 border-t border-white/10">
               <button
                 onClick={() => {
@@ -264,6 +356,23 @@ export default function DareDetailPage() {
               <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
                 Increase the stakes. Make them sweat.
               </p>
+            </div>
+          )}
+
+          {/* Add to Bounty Pool for Awaiting Claim dares */}
+          {isAwaitingClaim && (
+            <div className="p-6 border-t border-white/10">
+              <button
+                onClick={() => {
+                  const pledgeUrl = referrer
+                    ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
+                    : `/create?pledge=${shortId}`;
+                  router.push(pledgeUrl);
+                }}
+                className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all"
+              >
+                Add More to Bounty Pool
+              </button>
             </div>
           )}
 

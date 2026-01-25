@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle } from "lucide-react";
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle } from "lucide-react";
 import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
@@ -32,10 +32,21 @@ const CreateBountySchema = z.object({
 
 type FormData = z.infer<typeof CreateBountySchema>;
 
+interface SuccessData {
+  dareId: string;
+  simulated?: boolean;
+  awaitingClaim?: boolean;
+  inviteLink?: string | null;
+  claimDeadline?: string | null;
+  streamerTag?: string;
+  shortId?: string;
+}
+
 export default function CreateDare() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successData, setSuccessData] = useState<{ dareId: string; simulated?: boolean } | null>(null);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -95,11 +106,22 @@ export default function CreateDare() {
         setSuccessData({
           dareId: result.data.dareId,
           simulated: result.simulated,
+          awaitingClaim: result.data.awaitingClaim,
+          inviteLink: result.data.inviteLink,
+          claimDeadline: result.data.claimDeadline,
+          streamerTag: result.data.streamerTag,
+          shortId: result.data.shortId,
         });
 
         toast({
-          title: result.simulated ? '🧪 SIMULATION SUCCESS' : '✅ CONTRACT DEPLOYED',
-          description: `Dare ID: ${result.data.dareId}`,
+          title: result.data.awaitingClaim
+            ? '⏳ BOUNTY ESCROWED'
+            : result.simulated
+            ? '🧪 SIMULATION SUCCESS'
+            : '✅ CONTRACT DEPLOYED',
+          description: result.data.awaitingClaim
+            ? 'Share the invite link with the creator!'
+            : `Dare ID: ${result.data.dareId}`,
           duration: 6000,
         });
 
@@ -143,25 +165,114 @@ export default function CreateDare() {
 
         {/* SUCCESS STATE */}
         {successData && (
-          <div className="mb-8 p-6 rounded-2xl bg-green-500/10 border border-green-500/30 backdrop-blur-xl">
+          <div className={`mb-8 p-6 rounded-2xl backdrop-blur-xl ${
+            successData.awaitingClaim
+              ? 'bg-yellow-500/10 border border-yellow-500/30'
+              : 'bg-green-500/10 border border-green-500/30'
+          }`}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-400" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                successData.awaitingClaim ? 'bg-yellow-500/20' : 'bg-green-500/20'
+              }`}>
+                {successData.awaitingClaim ? (
+                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
+                ) : (
+                  <CheckCircle className="w-6 h-6 text-green-400" />
+                )}
               </div>
-              <div>
-                <h3 className="text-xl font-black text-green-400 uppercase tracking-wider">
-                  {successData.simulated ? 'Simulation Success' : 'Contract Deployed'}
+              <div className="flex-1">
+                <h3 className={`text-xl font-black uppercase tracking-wider ${
+                  successData.awaitingClaim ? 'text-yellow-400' : 'text-green-400'
+                }`}>
+                  {successData.awaitingClaim
+                    ? 'Awaiting Creator Claim'
+                    : successData.simulated
+                    ? 'Simulation Success'
+                    : 'Contract Deployed'}
                 </h3>
-                <p className="text-green-400/80 text-sm font-mono mt-1">
-                  Dare ID: {successData.dareId}
+                <p className={`text-sm font-mono mt-1 ${
+                  successData.awaitingClaim ? 'text-yellow-400/80' : 'text-green-400/80'
+                }`}>
+                  {successData.awaitingClaim
+                    ? `Bounty escrowed for ${successData.streamerTag}`
+                    : `Dare ID: ${successData.dareId}`}
                 </p>
               </div>
-              {successData.simulated && (
+              {successData.simulated && !successData.awaitingClaim && (
                 <span className="ml-auto px-3 py-1 text-xs font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">
                   Testnet Mode
                 </span>
               )}
             </div>
+
+            {/* Awaiting Claim - Show Invite Link */}
+            {successData.awaitingClaim && successData.inviteLink && (
+              <div className="mt-6 space-y-4">
+                <div className="p-4 bg-black/30 rounded-xl border border-white/10">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Share this link with {successData.streamerTag}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-3 py-2 bg-black/40 rounded-lg text-sm text-yellow-400 font-mono truncate">
+                      {typeof window !== 'undefined' ? `${window.location.origin}${successData.inviteLink}` : successData.inviteLink}
+                    </code>
+                    <button
+                      onClick={() => {
+                        const fullUrl = `${window.location.origin}${successData.inviteLink}`;
+                        navigator.clipboard.writeText(fullUrl);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition-colors"
+                    >
+                      {copied ? (
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <Copy className="w-5 h-5 text-yellow-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Share on X Button */}
+                <button
+                  onClick={() => {
+                    const fullUrl = `${window.location.origin}${successData.inviteLink}`;
+                    const text = `Hey ${successData.streamerTag}! Someone just put up a bounty for you on BaseDare. Claim it before it expires!\n\n${fullUrl}`;
+                    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                    window.open(twitterUrl, '_blank', 'width=550,height=420');
+                  }}
+                  className="w-full py-3 bg-black hover:bg-zinc-900 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share on X
+                </button>
+
+                {/* Refund Deadline */}
+                {successData.claimDeadline && (
+                  <p className="text-xs text-gray-500 text-center font-mono">
+                    Auto-refund if unclaimed by{' '}
+                    {new Date(successData.claimDeadline).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Normal Success - Show Share Link */}
+            {!successData.awaitingClaim && successData.shortId && (
+              <div className="mt-4 flex items-center gap-2">
+                <a
+                  href={`/dare/${successData.shortId}`}
+                  className="text-sm text-purple-400 hover:text-purple-300 font-mono transition-colors"
+                >
+                  View dare →
+                </a>
+              </div>
+            )}
           </div>
         )}
 

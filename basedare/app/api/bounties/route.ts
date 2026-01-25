@@ -32,6 +32,11 @@ function generateShortId(length = 8): string {
   return result;
 }
 
+function generateInviteToken(): string {
+  // Generate a UUID-like token for invite links
+  return 'inv_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+}
+
 // ============================================================================
 // ENVIRONMENT & CONFIG
 // ============================================================================
@@ -47,35 +52,48 @@ const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 
 // ============================================================================
-// $BARE TAG TO ADDRESS MAPPING (Mock for development)
+// TAG TO ADDRESS RESOLUTION - Uses verified tags from database
 // ============================================================================
 
-const TAG_TO_ADDRESS_MAP: Record<string, Address> = {
+// Fallback map for legacy/testing (will be phased out)
+const LEGACY_TAG_MAP: Record<string, Address> = {
   '@KaiCenat': '0x1234567890123456789012345678901234567890',
   '@xQc': '0x2345678901234567890123456789012345678901',
-  '@Asmongold': '0x3456789012345678901234567890123456789012',
-  '@Pokimane': '0x4567890123456789012345678901234567890123',
-  '@Ninja': '0x5678901234567890123456789012345678901234',
-  '@shroud': '0x6789012345678901234567890123456789012345',
-  '@TimTheTatman': '0x7890123456789012345678901234567890123456',
-  '@DrDisrespect': '0x8901234567890123456789012345678901234567',
 };
 
-function resolveTagToAddress(tag: string): { address: Address | null; simulated: boolean } {
-  const normalizedTag = tag.toLowerCase();
+async function resolveTagToAddress(tag: string): Promise<{ address: Address | null; simulated: boolean; verified: boolean }> {
+  const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
 
-  // Check exact match (case-insensitive)
-  for (const [knownTag, address] of Object.entries(TAG_TO_ADDRESS_MAP)) {
-    if (knownTag.toLowerCase() === normalizedTag) {
-      return { address, simulated: false };
+  // 1. Check database for verified tag
+  const verifiedTag = await prisma.streamerTag.findUnique({
+    where: { tag: normalizedTag },
+    select: { walletAddress: true, status: true },
+  });
+
+  if (verifiedTag && verifiedTag.status === 'VERIFIED') {
+    console.log(`[TAG] Resolved ${normalizedTag} → ${verifiedTag.walletAddress} (verified)`);
+    return {
+      address: verifiedTag.walletAddress as Address,
+      simulated: false,
+      verified: true
+    };
+  }
+
+  // 2. Check legacy map (for backwards compatibility during transition)
+  const normalizedTagLower = normalizedTag.toLowerCase();
+  for (const [knownTag, address] of Object.entries(LEGACY_TAG_MAP)) {
+    if (knownTag.toLowerCase() === normalizedTagLower) {
+      console.log(`[TAG] Resolved ${normalizedTag} → ${address} (legacy map)`);
+      return { address, simulated: false, verified: false };
     }
   }
 
-  // Tag not found - generate deterministic simulated address for testing
-  const hash = normalizedTag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  // 3. Tag not found - generate simulated address for testing
+  const hash = normalizedTagLower.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const simulatedAddress = `0x${hash.toString(16).padStart(8, '0')}${'0'.repeat(32)}` as Address;
 
-  return { address: simulatedAddress, simulated: true };
+  console.log(`[TAG] Resolved ${normalizedTag} → ${simulatedAddress} (simulated - tag not verified)`);
+  return { address: simulatedAddress, simulated: true, verified: false };
 }
 
 // ============================================================================
@@ -262,9 +280,10 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 2. RESOLVE STREAMER TAG TO ADDRESS
     // -------------------------------------------------------------------------
-    const tagResolution = resolveTagToAddress(streamerTag);
+    const tagResolution = await resolveTagToAddress(streamerTag);
     const streamerAddress = tagResolution.address;
     const tagSimulated = tagResolution.simulated;
+    const tagVerified = tagResolution.verified;
 
     if (!streamerAddress) {
       return NextResponse.json(
@@ -306,10 +325,10 @@ export async function POST(request: NextRequest) {
       // WRITE TO PRISMA DATABASE (Simulated Mode)
       // -----------------------------------------------------------------------
 
-      // Resolve referrer tag to address (mock mapping)
+      // Resolve referrer tag to address
       let resolvedReferrerAddress: string | null = null;
       if (referrerTag) {
-        const referrerResolution = resolveTagToAddress(referrerTag);
+        const referrerResolution = await resolveTagToAddress(referrerTag);
         resolvedReferrerAddress = referrerResolution.address;
         console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
       }
@@ -318,12 +337,21 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const shortId = generateShortId();
 
+      // Determine status and invite flow based on tag verification
+      const isAwaitingClaim = !tagVerified;
+      const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
+      // If tag is unverified, set 30-day claim deadline
+      const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      const dareStatus = isAwaitingClaim ? 'AWAITING_CLAIM' : 'PENDING';
+      // Only set targetWalletAddress if tag is verified
+      const targetWalletAddress = tagVerified ? streamerAddress : null;
+
       const dbDare = await prisma.dare.create({
         data: {
           title,
           bounty: amount,
           streamerHandle: streamerTag,
-          status: 'PENDING',
+          status: dareStatus,
           streamId,
           txHash: null,
           isSimulated: true,
@@ -332,15 +360,25 @@ export async function POST(request: NextRequest) {
           referrerTag: referrerTag || null,
           referrerAddress: resolvedReferrerAddress,
           stakerAddress: stakerAddress?.toLowerCase() || null,
+          inviteToken,
+          claimDeadline,
+          targetWalletAddress,
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, staker: ${stakerAddress || 'anonymous'}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`);
+
+      // Build invite link for unclaimed tags
+      const inviteLink = isAwaitingClaim
+        ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
+        : null;
 
       return NextResponse.json({
         success: true,
         simulated: true,
-        message: 'Contract not deployed - simulated stake for frontend testing',
+        message: isAwaitingClaim
+          ? 'Bounty escrowed - tag not yet claimed. Share the invite link!'
+          : 'Contract not deployed - simulated stake for frontend testing',
         data: {
           dareId: dbDare.id,
           title,
@@ -349,6 +387,7 @@ export async function POST(request: NextRequest) {
           streamerTag,
           streamerAddress,
           tagSimulated,
+          tagVerified,
           referrerAddress: referrerAddress || null,
           streamId,
           streamVerification: {
@@ -357,10 +396,15 @@ export async function POST(request: NextRequest) {
           },
           txHash: null,
           blockNumber: '0',
-          status: 'PENDING',
+          status: dareStatus,
           expiresAt: expiresAt.toISOString(),
           shortId,
           shareUrl: `/dare/${shortId}`,
+          // Invite flow fields
+          awaitingClaim: isAwaitingClaim,
+          inviteLink,
+          inviteToken,
+          claimDeadline: claimDeadline?.toISOString() || null,
         },
       });
     }
@@ -422,10 +466,10 @@ export async function POST(request: NextRequest) {
     // 11. WRITE TO PRISMA DATABASE (Real Contract Mode)
     // -------------------------------------------------------------------------
 
-    // Resolve referrer tag to address (mock mapping)
+    // Resolve referrer tag to address
     let resolvedReferrerAddress: string | null = null;
     if (referrerTag) {
-      const referrerResolution = resolveTagToAddress(referrerTag);
+      const referrerResolution = await resolveTagToAddress(referrerTag);
       resolvedReferrerAddress = referrerResolution.address;
       console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
     }
@@ -434,12 +478,21 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const shortId = generateShortId();
 
+    // Determine status and invite flow based on tag verification
+    const isAwaitingClaim = !tagVerified;
+    const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
+    // If tag is unverified, set 30-day claim deadline
+    const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+    const dareStatus = receipt.status !== 'success' ? 'FAILED' : (isAwaitingClaim ? 'AWAITING_CLAIM' : 'PENDING');
+    // Only set targetWalletAddress if tag is verified
+    const targetWalletAddress = tagVerified ? streamerAddress : null;
+
     const dbDare = await prisma.dare.create({
       data: {
         title,
         bounty: amount,
         streamerHandle: streamerTag,
-        status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        status: dareStatus,
         streamId,
         txHash,
         isSimulated: false,
@@ -448,6 +501,9 @@ export async function POST(request: NextRequest) {
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
         stakerAddress: stakerAddress?.toLowerCase() || null,
+        inviteToken,
+        claimDeadline,
+        targetWalletAddress,
       },
     });
 
@@ -455,8 +511,13 @@ export async function POST(request: NextRequest) {
     // 12. AUDIT LOG (no sensitive data)
     // -------------------------------------------------------------------------
     console.log(
-      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", tag: ${streamerTag}, amount: ${amount} USDC, txHash: ${txHash}`
+      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", tag: ${streamerTag}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`
     );
+
+    // Build invite link for unclaimed tags
+    const inviteLink = isAwaitingClaim
+      ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
+      : null;
 
     // -------------------------------------------------------------------------
     // 13. RETURN SUCCESS
@@ -471,6 +532,7 @@ export async function POST(request: NextRequest) {
         streamerTag,
         streamerAddress,
         tagSimulated,
+        tagVerified,
         referrerAddress: referrerAddress || null,
         streamId,
         streamVerification: {
@@ -479,10 +541,15 @@ export async function POST(request: NextRequest) {
         },
         txHash,
         blockNumber: receipt.blockNumber.toString(),
-        status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        status: dareStatus,
         expiresAt: expiresAt.toISOString(),
         shortId,
         shareUrl: `/dare/${shortId}`,
+        // Invite flow fields
+        awaitingClaim: isAwaitingClaim,
+        inviteLink,
+        inviteToken,
+        claimDeadline: claimDeadline?.toISOString() || null,
       },
     });
   } catch (error: unknown) {
@@ -627,6 +694,11 @@ export async function GET(request: NextRequest) {
               status: dbBounty.status,
               createdAt: dbBounty.createdAt.toISOString(),
               potSize: Math.floor(dbBounty.bounty * 1.2),
+              // Invite flow fields
+              inviteToken: dbBounty.inviteToken,
+              claimDeadline: dbBounty.claimDeadline?.toISOString() || null,
+              targetWalletAddress: dbBounty.targetWalletAddress,
+              awaitingClaim: dbBounty.status === 'AWAITING_CLAIM',
             },
           });
         }
@@ -684,9 +756,9 @@ export async function GET(request: NextRequest) {
 
     // Simulated mode or no indexer - fetch from database + mock data
     if (!isContractDeployed || FORCE_SIMULATION) {
-      // Fetch real bounties from database
+      // Fetch real bounties from database (including AWAITING_CLAIM)
       const dbBounties = await prisma.dare.findMany({
-        where: { status: 'PENDING' },
+        where: { status: { in: ['PENDING', 'AWAITING_CLAIM'] } },
         orderBy: sort === 'amount' ? { bounty: 'desc' } : { createdAt: 'desc' },
         take: 50,
       });
@@ -697,9 +769,11 @@ export async function GET(request: NextRequest) {
         title: dare.title,
         amount: dare.bounty,
         streamerTag: dare.streamerHandle,
-        status: dare.status as 'PENDING' | 'VERIFIED' | 'FAILED',
+        status: dare.status as 'PENDING' | 'VERIFIED' | 'FAILED' | 'AWAITING_CLAIM',
         createdAt: dare.createdAt.toISOString(),
         potSize: Math.floor(dare.bounty * 1.2), // Simulated pot multiplier
+        awaitingClaim: dare.status === 'AWAITING_CLAIM',
+        claimDeadline: dare.claimDeadline?.toISOString() || null,
       }));
 
       // Combine with mock bounties if database is empty

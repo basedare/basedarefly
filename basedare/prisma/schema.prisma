@@ -46,8 +46,17 @@ model Dare {
   referrerPayout Float?
   // Staker tracking
   stakerAddress String?
+
+  // Invite/Escrow flow for unclaimed tags
+  inviteToken         String?   @unique  // UUID for invite link
+  claimDeadline       DateTime?          // 30 days from creation for unclaimed tags
+  targetWalletAddress String?            // Resolved wallet (null if tag unclaimed)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([inviteToken])
+  @@index([streamerHandle, status])
 }
 model Referral {
   id String @id @default(cuid())
@@ -58,6 +67,63 @@ model Referral {
   totalEarned Float @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// STREAMER TAGS - Verified identity system
+// ============================================================================
+
+model StreamerTag {
+  id              String   @id @default(cuid())
+
+  // The claimed tag (e.g., "@KaiCenat")
+  tag             String   @unique
+
+  // Wallet address that owns this tag
+  walletAddress   String
+
+  // Verification details
+  verificationMethod String  // TWITTER | TWITCH | YOUTUBE | MANUAL | ADMIN
+  verifiedAt      DateTime?
+
+  // Twitter OAuth data (if verified via Twitter)
+  twitterId       String?  @unique
+  twitterHandle   String?
+  twitterVerified Boolean  @default(false)
+
+  // Twitch OAuth data
+  twitchId        String?  @unique
+  twitchHandle    String?
+  twitchVerified  Boolean  @default(false)
+
+  // YouTube OAuth data
+  youtubeId       String?  @unique
+  youtubeHandle   String?
+  youtubeVerified Boolean  @default(false)
+
+  // Kick manual verification data
+  kickHandle           String?
+  kickVerificationCode String?
+  kickVerified         Boolean  @default(false)
+
+  // Status: PENDING | VERIFIED | REVOKED | SUSPENDED
+  status          String   @default("PENDING")
+
+  // Admin controls
+  revokedAt       DateTime?
+  revokedBy       String?  // Admin wallet
+  revokeReason    String?
+
+  // Earnings tracking
+  totalEarned     Float    @default(0)
+  completedDares  Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([walletAddress])
+  @@index([twitterHandle])
+  @@index([status])
 }
 
 // ============================================================================
