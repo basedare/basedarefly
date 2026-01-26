@@ -123,12 +123,13 @@ const StakeBountySchema = z.object({
   // Livepeer stream verification
   streamId: z.string().min(1, 'Stream ID is required'),
 
-  // Streamer tag (@username format)
+  // Streamer tag (@username format) - optional for open bounties
   streamerTag: z
     .string()
-    .min(3, 'Tag must be at least 3 characters')
     .max(20, 'Tag must be 20 characters or less')
-    .regex(/^@[a-zA-Z0-9_]+$/, 'Tag must start with @ and contain only letters, numbers, and underscores'),
+    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
+    .optional()
+    .or(z.literal('')),
 
   referrerAddress: z
     .string()
@@ -278,25 +279,34 @@ export async function POST(request: NextRequest) {
       validation.data;
 
     // -------------------------------------------------------------------------
-    // 2. RESOLVE STREAMER TAG TO ADDRESS
+    // 2. RESOLVE STREAMER TAG TO ADDRESS (or handle open bounty)
     // -------------------------------------------------------------------------
-    const tagResolution = await resolveTagToAddress(streamerTag);
-    const streamerAddress = tagResolution.address;
-    const tagSimulated = tagResolution.simulated;
-    const tagVerified = tagResolution.verified;
+    const isOpenBounty = !streamerTag || streamerTag.trim() === '';
+    let streamerAddress: Address | null = null;
+    let tagSimulated = false;
+    let tagVerified = false;
 
-    if (!streamerAddress) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Could not resolve streamer tag to address',
-          code: 'TAG_RESOLUTION_FAILED',
-        },
-        { status: 400 }
-      );
+    if (!isOpenBounty) {
+      const tagResolution = await resolveTagToAddress(streamerTag);
+      streamerAddress = tagResolution.address;
+      tagSimulated = tagResolution.simulated;
+      tagVerified = tagResolution.verified;
+
+      if (!streamerAddress) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Could not resolve streamer tag to address',
+            code: 'TAG_RESOLUTION_FAILED',
+          },
+          { status: 400 }
+        );
+      }
+
+      console.log(`[TAG] Resolved ${streamerTag} -> ${streamerAddress}${tagSimulated ? ' (simulated)' : ''}`);
+    } else {
+      console.log(`[BOUNTY] Creating open bounty - no target specified`);
     }
-
-    console.log(`[TAG] Resolved ${streamerTag} -> ${streamerAddress}${tagSimulated ? ' (simulated)' : ''}`);
 
     // -------------------------------------------------------------------------
     // 3. VERIFY LIVEPEER STREAM IS ACTIVE
@@ -315,11 +325,19 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // 4. CHECK CONTRACT DEPLOYMENT STATUS / SIMULATION MODE
+    // 4. CHECK CONTRACT DEPLOYMENT STATUS / SIMULATION MODE / OPEN BOUNTY
     // -------------------------------------------------------------------------
-    if (!isContractDeployed || FORCE_SIMULATION) {
-      // Contract not deployed or simulation mode - return simulated response
-      console.warn('[BOUNTY] Running in simulated mode (contract not deployed or SIMULATE_BOUNTIES=true)');
+    // Use database-only mode for: no contract, simulation, open bounties, or unverified tags
+    // Only go on-chain for verified tags with real wallet addresses
+    if (!isContractDeployed || FORCE_SIMULATION || isOpenBounty || tagSimulated) {
+      // Database-only mode
+      if (isOpenBounty) {
+        console.log('[BOUNTY] Open bounty - using database-only mode (no on-chain escrow)');
+      } else if (tagSimulated) {
+        console.log(`[BOUNTY] Unverified tag ${streamerTag} - using database-only mode until claimed`);
+      } else {
+        console.warn('[BOUNTY] Running in simulated mode (contract not deployed or SIMULATE_BOUNTIES=true)');
+      }
 
       // -----------------------------------------------------------------------
       // WRITE TO PRISMA DATABASE (Simulated Mode)
@@ -338,7 +356,9 @@ export async function POST(request: NextRequest) {
       const shortId = generateShortId();
 
       // Determine status and invite flow based on tag verification
-      const isAwaitingClaim = !tagVerified;
+      // Open bounties go straight to PENDING (anyone can complete)
+      // Targeted bounties with unverified tags go to AWAITING_CLAIM
+      const isAwaitingClaim = !isOpenBounty && !tagVerified;
       const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
       // If tag is unverified, set 30-day claim deadline
       const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
@@ -350,7 +370,7 @@ export async function POST(request: NextRequest) {
         data: {
           title,
           bounty: amount,
-          streamerHandle: streamerTag,
+          streamerHandle: isOpenBounty ? null : streamerTag,
           status: dareStatus,
           streamId,
           txHash: null,
@@ -366,28 +386,31 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", tag: ${streamerTag}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`);
 
-      // Build invite link for unclaimed tags
-      const inviteLink = isAwaitingClaim
+      // Build invite link for unclaimed tags (not for open bounties)
+      const inviteLink = isAwaitingClaim && streamerTag
         ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
         : null;
 
       return NextResponse.json({
         success: true,
         simulated: true,
-        message: isAwaitingClaim
-          ? 'Bounty escrowed - tag not yet claimed. Share the invite link!'
-          : 'Contract not deployed - simulated stake for frontend testing',
+        message: isOpenBounty
+          ? 'Open bounty created - anyone can complete this dare!'
+          : isAwaitingClaim
+            ? 'Bounty escrowed - tag not yet claimed. Share the invite link!'
+            : 'Contract not deployed - simulated stake for frontend testing',
         data: {
           dareId: dbDare.id,
           title,
           description,
           amount,
-          streamerTag,
+          streamerTag: isOpenBounty ? null : streamerTag,
           streamerAddress,
           tagSimulated,
           tagVerified,
+          isOpenBounty,
           referrerAddress: referrerAddress || null,
           streamId,
           streamVerification: {
@@ -445,13 +468,16 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 9. EXECUTE stakeBounty ON-CHAIN (CEI Pattern in contract)
     // -------------------------------------------------------------------------
+    // For open bounties, use zero address as placeholder (anyone can claim)
+    const targetAddress = streamerAddress || '0x0000000000000000000000000000000000000000' as Address;
+
     const txHash = await walletClient.writeContract({
       address: BOUNTY_CONTRACT_ADDRESS,
       abi: BOUNTY_ABI,
       functionName: 'stakeBounty',
       args: [
         finalDareId,
-        streamerAddress,
+        targetAddress,
         (referrerAddress || '0x0000000000000000000000000000000000000000') as Address,
         amountInUnits,
       ],
@@ -479,7 +505,8 @@ export async function POST(request: NextRequest) {
     const shortId = generateShortId();
 
     // Determine status and invite flow based on tag verification
-    const isAwaitingClaim = !tagVerified;
+    // Open bounties go straight to PENDING (anyone can complete)
+    const isAwaitingClaim = !isOpenBounty && !tagVerified;
     const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
     // If tag is unverified, set 30-day claim deadline
     const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
@@ -491,7 +518,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         bounty: amount,
-        streamerHandle: streamerTag,
+        streamerHandle: isOpenBounty ? null : streamerTag,
         status: dareStatus,
         streamId,
         txHash,
@@ -511,11 +538,11 @@ export async function POST(request: NextRequest) {
     // 12. AUDIT LOG (no sensitive data)
     // -------------------------------------------------------------------------
     console.log(
-      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", tag: ${streamerTag}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`
+      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`
     );
 
-    // Build invite link for unclaimed tags
-    const inviteLink = isAwaitingClaim
+    // Build invite link for unclaimed tags (not for open bounties)
+    const inviteLink = isAwaitingClaim && streamerTag
       ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
       : null;
 
@@ -529,10 +556,11 @@ export async function POST(request: NextRequest) {
         title,
         description,
         amount,
-        streamerTag,
+        streamerTag: isOpenBounty ? null : streamerTag,
         streamerAddress,
         tagSimulated,
         tagVerified,
+        isOpenBounty,
         referrerAddress: referrerAddress || null,
         streamId,
         streamVerification: {

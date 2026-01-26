@@ -22,7 +22,7 @@ model Dare {
   shortId String? @unique
   title String
   bounty Float
-  streamerHandle String
+  streamerHandle String?  // Null for open bounties (anyone can complete)
   status String @default("PENDING")
   videoUrl String?
   proofHash String?

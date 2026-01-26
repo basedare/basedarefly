@@ -53,9 +53,10 @@ function ContactButton() {
 const CreateBountySchema = z.object({
   streamerTag: z
     .string()
-    .min(3, 'Tag must be at least 3 characters')
     .max(20, 'Tag must be 20 characters or less')
-    .regex(/^@[a-zA-Z0-9_]+$/, 'Tag must start with @ (e.g., @KaiCenat)'),
+    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ (e.g., @KaiCenat)')
+    .optional()
+    .or(z.literal('')), // Allow empty string for open bounties
   title: z
     .string()
     .min(3, 'Mission must be at least 3 characters')
@@ -77,8 +78,9 @@ interface SuccessData {
   awaitingClaim?: boolean;
   inviteLink?: string | null;
   claimDeadline?: string | null;
-  streamerTag?: string;
+  streamerTag?: string | null;
   shortId?: string;
+  isOpenBounty?: boolean;
 }
 
 export default function CreateDare() {
@@ -168,15 +170,20 @@ export default function CreateDare() {
           claimDeadline: result.data.claimDeadline,
           streamerTag: result.data.streamerTag,
           shortId: result.data.shortId,
+          isOpenBounty: result.data.isOpenBounty,
         });
 
         toast({
-          title: result.data.awaitingClaim
+          title: result.data.isOpenBounty
+            ? '🎯 OPEN DARE DEPLOYED'
+            : result.data.awaitingClaim
             ? '⏳ BOUNTY ESCROWED'
             : result.simulated
             ? '🧪 SIMULATION SUCCESS'
             : '✅ CONTRACT DEPLOYED',
-          description: result.data.awaitingClaim
+          description: result.data.isOpenBounty
+            ? 'Anyone can complete this dare!'
+            : result.data.awaitingClaim
             ? 'Share the invite link with the creator!'
             : `Dare ID: ${result.data.dareId}`,
           duration: 6000,
@@ -259,7 +266,9 @@ export default function CreateDare() {
                 }`}>
                   {successData.awaitingClaim
                     ? `Escrowed for ${successData.streamerTag}`
-                    : `Dare ID: ${successData.dareId}`}
+                    : successData.streamerTag
+                      ? `Dare ID: ${successData.dareId}`
+                      : 'Open dare - anyone can complete!'}
                 </p>
               </div>
               {successData.simulated && !successData.awaitingClaim && (
@@ -374,14 +383,14 @@ export default function CreateDare() {
             <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
             <div className="space-y-8 md:space-y-12">
 
-              {/* 1. TARGET */}
+              {/* 1. TARGET (Optional) */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
-                  <Users className="w-3.5 h-3.5 md:w-4 md:h-4" /> Target Identity
+                  <Users className="w-3.5 h-3.5 md:w-4 md:h-4" /> Target <span className="text-gray-500 text-[9px] md:text-[10px] font-normal lowercase">(optional)</span>
                 </label>
                 <input
                   {...register('streamerTag')}
-                  placeholder="@xQc, @KaiCenat..."
+                  placeholder="@username or leave empty for open dare"
                   className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
                 {errors.streamerTag && (
