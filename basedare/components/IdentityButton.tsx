@@ -3,6 +3,7 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useState, useRef, useEffect } from 'react';
 import { Wallet } from 'lucide-react';
+import { useFeedback } from '@/hooks/useFeedback';
 
 export function IdentityButton() {
   const { address, isConnected } = useAccount();
@@ -10,6 +11,7 @@ export function IdentityButton() {
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { trigger } = useFeedback();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -23,8 +25,10 @@ export function IdentityButton() {
 
   const handleClick = () => {
     if (isConnected) {
+      trigger('click');
       setShowDropdown(!showDropdown);
     } else {
+      trigger('connect');
       // Prefer coinbaseWallet for mobile compatibility, fallback to injected for desktop extensions
       const coinbaseConnector = connectors.find(c => c.id === 'coinbaseWalletSDK');
       const injectedConnector = connectors.find(c => c.id === 'injected');
@@ -69,7 +73,7 @@ export function IdentityButton() {
               <p className="text-sm text-white font-mono">{truncatedAddress}</p>
             </div>
             <button
-              onClick={() => { disconnect(); setShowDropdown(false); }}
+              onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
               className="w-full px-4 py-3 text-left text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
             >
               Disconnect
@@ -164,7 +168,7 @@ export function IdentityButton() {
               <p className="text-xs text-white font-mono mt-0.5">{truncatedAddress}</p>
             </div>
             <button
-              onClick={() => { disconnect(); setShowDropdown(false); }}
+              onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
               className="w-full px-3 py-2.5 text-left text-xs text-zinc-500 hover:text-white hover:bg-white/[0.03] transition-colors"
             >
               Disconnect

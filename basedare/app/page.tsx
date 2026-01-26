@@ -24,7 +24,6 @@ import BusinessDossier from "@/components/BusinessDossier";
 // Chat removed for MVP - LiveChatOverlay was here
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
-import CreateBountyForm from "@/components/create-bounty-form";
 import { FuelTheRocket } from "@/components/FuelTheRocket";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import RealityShift from "@/components/RealityShift";
@@ -282,15 +281,6 @@ export default function Home() {
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* CREATE BOUNTY FORM - For testing */}
-              <div className="w-full flex flex-col items-center py-16 z-30">
-                <div className="mb-8 flex flex-col items-center">
-                  <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Create a Bounty</h3>
-                  <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />
-                </div>
-                <CreateBountyForm />
               </div>
 
               <HowItWorks />

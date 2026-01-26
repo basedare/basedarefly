@@ -9,6 +9,7 @@ import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import { useToast } from '@/components/ui/use-toast';
+import { useFeedback } from '@/hooks/useFeedback';
 
 // Validation schema matching the API
 const CreateBountySchema = z.object({
@@ -48,6 +49,7 @@ export default function CreateDare() {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { trigger } = useFeedback();
 
   const {
     register,
@@ -84,6 +86,7 @@ export default function CreateDare() {
   };
 
   const onSubmit = async (data: FormData) => {
+    trigger('fund');
     console.log('[CREATE] Form submitted with data:', data);
     setIsSubmitting(true);
     setSuccessData(null);
@@ -103,6 +106,7 @@ export default function CreateDare() {
       const result = await response.json();
 
       if (result.success) {
+        trigger('success');
         setSuccessData({
           dareId: result.data.dareId,
           simulated: result.simulated,
@@ -128,6 +132,7 @@ export default function CreateDare() {
         // Reset form after successful submission
         reset();
       } else {
+        trigger('error');
         toast({
           variant: 'destructive',
           title: 'Deploy Failed',
@@ -135,6 +140,7 @@ export default function CreateDare() {
         });
       }
     } catch (error: unknown) {
+      trigger('error');
       const message = error instanceof Error ? error.message : 'Network error';
       toast({
         variant: 'destructive',
@@ -218,6 +224,7 @@ export default function CreateDare() {
                     </code>
                     <button
                       onClick={() => {
+                        trigger('click');
                         const fullUrl = `${window.location.origin}${successData.inviteLink}`;
                         navigator.clipboard.writeText(fullUrl);
                         setCopied(true);
@@ -237,6 +244,7 @@ export default function CreateDare() {
                 {/* Share on X Button */}
                 <button
                   onClick={() => {
+                    trigger('click');
                     const fullUrl = `${window.location.origin}${successData.inviteLink}`;
                     const text = `Hey ${successData.streamerTag}! Someone just put up a bounty for you on BaseDare. Claim it before it expires!\n\n${fullUrl}`;
                     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;

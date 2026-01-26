@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIgnition } from '@/app/context/IgnitionContext';
+import { useFeedback } from '@/hooks/useFeedback';
 
 interface InitProtocolButtonProps {
   className?: string;
@@ -10,8 +11,10 @@ interface InitProtocolButtonProps {
 
 export default function InitProtocolButton({ className, onClick }: InitProtocolButtonProps) {
   const { ignitionActive, triggerIgnition } = useIgnition();
+  const { trigger } = useFeedback();
 
   const handleAction = () => {
+    trigger('fund');
     triggerIgnition();
     if (onClick) onClick();
   };
