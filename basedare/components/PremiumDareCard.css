@@ -23,6 +23,33 @@
   z-index: 6;
 }
 
+/* Apple Liquid Glass - Top highlight line */
+.premium-dare-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.25) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 1px;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.premium-dare-card:hover::after {
+  opacity: 1;
+}
+
 .premium-dare-card:hover {
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:

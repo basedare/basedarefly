@@ -317,7 +317,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   return (
     <div className="w-full flex flex-col items-center">
       <div className="premium-filter-row flex flex-wrap items-center justify-between w-full max-w-[1400px] mb-12 px-6 gap-4">
-        <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
+        <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl glass-highlight">
           {FILTERS.map((cat) => (
             <button
               key={cat}

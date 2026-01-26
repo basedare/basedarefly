@@ -13,6 +13,8 @@ import InitProtocolButton from "@/components/InitProtocolButton";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import PeeBearConveyor from "@/components/PeeBearConveyor";
+import PeeBearOrb from "@/components/PeeBearOrb";
+import Lightning from "@/components/Lightning";
 
 // === FEATURE COMPONENTS ===
 import HeroEllipticalStream from "@/components/HeroEllipticalStream";
@@ -56,18 +58,7 @@ export default function Home() {
   const [showDossier, setShowDossier] = useState(false);
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
-  const [glitchActive, setGlitchActive] = useState(false);
-
-  // Cyberpunk glitch effect for mobile PeeBear - triggers every 10 seconds
-  useEffect(() => {
-    const glitchInterval = setInterval(() => {
-      setGlitchActive(true);
-      // Glitch lasts 300ms
-      setTimeout(() => setGlitchActive(false), 300);
-    }, 10000);
-
-    return () => clearInterval(glitchInterval);
-  }, []);
+  const [isLightningRoar, setIsLightningRoar] = useState(false);
 
   // Custom view setter that triggers transitions
   const handleViewChange = (newView: 'FAN' | 'BUSINESS') => {
@@ -181,73 +172,30 @@ export default function Home() {
 
                 {/* Mobile: Simplified hero with PeeBear + Conveyor */}
                 <div className="block md:hidden pt-24 pb-8">
-                  {/* Mobile PeeBear Head - With Cyberpunk Glitch Effect */}
-                  <div className="relative w-full flex justify-center mb-6">
-                    <div className="relative w-[200px] h-[200px]">
-                      {/* Glow effect */}
-                      <div
-                        className={`absolute inset-0 bg-purple-600/30 rounded-full blur-3xl transition-all duration-100 ${
-                          glitchActive ? 'bg-cyan-500/40 scale-110' : ''
-                        }`}
-                        style={{ transform: glitchActive ? 'scale(1.3)' : 'scale(1.2)' }}
-                      />
+                  {/* Lightning background - behind orb, triggers every 2-3 roars */}
+                  <AnimatePresence>
+                    {isLightningRoar && (
+                      <motion.div
+                        className="md:hidden fixed inset-0 z-[5] pointer-events-none"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.7 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
+                      >
+                        <Lightning
+                          hue={270}
+                          xOffset={0}
+                          speed={2}
+                          intensity={1.8}
+                          size={1.2}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                      {/* Glitch RGB layers - only visible during glitch */}
-                      {glitchActive && (
-                        <>
-                          {/* Red channel offset */}
-                          <img
-                            src="/assets/peebear-head.png"
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-contain z-20 opacity-60"
-                            style={{
-                              filter: 'hue-rotate(-60deg) saturate(2)',
-                              transform: 'translate(-4px, 2px)',
-                              mixBlendMode: 'screen',
-                              maskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                            }}
-                          />
-                          {/* Cyan channel offset */}
-                          <img
-                            src="/assets/peebear-head.png"
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-contain z-20 opacity-60"
-                            style={{
-                              filter: 'hue-rotate(180deg) saturate(2)',
-                              transform: 'translate(4px, -2px)',
-                              mixBlendMode: 'screen',
-                              maskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                            }}
-                          />
-                          {/* Scan lines overlay */}
-                          <div
-                            className="absolute inset-0 z-30 pointer-events-none opacity-30"
-                            style={{
-                              background: 'repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
-                            }}
-                          />
-                        </>
-                      )}
-
-                      {/* PeeBear image - main */}
-                      <img
-                        src="/assets/peebear-head.png"
-                        alt="BaseDare God"
-                        className={`w-full h-full object-contain relative z-10 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all duration-75 ${
-                          glitchActive ? 'scale-[1.02]' : ''
-                        }`}
-                        style={{
-                          maskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 70%, transparent 100%)',
-                          transform: glitchActive ? 'translate(1px, -1px) skewX(-1deg)' : undefined,
-                          filter: glitchActive
-                            ? 'drop-shadow(0 0 20px rgba(168,85,247,0.5)) brightness(1.2) contrast(1.1)'
-                            : 'drop-shadow(0 0 20px rgba(168,85,247,0.5))',
-                        }}
-                      />
-                    </div>
+                  {/* Mobile PeeBear Orb - MGM Lion-style roar animation */}
+                  <div className="relative w-full flex justify-center mb-6 z-[20]">
+                    <PeeBearOrb onLightningRoar={setIsLightningRoar} />
                   </div>
 
                   {/* Mobile Conveyor Strip - Always uses featured dares (same as desktop orbit) */}

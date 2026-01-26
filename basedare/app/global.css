@@ -2000,7 +2000,7 @@ svg.w-0.h-0 {
     /* 1. REPLACE HEAVY PARTICLES WITH STATIC CYBER-GRID
        Instead of a black void, we use a CSS pattern that looks like a grid.
        Zero download size, instant render. */
-    #particles-js, canvas, .video-background-container {
+    #particles-js, canvas:not(.lightning-canvas), .video-background-container {
         display: none !important;
         visibility: hidden !important;
     }
@@ -2127,4 +2127,143 @@ button[data-testid='ockConnectWalletButton']:hover {
 iframe[src*="keys.coinbase.com"],
 #cbw-sdk-modal {
   display: none !important;
+}
+
+/* =========================================
+   APPLE LIQUID GLASS ENHANCEMENTS
+   Subtle, premium glass effects
+   ========================================= */
+
+/* 1. TOP HIGHLIGHT LINE - The signature Apple glass edge */
+.glass-highlight {
+  position: relative;
+}
+
+.glass-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 1px;
+}
+
+/* Animated version - subtle shimmer */
+.glass-highlight-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 25%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.3) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: highlight-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes highlight-shimmer {
+  0%, 100% { background-position: 100% 0; opacity: 0.6; }
+  50% { background-position: 0% 0; opacity: 1; }
+}
+
+/* 2. SUBTLE NOISE TEXTURE - Adds depth to glass */
+.glass-noise {
+  position: relative;
+}
+
+.glass-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  border-radius: inherit;
+}
+
+/* 3. BREATHING GLOW - Slow, hypnotic pulse for PeeBear */
+@keyframes breathing-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.3))
+            drop-shadow(0 0 40px rgba(250, 204, 21, 0.15));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.5))
+            drop-shadow(0 0 60px rgba(250, 204, 21, 0.25));
+    transform: scale(1.02);
+  }
+}
+
+.breathing-glow {
+  animation: breathing-glow 4s ease-in-out infinite;
+}
+
+/* Respects reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .glass-highlight-animated::before,
+  .breathing-glow {
+    animation: none;
+  }
+}
+
+/* Combined utility - Apply all glass effects at once */
+.apple-liquid-glass {
+  position: relative;
+  background: rgba(10, 10, 15, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+}
+
+.apple-liquid-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+.apple-liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  border-radius: inherit;
 }

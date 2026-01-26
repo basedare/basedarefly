@@ -83,7 +83,7 @@ export function IdentityButton() {
       </div>
 
       {/* ============================================
-          MOBILE - Premium Liquid Metal Chrome Button
+          MOBILE - Pure Glass Pill Button
           ============================================ */}
       <div className="md:hidden relative" ref={!showDropdown ? dropdownRef : undefined}>
         {/* Tap target wrapper for extended hit area */}
@@ -97,57 +97,60 @@ export function IdentityButton() {
           onClick={handleClick}
         >
         <div
-          className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl overflow-hidden transition-all active:scale-95"
+          className="relative flex items-center justify-center gap-2 px-6 py-3 rounded-full overflow-hidden transition-all duration-200 active:scale-95"
           style={{
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
             minHeight: '44px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: `
+              0 4px 24px rgba(0, 0, 0, 0.15),
+              0 1px 2px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+            `,
           }}
         >
-          {/* Liquid metal base - brighter chrome */}
+          {/* Top highlight - glass reflection */}
           <div
-            className="absolute inset-0 pointer-events-none"
+            className="absolute inset-x-0 top-0 h-1/2 pointer-events-none rounded-t-full"
             style={{
-              background: 'linear-gradient(160deg, #3a3a42 0%, #28282e 25%, #1e1e24 50%, #28282e 75%, #3a3a42 100%)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)',
             }}
           />
-          {/* Top highlight band */}
+
+          {/* Top edge bright line */}
           <div
-            className="absolute inset-x-0 top-0 h-[2px] pointer-events-none"
+            className="absolute inset-x-6 top-0 h-[1px] pointer-events-none"
             style={{
-              background: 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.4) 50%, transparent 90%)',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)',
             }}
           />
-          {/* Inner top shine */}
+
+          {/* Glossy spot - top right */}
           <div
-            className="absolute inset-0 pointer-events-none"
+            className="absolute top-1 right-4 w-6 h-2 pointer-events-none rounded-full"
             style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 40%)',
-            }}
-          />
-          {/* Bottom shadow for depth */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-[1px] pointer-events-none"
-            style={{
-              background: 'rgba(0,0,0,0.4)',
-            }}
-          />
-          {/* Chrome border */}
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.25) 0%, transparent 70%)',
+              filter: 'blur(1px)',
             }}
           />
 
           {/* Content */}
-          <div className="relative flex items-center gap-2.5">
+          <div className="relative z-10 flex items-center gap-2">
             {isConnected ? (
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.7)]" />
+              <div
+                className="w-2 h-2 rounded-full bg-green-400"
+                style={{
+                  boxShadow: '0 0 6px rgba(74,222,128,0.8)'
+                }}
+              />
             ) : (
-              <Wallet className="w-4 h-4 text-zinc-300" />
+              <Wallet className="w-4 h-4 text-white/80" />
             )}
-            <span className="text-[11px] font-bold text-white uppercase tracking-wider">
-              {isConnected ? truncatedAddress : 'Login'}
+            <span className="text-[11px] font-medium text-white/90 uppercase tracking-wider">
+              {isConnected ? truncatedAddress : 'Connect'}
             </span>
           </div>
         </div>
@@ -155,21 +158,22 @@ export function IdentityButton() {
 
         {showDropdown && isConnected && (
           <div
-            className="absolute top-full right-0 mt-2 w-44 rounded-xl overflow-hidden z-50"
+            className="absolute top-full right-0 mt-2 w-44 rounded-2xl overflow-hidden z-50"
             style={{
-              background: 'linear-gradient(180deg, rgba(20, 20, 25, 0.98) 0%, rgba(15, 15, 20, 0.99) 100%)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
             }}
           >
-            <div className="px-3 py-2.5 border-b border-white/5">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wide">Connected</p>
-              <p className="text-xs text-white font-mono mt-0.5">{truncatedAddress}</p>
+            <div className="px-4 py-3 border-b border-white/10">
+              <p className="text-[10px] text-white/50 uppercase tracking-wide">Connected</p>
+              <p className="text-xs text-white/90 font-mono mt-0.5">{truncatedAddress}</p>
             </div>
             <button
               onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
-              className="w-full px-3 py-2.5 text-left text-xs text-zinc-500 hover:text-white hover:bg-white/[0.03] transition-colors"
+              className="w-full px-4 py-3 text-left text-xs text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
               Disconnect
             </button>
