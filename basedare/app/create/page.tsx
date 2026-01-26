@@ -4,12 +4,50 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle } from "lucide-react";
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle } from "lucide-react";
+import { useAccount, useReadContract } from 'wagmi';
+import { parseUnits, formatUnits } from 'viem';
+import { FundButton } from '@coinbase/onchainkit/fund';
 import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
+import { USDC_ABI } from '@/abis/BaseDareBounty';
+
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
+
+// Liquid Metal Contact Button Component
+function ContactButton() {
+  const { trigger } = useFeedback();
+
+  return (
+    <a
+      href="https://x.com/lizardlarry7"
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => trigger('click')}
+      className="relative group p-[1px] rounded-xl overflow-hidden inline-flex"
+    >
+      {/* Liquid metal border - spins on hover */}
+      <div
+        className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
+        aria-hidden="true"
+      />
+
+      {/* Button content */}
+      <div className="relative flex items-center gap-2 bg-[#0a0a0a] backdrop-blur-xl px-4 py-2.5 rounded-[11px]">
+        {/* Inner glass highlight */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-transparent to-white/[0.03] pointer-events-none rounded-[11px]" />
+
+        <MessageCircle className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors relative z-10" />
+        <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 group-hover:text-white transition-colors relative z-10">
+          Contact
+        </span>
+      </div>
+    </a>
+  );
+}
 
 // Validation schema matching the API
 const CreateBountySchema = z.object({
@@ -51,6 +89,16 @@ export default function CreateDare() {
   const { toast } = useToast();
   const { trigger } = useFeedback();
 
+  // Wallet & Balance Check
+  const { address, isConnected } = useAccount();
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: USDC_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
   const {
     register,
     handleSubmit,
@@ -79,6 +127,11 @@ export default function CreateDare() {
   }, [searchParams, setValue]);
 
   const watchAmount = watch('amount');
+
+  // Balance check for FundButton
+  const requiredAmount = watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
+  const hasInsufficientBalance = isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
+  const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   // Debug: log validation errors
   const onError = (errors: any) => {
@@ -153,73 +206,78 @@ export default function CreateDare() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col py-24 px-4 md:px-8">
+    <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8 md:py-24">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
-      <div className="container mx-auto px-6 relative z-10 max-w-4xl flex-grow">
+      <div className="container mx-auto px-2 md:px-6 relative z-10 max-w-4xl flex-grow">
 
         {/* HEADER */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-7xl font-display font-black uppercase italic tracking-tighter mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          {/* Contact button - top right on mobile, integrated on desktop */}
+          <div className="flex justify-end mb-4 md:absolute md:right-6 md:top-0">
+            <ContactButton />
+          </div>
+
+          <h1 className="text-4xl md:text-7xl font-display font-black uppercase italic tracking-tighter mb-3 md:mb-4">
             INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-[#FACC15]/70">PROTOCOL</span>
           </h1>
-          <p className="text-gray-400 font-mono tracking-widest uppercase text-xs md:text-sm">
+          <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
             Deploy a new smart contract dare on Base L2
           </p>
         </div>
 
-        {/* SUCCESS STATE */}
+        {/* SUCCESS STATE - Liquid Glass */}
         {successData && (
-          <div className={`mb-8 p-6 rounded-2xl backdrop-blur-xl ${
+          <div className={`mb-6 md:mb-8 p-4 md:p-6 rounded-xl md:rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${
             successData.awaitingClaim
-              ? 'bg-yellow-500/10 border border-yellow-500/30'
-              : 'bg-green-500/10 border border-green-500/30'
+              ? 'bg-yellow-500/10 border border-yellow-500/20'
+              : 'bg-green-500/10 border border-green-500/20'
           }`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            <div className="flex items-start md:items-center gap-3 md:gap-4">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
                 successData.awaitingClaim ? 'bg-yellow-500/20' : 'bg-green-500/20'
               }`}>
                 {successData.awaitingClaim ? (
-                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
+                  <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
                 ) : (
-                  <CheckCircle className="w-6 h-6 text-green-400" />
+                  <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
                 )}
               </div>
-              <div className="flex-1">
-                <h3 className={`text-xl font-black uppercase tracking-wider ${
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-base md:text-xl font-black uppercase tracking-wider ${
                   successData.awaitingClaim ? 'text-yellow-400' : 'text-green-400'
                 }`}>
                   {successData.awaitingClaim
-                    ? 'Awaiting Creator Claim'
+                    ? 'Awaiting Claim'
                     : successData.simulated
                     ? 'Simulation Success'
                     : 'Contract Deployed'}
                 </h3>
-                <p className={`text-sm font-mono mt-1 ${
+                <p className={`text-xs md:text-sm font-mono mt-1 truncate ${
                   successData.awaitingClaim ? 'text-yellow-400/80' : 'text-green-400/80'
                 }`}>
                   {successData.awaitingClaim
-                    ? `Bounty escrowed for ${successData.streamerTag}`
+                    ? `Escrowed for ${successData.streamerTag}`
                     : `Dare ID: ${successData.dareId}`}
                 </p>
               </div>
               {successData.simulated && !successData.awaitingClaim && (
-                <span className="ml-auto px-3 py-1 text-xs font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">
-                  Testnet Mode
+                <span className="hidden md:inline-flex ml-auto px-3 py-1 text-xs font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">
+                  Testnet
                 </span>
               )}
             </div>
 
             {/* Awaiting Claim - Show Invite Link */}
             {successData.awaitingClaim && successData.inviteLink && (
-              <div className="mt-6 space-y-4">
-                <div className="p-4 bg-black/30 rounded-xl border border-white/10">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">
-                    Share this link with {successData.streamerTag}
+              <div className="mt-4 md:mt-6 space-y-3 md:space-y-4">
+                <div className="p-3 md:p-4 bg-black/30 rounded-xl border border-white/10">
+                  <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Share with {successData.streamerTag}
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 bg-black/40 rounded-lg text-sm text-yellow-400 font-mono truncate">
+                    <code className="flex-1 px-2 md:px-3 py-2 bg-black/40 rounded-lg text-xs md:text-sm text-yellow-400 font-mono truncate">
                       {typeof window !== 'undefined' ? `${window.location.origin}${successData.inviteLink}` : successData.inviteLink}
                     </code>
                     <button
@@ -230,35 +288,42 @@ export default function CreateDare() {
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                       }}
-                      className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition-colors"
+                      className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition-colors flex-shrink-0"
                     >
                       {copied ? (
-                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
                       ) : (
-                        <Copy className="w-5 h-5 text-yellow-400" />
+                        <Copy className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* Share on X Button */}
-                <button
-                  onClick={() => {
-                    trigger('click');
-                    const fullUrl = `${window.location.origin}${successData.inviteLink}`;
-                    const text = `Hey ${successData.streamerTag}! Someone just put up a bounty for you on BaseDare. Claim it before it expires!\n\n${fullUrl}`;
-                    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-                    window.open(twitterUrl, '_blank', 'width=550,height=420');
-                  }}
-                  className="w-full py-3 bg-black hover:bg-zinc-900 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share on X
-                </button>
+                {/* Share on X Button - Liquid Metal Style */}
+                <div className="relative group p-[1px] rounded-xl overflow-hidden">
+                  <div
+                    className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
+                    aria-hidden="true"
+                  />
+                  <button
+                    onClick={() => {
+                      trigger('click');
+                      const fullUrl = `${window.location.origin}${successData.inviteLink}`;
+                      const text = `Hey ${successData.streamerTag}! Someone just put up a bounty for you on BaseDare. Claim it before it expires!\n\n${fullUrl}`;
+                      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                      window.open(twitterUrl, '_blank', 'width=550,height=420');
+                    }}
+                    className="relative w-full py-3 bg-[#0a0a0a] text-white font-bold text-xs md:text-sm uppercase tracking-wider rounded-[11px] transition-all flex items-center justify-center gap-2"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-transparent to-white/[0.03] pointer-events-none rounded-[11px]" />
+                    <Share2 className="w-4 h-4 relative z-10" />
+                    <span className="relative z-10">Share on X</span>
+                  </button>
+                </div>
 
                 {/* Refund Deadline */}
                 {successData.claimDeadline && (
-                  <p className="text-xs text-gray-500 text-center font-mono">
+                  <p className="text-[10px] md:text-xs text-gray-500 text-center font-mono">
                     Auto-refund if unclaimed by{' '}
                     {new Date(successData.claimDeadline).toLocaleDateString('en-US', {
                       month: 'short',
@@ -286,11 +351,11 @@ export default function CreateDare() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit(onSubmit, onError)}>
-          {/* Error Summary */}
+          {/* Error Summary - Liquid Glass Style */}
           {Object.keys(errors).length > 0 && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-              <p className="text-red-400 font-bold text-sm mb-2">Please fix the following errors:</p>
-              <ul className="list-disc list-inside text-red-400/80 text-sm space-y-1">
+            <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-xl backdrop-blur-xl bg-red-500/10 border border-red-500/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <p className="text-red-400 font-bold text-xs md:text-sm mb-2">Please fix the following:</p>
+              <ul className="list-disc list-inside text-red-400/80 text-xs md:text-sm space-y-1">
                 {errors.streamerTag && <li>{errors.streamerTag.message}</li>}
                 {errors.title && <li>{errors.title.message}</li>}
                 {errors.amount && <li>{errors.amount.message}</li>}
@@ -299,82 +364,86 @@ export default function CreateDare() {
             </div>
           )}
 
-          <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.08] rounded-3xl p-8 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-            {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-black/20 pointer-events-none rounded-3xl" />
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FACC15]/50 to-transparent" />
-            <div className="space-y-12">
+          {/* Apple Liquid Glass Card */}
+          <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-2xl md:rounded-3xl p-5 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+            {/* Liquid glass gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-2xl md:rounded-3xl" />
+            {/* Top highlight line */}
+            <div className="absolute top-0 left-4 right-4 md:left-0 md:right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            {/* Golden accent line */}
+            <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
+            <div className="space-y-8 md:space-y-12">
 
               {/* 1. TARGET */}
-              <div className="space-y-4">
-                <label className="flex items-center gap-3 text-sm font-bold text-purple-400 uppercase tracking-widest">
-                  <Users className="w-4 h-4" /> Target Identity
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
+                  <Users className="w-3.5 h-3.5 md:w-4 md:h-4" /> Target Identity
                 </label>
                 <input
                   {...register('streamerTag')}
                   placeholder="@xQc, @KaiCenat..."
-                  className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all"
+                  className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
                 {errors.streamerTag && (
-                  <p className="text-red-400 text-sm">{errors.streamerTag.message}</p>
+                  <p className="text-red-400 text-xs md:text-sm">{errors.streamerTag.message}</p>
                 )}
               </div>
 
               {/* 2. MISSION */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <label className="flex items-center gap-3 text-sm font-bold text-purple-400 uppercase tracking-widest">
-                    <Zap className="w-4 h-4" /> Mission Objective
+              <div className="space-y-3">
+                <div className="flex justify-between items-end gap-2">
+                  <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
+                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Mission Objective
                   </label>
-                  <span className="text-[10px] text-gray-500 font-mono">STUCK? USE AI ASSIST</span>
+                  <span className="text-[9px] md:text-[10px] text-gray-500 font-mono whitespace-nowrap">AI ASSIST ↓</span>
                 </div>
                 <DareGenerator onSelect={(text) => setValue('title', text)} />
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="w-full min-h-[150px] backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-lg text-white placeholder:text-white/20 rounded-xl p-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all resize-none font-mono"
+                  className="w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all resize-none font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
                 {errors.title && (
-                  <p className="text-red-400 text-sm">{errors.title.message}</p>
+                  <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
                 )}
               </div>
 
               {/* 3. BOUNTY & TIME */}
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 text-sm font-bold text-[#FACC15] uppercase tracking-widest">
-                    <Wallet className="w-4 h-4" /> Total Bounty
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-[#FACC15] uppercase tracking-widest">
+                    <Wallet className="w-3.5 h-3.5 md:w-4 md:h-4" /> Total Bounty
                   </label>
                   <div className="relative">
                     <input
                       type="number"
                       {...register('amount', { valueAsNumber: true })}
                       placeholder="100"
-                      className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-6 pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all"
+                      className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-xl md:text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-5 md:pl-6 pr-20 md:pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                     />
-                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
+                    <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-xs md:text-sm font-bold text-gray-400">
                       USDC
                     </span>
                   </div>
                   {errors.amount && (
-                    <p className="text-red-400 text-sm">{errors.amount.message}</p>
+                    <p className="text-red-400 text-xs md:text-sm">{errors.amount.message}</p>
                   )}
-                  <p className="text-xs text-gray-500 font-mono">Min: $5 • Max: $10,000</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 font-mono">Min: $5 • Max: $10,000</p>
                 </div>
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 text-sm font-bold text-purple-400 uppercase tracking-widest">
-                    <Clock className="w-4 h-4" /> Time Limit
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
+                    <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" /> Time Limit
                   </label>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <input
                       type="number"
                       {...register('timeValue', { valueAsNumber: true })}
                       placeholder="24"
-                      className="w-full h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all"
+                      className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                     />
                     <select
                       {...register('timeUnit')}
-                      className="h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] text-white rounded-xl px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all"
+                      className="h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-white rounded-xl px-3 md:px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all text-sm md:text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                     >
                       <option value="Hours">Hours</option>
                       <option value="Days">Days</option>
@@ -382,33 +451,90 @@ export default function CreateDare() {
                     </select>
                   </div>
                   {errors.timeValue && (
-                    <p className="text-red-400 text-sm">{errors.timeValue.message}</p>
+                    <p className="text-red-400 text-xs md:text-sm">{errors.timeValue.message}</p>
                   )}
                 </div>
               </div>
 
-              {/* DEPLOY BUTTON */}
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full h-20 text-2xl font-black uppercase tracking-widest bg-[#FACC15] text-black hover:bg-[#FACC15] hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(250,204,21,0.4)] transition-all rounded-xl relative overflow-hidden group flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  <div className="absolute inset-0 bg-white/40 translate-y-full group-hover:translate-y-0 transition-transform duration-300 skew-y-12 pointer-events-none" />
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-8 h-8 relative animate-spin" />
-                      <span className="relative">Deploying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="relative">Deploy Contract</span>
-                      <ChevronRight className="w-8 h-8 relative" />
-                    </>
+              {/* BALANCE & FUND BUTTON */}
+              {isConnected && (
+                <div className="pt-4 md:pt-6 space-y-3">
+                  {/* Balance Display */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs text-gray-400 font-mono">Your Balance:</span>
+                    <span className={`text-sm font-bold font-mono ${hasInsufficientBalance ? 'text-red-400' : 'text-green-400'}`}>
+                      {parseFloat(formattedBalance).toFixed(2)} USDC
+                    </span>
+                  </div>
+
+                  {/* FundButton when insufficient balance */}
+                  {hasInsufficientBalance && (
+                    <div className="relative group p-[1px] rounded-xl overflow-hidden">
+                      <div
+                        className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
+                        aria-hidden="true"
+                      />
+                      <div className="relative bg-[#0a0a0a] rounded-[11px] p-4 flex flex-col items-center gap-3">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.05] via-transparent to-white/[0.02] pointer-events-none rounded-[11px]" />
+                        <p className="text-xs text-gray-400 font-mono text-center relative z-10">
+                          You need {watchAmount} USDC to deploy this bounty
+                        </p>
+                        <FundButton className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-all relative z-10">
+                          Get USDC
+                        </FundButton>
+                      </div>
+                    </div>
                   )}
-                </button>
-                <p className="text-center text-[10px] text-gray-500 font-mono mt-4 uppercase">
-                  * Gas fees apply. Smart contract is immutable once deployed.
+                </div>
+              )}
+
+              {/* DEPLOY BUTTON - Liquid Metal Style */}
+              <div className={isConnected ? "pt-3" : "pt-4 md:pt-6"}>
+                {hasInsufficientBalance ? (
+                  /* Disabled state - no spinning border */
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest bg-[#FACC15]/50 text-black/50 rounded-xl flex items-center justify-center cursor-not-allowed"
+                  >
+                    Insufficient Balance
+                  </button>
+                ) : (
+                  /* Active state - with liquid metal border */
+                  <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
+                    <div
+                      className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#78350f_0%,#facc15_25%,#78350f_50%,#facc15_75%,#78350f_100%)] opacity-80 group-hover:animate-[spin_2s_linear_infinite] transition-opacity duration-500"
+                      aria-hidden="true"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="relative w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest bg-[#FACC15] text-black hover:bg-[#FDE047] transition-all rounded-[10px] flex items-center justify-center gap-2 md:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {/* Inner glow */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20 pointer-events-none rounded-[10px]" />
+
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
+                          <span className="relative">Deploying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="relative">Deploy Contract</span>
+                          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 relative" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
+                  {hasInsufficientBalance
+                    ? '* Fund your wallet with USDC to deploy'
+                    : '* Gas fees apply. Smart contract is immutable once deployed.'
+                  }
                 </p>
               </div>
             </div>

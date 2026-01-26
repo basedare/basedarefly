@@ -45,10 +45,12 @@ export default function TruthOracle() {
 
   return (
     <>
-      <div className="w-full max-w-6xl mx-auto rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(59,130,246,0.1)] overflow-hidden">
+      <div className="w-full max-w-6xl mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] overflow-hidden relative">
+        {/* Top highlight */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
 
         {/* HEADER */}
-        <div className="p-3 sm:p-4 border-b border-white/10 flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 bg-[#050505]">
+        <div className="p-3 sm:p-4 border-b border-white/[0.06] flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 bg-black/40">
           <div className="flex items-center gap-2">
             <BrainCircuit className="w-4 h-4 text-purple-500 flex-shrink-0" />
             <span className="text-[10px] sm:text-xs font-mono text-white font-bold whitespace-nowrap">SENTINEL AI: <span className="text-green-400 animate-pulse">ONLINE</span></span>
@@ -200,10 +202,10 @@ export default function TruthOracle() {
                 </motion.div>
               ) : (
                 <>
-                  {/* Verify Valid - Liquid Metal Button */}
+                  {/* Vote Valid - Liquid Metal Button */}
                   <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
                     <div
-                      className={`absolute inset-[-100%] bg-[conic-gradient(from_0deg,#052e16_0%,#22c55e_25%,#052e16_50%,#22c55e_75%,#052e16_100%)] animate-[spin_3s_linear_infinite] transition-opacity duration-500 ${analysisStatus === "SCANNING" ? "opacity-20" : "opacity-50 group-hover:opacity-100"}`}
+                      className={`absolute inset-[-100%] bg-[conic-gradient(from_0deg,#052e16_0%,#22c55e_25%,#052e16_50%,#22c55e_75%,#052e16_100%)] transition-opacity duration-500 ${analysisStatus === "SCANNING" ? "opacity-20" : "opacity-50 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite]"}`}
                       aria-hidden="true"
                     />
                     <button
@@ -212,16 +214,21 @@ export default function TruthOracle() {
                       className="relative w-full py-3 sm:py-4 bg-[#050505] backdrop-blur-xl rounded-[10px] text-green-500 font-black uppercase text-xs sm:text-sm tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-green-500/10 via-transparent to-green-500/5 pointer-events-none rounded-[10px]" />
-                      <span className="relative z-10">
-                        {analysisStatus === "SCANNING" ? "Analyzing..." : "Verify as Valid"}
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        {analysisStatus === "SCANNING" ? "Analyzing..." : (
+                          <>
+                            <CheckCircle className="w-4 h-4" />
+                            Valid
+                          </>
+                        )}
                       </span>
                     </button>
                   </div>
 
-                  {/* Mark Invalid - Liquid Metal Button */}
+                  {/* Vote Fake - Liquid Metal Button */}
                   <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
                     <div
-                      className={`absolute inset-[-100%] bg-[conic-gradient(from_0deg,#450a0a_0%,#ef4444_25%,#450a0a_50%,#ef4444_75%,#450a0a_100%)] animate-[spin_3s_linear_infinite] transition-opacity duration-500 ${analysisStatus === "SCANNING" ? "opacity-20" : "opacity-50 group-hover:opacity-100"}`}
+                      className={`absolute inset-[-100%] bg-[conic-gradient(from_0deg,#450a0a_0%,#ef4444_25%,#450a0a_50%,#ef4444_75%,#450a0a_100%)] transition-opacity duration-500 ${analysisStatus === "SCANNING" ? "opacity-20" : "opacity-50 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite]"}`}
                       aria-hidden="true"
                     />
                     <button
@@ -230,8 +237,13 @@ export default function TruthOracle() {
                       className="relative w-full py-3 sm:py-4 bg-[#050505] backdrop-blur-xl rounded-[10px] text-red-500 font-black uppercase text-xs sm:text-sm tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 via-transparent to-red-500/5 pointer-events-none rounded-[10px]" />
-                      <span className="relative z-10">
-                        {analysisStatus === "SCANNING" ? "Wait..." : "Mark as Fake"}
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        {analysisStatus === "SCANNING" ? "Wait..." : (
+                          <>
+                            <XCircle className="w-4 h-4" />
+                            Fake
+                          </>
+                        )}
                       </span>
                     </button>
                   </div>

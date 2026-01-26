@@ -11,6 +11,7 @@ import { LiquidFilter } from "@/components/ui/LiquidFilter";
 import ClientLoader from "@/components/ClientLoader";
 import BackgroundLayers from "@/components/BackgroundLayers";
 import { Toaster } from "@/components/ui/toaster";
+import MobileLightningFlash from "@/components/MobileLightningFlash";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -48,7 +49,10 @@ export default function RootLayout({
         <div className="hidden md:block">
           <BackgroundLayers />
         </div>
-        
+
+        {/* Mobile-only periodic lightning flash */}
+        <MobileLightningFlash />
+
         <ClientLoader>
           <Providers>
             <ViewProvider>

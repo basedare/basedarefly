@@ -1,11 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useReadContract } from 'wagmi'
+import { parseUnits, formatUnits } from 'viem'
 import { useBaseDare } from '@/hooks/useBaseDare'
 import { Button } from '@/components/ui/button'
 import { Zap, Plus } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { FundButton } from '@coinbase/onchainkit/fund'
+import { USDC_ABI } from '@/abis/BaseDareBounty'
+
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`
 
 interface DareInteractionsProps {
   dareId: bigint
@@ -15,17 +20,30 @@ interface DareInteractionsProps {
   expiry?: number // Not used in current contract, but keeping for compatibility
 }
 
-export default function DareInteractions({ 
-  dareId, 
-  streamer, 
-  creator, 
-  status 
+export default function DareInteractions({
+  dareId,
+  streamer,
+  creator,
+  status
 }: DareInteractionsProps) {
   const { address } = useAccount()
   const { toast } = useToast()
   const { injectCapital, isConfirming } = useBaseDare()
   const [injectAmount, setInjectAmount] = useState('')
   const [showInjectInput, setShowInjectInput] = useState(false)
+
+  // Check user's USDC balance
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: USDC_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  const amountInUnits = injectAmount ? parseUnits(injectAmount, 6) : BigInt(0)
+  const hasInsufficientBalance = usdcBalance !== undefined && amountInUnits > BigInt(0) && usdcBalance < amountInUnits
+  const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0'
 
   // Only show actions if dare is ACTIVE
   const isActive = status === 0
@@ -97,28 +115,50 @@ export default function DareInteractions({
             onChange={(e) => setInjectAmount(e.target.value)}
             className="w-full bg-black/50 border border-slate-800 rounded px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-purple-500"
           />
-          <div className="flex gap-2">
-            <Button
-              onClick={handleInjectCapital}
-              disabled={isConfirming || !injectAmount}
-              size="sm"
-              className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider"
-            >
-              <Zap className="w-3 h-3 mr-1" />
-              {isConfirming ? "Confirming..." : "Confirm"}
-            </Button>
-            <Button
-              onClick={() => {
-                setShowInjectInput(false)
-                setInjectAmount('')
-              }}
-              size="sm"
-              variant="outline"
-              className="border-slate-700 text-slate-400 hover:bg-slate-800 text-xs"
-            >
-              Cancel
-            </Button>
-          </div>
+          {hasInsufficientBalance ? (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400 text-center">
+                Balance: {parseFloat(formattedBalance).toFixed(2)} USDC
+              </p>
+              <FundButton className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider rounded-md py-2">
+                Get {injectAmount} USDC
+              </FundButton>
+              <Button
+                onClick={() => {
+                  setShowInjectInput(false)
+                  setInjectAmount('')
+                }}
+                size="sm"
+                variant="outline"
+                className="w-full border-slate-700 text-slate-400 hover:bg-slate-800 text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={handleInjectCapital}
+                disabled={isConfirming || !injectAmount}
+                size="sm"
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider"
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                {isConfirming ? "Confirming..." : "Confirm"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowInjectInput(false)
+                  setInjectAmount('')
+                }}
+                size="sm"
+                variant="outline"
+                className="border-slate-700 text-slate-400 hover:bg-slate-800 text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,12 @@
 
 import { ElectricCard } from "@/components/ui/electric-card";
 import { useBountyFund } from '@/hooks/useBountyFund';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
+import { parseUnits, formatUnits } from 'viem';
+import { FundButton } from '@coinbase/onchainkit/fund';
+import { USDC_ABI } from '@/abis/BaseDareBounty';
+
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 
 interface DareProps {
   title: string;
@@ -23,8 +28,21 @@ export default function DareCard({
   streamerAddress,
   amount
 }: DareProps) {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { fund, hash } = useBountyFund();
+
+  // Check user's USDC balance
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: USDC_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  const amountInUnits = amount ? parseUnits(amount, 6) : BigInt(0);
+  const hasInsufficientBalance = usdcBalance !== undefined && usdcBalance < amountInUnits;
+  const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   const handleFund = async () => {
     if (!isConnected) {
@@ -90,15 +108,30 @@ export default function DareCard({
                     </div>
                 </div>
 
-                {/* Button */}
-                <button
-                    onClick={handleFund}
-                    className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg transition-transform hover:scale-105 active:scale-95 ${
-                        isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7]/20 border border-[#A855F7] text-white'
-                    }`}
-                >
-                    {amount ? `Fund Bounty (${amount} USDC)` : 'Fund Bounty'}
-                </button>
+                {/* Button - Show FundButton if insufficient balance, otherwise Fund Bounty */}
+                {isConnected && hasInsufficientBalance ? (
+                  <div className="w-full flex flex-col gap-2">
+                    <p className="text-xs text-gray-400 text-center">
+                      Balance: {parseFloat(formattedBalance).toFixed(2)} USDC
+                    </p>
+                    <FundButton
+                      className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg ${
+                        isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7] text-white'
+                      }`}
+                    >
+                      Get {amount} USDC
+                    </FundButton>
+                  </div>
+                ) : (
+                  <button
+                      onClick={handleFund}
+                      className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg transition-transform hover:scale-105 active:scale-95 ${
+                          isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7]/20 border border-[#A855F7] text-white'
+                      }`}
+                  >
+                      {amount ? `Fund Bounty (${amount} USDC)` : 'Fund Bounty'}
+                  </button>
+                )}
             </div>
         </ElectricCard>
     </div>
