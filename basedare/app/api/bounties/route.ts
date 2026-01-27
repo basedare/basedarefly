@@ -13,7 +13,10 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
-import { alertNewDare } from '@/lib/telegram';
+import { alertNewDare, alertBigPledge } from '@/lib/telegram';
+
+// Big pledge threshold for alerts
+const BIG_PLEDGE_THRESHOLD = 100;
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -400,6 +403,19 @@ export async function POST(request: NextRequest) {
         stakerAddress,
       }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
 
+      // Big pledge alert for high-value dares
+      if (amount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {
+        alertBigPledge({
+          dareId: dbDare.id,
+          shortId,
+          title,
+          pledgeAmount: amount,
+          totalPot: amount,
+          pledgerAddress: stakerAddress,
+          txHash: null,
+        }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
+      }
+
       // Build invite link for unclaimed tags (not for open bounties)
       const inviteLink = isAwaitingClaim && streamerTag
         ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
@@ -563,6 +579,19 @@ export async function POST(request: NextRequest) {
       isOpenBounty,
       stakerAddress,
     }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
+
+    // Big pledge alert for high-value dares
+    if (amount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {
+      alertBigPledge({
+        dareId: dbDare.id,
+        shortId,
+        title,
+        pledgeAmount: amount,
+        totalPot: amount,
+        pledgerAddress: stakerAddress,
+        txHash,
+      }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
+    }
 
     // Build invite link for unclaimed tags (not for open bounties)
     const inviteLink = isAwaitingClaim && streamerTag
