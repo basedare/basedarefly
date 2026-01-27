@@ -20,6 +20,13 @@ const BLOCKLIST = [
   /\b(jump off|jump from)\b.*\b(building|bridge|roof)\b/i,
   /\b(drink|consume)\b.*\b(bleach|poison|chemicals?)\b/i,
   /\b(drive|driving)\b.*\b(drunk|blindfolded|eyes closed)\b/i,
+  // Indecent/Sexual - PH compliance (RA 9995, RA 9775)
+  /\b(sex|sexual|intercourse|f[u*]ck|blowjob|handjob|masturbat|orgasm)\b/i,
+  /\b(porn|porno|xxx|onlyfans|nsfw)\b/i,
+  /\b(prostitut|escort|hooker|whore|slut)\b/i,
+  /\b(genital|penis|vagina|dick|cock|pussy|tits|boobs)\b/i,
+  /\b(flash|expose|show)\b.*\b(private|privates|genitals|breast|ass|butt)\b/i,
+  /\b(public)\b.*\b(sex|nude|naked|indecen)\b/i,
 ];
 
 // Flag for review - potentially risky
@@ -37,6 +44,14 @@ const FLAGLIST = [
   /\b(extreme|dangerous|risky|deadly)\b/i,
   /\b(taser|stun|shock)\b/i,
   /\b(gun|weapon|knife)\b/i,
+  // Suggestive/Indecent - flag for review
+  /\b(sexy|seductive|seduce|provocative|erotic)\b/i,
+  /\b(bikini|underwear|lingerie|bra|panties)\b/i,
+  /\b(kiss|make.?out|grinding|twerk)\b/i,
+  /\b(lap.?dance|pole.?dance|striptease)\b/i,
+  /\b(topless|shirtless|undress|take.?off)\b/i,
+  /\b(touch|grab|grope|spank|slap)\b.*\b(ass|butt|body)\b/i,
+  /\b(moan|groan|dirty|naughty|kinky)\b/i,
 ];
 
 // Safe categories - boost confidence
