@@ -7,6 +7,7 @@ import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
+import { alertVerification, alertPayout } from '@/lib/telegram';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -417,6 +418,16 @@ export async function POST(req: NextRequest) {
 
       console.log(`[AUDIT] Dare ${dareId} queued for manual review - bounty: $${dare.bounty} USDC`);
 
+      // Send Telegram alert for manual review needed (fire and forget)
+      alertVerification({
+        dareId,
+        shortId: dare.shortId || dareId,
+        title: dare.title,
+        streamerTag: dare.streamerHandle,
+        result: 'PENDING_REVIEW',
+        confidence: Math.round(verification.confidence * 100),
+      }).catch(err => console.error('[TELEGRAM] Manual review alert failed:', err));
+
       return NextResponse.json({
         success: true,
         data: {
@@ -500,6 +511,31 @@ export async function POST(req: NextRequest) {
 
       console.log(`[AUDIT] Dare ${dareId} VERIFIED - streamer: ${dare.streamerHandle}, bounty: $${totalBounty} USDC`);
 
+      // Send Telegram alerts (fire and forget)
+      alertVerification({
+        dareId,
+        shortId: dare.shortId || dareId,
+        title: dare.title,
+        streamerTag: dare.streamerHandle,
+        result: 'VERIFIED',
+        confidence: Math.round(verification.confidence * 100),
+        payout: streamerPayout,
+        txHash,
+      }).catch(err => console.error('[TELEGRAM] Verification alert failed:', err));
+
+      if (txHash) {
+        alertPayout({
+          dareId,
+          shortId: dare.shortId || dareId,
+          title: dare.title,
+          streamerTag: dare.streamerHandle,
+          creatorPayout: streamerPayout,
+          platformFee: houseFee,
+          referrerPayout: referrerFee > 0 ? referrerFee : undefined,
+          txHash,
+        }).catch(err => console.error('[TELEGRAM] Payout alert failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         data: {
@@ -539,6 +575,16 @@ export async function POST(req: NextRequest) {
       });
 
       console.log(`[AUDIT] Dare ${dareId} FAILED - reason: ${verification.reason}, confidence: ${(verification.confidence * 100).toFixed(1)}%`);
+
+      // Send Telegram alert (fire and forget)
+      alertVerification({
+        dareId,
+        shortId: dare.shortId || dareId,
+        title: dare.title,
+        streamerTag: dare.streamerHandle,
+        result: 'FAILED',
+        confidence: Math.round(verification.confidence * 100),
+      }).catch(err => console.error('[TELEGRAM] Verification alert failed:', err));
 
       return NextResponse.json({
         success: true, // Request succeeded, but verification failed

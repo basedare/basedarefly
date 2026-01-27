@@ -138,13 +138,15 @@ export async function alertVerification(data: {
   shortId: string;
   title: string;
   streamerTag: string | null;
-  result: 'VERIFIED' | 'FAILED';
+  result: 'VERIFIED' | 'FAILED' | 'PENDING_REVIEW';
   confidence?: number;
   payout?: number;
   txHash?: string | null;
 }): Promise<void> {
-  const emoji = data.result === 'VERIFIED' ? '✅' : '❌';
-  const status = data.result === 'VERIFIED' ? 'VERIFIED' : 'FAILED';
+  const emojiMap = { VERIFIED: '✅', FAILED: '❌', PENDING_REVIEW: '⏳' };
+  const statusMap = { VERIFIED: 'VERIFIED', FAILED: 'FAILED', PENDING_REVIEW: 'NEEDS REVIEW' };
+  const emoji = emojiMap[data.result];
+  const status = statusMap[data.result];
   const target = data.streamerTag || 'Open Dare';
 
   const payoutLine = data.result === 'VERIFIED' && data.payout
@@ -159,11 +161,15 @@ export async function alertVerification(data: {
     ? `\n🔍 <a href="${EXPLORER_URL}/tx/${data.txHash}">View TX</a>`
     : '';
 
+  const reviewNote = data.result === 'PENDING_REVIEW'
+    ? '\n\n⚠️ High-value bounty - manual review required'
+    : '';
+
   const message = `
 ${emoji} <b>DARE ${status}</b>
 
 <b>${data.title}</b>
-👤 ${target}${confidenceLine}${payoutLine}${txLink}
+👤 ${target}${confidenceLine}${payoutLine}${txLink}${reviewNote}
 
 🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>
 `.trim();
