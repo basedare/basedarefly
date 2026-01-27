@@ -9,7 +9,7 @@ export default function Footer() {
   const { isControlMode } = useView();
 
   return (
-    <footer id="site-footer" className="w-full relative z-0 overflow-hidden">
+    <footer id="site-footer" className="w-full relative z-20 overflow-hidden">
       {/* APPLE LIQUID GLASS BACKDROP */}
       <div className="absolute inset-0">
         {/* Gradient base */}
