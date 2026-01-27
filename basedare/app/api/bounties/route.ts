@@ -13,6 +13,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
+import { alertNewDare } from '@/lib/telegram';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -388,6 +389,17 @@ export async function POST(request: NextRequest) {
 
       console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`);
 
+      // Send Telegram alert (fire and forget - don't block response)
+      alertNewDare({
+        dareId: dbDare.id,
+        shortId,
+        title,
+        amount,
+        streamerTag: isOpenBounty ? null : streamerTag || null,
+        isOpenBounty,
+        stakerAddress,
+      }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
+
       // Build invite link for unclaimed tags (not for open bounties)
       const inviteLink = isAwaitingClaim && streamerTag
         ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
@@ -540,6 +552,17 @@ export async function POST(request: NextRequest) {
     console.log(
       `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`
     );
+
+    // Send Telegram alert (fire and forget - don't block response)
+    alertNewDare({
+      dareId: dbDare.id,
+      shortId,
+      title,
+      amount,
+      streamerTag: isOpenBounty ? null : streamerTag || null,
+      isOpenBounty,
+      stakerAddress,
+    }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
 
     // Build invite link for unclaimed tags (not for open bounties)
     const inviteLink = isAwaitingClaim && streamerTag
