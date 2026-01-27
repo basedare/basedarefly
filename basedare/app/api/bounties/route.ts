@@ -286,7 +286,8 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 1.5. AUTO-MODERATION - Check for sketchy/dangerous content
     // -------------------------------------------------------------------------
-    const moderation = moderateDare(title, description);
+    // Higher amounts = more scrutiny (more attractive to scammers)
+    const moderation = moderateDare(title, description, amount);
 
     if (!moderation.allowed) {
       console.log(`[MODERATION] Blocked dare: "${title}" - ${moderation.reason}`);
