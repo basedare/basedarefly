@@ -216,7 +216,8 @@ async function poll() {
     for (const update of data.result || []) {
       lastUpdateId = update.update_id;
 
-      if (update.message?.text?.startsWith('/')) {
+      // Process all text messages (commands AND natural language)
+      if (update.message?.text) {
         await handleCommand(update.message.text, update.message.chat.id);
       }
     }
