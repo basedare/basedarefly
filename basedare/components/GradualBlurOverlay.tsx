@@ -11,20 +11,18 @@ export default function GradualBlurOverlay({ intensity = 'full' }: GradualBlurOv
   if (intensity === 'none') return null;
 
   // We stack multiple layers with varying blur amounts and gradient masks
-  // This creates a smooth "fade to blur" effect from top to bottom
+  // This creates a smooth "fade to blur" effect - stops at 60% to keep footer readable
   const fullLayers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '40%' },
-    { blur: '1px',   maskStart: '40%', maskEnd: '60%' },
-    { blur: '2px',   maskStart: '60%', maskEnd: '75%' },
-    { blur: '4px',   maskStart: '75%', maskEnd: '90%' },
-    { blur: '6px',   maskStart: '90%', maskEnd: '100%' },
+    { blur: '0px',   maskStart: '0%', maskEnd: '30%' },
+    { blur: '1px',   maskStart: '30%', maskEnd: '45%' },
+    { blur: '2px',   maskStart: '45%', maskEnd: '55%' },
+    { blur: '3px',   maskStart: '55%', maskEnd: '60%' },
   ];
 
-  // Light version - much subtler blur
+  // Light version - much subtler blur, ends at 50%
   const lightLayers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '70%' },
-    { blur: '1px',   maskStart: '70%', maskEnd: '90%' },
-    { blur: '2px',   maskStart: '90%', maskEnd: '100%' },
+    { blur: '0px',   maskStart: '0%', maskEnd: '35%' },
+    { blur: '1px',   maskStart: '35%', maskEnd: '50%' },
   ];
 
   const layers = intensity === 'light' ? lightLayers : fullLayers;
