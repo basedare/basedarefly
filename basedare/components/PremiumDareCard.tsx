@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Share2 } from 'lucide-react';
+import { Share2, MapPin } from 'lucide-react';
 import DareVisual from './DareVisual';
 import ElectricBorder from './ElectricBorder';
 import BountyQRCode from './BountyQRCode';
@@ -50,6 +50,10 @@ export type PremiumDareCardProps = {
   proofUrl?: string;
   isOpenBounty?: boolean;
   onViewProof?: (proofUrl: string) => void;
+  // Nearby dare props
+  isNearby?: boolean;
+  distanceDisplay?: string;
+  locationLabel?: string | null;
 };
 
 export function SentinelSkeleton() {
@@ -101,6 +105,9 @@ export default function PremiumDareCard({
   proofUrl,
   isOpenBounty = false,
   onViewProof,
+  isNearby = false,
+  distanceDisplay,
+  locationLabel,
 }: PremiumDareCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -257,7 +264,20 @@ export default function PremiumDareCard({
             {(streamer && streamer.trim().length > 0 ? streamer : 'OPEN').toUpperCase()}
           </div>
           {isOpenBounty ? <div className="premium-open-badge">OPEN TO ALL</div> : null}
+          {isNearby && distanceDisplay && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
+              <MapPin className="w-3 h-3 text-blue-400" />
+              <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">
+                {distanceDisplay}
+              </span>
+            </div>
+          )}
         </div>
+        {isNearby && locationLabel && (
+          <div className="text-[10px] text-gray-400 font-mono truncate mt-1">
+            {locationLabel}
+          </div>
+        )}
 
         <div className="premium-card-body">
           <h3 className="premium-dare-title">{dare.toUpperCase()}</h3>

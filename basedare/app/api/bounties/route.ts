@@ -15,6 +15,7 @@ import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
+import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -158,6 +159,13 @@ const StakeBountySchema = z.object({
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid staker address')
     .refine((addr) => isAddress(addr), 'Address checksum invalid')
     .optional(),
+
+  // NEARBY DARES - Location data
+  isNearbyDare: z.boolean().default(false),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  locationLabel: z.string().max(100).optional(),
+  discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
 });
 
 const GetBountySchema = z.object({
@@ -280,8 +288,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, amount, streamId, streamerTag, referrerAddress, referrerTag, dareId, stakerAddress } =
-      validation.data;
+    const {
+      title,
+      description,
+      amount,
+      streamId,
+      streamerTag,
+      referrerAddress,
+      referrerTag,
+      dareId,
+      stakerAddress,
+      isNearbyDare,
+      latitude,
+      longitude,
+      locationLabel,
+      discoveryRadiusKm,
+    } = validation.data;
+
+    // Calculate geohash for nearby dares
+    let geohash: string | null = null;
+    if (isNearbyDare && latitude !== undefined && longitude !== undefined) {
+      if (!isValidCoordinates(latitude, longitude)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid coordinates provided', code: 'INVALID_COORDINATES' },
+          { status: 400 }
+        );
+      }
+      geohash = encodeGeohash(latitude, longitude, 6);
+      console.log(`[NEARBY] Encoded geohash: ${geohash} for coords (${latitude}, ${longitude})`);
+    }
 
     // -------------------------------------------------------------------------
     // 1.5. AUTO-MODERATION - Check for sketchy/dangerous content
@@ -414,10 +449,17 @@ export async function POST(request: NextRequest) {
           inviteToken,
           claimDeadline,
           targetWalletAddress,
+          // Nearby dare fields
+          isNearbyDare,
+          latitude: isNearbyDare ? latitude : null,
+          longitude: isNearbyDare ? longitude : null,
+          geohash,
+          locationLabel: isNearbyDare ? locationLabel : null,
+          discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
         },
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
 
       // Send Telegram alert (fire and forget - don't block response)
       alertNewDare({
@@ -496,6 +538,10 @@ export async function POST(request: NextRequest) {
           inviteLink,
           inviteToken,
           claimDeadline: claimDeadline?.toISOString() || null,
+          // Nearby dare fields (privacy: no raw coords in response)
+          isNearbyDare,
+          locationLabel: isNearbyDare ? locationLabel : null,
+          discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
         },
       });
     }
@@ -599,6 +645,13 @@ export async function POST(request: NextRequest) {
         inviteToken,
         claimDeadline,
         targetWalletAddress,
+        // Nearby dare fields
+        isNearbyDare,
+        latitude: isNearbyDare ? latitude : null,
+        longitude: isNearbyDare ? longitude : null,
+        geohash,
+        locationLabel: isNearbyDare ? locationLabel : null,
+        discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
       },
     });
 
@@ -606,7 +659,7 @@ export async function POST(request: NextRequest) {
     // 12. AUDIT LOG (no sensitive data)
     // -------------------------------------------------------------------------
     console.log(
-      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}`
+      `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`
     );
 
     // Send Telegram alert (fire and forget - don't block response)
@@ -670,6 +723,10 @@ export async function POST(request: NextRequest) {
         inviteLink,
         inviteToken,
         claimDeadline: claimDeadline?.toISOString() || null,
+        // Nearby dare fields (privacy: no raw coords in response)
+        isNearbyDare,
+        locationLabel: isNearbyDare ? locationLabel : null,
+        discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
       },
     });
   } catch (error: unknown) {

@@ -54,11 +54,21 @@ model Dare {
   claimDeadline       DateTime?          // 30 days from creation for unclaimed tags
   targetWalletAddress String?            // Resolved wallet (null if tag unclaimed)
 
+  // NEARBY DARES - Geolocation
+  latitude          Float?
+  longitude         Float?
+  geohash           String?              // 6-char = ~1.2km precision
+  locationLabel     String?              // "SM MOA", "Poblacion"
+  discoveryRadiusKm Float?   @default(5)
+  isNearbyDare      Boolean  @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
+  @@index([geohash])
+  @@index([isNearbyDare, status])
 }
 model Referral {
   id String @id @default(cuid())

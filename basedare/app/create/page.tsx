@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle } from "lucide-react";
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
 import { useAccount, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
@@ -14,6 +14,7 @@ import LiquidBackground from "@/components/LiquidBackground";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 
@@ -68,6 +69,10 @@ const CreateBountySchema = z.object({
   timeValue: z.number().min(1, 'Time value required'),
   timeUnit: z.enum(['Hours', 'Days', 'Weeks']),
   streamId: z.string().default('dev-stream-001'),
+  // Nearby dare fields
+  isNearbyDare: z.boolean().default(false),
+  locationLabel: z.string().max(100).optional(),
+  discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
 });
 
 type FormData = z.infer<typeof CreateBountySchema>;
@@ -81,6 +86,8 @@ interface SuccessData {
   streamerTag?: string | null;
   shortId?: string;
   isOpenBounty?: boolean;
+  isNearbyDare?: boolean;
+  locationLabel?: string | null;
 }
 
 export default function CreateDare() {
@@ -101,6 +108,16 @@ export default function CreateDare() {
     query: { enabled: !!address },
   });
 
+  // Geolocation for nearby dares
+  const {
+    coordinates,
+    loading: geoLoading,
+    error: geoError,
+    requestLocation,
+    clearLocation,
+    isSupported: geoSupported,
+  } = useGeolocation();
+
   const {
     register,
     handleSubmit,
@@ -117,8 +134,14 @@ export default function CreateDare() {
       timeValue: 24,
       timeUnit: 'Hours',
       streamId: 'dev-stream-001',
+      isNearbyDare: false,
+      locationLabel: '',
+      discoveryRadiusKm: 5,
     },
   });
+
+  // Watch nearby dare toggle to auto-request location
+  const watchIsNearbyDare = watch('isNearbyDare');
 
   // Pre-fill form from URL params (coming from home page)
   useEffect(() => {
@@ -147,15 +170,27 @@ export default function CreateDare() {
     setSuccessData(null);
 
     try {
+      // Build request body with location if nearby dare
+      const requestBody: Record<string, unknown> = {
+        title: data.title,
+        amount: data.amount,
+        streamerTag: data.streamerTag,
+        streamId: data.streamId,
+        isNearbyDare: data.isNearbyDare,
+      };
+
+      // Add location data if nearby dare with coordinates
+      if (data.isNearbyDare && coordinates) {
+        requestBody.latitude = coordinates.lat;
+        requestBody.longitude = coordinates.lng;
+        requestBody.locationLabel = data.locationLabel || undefined;
+        requestBody.discoveryRadiusKm = data.discoveryRadiusKm;
+      }
+
       const response = await fetch('/api/bounties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: data.title,
-          amount: data.amount,
-          streamerTag: data.streamerTag,
-          streamId: data.streamId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -171,7 +206,14 @@ export default function CreateDare() {
           streamerTag: result.data.streamerTag,
           shortId: result.data.shortId,
           isOpenBounty: result.data.isOpenBounty,
+          isNearbyDare: result.data.isNearbyDare,
+          locationLabel: result.data.locationLabel,
         });
+
+        // Clear location after successful nearby dare creation
+        if (result.data.isNearbyDare) {
+          clearLocation();
+        }
 
         toast({
           title: result.data.isOpenBounty
@@ -414,6 +456,131 @@ export default function CreateDare() {
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
+                )}
+              </div>
+
+              {/* 2.5. NEARBY DARE - Location-based discovery */}
+              <div className="space-y-4">
+                {/* Toggle */}
+                <div className="flex items-center justify-between p-4 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                  <div className="flex items-center gap-3">
+                    <MapPin className={`w-5 h-5 ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-gray-500'} transition-colors`} />
+                    <div>
+                      <p className={`text-sm font-bold ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-white'} transition-colors`}>
+                        Nearby Dare
+                      </p>
+                      <p className="text-[10px] text-gray-500 font-mono">
+                        Let people nearby discover this dare
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newValue = !watchIsNearbyDare;
+                      setValue('isNearbyDare', newValue);
+                      if (newValue && !coordinates) {
+                        requestLocation();
+                      }
+                      trigger('click');
+                    }}
+                    className={`relative w-14 h-8 rounded-full transition-all ${
+                      watchIsNearbyDare
+                        ? 'bg-[#FACC15]/20 border-2 border-[#FACC15]'
+                        : 'bg-white/[0.05] border-2 border-white/10'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 w-5 h-5 rounded-full transition-all ${
+                        watchIsNearbyDare
+                          ? 'left-7 bg-[#FACC15]'
+                          : 'left-1 bg-gray-500'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Location capture and options - shown when toggle is on */}
+                {watchIsNearbyDare && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {/* Location Status */}
+                    <div className={`p-4 rounded-xl border ${
+                      coordinates
+                        ? 'bg-green-500/10 border-green-500/20'
+                        : geoError
+                          ? 'bg-red-500/10 border-red-500/20'
+                          : 'bg-white/[0.03] border-white/[0.06]'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        {geoLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 text-[#FACC15] animate-spin" />
+                            <span className="text-sm text-gray-400">Getting your location...</span>
+                          </>
+                        ) : coordinates ? (
+                          <>
+                            <CheckCircle className="w-5 h-5 text-green-400" />
+                            <span className="text-sm text-green-400 font-mono">Location captured</span>
+                          </>
+                        ) : geoError ? (
+                          <>
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            <div className="flex-1">
+                              <span className="text-sm text-red-400">{geoError}</span>
+                              <button
+                                type="button"
+                                onClick={requestLocation}
+                                className="ml-2 text-xs text-[#FACC15] hover:underline"
+                              >
+                                Try again
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="w-5 h-5 text-gray-500" />
+                            <button
+                              type="button"
+                              onClick={requestLocation}
+                              className="text-sm text-[#FACC15] hover:underline font-medium"
+                            >
+                              Enable location access
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location Label */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
+                        Name This Spot <span className="text-gray-500 text-[9px] font-normal lowercase">(optional)</span>
+                      </label>
+                      <input
+                        {...register('locationLabel')}
+                        placeholder="e.g., SM MOA, Poblacion, BGC"
+                        className="w-full h-12 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-base text-white placeholder:text-white/20 rounded-xl pl-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                      />
+                    </div>
+
+                    {/* Discovery Radius */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
+                        Discovery Radius
+                      </label>
+                      <select
+                        {...register('discoveryRadiusKm', { valueAsNumber: true })}
+                        className="w-full h-12 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-white rounded-xl px-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none font-bold cursor-pointer transition-all text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                      >
+                        <option value={1}>1 km - Very local</option>
+                        <option value={2}>2 km - Walking distance</option>
+                        <option value={5}>5 km - Neighborhood (default)</option>
+                        <option value={10}>10 km - District</option>
+                        <option value={25}>25 km - City-wide</option>
+                        <option value={50}>50 km - Metro area</option>
+                      </select>
+                    </div>
+                  </div>
                 )}
               </div>
 

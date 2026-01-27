@@ -1,13 +1,28 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Search, MapPin, Loader2 } from 'lucide-react';
 import PremiumDareCard, { PremiumDareCardStatus, SentinelSkeleton } from './PremiumDareCard';
 import ProofViewer from './ProofViewer';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import './PremiumBentoGrid.css';
 
-const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'LOCKED'] as const;
+const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'LOCKED'] as const;
 type Filter = (typeof FILTERS)[number];
+
+interface NearbyDare {
+  id: string;
+  shortId: string | null;
+  title: string;
+  bounty: number;
+  status: string;
+  locationLabel: string | null;
+  distanceKm: number;
+  distanceDisplay: string;
+  expiresAt: string | null;
+  streamerHandle: string | null;
+  isOpenBounty: boolean;
+}
 
 type Dare = {
   id: string;
@@ -155,6 +170,45 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const loadingTimeoutRef = useRef<number | null>(null);
 
+  // Nearby dares state
+  const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
+  const { coordinates, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
+
+  // Fetch nearby dares when we have coordinates and NEARBY filter is active
+  const fetchNearbyDares = useCallback(async (lat: number, lng: number) => {
+    setNearbyLoading(true);
+    setNearbyError(null);
+    try {
+      const response = await fetch(`/api/dares/nearby?lat=${lat}&lng=${lng}&radius=25`);
+      const data = await response.json();
+      if (data.success) {
+        setNearbyDares(data.data.dares);
+      } else {
+        setNearbyError(data.error || 'Failed to fetch nearby dares');
+      }
+    } catch {
+      setNearbyError('Failed to fetch nearby dares');
+    } finally {
+      setNearbyLoading(false);
+    }
+  }, []);
+
+  // Auto-fetch nearby dares when coordinates are available and NEARBY filter is selected
+  useEffect(() => {
+    if (filter === 'NEARBY' && coordinates) {
+      fetchNearbyDares(coordinates.lat, coordinates.lng);
+    }
+  }, [filter, coordinates, fetchNearbyDares]);
+
+  // Request location when NEARBY filter is selected
+  useEffect(() => {
+    if (filter === 'NEARBY' && !coordinates && !geoLoading && !geoError) {
+      requestLocation();
+    }
+  }, [filter, coordinates, geoLoading, geoError, requestLocation]);
+
   useEffect(() => {
     return () => {
       if (loadingTimeoutRef.current != null) window.clearTimeout(loadingTimeoutRef.current);
@@ -180,6 +234,10 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       expiresAt?: string | null;
       isOpenBounty: boolean;
       proofUrl?: string;
+      isNearby?: boolean;
+      distanceKm?: number;
+      distanceDisplay?: string;
+      locationLabel?: string | null;
   };
 
   const cards = useMemo<Card[]>(() => {
@@ -297,7 +355,37 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
     return [...liveTargetCards, ...mapped, ...openDefaults, ...locked];
   }, [dares]);
 
+  // Convert nearby dares to Card format
+  const nearbyCards = useMemo<Card[]>(() => {
+    return nearbyDares.map((d) => ({
+      id: d.id,
+      shortId: d.shortId || d.id.slice(0, 8),
+      dare: d.title,
+      bounty: d.bounty,
+      streamer: d.streamerHandle || 'NEARBY',
+      emoji: '📍',
+      status: d.isOpenBounty ? 'open' as const : 'live' as const,
+      timeRemaining: d.distanceDisplay,
+      expiresAt: d.expiresAt,
+      isOpenBounty: d.isOpenBounty,
+      isNearby: true,
+      distanceKm: d.distanceKm,
+      distanceDisplay: d.distanceDisplay,
+      locationLabel: d.locationLabel,
+    }));
+  }, [nearbyDares]);
+
   const filteredCards = useMemo(() => {
+    // For NEARBY filter, return nearby cards
+    if (filter === 'NEARBY') {
+      const q = searchQuery.trim().toLowerCase();
+      if (q.length === 0) return nearbyCards;
+      return nearbyCards.filter((card) =>
+        card.dare.toLowerCase().includes(q) ||
+        (card.locationLabel?.toLowerCase().includes(q) ?? false)
+      );
+    }
+
     const q = searchQuery.trim().toLowerCase();
     return cards.filter((card) => {
       const matchesSearch =
@@ -312,7 +400,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       if (filter === 'LOCKED') return card.status === 'restricted';
       return true;
     });
-  }, [cards, filter, searchQuery]);
+  }, [cards, nearbyCards, filter, searchQuery]);
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -352,8 +440,55 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         </div>
       </div>
 
+      {/* NEARBY filter special states */}
+      {filter === 'NEARBY' && (geoLoading || nearbyLoading) && (
+        <div className="w-full max-w-[1400px] px-6 mb-8">
+          <div className="flex items-center justify-center gap-3 p-6 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
+            <Loader2 className="w-5 h-5 text-[#FACC15] animate-spin" />
+            <span className="text-sm text-gray-400 font-mono">
+              {geoLoading ? 'Getting your location...' : 'Finding nearby dares...'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {filter === 'NEARBY' && geoError && (
+        <div className="w-full max-w-[1400px] px-6 mb-8">
+          <div className="flex flex-col items-center gap-3 p-6 bg-red-500/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl">
+            <MapPin className="w-8 h-8 text-red-400" />
+            <p className="text-sm text-red-400 text-center">{geoError}</p>
+            <button
+              onClick={requestLocation}
+              className="px-4 py-2 bg-[#FACC15] text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-[#FDE047] transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {filter === 'NEARBY' && nearbyError && !geoError && (
+        <div className="w-full max-w-[1400px] px-6 mb-8">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+            <p className="text-sm text-red-400">{nearbyError}</p>
+          </div>
+        </div>
+      )}
+
+      {filter === 'NEARBY' && coordinates && !nearbyLoading && nearbyDares.length === 0 && !nearbyError && (
+        <div className="w-full max-w-[1400px] px-6 mb-8">
+          <div className="flex flex-col items-center gap-3 p-8 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
+            <MapPin className="w-10 h-10 text-gray-500" />
+            <p className="text-lg font-bold text-white">No nearby dares found</p>
+            <p className="text-sm text-gray-400 text-center">
+              Be the first to create a dare in your area!
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="premium-bento-grid">
-        {isLoading
+        {isLoading || (filter === 'NEARBY' && (geoLoading || nearbyLoading))
           ? Array.from({ length: 6 }).map((_, i) => <SentinelSkeleton key={i} />)
           : filteredCards.map((card) => (
               <PremiumDareCard
@@ -371,6 +506,9 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                 isOpenBounty={card.isOpenBounty}
                 proofUrl={card.proofUrl}
                 onViewProof={(url) => setProofUrl(url)}
+                isNearby={card.isNearby}
+                distanceDisplay={card.distanceDisplay}
+                locationLabel={card.locationLabel}
               />
             ))}
       </div>
