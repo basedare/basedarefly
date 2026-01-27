@@ -72,12 +72,55 @@ async function callCommandAPI(cmd, params = {}) {
 }
 
 /**
- * Handle incoming command
+ * Call the natural language query API
+ */
+async function callQueryAPI(query) {
+  const url = new URL(`${API_BASE}/api/telegram/query`);
+  url.searchParams.set('q', query);
+
+  try {
+    const res = await fetch(url.toString());
+    return await res.json();
+  } catch (err) {
+    console.error(`Query API failed: ${err.message}`);
+    return { error: err.message };
+  }
+}
+
+/**
+ * Check if text is a natural language query (not a command)
+ */
+function isNaturalLanguageQuery(text) {
+  const queryPatterns = [
+    /show me/i,
+    /how many/i,
+    /total/i,
+    /dares? (?:over|under|above|below)/i,
+    /list/i,
+    /find/i,
+    /search/i,
+    /what.*dares/i,
+    /volume/i,
+    /biggest/i,
+    /top \d+/i,
+  ];
+  return queryPatterns.some(p => p.test(text));
+}
+
+/**
+ * Handle incoming command or natural language query
  */
 async function handleCommand(text, chatId) {
   // Only process from admin chat
   if (chatId.toString() !== TELEGRAM_ADMIN_CHAT_ID) {
     console.log(`Ignored message from non-admin chat: ${chatId}`);
+    return;
+  }
+
+  // Check for natural language query (not starting with /)
+  if (!text.startsWith('/') && isNaturalLanguageQuery(text)) {
+    console.log(`🔍 Natural query: ${text}`);
+    await callQueryAPI(text);
     return;
   }
 
@@ -115,6 +158,15 @@ async function handleCommand(text, chatId) {
       await callCommandAPI('stats');
       break;
 
+    case 'query':
+    case 'q':
+      if (!args.length) {
+        await sendMessage('❌ Usage: <code>/query [natural language]</code>\n\nExamples:\n• show me dares over $100\n• how many pending\n• total volume this week');
+        return;
+      }
+      await callQueryAPI(args.join(' '));
+      break;
+
     case 'help':
     case 'start':
       await sendMessage(`
@@ -125,12 +177,19 @@ async function handleCommand(text, chatId) {
 /approve [id] - Approve a dare
 /reject [id] [reason] - Reject a dare
 
-<b>Stats:</b>
+<b>Stats & Queries:</b>
 /stats - Quick stats overview
+/query [text] - Natural language search
 
 <b>Examples:</b>
 <code>/approve ftEXgfxL</code>
 <code>/reject abc123 Invalid proof</code>
+<code>/query dares over $100</code>
+
+<b>Or just ask:</b>
+"show me dares over $100"
+"how many pending dares"
+"total volume this week"
       `.trim());
       break;
 

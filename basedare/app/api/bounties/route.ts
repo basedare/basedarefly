@@ -13,7 +13,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
-import { alertNewDare, alertBigPledge } from '@/lib/telegram';
+import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
+import { moderateDare, getModerationStatus } from '@/lib/moderation';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -283,6 +284,31 @@ export async function POST(request: NextRequest) {
       validation.data;
 
     // -------------------------------------------------------------------------
+    // 1.5. AUTO-MODERATION - Check for sketchy/dangerous content
+    // -------------------------------------------------------------------------
+    const moderation = moderateDare(title, description);
+
+    if (!moderation.allowed) {
+      console.log(`[MODERATION] Blocked dare: "${title}" - ${moderation.reason}`);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'This dare contains prohibited content and cannot be created.',
+          code: 'CONTENT_BLOCKED',
+          moderation: {
+            status: getModerationStatus(moderation),
+            reason: moderation.reason,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    if (moderation.flagged) {
+      console.log(`[MODERATION] Flagged dare for review: "${title}" - ${moderation.reason}`);
+    }
+
+    // -------------------------------------------------------------------------
     // 2. RESOLVE STREAMER TAG TO ADDRESS (or handle open bounty)
     // -------------------------------------------------------------------------
     const isOpenBounty = !streamerTag || streamerTag.trim() === '';
@@ -402,6 +428,19 @@ export async function POST(request: NextRequest) {
         isOpenBounty,
         stakerAddress,
       }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
+
+      // Flagged content alert for moderation
+      if (moderation.flagged) {
+        alertFlaggedContent({
+          dareId: dbDare.id,
+          shortId,
+          title,
+          amount,
+          reason: moderation.reason || 'Flagged for review',
+          matches: moderation.matches,
+          confidence: moderation.confidence,
+        }).catch(err => console.error('[TELEGRAM] Flagged alert failed:', err));
+      }
 
       // Big pledge alert for high-value dares
       if (amount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {

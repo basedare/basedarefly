@@ -237,6 +237,39 @@ ${dareList}
 }
 
 /**
+ * Alert: Flagged content for review
+ */
+export async function alertFlaggedContent(data: {
+  dareId: string;
+  shortId: string;
+  title: string;
+  amount: number;
+  reason: string;
+  matches: string[];
+  confidence: number;
+}): Promise<void> {
+  const matchList = data.matches.length > 0
+    ? `\n🔍 Matches: ${data.matches.join(', ')}`
+    : '';
+
+  const message = `
+⚠️ <b>FLAGGED CONTENT</b>
+
+<b>${data.title}</b>
+💰 ${formatUSDC(data.amount)}
+🎯 Confidence: ${Math.round(data.confidence * 100)}%
+
+📝 ${data.reason}${matchList}
+
+🔗 <a href="${BASE_URL}/dare/${data.shortId}">Review Dare</a>
+
+Use /approve or /reject to moderate
+`.trim();
+
+  await sendMessage(message);
+}
+
+/**
  * Alert: Error/Issue that needs attention
  */
 export async function alertError(data: {
