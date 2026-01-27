@@ -8,7 +8,8 @@
     "build": "next build --webpack",
     "build:turbo": "next build --turbo",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clawdbot": "node scripts/clawdbot-poll.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
