@@ -9,7 +9,7 @@ export default function Footer() {
   const { isControlMode } = useView();
 
   return (
-    <footer id="site-footer" className="w-full relative z-50 overflow-hidden">
+    <footer id="site-footer" className="w-full relative z-0 overflow-hidden">
       {/* APPLE LIQUID GLASS BACKDROP */}
       <div className="absolute inset-0">
         {/* Gradient base */}
@@ -43,12 +43,12 @@ export default function Footer() {
 
             {/* COL 1: LOGO + IDENTITY */}
             <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
-              {/* BASEDARE LOGO */}
-              <div className="mb-4 md:mb-6">
+              {/* BASEDARE LOGO - Centered on mobile */}
+              <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
                 <img
                   src="/assets/BASEDAREGOO.png"
                   alt="BaseDare"
-                  className={`h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain transition-all duration-500 ${
+                  className={`h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 transition-all duration-500 ${
                     isControlMode
                       ? 'drop-shadow-[0_0_20px_rgba(100,100,100,0.4)]'
                       : 'drop-shadow-[0_0_20px_rgba(255,215,0,0.4)]'
@@ -58,7 +58,7 @@ export default function Footer() {
                     WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
                   }}
                 />
-                <p className="text-[11px] sm:text-xs text-gray-500 font-mono leading-relaxed max-w-sm">
+                <p className="text-[11px] sm:text-xs text-gray-500 font-mono leading-relaxed max-w-sm text-center md:text-left">
                   The decentralized protocol for verifiable social chaos.
                   Smart contract settlement on Base L2.
                   <br />
