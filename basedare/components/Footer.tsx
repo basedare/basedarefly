@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, HelpCircle } from 'lucide-react';
+import { Twitter, Shield, FileText, HelpCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
 
@@ -94,6 +94,12 @@ export default function Footer() {
                    <Link href="/faq" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-purple-400 transition-colors uppercase tracking-wider group">
                       <HelpCircle className="w-3 h-3 group-hover:text-purple-400" />
                       FAQ
+                   </Link>
+                 </li>
+                 <li>
+                   <Link href="/about" className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-emerald-400 transition-colors uppercase tracking-wider group">
+                      <Info className="w-3 h-3 group-hover:text-emerald-400" />
+                      About
                    </Link>
                  </li>
                  <li>
