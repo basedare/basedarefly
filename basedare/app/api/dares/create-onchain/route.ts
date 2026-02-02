@@ -1,49 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getWalletClient, PROTOCOL_CONTRACT_ADDRESS, PROTOCOL_ABI, publicClient } from '@/lib/contracts';
-import { parseUnits } from 'viem';
+import { parseUnits, isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { generateOnChainDareId } from '@/lib/dare-id';
+import { verifyInternalApiKey } from '@/lib/api-auth';
 import type { Address } from 'viem';
 
-/**
- * POST /api/dares/create-onchain
- * Create a dare on-chain (smart contract) and optionally sync to Base44
- * 
- * This endpoint handles the blockchain transaction for creating a dare,
- * including USDC approval and contract interaction.
- */
+const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
+
+const CreateOnChainSchema = z.object({
+  streamerAddress: z
+    .string()
+    .refine((addr) => isAddress(addr), 'Invalid streamer address'),
+  amount: z.number().min(5, 'Minimum amount is $5').max(10000, 'Maximum $10,000'),
+  referrerAddress: z
+    .string()
+    .refine((addr) => isAddress(addr), 'Invalid referrer address')
+    .optional(),
+  title: z.string().min(3).max(100).optional(),
+});
+
 export async function POST(request: NextRequest) {
+  // Authentication — internal API key required
+  const authError = verifyInternalApiKey(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
-    const {
-      streamerAddress,
-      amount, // USDC amount (in human-readable format, e.g., 100 for $100)
-      referrerAddress, // Optional referrer address
-      // Optional Base44 data to sync after on-chain creation
-      base44Data,
-    } = body;
+    const validation = CreateOnChainSchema.safeParse(body);
 
-    // Validate required fields
-    if (!streamerAddress || !amount) {
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Streamer address and amount are required' },
+        { success: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
 
-    if (amount < 5) {
-      return NextResponse.json(
-        { success: false, error: 'Minimum amount is $5' },
-        { status: 400 }
-      );
-    }
+    const { streamerAddress, amount, referrerAddress, title } = validation.data;
 
-    // Get wallet client for contract interaction
+    // Substitute platform wallet for missing/zero-address referrer
+    const safeReferrer: Address = (referrerAddress && referrerAddress !== '0x0000000000000000000000000000000000000000')
+      ? referrerAddress as Address
+      : PLATFORM_WALLET_ADDRESS;
+
     const walletClient = getWalletClient();
-
-    // Convert amount to USDC units (6 decimals for USDC)
     const amountInUnits = parseUnits(amount.toString(), 6);
 
-    // Call createDare on the smart contract
+    // Create DB record first to get deterministic on-chain ID
+    const dbDare = await prisma.dare.create({
+      data: {
+        title: title || 'On-chain dare',
+        bounty: amount,
+        status: 'FUNDING',
+        isSimulated: false,
+      },
+    });
+
+    const onChainDareId = generateOnChainDareId(dbDare.id);
+
     const hash = await walletClient.writeContract({
       address: PROTOCOL_CONTRACT_ADDRESS,
       abi: PROTOCOL_ABI,
@@ -51,58 +66,39 @@ export async function POST(request: NextRequest) {
       args: [
         streamerAddress as Address,
         amountInUnits,
-        (referrerAddress || '0x0000000000000000000000000000000000000000') as Address,
+        safeReferrer,
       ],
     });
 
-    // Wait for transaction receipt
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-    // Extract dare ID from event logs or transaction
-    // This depends on your contract's event structure
-    let dareId: bigint | null = null;
-    
-    // Try to extract dare ID from events
-    // Adjust based on your contract's event structure
-    if (receipt.logs) {
-      // You'll need to decode the DareCreated event to get the dareId
-      // This is a placeholder - adjust based on actual event structure
-    }
+    // Update DB with tx result
+    await prisma.dare.update({
+      where: { id: dbDare.id },
+      data: {
+        status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        txHash: hash,
+        onChainDareId: onChainDareId.toString(),
+      },
+    });
 
-    // Optionally sync to Prisma after successful on-chain creation
-    let prismaDare = null;
-    if (base44Data && hash) {
-      try {
-        const dareIdString = dareId !== null ? String(dareId) : null;
-        prismaDare = await prisma.dare.create({
-          data: {
-            ...base44Data,
-            onchain_tx_hash: hash,
-            onchain_dare_id: dareIdString,
-            status: 'PENDING',
-          } as any,
-        });
-      } catch (prismaError) {
-        console.error('Failed to sync to Prisma, but on-chain creation succeeded:', prismaError);
-        // Don't fail the request if Prisma sync fails
-      }
-    }
+    console.log(`[AUDIT] On-chain dare created - dbId: ${dbDare.id}, txHash: ${hash}`);
 
     return NextResponse.json({
       success: true,
       data: {
         transactionHash: hash,
-        receipt,
-        dareId: dareId !== null ? String(dareId) : null,
-        dare: prismaDare,
+        dareId: dbDare.id,
+        onChainDareId: onChainDareId.toString(),
+        blockNumber: receipt.blockNumber.toString(),
       },
     });
-  } catch (error: any) {
-    console.error('Error creating on-chain dare:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[ERROR] On-chain dare creation failed:', errorMessage);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create on-chain dare' },
+      { success: false, error: 'Failed to create on-chain dare' },
       { status: 500 }
     );
   }
 }
-

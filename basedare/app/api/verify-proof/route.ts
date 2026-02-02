@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { alertVerification, alertPayout } from '@/lib/telegram';
+import { verifyInternalApiKey } from '@/lib/api-auth';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -158,9 +159,6 @@ const VALID_PROOF_PATTERNS = [
   /^ipfs:\/\//,
 ];
 
-// Store used proof hashes to prevent reuse (in production, use Redis/DB)
-const usedProofHashes = new Set<string>();
-
 function isValidProofUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   return VALID_PROOF_PATTERNS.some(pattern => pattern.test(url));
@@ -211,11 +209,19 @@ async function validateProof(
   }
 
   // -------------------------------------------------------------------------
-  // VALIDATION STEP 3: Check proof hasn't been used before (replay protection)
+  // VALIDATION STEP 3: Check proof hasn't been used before (replay protection via DB)
   // -------------------------------------------------------------------------
-  const urlHash = keccak256(toBytes(videoUrl));
-  if (usedProofHashes.has(urlHash)) {
-    console.log(`[VERIFY] Duplicate proof detected: ${urlHash}`);
+  const existingProof = await prisma.dare.findFirst({
+    where: {
+      videoUrl,
+      status: { in: ['VERIFIED', 'PENDING_REVIEW', 'PENDING_PAYOUT'] },
+      id: { not: dare.id },
+    },
+    select: { id: true },
+  });
+
+  if (existingProof) {
+    console.log(`[VERIFY] Duplicate proof detected — already used by dare ${existingProof.id}`);
     return {
       success: false,
       confidence: 0.2,
@@ -249,9 +255,6 @@ async function validateProof(
     // HIGH VALUE: Queue for manual admin review
     console.log(`[VERIFY] High-value dare ($${dare.bounty}) - queuing for manual review`);
 
-    // Mark proof as used (prevent resubmission)
-    usedProofHashes.add(urlHash);
-
     return {
       success: false, // Not auto-approved
       confidence: 0.75, // Proof looks valid but needs human review
@@ -262,9 +265,6 @@ async function validateProof(
   } else {
     // LOW VALUE: Auto-approve with valid proof
     console.log(`[VERIFY] Low-value dare ($${dare.bounty}) - auto-approving with valid proof`);
-
-    // Mark proof as used
-    usedProofHashes.add(urlHash);
 
     return {
       success: true,
@@ -291,7 +291,13 @@ function mockSunderReputation(streamerHandle: string): void {
 
 export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
-  // 0. RATE LIMITING - Prevent abuse of AI Referee
+  // 0a. AUTHENTICATION - Internal API key required
+  // -------------------------------------------------------------------------
+  const authError = verifyInternalApiKey(req);
+  if (authError) return authError;
+
+  // -------------------------------------------------------------------------
+  // 0b. RATE LIMITING - Prevent abuse of AI Referee
   // -------------------------------------------------------------------------
   const clientIp = getClientIp(req);
   const rateLimitResult = checkRateLimit(clientIp, {
@@ -464,10 +470,11 @@ export async function POST(req: NextRequest) {
         const { publicClient, walletClient } = getRefereeClient();
 
         try {
-          // Note: Contract uses numeric dareId, but we store cuid in DB
-          // For real integration, you'd need to track the on-chain dareId separately
-          // For now, we'll use a hash of the DB id as the on-chain id
-          const onChainDareId = BigInt('0x' + Buffer.from(dareId).slice(0, 8).toString('hex'));
+          if (!dare.onChainDareId) {
+            console.error(`[REFEREE] No onChainDareId for dare ${dareId} — skipping on-chain payout`);
+            throw new Error('Missing on-chain dare ID');
+          }
+          const onChainDareId = BigInt(dare.onChainDareId);
 
           const hash = await walletClient.writeContract({
             address: BOUNTY_CONTRACT_ADDRESS,
@@ -482,9 +489,30 @@ export async function POST(req: NextRequest) {
 
           console.log(`[AUDIT] Payout executed - txHash: ${txHash}`);
         } catch (contractError: unknown) {
-          const message = contractError instanceof Error ? contractError.message : 'Contract call failed';
-          console.error(`[REFEREE] Contract payout failed: ${message}`);
-          // Don't fail the whole request - mark as verified in DB, note contract issue
+          const contractMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
+          console.error(`[REFEREE] Contract payout failed: ${contractMsg}`);
+          // On-chain failed — mark as PENDING_PAYOUT so it can be retried
+          await prisma.dare.update({
+            where: { id: dareId },
+            data: {
+              status: 'PENDING_PAYOUT',
+              verifyConfidence: verification.confidence,
+              proofHash: verification.proofHash,
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              dareId,
+              status: 'PENDING_PAYOUT',
+              verification: {
+                confidence: verification.confidence,
+                reason: 'Proof verified but on-chain payout failed. Will be retried.',
+                proofHash: verification.proofHash,
+              },
+            },
+          });
         }
       } else {
         console.log(`[REFEREE] Simulated mode - skipping on-chain payout`);
@@ -495,7 +523,7 @@ export async function POST(req: NextRequest) {
         console.log(`[REFERRAL] Referrer ${dare.referrerTag} (${dare.referrerAddress}) earns $${referrerFee} (1% of $${totalBounty})`);
       }
 
-      // Update database with verification result
+      // Only mark VERIFIED after confirmed on-chain success (or simulated mode)
       await prisma.dare.update({
         where: { id: dareId },
         data: {
@@ -605,7 +633,7 @@ export async function POST(req: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Verification failed:', message);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Verification failed due to an internal error' },
       { status: 500 }
     );
   }
@@ -708,7 +736,7 @@ export async function PUT(req: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Appeal submission failed:', message);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Appeal submission failed due to an internal error' },
       { status: 500 }
     );
   }

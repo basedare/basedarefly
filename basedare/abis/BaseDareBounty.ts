@@ -1,5 +1,13 @@
-// ABI for BaseDareBounty contract
+// ABI for BaseDareBounty contract — matches deployed contract on Base Sepolia/Mainnet
 export const BOUNTY_ABI = [
+  {
+    "inputs": [
+      { "name": "_usdc", "type": "address" },
+      { "name": "_platformWallet", "type": "address" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
   {
     "inputs": [
       { "name": "_dareId", "type": "uint256" },
@@ -7,40 +15,50 @@ export const BOUNTY_ABI = [
       { "name": "_referrer", "type": "address" },
       { "name": "_amount", "type": "uint256" }
     ],
-    "name": "stakeBounty",
+    "name": "fundBounty",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      { "name": "_dareId", "type": "uint256" }
-    ],
+    "inputs": [{ "name": "_dareId", "type": "uint256" }],
     "name": "verifyAndPayout",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      { "name": "_dareId", "type": "uint256" },
-      { "name": "_backer", "type": "address" }
-    ],
-    "name": "refundStaker",
+    "inputs": [{ "name": "_dareId", "type": "uint256" }],
+    "name": "refundBacker",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "_newReferee", "type": "address" }],
+    "name": "setAIRefereeAddress",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
-      { "name": "", "type": "uint256" }
+      { "name": "_token", "type": "address" },
+      { "name": "_amount", "type": "uint256" }
     ],
+    "name": "rescueERC20",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "", "type": "uint256" }],
     "name": "bounties",
     "outputs": [
       { "name": "amount", "type": "uint256" },
       { "name": "streamer", "type": "address" },
       { "name": "referrer", "type": "address" },
-      { "name": "staker", "type": "address" },
+      { "name": "backer", "type": "address" },
       { "name": "isVerified", "type": "bool" }
     ],
     "stateMutability": "view",
@@ -48,28 +66,29 @@ export const BOUNTY_ABI = [
   },
   {
     "inputs": [],
-    "name": "AI_REFEREE_ADDRESS",
-    "outputs": [
-      { "name": "", "type": "address" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "USDC",
-    "outputs": [
-      { "name": "", "type": "address" }
-    ],
+    "outputs": [{ "name": "", "type": "address" }],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "HOUSE_WALLET",
-    "outputs": [
-      { "name": "", "type": "address" }
-    ],
+    "name": "PLATFORM_WALLET",
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "AI_REFEREE_ADDRESS",
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "name": "", "type": "address" }],
     "stateMutability": "view",
     "type": "function"
   },
@@ -77,10 +96,10 @@ export const BOUNTY_ABI = [
     "anonymous": false,
     "inputs": [
       { "indexed": true, "name": "dareId", "type": "uint256" },
-      { "indexed": true, "name": "staker", "type": "address" },
+      { "indexed": true, "name": "backer", "type": "address" },
       { "indexed": false, "name": "amount", "type": "uint256" }
     ],
-    "name": "BountyStaked",
+    "name": "BountyFunded",
     "type": "event"
   },
   {

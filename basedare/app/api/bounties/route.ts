@@ -13,6 +13,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
+import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
@@ -49,6 +50,7 @@ function generateInviteToken(): string {
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as Address;
+const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
 const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 
 // Check if contract address is a valid Ethereum address (not a placeholder UUID)
@@ -575,35 +577,7 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // 8. GENERATE DARE ID (or use client-provided for idempotency)
-    // -------------------------------------------------------------------------
-    const finalDareId = dareId ? BigInt(dareId) : BigInt(Date.now());
-
-    // -------------------------------------------------------------------------
-    // 9. EXECUTE stakeBounty ON-CHAIN (CEI Pattern in contract)
-    // -------------------------------------------------------------------------
-    // For open bounties, use zero address as placeholder (anyone can claim)
-    const targetAddress = streamerAddress || '0x0000000000000000000000000000000000000000' as Address;
-
-    const txHash = await walletClient.writeContract({
-      address: BOUNTY_CONTRACT_ADDRESS,
-      abi: BOUNTY_ABI,
-      functionName: 'stakeBounty',
-      args: [
-        finalDareId,
-        targetAddress,
-        (referrerAddress || '0x0000000000000000000000000000000000000000') as Address,
-        amountInUnits,
-      ],
-    });
-
-    // -------------------------------------------------------------------------
-    // 10. WAIT FOR CONFIRMATION
-    // -------------------------------------------------------------------------
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-    // -------------------------------------------------------------------------
-    // 11. WRITE TO PRISMA DATABASE (Real Contract Mode)
+    // 8. CREATE DB RECORD FIRST to get stable CUID for on-chain ID
     // -------------------------------------------------------------------------
 
     // Resolve referrer tag to address
@@ -614,38 +588,31 @@ export async function POST(request: NextRequest) {
       console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
     }
 
-    // Set expiry to 24 hours from now
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const shortId = generateShortId();
+    const expiresAtOnChain = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const shortIdOnChain = generateShortId();
+    const isAwaitingClaimOnChain = !isOpenBounty && !tagVerified;
+    const inviteTokenOnChain = isAwaitingClaimOnChain ? generateInviteToken() : null;
+    const claimDeadlineOnChain = isAwaitingClaimOnChain ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+    const targetWalletAddressOnChain = tagVerified ? streamerAddress : null;
 
-    // Determine status and invite flow based on tag verification
-    // Open bounties go straight to PENDING (anyone can complete)
-    const isAwaitingClaim = !isOpenBounty && !tagVerified;
-    const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
-    // If tag is unverified, set 30-day claim deadline
-    const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
-    const dareStatus = receipt.status !== 'success' ? 'FAILED' : (isAwaitingClaim ? 'AWAITING_CLAIM' : 'PENDING');
-    // Only set targetWalletAddress if tag is verified
-    const targetWalletAddress = tagVerified ? streamerAddress : null;
-
-    const dbDare = await prisma.dare.create({
+    // Create DB record to get stable ID
+    const dbDarePreCreate = await prisma.dare.create({
       data: {
         title,
         bounty: amount,
         streamerHandle: isOpenBounty ? null : streamerTag,
-        status: dareStatus,
+        status: 'FUNDING',
         streamId,
-        txHash,
+        txHash: null,
         isSimulated: false,
-        expiresAt,
-        shortId,
+        expiresAt: expiresAtOnChain,
+        shortId: shortIdOnChain,
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
         stakerAddress: stakerAddress?.toLowerCase() || null,
-        inviteToken,
-        claimDeadline,
-        targetWalletAddress,
-        // Nearby dare fields
+        inviteToken: inviteTokenOnChain,
+        claimDeadline: claimDeadlineOnChain,
+        targetWalletAddress: targetWalletAddressOnChain,
         isNearbyDare,
         latitude: isNearbyDare ? latitude : null,
         longitude: isNearbyDare ? longitude : null,
@@ -654,6 +621,51 @@ export async function POST(request: NextRequest) {
         discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
       },
     });
+
+    const finalDareId = generateOnChainDareId(dbDarePreCreate.id);
+
+    // -------------------------------------------------------------------------
+    // 9. EXECUTE stakeBounty ON-CHAIN (CEI Pattern in contract)
+    // -------------------------------------------------------------------------
+    // For open bounties, use zero address as placeholder (anyone can claim)
+    const targetAddress = streamerAddress || '0x0000000000000000000000000000000000000000' as Address;
+
+    const txHash = await walletClient.writeContract({
+      address: BOUNTY_CONTRACT_ADDRESS,
+      abi: BOUNTY_ABI,
+      functionName: 'fundBounty',
+      args: [
+        finalDareId,
+        targetAddress,
+        (referrerAddress || PLATFORM_WALLET_ADDRESS) as Address,
+        amountInUnits,
+      ],
+    });
+
+    // -------------------------------------------------------------------------
+    // 10. WAIT FOR CONFIRMATION
+    // -------------------------------------------------------------------------
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    // -------------------------------------------------------------------------
+    // 11. UPDATE PRISMA DATABASE WITH TX RESULT
+    // -------------------------------------------------------------------------
+    const dareStatus = receipt.status !== 'success' ? 'FAILED' : (isAwaitingClaimOnChain ? 'AWAITING_CLAIM' : 'PENDING');
+
+    const dbDare = await prisma.dare.update({
+      where: { id: dbDarePreCreate.id },
+      data: {
+        status: dareStatus,
+        txHash,
+        onChainDareId: finalDareId.toString(),
+      },
+    });
+
+    const expiresAt = expiresAtOnChain;
+    const shortId = shortIdOnChain;
+    const isAwaitingClaim = isAwaitingClaimOnChain;
+    const inviteToken = inviteTokenOnChain;
+    const claimDeadline = claimDeadlineOnChain;
 
     // -------------------------------------------------------------------------
     // 12. AUDIT LOG (no sensitive data)
@@ -748,7 +760,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'An internal error occurred' }, { status: 500 });
   }
 }
 
@@ -990,6 +1002,6 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Bounty fetch failed:', message);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'An internal error occurred' }, { status: 500 });
   }
 }

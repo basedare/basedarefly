@@ -10,6 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
+import { verifyCronSecret } from '@/lib/api-auth';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -20,8 +21,7 @@ const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS 
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 
-// Cron secret for authorization
-const CRON_SECRET = process.env.CRON_SECRET;
+// Cron secret handled by verifyCronSecret (fail-closed)
 
 // ============================================================================
 // SERVER-SIDE VIEM CLIENTS
@@ -55,19 +55,11 @@ function getServerClients() {
 // ============================================================================
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authorization (either cron secret or admin)
-    const authHeader = request.headers.get('Authorization');
-    const cronSecret = authHeader?.replace('Bearer ', '');
+  // Fail-closed cron authentication
+  const authError = verifyCronSecret(request);
+  if (authError) return authError;
 
-    // In production, require CRON_SECRET
-    if (CRON_SECRET && cronSecret !== CRON_SECRET) {
-      console.warn('[REFUND] Unauthorized refund attempt');
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  try {
 
     // Find all AWAITING_CLAIM dares that have passed their claimDeadline
     const expiredDares = await prisma.dare.findMany({
@@ -121,10 +113,16 @@ export async function POST(request: NextRequest) {
         // Real contract mode - call refundBacker on contract
         const { publicClient, walletClient } = getServerClients();
 
-        // The dare ID stored in contract would be based on the streamId or txHash
-        // For now, we use a simplified approach
-        // In production, you'd need to map the dare.id to the on-chain bountyId
-        const bountyId = BigInt(dare.txHash ? parseInt(dare.txHash.slice(2, 18), 16) : Date.now());
+        if (!dare.onChainDareId) {
+          console.warn(`[REFUND] No onChainDareId for dare ${dare.id} — skipping on-chain refund`);
+          await prisma.dare.update({
+            where: { id: dare.id },
+            data: { status: 'REFUNDED' },
+          });
+          results.push({ dareId: dare.id, status: 'simulated' });
+          continue;
+        }
+        const bountyId = BigInt(dare.onChainDareId);
 
         const txHash = await walletClient.writeContract({
           address: BOUNTY_CONTRACT_ADDRESS,
@@ -180,7 +178,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[REFUND] Error processing expired dares:', message);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to process expired dares' }, { status: 500 });
   }
 }
 
@@ -235,6 +233,6 @@ export async function GET() {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to fetch expired dares' }, { status: 500 });
   }
 }

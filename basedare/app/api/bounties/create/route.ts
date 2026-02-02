@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
-import { createPublicClient, createWalletClient, http, parseUnits, type Address } from 'viem';
+import { createPublicClient, createWalletClient, http, parseUnits, isAddress, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
+import { generateOnChainDareId } from '@/lib/dare-id';
+import { prisma } from '@/lib/prisma';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -14,6 +16,7 @@ const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.o
 // Environment validation (server-side only)
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as Address;
+const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
 const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 
 // Zod schema for request validation
@@ -147,18 +150,26 @@ export async function POST(request: NextRequest) {
       amountInUnits
     );
 
-    // 6. Generate a unique dare ID (timestamp-based for now)
-    const dareId = BigInt(Date.now());
+    // 6. Create DB record first, then derive deterministic on-chain ID
+    const dbDare = await prisma.dare.create({
+      data: {
+        title,
+        bounty: amount,
+        status: 'FUNDING',
+        isSimulated: false,
+      },
+    });
+    const dareId = generateOnChainDareId(dbDare.id);
 
-    // 7. Execute stakeBounty on the contract
+    // 7. Execute fundBounty on the contract
     const hash = await walletClient.writeContract({
       address: BOUNTY_CONTRACT_ADDRESS,
       abi: BOUNTY_ABI,
-      functionName: 'stakeBounty',
+      functionName: 'fundBounty',
       args: [
         dareId,
         streamerAddress as Address,
-        (referrerAddress || '0x0000000000000000000000000000000000000000') as Address,
+        (referrerAddress || PLATFORM_WALLET_ADDRESS) as Address,
         amountInUnits,
       ],
     });
@@ -166,14 +177,24 @@ export async function POST(request: NextRequest) {
     // 8. Wait for transaction confirmation
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-    // 9. Audit log (server-side only, no sensitive data)
-    console.log(`[AUDIT] Bounty created - dareId: ${dareId}, title: "${title}", amount: ${amount} USDC, txHash: ${hash}`);
+    // 9. Update DB with on-chain data
+    await prisma.dare.update({
+      where: { id: dbDare.id },
+      data: {
+        status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        txHash: hash,
+        onChainDareId: dareId.toString(),
+      },
+    });
+
+    console.log(`[AUDIT] Bounty created - dareId: ${dareId}, dbId: ${dbDare.id}, title: "${title}", amount: ${amount} USDC, txHash: ${hash}`);
 
     return NextResponse.json({
       success: true,
       data: {
         txHash: hash,
-        dareId: dareId.toString(),
+        dareId: dbDare.id,
+        onChainDareId: dareId.toString(),
         title,
         amount,
         streamerAddress,
@@ -185,7 +206,7 @@ export async function POST(request: NextRequest) {
     console.error('[ERROR] Bounty creation failed:', message);
 
     return NextResponse.json(
-      { success: false, error: message || 'Failed to create bounty' },
+      { success: false, error: 'Failed to create bounty' },
       { status: 500 }
     );
   }

@@ -28,10 +28,7 @@ export const BOUNTY_ABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      { "name": "_dareId", "type": "uint256" },
-      { "name": "_backer", "type": "address" }
-    ],
+    "inputs": [{ "name": "_dareId", "type": "uint256" }],
     "name": "refundBacker",
     "outputs": [],
     "stateMutability": "nonpayable",
