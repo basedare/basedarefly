@@ -5,11 +5,18 @@ import { useState, useRef, useEffect } from 'react';
 import { Wallet } from 'lucide-react';
 import { useFeedback } from '@/hooks/useFeedback';
 
+const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
+  injected: { label: 'MetaMask', icon: '🦊' },
+  coinbaseWalletSDK: { label: 'Coinbase', icon: '🔵' },
+  walletConnect: { label: 'WalletConnect', icon: '🔗' },
+};
+
 export function IdentityButton() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showWalletPicker, setShowWalletPicker] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { trigger } = useFeedback();
 
@@ -17,6 +24,7 @@ export function IdentityButton() {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+        setShowWalletPicker(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -29,13 +37,15 @@ export function IdentityButton() {
       setShowDropdown(!showDropdown);
     } else {
       trigger('connect');
-      // Prefer coinbaseWallet for mobile compatibility, fallback to injected for desktop extensions
-      const coinbaseConnector = connectors.find(c => c.id === 'coinbaseWalletSDK');
-      const injectedConnector = connectors.find(c => c.id === 'injected');
-      const connector = coinbaseConnector || injectedConnector || connectors[0];
-      if (connector) {
-        connect({ connector });
-      }
+      setShowWalletPicker(!showWalletPicker);
+    }
+  };
+
+  const handleConnectWallet = (connectorId: string) => {
+    const connector = connectors.find(c => c.id === connectorId);
+    if (connector) {
+      connect({ connector });
+      setShowWalletPicker(false);
     }
   };
 
@@ -78,6 +88,27 @@ export function IdentityButton() {
             >
               Disconnect
             </button>
+          </div>
+        )}
+
+        {showWalletPicker && !isConnected && (
+          <div className="absolute top-full right-0 mt-2 w-56 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-2xl rounded-xl overflow-hidden z-50 shadow-2xl">
+            <div className="px-4 py-3 border-b border-white/[0.06]">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Connect Wallet</p>
+            </div>
+            {connectors.map(connector => {
+              const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
+              return (
+                <button
+                  key={connector.id}
+                  onClick={() => handleConnectWallet(connector.id)}
+                  className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center gap-3"
+                >
+                  <span className="text-lg">{meta.icon}</span>
+                  <span className="font-medium">{meta.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -177,6 +208,36 @@ export function IdentityButton() {
             >
               Disconnect
             </button>
+          </div>
+        )}
+
+        {showWalletPicker && !isConnected && (
+          <div
+            className="absolute top-full right-0 mt-2 w-52 rounded-2xl overflow-hidden z-50"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+            }}
+          >
+            <div className="px-4 py-3 border-b border-white/10">
+              <p className="text-[10px] text-white/50 uppercase tracking-wide font-bold">Connect Wallet</p>
+            </div>
+            {connectors.map(connector => {
+              const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
+              return (
+                <button
+                  key={connector.id}
+                  onClick={() => handleConnectWallet(connector.id)}
+                  className="w-full px-4 py-3 text-left text-xs text-white/70 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-3"
+                >
+                  <span className="text-base">{meta.icon}</span>
+                  <span className="font-medium">{meta.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

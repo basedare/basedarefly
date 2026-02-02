@@ -3,26 +3,103 @@ import React, { useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 const SUGGESTIONS = {
-  "CHAOS": [
-    "Call your ex and ask for a $50 loan",
-    "Delete your main WoW character",
-    "Tweet your browser search history",
-    "Eat a raw onion like an apple",
-    "Let chat pick your outfit for a date"
-  ],
-  "SKILL": [
+  "GAMING": [
     "Win a Warzone match using only a pistol",
     "Speedrun Minecraft in under 20 mins",
-    "Hit a 360 no-scope blindfolded",
-    "Complete Dark Souls boss without rolling",
-    "Win a chess game in under 15 moves"
+    "Beat a Dark Souls boss without rolling",
+    "Win a chess game in under 15 moves",
+    "Complete a Valorant match with inverted controls",
+    "Get a pentakill in League of Legends",
+    "Win a Fortnite match with no building",
+    "Complete a GTA 5 heist without dying",
+    "Reach Diamond rank in one stream session",
+    "Win a Street Fighter match using only kicks",
+    "Complete Elden Ring boss hitless",
+    "Get a 20-bomb in Apex Legends"
   ],
-  "IRL": [
-    "Order a pizza to a stranger's house",
-    "Do 50 pushups in a crowded Walmart",
-    "Wear a clown suit to the gym",
-    "Busker performance until you earn $10",
-    "Ask 10 strangers for a high-five"
+  "CREATIVE": [
+    "Write and perform an original rap about chat",
+    "Draw your viewers' usernames as cartoon characters",
+    "Create a song using only household items",
+    "Paint a portrait blindfolded",
+    "Write a short story live based on chat suggestions",
+    "Compose a beat in 10 minutes",
+    "Create a TikTok dance and teach it to chat",
+    "Make a comedy skit about streaming life",
+    "Freestyle rap for 5 minutes straight",
+    "Create digital art using MS Paint only",
+    "Write and sing a ballad about pizza",
+    "Improv a standup comedy set for 10 mins"
+  ],
+  "SOCIAL": [
+    "Call your mom and tell her you love her live",
+    "Text your crush and confess your feelings",
+    "DM 5 streamers asking for collab (politely)",
+    "Post an embarrassing childhood photo on Twitter",
+    "Call a random friend and sing them happy birthday",
+    "Compliment 10 strangers in your DMs",
+    "Ask 10 strangers on the street for a high-five",
+    "Tell your best friend your most embarrassing moment",
+    "Ask your followers to roast you for 10 mins",
+    "Call your best friend and apologize for something silly",
+    "Text your ex 'I miss our friendship' (if appropriate)",
+    "Post your most cringy old tweet"
+  ],
+  "FITNESS": [
+    "Do 100 pushups in one stream",
+    "Hold a plank for 5 minutes straight",
+    "Do 50 burpees without stopping",
+    "Complete a full yoga flow live",
+    "Do squats every time you die in game (50 max)",
+    "Wall sit for 3 minutes",
+    "Do jumping jacks for every donation (100 max)",
+    "Complete a 10-minute ab workout",
+    "Do pushups every time chat spams (50 max)",
+    "Hold a handstand for 30 seconds",
+    "Complete 200 jump rope skips",
+    "Do a full body workout routine live"
+  ],
+  "FOOD": [
+    "Eat a raw onion like an apple",
+    "Try the spiciest hot sauce you can find",
+    "Eat a lemon whole (peel and all)",
+    "Make and eat a disgusting food combo chat chooses",
+    "Drink a gallon of water in 10 minutes",
+    "Eat a whole jar of pickles",
+    "Try every chip flavor and rank them",
+    "Make a meal with 5 random ingredients",
+    "Eat cereal with orange juice instead of milk",
+    "Try durian fruit for the first time",
+    "Eat a full ghost pepper (if you dare)",
+    "Order food delivery but chat picks everything"
+  ],
+  "CHAOS": [
+    "Let chat control your playlist for the stream",
+    "Delete your least viewed YouTube video",
+    "Tweet your most controversial gaming opinion",
+    "Change your display name to what chat votes",
+    "Let chat pick your outfit for tomorrow",
+    "Unfollow everyone on Twitter then refollow",
+    "Post your screen time report on social media",
+    "Let chat redesign your stream overlay live",
+    "Change all your profile pics to what chat picks",
+    "Let viewers control your phone for 5 mins",
+    "Read your most embarrassing old tweets",
+    "Show your browser bookmarks on stream"
+  ],
+  "MUSIC": [
+    "Learn and perform a song in one stream",
+    "Sing karaoke for 30 minutes straight",
+    "Beatbox for 5 minutes without stopping",
+    "Cover a popular song in a different genre",
+    "Write original lyrics to a famous beat",
+    "Learn 3 instruments and play them live",
+    "Sing every message in chat for 10 mins",
+    "Perform an acoustic cover of a rap song",
+    "Create a remix live using free software",
+    "Sing the alphabet in opera style",
+    "Rap battle with your viewers",
+    "Play guitar while singing upside down"
   ]
 };
 
@@ -31,8 +108,8 @@ interface GeneratorProps {
 }
 
 export default function DareGenerator({ onSelect }: GeneratorProps) {
-  const [category, setCategory] = useState<"CHAOS" | "SKILL" | "IRL">("CHAOS");
-  const [suggestion, setSuggestion] = useState(SUGGESTIONS["CHAOS"][0]);
+  const [category, setCategory] = useState<keyof typeof SUGGESTIONS>("GAMING");
+  const [suggestion, setSuggestion] = useState(SUGGESTIONS["GAMING"][0]);
   const [isAnimating, setIsAnimating] = useState(false);
 
   const generate = () => {
@@ -52,19 +129,23 @@ export default function DareGenerator({ onSelect }: GeneratorProps) {
 
   return (
     <div className="p-6 bg-purple-900/10 border border-purple-500/30 rounded-2xl mb-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+      <div className="flex flex-col gap-4 mb-4">
         <h3 className="text-purple-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#FFD700]" /> AI Mission Generator
         </h3>
-        
-        <div className="flex gap-2">
+
+        {/* Scrollable category buttons */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {(Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>).map(cat => (
-            <button 
+            <button
               key={cat}
-              onClick={() => setCategory(cat)}
-              className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all ${
-                category === cat 
-                  ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]' 
+              onClick={() => {
+                setCategory(cat);
+                setSuggestion(SUGGESTIONS[cat][0]);
+              }}
+              className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
+                category === cat
+                  ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
                   : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
               }`}
             >

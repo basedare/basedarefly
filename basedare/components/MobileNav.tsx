@@ -62,11 +62,22 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
             className="flex items-center justify-between p-5"
             style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}
           >
-            <img
-              src="/assets/BASEDAREGOO.png"
-              alt="BASEDARE"
-              className="h-8 w-auto object-contain"
-            />
+            {/* Logo with subtle glow */}
+            <div className="relative group">
+              {/* Very subtle ambient glow on hover */}
+              <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+              <img
+                src="/assets/BASEDAREGOO.png"
+                alt="BASEDARE"
+                className="relative h-8 w-auto object-contain transition-all duration-300 hover:scale-105"
+                style={{
+                  filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                  WebkitFilter: 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                }}
+              />
+            </div>
+
             <button
               onClick={onClose}
               className="w-9 h-9 flex items-center justify-center rounded-full text-zinc-500 hover:text-white transition-all"

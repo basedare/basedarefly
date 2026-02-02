@@ -17,6 +17,7 @@ import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
+const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 
 // Liquid Metal Contact Button Component
 function ContactButton() {
@@ -153,9 +154,9 @@ export default function CreateDare() {
 
   const watchAmount = watch('amount');
 
-  // Balance check for FundButton
+  // Balance check for FundButton (skip in simulation mode)
   const requiredAmount = watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
-  const hasInsufficientBalance = isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
+  const hasInsufficientBalance = !IS_SIMULATION_MODE && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
   const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   // Debug: log validation errors
@@ -633,7 +634,7 @@ export default function CreateDare() {
               </div>
 
               {/* BALANCE & FUND BUTTON */}
-              {isConnected && (
+              {isConnected && !IS_SIMULATION_MODE && (
                 <div className="pt-4 md:pt-6 space-y-3">
                   {/* Balance Display */}
                   <div className="flex items-center justify-between px-1">
@@ -664,8 +665,17 @@ export default function CreateDare() {
                 </div>
               )}
 
+              {/* SIMULATION MODE INDICATOR */}
+              {IS_SIMULATION_MODE && (
+                <div className="pt-4 md:pt-6 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                  <p className="text-yellow-400 text-xs md:text-sm font-bold text-center">
+                    🧪 SIMULATION MODE - No USDC required, database-only testing
+                  </p>
+                </div>
+              )}
+
               {/* DEPLOY BUTTON - Liquid Metal Style */}
-              <div className={isConnected ? "pt-3" : "pt-4 md:pt-6"}>
+              <div className={isConnected && !IS_SIMULATION_MODE ? "pt-3" : "pt-4 md:pt-6"}>
                 {hasInsufficientBalance ? (
                   /* Disabled state - no spinning border */
                   <button

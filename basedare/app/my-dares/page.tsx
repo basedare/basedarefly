@@ -204,7 +204,9 @@ export default function MyDaresPage() {
                           </div>
                           <div>
                             <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Target</div>
-                            <div className="text-white font-bold font-serif text-lg">@{dare.streamerHandle}</div>
+                            <div className="text-white font-bold font-serif text-lg">
+                              {dare.streamerHandle ? `@${dare.streamerHandle}` : 'Open Bounty'}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">

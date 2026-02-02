@@ -128,7 +128,7 @@ export default function DareInteractions({
             placeholder="Amount (USDC)"
             value={injectAmount}
             onChange={(e) => setInjectAmount(e.target.value)}
-            className="w-full bg-black/50 border border-slate-800 rounded px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-purple-500"
+            className="w-full bg-white/5 backdrop-blur-md border border-white/20 rounded px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-yellow-500/50"
           />
           {hasInsufficientBalance ? (
             <div className="space-y-2">

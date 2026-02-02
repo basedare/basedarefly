@@ -11,47 +11,60 @@
 // Instant reject - dangerous/illegal content
 const BLOCKLIST = [
   // Violence/harm
-  /\b(kill|murder|shoot|stab|attack|assault|hurt|harm)\b/i,
-  /\b(suicide|self.?harm|cut yourself)\b/i,
+  /\b(kill|murder|shoot|stab|attack|assault|hurt|harm|beat|punch)\b/i,
+  /\b(suicide|self.?harm|cut yourself|hang yourself)\b/i,
+  /\b(blood|bleed|gore|torture|abuse)\b/i,
   // Illegal
-  /\b(illegal|drugs|cocaine|heroin|meth|steal|rob|theft)\b/i,
-  /\b(child|minor|underage|kids?)\b.*\b(nude|naked|sexual)\b/i,
+  /\b(illegal|drugs|cocaine|heroin|meth|crack|steal|rob|theft|shoplift)\b/i,
+  /\b(child|minor|underage|kids?|teen)\b.*\b(nude|naked|sexual|porn)\b/i,
+  /\b(marijuana|weed|420|cannabis)\b.*\b(smoke|buy|sell)\b/i,
   // Dangerous stunts
-  /\b(jump off|jump from)\b.*\b(building|bridge|roof)\b/i,
-  /\b(drink|consume)\b.*\b(bleach|poison|chemicals?)\b/i,
-  /\b(drive|driving)\b.*\b(drunk|blindfolded|eyes closed)\b/i,
+  /\b(jump off|jump from|fall from)\b.*\b(building|bridge|roof|cliff)\b/i,
+  /\b(drink|consume|eat)\b.*\b(bleach|poison|chemicals?|tide.?pod|detergent)\b/i,
+  /\b(drive|driving|car)\b.*\b(drunk|blindfolded|eyes closed|wasted)\b/i,
   // Indecent/Sexual - PH compliance (RA 9995, RA 9775)
-  /\b(sex|sexual|intercourse|f[u*]ck|blowjob|handjob|masturbat|orgasm)\b/i,
-  /\b(porn|porno|xxx|onlyfans|nsfw)\b/i,
-  /\b(prostitut|escort|hooker|whore|slut)\b/i,
-  /\b(genital|penis|vagina|dick|cock|pussy|tits|boobs)\b/i,
-  /\b(flash|expose|show)\b.*\b(private|privates|genitals|breast|ass|butt)\b/i,
-  /\b(public)\b.*\b(sex|nude|naked|indecen)\b/i,
+  /\b(sex|sexual|intercourse|f[u*]ck|screw|bang|shag)\b/i,
+  /\b(blowjob|handjob|footjob|rimjob|69|oral)\b/i,
+  /\b(masturbat|jerk.?off|cum|orgasm|climax)\b/i,
+  /\b(porn|porno|xxx|hentai|onlyfans|nsfw|18\+)\b/i,
+  /\b(prostitut|escort|hooker|whore|slut|pimp)\b/i,
+  /\b(genital|penis|vagina|dick|cock|pussy|cunt|tits|boobs|nipple)\b/i,
+  /\b(flash|expose|show|reveal)\b.*\b(private|privates|genitals|breast|ass|butt)\b/i,
+  /\b(public|street)\b.*\b(sex|nude|naked|indecen)\b/i,
+  /\b(rape|molest|grope|harass)\b/i,
+  // Harassment
+  /\b(doxx|dox|swat|bomb|threat)\b/i,
+  /\b(racial|racist|hate)\b.*\b(slur|speech)\b/i,
 ];
 
 // Flag for review - potentially risky
 const FLAGLIST = [
   // Physical risk
-  /\b(fire|burn|flame)\b/i,
-  /\b(choke|choking|suffocate)\b/i,
-  /\b(fight|punch|slap|hit)\b/i,
-  /\b(naked|nude|strip)\b/i,
-  /\b(drunk|wasted|alcohol)\b.*\b(drive|car)\b/i,
+  /\b(fire|burn|flame|hot|heated)\b/i,
+  /\b(choke|choking|suffocate|strangle)\b/i,
+  /\b(fight|punch|slap|hit|smack)\b/i,
+  /\b(naked|nude|strip|bare)\b/i,
+  /\b(drunk|wasted|alcohol|intoxicated)\b/i,
   // Eating challenges
-  /\b(eat|swallow|consume)\b.*\b(tide pod|laundry|detergent)\b/i,
-  /\b(ghost pepper|carolina reaper|hottest)\b.*\b(10|ten|\d{2,})\b/i,
+  /\b(eat|swallow|consume)\b.*\b(spicy|pepper|sauce)\b/i,
+  /\b(ghost pepper|carolina reaper|hottest|scorpion)\b/i,
   // Extreme
-  /\b(extreme|dangerous|risky|deadly)\b/i,
-  /\b(taser|stun|shock)\b/i,
-  /\b(gun|weapon|knife)\b/i,
+  /\b(extreme|dangerous|risky|deadly|hazardous)\b/i,
+  /\b(taser|stun|shock|electr)\b/i,
+  /\b(gun|weapon|knife|blade)\b/i,
+  /\b(hospital|emergency|911|ambulance)\b/i,
   // Suggestive/Indecent - flag for review
-  /\b(sexy|seductive|seduce|provocative|erotic)\b/i,
-  /\b(bikini|underwear|lingerie|bra|panties)\b/i,
-  /\b(kiss|make.?out|grinding|twerk)\b/i,
-  /\b(lap.?dance|pole.?dance|striptease)\b/i,
-  /\b(topless|shirtless|undress|take.?off)\b/i,
-  /\b(touch|grab|grope|spank|slap)\b.*\b(ass|butt|body)\b/i,
-  /\b(moan|groan|dirty|naughty|kinky)\b/i,
+  /\b(sexy|seductive|seduce|provocative|erotic|sensual)\b/i,
+  /\b(bikini|underwear|lingerie|bra|panties|thong)\b/i,
+  /\b(kiss|make.?out|grinding|twerk|booty)\b/i,
+  /\b(lap.?dance|pole.?dance|striptease|exotic)\b/i,
+  /\b(topless|shirtless|undress|take.?off|strip)\b/i,
+  /\b(touch|grab|grope|spank|slap|fondle)\b.*\b(ass|butt|body|breast)\b/i,
+  /\b(moan|groan|dirty|naughty|kinky|lewd)\b/i,
+  /\b(only.?fans|fansly|patreon)\b.*\b(exclusive|spicy|adult)\b/i,
+  // Gambling/betting
+  /\b(bet|gamble|wager)\b.*\b(money|cash|crypto)\b/i,
+  /\b(casino|slots|poker|blackjack)\b/i,
 ];
 
 // Safe categories - boost confidence

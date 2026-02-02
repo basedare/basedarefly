@@ -2,7 +2,7 @@
 
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base } from 'viem/chains';
-import { injected, coinbaseWallet } from 'wagmi/connectors';
+import { injected, coinbaseWallet, walletConnect } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { SessionProvider } from 'next-auth/react';
@@ -16,8 +16,11 @@ const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
 const config = createConfig({
   chains: [base],
   connectors: [
-    injected(), // Desktop browser wallet extensions
-    coinbaseWallet({ appName: 'BaseDare', preference: 'smartWalletOnly' }), // Mobile-friendly
+    injected(), // Desktop browser wallet extensions (MetaMask, etc)
+    coinbaseWallet({ appName: 'BaseDare', preference: 'all' }),
+    ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+      ? [walletConnect({ projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID })]
+      : []),
   ],
   transports: { [base.id]: http(rpcUrl) },
   ssr: true,

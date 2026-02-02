@@ -31,23 +31,30 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 overflow-x-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
           
-          {/* 1. LOGO (Image) - Noir filter in Control mode */}
+          {/* 1. LOGO (Image) - Subtle purple glow */}
           <div className="flex items-center gap-2 z-50 flex-shrink-0">
             <Link
               href="/"
               className="relative group"
             >
+              {/* Very subtle ambient glow */}
+              <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
               <img
                 src="/assets/BASEDAREGOO.png"
                 alt="BaseDare"
-                className={`h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none hover:scale-105 transition-all duration-500 ${
+                className={`relative h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none transition-all duration-300 hover:scale-105 ${
                   isControlMode
-                    ? 'grayscale contrast-110 brightness-95 drop-shadow-[0_0_25px_rgba(100,100,100,0.4)]'
-                    : 'drop-shadow-[0_0_25px_rgba(255,215,0,0.4)]'
+                    ? 'grayscale contrast-110 brightness-95'
+                    : ''
                 }`}
                 style={{
-                  filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
-                  WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
+                  filter: isControlMode
+                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 0 8px rgba(139,92,246,0.3))'
+                    : 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                  WebkitFilter: isControlMode
+                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 0 8px rgba(139,92,246,0.3))'
+                    : 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
                 }}
               />
             </Link>

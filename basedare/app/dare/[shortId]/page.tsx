@@ -8,11 +8,15 @@ import { Share2, Clock, Copy, CheckCircle } from 'lucide-react';
 import BountyQRCode from '@/components/BountyQRCode';
 import LiquidBackground from '@/components/LiquidBackground';
 
-function shareDareOnX(dare: { title: string; bounty: number; streamerHandle: string }, shortId: string) {
+function shareDareOnX(dare: { title: string; bounty: number; streamerHandle: string | null }, shortId: string) {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
   const dareUrl = `${baseUrl}/dare/${shortId}`;
 
-  const text = `🎯 $${dare.bounty.toLocaleString()} USDC bounty on @${dare.streamerHandle.replace('@', '')}
+  const targetText = dare.streamerHandle
+    ? `on @${dare.streamerHandle.replace('@', '')}`
+    : '(OPEN BOUNTY - anyone can claim!)';
+
+  const text = `🎯 $${dare.bounty.toLocaleString()} USDC bounty ${targetText}
 
 "${dare.title}"
 
@@ -122,7 +126,7 @@ export default function DareDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-white/60 font-mono text-sm">Loading bounty...</p>
@@ -133,7 +137,7 @@ export default function DareDetailPage() {
 
   if (error || !dare) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-6 text-center px-6">
           <div className="text-6xl">🔍</div>
           <h1 className="text-2xl font-bold text-white">{error || 'Bounty not found'}</h1>
@@ -156,7 +160,7 @@ export default function DareDetailPage() {
   const isAwaitingClaim = dare.status === 'AWAITING_CLAIM' || dare.awaitingClaim;
 
   // Build invite link for awaiting claim dares
-  const inviteLink = isAwaitingClaim && dare.inviteToken
+  const inviteLink = isAwaitingClaim && dare.inviteToken && dare.streamerHandle
     ? `/claim-tag?invite=${dare.inviteToken}&handle=${encodeURIComponent(dare.streamerHandle.replace('@', ''))}`
     : null;
 
@@ -175,7 +179,7 @@ export default function DareDetailPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black relative overflow-hidden">
+    <main className="min-h-screen relative overflow-hidden">
       <LiquidBackground />
 
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-20">
@@ -190,10 +194,17 @@ export default function DareDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden"
+          className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative"
         >
+          {/* Liquid glass gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-3xl" />
+          {/* Top highlight line */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          {/* Golden accent line */}
+          <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
+
           {/* Header */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-white/[0.06] relative">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 {isVerified ? (
@@ -230,12 +241,14 @@ export default function DareDetailPage() {
 
             <div className="flex items-center gap-2 text-white/60">
               <span className="text-yellow-500">@</span>
-              <span className="font-mono text-sm">{dare.streamerHandle.replace('@', '')}</span>
+              <span className="font-mono text-sm">
+                {dare.streamerHandle ? dare.streamerHandle.replace('@', '') : 'Open Bounty - Anyone can claim'}
+              </span>
             </div>
           </div>
 
           {/* Bounty Amount */}
-          <div className="p-8 flex flex-col items-center border-b border-white/10 bg-gradient-to-b from-purple-500/5 to-transparent">
+          <div className="p-8 flex flex-col items-center border-b border-white/[0.06] relative">
             <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-2">
               Bounty Pool
             </div>
@@ -248,10 +261,10 @@ export default function DareDetailPage() {
           </div>
 
           {/* Share on X Button */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-white/[0.06] relative">
             <button
               onClick={() => shareDareOnX(dare, shortId)}
-              className="w-full py-4 bg-black hover:bg-zinc-900 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 group"
+              className="w-full py-4 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 group shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
             >
               <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
               <span>Share on X</span>
@@ -262,7 +275,7 @@ export default function DareDetailPage() {
           </div>
 
           {/* QR Code */}
-          <div className="p-8 flex flex-col items-center">
+          <div className="p-8 flex flex-col items-center relative">
             <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-6">
               Or scan to share
             </div>
@@ -276,7 +289,7 @@ export default function DareDetailPage() {
 
           {/* Awaiting Claim - Invite Creator */}
           {isAwaitingClaim && inviteLink && (
-            <div className="p-6 border-t border-white/10 bg-gradient-to-b from-yellow-500/5 to-transparent">
+            <div className="p-6 border-t border-white/[0.06] relative">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-5 h-5 text-yellow-400" />
                 <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
@@ -285,12 +298,12 @@ export default function DareDetailPage() {
               </div>
 
               <p className="text-sm text-gray-300 mb-4">
-                {dare.streamerHandle} hasn&apos;t claimed their tag yet. Share the invite link
+                {dare.streamerHandle || 'The creator'} hasn&apos;t claimed their tag yet. Share the invite link
                 to let them know about this bounty!
               </p>
 
               {/* Invite Link */}
-              <div className="mb-4 p-3 bg-black/40 rounded-xl border border-yellow-500/20">
+              <div className="mb-4 p-3 bg-white/[0.03] backdrop-blur-md rounded-xl border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-xs text-yellow-400 font-mono truncate">
                     {typeof window !== 'undefined' ? `${window.location.origin}${inviteLink}` : inviteLink}
@@ -317,11 +330,12 @@ export default function DareDetailPage() {
               <button
                 onClick={() => {
                   const fullUrl = `${window.location.origin}${inviteLink}`;
-                  const text = `Hey ${dare.streamerHandle}! Someone put up a $${dare.bounty.toLocaleString()} USDC bounty for you:\n\n"${dare.title}"\n\nClaim your tag to accept it 👇\n\n#BaseDare`;
+                  const creatorName = dare.streamerHandle || 'there';
+                  const text = `Hey ${creatorName}! Someone put up a $${dare.bounty.toLocaleString()} USDC bounty for you:\n\n"${dare.title}"\n\nClaim your tag to accept it 👇\n\n#BaseDare`;
                   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(fullUrl)}`;
                   window.open(twitterUrl, '_blank', 'width=550,height=420');
                 }}
-                className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.5)] flex items-center justify-center gap-3"
+                className="w-full py-4 bg-[#FACC15] hover:bg-[#FDE047] text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden"
               >
                 <Share2 className="w-5 h-5" />
                 Invite Creator on X
@@ -335,19 +349,25 @@ export default function DareDetailPage() {
 
           {/* Pledge Button */}
           {!isExpired && !isVerified && !isAwaitingClaim && (
-            <div className="p-6 border-t border-white/10">
-              <button
-                onClick={() => {
-                  // Include referral if present
-                  const pledgeUrl = referrer
-                    ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
-                    : `/create?pledge=${shortId}`;
-                  router.push(pledgeUrl);
-                }}
-                className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_40px_rgba(239,68,68,0.5)]"
-              >
-                Add to Bounty Pool
-              </button>
+            <div className="p-6 border-t border-white/[0.06]">
+              <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
+                <div
+                  className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#78350f_0%,#facc15_25%,#78350f_50%,#facc15_75%,#78350f_100%)] opacity-80 group-hover:animate-[spin_2s_linear_infinite] transition-opacity duration-500"
+                  aria-hidden="true"
+                />
+                <button
+                  onClick={() => {
+                    const pledgeUrl = referrer
+                      ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
+                      : `/create?pledge=${shortId}`;
+                    router.push(pledgeUrl);
+                  }}
+                  className="relative w-full py-4 bg-[#FACC15] text-black font-black text-lg uppercase tracking-wider rounded-[10px] transition-all hover:bg-[#FDE047] flex items-center justify-center"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20 pointer-events-none rounded-[10px]" />
+                  <span className="relative">Add to Bounty Pool</span>
+                </button>
+              </div>
               {referrer && (
                 <p className="text-center text-[10px] text-purple-400 mt-2 font-mono">
                   Referred by {referrer}
@@ -361,7 +381,7 @@ export default function DareDetailPage() {
 
           {/* Add to Bounty Pool for Awaiting Claim dares */}
           {isAwaitingClaim && (
-            <div className="p-6 border-t border-white/10">
+            <div className="p-6 border-t border-white/[0.06]">
               <button
                 onClick={() => {
                   const pledgeUrl = referrer
@@ -369,7 +389,7 @@ export default function DareDetailPage() {
                     : `/create?pledge=${shortId}`;
                   router.push(pledgeUrl);
                 }}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all"
+                className="w-full py-4 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               >
                 Add More to Bounty Pool
               </button>
@@ -378,12 +398,12 @@ export default function DareDetailPage() {
 
           {/* Verified - Show Proof */}
           {isVerified && dare.videoUrl && (
-            <div className="p-6 border-t border-white/10">
+            <div className="p-6 border-t border-white/[0.06]">
               <a
                 href={dare.videoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 <span>View Proof</span>
                 <span>👁️</span>

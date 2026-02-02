@@ -287,7 +287,7 @@ export default function Dashboard() {
                       {getStatusBadge(dare.status)}
                     </div>
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-gray-400">{dare.streamerHandle}</span>
+                      <span className="text-gray-400">{dare.streamerHandle || 'Open Bounty'}</span>
                       <span className="text-[#FFD700] font-bold">{dare.bounty} USDC</span>
                     </div>
                     {dare.isSimulated && (
