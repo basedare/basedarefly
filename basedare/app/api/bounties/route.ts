@@ -349,7 +349,11 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 2. RESOLVE STREAMER TAG TO ADDRESS (or handle open bounty)
     // -------------------------------------------------------------------------
-    const isOpenBounty = !streamerTag || streamerTag.trim() === '';
+    // Reserved tags that create open bounties (anyone can complete)
+    const OPEN_BOUNTY_TAGS = ['@everyone', '@anyone', '@all'];
+    const normalizedTag = streamerTag?.trim().toLowerCase() || '';
+    const isOpenBounty = !streamerTag || streamerTag.trim() === '' || OPEN_BOUNTY_TAGS.includes(normalizedTag);
+
     let streamerAddress: Address | null = null;
     let tagSimulated = false;
     let tagVerified = false;

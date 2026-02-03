@@ -8,31 +8,47 @@ import GoogleProvider from 'next-auth/providers/google';
 // Supports: Twitter, Twitch, YouTube (via Google), Kick (manual)
 // ============================================================================
 
+// Debug: Log provider status on startup (not secrets!)
+if (process.env.NODE_ENV === 'development') {
+  console.log('[NextAuth] Provider configuration status:');
+  console.log('  - Twitter:', process.env.TWITTER_CLIENT_ID ? 'configured' : 'MISSING');
+  console.log('  - Twitch:', process.env.TWITCH_CLIENT_ID ? 'configured' : 'MISSING');
+  console.log('  - Google:', process.env.GOOGLE_CLIENT_ID ? 'configured' : 'MISSING');
+  console.log('  - NEXTAUTH_URL:', process.env.NEXTAUTH_URL || 'NOT SET');
+  console.log('  - NEXTAUTH_SECRET:', process.env.NEXTAUTH_SECRET ? 'configured' : 'MISSING');
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Twitter/X OAuth 2.0
-    TwitterProvider({
-      clientId: process.env.TWITTER_CLIENT_ID || '',
-      clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
-      version: '2.0',
-    }),
+    ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET
+      ? [TwitterProvider({
+          clientId: process.env.TWITTER_CLIENT_ID,
+          clientSecret: process.env.TWITTER_CLIENT_SECRET,
+          version: '2.0',
+        })]
+      : []),
 
     // Twitch OAuth
-    TwitchProvider({
-      clientId: process.env.TWITCH_CLIENT_ID || '',
-      clientSecret: process.env.TWITCH_CLIENT_SECRET || '',
-    }),
+    ...(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET
+      ? [TwitchProvider({
+          clientId: process.env.TWITCH_CLIENT_ID,
+          clientSecret: process.env.TWITCH_CLIENT_SECRET,
+        })]
+      : []),
 
     // YouTube via Google OAuth (with YouTube scope)
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      authorization: {
-        params: {
-          scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly',
-        },
-      },
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          authorization: {
+            params: {
+              scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly',
+            },
+          },
+        })]
+      : []),
   ],
 
   callbacks: {
@@ -90,6 +106,35 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/claim-tag',
     error: '/claim-tag',
+  },
+
+  events: {
+    async signIn({ user, account, profile }) {
+      console.log('[NextAuth] SignIn event:', { provider: account?.provider, userId: user?.id });
+    },
+    async signOut() {
+      console.log('[NextAuth] SignOut event');
+    },
+    async createUser({ user }) {
+      console.log('[NextAuth] User created:', user?.id);
+    },
+    async linkAccount({ user, account }) {
+      console.log('[NextAuth] Account linked:', { provider: account?.provider, userId: user?.id });
+    },
+  },
+
+  logger: {
+    error(code, metadata) {
+      console.error('[NextAuth Error]', code, metadata);
+    },
+    warn(code) {
+      console.warn('[NextAuth Warning]', code);
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[NextAuth Debug]', code, metadata);
+      }
+    },
   },
 
   debug: process.env.NODE_ENV === 'development',

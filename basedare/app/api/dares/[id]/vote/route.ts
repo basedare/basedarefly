@@ -172,6 +172,16 @@ export async function POST(
         resolved = true;
         resolutionOutcome = 'FAILED';
         await awardCorrectVoters(dareId, 'REJECT');
+      } else {
+        // No clear consensus - flag for moderator review
+        await prisma.dare.update({
+          where: { id: dareId },
+          data: {
+            status: 'PENDING_REVIEW',
+            verifyConfidence: Math.max(approvePercent, rejectPercent),
+          },
+        });
+        console.log(`[VOTE] Dare ${dareId} flagged for moderator review (${approvePercent.toFixed(1)}% approve, ${rejectPercent.toFixed(1)}% reject)`);
       }
     }
 

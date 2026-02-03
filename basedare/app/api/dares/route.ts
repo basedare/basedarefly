@@ -7,11 +7,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeAll = searchParams.get('includeAll') === 'true';
     const userAddress = searchParams.get('userAddress');
+    const role = searchParams.get('role'); // 'staker' | 'creator' | undefined (both)
 
     // Build where clause
     type WhereClause = {
       status?: { in: string[] };
       stakerAddress?: string;
+      targetWalletAddress?: string;
+      OR?: Array<{ stakerAddress?: string; targetWalletAddress?: string }>;
     };
 
     const where: WhereClause = {};
@@ -23,7 +26,21 @@ export async function GET(request: NextRequest) {
 
     // Filter by user address if provided and valid
     if (userAddress && isAddress(userAddress)) {
-      where.stakerAddress = userAddress.toLowerCase();
+      const lowerAddress = userAddress.toLowerCase();
+
+      if (role === 'staker') {
+        // Only dares I funded
+        where.stakerAddress = lowerAddress;
+      } else if (role === 'creator') {
+        // Only dares targeting me
+        where.targetWalletAddress = lowerAddress;
+      } else {
+        // Both: dares I funded OR dares targeting me
+        where.OR = [
+          { stakerAddress: lowerAddress },
+          { targetWalletAddress: lowerAddress },
+        ];
+      }
     }
 
     // Fetch dares from database

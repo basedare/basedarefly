@@ -433,9 +433,10 @@ export default function CreateDare() {
                 </label>
                 <input
                   {...register('streamerTag')}
-                  placeholder="@username or leave empty for open dare"
+                  placeholder="@username or @everyone for open dare"
                   className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
+                <p className="text-[10px] md:text-xs text-gray-500 font-mono">Use @everyone for open dares anyone can complete</p>
                 {errors.streamerTag && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.streamerTag.message}</p>
                 )}

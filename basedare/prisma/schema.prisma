@@ -55,6 +55,17 @@ model Dare {
   latitude            Float?
   locationLabel       String?
   longitude           Float?
+  // Claim-to-attempt fields (for @everyone open dares)
+  claimedBy           String?   // Wallet that claimed this dare
+  claimedAt           DateTime? // When it was claimed
+  claimExpiresAt      DateTime? // When the claim expires (24h window)
+  // Moderator decision fields
+  moderatorDecision   String?   // APPROVED or REJECTED
+  moderatorAddress    String?   // Wallet of moderator who decided
+  moderatedAt         DateTime? // When moderation happened
+  moderatorNote       String?   // Optional note from moderator
+  // Vote threshold tracking
+  voteThreshold       Int       @default(5)  // Votes needed for mod review
   creator             User?     @relation(fields: [creatorId], references: [id])
   votes               Vote[]
 
@@ -62,6 +73,8 @@ model Dare {
   @@index([streamerHandle, status])
   @@index([geohash])
   @@index([isNearbyDare, status])
+  @@index([claimedBy])
+  @@index([status, videoUrl])
 }
 
 model Referral {

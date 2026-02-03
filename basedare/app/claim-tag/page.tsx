@@ -138,6 +138,23 @@ export default function ClaimTagPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // OAuth error messages
+  const OAUTH_ERRORS: Record<string, string> = {
+    'OAuthSignin': 'Error starting OAuth signin. Check provider configuration.',
+    'OAuthCallback': 'Error during OAuth callback. Try again.',
+    'OAuthCreateAccount': 'Could not create account with OAuth provider.',
+    'EmailCreateAccount': 'Could not create email account.',
+    'Callback': 'Error in OAuth callback.',
+    'OAuthAccountNotLinked': 'This account is already linked to another user.',
+    'EmailSignin': 'Email signin failed.',
+    'CredentialsSignin': 'Sign in failed. Check your credentials.',
+    'SessionRequired': 'Please sign in to access this page.',
+    'twitter': 'Twitter OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitter',
+    'twitch': 'Twitch OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitch',
+    'google': 'Google OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/google',
+    'default': 'OAuth authentication failed. Please try again.',
+  };
+
   // Get platform handle from session
   const provider = (session as any)?.provider as string | undefined;
   const platformHandle = (session as any)?.platformHandle as string | undefined;
@@ -169,6 +186,20 @@ export default function ClaimTagPage() {
       setTag(platformHandle);
     }
   }, [platformHandle]);
+
+  // Check for OAuth errors in URL params
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError) {
+      const errorMessage = OAUTH_ERRORS[oauthError] || OAUTH_ERRORS['default'];
+      setError(errorMessage);
+      // Clear the error param from URL to prevent showing on refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      url.searchParams.delete('callbackUrl');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
 
   // Fetch invite data from URL params
   useEffect(() => {

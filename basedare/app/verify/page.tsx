@@ -135,7 +135,7 @@ export default function Verify() {
             {
               step: '2',
               title: 'Cast Vote',
-              description: 'Vote VALID if the proof is legit and shows completion. Vote FAKE if the proof is insufficient or fraudulent.',
+              description: 'Vote PASS if the proof shows completion. Vote FAIL if the proof is insufficient or fraudulent.',
               color: 'purple'
             },
             {

@@ -13,6 +13,7 @@ import { IdentityButton } from './IdentityButton';
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
   { name: "CREATE", href: "/create" },
+  { name: "CLAIM TAG", href: "/claim-tag" },
   { name: "VERIFY", href: "/verify" },
   { name: "CREATORS", href: "/streamers" },
   { name: "DASHBOARD", href: "/dashboard" },

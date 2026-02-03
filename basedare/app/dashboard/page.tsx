@@ -20,20 +20,30 @@ interface Dare {
   videoUrl?: string;
   createdAt: string;
   isSimulated?: boolean;
+  stakerAddress?: string;
+  targetWalletAddress?: string;
 }
+
+type DareView = 'funded' | 'forme';
 
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { connect, isPending: isConnecting } = useConnect();
-  const [dares, setDares] = useState<Dare[]>([]);
+  const [fundedDares, setFundedDares] = useState<Dare[]>([]);
+  const [forMeDares, setForMeDares] = useState<Dare[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
+  const [activeView, setActiveView] = useState<DareView>('funded');
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
     completedBounties: 0,
+    daresForMe: 0,
   });
+
+  // Get the active dares list based on view
+  const dares = activeView === 'funded' ? fundedDares : forMeDares;
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
@@ -45,38 +55,57 @@ export default function Dashboard() {
     connect({ connector: coinbaseWallet() });
   };
 
-  // Fetch user's dares from API
+  // Fetch user's dares from API (both funded and for-me)
   useEffect(() => {
     const fetchDares = async () => {
+      if (!address) {
+        setFundedDares([]);
+        setForMeDares([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        // Include user address to filter for their dares only
-        const params = new URLSearchParams({ includeAll: 'true' });
-        if (address) {
-          params.set('userAddress', address);
-        }
 
-        const response = await fetch(`/api/dares?${params.toString()}`);
-        if (response.ok) {
-          const data = await response.json();
-          setDares(data);
+        // Fetch dares I funded (as staker)
+        const fundedParams = new URLSearchParams({
+          includeAll: 'true',
+          userAddress: address,
+          role: 'staker',
+        });
+        const fundedRes = await fetch(`/api/dares?${fundedParams.toString()}`);
+        const fundedData = fundedRes.ok ? await fundedRes.json() : [];
 
-          // Calculate stats
-          const active = data.filter((d: Dare) => d.status === 'PENDING').length;
-          const completed = data.filter((d: Dare) => d.status === 'VERIFIED').length;
-          const total = data.reduce((sum: number, d: Dare) => sum + d.bounty, 0);
+        // Fetch dares targeting me (as creator)
+        const forMeParams = new URLSearchParams({
+          includeAll: 'true',
+          userAddress: address,
+          role: 'creator',
+        });
+        const forMeRes = await fetch(`/api/dares?${forMeParams.toString()}`);
+        const forMeData = forMeRes.ok ? await forMeRes.json() : [];
 
-          setStats({
-            totalFunded: total,
-            activeBounties: active,
-            completedBounties: completed,
-          });
+        setFundedDares(fundedData);
+        setForMeDares(forMeData);
 
-          // Auto-select first pending dare for evidence submission
-          const pendingDare = data.find((d: Dare) => d.status === 'PENDING');
-          if (pendingDare) {
-            setSelectedDare(pendingDare);
-          }
+        // Calculate stats from funded dares
+        const active = fundedData.filter((d: Dare) => d.status === 'PENDING').length;
+        const completed = fundedData.filter((d: Dare) => d.status === 'VERIFIED').length;
+        const total = fundedData.reduce((sum: number, d: Dare) => sum + d.bounty, 0);
+
+        setStats({
+          totalFunded: total,
+          activeBounties: active,
+          completedBounties: completed,
+          daresForMe: forMeData.length,
+        });
+
+        // Auto-select first pending dare from the active view
+        const activeDares = activeView === 'funded' ? fundedData : forMeData;
+        const pendingDare = activeDares.find((d: Dare) => d.status === 'PENDING');
+        if (pendingDare) {
+          setSelectedDare(pendingDare);
         }
       } catch (error) {
         console.error('Failed to fetch dares:', error);
@@ -86,7 +115,7 @@ export default function Dashboard() {
     };
 
     fetchDares();
-  }, [address]);
+  }, [address, activeView]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -174,7 +203,7 @@ export default function Dashboard() {
         )}
 
         {/* USER STATS GRID */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
           {/* Card 1: Total Staked */}
           <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-[#FFD700]/30 transition-colors">
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
@@ -218,8 +247,8 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Trophy className="w-12 h-12 text-green-500" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Your Completed</div>
-            <div className="relative z-10 text-3xl font-black text-white">
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Completed</div>
+            <div className="relative z-10 text-2xl md:text-3xl font-black text-white">
               {!isConnected ? (
                 <span className="text-gray-500">--</span>
               ) : loading ? (
@@ -228,7 +257,25 @@ export default function Dashboard() {
                 <>{stats.completedBounties} <span className="text-green-500">VERIFIED</span></>
               )}
             </div>
-            <div className="relative z-10 text-xs text-green-400 mt-2 font-mono">Successfully Paid Out</div>
+            <div className="relative z-10 text-xs text-green-400 mt-2 font-mono">Paid Out</div>
+          </div>
+
+          {/* Card 4: Dares For Me */}
+          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-[#FFD700]/30 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
+              <Zap className="w-12 h-12 text-[#FFD700]" />
+            </div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Dares For Me</div>
+            <div className="relative z-10 text-2xl md:text-3xl font-black text-white">
+              {!isConnected ? (
+                <span className="text-gray-500">--</span>
+              ) : loading ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <>{stats.daresForMe} <span className="text-[#FFD700]">PENDING</span></>
+              )}
+            </div>
+            <div className="relative z-10 text-xs text-[#FFD700] mt-2 font-mono">Complete to Earn</div>
           </div>
         </div>
 
@@ -237,9 +284,44 @@ export default function Dashboard() {
 
           {/* LEFT: BOUNTY LIST */}
           <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
-            <h3 className="text-xl font-black text-white uppercase tracking-wider mb-6 flex items-center gap-3">
-              <Target className="w-5 h-5 text-purple-400" />
-              Your Bounties
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-2 mb-6">
+              <button
+                onClick={() => { setActiveView('funded'); setSelectedDare(null); }}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                  activeView === 'funded'
+                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                Funded ({fundedDares.length})
+              </button>
+              <button
+                onClick={() => { setActiveView('forme'); setSelectedDare(null); }}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                  activeView === 'forme'
+                    ? 'bg-[#FFD700]/20 border border-[#FFD700]/50 text-[#FFD700]'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                For Me ({forMeDares.length})
+              </button>
+            </div>
+
+            <h3 className="text-lg font-black text-white uppercase tracking-wider mb-4 flex items-center gap-3">
+              {activeView === 'funded' ? (
+                <>
+                  <Wallet className="w-5 h-5 text-purple-400" />
+                  Dares You Funded
+                </>
+              ) : (
+                <>
+                  <Target className="w-5 h-5 text-[#FFD700]" />
+                  Dares For You
+                </>
+              )}
             </h3>
 
             {!isConnected ? (
@@ -264,11 +346,30 @@ export default function Dashboard() {
             ) : dares.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                  <Target className="w-8 h-8 text-gray-500" />
+                  {activeView === 'funded' ? (
+                    <Wallet className="w-8 h-8 text-gray-500" />
+                  ) : (
+                    <Target className="w-8 h-8 text-gray-500" />
+                  )}
                 </div>
-                <p className="text-gray-400 font-mono text-sm mb-2">No bounties yet</p>
-                <p className="text-gray-500 font-mono text-xs mb-6">Create your first dare to get started</p>
-                <InitProtocolButton onClick={() => router.push('/create')} />
+                <p className="text-gray-400 font-mono text-sm mb-2">
+                  {activeView === 'funded' ? 'No bounties funded yet' : 'No dares for you yet'}
+                </p>
+                <p className="text-gray-500 font-mono text-xs mb-6">
+                  {activeView === 'funded'
+                    ? 'Create a dare to stake on a creator'
+                    : 'Claim your tag so fans can dare you!'}
+                </p>
+                {activeView === 'funded' ? (
+                  <InitProtocolButton onClick={() => router.push('/create')} />
+                ) : (
+                  <button
+                    onClick={() => router.push('/claim-tag')}
+                    className="px-6 py-3 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 border border-[#FFD700]/50 text-[#FFD700] rounded-lg font-bold text-sm uppercase tracking-wider transition-colors"
+                  >
+                    Claim Your Tag
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
@@ -366,14 +467,13 @@ export default function Dashboard() {
                 </h3>
                 <SubmitEvidence
                   dareId={selectedDare.id}
-                  onVerificationComplete={(result) => {
-                    // Refresh dares list on verification complete
+                  onVerificationComplete={(result: { status: string }) => {
+                    // Refresh dares lists on verification complete
                     if (result.status === 'VERIFIED' || result.status === 'FAILED') {
-                      setDares((prev) =>
-                        prev.map((d) =>
-                          d.id === selectedDare.id ? { ...d, status: result.status } : d
-                        )
-                      );
+                      const updateDare = (d: Dare) =>
+                        d.id === selectedDare.id ? { ...d, status: result.status } : d;
+                      setFundedDares((prev) => prev.map(updateDare));
+                      setForMeDares((prev) => prev.map(updateDare));
                     }
                   }}
                 />

@@ -166,7 +166,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
       : 50;
 
   // Vote display helpers
-  const voteLabel = voted === 'APPROVE' ? 'VALID' : 'FAKE';
+  const voteLabel = voted === 'APPROVE' ? 'PASS' : 'FAIL';
   const voteColor = voted === 'APPROVE' ? 'text-green-400' : 'text-red-400';
 
   // Loading state
@@ -274,7 +274,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                 <span className="text-[10px] sm:text-xs font-bold text-purple-300 uppercase">Verification Task</span>
               </div>
               <p className="text-[9px] sm:text-[10px] text-gray-400 font-mono leading-relaxed">
-                Review the proof above. Does it show completion of &quot;{currentDare.title}&quot;? Vote VALID if the dare was completed, FAKE if the proof is insufficient or fraudulent.
+                Review the proof above. Does it show completion of &quot;{currentDare.title}&quot;? Vote PASS if the dare was completed, FAIL if the proof is insufficient or fraudulent.
               </p>
             </div>
 
@@ -282,7 +282,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
             <div className="mb-4 sm:mb-6">
               <div className="flex justify-between text-[9px] sm:text-[10px] font-bold uppercase text-gray-500 mb-2">
                 <span>Community Consensus</span>
-                <span className="text-white">{consensusPercent}% Valid</span>
+                <span className="text-white">{consensusPercent}% Pass</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden flex mb-2">
                 <motion.div
@@ -338,7 +338,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                 </motion.div>
               ) : (
                 <>
-                  {/* Vote Valid - Liquid Metal Button */}
+                  {/* Vote Pass - Liquid Metal Button */}
                   <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
                     <div
                       className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#052e16_0%,#22c55e_25%,#052e16_50%,#22c55e_75%,#052e16_100%)] opacity-50 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
@@ -356,14 +356,14 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                         ) : (
                           <>
                             <CheckCircle className="w-4 h-4" />
-                            Valid
+                            Pass
                           </>
                         )}
                       </span>
                     </button>
                   </div>
 
-                  {/* Vote Fake - Liquid Metal Button */}
+                  {/* Vote Fail - Liquid Metal Button */}
                   <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
                     <div
                       className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#450a0a_0%,#ef4444_25%,#450a0a_50%,#ef4444_75%,#450a0a_100%)] opacity-50 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
@@ -381,7 +381,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                         ) : (
                           <>
                             <XCircle className="w-4 h-4" />
-                            Fake
+                            Fail
                           </>
                         )}
                       </span>
