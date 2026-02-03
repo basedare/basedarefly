@@ -156,6 +156,20 @@ export default function ClaimTagPage() {
 
   const connectedPlatform = getConnectedPlatform();
 
+  // Auto-set selectedPlatform when returning from OAuth redirect
+  useEffect(() => {
+    if (connectedPlatform && !selectedPlatform) {
+      setSelectedPlatform(connectedPlatform);
+    }
+  }, [connectedPlatform, selectedPlatform]);
+
+  // Pre-fill tag from platform handle after OAuth return
+  useEffect(() => {
+    if (platformHandle && !tag) {
+      setTag(platformHandle);
+    }
+  }, [platformHandle]);
+
   // Fetch invite data from URL params
   useEffect(() => {
     const invite = searchParams.get('invite');
@@ -306,10 +320,15 @@ export default function ClaimTagPage() {
     setSelectedPlatform(platform);
     setError(null);
 
-    // If it's an OAuth platform, sign in
+    // If it's an OAuth platform, redirect to provider
+    // After OAuth, NextAuth redirects back to /claim-tag and the
+    // session will contain provider/platformHandle. The useEffect
+    // above auto-restores selectedPlatform from the session.
     const config = getPlatformConfig(platform);
     if (config.provider && !connectedPlatform) {
-      signIn(config.provider);
+      const callbackUrl = typeof window !== 'undefined' ? window.location.href : '/claim-tag';
+      signIn(config.provider, { callbackUrl });
+      return;
     }
 
     // For Kick, generate a verification code
