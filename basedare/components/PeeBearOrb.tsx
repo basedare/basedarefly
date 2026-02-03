@@ -100,7 +100,7 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
         }}
       />
 
-      {/* Calm state - OrbLiquid */}
+      {/* Calm state - OrbLiquid (animated video) */}
       <AnimatePresence>
         {!isRoaring && (
           <motion.div
@@ -111,9 +111,12 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
             exit={{ opacity: 0, scale: 1.05 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
           >
-            <motion.img
-              src="/assets/OrbLiquid.png"
-              alt="PeeBear"
+            <motion.video
+              src="/assets/OrbLiquidLoop.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
               className="w-full h-full object-contain drop-shadow-2xl"
               animate={{
                 scale: [1, 1.02, 1],

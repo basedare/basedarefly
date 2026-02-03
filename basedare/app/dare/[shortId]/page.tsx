@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Share2, Clock, Copy, CheckCircle } from 'lucide-react';
+import { Share2, Clock, Copy, CheckCircle, Users, ExternalLink } from 'lucide-react';
 import BountyQRCode from '@/components/BountyQRCode';
 import LiquidBackground from '@/components/LiquidBackground';
 
@@ -44,6 +44,18 @@ interface DareDetail {
   awaitingClaim: boolean;
 }
 
+interface VoteCounts {
+  approve: number;
+  reject: number;
+  total: number;
+  dareStatus: string;
+  threshold: {
+    required: number;
+    consensusPercent: number;
+    met: boolean;
+  };
+}
+
 function formatTimeRemaining(expiresAt: string | null): string {
   if (!expiresAt) return 'No expiry';
 
@@ -80,6 +92,7 @@ export default function DareDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
   const [copied, setCopied] = useState(false);
+  const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
 
   // Track referral on page load
   useEffect(() => {
@@ -103,7 +116,20 @@ export default function DareDetailPage() {
         const data = await res.json();
         setDare(data);
         setTimeRemaining(formatTimeRemaining(data.expiresAt));
-      } catch (err) {
+
+        // Fetch vote counts if dare has proof submitted
+        if (data.id && data.videoUrl) {
+          try {
+            const voteRes = await fetch(`/api/dares/${data.id}/vote`);
+            const voteData = await voteRes.json();
+            if (voteData.success) {
+              setVoteCounts(voteData.data);
+            }
+          } catch {
+            // Vote counts are optional, fail silently
+          }
+        }
+      } catch {
         setError('Failed to load bounty');
       } finally {
         setLoading(false);
@@ -259,6 +285,84 @@ export default function DareDetailPage() {
               <span className="text-xl font-bold text-yellow-400/70">USDC</span>
             </div>
           </div>
+
+          {/* Community Voting Section - Show for dares with proof */}
+          {dare.videoUrl && voteCounts && (
+            <div className="p-6 border-b border-white/[0.06] relative">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Community Verification</span>
+              </div>
+
+              {/* Consensus Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-2">
+                  <span>Valid ({voteCounts.approve})</span>
+                  <span>Fake ({voteCounts.reject})</span>
+                </div>
+                <div className="h-2 bg-gray-800 rounded-full overflow-hidden flex">
+                  {voteCounts.total > 0 ? (
+                    <>
+                      <div
+                        className="bg-green-500 h-full transition-all duration-500"
+                        style={{ width: `${(voteCounts.approve / voteCounts.total) * 100}%` }}
+                      />
+                      <div
+                        className="bg-red-500 h-full transition-all duration-500"
+                        style={{ width: `${(voteCounts.reject / voteCounts.total) * 100}%` }}
+                      />
+                    </>
+                  ) : (
+                    <div className="bg-gray-700 h-full w-full" />
+                  )}
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-[10px] font-mono text-gray-500">
+                    {voteCounts.total} vote{voteCounts.total !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-[10px] font-mono text-gray-500">
+                    {voteCounts.threshold.met ? 'Quorum reached' : `${voteCounts.threshold.required - voteCounts.total} more needed`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Resolved Status */}
+              {(dare.status === 'VERIFIED' || dare.status === 'FAILED') && (
+                <div className={`p-3 rounded-lg mb-4 ${
+                  dare.status === 'VERIFIED'
+                    ? 'bg-green-500/10 border border-green-500/30'
+                    : 'bg-red-500/10 border border-red-500/30'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className={`w-4 h-4 ${
+                      dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
+                    }`} />
+                    <span className={`text-xs font-bold uppercase ${
+                      dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {dare.status === 'VERIFIED' ? 'Community Verified' : 'Community Rejected'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-mono mt-1">
+                    {dare.status === 'VERIFIED'
+                      ? 'The community has verified this dare was completed.'
+                      : 'The community determined the proof was insufficient.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Vote CTA - only show for pending dares */}
+              {(dare.status === 'PENDING' || dare.status === 'PENDING_REVIEW') && (
+                <Link
+                  href="/verify"
+                  className="w-full py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <span>Vote on this dare</span>
+                  <ExternalLink className="w-4 h-4" />
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Share on X Button */}
           <div className="p-6 border-b border-white/[0.06] relative">

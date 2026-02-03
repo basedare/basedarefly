@@ -56,6 +56,7 @@ model Dare {
   locationLabel       String?
   longitude           Float?
   creator             User?     @relation(fields: [creatorId], references: [id])
+  votes               Vote[]
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -275,4 +276,35 @@ model WeeklyRewardDistribution {
   processedBy        String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+}
+
+// ============================================================================
+// COMMUNITY VOTING SYSTEM
+// ============================================================================
+
+model Vote {
+  id            String   @id @default(cuid())
+  dareId        String
+  walletAddress String
+  voteType      String   // APPROVE or REJECT
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  dare          Dare     @relation(fields: [dareId], references: [id], onDelete: Cascade)
+
+  @@unique([dareId, walletAddress])
+  @@index([dareId])
+  @@index([walletAddress])
+}
+
+model VoterPoints {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  totalPoints   Int      @default(0)
+  correctVotes  Int      @default(0)
+  totalVotes    Int      @default(0)
+  streak        Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([totalPoints])
 }

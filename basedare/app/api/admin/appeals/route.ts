@@ -119,6 +119,7 @@ const ResolveAppealSchema = z.object({
   dareId: z.string().min(1, 'Dare ID is required'),
   decision: z.enum(['APPROVED', 'REJECTED']),
   adminNote: z.string().max(500).optional(),
+  overrideVotes: z.boolean().optional().default(false),
 });
 
 export async function PUT(request: NextRequest) {
@@ -140,7 +141,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { dareId, decision, adminNote } = validation.data;
+    const { dareId, decision, adminNote, overrideVotes } = validation.data;
 
     // Fetch the dare
     const dare = await prisma.dare.findUnique({
@@ -174,7 +175,13 @@ export async function PUT(request: NextRequest) {
         },
       });
 
-      console.log(`[ADMIN] Appeal APPROVED for dare ${dareId} - "${dare.title}"`);
+      // If overriding votes, award points to APPROVE voters
+      if (overrideVotes) {
+        await awardVotersOnOverride(dareId, 'APPROVE');
+        console.log(`[ADMIN] Vote override: awarded APPROVE voters for dare ${dareId}`);
+      }
+
+      console.log(`[ADMIN] Appeal APPROVED for dare ${dareId} - "${dare.title}"${overrideVotes ? ' (override)' : ''}`);
       if (adminNote) console.log(`[ADMIN] Note: ${adminNote}`);
 
       return NextResponse.json({
@@ -182,6 +189,7 @@ export async function PUT(request: NextRequest) {
         data: {
           dareId,
           decision: 'APPROVED',
+          overrideVotes,
           message: 'Appeal approved. Dare marked as verified.',
           note: 'Manual payout may be required if on-chain payout failed.',
         },
@@ -195,7 +203,13 @@ export async function PUT(request: NextRequest) {
         },
       });
 
-      console.log(`[ADMIN] Appeal REJECTED for dare ${dareId} - "${dare.title}"`);
+      // If overriding votes, award points to REJECT voters
+      if (overrideVotes) {
+        await awardVotersOnOverride(dareId, 'REJECT');
+        console.log(`[ADMIN] Vote override: awarded REJECT voters for dare ${dareId}`);
+      }
+
+      console.log(`[ADMIN] Appeal REJECTED for dare ${dareId} - "${dare.title}"${overrideVotes ? ' (override)' : ''}`);
       if (adminNote) console.log(`[ADMIN] Note: ${adminNote}`);
 
       return NextResponse.json({
@@ -203,6 +217,7 @@ export async function PUT(request: NextRequest) {
         data: {
           dareId,
           decision: 'REJECTED',
+          overrideVotes,
           message: 'Appeal rejected. Dare remains failed.',
         },
       });
@@ -214,5 +229,70 @@ export async function PUT(request: NextRequest) {
       { success: false, error: message },
       { status: 500 }
     );
+  }
+}
+
+// ============================================================================
+// Helper: Award voters when admin overrides community decision
+// ============================================================================
+
+const CORRECT_VOTE_BONUS = 15;
+
+async function awardVotersOnOverride(dareId: string, winningVoteType: 'APPROVE' | 'REJECT') {
+  try {
+    // Get all voters who voted correctly (matching admin decision)
+    const correctVoters = await prisma.vote.findMany({
+      where: {
+        dareId,
+        voteType: winningVoteType,
+      },
+      select: { walletAddress: true },
+    });
+
+    // Award bonus points and update streaks for correct voters
+    for (const voter of correctVoters) {
+      const voterPoints = await prisma.voterPoints.findUnique({
+        where: { walletAddress: voter.walletAddress },
+      });
+
+      const currentStreak = voterPoints?.streak || 0;
+      const streakBonus = Math.min(currentStreak * 2, 50);
+      const totalBonus = CORRECT_VOTE_BONUS + streakBonus;
+
+      await prisma.voterPoints.upsert({
+        where: { walletAddress: voter.walletAddress },
+        create: {
+          walletAddress: voter.walletAddress,
+          totalPoints: totalBonus,
+          correctVotes: 1,
+          streak: 1,
+        },
+        update: {
+          totalPoints: { increment: totalBonus },
+          correctVotes: { increment: 1 },
+          streak: { increment: 1 },
+        },
+      });
+    }
+
+    // Reset streak for incorrect voters
+    const incorrectVoters = await prisma.vote.findMany({
+      where: {
+        dareId,
+        voteType: winningVoteType === 'APPROVE' ? 'REJECT' : 'APPROVE',
+      },
+      select: { walletAddress: true },
+    });
+
+    for (const voter of incorrectVoters) {
+      await prisma.voterPoints.updateMany({
+        where: { walletAddress: voter.walletAddress },
+        data: { streak: 0 },
+      });
+    }
+
+    console.log(`[ADMIN] Override: awarded ${correctVoters.length} correct voters, reset ${incorrectVoters.length} incorrect voters`);
+  } catch (error) {
+    console.error('[ADMIN] Failed to award voters on override:', error);
   }
 }

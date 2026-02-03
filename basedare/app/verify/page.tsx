@@ -1,11 +1,55 @@
 'use client';
-import React from "react";
-import { Shield, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Shield, Zap, Trophy, Flame, Gift } from "lucide-react";
+import { useAccount } from 'wagmi';
+import Link from 'next/link';
 import TruthOracle from "@/components/TruthOracle";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 
+interface VoterPoints {
+  totalPoints: number;
+  correctVotes: number;
+  totalVotes: number;
+  streak: number;
+  accuracy: number;
+  rank: number | null;
+  isNewVoter: boolean;
+}
+
 export default function Verify() {
+  const { address, isConnected } = useAccount();
+  const [points, setPoints] = useState<VoterPoints | null>(null);
+
+  const fetchPoints = useCallback(async () => {
+    if (!address) {
+      setPoints(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/verify/points?wallet=${address}`);
+      const data = await res.json();
+      if (data.success) {
+        setPoints(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch points:', error);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadPoints = async () => {
+      if (mounted) {
+        await fetchPoints();
+      }
+    };
+    loadPoints();
+    return () => {
+      mounted = false;
+    };
+  }, [fetchPoints]);
+
   return (
     <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8">
       <LiquidBackground />
@@ -14,14 +58,54 @@ export default function Verify() {
 
       <div className="container mx-auto px-2 sm:px-6 relative z-10 mb-12 flex-grow max-w-7xl">
 
+        {/* AIRDROP TEASER BANNER */}
+        <div className="mb-6 p-4 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 border border-purple-500/20 rounded-xl backdrop-blur-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 animate-pulse" />
+          <div className="relative flex items-center gap-3 flex-wrap justify-center text-center sm:text-left sm:justify-start">
+            <Gift className="w-5 h-5 text-purple-400 flex-shrink-0" />
+            <p className="text-xs sm:text-sm text-gray-300 font-mono">
+              <span className="text-purple-400 font-bold">Earn VERIFY points</span> for every vote. Accurate voters earn bonus multipliers.
+              Points will count toward the upcoming <Link href="/airdrop" className="text-yellow-400 font-bold hover:underline">$BARE token airdrop</Link>.
+            </p>
+          </div>
+        </div>
+
         {/* HEADER - Apple Liquid Glass */}
         <div className="mb-8 md:mb-12">
-          {/* Demo Badge */}
-          <div className="flex justify-center mb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-xl">
-              <Sparkles className="w-3 h-3 text-blue-400" />
-              <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">Preview Demo</span>
+          {/* Live Badge + Points Display */}
+          <div className="flex flex-wrap justify-center items-center gap-3 mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full backdrop-blur-xl">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-mono text-green-400 uppercase tracking-wider">Live</span>
             </div>
+
+            {isConnected && points && (
+              <>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full backdrop-blur-xl">
+                  <Trophy className="w-3 h-3 text-blue-400" />
+                  <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">
+                    {points.totalPoints.toLocaleString()} pts
+                  </span>
+                </div>
+
+                {points.streak > 0 && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full backdrop-blur-xl">
+                    <Flame className="w-3 h-3 text-orange-400" />
+                    <span className="text-[10px] font-mono text-orange-400 uppercase tracking-wider">
+                      {points.streak} streak
+                    </span>
+                  </div>
+                )}
+
+                {points.rank && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full backdrop-blur-xl">
+                    <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider">
+                      Rank #{points.rank}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="text-center">
@@ -31,33 +115,33 @@ export default function Verify() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">PROTOCOL</span>
             </h1>
             <p className="text-gray-400 font-mono text-xs sm:text-sm max-w-xl mx-auto">
-              AI-powered verification with community consensus. Coming soon.
+              Community-powered verification. Review proof, cast your vote, earn rewards.
             </p>
           </div>
         </div>
 
         {/* THE ORACLE INTERFACE */}
-        <TruthOracle />
+        <TruthOracle onPointsChange={fetchPoints} />
 
         {/* INSTRUCTIONS - Liquid Glass Cards */}
         <div className="mt-8 md:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {[
             {
               step: '1',
-              title: 'AI Analysis',
-              description: 'Sentinel AI scans proof for deepfakes, verifies identity, and checks completion criteria.',
+              title: 'Review Proof',
+              description: 'Watch the submitted video or image evidence. Does it show the dare being completed?',
               color: 'blue'
             },
             {
               step: '2',
               title: 'Cast Vote',
-              description: 'Review AI findings. Vote VALID if proof is legit, FAKE if something is off.',
+              description: 'Vote VALID if the proof is legit and shows completion. Vote FAKE if the proof is insufficient or fraudulent.',
               color: 'purple'
             },
             {
               step: '3',
-              title: 'Earn REP',
-              description: 'Voters aligned with final consensus earn reputation. Wrong votes lose staked REP.',
+              title: 'Earn Points',
+              description: 'Get 5 points per vote. When consensus is reached, voters on the winning side earn +15 bonus points plus streak multipliers.',
               color: 'green'
             }
           ].map((item) => (
@@ -91,12 +175,25 @@ export default function Verify() {
           ))}
         </div>
 
-        {/* Note about demo */}
-        <p className="text-center text-[10px] text-gray-500 font-mono mt-6 uppercase tracking-wider">
-          This is a preview of community verification. Full implementation with real dares coming soon.
-        </p>
+        {/* Points Info */}
+        <div className="mt-6 p-4 backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs font-bold text-yellow-400 uppercase">How Points Work</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[10px] sm:text-xs text-gray-400 font-mono">
+            <div>
+              <span className="text-blue-400 font-bold">+5</span> points for every vote cast
+            </div>
+            <div>
+              <span className="text-green-400 font-bold">+15</span> bonus for voting with consensus
+            </div>
+            <div>
+              <span className="text-orange-400 font-bold">+streak</span> multiplier for consecutive correct votes
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
