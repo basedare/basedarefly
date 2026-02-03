@@ -363,8 +363,7 @@ export default function AboutPage() {
         <div className="relative z-20 mt-24 md:mt-32 px-6 max-w-7xl mx-auto">
           {/* SUBTLE PURPLE ORB BEHIND TEXT */}
           <div className="absolute inset-0 -z-10 -top-40">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 md:w-[600px] md:h-[600px] 
-                            bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 md:w-[600px] md:h-[600px] bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
           </div>
 
           {/* MAIN COPY — CLEAN & EXPENSIVE */}
@@ -382,8 +381,7 @@ export default function AboutPage() {
 
           {/* FAROKH QUOTE — LIQUID GLASS CARD */}
           <div className="mt-16 max-w-4xl mx-auto">
-            <div className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl p-10 md:p-16 
-                            shadow-2xl hover:shadow-purple-500/20 transition-shadow duration-500">
+            <div className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl p-10 md:p-16 shadow-2xl hover:shadow-purple-500/20 transition-shadow duration-500">
               <p className="text-4xl md:text-7xl font-black text-white text-center leading-tight italic">
                 "No one would pay me $10k to drink piss on stream"
               </p>
@@ -400,8 +398,7 @@ export default function AboutPage() {
               { value: "21h 07m", label: "UNTIL HE DRINKS", color: "red-500" },
               { value: "69", label: "RANDOM WINNERS", color: "green-400" }
             ].map((stat) => (
-              <div key={stat.label} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 text-center 
-                                          hover:bg-white/10 transition-all duration-300">
+              <div key={stat.label} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 text-center hover:bg-white/10 transition-all duration-300">
                 <p className={`text-6xl md:text-7xl font-black text-${stat.color}`}>{stat.value}</p>
                 <p className="text-gray-300 text-lg mt-2">{stat.label}</p>
               </div>
@@ -411,11 +408,8 @@ export default function AboutPage() {
           {/* CTA — CLEAN, CLASSY, DEADLY */}
           <div className="mt-20 mb-32 text-center">
             <Link to={createPageUrl("CreateDare")} className="group relative inline-block">
-              <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full blur-lg 
-                              group-hover:blur-2xl transition duration-500 opacity-75" />
-              <div className="relative px-16 py-8 bg-black border-2 border-yellow-500 rounded-full 
-                              text-4xl md:text-5xl font-black text-yellow-400 
-                              hover:text-white hover:bg-yellow-500/20 transition-all duration-300">
+              <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full blur-lg group-hover:blur-2xl transition duration-500 opacity-75" />
+              <div className="relative px-16 py-8 bg-black border-2 border-yellow-500 rounded-full text-4xl md:text-5xl font-black text-yellow-400 hover:text-white hover:bg-yellow-500/20 transition-all duration-300">
                 ADD $100K → FORCE HIM
               </div>
             </Link>
