@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 const AdminTagActionSchema = z.object({
   tagId: z.string().optional(),
   tag: z.string().optional(),
-  action: z.enum(['REVOKE', 'REINSTATE', 'SUSPEND', 'ASSIGN', 'VERIFY_KICK', 'REJECT_KICK']),
+  action: z.enum(['REVOKE', 'REINSTATE', 'SUSPEND', 'ASSIGN', 'VERIFY_KICK', 'REJECT_KICK', 'VERIFY_MANUAL', 'REJECT_MANUAL']),
   reason: z.string().max(500).optional(),
   // For ASSIGN action
   walletAddress: z.string().optional(),
@@ -271,6 +271,78 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: `Kick tag ${streamerTag!.tag} has been rejected`,
+        });
+
+      case 'VERIFY_MANUAL':
+        // Verify any pending manual verification tag
+        if (streamerTag!.status !== 'PENDING') {
+          return NextResponse.json(
+            { success: false, error: 'Tag is not pending verification' },
+            { status: 400 }
+          );
+        }
+
+        // Update the appropriate verified flag based on verification method
+        const verifyData: Record<string, boolean | string | Date> = {
+          status: 'VERIFIED',
+          verifiedAt: new Date(),
+        };
+        if (streamerTag!.verificationMethod === 'KICK') {
+          verifyData.kickVerified = true;
+        } else if (streamerTag!.verificationMethod === 'TWITTER') {
+          verifyData.twitterVerified = true;
+        } else if (streamerTag!.verificationMethod === 'TWITCH') {
+          verifyData.twitchVerified = true;
+        } else if (streamerTag!.verificationMethod === 'YOUTUBE') {
+          verifyData.youtubeVerified = true;
+        }
+
+        await prisma.streamerTag.update({
+          where: { id: streamerTag!.id },
+          data: verifyData,
+        });
+
+        // Activate any pending dares for this streamer
+        const activatedDares = await prisma.dare.updateMany({
+          where: {
+            streamerHandle: { equals: streamerTag!.tag, mode: 'insensitive' },
+            status: 'AWAITING_CLAIM',
+          },
+          data: {
+            status: 'PENDING',
+            targetWalletAddress: streamerTag!.walletAddress,
+          },
+        });
+
+        console.log(`[ADMIN] Tag ${streamerTag!.tag} (${streamerTag!.verificationMethod}) VERIFIED by ${adminWallet}. Activated ${activatedDares.count} dares.`);
+        return NextResponse.json({
+          success: true,
+          message: `Tag ${streamerTag!.tag} has been verified`,
+          activatedDares: activatedDares.count,
+        });
+
+      case 'REJECT_MANUAL':
+        // Reject any pending manual verification tag
+        if (streamerTag!.status !== 'PENDING') {
+          return NextResponse.json(
+            { success: false, error: 'Tag is not pending verification' },
+            { status: 400 }
+          );
+        }
+
+        await prisma.streamerTag.update({
+          where: { id: streamerTag!.id },
+          data: {
+            status: 'REVOKED',
+            revokedAt: new Date(),
+            revokedBy: adminWallet,
+            revokeReason: reason || 'Verification code not found on profile',
+          },
+        });
+        console.log(`[ADMIN] Tag ${streamerTag!.tag} (${streamerTag!.verificationMethod}) REJECTED by ${adminWallet}: ${reason}`);
+        return NextResponse.json({
+          success: true,
+          message: `Tag ${streamerTag!.tag} has been rejected`,
         });
 
       default:

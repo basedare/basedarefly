@@ -7,7 +7,7 @@ import ProofViewer from './ProofViewer';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import './PremiumBentoGrid.css';
 
-const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'LOCKED'] as const;
+const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'LOCKED', 'EXPIRED'] as const;
 type Filter = (typeof FILTERS)[number];
 
 interface NearbyDare {
@@ -394,6 +394,16 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         (card.streamer ? card.streamer.toLowerCase().includes(q) : false);
 
       if (!matchesSearch) return false;
+
+      // Check if card is expired
+      const isExpired = card.status === 'expired';
+
+      // EXPIRED filter: only show expired cards
+      if (filter === 'EXPIRED') return isExpired;
+
+      // All other filters: EXCLUDE expired cards by default
+      if (isExpired) return false;
+
       if (filter === 'ALL') return true;
       if (filter === 'STREAMERS') return Boolean(card.streamer && card.streamer.trim().length > 0);
       if (filter === 'OPEN BOUNTIES') return card.status === 'open';

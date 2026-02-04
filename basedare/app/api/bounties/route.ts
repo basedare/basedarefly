@@ -949,9 +949,23 @@ export async function GET(request: NextRequest) {
 
     // Simulated mode or no indexer - fetch from database + mock data
     if (!isContractDeployed || FORCE_SIMULATION) {
+      const now = new Date();
+
       // Fetch real bounties from database (including AWAITING_CLAIM)
+      // Filter out expired dares (status EXPIRED or expiresAt in the past)
       const dbBounties = await prisma.dare.findMany({
-        where: { status: { in: ['PENDING', 'AWAITING_CLAIM'] } },
+        where: {
+          status: { in: ['PENDING', 'AWAITING_CLAIM'] },
+          AND: [
+            { NOT: { status: 'EXPIRED' } },
+            {
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gte: now } },
+              ],
+            },
+          ],
+        },
         orderBy: sort === 'amount' ? { bounty: 'desc' } : { createdAt: 'desc' },
         take: 50,
       });

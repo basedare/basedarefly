@@ -93,7 +93,10 @@ const ClaimTagSchema = z.object({
     .max(20, 'Tag must be 20 characters or less')
     .regex(/^@?[a-zA-Z0-9_]+$/, 'Tag can only contain letters, numbers, and underscores'),
   platform: z.enum(['twitter', 'twitch', 'youtube', 'kick']).optional().default('twitter'),
-  // For Kick manual verification
+  // For manual verification (any platform)
+  manualUsername: z.string().optional(),
+  manualCode: z.string().optional(),
+  // Legacy Kick fields (redirect to manual fields)
   kickUsername: z.string().optional(),
   kickCode: z.string().optional(),
 });
@@ -111,8 +114,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { walletAddress, tag, platform, kickUsername, kickCode } = validation.data;
+    const { walletAddress, tag, platform, manualUsername, manualCode, kickUsername, kickCode } = validation.data;
     const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
+
+    // Support legacy Kick fields by merging into manual fields
+    const effectiveManualUsername = manualUsername || kickUsername;
+    const effectiveManualCode = manualCode || kickCode;
 
     // Get session for OAuth-based verification
     const session = await getServerSession(authOptions);
@@ -122,32 +129,33 @@ export async function POST(request: NextRequest) {
     let platformHandle: string | null = null;
     let verificationMethod: string;
     let status: string;
+    let isManualVerification = false;
 
-    if (platform === 'kick') {
-      // Kick requires manual verification
-      if (!kickUsername || !kickCode) {
-        return NextResponse.json(
-          { success: false, error: 'Kick username and verification code are required' },
-          { status: 400 }
-        );
-      }
-
-      // Validate kick code format
-      if (!kickCode.startsWith('BASEDARE-')) {
+    // Check if this is a manual verification request (code provided)
+    if (effectiveManualCode && effectiveManualUsername) {
+      // Manual verification for any platform
+      if (!effectiveManualCode.startsWith('BASEDARE-')) {
         return NextResponse.json(
           { success: false, error: 'Invalid verification code format' },
           { status: 400 }
         );
       }
 
-      platformHandle = kickUsername;
-      verificationMethod = 'KICK';
+      platformHandle = effectiveManualUsername;
+      verificationMethod = platform.toUpperCase();
       status = 'PENDING'; // Requires admin verification
+      isManualVerification = true;
+    } else if (platform === 'kick') {
+      // Kick always requires manual verification
+      return NextResponse.json(
+        { success: false, error: 'Kick username and verification code are required' },
+        { status: 400 }
+      );
     } else {
       // OAuth-based verification (Twitter, Twitch, YouTube)
       if (!session) {
         return NextResponse.json(
-          { success: false, error: `Please sign in with ${platform} first` },
+          { success: false, error: `Please sign in with ${platform} first, or use manual verification` },
           { status: 401 }
         );
       }
@@ -232,20 +240,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if Kick username already used
-    if (platform === 'kick' && kickUsername) {
-      const existingKick = await prisma.streamerTag.findFirst({
-        where: {
-          kickHandle: kickUsername,
-          status: { not: 'REVOKED' },
-        },
-      });
+    // Check if platform handle already used (for manual verification)
+    if (isManualVerification && effectiveManualUsername) {
+      let existingHandle;
+      if (platform === 'kick') {
+        existingHandle = await prisma.streamerTag.findFirst({
+          where: { kickHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
+        });
+      } else if (platform === 'twitter') {
+        existingHandle = await prisma.streamerTag.findFirst({
+          where: { twitterHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
+        });
+      } else if (platform === 'twitch') {
+        existingHandle = await prisma.streamerTag.findFirst({
+          where: { twitchHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
+        });
+      } else if (platform === 'youtube') {
+        existingHandle = await prisma.streamerTag.findFirst({
+          where: { youtubeHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
+        });
+      }
 
-      if (existingKick) {
+      if (existingHandle) {
         return NextResponse.json(
           {
             success: false,
-            error: `This Kick username is already linked to tag ${existingKick.tag}`,
+            error: `This ${platform} username is already linked to tag ${existingHandle.tag}`,
           },
           { status: 400 }
         );
@@ -276,7 +296,24 @@ export async function POST(request: NextRequest) {
     };
 
     // Set platform-specific fields
-    if (platform === 'twitter') {
+    if (isManualVerification) {
+      // Manual verification - store handle and code for admin review
+      if (platform === 'twitter') {
+        platformData.twitterHandle = platformHandle;
+        platformData.twitterVerified = false;
+      } else if (platform === 'twitch') {
+        platformData.twitchHandle = platformHandle;
+        platformData.twitchVerified = false;
+      } else if (platform === 'youtube') {
+        platformData.youtubeHandle = platformHandle;
+        platformData.youtubeVerified = false;
+      } else if (platform === 'kick') {
+        platformData.kickHandle = platformHandle;
+        platformData.kickVerified = false;
+      }
+      // Store verification code in kickVerificationCode field (reused for all manual verifications)
+      platformData.kickVerificationCode = effectiveManualCode;
+    } else if (platform === 'twitter') {
       platformData.twitterId = platformId;
       platformData.twitterHandle = platformHandle;
       platformData.twitterVerified = true;
@@ -288,10 +325,6 @@ export async function POST(request: NextRequest) {
       platformData.youtubeId = platformId;
       platformData.youtubeHandle = platformHandle;
       platformData.youtubeVerified = true;
-    } else if (platform === 'kick') {
-      platformData.kickHandle = kickUsername!;
-      platformData.kickVerificationCode = kickCode;
-      platformData.kickVerified = false; // Pending admin verification
     }
 
     // Create or update tag
@@ -347,8 +380,8 @@ export async function POST(request: NextRequest) {
 
     // Build response message
     let message: string;
-    if (platform === 'kick') {
-      message = `Tag submitted for review! An admin will verify your Kick account (${kickUsername}) within 24 hours.`;
+    if (isManualVerification) {
+      message = `Tag submitted for review! An admin will verify your ${platform} account (${effectiveManualUsername}) within 24 hours.`;
     } else if (activatedDares > 0) {
       message = `Tag claimed and verified! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
     } else if (tagMatchesPlatform) {

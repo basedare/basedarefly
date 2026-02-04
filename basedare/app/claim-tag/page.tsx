@@ -127,10 +127,11 @@ export default function ClaimTagPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<any[]>([]);
 
-  // Kick manual verification state
-  const [kickCode, setKickCode] = useState<string | null>(null);
-  const [kickUsername, setKickUsername] = useState('');
-  const [kickVerifying, setKickVerifying] = useState(false);
+  // Manual verification state (works for any platform)
+  const [manualCode, setManualCode] = useState<string | null>(null);
+  const [manualUsername, setManualUsername] = useState('');
+  const [manualVerifying, setManualVerifying] = useState(false);
+  const [useManualVerification, setUseManualVerification] = useState(false);
 
   // Invite flow state
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -276,28 +277,38 @@ export default function ClaimTagPage() {
     return () => clearTimeout(timer);
   }, [tag, checkTagAvailability]);
 
-  // Generate Kick verification code
-  const generateKickCode = () => {
+  // Generate manual verification code (works for any platform)
+  const generateManualCode = () => {
     const code = `BASEDARE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    setKickCode(code);
+    setManualCode(code);
   };
 
   // Copy code to clipboard
   const copyCode = async () => {
-    if (kickCode) {
-      await navigator.clipboard.writeText(kickCode);
+    if (manualCode) {
+      await navigator.clipboard.writeText(manualCode);
     }
   };
+
+  // Switch to manual verification mode
+  const enableManualVerification = (platform: Platform) => {
+    setSelectedPlatform(platform);
+    setUseManualVerification(true);
+    generateManualCode();
+  };
+
+  // Check if using manual verification for current platform
+  const isManualMode = useManualVerification || selectedPlatform === 'kick';
 
   // Claim the tag
   const handleClaimTag = async () => {
     if (!address || !tag) return;
 
-    // For OAuth platforms, need to be connected
-    if (selectedPlatform !== 'kick' && !isPlatformConnected) return;
+    // For manual verification, need username and code
+    if (isManualMode && (!manualUsername || !manualCode)) return;
 
-    // For Kick, need username and code
-    if (selectedPlatform === 'kick' && (!kickUsername || !kickCode)) return;
+    // For OAuth platforms (not manual), need to be connected
+    if (!isManualMode && !isPlatformConnected) return;
 
     setClaiming(true);
     setError(null);
@@ -310,10 +321,10 @@ export default function ClaimTagPage() {
         platform: selectedPlatform || 'twitter',
       };
 
-      // For Kick, include manual verification data
-      if (selectedPlatform === 'kick') {
-        body.kickUsername = kickUsername;
-        body.kickCode = kickCode!;
+      // Include manual verification data
+      if (isManualMode) {
+        body.manualUsername = manualUsername;
+        body.manualCode = manualCode!;
       }
 
       const res = await fetch('/api/tags', {
@@ -328,9 +339,10 @@ export default function ClaimTagPage() {
         setSuccess(data.data.message || 'Tag claimed successfully!');
         setTag('');
         setTagAvailable(null);
-        setKickCode(null);
-        setKickUsername('');
+        setManualCode(null);
+        setManualUsername('');
         setSelectedPlatform(null);
+        setUseManualVerification(false);
       } else {
         setError(data.error || 'Failed to claim tag');
       }
@@ -350,6 +362,7 @@ export default function ClaimTagPage() {
   const handlePlatformSelect = (platform: Platform) => {
     setSelectedPlatform(platform);
     setError(null);
+    setUseManualVerification(false);
 
     // If it's an OAuth platform, redirect to provider
     // After OAuth, NextAuth redirects back to /claim-tag and the
@@ -362,9 +375,9 @@ export default function ClaimTagPage() {
       return;
     }
 
-    // For Kick, generate a verification code
-    if (platform === 'kick' && !kickCode) {
-      generateKickCode();
+    // For Kick (always manual), generate a verification code
+    if (platform === 'kick' && !manualCode) {
+      generateManualCode();
     }
   };
 
@@ -546,7 +559,7 @@ export default function ClaimTagPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
             className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
-              isPlatformConnected || selectedPlatform === 'kick'
+              isPlatformConnected || isManualMode
                 ? 'bg-green-500/5 border-green-500/30'
                 : 'bg-black/20 border-white/10'
             } ${!isConnected ? 'opacity-50' : ''}`}
@@ -554,14 +567,14 @@ export default function ClaimTagPage() {
             <div className="flex items-center gap-3 sm:gap-4 mb-4">
               <div
                 className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                  isPlatformConnected || selectedPlatform === 'kick'
+                  isPlatformConnected || isManualMode
                     ? 'bg-green-500/20 border border-green-500/30'
                     : 'bg-white/5 border border-white/10'
                 }`}
               >
                 <Shield
                   className={`w-5 h-5 ${
-                    isPlatformConnected || selectedPlatform === 'kick'
+                    isPlatformConnected || isManualMode
                       ? 'text-green-400'
                       : 'text-gray-400'
                   }`}
@@ -572,7 +585,7 @@ export default function ClaimTagPage() {
                 <p className="text-xs text-gray-500 font-mono truncate">
                   {isPlatformConnected
                     ? `Verified as ${platformHandle} via ${connectedPlatform}`
-                    : selectedPlatform === 'kick'
+                    : isManualMode
                     ? 'Manual verification required'
                     : 'Choose your verification method'}
                 </p>
@@ -580,27 +593,50 @@ export default function ClaimTagPage() {
             </div>
 
             {/* Platform Selection Grid */}
-            {!isPlatformConnected && selectedPlatform !== 'kick' && (
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {PLATFORMS.map((platform) => (
-                  <button
-                    key={platform.id}
-                    onClick={() => handlePlatformSelect(platform.id)}
-                    disabled={!isConnected}
-                    className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
-                    <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
-                    {platform.provider === null && (
-                      <span className="text-[10px] sm:text-xs text-gray-400">Manual</span>
-                    )}
-                  </button>
-                ))}
+            {!isPlatformConnected && !isManualMode && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  {PLATFORMS.map((platform) => (
+                    <button
+                      key={platform.id}
+                      onClick={() => handlePlatformSelect(platform.id)}
+                      disabled={!isConnected}
+                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
+                      <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
+                      {platform.provider === null && (
+                        <span className="text-[10px] sm:text-xs text-gray-400">Manual</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Manual Verification Fallback - always show */}
+                <div className="p-3 bg-white/5 border border-white/10 rounded-xl">
+                  <p className="text-xs text-gray-400 mb-2">
+                    {error && error.includes('OAuth')
+                      ? 'OAuth not working? Use manual verification instead:'
+                      : 'Having trouble with OAuth? Try manual verification:'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORMS.filter(p => p.provider !== null).map((platform) => (
+                      <button
+                        key={platform.id}
+                        onClick={() => enableManualVerification(platform.id)}
+                        disabled={!isConnected}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${platform.bgColor} ${platform.borderColor} ${platform.color} hover:opacity-80 disabled:opacity-50`}
+                      >
+                        {platform.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Connected Platform Display */}
-            {isPlatformConnected && connectedPlatform && (
+            {isPlatformConnected && connectedPlatform && !isManualMode && (
               <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-xl">
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   {(() => {
@@ -625,66 +661,78 @@ export default function ClaimTagPage() {
               </div>
             )}
 
-            {/* Kick Manual Verification */}
-            {selectedPlatform === 'kick' && kickCode && (
+            {/* Manual Verification (works for any platform) */}
+            {isManualMode && manualCode && selectedPlatform && (
               <div className="space-y-3 sm:space-y-4">
-                <div className="p-3 sm:p-4 bg-[#53FC18]/10 border border-[#53FC18]/30 rounded-xl space-y-3">
-                  <div className="flex items-center gap-2">
-                    <KickIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#53FC18]" />
-                    <span className="text-sm font-bold text-[#53FC18]">Kick Manual Verification</span>
-                  </div>
+                {(() => {
+                  const config = getPlatformConfig(selectedPlatform);
+                  const platformUrls: Record<Platform, string> = {
+                    twitter: `https://twitter.com/${manualUsername || ''}`,
+                    twitch: `https://twitch.tv/${manualUsername || ''}`,
+                    youtube: `https://youtube.com/@${manualUsername || ''}`,
+                    kick: `https://kick.com/${manualUsername || ''}`,
+                  };
+                  return (
+                    <div className={`p-3 sm:p-4 ${config.bgColor} border ${config.borderColor} rounded-xl space-y-3`}>
+                      <div className="flex items-center gap-2">
+                        <config.Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
+                        <span className={`text-sm font-bold ${config.color}`}>{config.name} Manual Verification</span>
+                      </div>
 
-                  <div className="text-xs sm:text-sm text-gray-300 space-y-1.5 sm:space-y-2">
-                    <p>1. Enter your Kick username below</p>
-                    <p>2. Copy the verification code</p>
-                    <p>3. Display this code on your stream or in your bio</p>
-                    <p>4. Click verify (admin will confirm within 24h)</p>
-                  </div>
+                      <div className="text-xs sm:text-sm text-gray-300 space-y-1.5 sm:space-y-2">
+                        <p>1. Enter your {config.name} username below</p>
+                        <p>2. Copy the verification code</p>
+                        <p>3. Add this code to your {config.name} bio or display on stream</p>
+                        <p>4. Click submit (admin will verify within 24h)</p>
+                      </div>
 
-                  {/* Kick Username Input */}
-                  <div>
-                    <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Kick Username</label>
-                    <input
-                      type="text"
-                      value={kickUsername}
-                      onChange={(e) => setKickUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                      placeholder="your_kick_username"
-                      className="w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-[#53FC18]/50 focus:outline-none font-mono"
-                    />
-                  </div>
+                      {/* Username Input */}
+                      <div>
+                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">{config.name} Username</label>
+                        <input
+                          type="text"
+                          value={manualUsername}
+                          onChange={(e) => setManualUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                          placeholder={`your_${selectedPlatform}_username`}
+                          className={`w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-opacity-50 focus:outline-none font-mono`}
+                        />
+                      </div>
 
-                  {/* Verification Code */}
-                  <div>
-                    <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Verification Code</label>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 px-3 sm:px-4 py-2 bg-black/60 border border-[#53FC18]/30 rounded-lg font-mono text-sm text-[#53FC18] truncate">
-                        {kickCode}
-                      </code>
-                      <button
-                        onClick={copyCode}
-                        className="p-2 bg-[#53FC18]/20 hover:bg-[#53FC18]/30 rounded-lg transition-colors shrink-0"
+                      {/* Verification Code */}
+                      <div>
+                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Verification Code</label>
+                        <div className="flex items-center gap-2">
+                          <code className={`flex-1 px-3 sm:px-4 py-2 bg-black/60 border ${config.borderColor} rounded-lg font-mono text-sm ${config.color} truncate`}>
+                            {manualCode}
+                          </code>
+                          <button
+                            onClick={copyCode}
+                            className={`p-2 ${config.bgColor} hover:opacity-80 rounded-lg transition-colors shrink-0`}
+                          >
+                            <Copy className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <a
+                        href={platformUrls[selectedPlatform]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-2 text-xs sm:text-sm ${config.color} hover:underline`}
                       >
-                        <Copy className="w-4 h-4 sm:w-5 sm:h-5 text-[#53FC18]" />
-                      </button>
+                        <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Open your {config.name} profile
+                      </a>
                     </div>
-                  </div>
-
-                  <a
-                    href={`https://kick.com/${kickUsername || ''}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#53FC18] hover:underline"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Open your Kick profile
-                  </a>
-                </div>
+                  );
+                })()}
 
                 <button
                   onClick={() => {
                     setSelectedPlatform(null);
-                    setKickCode(null);
-                    setKickUsername('');
+                    setManualCode(null);
+                    setManualUsername('');
+                    setUseManualVerification(false);
                   }}
                   className="text-xs text-gray-500 hover:text-white transition-colors"
                 >
@@ -700,7 +748,7 @@ export default function ClaimTagPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
-              (isConnected && isPlatformConnected) || (isConnected && selectedPlatform === 'kick')
+              (isConnected && isPlatformConnected) || (isConnected && isManualMode)
                 ? 'bg-purple-500/5 border-purple-500/30'
                 : 'bg-black/20 border-white/10 opacity-50'
             }`}
@@ -724,9 +772,9 @@ export default function ClaimTagPage() {
                   type="text"
                   value={tag}
                   onChange={(e) => setTag(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                  placeholder={platformHandle || kickUsername || 'your_tag'}
+                  placeholder={platformHandle || manualUsername || 'your_tag'}
                   disabled={
-                    !isConnected || (!isPlatformConnected && selectedPlatform !== 'kick')
+                    !isConnected || (!isPlatformConnected && !isManualMode)
                   }
                   className="w-full pl-7 sm:pl-8 pr-10 sm:pr-12 py-2.5 sm:py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono disabled:opacity-50"
                   maxLength={20}
@@ -776,11 +824,11 @@ export default function ClaimTagPage() {
                 onClick={handleClaimTag}
                 disabled={
                   !isConnected ||
-                  (!isPlatformConnected && selectedPlatform !== 'kick') ||
+                  (!isPlatformConnected && !isManualMode) ||
                   !tag ||
                   !tagAvailable ||
                   claiming ||
-                  (selectedPlatform === 'kick' && !kickUsername)
+                  (isManualMode && !manualUsername)
                 }
                 className="w-full"
                 size="md"
@@ -788,19 +836,19 @@ export default function ClaimTagPage() {
                 {claiming ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {selectedPlatform === 'kick' ? 'Submitting...' : 'Claiming...'}
+                    {isManualMode ? 'Submitting...' : 'Claiming...'}
                   </>
                 ) : (
                   <>
                     <Shield className="w-4 h-4" />
-                    {selectedPlatform === 'kick' ? 'Submit for Review' : 'Claim Tag'}
+                    {isManualMode ? 'Submit for Review' : 'Claim Tag'}
                   </>
                 )}
               </LiquidMetalButton>
 
-              {selectedPlatform === 'kick' && (
+              {isManualMode && (
                 <p className="text-[10px] sm:text-xs text-gray-500 text-center">
-                  Kick tags require manual verification (usually within 24 hours)
+                  Manual verification requires admin approval (usually within 24 hours)
                 </p>
               )}
             </div>

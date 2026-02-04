@@ -4,12 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 
 // ============================================================================
-// CLAIM DARE API - For @everyone open dares
-// POST /api/dares/[id]/claim - Claim a dare to attempt it
-// DELETE /api/dares/[id]/claim - Release a claim (give up)
+// CLAIM DARE API - For @open dares (moderated claim request flow)
+// POST /api/dares/[id]/claim - Request to claim an open dare (requires mod approval)
+// DELETE /api/dares/[id]/claim - Withdraw a pending claim request
 // ============================================================================
-
-const CLAIM_DURATION_HOURS = 24;
 
 const ClaimSchema = z.object({
   walletAddress: z.string().refine(isAddress, 'Invalid wallet address'),
@@ -34,6 +32,21 @@ export async function POST(
     const { walletAddress } = validation.data;
     const lowerWallet = walletAddress.toLowerCase();
 
+    // Check if user has a verified tag
+    const userTag = await prisma.streamerTag.findFirst({
+      where: {
+        walletAddress: lowerWallet,
+        status: 'VERIFIED',
+      },
+    });
+
+    if (!userTag) {
+      return NextResponse.json(
+        { success: false, error: 'You need a verified tag to claim dares. Visit /claim-tag to verify your identity.' },
+        { status: 400 }
+      );
+    }
+
     // Fetch the dare
     const dare = await prisma.dare.findUnique({
       where: { id: dareId },
@@ -46,10 +59,19 @@ export async function POST(
       );
     }
 
-    // Check if it's an open dare (no streamerHandle = @everyone)
-    if (dare.streamerHandle) {
+    // Check if it's an open dare (no streamerHandle or streamerHandle is @open)
+    const isOpen = !dare.streamerHandle || dare.streamerHandle.toLowerCase() === '@open';
+    if (!isOpen) {
       return NextResponse.json(
         { success: false, error: 'This dare is targeted at a specific creator, not open for claiming' },
+        { status: 400 }
+      );
+    }
+
+    // Check if dare is expired
+    if (dare.expiresAt && new Date(dare.expiresAt) < new Date()) {
+      return NextResponse.json(
+        { success: false, error: 'This dare has expired' },
         { status: 400 }
       );
     }
@@ -62,75 +84,63 @@ export async function POST(
       );
     }
 
-    // Check if already claimed by someone else (and claim hasn't expired)
-    if (dare.claimedBy && dare.claimExpiresAt) {
-      const now = new Date();
-      if (dare.claimExpiresAt > now) {
-        if (dare.claimedBy.toLowerCase() === lowerWallet) {
-          // Already claimed by this user
-          return NextResponse.json({
-            success: true,
-            data: {
-              message: 'You have already claimed this dare',
-              dareId: dare.id,
-              claimedBy: dare.claimedBy,
-              claimedAt: dare.claimedAt,
-              claimExpiresAt: dare.claimExpiresAt,
-              alreadyClaimed: true,
-            },
-          });
-        }
-        // Claimed by someone else
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'This dare is already claimed by another user',
-            claimExpiresAt: dare.claimExpiresAt,
+    // Check if there's already a pending claim request
+    if (dare.claimRequestStatus === 'PENDING') {
+      if (dare.claimRequestWallet?.toLowerCase() === lowerWallet) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            message: 'You have already submitted a claim request for this dare',
+            dareId: dare.id,
+            claimRequestTag: dare.claimRequestTag,
+            claimRequestedAt: dare.claimRequestedAt,
+            claimRequestStatus: dare.claimRequestStatus,
+            alreadyRequested: true,
           },
-          { status: 400 }
-        );
+        });
       }
-      // Claim has expired, we can allow a new claim
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Another user has already requested to claim this dare. Please wait for moderator review.',
+        },
+        { status: 400 }
+      );
     }
 
-    // Calculate claim expiry (24 hours from now)
-    const claimedAt = new Date();
-    const claimExpiresAt = new Date(claimedAt.getTime() + CLAIM_DURATION_HOURS * 60 * 60 * 1000);
-
-    // Claim the dare
+    // Submit claim request
     const updatedDare = await prisma.dare.update({
       where: { id: dareId },
       data: {
-        claimedBy: lowerWallet,
-        claimedAt,
-        claimExpiresAt,
-        targetWalletAddress: lowerWallet, // Set target wallet for payout
+        claimRequestWallet: lowerWallet,
+        claimRequestTag: userTag.tag,
+        claimRequestedAt: new Date(),
+        claimRequestStatus: 'PENDING',
       },
     });
 
-    console.log(`[CLAIM] Dare ${dareId} claimed by ${lowerWallet} until ${claimExpiresAt.toISOString()}`);
+    console.log(`[CLAIM REQUEST] Dare ${dareId} requested by ${userTag.tag} (${lowerWallet})`);
 
     return NextResponse.json({
       success: true,
       data: {
-        message: `Dare claimed! You have ${CLAIM_DURATION_HOURS} hours to submit proof.`,
+        message: 'Claim request submitted! A moderator will review and approve your request.',
         dareId: updatedDare.id,
         title: updatedDare.title,
         bounty: updatedDare.bounty,
-        claimedBy: updatedDare.claimedBy,
-        claimedAt: updatedDare.claimedAt,
-        claimExpiresAt: updatedDare.claimExpiresAt,
-        hoursRemaining: CLAIM_DURATION_HOURS,
+        claimRequestTag: userTag.tag,
+        claimRequestedAt: updatedDare.claimRequestedAt,
+        claimRequestStatus: 'PENDING',
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[CLAIM] Failed:', message);
+    console.error('[CLAIM REQUEST] Failed:', message);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-// Release a claim (give up on the dare)
+// Withdraw a pending claim request
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -161,45 +171,37 @@ export async function DELETE(
       );
     }
 
-    // Check if claimed by this user
-    if (!dare.claimedBy || dare.claimedBy.toLowerCase() !== lowerWallet) {
+    // Check if there's a pending request by this user
+    if (dare.claimRequestStatus !== 'PENDING' || dare.claimRequestWallet?.toLowerCase() !== lowerWallet) {
       return NextResponse.json(
-        { success: false, error: 'You have not claimed this dare' },
+        { success: false, error: 'You do not have a pending claim request for this dare' },
         { status: 400 }
       );
     }
 
-    // Can only release if no proof submitted yet
-    if (dare.videoUrl) {
-      return NextResponse.json(
-        { success: false, error: 'Cannot release claim after submitting proof' },
-        { status: 400 }
-      );
-    }
-
-    // Release the claim
+    // Withdraw the request
     const updatedDare = await prisma.dare.update({
       where: { id: dareId },
       data: {
-        claimedBy: null,
-        claimedAt: null,
-        claimExpiresAt: null,
-        targetWalletAddress: null,
+        claimRequestWallet: null,
+        claimRequestTag: null,
+        claimRequestedAt: null,
+        claimRequestStatus: null,
       },
     });
 
-    console.log(`[CLAIM] Dare ${dareId} released by ${lowerWallet}`);
+    console.log(`[CLAIM REQUEST] Dare ${dareId} request withdrawn by ${lowerWallet}`);
 
     return NextResponse.json({
       success: true,
       data: {
-        message: 'Claim released. The dare is now available for others.',
+        message: 'Claim request withdrawn. The dare is now available for others.',
         dareId: updatedDare.id,
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[CLAIM] Release failed:', message);
+    console.error('[CLAIM REQUEST] Withdraw failed:', message);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

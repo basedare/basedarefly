@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Share2, Clock, Copy, CheckCircle, Users, ExternalLink } from 'lucide-react';
+import { Share2, Clock, Copy, CheckCircle, Users, ExternalLink, Hand, Loader2, AlertCircle } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import BountyQRCode from '@/components/BountyQRCode';
 import LiquidBackground from '@/components/LiquidBackground';
 
@@ -33,7 +34,7 @@ interface DareDetail {
   shortId: string;
   title: string;
   bounty: number;
-  streamerHandle: string;
+  streamerHandle: string | null;
   status: string;
   expiresAt: string | null;
   videoUrl: string | null;
@@ -42,6 +43,11 @@ interface DareDetail {
   claimDeadline: string | null;
   targetWalletAddress: string | null;
   awaitingClaim: boolean;
+  // Claim request fields (for open dares)
+  claimRequestWallet: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: string | null;
+  claimRequestStatus: string | null;
 }
 
 interface VoteCounts {
@@ -86,6 +92,7 @@ export default function DareDetailPage() {
   const searchParams = useSearchParams();
   const shortId = params.shortId as string;
   const referrer = searchParams.get('ref');
+  const { address, isConnected } = useAccount();
 
   const [dare, setDare] = useState<DareDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +100,11 @@ export default function DareDetailPage() {
   const [timeRemaining, setTimeRemaining] = useState('');
   const [copied, setCopied] = useState(false);
   const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
+
+  // Claim request state
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimSuccess, setClaimSuccess] = useState(false);
 
   // Track referral on page load
   useEffect(() => {
@@ -149,6 +161,48 @@ export default function DareDetailPage() {
 
     return () => clearInterval(interval);
   }, [dare?.expiresAt]);
+
+  // Handle claim request for open dares
+  const handleClaimRequest = useCallback(async () => {
+    if (!dare || !address) return;
+
+    setClaimLoading(true);
+    setClaimError(null);
+
+    try {
+      const res = await fetch(`/api/dares/${dare.id}/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setClaimSuccess(true);
+        // Update local dare state with claim request info
+        setDare((prev) => prev ? {
+          ...prev,
+          claimRequestWallet: address.toLowerCase(),
+          claimRequestTag: data.data.claimRequestTag,
+          claimRequestedAt: new Date().toISOString(),
+          claimRequestStatus: 'PENDING',
+        } : null);
+      } else {
+        setClaimError(data.error || 'Failed to submit claim request');
+      }
+    } catch {
+      setClaimError('Failed to submit claim request');
+    } finally {
+      setClaimLoading(false);
+    }
+  }, [dare, address]);
+
+  // Check if this is an open dare
+  const isOpenDare = !dare?.streamerHandle || dare.streamerHandle.toLowerCase() === '@open';
+
+  // Check if current user has already requested
+  const hasUserRequested = dare?.claimRequestWallet?.toLowerCase() === address?.toLowerCase();
 
   if (loading) {
     return (
@@ -271,6 +325,21 @@ export default function DareDetailPage() {
                 {dare.streamerHandle ? dare.streamerHandle.replace('@', '') : 'Open Bounty - Anyone can claim'}
               </span>
             </div>
+
+            {/* Claim Request Status for Open Dares */}
+            {isOpenDare && dare.claimRequestStatus === 'PENDING' && (
+              <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span className="text-xs font-bold text-yellow-400 uppercase">Claim Request Pending</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {hasUserRequested
+                    ? 'Your claim request is awaiting moderator approval.'
+                    : `${dare.claimRequestTag} has requested to claim this dare.`}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Bounty Amount */}
@@ -448,6 +517,52 @@ export default function DareDetailPage() {
               <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
                 Tag them so they can claim their bounty!
               </p>
+            </div>
+          )}
+
+          {/* Request to Claim Button for Open Dares */}
+          {isOpenDare && !isExpired && !isVerified && dare.status === 'PENDING' && !dare.claimRequestStatus && (
+            <div className="p-6 border-t border-white/[0.06]">
+              {isConnected ? (
+                <>
+                  <button
+                    onClick={handleClaimRequest}
+                    disabled={claimLoading}
+                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {claimLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Hand className="w-5 h-5" />
+                    )}
+                    {claimLoading ? 'Submitting...' : 'Request to Claim'}
+                  </button>
+
+                  {claimError && (
+                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-400">{claimError}</p>
+                    </div>
+                  )}
+
+                  {claimSuccess && (
+                    <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-green-400">Claim request submitted! Awaiting moderator approval.</p>
+                    </div>
+                  )}
+
+                  <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
+                    A moderator will review and approve your request.
+                  </p>
+                </>
+              ) : (
+                <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                  <Hand className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 mb-1">Open Bounty</p>
+                  <p className="text-xs text-gray-500">Connect your wallet to request claiming this dare</p>
+                </div>
+              )}
             </div>
           )}
 

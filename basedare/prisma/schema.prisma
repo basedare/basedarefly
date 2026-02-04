@@ -59,6 +59,11 @@ model Dare {
   claimedBy           String?   // Wallet that claimed this dare
   claimedAt           DateTime? // When it was claimed
   claimExpiresAt      DateTime? // When the claim expires (24h window)
+  // Claim request fields (moderated claim flow for open dares)
+  claimRequestWallet  String?   // Wallet requesting to claim
+  claimRequestTag     String?   // Tag of the requester (e.g., @username)
+  claimRequestedAt    DateTime? // When request was submitted
+  claimRequestStatus  String?   // PENDING, APPROVED, REJECTED
   // Moderator decision fields
   moderatorDecision   String?   // APPROVED or REJECTED
   moderatorAddress    String?   // Wallet of moderator who decided
@@ -75,6 +80,7 @@ model Dare {
   @@index([isNearbyDare, status])
   @@index([claimedBy])
   @@index([status, videoUrl])
+  @@index([claimRequestStatus])
 }
 
 model Referral {

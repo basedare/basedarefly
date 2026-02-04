@@ -42,6 +42,11 @@ export async function GET(
       claimDeadline: dare.claimDeadline?.toISOString() || null,
       targetWalletAddress: dare.targetWalletAddress,
       awaitingClaim: dare.status === 'AWAITING_CLAIM',
+      // Claim request fields (for open dares)
+      claimRequestWallet: dare.claimRequestWallet,
+      claimRequestTag: dare.claimRequestTag,
+      claimRequestedAt: dare.claimRequestedAt?.toISOString() || null,
+      claimRequestStatus: dare.claimRequestStatus,
     });
   } catch (error) {
     console.error('[API] Error fetching dare:', error);

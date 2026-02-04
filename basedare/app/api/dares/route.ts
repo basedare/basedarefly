@@ -6,22 +6,50 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const includeAll = searchParams.get('includeAll') === 'true';
+    const includeExpired = searchParams.get('includeExpired') === 'true';
+    const onlyExpired = searchParams.get('onlyExpired') === 'true';
     const userAddress = searchParams.get('userAddress');
     const role = searchParams.get('role'); // 'staker' | 'creator' | undefined (both)
 
-    // Build where clause
+    // Build where clause with proper typing for Prisma
     type WhereClause = {
-      status?: { in: string[] };
+      status?: { in: string[] } | string;
       stakerAddress?: string;
       targetWalletAddress?: string;
       OR?: Array<{ stakerAddress?: string; targetWalletAddress?: string }>;
+      AND?: Array<{
+        OR?: Array<{ status?: string; expiresAt?: { lt: Date } }>;
+        NOT?: { OR?: Array<{ status?: string; expiresAt?: { lt: Date } }> };
+      }>;
     };
 
     const where: WhereClause = {};
+    const now = new Date();
 
-    // Filter by status unless includeAll is true
-    if (!includeAll) {
-      where.status = { in: ['VERIFIED', 'PENDING'] };
+    // Handle expired filter modes
+    if (onlyExpired) {
+      // Show ONLY expired dares
+      where.AND = [{
+        OR: [
+          { status: 'EXPIRED' },
+          { expiresAt: { lt: now } },
+        ],
+      }];
+    } else if (!includeExpired && !includeAll) {
+      // Default: EXCLUDE expired dares (hide status EXPIRED and past expiresAt)
+      where.AND = [{
+        NOT: {
+          OR: [
+            { status: 'EXPIRED' },
+            { expiresAt: { lt: now } },
+          ],
+        },
+      }];
+      // Also filter to active statuses only
+      where.status = { in: ['VERIFIED', 'PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW'] };
+    } else if (!includeAll) {
+      // includeExpired but not includeAll - filter by status but allow expired
+      where.status = { in: ['VERIFIED', 'PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'EXPIRED'] };
     }
 
     // Filter by user address if provided and valid
@@ -56,17 +84,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise, format for the public feed (legacy format)
-    const formattedDares = dares.map(dare => ({
-      id: dare.id,
-      description: dare.title,
-      stake_amount: dare.bounty,
-      streamer_name: dare.streamerHandle,
-      status: dare.status,
-      video_url: dare.videoUrl,
-      expires_at: dare.expiresAt?.toISOString() || null,
-      short_id: dare.shortId || dare.id.slice(0, 8),
-      image_url: ""
-    }));
+    // Also mark expired dares based on expiresAt for frontend display
+    const formattedDares = dares.map(dare => {
+      const isExpiredByDate = dare.expiresAt && new Date(dare.expiresAt) < now;
+      const effectiveStatus = isExpiredByDate ? 'EXPIRED' : dare.status;
+
+      return {
+        id: dare.id,
+        description: dare.title,
+        stake_amount: dare.bounty,
+        streamer_name: dare.streamerHandle,
+        status: effectiveStatus,
+        video_url: dare.videoUrl,
+        expires_at: dare.expiresAt?.toISOString() || null,
+        short_id: dare.shortId || dare.id.slice(0, 8),
+        image_url: "",
+      };
+    });
 
     return NextResponse.json(formattedDares);
   } catch (error) {
