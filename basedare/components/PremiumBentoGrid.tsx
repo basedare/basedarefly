@@ -268,9 +268,16 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       const timeInfo = calculateTimeRemaining(d.expires_at);
       const isExpired = timeInfo.secondsLeft <= 0;
 
+      // Check if this is an open bounty (no streamer, @open, or @everyone)
+      const isOpenTarget = !streamerName.trim() ||
+        streamerName.toLowerCase() === '@open' ||
+        streamerName.toLowerCase() === 'open' ||
+        streamerName.toLowerCase() === '@everyone' ||
+        streamerName.toLowerCase() === 'everyone';
+
       // Override status to expired if time ran out
       let status: PremiumDareCardStatus =
-        normalizedStatus === 'live' && streamerName.trim().length === 0 ? 'open' : normalizedStatus;
+        normalizedStatus === 'live' && isOpenTarget ? 'open' : normalizedStatus;
 
       if (isExpired && status === 'live') {
         status = 'expired';
@@ -287,7 +294,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         status,
         timeRemaining: status === 'live' || status === 'open' ? timeInfo.display : (isExpired ? 'EXPIRED' : undefined),
         expiresAt: d.expires_at,
-        isOpenBounty: status === 'open',
+        isOpenBounty: isOpenTarget || status === 'open',
         proofUrl: proof,
       };
     });
@@ -414,28 +421,31 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="premium-filter-row flex flex-wrap items-center justify-between w-full max-w-[1400px] mb-12 px-6 gap-4">
-        <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl glass-highlight">
-          {FILTERS.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => {
-                triggerLoading();
-                setFilter(cat);
-              }}
-              className={`px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.2em] uppercase transition-all duration-300 ${
-                filter === cat
-                  ? 'bg-[#FACC15]/90 text-black font-black shadow-[0_0_20px_rgba(250,204,21,0.3)]'
-                  : 'text-white/40 hover:text-white/70 hover:bg-white/[0.05]'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+      <div className="premium-filter-row flex flex-col md:flex-row items-stretch md:items-center justify-between w-full max-w-[1400px] mb-12 px-6 gap-4">
+        {/* Horizontally scrollable filter buttons on mobile */}
+        <div className="overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+          <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl glass-highlight w-max md:w-auto">
+            {FILTERS.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  triggerLoading();
+                  setFilter(cat);
+                }}
+                className={`px-4 md:px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.15em] md:tracking-[0.2em] uppercase transition-all duration-300 whitespace-nowrap ${
+                  filter === cat
+                    ? 'bg-[#FACC15]/90 text-black font-black shadow-[0_0_20px_rgba(250,204,21,0.3)]'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.05]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="premium-search relative group min-w-[300px]">
+        <div className="premium-search relative group w-full md:w-auto md:min-w-[300px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#FACC15] transition-colors" />
           <input
             type="text"

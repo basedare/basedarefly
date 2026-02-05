@@ -44,3 +44,13 @@
 .premium-search-input:focus {
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
 }
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

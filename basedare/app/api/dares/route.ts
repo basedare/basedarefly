@@ -8,23 +8,21 @@ export async function GET(request: NextRequest) {
     const includeAll = searchParams.get('includeAll') === 'true';
     const includeExpired = searchParams.get('includeExpired') === 'true';
     const onlyExpired = searchParams.get('onlyExpired') === 'true';
+    const onlyOpen = searchParams.get('onlyOpen') === 'true';
     const userAddress = searchParams.get('userAddress');
     const role = searchParams.get('role'); // 'staker' | 'creator' | undefined (both)
 
-    // Build where clause with proper typing for Prisma
-    type WhereClause = {
-      status?: { in: string[] } | string;
-      stakerAddress?: string;
-      targetWalletAddress?: string;
-      OR?: Array<{ stakerAddress?: string; targetWalletAddress?: string }>;
-      AND?: Array<{
-        OR?: Array<{ status?: string; expiresAt?: { lt: Date } }>;
-        NOT?: { OR?: Array<{ status?: string; expiresAt?: { lt: Date } }> };
-      }>;
-    };
-
-    const where: WhereClause = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
     const now = new Date();
+
+    // Handle open bounties filter - open dares have null or @open/@everyone streamerHandle
+    if (onlyOpen) {
+      where.OR = [
+        { streamerHandle: null },
+        { streamerHandle: { in: ['@open', 'open', '@everyone', 'everyone'], mode: 'insensitive' } },
+      ];
+    }
 
     // Handle expired filter modes
     if (onlyExpired) {

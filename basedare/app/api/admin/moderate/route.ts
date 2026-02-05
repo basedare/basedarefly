@@ -15,6 +15,9 @@ const MODERATOR_WALLETS = (process.env.MODERATOR_WALLETS || '')
   .map((w) => w.trim().toLowerCase())
   .filter(Boolean);
 
+// Debug: Log moderator config on startup (safe - doesn't reveal actual addresses)
+console.log(`[MODERATE] Config: ${MODERATOR_WALLETS.length} moderator wallets configured`);
+
 function isAuthorized(request: NextRequest): { authorized: boolean; moderatorAddress?: string } {
   // Check admin secret header
   const authHeader = request.headers.get('x-admin-secret');
@@ -34,9 +37,16 @@ function isAuthorized(request: NextRequest): { authorized: boolean; moderatorAdd
   const walletHeader = request.headers.get('x-moderator-wallet');
   if (walletHeader && isAddress(walletHeader)) {
     const lowerWallet = walletHeader.toLowerCase();
-    if (MODERATOR_WALLETS.includes(lowerWallet)) {
+    // Debug: Log auth attempt (only first/last 4 chars for safety)
+    const maskedWallet = `${lowerWallet.slice(0, 6)}...${lowerWallet.slice(-4)}`;
+    const isInList = MODERATOR_WALLETS.includes(lowerWallet);
+    console.log(`[MODERATE] Auth check: wallet=${maskedWallet}, inList=${isInList}, listSize=${MODERATOR_WALLETS.length}`);
+
+    if (isInList) {
       return { authorized: true, moderatorAddress: lowerWallet };
     }
+  } else if (walletHeader) {
+    console.log(`[MODERATE] Invalid wallet format in header: ${walletHeader?.slice(0, 10)}...`);
   }
 
   return { authorized: false };

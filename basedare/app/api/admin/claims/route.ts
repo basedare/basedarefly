@@ -11,12 +11,22 @@ import { prisma } from '@/lib/prisma';
 // Moderator authentication (uses moderator wallet from env)
 const MODERATOR_WALLETS = process.env.MODERATOR_WALLETS?.split(',').map((w) => w.trim().toLowerCase()) || [];
 
+// Debug: Log moderator config on startup
+console.log(`[CLAIMS] Config: ${MODERATOR_WALLETS.length} moderator wallets configured`);
+
 function isModerator(request: NextRequest): string | null {
   const walletHeader = request.headers.get('x-moderator-wallet');
-  if (!walletHeader) return null;
+  if (!walletHeader) {
+    console.log('[CLAIMS] Auth failed: no wallet header');
+    return null;
+  }
 
   const lowerWallet = walletHeader.toLowerCase();
-  if (MODERATOR_WALLETS.includes(lowerWallet)) {
+  const maskedWallet = `${lowerWallet.slice(0, 6)}...${lowerWallet.slice(-4)}`;
+  const isInList = MODERATOR_WALLETS.includes(lowerWallet);
+  console.log(`[CLAIMS] Auth check: wallet=${maskedWallet}, inList=${isInList}, listSize=${MODERATOR_WALLETS.length}`);
+
+  if (isInList) {
     return lowerWallet;
   }
   return null;

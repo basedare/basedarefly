@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Share2, MapPin } from 'lucide-react';
+import { Share2, MapPin, Hand } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import DareVisual from './DareVisual';
 import ElectricBorder from './ElectricBorder';
 import BountyQRCode from './BountyQRCode';
@@ -109,11 +110,18 @@ export default function PremiumDareCard({
   distanceDisplay,
   locationLabel,
 }: PremiumDareCardProps) {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [livenessLeft, setLivenessLeft] = useState(livenessLeftSeconds ?? 3600);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [liveTimeRemaining, setLiveTimeRemaining] = useState(timeRemaining || '');
+
+  // Handle claim button click - navigate to dare detail page
+  const handleClaimClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/dare/${shortId}?action=claim`);
+  };
 
   // Handle click to flip card
   const handleClick = (e: React.MouseEvent) => {
@@ -199,7 +207,29 @@ export default function PremiumDareCard({
       <button className="premium-action-button premium-action-button--expired" disabled type="button">
         STEAL BOUNTY
       </button>
-    ) : status === 'live' || isOpenBounty ? (
+    ) : isOpenBounty ? (
+      // Open bounties show both claim and add to pot buttons
+      <div className="premium-action-buttons-row">
+        <button
+          className="premium-action-button premium-action-button--claim"
+          type="button"
+          onClick={handleClaimClick}
+        >
+          <Hand className="w-3 h-3" />
+          CLAIM
+        </button>
+        <button
+          className="premium-action-button premium-action-button--active premium-action-button--small"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFlipped(true);
+          }}
+        >
+          ADD
+        </button>
+      </div>
+    ) : status === 'live' ? (
       <button
         className="premium-action-button premium-action-button--active"
         type="button"
@@ -208,7 +238,7 @@ export default function PremiumDareCard({
           setIsFlipped(true);
         }}
       >
-        {isOpenBounty ? 'ADD TO POT' : 'ADD TO POT'}
+        ADD TO POT
       </button>
     ) : null;
 
