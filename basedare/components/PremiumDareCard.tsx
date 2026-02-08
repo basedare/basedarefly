@@ -117,10 +117,15 @@ export default function PremiumDareCard({
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [liveTimeRemaining, setLiveTimeRemaining] = useState(timeRemaining || '');
 
+  // Check if this is a real dare (not a dummy/placeholder card)
+  const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('locked-');
+
   // Handle claim button click - navigate to dare detail page
   const handleClaimClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/dare/${shortId}?action=claim`);
+    if (isRealDare) {
+      router.push(`/dare/${shortId}?action=claim`);
+    }
   };
 
   // Handle click to flip card
@@ -207,8 +212,8 @@ export default function PremiumDareCard({
       <button className="premium-action-button premium-action-button--expired" disabled type="button">
         STEAL BOUNTY
       </button>
-    ) : isOpenBounty ? (
-      // Open bounties show both claim and add to pot buttons
+    ) : isOpenBounty && isRealDare ? (
+      // Real open bounties show both claim and add to pot buttons
       <div className="premium-action-buttons-row">
         <button
           className="premium-action-button premium-action-button--claim"
@@ -229,6 +234,18 @@ export default function PremiumDareCard({
           ADD
         </button>
       </div>
+    ) : isOpenBounty && !isRealDare ? (
+      // Dummy open bounty cards - just show "Coming Soon" or link to explore
+      <button
+        className="premium-action-button premium-action-button--active"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          router.push('/dares');
+        }}
+      >
+        EXPLORE DARES
+      </button>
     ) : status === 'live' ? (
       <button
         className="premium-action-button premium-action-button--active"

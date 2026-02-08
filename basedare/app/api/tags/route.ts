@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Get tags for a specific wallet
     if (wallet) {
       const tags = await prisma.streamerTag.findMany({
-        where: { walletAddress: wallet },
+        where: { walletAddress: wallet.toLowerCase() }, // Normalize to lowercase
         orderBy: { createdAt: 'desc' },
       });
 
@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { walletAddress, tag, platform, manualUsername, manualCode, kickUsername, kickCode } = validation.data;
+    const { walletAddress: rawWalletAddress, tag, platform, manualUsername, manualCode, kickUsername, kickCode } = validation.data;
+    const walletAddress = rawWalletAddress.toLowerCase(); // Normalize to lowercase for consistent lookups
     const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
 
     // Support legacy Kick fields by merging into manual fields

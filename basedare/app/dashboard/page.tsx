@@ -24,6 +24,14 @@ interface Dare {
   targetWalletAddress?: string;
 }
 
+interface UserTag {
+  tag: string;
+  status: string;
+  verificationMethod: string;
+  totalEarned: number;
+  completedDares: number;
+}
+
 type DareView = 'funded' | 'forme';
 
 export default function Dashboard() {
@@ -35,6 +43,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
   const [activeView, setActiveView] = useState<DareView>('funded');
+  const [userTag, setUserTag] = useState<UserTag | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -61,12 +70,19 @@ export default function Dashboard() {
       if (!address) {
         setFundedDares([]);
         setForMeDares([]);
+        setUserTag(null);
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
+
+        // Fetch user's verified tag
+        const tagRes = await fetch(`/api/tags?wallet=${address}`);
+        const tagData = tagRes.ok ? await tagRes.json() : { tags: [] };
+        const verifiedTag = tagData.tags?.find((t: UserTag) => t.status === 'VERIFIED');
+        setUserTag(verifiedTag || null);
 
         // Fetch dares I funded (as staker)
         const fundedParams = new URLSearchParams({
@@ -152,6 +168,34 @@ export default function Dashboard() {
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
       <div className="container mx-auto px-6 py-24 mb-12 flex-grow relative z-20">
+        {/* WELCOME HEADER WITH TAG */}
+        {isConnected && userTag && (
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-purple-500/10 via-[#FFD700]/10 to-purple-500/10 border border-[#FFD700]/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FFD700]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <p className="text-gray-400 font-mono text-sm mb-1">Ready for your next mission?</p>
+              <h2 className="text-3xl md:text-4xl font-black text-white mb-2">
+                Welcome back, <span className="text-[#FFD700]">{userTag.tag}</span>
+              </h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-green-400 font-mono text-xs">
+                  ✓ Verified
+                </span>
+                {userTag.completedDares > 0 && (
+                  <span className="text-gray-400 font-mono">
+                    {userTag.completedDares} dares completed • ${userTag.totalEarned.toLocaleString()} earned
+                  </span>
+                )}
+                {stats.daresForMe > 0 && (
+                  <span className="px-3 py-1 bg-[#FFD700]/20 border border-[#FFD700]/30 rounded-full text-[#FFD700] font-bold text-xs animate-pulse">
+                    🎯 {stats.daresForMe} dare{stats.daresForMe > 1 ? 's' : ''} awaiting you!
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* HEADER */}
         <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8 border-b border-white/10 pb-6">
           <div className="flex flex-col gap-2">
@@ -169,6 +213,11 @@ export default function Dashboard() {
                 <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-xs font-mono text-purple-300">
                   {formatAddress(address)}
                 </span>
+                {userTag && (
+                  <span className="px-2 py-1 bg-[#FFD700]/20 border border-[#FFD700]/30 rounded text-xs font-bold text-[#FFD700]">
+                    {userTag.tag}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -179,6 +228,26 @@ export default function Dashboard() {
             </button>
           </Link>
         </div>
+
+        {/* CLAIM TAG PROMPT - Show if connected but no verified tag */}
+        {isConnected && !loading && !userTag && (
+          <div className="mb-8 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Target className="w-5 h-5 text-purple-400 shrink-0" />
+              <div>
+                <p className="text-purple-400 text-sm font-bold">Claim your tag to start earning!</p>
+                <p className="text-purple-400/70 text-xs font-mono">Verify your identity so fans can dare you</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/claim-tag')}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-lg text-purple-400 font-bold text-xs uppercase tracking-wider transition-colors shrink-0"
+            >
+              <Zap className="w-4 h-4" />
+              Claim Tag
+            </button>
+          </div>
+        )}
 
         {/* CONNECTION STATUS */}
         {!isConnected && (
