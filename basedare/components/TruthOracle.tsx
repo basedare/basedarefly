@@ -41,6 +41,9 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
 
   const currentDare = queue[currentIndex] || null;
 
+  // Check if all dares have been voted on
+  const allDaresVoted = queue.length > 0 && queue.every(d => d.userVote !== null);
+
   // Fetch voting queue
   const fetchQueue = useCallback(async () => {
     try {
@@ -146,14 +149,19 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
 
   const handleNextAfterVote = () => {
     setIsTxOpen(false);
-    // Find next unvoted dare
+    // Find next unvoted dare (starting from after current index)
     const nextUnvoted = queue.findIndex(
       (d, idx) => idx > currentIndex && !d.userVote
     );
     if (nextUnvoted >= 0) {
       setCurrentIndex(nextUnvoted);
-    } else if (currentIndex < queue.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    } else {
+      // No unvoted dares after current index, check from beginning
+      const anyUnvoted = queue.findIndex((d) => !d.userVote);
+      if (anyUnvoted >= 0) {
+        setCurrentIndex(anyUnvoted);
+      }
+      // If no unvoted dares at all, the allDaresVoted check will show "All Caught Up"
     }
     setVoted(null);
     setPointsAwarded(0);
@@ -181,15 +189,17 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
     );
   }
 
-  // Empty state
-  if (!currentDare || queue.length === 0) {
+  // Empty state - no dares OR all dares have been voted on
+  if (!currentDare || queue.length === 0 || allDaresVoted) {
     return (
       <div className="w-full max-w-6xl mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] overflow-hidden relative min-h-[400px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center px-6">
           <CheckCircle className="w-12 h-12 text-green-500" />
           <h3 className="text-xl font-bold text-white">All Caught Up!</h3>
           <p className="text-sm text-gray-400 font-mono max-w-md">
-            No dares currently need verification. Check back soon as creators submit proof for their challenges.
+            {allDaresVoted && queue.length > 0
+              ? `You've voted on all ${queue.length} dares in the queue. Check back soon for new submissions.`
+              : 'No dares currently need verification. Check back soon as creators submit proof for their challenges.'}
           </p>
           <button
             onClick={fetchQueue}

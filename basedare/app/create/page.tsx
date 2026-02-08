@@ -178,6 +178,7 @@ export default function CreateDare() {
         streamerTag: data.streamerTag,
         streamId: data.streamId,
         isNearbyDare: data.isNearbyDare,
+        stakerAddress: address?.toLowerCase(), // Track who funded the dare
       };
 
       // Add location data if nearby dare with coordinates
