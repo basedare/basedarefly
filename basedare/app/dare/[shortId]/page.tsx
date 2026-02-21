@@ -1,706 +1,639 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Share2, Clock, Copy, CheckCircle, Users, ExternalLink, Hand, Loader2, AlertCircle } from 'lucide-react';
-import { useAccount } from 'wagmi';
-import BountyQRCode from '@/components/BountyQRCode';
+import {
+  ArrowLeft, Share2, Clock, Heart, MessageCircle,
+  ExternalLink, AlertCircle, Loader2, CheckCircle,
+  ChevronDown, Send, Shield, Zap, LayoutDashboard,
+} from 'lucide-react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseUnits } from 'viem';
+import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
+import DareVisual from '@/components/DareVisual';
 
-function shareDareOnX(dare: { title: string; bounty: number; streamerHandle: string | null }, shortId: string) {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
-  const dareUrl = `${baseUrl}/dare/${shortId}`;
+// ── ABI stubs ──────────────────────────────────────────────────────────────
+const USDC_ABI = [
+  {
+    name: 'approve', type: 'function', stateMutability: 'nonpayable',
+    inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+] as const;
 
-  const targetText = dare.streamerHandle
-    ? `on @${dare.streamerHandle.replace('@', '')}`
-    : '(OPEN BOUNTY - anyone can claim!)';
+const BASEDARE_ABI = [
+  {
+    name: 'fundBounty', type: 'function', stateMutability: 'nonpayable',
+    inputs: [{ name: 'dareId', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
+    outputs: []
+  },
+] as const;
 
-  const text = `🎯 $${dare.bounty.toLocaleString()} USDC bounty ${targetText}
+const USDC_ADDRESS = (process.env.NEXT_PUBLIC_USDC_ADDRESS || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') as `0x${string}`;
+const CONTRACT_ADDR = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0') as `0x${string}`;
 
-"${dare.title}"
-
-Think they'll do it? Add to the pot or watch them sweat 👇
-
-#BaseDare #Base`;
-
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
-  window.open(twitterUrl, '_blank', 'width=550,height=420');
-}
-
+// ── Types ──────────────────────────────────────────────────────────────────
 interface DareDetail {
-  id: string;
-  shortId: string;
-  title: string;
-  bounty: number;
-  streamerHandle: string | null;
-  status: string;
-  expiresAt: string | null;
-  videoUrl: string | null;
-  // Invite flow fields
-  inviteToken: string | null;
-  claimDeadline: string | null;
-  targetWalletAddress: string | null;
-  awaitingClaim: boolean;
-  // Claim request fields (for open dares)
-  claimRequestWallet: string | null;
-  claimRequestTag: string | null;
-  claimRequestedAt: string | null;
-  claimRequestStatus: string | null;
+  id: string; shortId: string; title: string; bounty: number;
+  streamerHandle: string | null; status: string; expiresAt: string | null;
+  videoUrl: string | null; inviteToken: string | null; claimDeadline: string | null;
+  targetWalletAddress: string | null; awaitingClaim: boolean;
+  claimRequestWallet: string | null; claimRequestTag: string | null;
+  claimRequestedAt: string | null; claimRequestStatus: string | null;
+  stakerAddress?: string | null;
 }
 
-interface VoteCounts {
-  approve: number;
-  reject: number;
-  total: number;
-  dareStatus: string;
-  threshold: {
-    required: number;
-    consensusPercent: number;
-    met: boolean;
-  };
+interface Comment {
+  id: string; walletAddress: string; displayName: string;
+  body: string; createdAt: string;
 }
 
-function formatTimeRemaining(expiresAt: string | null): string {
+// ── Helpers ────────────────────────────────────────────────────────────────
+function getTimerColor(expiresAt: string | null): string {
+  if (!expiresAt) return 'text-gray-400';
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  const days = diff / (1000 * 60 * 60 * 24);
+  if (diff <= 0) return 'text-gray-500';
+  if (days < 1) return 'text-red-400';
+  if (days < 3) return 'text-orange-400';
+  return 'text-green-400';
+}
+
+function formatCountdown(expiresAt: string | null): string {
   if (!expiresAt) return 'No expiry';
-
-  const now = Date.now();
-  const expiry = new Date(expiresAt).getTime();
-  const diff = expiry - now;
-
+  const diff = new Date(expiresAt).getTime() - Date.now();
   if (diff <= 0) return 'EXPIRED';
-
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours > 0) return `${hours}h ${minutes}m remaining`;
-  return `${minutes}m remaining`;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  if (h > 48) return formatDistanceToNow(new Date(expiresAt), { addSuffix: true });
+  if (h > 0) return `${h}h ${m}m left`;
+  if (m > 0) return `${m}m ${s}s left`;
+  return `${s}s left`;
 }
 
-// Store referral in sessionStorage for tracking
-function storeReferral(ref: string, dareId: string) {
-  if (typeof window !== 'undefined' && ref) {
-    const referralData = { ref, dareId, timestamp: Date.now() };
-    sessionStorage.setItem('basedare_referral', JSON.stringify(referralData));
-  }
+function statusConfig(status: string) {
+  const s = status?.toUpperCase();
+  if (s === 'VERIFIED' || s === 'COMPLETED') return { label: 'VERIFIED', cls: 'bg-green-500/20 border-green-500/40 text-green-400' };
+  if (s === 'EXPIRED' || s === 'FAILED') return { label: 'EXPIRED', cls: 'bg-gray-500/20 border-gray-500/40 text-gray-400' };
+  if (s === 'PENDING_REVIEW') return { label: 'UNDER REVIEW', cls: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' };
+  return { label: 'LIVE', cls: 'bg-red-500/20 border-red-500/40 text-red-400' };
 }
 
+// ── Skeleton ───────────────────────────────────────────────────────────────
+function DareSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6 p-6 max-w-3xl mx-auto pt-24">
+      <div className="h-48 bg-white/5 rounded-2xl" />
+      <div className="h-8 bg-white/5 rounded-xl w-3/4" />
+      <div className="h-5 bg-white/5 rounded-xl w-1/2" />
+      <div className="flex gap-3">
+        {[1, 2, 3].map(i => <div key={i} className="h-8 bg-white/5 rounded-full w-24" />)}
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <div key={i} className="h-16 bg-white/5 rounded-xl" />)}
+      </div>
+    </div>
+  );
+}
+
+// ── Comment item ───────────────────────────────────────────────────────────
+function CommentItem({ comment }: { comment: Comment }) {
+  return (
+    <div className="flex gap-3 py-4 border-b border-white/[0.06] last:border-0">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex-shrink-0 flex items-center justify-center text-xs font-black text-white">
+        {comment.displayName.slice(0, 1).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-bold text-white/80">{comment.displayName}</span>
+          <span className="text-[10px] text-white/30 font-mono">
+            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+          </span>
+        </div>
+        <p className="text-sm text-white/70 leading-relaxed break-words">{comment.body}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Steal modal ────────────────────────────────────────────────────────────
+function StealModal({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-[#0d0d14] border border-yellow-500/30 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl"
+      >
+        <div className="text-4xl mb-3">🔒</div>
+        <h3 className="text-lg font-black text-white mb-2">Coming Soon</h3>
+        <p className="text-sm text-gray-400 mb-4">
+          The <span className="text-yellow-400 font-bold">Steal</span> mechanism is exclusive to{' '}
+          <span className="text-yellow-400 font-bold">Genesis Pass</span> holders.<br />
+          Claim a bounty before time runs out and pocket the pot.
+        </p>
+        <button onClick={onClose} className="w-full py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold text-sm hover:bg-yellow-500/20 transition-colors">
+          Got it
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 export default function DareDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const shortId = params.shortId as string;
-  const referrer = searchParams.get('ref');
   const { address, isConnected } = useAccount();
 
+  // Dare state
   const [dare, setDare] = useState<DareDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
+  const [countdown, setCountdown] = useState('');
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
 
-  // Claim request state
+  // Action bar state
+  const [addAmount, setAddAmount] = useState('5');
+  const [showAddInput, setShowAddInput] = useState(false);
+  const [txError, setTxError] = useState<string | null>(null);
+  const [showStealModal, setShowStealModal] = useState(false);
+
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [commentBody, setCommentBody] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
+
+  // Claim state (preserved)
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
 
-  // Upload state
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  // Wagmi tx hooks
+  const { writeContract: writeApprove, data: approveHash, isPending: approvePending } = useWriteContract();
+  const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
+  const { writeContract: writeFund, data: fundHash, isPending: fundPending } = useWriteContract();
+  const { isSuccess: fundConfirmed } = useWaitForTransactionReceipt({ hash: fundHash });
 
-  const handleUpload = async () => {
-    if (!uploadFile || !dare) return;
-    setUploading(true);
-    setUploadError(null);
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    formData.append('dareId', dare.id);
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDare(prev => prev ? { ...prev, status: 'PENDING_REVIEW', videoUrl: data.url } : null);
-      } else {
-        setUploadError(data.error || 'Upload failed');
-      }
-    } catch (err) {
-      setUploadError('Upload failed to connect');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Track referral on page load
+  // ── Fetch dare ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (referrer) {
-      storeReferral(referrer, shortId);
-    }
-  }, [referrer, shortId]);
-
-  useEffect(() => {
-    const fetchDare = async () => {
+    const load = async () => {
       try {
         const res = await fetch(`/api/dare/${shortId}`);
         if (!res.ok) {
-          if (res.status === 404) {
-            setError('Bounty not found');
-          } else {
-            setError('Failed to load bounty');
-          }
+          setError(res.status === 404 ? 'Bounty not found' : 'Failed to load bounty');
           return;
         }
         const data = await res.json();
         setDare(data);
-        setTimeRemaining(formatTimeRemaining(data.expiresAt));
-
-        // Fetch vote counts if dare has proof submitted
-        if (data.id && data.videoUrl) {
-          try {
-            const voteRes = await fetch(`/api/dares/${data.id}/vote`);
-            const voteData = await voteRes.json();
-            if (voteData.success) {
-              setVoteCounts(voteData.data);
-            }
-          } catch {
-            // Vote counts are optional, fail silently
-          }
-        }
       } catch {
         setError('Failed to load bounty');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDare();
+    load();
   }, [shortId]);
 
   // Live countdown
   useEffect(() => {
     if (!dare?.expiresAt) return;
-
-    const interval = setInterval(() => {
-      setTimeRemaining(formatTimeRemaining(dare.expiresAt));
-    }, 1000);
-
-    return () => clearInterval(interval);
+    setCountdown(formatCountdown(dare.expiresAt));
+    const id = setInterval(() => setCountdown(formatCountdown(dare.expiresAt)), 1000);
+    return () => clearInterval(id);
   }, [dare?.expiresAt]);
 
-  // Handle claim request for open dares
-  const handleClaimRequest = useCallback(async () => {
-    if (!dare || !address) return;
-
-    setClaimLoading(true);
-    setClaimError(null);
-
+  // ── Load comments ──────────────────────────────────────────────────────
+  const loadComments = useCallback(async (cursor?: string) => {
+    if (!dare) return;
+    setCommentsLoading(true);
     try {
-      const res = await fetch(`/api/dares/${dare.id}/claim`, {
+      const url = `/api/dares/${dare.id}/comments${cursor ? `?cursor=${cursor}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setComments(prev => cursor ? [...prev, ...data.data.comments] : data.data.comments);
+        setNextCursor(data.data.nextCursor);
+      }
+    } catch { /* silent */ }
+    finally { setCommentsLoading(false); }
+  }, [dare]);
+
+  useEffect(() => { if (dare) loadComments(); }, [dare, loadComments]);
+
+  // ── Submit comment ─────────────────────────────────────────────────────
+  const submitComment = async () => {
+    if (!commentBody.trim() || !dare || !isConnected || !address) return;
+    setSubmittingComment(true);
+    setCommentError(null);
+    try {
+      const res = await fetch(`/api/dares/${dare.id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address }),
+        body: JSON.stringify({
+          walletAddress: address,
+          displayName: `${address.slice(0, 6)}...${address.slice(-4)}`,
+          body: commentBody.trim(),
+        }),
       });
-
       const data = await res.json();
-
       if (data.success) {
-        setClaimSuccess(true);
-        // Update local dare state with claim request info
-        setDare((prev) => prev ? {
-          ...prev,
-          claimRequestWallet: address.toLowerCase(),
-          claimRequestTag: data.data.claimRequestTag,
-          claimRequestedAt: new Date().toISOString(),
-          claimRequestStatus: 'PENDING',
-        } : null);
+        setComments(prev => [data.data, ...prev]);
+        setCommentBody('');
       } else {
-        setClaimError(data.error || 'Failed to submit claim request');
+        setCommentError(data.error || 'Failed to post comment');
       }
     } catch {
-      setClaimError('Failed to submit claim request');
-    } finally {
-      setClaimLoading(false);
-    }
-  }, [dare, address]);
-
-  // Check if this is an open dare
-  const isOpenDare = !dare?.streamerHandle || dare.streamerHandle.toLowerCase() === '@open';
-
-  // Check if current user has already requested
-  const hasUserRequested = dare?.claimRequestWallet?.toLowerCase() === address?.toLowerCase();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/60 font-mono text-sm">Loading bounty...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !dare) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6 text-center px-6">
-          <div className="text-6xl">🔍</div>
-          <h1 className="text-2xl font-bold text-white">{error || 'Bounty not found'}</h1>
-          <p className="text-white/60 max-w-md">
-            This bounty may have been removed or the link is invalid.
-          </p>
-          <Link
-            href="/"
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors"
-          >
-            Browse Active Bounties
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const isExpired = dare.status === 'EXPIRED' || timeRemaining === 'EXPIRED';
-  const isVerified = dare.status === 'VERIFIED';
-  const isAwaitingClaim = dare.status === 'AWAITING_CLAIM' || dare.awaitingClaim;
-
-  // Build invite link for awaiting claim dares
-  const inviteLink = isAwaitingClaim && dare.inviteToken && dare.streamerHandle
-    ? `/claim-tag?invite=${dare.inviteToken}&handle=${encodeURIComponent(dare.streamerHandle.replace('@', ''))}`
-    : null;
-
-  // Format claim deadline
-  const formatClaimDeadline = (deadline: string | null) => {
-    if (!deadline) return null;
-    const date = new Date(deadline);
-    const now = new Date();
-    const diff = date.getTime() - now.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-    if (days <= 0) return 'Expired';
-    if (days === 1) return '1 day left to claim';
-    if (days <= 7) return `${days} days left to claim`;
-    return `Claim by ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      setCommentError('Network error posting comment');
+    } finally { setSubmittingComment(false); }
   };
 
+  // ── Add to Pool tx ─────────────────────────────────────────────────────
+  const handleAddToPool = async () => {
+    if (!dare || !isConnected) return;
+    setTxError(null);
+    const amountUnits = parseUnits(addAmount || '5', 6);
+    try {
+      writeApprove({
+        address: USDC_ADDRESS,
+        abi: USDC_ABI,
+        functionName: 'approve',
+        args: [CONTRACT_ADDR, amountUnits],
+      });
+    } catch (err: unknown) {
+      setTxError(err instanceof Error ? err.message : 'Approval failed');
+    }
+  };
+
+  // After approve confirmed → fund
+  useEffect(() => {
+    if (!approveConfirmed || !dare) return;
+    const amountUnits = parseUnits(addAmount || '5', 6);
+    const dareIdBytes = `0x${dare.id.replace(/-/g, '').padEnd(64, '0')}` as `0x${string}`;
+    try {
+      writeFund({
+        address: CONTRACT_ADDR,
+        abi: BASEDARE_ABI,
+        functionName: 'fundBounty',
+        args: [dareIdBytes, amountUnits],
+      });
+    } catch (err: unknown) {
+      setTxError(err instanceof Error ? err.message : 'Fund tx failed');
+    }
+  }, [approveConfirmed]);
+
+  // ── Claim (preserved) ──────────────────────────────────────────────────
+  const handleClaimRequest = useCallback(async () => {
+    if (!dare || !address) return;
+    setClaimLoading(true); setClaimError(null);
+    try {
+      const res = await fetch(`/api/dares/${dare.id}/claim`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClaimSuccess(true);
+        setDare(prev => prev ? { ...prev, claimRequestWallet: address.toLowerCase(), claimRequestStatus: 'PENDING' } : null);
+      } else { setClaimError(data.error || 'Claim request failed'); }
+    } catch { setClaimError('Network error'); }
+    finally { setClaimLoading(false); }
+  }, [dare, address]);
+
+  const isUserInvolved = dare && address &&
+    (address.toLowerCase() === dare.stakerAddress?.toLowerCase() ||
+      address.toLowerCase() === dare.targetWalletAddress?.toLowerCase());
+
+  const sc = dare ? statusConfig(dare.status) : null;
+  const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
+  const timerColor = getTimerColor(dare?.expiresAt ?? null);
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  if (loading) return (
+    <main className="min-h-screen bg-black">
+      <LiquidBackground />
+      <DareSkeleton />
+    </main>
+  );
+
+  if (error || !dare) return (
+    <main className="min-h-screen bg-black flex flex-col items-center justify-center gap-6 px-6">
+      <LiquidBackground />
+      <div className="relative z-10 text-center">
+        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+        <h1 className="text-2xl font-black text-white mb-2">{error || 'Not Found'}</h1>
+        <p className="text-gray-400 mb-6">This bounty doesn&apos;t exist or has been removed.</p>
+        <button onClick={() => router.push('/')} className="px-6 py-3 bg-white/10 border border-white/20 text-white font-bold rounded-xl hover:bg-white/20 transition-colors">
+          ← Back to Bounties
+        </button>
+      </div>
+    </main>
+  );
+
   return (
-    <main className="min-h-screen relative overflow-hidden">
+    <main className="min-h-screen bg-black text-white pb-32">
       <LiquidBackground />
 
-      <div className="relative z-10 max-w-2xl mx-auto px-6 py-20">
-        {/* Back link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-white/60 font-mono text-sm mb-8 transition-colors"
-        >
-          ← Back to Bounties
-        </Link>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative"
-        >
-          {/* Liquid glass gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-3xl" />
-          {/* Top highlight line */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          {/* Golden accent line */}
-          <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
-
-          {/* Header */}
-          <div className="p-6 border-b border-white/[0.06] relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {isVerified ? (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/40 rounded-full">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                    <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider">Verified</span>
-                  </div>
-                ) : isExpired ? (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-full">
-                    <span className="text-[10px] font-mono text-red-400 uppercase tracking-wider">Expired</span>
-                  </div>
-                ) : isAwaitingClaim ? (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider">Awaiting Creator</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/40 rounded-full">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-mono text-green-400 uppercase tracking-wider">Active</span>
-                  </div>
-                )}
-              </div>
-              <div className="font-mono text-xs text-white/40">
-                {isAwaitingClaim && dare.claimDeadline
-                  ? formatClaimDeadline(dare.claimDeadline)
-                  : timeRemaining}
-              </div>
-            </div>
-
-            <h1 className="text-3xl font-black italic text-white mb-2">
-              {dare.title.toUpperCase()}
-            </h1>
-
-            <div className="flex items-center gap-2 text-white/60">
-              <span className="text-yellow-500">@</span>
-              <span className="font-mono text-sm">
-                {dare.streamerHandle ? dare.streamerHandle.replace('@', '') : 'Open Bounty - Anyone can claim'}
-              </span>
-            </div>
-
-            {/* Claim Request Status for Open Dares */}
-            {isOpenDare && dare.claimRequestStatus === 'PENDING' && (
-              <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-yellow-400" />
-                  <span className="text-xs font-bold text-yellow-400 uppercase">Claim Request Pending</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  {hasUserRequested
-                    ? 'Your claim request is awaiting moderator approval.'
-                    : `${dare.claimRequestTag} has requested to claim this dare.`}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Bounty Amount */}
-          <div className="p-8 flex flex-col items-center border-b border-white/[0.06] relative">
-            <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-2">
-              Bounty Pool
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-black text-yellow-400 drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]">
-                {dare.bounty.toLocaleString()}
-              </span>
-              <span className="text-xl font-bold text-yellow-400/70">USDC</span>
-            </div>
-          </div>
-
-          {/* Community Voting Section - Show for dares with proof */}
-          {dare.videoUrl && voteCounts && (
-            <div className="p-6 border-b border-white/[0.06] relative">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Community Verification</span>
-              </div>
-
-              {/* Consensus Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-2">
-                  <span>Valid ({voteCounts.approve})</span>
-                  <span>Fake ({voteCounts.reject})</span>
-                </div>
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden flex">
-                  {voteCounts.total > 0 ? (
-                    <>
-                      <div
-                        className="bg-green-500 h-full transition-all duration-500"
-                        style={{ width: `${(voteCounts.approve / voteCounts.total) * 100}%` }}
-                      />
-                      <div
-                        className="bg-red-500 h-full transition-all duration-500"
-                        style={{ width: `${(voteCounts.reject / voteCounts.total) * 100}%` }}
-                      />
-                    </>
-                  ) : (
-                    <div className="bg-gray-700 h-full w-full" />
-                  )}
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-[10px] font-mono text-gray-500">
-                    {voteCounts.total} vote{voteCounts.total !== 1 ? 's' : ''}
-                  </span>
-                  <span className="text-[10px] font-mono text-gray-500">
-                    {voteCounts.threshold.met ? 'Quorum reached' : `${voteCounts.threshold.required - voteCounts.total} more needed`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Resolved Status */}
-              {(dare.status === 'VERIFIED' || dare.status === 'FAILED') && (
-                <div className={`p-3 rounded-lg mb-4 ${dare.status === 'VERIFIED'
-                    ? 'bg-green-500/10 border border-green-500/30'
-                    : 'bg-red-500/10 border border-red-500/30'
-                  }`}>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
-                      }`} />
-                    <span className={`text-xs font-bold uppercase ${dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                      {dare.status === 'VERIFIED' ? 'Community Verified' : 'Community Rejected'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 font-mono mt-1">
-                    {dare.status === 'VERIFIED'
-                      ? 'The community has verified this dare was completed.'
-                      : 'The community determined the proof was insufficient.'}
-                  </p>
-                </div>
-              )}
-
-              {/* Vote CTA - only show for pending dares */}
-              {(dare.status === 'PENDING' || dare.status === 'PENDING_REVIEW') && (
-                <Link
-                  href="/verify"
-                  className="w-full py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  <span>Vote on this dare</span>
-                  <ExternalLink className="w-4 h-4" />
-                </Link>
-              )}
-            </div>
+      {/* ── TOP NAV ── */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-black/60 backdrop-blur-xl border-b border-white/[0.06]">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium hidden sm:inline">Back</span>
+        </button>
+        <div className="flex items-center gap-3">
+          {isUserInvolved && (
+            <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold hover:bg-purple-500/30 transition-colors">
+              <LayoutDashboard className="w-3 h-3" />
+              Dashboard
+            </Link>
           )}
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/dare/${shortId}`;
+              navigator.clipboard.writeText(url);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 transition-colors"
+          >
+            <Share2 className="w-3 h-3" />
+            Share
+          </button>
+        </div>
+      </div>
 
-          {/* Share on X Button */}
-          <div className="p-6 border-b border-white/[0.06] relative">
-            <button
-              onClick={() => shareDareOnX(dare, shortId)}
-              className="w-full py-4 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 group shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      {/* ── HERO ── */}
+      <div className="relative w-full min-h-[300px] md:min-h-[400px] overflow-hidden pt-14">
+        <div className="absolute inset-0">
+          <DareVisual
+            imageUrl={undefined}
+            streamerName={dare.streamerHandle || ''}
+            type={dare.streamerHandle ? 'streamer' : 'open'}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-black" />
+        </div>
+        <div className="relative z-10 flex flex-col justify-end h-full min-h-[300px] md:min-h-[400px] px-4 pb-8 md:px-8 max-w-3xl mx-auto">
+          {/* Status + timer badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {sc && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${sc.cls}`}>
+                {sc.label === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                {sc.label}
+              </span>
+            )}
+            {dare.expiresAt && (
+              <span className={`flex items-center gap-1.5 text-xs font-mono font-bold ${timerColor}`}>
+                <Clock className="w-3.5 h-3.5" />
+                {countdown}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
+              <MessageCircle className="w-3.5 h-3.5" />
+              {comments.length} comments
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-3xl md:text-5xl font-black italic uppercase leading-tight text-white tracking-tight mb-4 text-shadow-lg">
+            {dare.title}
+          </h1>
+
+          {/* Dared by row */}
+          {dare.streamerHandle && (
+            <Link
+              href={`/creator/${dare.streamerHandle.replace('@', '')}`}
+              className="inline-flex items-center gap-2 group w-fit"
             >
-              <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span>Share on X</span>
-            </button>
-            <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
-              Spread the dare. Build the pot.
-            </p>
-          </div>
-
-          {/* QR Code */}
-          <div className="p-8 flex flex-col items-center relative">
-            <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-6">
-              Or scan to share
-            </div>
-            <BountyQRCode
-              shortId={shortId}
-              bountyAmount={dare.bounty}
-              dareTitle={dare.title}
-              size={200}
-            />
-          </div>
-
-          {/* Awaiting Claim - Invite Creator */}
-          {isAwaitingClaim && inviteLink && (
-            <div className="p-6 border-t border-white/[0.06] relative">
-              <div className="flex items-center gap-3 mb-4">
-                <Clock className="w-5 h-5 text-yellow-400" />
-                <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
-                  Creator Not Yet Claimed
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-xs font-black text-black flex-shrink-0">
+                {dare.streamerHandle.replace('@', '').slice(0, 1).toUpperCase()}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Target</span>
+                <span className="text-sm font-bold text-yellow-400 group-hover:text-yellow-300 transition-colors flex items-center gap-1">
+                  {dare.streamerHandle.startsWith('@') ? dare.streamerHandle : `@${dare.streamerHandle}`}
+                  <ExternalLink className="w-3 h-3 opacity-50" />
                 </span>
               </div>
-
-              <p className="text-sm text-gray-300 mb-4">
-                {dare.streamerHandle || 'The creator'} hasn&apos;t claimed their tag yet. Share the invite link
-                to let them know about this bounty!
-              </p>
-
-              {/* Invite Link */}
-              <div className="mb-4 p-3 bg-white/[0.03] backdrop-blur-md rounded-xl border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs text-yellow-400 font-mono truncate">
-                    {typeof window !== 'undefined' ? `${window.location.origin}${inviteLink}` : inviteLink}
-                  </code>
-                  <button
-                    onClick={() => {
-                      const fullUrl = `${window.location.origin}${inviteLink}`;
-                      navigator.clipboard.writeText(fullUrl);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                    className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 rounded-lg transition-colors shrink-0"
-                  >
-                    {copied ? (
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <Copy className="w-4 h-4 text-yellow-400" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Share on X to invite creator */}
-              <button
-                onClick={() => {
-                  const fullUrl = `${window.location.origin}${inviteLink}`;
-                  const creatorName = dare.streamerHandle || 'there';
-                  const text = `Hey ${creatorName}! Someone put up a $${dare.bounty.toLocaleString()} USDC bounty for you:\n\n"${dare.title}"\n\nClaim your tag to accept it 👇\n\n#BaseDare`;
-                  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(fullUrl)}`;
-                  window.open(twitterUrl, '_blank', 'width=550,height=420');
-                }}
-                className="w-full py-4 bg-[#FACC15] hover:bg-[#FDE047] text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden"
-              >
-                <Share2 className="w-5 h-5" />
-                Invite Creator on X
-              </button>
-
-              <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
-                Tag them so they can claim their bounty!
-              </p>
-            </div>
+            </Link>
           )}
-
-          {/* Request to Claim Button for Open Dares */}
-          {isOpenDare && !isExpired && !isVerified && dare.status === 'PENDING' && !dare.claimRequestStatus && (
-            <div className="p-6 border-t border-white/[0.06]">
-              {isConnected ? (
-                <>
-                  <button
-                    onClick={handleClaimRequest}
-                    disabled={claimLoading}
-                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                  >
-                    {claimLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Hand className="w-5 h-5" />
-                    )}
-                    {claimLoading ? 'Submitting...' : 'Request to Claim'}
-                  </button>
-
-                  {claimError && (
-                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-400">{claimError}</p>
-                    </div>
-                  )}
-
-                  {claimSuccess && (
-                    <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-green-400">Claim request submitted! Awaiting moderator approval.</p>
-                    </div>
-                  )}
-
-                  <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
-                    A moderator will review and approve your request.
-                  </p>
-                </>
-              ) : (
-                <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
-                  <Hand className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400 mb-1">Open Bounty</p>
-                  <p className="text-xs text-gray-500">Connect your wallet to request claiming this dare</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Upload Proof UI */}
-          {!isExpired && !isVerified && !isAwaitingClaim && dare.status === 'PENDING' && isConnected && (
-            <div className="p-6 border-t border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="w-5 h-5 text-purple-400" />
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Submit Proof</span>
-              </div>
-              <p className="text-xs text-gray-400 mb-4">Upload a video or image proving you completed the dare.</p>
-
-              <div className="space-y-4">
-                <input
-                  type="file"
-                  accept="video/*,image/*"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-semibold file:bg-white/5 file:text-white hover:file:bg-white/10 transition-colors cursor-pointer"
-                />
-
-                <button
-                  onClick={handleUpload}
-                  disabled={!uploadFile || uploading}
-                  className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Uploading to IPFS...</span>
-                    </>
-                  ) : (
-                    <span>Upload & Submit</span>
-                  )}
-                </button>
-
-                {uploadError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-400">{uploadError}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Pledge Button */}
-          {!isExpired && !isVerified && !isAwaitingClaim && (
-            <div className="p-6 border-t border-white/[0.06]">
-              <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
-                <div
-                  className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#78350f_0%,#facc15_25%,#78350f_50%,#facc15_75%,#78350f_100%)] opacity-80 group-hover:animate-[spin_2s_linear_infinite] transition-opacity duration-500"
-                  aria-hidden="true"
-                />
-                <button
-                  onClick={() => {
-                    const pledgeUrl = referrer
-                      ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
-                      : `/create?pledge=${shortId}`;
-                    router.push(pledgeUrl);
-                  }}
-                  className="relative w-full py-4 bg-[#FACC15] text-black font-black text-lg uppercase tracking-wider rounded-[10px] transition-all hover:bg-[#FDE047] flex items-center justify-center"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20 pointer-events-none rounded-[10px]" />
-                  <span className="relative">Add to Bounty Pool</span>
-                </button>
-              </div>
-              {referrer && (
-                <p className="text-center text-[10px] text-purple-400 mt-2 font-mono">
-                  Referred by {referrer}
-                </p>
-              )}
-              <p className="text-center text-[10px] text-white/30 mt-3 font-mono">
-                Increase the stakes. Make them sweat.
-              </p>
-            </div>
-          )}
-
-          {/* Add to Bounty Pool for Awaiting Claim dares */}
-          {isAwaitingClaim && (
-            <div className="p-6 border-t border-white/[0.06]">
-              <button
-                onClick={() => {
-                  const pledgeUrl = referrer
-                    ? `/create?pledge=${shortId}&ref=${encodeURIComponent(referrer)}`
-                    : `/create?pledge=${shortId}`;
-                  router.push(pledgeUrl);
-                }}
-                className="w-full py-4 bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/[0.06] text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-              >
-                Add More to Bounty Pool
-              </button>
-            </div>
-          )}
-
-          {/* Verified - Show Proof */}
-          {isVerified && dare.videoUrl && (
-            <div className="p-6 border-t border-white/[0.06]">
-              <a
-                href={dare.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
-              >
-                <span>View Proof</span>
-                <span>👁️</span>
-              </a>
-            </div>
-          )}
-        </motion.div>
+        </div>
       </div>
+
+      {/* ── CONTENT ── */}
+      <div className="relative z-10 max-w-3xl mx-auto px-4 md:px-8 space-y-6 mt-4">
+
+        {/* Bounty + likes row */}
+        <div className="flex items-center justify-between p-4 bg-white/[0.04] border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+          <div>
+            <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">Pot Size</p>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-black text-green-400">{dare.bounty.toLocaleString()}</span>
+              <span className="text-sm font-bold text-green-600">USDC</span>
+            </div>
+          </div>
+          <button
+            onClick={() => { setLiked(v => !v); setLikeCount(c => c + (liked ? -1 : 1)); }}
+            className={`flex flex-col items-center gap-1 transition-all ${liked ? 'text-red-400 scale-110' : 'text-white/30 hover:text-red-400'}`}
+          >
+            <Heart className={`w-6 h-6 ${liked ? 'fill-red-400' : ''}`} />
+            <span className="text-xs font-mono font-bold">{likeCount}</span>
+          </button>
+        </div>
+
+        {/* Tx feedback */}
+        {(approvePending || fundPending) && (
+          <div className="flex items-center gap-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            {approvePending ? 'Approving USDC...' : 'Adding to pool...'}
+          </div>
+        )}
+        {fundConfirmed && (
+          <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            Successfully added to pool!
+          </div>
+        )}
+        {txError && (
+          <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {txError}
+          </div>
+        )}
+
+        {/* Claim section (preserved for open/target dares) */}
+        {dare.awaitingClaim && !dare.targetWalletAddress && isConnected && !dare.claimRequestWallet && (
+          <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
+            <h3 className="text-sm font-black text-purple-300 mb-2">Open Bounty — Claim It</h3>
+            <p className="text-xs text-white/50 mb-3">You can request to accept this dare and earn the full bounty.</p>
+            {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
+            <button
+              onClick={handleClaimRequest}
+              disabled={claimLoading || claimSuccess}
+              className="w-full py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-black font-black text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {claimSuccess ? '✓ Request Sent' : 'Request to Claim'}
+            </button>
+          </div>
+        )}
+
+        {/* Video proof */}
+        {dare.videoUrl && (
+          <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
+            <video src={dare.videoUrl} controls className="w-full rounded-2xl" />
+          </div>
+        )}
+
+        {/* ── COMMENTS ── */}
+        <div ref={commentsRef}>
+          <h2 className="text-base font-black text-white/80 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" /> Comments
+          </h2>
+
+          {/* Comment form */}
+          <div className="mb-4">
+            {isConnected ? (
+              <div className="flex gap-2">
+                <textarea
+                  value={commentBody}
+                  onChange={e => setCommentBody(e.target.value.slice(0, 500))}
+                  placeholder="Say something..."
+                  rows={2}
+                  className="flex-1 resize-none text-sm bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/25 focus:outline-none focus:border-purple-500/50 transition-colors"
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={!commentBody.trim() || submittingComment}
+                  className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white rounded-xl font-bold transition-colors disabled:opacity-40 flex items-center gap-1.5 self-start mt-0"
+                >
+                  {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-white/30 text-center py-4 border border-white/[0.06] rounded-xl">
+                Connect your wallet to comment
+              </p>
+            )}
+            {commentError && <p className="text-xs text-red-400 mt-2">{commentError}</p>}
+          </div>
+
+          {/* Comment list */}
+          <div className="divide-y divide-white/[0.05]">
+            {commentsLoading && comments.length === 0 ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
+              </div>
+            ) : comments.length === 0 ? (
+              <p className="text-sm text-white/25 text-center py-8">No comments yet. Be the first!</p>
+            ) : (
+              <>
+                {comments.map(c => <CommentItem key={c.id} comment={c} />)}
+                {nextCursor && (
+                  <button
+                    onClick={() => loadComments(nextCursor)}
+                    disabled={commentsLoading}
+                    className="w-full py-3 flex items-center justify-center gap-2 text-xs text-white/40 hover:text-white/60 transition-colors"
+                  >
+                    {commentsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    Load more
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── FIXED BOTTOM ACTION BAR (mobile + desktop) ── */}
+      {!isExpired && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0f]/95 border-t border-white/[0.08] backdrop-blur-2xl safe-area-bottom">
+          <div className="max-w-3xl mx-auto px-4 py-3">
+            {/* Add-to-pool amount input (expandable) */}
+            <AnimatePresence>
+              {showAddInput && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden mb-3"
+                >
+                  <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2">
+                    <span className="text-xs text-white/30 font-mono">USDC</span>
+                    <input
+                      type="number" min="1" max="10000" step="1"
+                      value={addAmount}
+                      onChange={e => setAddAmount(e.target.value)}
+                      className="flex-1 bg-transparent text-white font-mono text-sm focus:outline-none"
+                    />
+                    <button
+                      onClick={() => { handleAddToPool(); setShowAddInput(false); }}
+                      disabled={approvePending || fundPending || !isConnected}
+                      className="px-4 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-xs rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Three CTA buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Upvote */}
+              <button
+                onClick={() => { setLiked(v => !v); setLikeCount(c => c + (liked ? -1 : 1)); }}
+                className={`flex flex-col items-center gap-1 py-3 rounded-xl border transition-all ${liked ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white'
+                  }`}
+              >
+                <Heart className={`w-5 h-5 ${liked ? 'fill-red-400' : ''}`} />
+                <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
+              </button>
+
+              {/* Add to Pool */}
+              <button
+                onClick={() => {
+                  if (!isConnected) { setTxError('Connect your wallet first'); return; }
+                  setShowAddInput(v => !v);
+                }}
+                disabled={approvePending || fundPending}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50"
+              >
+                {approvePending || fundPending
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <Zap className="w-5 h-5" />
+                }
+                <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
+              </button>
+
+              {/* Steal */}
+              <button
+                onClick={() => setShowStealModal(true)}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Steal?</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Steal modal */}
+      <AnimatePresence>
+        {showStealModal && <StealModal onClose={() => setShowStealModal(false)} />}
+      </AnimatePresence>
     </main>
   );
 }

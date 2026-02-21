@@ -1,404 +1,65 @@
-.premium-dare-card {
+/* ===========================================
+   PREMIUM DARE CARD - Redesigned
+   =========================================== */
+
+/* === BASE CARD === */
+.dare-card {
   position: relative;
   width: 100%;
-  aspect-ratio: 4/5;
+  min-height: 180px;
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  background: rgba(5, 5, 5, 0.6);
+  background: rgba(5, 5, 10, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
 }
 
-.premium-dare-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%, rgba(255, 255, 255, 0.02) 100%);
-  pointer-events: none;
-  z-index: 6;
-}
-
-/* Apple Liquid Glass - Top highlight line */
-.premium-dare-card::after {
+/* Top highlight edge */
+.dare-card::after {
   content: '';
   position: absolute;
   top: 0;
   left: 15%;
   right: 15%;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.25) 20%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0.25) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.25) 50%, transparent 100%);
   pointer-events: none;
   z-index: 10;
-  border-radius: 1px;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
 }
 
-.premium-dare-card:hover::after {
-  opacity: 1;
-}
-
-.premium-dare-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+.dare-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 0 60px rgba(255, 215, 0, 0.15),
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 0 40px rgba(255, 215, 0, 0.12),
+    0 20px 48px rgba(0, 0, 0, 0.5);
 }
 
-.premium-dare-card--skeleton {
-  background: rgba(5, 5, 5, 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  overflow: hidden;
+/* === EXPIRED STATE === */
+.dare-card--expired {
+  opacity: 0.55;
 }
 
-.shimmer-sweep {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.1), transparent);
-  transform: skewX(-20deg);
-  animation: premium-sweep 1.5s infinite;
-}
-
-@keyframes premium-sweep {
-  100% {
-    left: 200%;
-  }
-}
-
-.animate-pulse-slow {
-  animation: premium-pulse-slow 4s ease-in-out infinite;
-}
-
-@keyframes premium-pulse-slow {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.premium-card-background {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.premium-card-background-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(100%) contrast(1.1);
-}
-
-.premium-dare-card:hover .premium-card-background-image {
-  filter: grayscale(0%) contrast(1.1);
-}
-
-.premium-card-background-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.3) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.9) 100%
-  );
-}
-
-.premium-status-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.premium-status-badge--live {
-  background: rgba(220, 38, 38, 0.2);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #ef4444;
-  box-shadow: 0 0 12px rgba(220, 38, 38, 0.2);
-}
-
-.premium-status-badge--expired {
-  background: rgba(107, 114, 128, 0.2);
-  border: 1px solid rgba(107, 114, 128, 0.3);
-  color: #9ca3af;
-}
-
-.premium-status-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ef4444;
-  animation: premium-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes premium-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.premium-emoji-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  font-size: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.premium-verified-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.5);
-  color: rgb(34, 197, 94);
-  font-size: 12px;
-  font-weight: 900;
-  margin-top: 6px;
-}
-
-.premium-card-content {
-  position: relative;
-  z-index: 5;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(255, 255, 255, 0.03) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.premium-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-top: 24px;
-}
-
-.premium-streamer-tag {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 0.08em;
-}
-
-.premium-streamer-prefix {
-  color: rgba(255, 215, 0, 0.8);
-}
-
-.premium-open-badge {
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: rgba(168, 85, 247, 0.2);
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  font-size: 8px;
-  font-weight: 900;
-  color: #a855f7;
-  letter-spacing: 0.08em;
-}
-
-.premium-card-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.premium-dare-title {
-  font-size: 16px;
-  font-weight: 900;
-  font-style: italic;
-  line-height: 1.15;
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-  letter-spacing: -0.01em;
-}
-
-.premium-card-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.premium-card-footer-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.premium-bounty-display {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-}
-
-.premium-bounty-amount {
-  font-size: 14px;
-  color: #ffcc00;
-  font-weight: 800;
-  text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
-}
-
-.premium-bounty-currency {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(251, 191, 36, 0.8);
-}
-
-.premium-time-remaining,
-.premium-expired-tag,
-.premium-open-bounty-tag {
-  font-size: 8px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 0.04em;
-}
-
-.premium-time-remaining {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: lowercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.premium-expired-tag {
-  color: rgba(239, 68, 68, 0.8);
-}
-
-.premium-action-button {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 10;
-  padding: 10px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.premium-action-button--active {
-  background: rgba(239, 68, 68, 0.3);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: white;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-}
-
-.premium-action-button--active:hover {
-  background: rgba(239, 68, 68, 0.4);
-  border-color: rgba(239, 68, 68, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
-}
-
-.premium-action-button--expired {
-  background: rgba(107, 114, 128, 0.15);
-  border-color: rgba(107, 114, 128, 0.2);
-  color: rgba(255, 255, 255, 0.4);
-  cursor: not-allowed;
-}
-
-.premium-action-button--proof {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
-}
-
-.premium-action-button--proof:hover {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.25);
-}
-
-.premium-under-review {
-  position: absolute;
-  inset: 0;
-  background: rgba(234, 179, 8, 0.05);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-}
-
-.premium-dare-card--expired {
-  opacity: 0.6;
-}
-
-.premium-dare-card--expired:hover {
+.dare-card--expired:hover {
   border-color: rgba(107, 114, 128, 0.3);
   box-shadow: none;
 }
 
-.premium-dare-card--restricted {
-  background: rgba(5, 5, 10, 0.7);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  box-shadow:
-    0 0 40px rgba(0, 0, 0, 0.4),
-    inset 0 0 30px rgba(255, 215, 0, 0.03);
+/* === RESTRICTED CARD === */
+.dare-card--restricted {
+  min-height: 160px;
+  background: rgba(5, 5, 10, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 215, 0, 0.03);
+  cursor: default;
 }
 
-.premium-restricted-content {
+.dare-card-restricted-inner {
   position: relative;
   z-index: 5;
   height: 100%;
@@ -406,25 +67,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 20px;
+  gap: 10px;
+  padding: 24px;
 }
 
-.premium-restricted-icon {
-  font-size: 36px;
-  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4));
-}
-
-.premium-restricted-title {
-  font-size: 18px;
-  font-weight: 900;
-  font-style: italic;
-  color: white;
-  text-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
-}
-
-.premium-genesis-button {
-  padding: 10px 20px;
+.dare-card-genesis-btn {
+  padding: 8px 18px;
   border-radius: 10px;
   background: rgba(5, 5, 5, 0.9);
   border: 1px solid rgba(251, 191, 36, 0.3);
@@ -435,172 +83,342 @@
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
 }
 
-.premium-genesis-button:hover {
-  transform: translateY(-2px);
+.dare-card-genesis-btn:hover {
   border-color: rgba(251, 191, 36, 0.5);
-  box-shadow: 0 0 40px rgba(251, 191, 36, 0.25);
   background: rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 32px rgba(251, 191, 36, 0.25);
 }
 
-.premium-card-shine {
+/* === BACKGROUND === */
+.dare-card-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.dare-card-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg,
+      rgba(0, 0, 0, 0.35) 0%,
+      rgba(0, 0, 0, 0.65) 55%,
+      rgba(0, 0, 0, 0.92) 100%);
+}
+
+/* === CONTENT LAYER === */
+.dare-card-content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px;
+  gap: 8px;
+}
+
+/* === TOP ROW === */
+.dare-card-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status pills */
+.dare-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(12px);
+}
+
+.dare-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  animation: dare-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dare-dot-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.dare-status-live {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #f87171;
+}
+
+.dare-status-live .dare-status-dot {
+  background: #ef4444;
+}
+
+.dare-status-open {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #a78bfa;
+}
+
+.dare-status-expired {
+  background: rgba(107, 114, 128, 0.15);
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  color: #9ca3af;
+}
+
+.dare-status-verified {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.dare-status-audit {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #fbbf24;
+}
+
+.dare-status-audit .dare-status-dot {
+  background: #facc15;
+}
+
+/* === DARE TITLE === */
+.dare-card-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.dare-title {
+  font-size: 18px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.15;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  letter-spacing: -0.01em;
+}
+
+/* === FOOTER === */
+.dare-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Meta row: target tag + nearby */
+.dare-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dare-target-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.dare-target-tag:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dare-target-prefix {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.08em;
+}
+
+.dare-target-handle {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(250, 204, 21, 0.85);
+  letter-spacing: 0.04em;
+}
+
+.dare-open-tag {
+  font-size: 9px;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+/* Amounts row: bounty + timer + likes */
+.dare-card-amounts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* BOUNTY BADGE - prominent green */
+.dare-bounty-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+}
+
+.dare-bounty-amount {
+  font-size: 16px;
+  font-weight: 900;
+  color: #34d399;
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+  line-height: 1;
+}
+
+.dare-bounty-currency {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(52, 211, 153, 0.7);
+  letter-spacing: 0.04em;
+}
+
+/* Timer */
+.dare-timer {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.dare-expired-text {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(239, 68, 68, 0.7);
+  letter-spacing: 0.06em;
+}
+
+/* === SHIMMER === */
+.dare-card-shimmer {
   position: absolute;
   inset: 0;
   z-index: 8;
-  background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-  animation: premium-shine 3s ease-in-out infinite;
+  background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%);
   pointer-events: none;
+  animation: dare-shine 3s ease-in-out infinite;
 }
 
-@keyframes premium-shine {
+@keyframes dare-shine {
   0% {
     transform: translateX(-100%) translateY(-100%) rotate(30deg);
   }
+
   100% {
     transform: translateX(100%) translateY(100%) rotate(30deg);
   }
 }
 
+/* === SKELETON === */
+.dare-card-skeleton {
+  position: relative;
+  width: 100%;
+  min-height: 180px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(5, 5, 10, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+}
+
+.dare-card-skeleton-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+  animation: dare-pulse 1.5s ease-in-out infinite;
+}
+
+.dare-card-skeleton-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.dare-card-skeleton-line {
+  height: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  animation: dare-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dare-pulse {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.shimmer-sweep {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.07), transparent);
+  transform: skewX(-20deg);
+  animation: dare-sweep 1.6s infinite;
+}
+
+@keyframes dare-sweep {
+  100% {
+    left: 200%;
+  }
+}
+
+/* === RESPONSIVE === */
 @media (max-width: 768px) {
-  .premium-dare-title {
+  .dare-title {
+    font-size: 15px;
+  }
+
+  .dare-bounty-amount {
     font-size: 14px;
   }
 
-  .premium-bounty-amount {
-    font-size: 12px;
-  }
-
-  .premium-emoji-badge {
-    font-size: 24px;
-  }
-
-  .premium-action-button {
-    padding: 8px;
-    font-size: 9px;
-  }
-}
-
-/* ==================== CARD FLIP ANIMATION ==================== */
-
-.premium-card-flip-container {
-  width: 100%;
-  aspect-ratio: 4/5;
-  perspective: 1000px;
-}
-
-.premium-card-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-
-.premium-card-flip-inner.flipped {
-  transform: rotateY(180deg);
-}
-
-.premium-card-front,
-.premium-card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.premium-card-front {
-  z-index: 2;
-}
-
-.premium-card-back {
-  transform: rotateY(180deg);
-  z-index: 1;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 20px;
-  box-shadow:
-    0 0 40px rgba(139, 92, 246, 0.1),
-    0 0 60px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
-  background: rgba(5, 5, 10, 0.8);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-.premium-card-back::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-/* Mobile-specific adjustments for card back */
-@media (max-width: 640px) {
-  .premium-card-back > div {
-    padding: 8px;
-  }
-}
-
-/* ==================== CLAIM BUTTON & BUTTON ROW ==================== */
-
-.premium-action-buttons-row {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  gap: 8px;
-}
-
-.premium-action-buttons-row .premium-action-button {
-  position: relative;
-  bottom: auto;
-  left: auto;
-  right: auto;
-  flex: 1;
-}
-
-.premium-action-button--claim {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.4);
-  color: white;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.premium-action-button--claim:hover {
-  background: rgba(34, 197, 94, 0.35);
-  border-color: rgba(34, 197, 94, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
-}
-
-.premium-action-button--small {
-  flex: 0 0 auto !important;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-@media (max-width: 768px) {
-  .premium-action-buttons-row {
-    gap: 6px;
-  }
-
-  .premium-action-button--small {
-    padding-left: 12px;
-    padding-right: 12px;
-    font-size: 8px;
+  .dare-card {
+    min-height: 160px;
   }
 }

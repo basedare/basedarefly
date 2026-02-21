@@ -74,6 +74,7 @@ model Dare {
   voteThreshold       Int       @default(5)  // Votes needed for mod review
   creator             User?     @relation(fields: [creatorId], references: [id])
   votes               Vote[]
+  comments            Comment[]
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -82,6 +83,18 @@ model Dare {
   @@index([claimedBy])
   @@index([status, videoUrl])
   @@index([claimRequestStatus])
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  dareId        String
+  walletAddress String
+  displayName   String   @default("Anonymous")
+  body          String
+  createdAt     DateTime @default(now())
+  dare          Dare     @relation(fields: [dareId], references: [id], onDelete: Cascade)
+
+  @@index([dareId, createdAt])
 }
 
 model Referral {

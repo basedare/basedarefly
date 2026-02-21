@@ -9,6 +9,35 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 
 export default function CreatorsPage() {
+  const [creators, setCreators] = React.useState<any[]>([]);
+  const [loadingCreators, setLoadingCreators] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchCreators() {
+      try {
+        const res = await fetch("/api/creators");
+        const data = await res.json();
+        if (data.success) {
+          setCreators(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch creators", err);
+      } finally {
+        setLoadingCreators(false);
+      }
+    }
+    fetchCreators();
+  }, []);
+
+  const STREAMER_IMAGES: Record<string, string> = {
+    kaicenat: "/assets/KAICENAT.jpeg",
+    "kai cenat": "/assets/KAICENAT.jpeg",
+    adinross: "/assets/adinross.png",
+    "adin ross": "/assets/adinross.png",
+    ishowspeed: "/assets/Ishowspeed.jpg",
+    speed: "/assets/Ishowspeed.jpg",
+  };
+
   const features = [
     { icon: DollarSign, title: "Earn Big", description: "Top creators bank $5k-$50k/month from dare bounties" },
     { icon: Users, title: "Instant Audience", description: "100k+ dare watchers ready to fund your challenges" },
@@ -80,14 +109,105 @@ export default function CreatorsPage() {
           </div>
         </motion.div>
 
+        {/* Active Creators Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="max-w-4xl mx-auto mb-16"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-black text-white tracking-tight italic">
+              ACTIVE CREATORS
+            </h2>
+            <Link href="/leaderboard" className="text-[10px] font-black text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-widest flex items-center gap-2">
+              View All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {loadingCreators ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-40 bg-white/5 rounded-2xl animate-pulse border border-white/10" />
+              ))}
+            </div>
+          ) : creators.length === 0 ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center backdrop-blur-md">
+              <p className="text-gray-500 font-mono text-xs">No creators verified yet. Be the first!</p>
+              <Link href="/claim-tag" className="inline-block mt-4 text-purple-400 text-sm font-bold hover:underline italic">
+                Claim your tag →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {creators.map((creator, index) => {
+                const plainTag = creator.tag.replace("@", "").toLowerCase();
+                const avatarImg = STREAMER_IMAGES[plainTag];
+
+                return (
+                  <motion.div
+                    key={creator.tag}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 + index * 0.05 }}
+                  >
+                    <Link
+                      href={`/creator/${plainTag}`}
+                      className="group block relative p-5 bg-white/5 hover:bg-white/[0.08] border border-white/10 hover:border-purple-500/50 rounded-2xl transition-all duration-300 text-center overflow-hidden backdrop-blur-sm"
+                    >
+                      {/* Subtle Glow */}
+                      <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/5 transition-colors duration-300" />
+
+                      <div className="relative z-10">
+                        <div className="mb-4 mx-auto relative w-16 h-16">
+                          {avatarImg ? (
+                            <img
+                              src={avatarImg}
+                              alt={creator.tag}
+                              className="w-full h-full rounded-full object-cover border-2 border-white/10 group-hover:border-purple-500/50 transition-colors shadow-xl"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex items-center justify-center text-xl font-black text-white shadow-xl">
+                              {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-[#0a0a0f] flex items-center justify-center">
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+
+                        <h3 className="text-sm font-black text-white group-hover:text-purple-400 transition-colors truncate italic italic">
+                          {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
+                        </h3>
+
+                        <div className="flex items-center justify-center gap-3 mt-3">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
+                            <span className="text-[8px] text-gray-500 uppercase font-black tracking-tighter">Earned</span>
+                          </div>
+                          <div className="w-[1px] h-6 bg-white/10" />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
+                            <span className="text-[8px] text-gray-500 uppercase font-black tracking-tighter">Dares</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+
         {/* How It Works */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-xl mx-auto mb-10"
+          className="max-w-xl mx-auto mb-16"
         >
-          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight">
+          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
             How It Works
           </h2>
           <div className="space-y-3">
@@ -118,9 +238,9 @@ export default function CreatorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="max-w-xl mx-auto mb-10"
+          className="max-w-xl mx-auto mb-16"
         >
-          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight">
+          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
             Why Join?
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -147,10 +267,10 @@ export default function CreatorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="max-w-md mx-auto mb-6"
+          className="max-w-md mx-auto mb-12"
         >
           <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 text-center">
-            <h2 className="text-lg font-black text-white mb-4">
+            <h2 className="text-lg font-black text-white mb-4 italic">
               Verify With Your Platform
             </h2>
             <div className="grid grid-cols-4 gap-2 mb-4">
@@ -182,7 +302,7 @@ export default function CreatorsPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-yellow-500/5 pointer-events-none" />
 
             <div className="relative z-10">
-              <h2 className="text-xl font-black text-white mb-2">
+              <h2 className="text-xl font-black text-white mb-2 italic">
                 Ready to Get Paid?
               </h2>
               <p className="text-sm text-gray-400 mb-6 font-mono">
