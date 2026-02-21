@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
 import DareGenerator from "@/components/DareGenerator";
@@ -13,7 +13,7 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
-import { USDC_ABI } from '@/abis/BaseDareBounty';
+import { USDC_ABI, BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
@@ -95,9 +95,13 @@ export default function CreateDare() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<'idle' | 'approving' | 'funding' | 'verifying'>('idle');
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { trigger } = useFeedback();
+
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
 
   // Wallet & Balance Check
   const { address, isConnected } = useAccount();
@@ -169,19 +173,18 @@ export default function CreateDare() {
     console.log('[CREATE] Form submitted with data:', data);
     setIsSubmitting(true);
     setSuccessData(null);
+    setApprovalStatus('idle');
 
     try {
-      // Build request body with location if nearby dare
       const requestBody: Record<string, unknown> = {
         title: data.title,
         amount: data.amount,
         streamerTag: data.streamerTag,
         streamId: data.streamId,
         isNearbyDare: data.isNearbyDare,
-        stakerAddress: address?.toLowerCase(), // Track who funded the dare
+        stakerAddress: address?.toLowerCase(),
       };
 
-      // Add location data if nearby dare with coordinates
       if (data.isNearbyDare && coordinates) {
         requestBody.latitude = coordinates.lat;
         requestBody.longitude = coordinates.lng;
@@ -189,15 +192,15 @@ export default function CreateDare() {
         requestBody.discoveryRadiusKm = data.discoveryRadiusKm;
       }
 
-      const response = await fetch('/api/bounties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      if (IS_SIMULATION_MODE) {
+        const response = await fetch('/api/bounties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Simulation failed');
 
-      const result = await response.json();
-
-      if (result.success) {
         trigger('success');
         setSuccessData({
           dareId: result.data.dareId,
@@ -212,47 +215,127 @@ export default function CreateDare() {
           locationLabel: result.data.locationLabel,
         });
 
-        // Clear location after successful nearby dare creation
-        if (result.data.isNearbyDare) {
-          clearLocation();
-        }
+        if (result.data.isNearbyDare) clearLocation();
 
         toast({
-          title: result.data.isOpenBounty
-            ? '🎯 OPEN DARE DEPLOYED'
-            : result.data.awaitingClaim
-            ? '⏳ BOUNTY ESCROWED'
-            : result.simulated
-            ? '🧪 SIMULATION SUCCESS'
-            : '✅ CONTRACT DEPLOYED',
-          description: result.data.isOpenBounty
-            ? 'Anyone can complete this dare!'
-            : result.data.awaitingClaim
-            ? 'Share the invite link with the creator!'
-            : `Dare ID: ${result.data.dareId}`,
+          title: '🧪 SIMULATION SUCCESS',
+          description: `Dare ID: ${result.data.dareId}`,
           duration: 6000,
         });
-
-        // Reset form after successful submission
         reset();
-      } else {
-        trigger('error');
-        toast({
-          variant: 'destructive',
-          title: 'Deploy Failed',
-          description: result.error || 'Unknown error',
-        });
+        return;
       }
+
+      // -- NEW REAL ONCHAIN FLOW --
+      if (!publicClient || !address) throw new Error("Wallet not connected");
+
+      // 1. Initialize Dare in Database (FUNDING state)
+      const initRes = await fetch('/api/bounties/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      const initData = await initRes.json();
+      if (!initData.success) throw new Error(initData.error || 'Failed to initialize dare');
+
+      const { dareId, onChainDareId, targetAddress, referrerAddress } = initData.data;
+      const amountInUnits = parseUnits(data.amount.toString(), 6);
+      const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+
+      // 2. Exact USDC Approval
+      const currentAllowance = await publicClient.readContract({
+        address: USDC_ADDRESS,
+        abi: USDC_ABI,
+        functionName: 'allowance',
+        args: [address, BOUNTY_CONTRACT],
+      }) as bigint;
+
+      if (currentAllowance < amountInUnits) {
+        setApprovalStatus('approving');
+        try {
+          const approveTx = await writeContractAsync({
+            address: USDC_ADDRESS,
+            abi: USDC_ABI,
+            functionName: 'approve',
+            args: [BOUNTY_CONTRACT, amountInUnits],
+          });
+          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+        } catch (error: any) {
+          if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+            throw new Error("USDC approval canceled");
+          }
+          throw new Error("Failed to approve USDC: " + error.message);
+        }
+      }
+
+      // 3. Create Bounty On-Chain
+      setApprovalStatus('funding');
+      let txHash: string;
+      try {
+        txHash = await writeContractAsync({
+          address: BOUNTY_CONTRACT,
+          abi: BOUNTY_ABI,
+          functionName: 'fundBounty',
+          args: [BigInt(onChainDareId), targetAddress as `0x${string}`, referrerAddress as `0x${string}`, amountInUnits],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      } catch (error: any) {
+        if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+          throw new Error("Dare creation canceled");
+        }
+        throw new Error("Dare creation failed onchain: " + error.message);
+      }
+
+      // 4. Verify & Register with Backend
+      setApprovalStatus('verifying');
+      try {
+        const regRes = await fetch('/api/bounties/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dareId, txHash }),
+        });
+        const regData = await regRes.json();
+
+        if (!regData.success) {
+          throw new Error(`Dare created onchain (tx: ${txHash}), sync pending - contact support`);
+        }
+
+        // Success Handler
+        trigger('success');
+        setSuccessData({
+          dareId: regData.data.id,
+          simulated: false,
+          awaitingClaim: regData.data.status === 'AWAITING_CLAIM',
+          streamerTag: regData.data.streamerHandle,
+          shortId: regData.data.shortId,
+          isOpenBounty: !regData.data.streamerHandle,
+          isNearbyDare: data.isNearbyDare,
+        });
+
+        if (data.isNearbyDare) clearLocation();
+
+        toast({
+          title: "✅ CONTRACT DEPLOYED",
+          description: `Dare ID: ${dareId}`,
+          duration: 6000,
+        });
+        reset();
+
+      } catch (error: any) {
+        throw new Error(error.message.includes('sync pending') ? error.message : `Dare created onchain (tx: ${txHash}), sync pending - contact support`);
+      }
+
     } catch (error: unknown) {
       trigger('error');
       const message = error instanceof Error ? error.message : 'Network error';
       toast({
         variant: 'destructive',
-        title: 'Request failed',
+        title: 'Deploy Failed',
         description: message,
       });
     } finally {
       setIsSubmitting(false);
+      setApprovalStatus('idle');
     }
   };
 
@@ -280,15 +363,13 @@ export default function CreateDare() {
 
         {/* SUCCESS STATE - Liquid Glass */}
         {successData && (
-          <div className={`mb-6 md:mb-8 p-4 md:p-6 rounded-xl md:rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${
-            successData.awaitingClaim
+          <div className={`mb-6 md:mb-8 p-4 md:p-6 rounded-xl md:rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${successData.awaitingClaim
               ? 'bg-yellow-500/10 border border-yellow-500/20'
               : 'bg-green-500/10 border border-green-500/20'
-          }`}>
+            }`}>
             <div className="flex items-start md:items-center gap-3 md:gap-4">
-              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                successData.awaitingClaim ? 'bg-yellow-500/20' : 'bg-green-500/20'
-              }`}>
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${successData.awaitingClaim ? 'bg-yellow-500/20' : 'bg-green-500/20'
+                }`}>
                 {successData.awaitingClaim ? (
                   <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
                 ) : (
@@ -296,18 +377,16 @@ export default function CreateDare() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className={`text-base md:text-xl font-black uppercase tracking-wider ${
-                  successData.awaitingClaim ? 'text-yellow-400' : 'text-green-400'
-                }`}>
+                <h3 className={`text-base md:text-xl font-black uppercase tracking-wider ${successData.awaitingClaim ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
                   {successData.awaitingClaim
                     ? 'Awaiting Claim'
                     : successData.simulated
-                    ? 'Simulation Success'
-                    : 'Contract Deployed'}
+                      ? 'Simulation Success'
+                      : 'Contract Deployed'}
                 </h3>
-                <p className={`text-xs md:text-sm font-mono mt-1 truncate ${
-                  successData.awaitingClaim ? 'text-yellow-400/80' : 'text-green-400/80'
-                }`}>
+                <p className={`text-xs md:text-sm font-mono mt-1 truncate ${successData.awaitingClaim ? 'text-yellow-400/80' : 'text-green-400/80'
+                  }`}>
                   {successData.awaitingClaim
                     ? `Escrowed for ${successData.streamerTag}`
                     : successData.streamerTag
@@ -487,18 +566,16 @@ export default function CreateDare() {
                       }
                       trigger('click');
                     }}
-                    className={`relative w-14 h-8 rounded-full transition-all ${
-                      watchIsNearbyDare
+                    className={`relative w-14 h-8 rounded-full transition-all ${watchIsNearbyDare
                         ? 'bg-[#FACC15]/20 border-2 border-[#FACC15]'
                         : 'bg-white/[0.05] border-2 border-white/10'
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`absolute top-1 w-5 h-5 rounded-full transition-all ${
-                        watchIsNearbyDare
+                      className={`absolute top-1 w-5 h-5 rounded-full transition-all ${watchIsNearbyDare
                           ? 'left-7 bg-[#FACC15]'
                           : 'left-1 bg-gray-500'
-                      }`}
+                        }`}
                     />
                   </button>
                 </div>
@@ -507,13 +584,12 @@ export default function CreateDare() {
                 {watchIsNearbyDare && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Location Status */}
-                    <div className={`p-4 rounded-xl border ${
-                      coordinates
+                    <div className={`p-4 rounded-xl border ${coordinates
                         ? 'bg-green-500/10 border-green-500/20'
                         : geoError
                           ? 'bg-red-500/10 border-red-500/20'
                           : 'bg-white/[0.03] border-white/[0.06]'
-                    }`}>
+                      }`}>
                       <div className="flex items-center gap-3">
                         {geoLoading ? (
                           <>
@@ -706,7 +782,11 @@ export default function CreateDare() {
                       {isSubmitting ? (
                         <>
                           <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
-                          <span className="relative">Deploying...</span>
+                          <span className="relative">
+                            {approvalStatus === 'approving' ? 'Approving USDC...' :
+                              approvalStatus === 'funding' ? 'Deploying Dare...' :
+                                approvalStatus === 'verifying' ? 'Verifying...' : 'Processing...'}
+                          </span>
                         </>
                       ) : (
                         <>

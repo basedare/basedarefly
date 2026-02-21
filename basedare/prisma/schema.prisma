@@ -29,6 +29,7 @@ model Dare {
   status              String    @default("PENDING")
   videoUrl            String?
   proofHash           String?
+  proofCid            String?   // Store the IPFS CID from Pinata
   creatorId           String?
   streamId            String?
   txHash              String?

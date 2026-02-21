@@ -106,6 +106,37 @@ export default function DareDetailPage() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
 
+  // Upload state
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleUpload = async () => {
+    if (!uploadFile || !dare) return;
+    setUploading(true);
+    setUploadError(null);
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+    formData.append('dareId', dare.id);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDare(prev => prev ? { ...prev, status: 'PENDING_REVIEW', videoUrl: data.url } : null);
+      } else {
+        setUploadError(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      setUploadError('Upload failed to connect');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Track referral on page load
   useEffect(() => {
     if (referrer) {
@@ -397,18 +428,15 @@ export default function DareDetailPage() {
 
               {/* Resolved Status */}
               {(dare.status === 'VERIFIED' || dare.status === 'FAILED') && (
-                <div className={`p-3 rounded-lg mb-4 ${
-                  dare.status === 'VERIFIED'
+                <div className={`p-3 rounded-lg mb-4 ${dare.status === 'VERIFIED'
                     ? 'bg-green-500/10 border border-green-500/30'
                     : 'bg-red-500/10 border border-red-500/30'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${
-                      dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
-                    }`} />
-                    <span className={`text-xs font-bold uppercase ${
-                      dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <CheckCircle className={`w-4 h-4 ${dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
+                      }`} />
+                    <span className={`text-xs font-bold uppercase ${dare.status === 'VERIFIED' ? 'text-green-400' : 'text-red-400'
+                      }`}>
                       {dare.status === 'VERIFIED' ? 'Community Verified' : 'Community Rejected'}
                     </span>
                   </div>
@@ -563,6 +591,48 @@ export default function DareDetailPage() {
                   <p className="text-xs text-gray-500">Connect your wallet to request claiming this dare</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Upload Proof UI */}
+          {!isExpired && !isVerified && !isAwaitingClaim && dare.status === 'PENDING' && isConnected && (
+            <div className="p-6 border-t border-white/[0.06]">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle className="w-5 h-5 text-purple-400" />
+                <span className="text-sm font-bold text-white uppercase tracking-wider">Submit Proof</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">Upload a video or image proving you completed the dare.</p>
+
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  accept="video/*,image/*"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border file:border-white/10 file:text-sm file:font-semibold file:bg-white/5 file:text-white hover:file:bg-white/10 transition-colors cursor-pointer"
+                />
+
+                <button
+                  onClick={handleUpload}
+                  disabled={!uploadFile || uploading}
+                  className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-black text-lg uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Uploading to IPFS...</span>
+                    </>
+                  ) : (
+                    <span>Upload & Submit</span>
+                  )}
+                </button>
+
+                {uploadError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-400">{uploadError}</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

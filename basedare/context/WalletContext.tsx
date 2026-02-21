@@ -37,16 +37,9 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }, [address]);
 
   const connect = async () => {
-    try {
-      await connectAsync({
-        connector: coinbaseWallet({
-          appName: 'BaseDare',
-          preference: 'smartWalletOnly',
-        }),
-      });
-    } catch (err) {
-      console.error('[WalletContext] Connect failed:', err);
-    }
+    // The actual connection logic is now handled correctly in IdentityButton
+    // using Wagmi's built-in connectors map, instead of hardcoding Coinbase.
+    console.warn('[WalletContext] connect() called directly. UI should prefer IdentityButton.');
   };
 
   const disconnect = async () => {
