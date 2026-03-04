@@ -137,9 +137,12 @@ export default function CreatorsPage() {
           ) : creators.length === 0 ? (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center backdrop-blur-md">
               <p className="text-gray-500 font-mono text-xs">No creators verified yet. Be the first!</p>
-              <Link href="/claim-tag" className="inline-block mt-4 text-purple-400 text-sm font-bold hover:underline italic">
+              <button
+                onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                className="inline-block mt-4 text-purple-400 text-sm font-bold hover:underline italic"
+              >
                 Claim your tag →
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
