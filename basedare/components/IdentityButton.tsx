@@ -72,18 +72,18 @@ export function IdentityButton() {
 
         <button
           onClick={handleClick}
-          className="relative w-full h-full flex items-center justify-center bg-[#050505] backdrop-blur-3xl px-5 py-2.5 rounded-[15px]"
+          className="relative w-full h-full flex items-center justify-center bg-[#050505] backdrop-blur-3xl px-3 py-2 md:px-5 md:py-2.5 rounded-[12px] md:rounded-[15px]"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
-          <span className="relative z-10 flex items-center justify-center gap-2 font-black italic uppercase text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] transition-all duration-500 text-white group-hover:tracking-[0.25em] md:group-hover:tracking-[0.35em]">
+          <span className="relative z-10 flex items-center justify-center gap-1.5 md:gap-2 font-black italic uppercase text-[9px] sm:text-[10px] md:text-xs tracking-[0.1em] sm:tracking-[0.15em] md:tracking-[0.3em] transition-all duration-500 text-white group-hover:tracking-[0.2em] md:group-hover:tracking-[0.35em] whitespace-nowrap">
             {isConnected ? (
               <>
-                <div className="w-2 h-2 rounded-full bg-green-400" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
-                {truncatedAddress}
+                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
+                <span className="truncate">{truncatedAddress}</span>
               </>
-            ) : 'Enter Colosseum'}
+            ) : 'Enter Area'}
           </span>
-          <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[15px]" />
+          <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>
 
         {showDropdown && isConnected && (

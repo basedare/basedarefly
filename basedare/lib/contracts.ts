@@ -93,8 +93,8 @@ function validateContractAddress(
 
 // Validate all contract addresses
 const protocolValidation = validateContractAddress(
-  process.env.NEXT_PUBLIC_PROTOCOL_CONTRACT_ADDRESS,
-  'NEXT_PUBLIC_PROTOCOL_CONTRACT_ADDRESS'
+  process.env.NEXT_PUBLIC_PROTOCOL_ADDRESS,
+  'NEXT_PUBLIC_PROTOCOL_ADDRESS'
 );
 
 const bountyValidation = validateContractAddress(

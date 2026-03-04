@@ -422,6 +422,19 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Notify User it's under review
+      if (dare.targetWalletAddress) {
+        await prisma.notification.create({
+          data: {
+            wallet: dare.targetWalletAddress.toLowerCase(),
+            type: 'DARE_REVIEW',
+            title: 'Dare Under Review',
+            message: `Your proof for "${dare.title}" is under manual administrative review.`,
+            link: '/dashboard',
+          }
+        });
+      }
+
       console.log(`[AUDIT] Dare ${dareId} queued for manual review - bounty: $${dare.bounty} USDC`);
 
       // Send Telegram alert for manual review needed (fire and forget)
@@ -537,6 +550,19 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Notify Creator of Payout
+      if (dare.targetWalletAddress) {
+        await prisma.notification.create({
+          data: {
+            wallet: dare.targetWalletAddress.toLowerCase(),
+            type: 'DARE_VERIFIED',
+            title: 'Dare Verified & Paid!',
+            message: `Your proof for "${dare.title}" was approved. ${streamerPayout} USDC has been sent to your wallet.`,
+            link: '/dashboard',
+          }
+        });
+      }
+
       console.log(`[AUDIT] Dare ${dareId} VERIFIED - streamer: ${dare.streamerHandle}, bounty: $${totalBounty} USDC`);
 
       // Send Telegram alerts (fire and forget)
@@ -587,9 +613,37 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      // --- Security Check: Referee Wallet Balance ---
+      if (isContractDeployed && dare && !dare.isSimulated) {
+        try {
+          const { publicClient, account } = getRefereeClient();
+          const balance = await publicClient.getBalance({ address: account.address });
+          const balanceEth = Number(balance) / 1e18;
+
+          if (balanceEth > 0.05) {
+            console.warn(`[SECURITY] Referee wallet balance high: ${balanceEth.toFixed(4)} ETH`);
+            // Trigger Telegram admin alert using generic error alert function if we had one, 
+            // or we'll borrow the alertVerification structure for a system alert
+            alertVerification({
+              dareId: 'SYSTEM-ALERT',
+              shortId: 'SECURITY',
+              title: `High Referee Balance: ${balanceEth.toFixed(4)} ETH`,
+              streamerTag: 'ADMIN',
+              result: 'FAILED', // Using FAILED to make it red in Telegram
+              confidence: 100
+            }).catch(e => console.error(e));
+          }
+        } catch (e) {
+          console.error('[SECURITY] Failed to check referee wallet balance:', e);
+        }
+      }
+
     } else {
       // FAILURE PATH: Mark as failed, burn reputation, enable appeal
-      mockSunderReputation(dare.streamerHandle);
+      if (dare?.streamerHandle) {
+        mockSunderReputation(dare.streamerHandle);
+      }
 
       await prisma.dare.update({
         where: { id: dareId },
@@ -601,6 +655,19 @@ export async function POST(req: NextRequest) {
           proofHash: verification.proofHash,
         },
       });
+
+      // Notify Creator of Failure
+      if (dare.targetWalletAddress) {
+        await prisma.notification.create({
+          data: {
+            wallet: dare.targetWalletAddress.toLowerCase(),
+            type: 'DARE_FAILED',
+            title: 'Dare Failed Verification',
+            message: `Your proof for "${dare.title}" was rejected. You can submit an appeal.`,
+            link: '/dashboard',
+          }
+        });
+      }
 
       console.log(`[AUDIT] Dare ${dareId} FAILED - reason: ${verification.reason}, confidence: ${(verification.confidence * 100).toFixed(1)}%`);
 

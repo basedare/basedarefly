@@ -10,9 +10,8 @@ const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
 const activeChain = IS_MAINNET ? base : baseSepolia;
 const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
-// Contract addresses
-const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as Address;
+import { BOUNTY_CONTRACT_ADDRESS as BOUNTY_CONTRACT, USDC_ADDRESS } from '@/lib/contracts';
+
 const REFEREE_WALLET = '0xC9ECB9407e8aD2618310DF9D4EFC494F3B90115E' as Address;
 
 const MIN_ETH_FOR_GAS = 0.001; // Minimum ETH needed for gas

@@ -6,8 +6,7 @@ import { useAccount, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
-
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
+import { USDC_ADDRESS } from '@/lib/contracts';
 
 interface DareProps {
   title: string;
@@ -65,7 +64,7 @@ export default function DareCard({
       // The wallet will now pop up for Approval, then for Funding.
 
       // === VIRAL X LOOP ===
-      const tweetText = `I just backed a ${amount} USDC bounty on @${streamerAddress?.slice(0,6)}... with my @base wallet on BaseDare. Match me! 🎯`;
+      const tweetText = `I just backed a ${amount} USDC bounty on @${streamerAddress?.slice(0, 6)}... with my @base wallet on BaseDare. Match me! 🎯`;
       const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
       window.open(tweetUrl, '_blank');
 
@@ -79,61 +78,59 @@ export default function DareCard({
 
   return (
     <div className="h-[300px] w-full">
-        <ElectricCard
-            color={cardColor}
-            variant={variant}
-            className="h-full"
-            // ... (rest of props)
-        >
-            <div className="flex flex-col h-full justify-between items-center text-center p-2">
+      <ElectricCard
+        color={cardColor}
+        variant={variant}
+        className="h-full"
+      // ... (rest of props)
+      >
+        <div className="flex flex-col h-full justify-between items-center text-center p-2">
 
-                {/* Avatar */}
-                <div className={`w-16 h-16 rounded-full border-2 p-1 relative z-20 ${isGold ? 'border-[#FACC15]' : 'border-[#A855F7]'}`}>
-                    <div className="w-full h-full rounded-full bg-gray-800 overflow-hidden relative">
-                         <img
-                            src={userAvatar}
-                            alt="User"
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="space-y-2 z-20">
-                    <h3 className="text-white font-bold text-lg leading-tight min-h-[3rem] flex items-center justify-center font-serif">
-                        {title}
-                    </h3>
-                    <div className={`text-4xl font-black tracking-tighter drop-shadow-lg ${isGold ? 'text-[#FACC15]' : 'text-[#A855F7]'}`}>
-                        {price}
-                    </div>
-                </div>
-
-                {/* Button - Show FundButton if insufficient balance, otherwise Fund Bounty */}
-                {isConnected && hasInsufficientBalance ? (
-                  <div className="w-full flex flex-col gap-2">
-                    <p className="text-xs text-gray-400 text-center">
-                      Balance: {parseFloat(formattedBalance).toFixed(2)} USDC
-                    </p>
-                    <FundButton
-                      className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg ${
-                        isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7] text-white'
-                      }`}
-                    >
-                      Get {amount} USDC
-                    </FundButton>
-                  </div>
-                ) : (
-                  <button
-                      onClick={handleFund}
-                      className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg transition-transform hover:scale-105 active:scale-95 ${
-                          isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7]/20 border border-[#A855F7] text-white'
-                      }`}
-                  >
-                      {amount ? `Fund Bounty (${amount} USDC)` : 'Fund Bounty'}
-                  </button>
-                )}
+          {/* Avatar */}
+          <div className={`w-16 h-16 rounded-full border-2 p-1 relative z-20 ${isGold ? 'border-[#FACC15]' : 'border-[#A855F7]'}`}>
+            <div className="w-full h-full rounded-full bg-gray-800 overflow-hidden relative">
+              <img
+                src={userAvatar}
+                alt="User"
+                className="w-full h-full object-cover"
+              />
             </div>
-        </ElectricCard>
+          </div>
+
+          {/* Content */}
+          <div className="space-y-2 z-20">
+            <h3 className="text-white font-bold text-lg leading-tight min-h-[3rem] flex items-center justify-center font-serif">
+              {title}
+            </h3>
+            <div className={`text-4xl font-black tracking-tighter drop-shadow-lg ${isGold ? 'text-[#FACC15]' : 'text-[#A855F7]'}`}>
+              {price}
+            </div>
+          </div>
+
+          {/* Button - Show FundButton if insufficient balance, otherwise Fund Bounty */}
+          {isConnected && hasInsufficientBalance ? (
+            <div className="w-full flex flex-col gap-2">
+              <p className="text-xs text-gray-400 text-center">
+                Balance: {parseFloat(formattedBalance).toFixed(2)} USDC
+              </p>
+              <FundButton
+                className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg ${isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7] text-white'
+                  }`}
+              >
+                Get {amount} USDC
+              </FundButton>
+            </div>
+          ) : (
+            <button
+              onClick={handleFund}
+              className={`w-full py-2 font-bold text-xs uppercase tracking-widest rounded-lg transition-transform hover:scale-105 active:scale-95 ${isGold ? 'bg-[#FACC15] text-black' : 'bg-[#A855F7]/20 border border-[#A855F7] text-white'
+                }`}
+            >
+              {amount ? `Fund Bounty (${amount} USDC)` : 'Fund Bounty'}
+            </button>
+          )}
+        </div>
+      </ElectricCard>
     </div>
   );
 }

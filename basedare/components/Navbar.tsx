@@ -9,11 +9,12 @@ import { useWallet } from '@/context/WalletContext';
 import { useView } from '@/app/context/ViewContext';
 import GlassSurface from './GlassSurface';
 import { IdentityButton } from './IdentityButton';
+import { NotificationBell } from './ui/NotificationBell';
+import { GlobalSearch } from './ui/GlobalSearch';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
   { name: "CREATE", href: "/create" },
-  { name: "CLAIM TAG", href: "/claim-tag" },
   { name: "VERIFY", href: "/verify" },
   { name: "CREATORS", href: "/streamers" },
   { name: "DASHBOARD", href: "/dashboard" },
@@ -31,12 +32,12 @@ export default function Navbar() {
       {/* === NAVBAR (Z-50 to stay above everything) === */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 overflow-x-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
-          
-          {/* 1. LOGO (Image) - Subtle purple glow */}
-          <div className="flex items-center gap-2 z-50 flex-shrink-0">
+
+          {/* 1. LOGO */}
+          <div className="flex items-center gap-3 z-50 flex-shrink-0">
             <Link
               href="/"
-              className="relative group"
+              className="relative group block"
             >
               {/* Very subtle ambient glow */}
               <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -44,11 +45,10 @@ export default function Navbar() {
               <img
                 src="/assets/BASEDAREGOO.png"
                 alt="BaseDare"
-                className={`relative h-10 max-h-[40px] w-auto object-contain md:h-[56px] md:max-h-none transition-all duration-300 hover:scale-105 ${
-                  isControlMode
-                    ? 'grayscale contrast-110 brightness-95'
-                    : ''
-                }`}
+                className={`relative h-8 max-h-[32px] w-auto object-contain md:h-[56px] md:max-h-none transition-all duration-300 hover:scale-105 ${isControlMode
+                  ? 'grayscale contrast-110 brightness-95'
+                  : ''
+                  }`}
                 style={{
                   filter: isControlMode
                     ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 0 8px rgba(139,92,246,0.3))'
@@ -80,8 +80,8 @@ export default function Navbar() {
                 {NAV_LINKS.map((link) => {
                   const isActive = pathname === link.href;
                   return (
-                    <Link 
-                      key={link.name} 
+                    <Link
+                      key={link.name}
                       href={link.href}
                       className="relative px-5 py-2.5 rounded-full text-[10px] font-black tracking-[0.2em] text-gray-400 hover:text-white transition-colors z-10"
                     >
@@ -100,7 +100,9 @@ export default function Navbar() {
                 {/* DIVIDER */}
                 <div className="w-px h-5 bg-white/10 mx-3" />
 
-                {/* CONNECT BUTTON */}
+                {/* NOTIFICATIONS & CONNECT */}
+                <NotificationBell />
+                <div className="w-px h-5 bg-white/10 mx-2" />
                 <IdentityButton />
               </div>
             </GlassSurface>
@@ -109,9 +111,12 @@ export default function Navbar() {
           {/* 3. RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-2 md:gap-4 z-50">
 
-            {/* Mobile Connect Button - Visible on mobile, hidden on desktop (desktop has it in GlassSurface) */}
-            <div className="md:hidden">
-               <IdentityButton />
+            {/* Mobile Connect Button & Bell - Visible on mobile, hidden on desktop */}
+            <div className="md:hidden flex items-center gap-2">
+              <NotificationBell />
+              <div className="w-[120px] sm:w-[140px]">
+                <IdentityButton />
+              </div>
             </div>
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
@@ -124,6 +129,14 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* ============================================
+          DESKTOP GLOBAL SEARCH
+          Fixed to the left, parallel to the ViewToggle (which is top-24 right-6)
+          ============================================ */}
+      <div className="hidden md:block fixed top-24 left-6 z-[90]">
+        <GlobalSearch isDesktopApp />
+      </div>
 
       {/* === MOBILE MENU OVERLAY === */}
       <AnimatePresence>
@@ -178,9 +191,8 @@ export default function Navbar() {
                       )}
 
                       {/* Link content */}
-                      <div className={`relative px-5 py-3 text-3xl font-black italic uppercase tracking-tight ${
-                        isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-                      }`}>
+                      <div className={`relative px-5 py-3 text-3xl font-black italic uppercase tracking-tight ${isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}>
                         {link.name}
                         {/* Active indicator bar */}
                         {isActive && (
@@ -193,9 +205,14 @@ export default function Navbar() {
               })}
             </div>
 
+            {/* Mobile Search Button (Under FAQ) */}
+            <div className="mt-6 w-full flex justify-center">
+              <GlobalSearch />
+            </div>
+
             {/* Mobile Connect Button */}
-            <div className="mt-auto mb-12">
-               <IdentityButton />
+            <div className="mt-8 mb-12">
+              <IdentityButton />
             </div>
           </motion.div>
         )}

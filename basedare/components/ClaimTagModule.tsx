@@ -19,8 +19,6 @@ import {
   Gift,
   Clock,
 } from 'lucide-react';
-import LiquidBackground from '@/components/LiquidBackground';
-import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 
 // Platform icons as SVG components
@@ -113,7 +111,7 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
-export default function ClaimTagPage() {
+export function ClaimTagModule() {
   const { data: session, status: sessionStatus } = useSession();
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
@@ -382,13 +380,8 @@ export default function ClaimTagPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col">
-      <LiquidBackground />
-      <div className="fixed inset-0 z-10 pointer-events-none">
-        <GradualBlurOverlay />
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 py-20 sm:py-24 flex-grow relative z-20">
+    <div id="claim-tag-section" className="relative w-full max-w-2xl mx-auto">
+      <div className="flex-grow relative z-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -523,18 +516,16 @@ export default function ClaimTagPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
-              isConnected
-                ? 'bg-green-500/5 border-green-500/30'
-                : 'bg-black/20 border-white/10'
-            }`}
+            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${isConnected
+              ? 'bg-green-500/5 border-green-500/30'
+              : 'bg-black/20 border-white/10'
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    isConnected ? 'bg-green-500/20 border border-green-500/30' : 'bg-white/5 border border-white/10'
-                  }`}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${isConnected ? 'bg-green-500/20 border border-green-500/30' : 'bg-white/5 border border-white/10'
+                    }`}
                 >
                   <Wallet className={`w-5 h-5 ${isConnected ? 'text-green-400' : 'text-gray-400'}`} />
                 </div>
@@ -558,26 +549,23 @@ export default function ClaimTagPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
-              isPlatformConnected || isManualMode
-                ? 'bg-green-500/5 border-green-500/30'
-                : 'bg-black/20 border-white/10'
-            } ${!isConnected ? 'opacity-50' : ''}`}
+            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${isPlatformConnected || isManualMode
+              ? 'bg-green-500/5 border-green-500/30'
+              : 'bg-black/20 border-white/10'
+              } ${!isConnected ? 'opacity-50' : ''}`}
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-4">
               <div
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                  isPlatformConnected || isManualMode
-                    ? 'bg-green-500/20 border border-green-500/30'
-                    : 'bg-white/5 border border-white/10'
-                }`}
+                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${isPlatformConnected || isManualMode
+                  ? 'bg-green-500/20 border border-green-500/30'
+                  : 'bg-white/5 border border-white/10'
+                  }`}
               >
                 <Shield
-                  className={`w-5 h-5 ${
-                    isPlatformConnected || isManualMode
-                      ? 'text-green-400'
-                      : 'text-gray-400'
-                  }`}
+                  className={`w-5 h-5 ${isPlatformConnected || isManualMode
+                    ? 'text-green-400'
+                    : 'text-gray-400'
+                    }`}
                 />
               </div>
               <div className="min-w-0">
@@ -586,8 +574,8 @@ export default function ClaimTagPage() {
                   {isPlatformConnected
                     ? `Verified as ${platformHandle} via ${connectedPlatform}`
                     : isManualMode
-                    ? 'Manual verification required'
-                    : 'Choose your verification method'}
+                      ? 'Manual verification required'
+                      : 'Choose your verification method'}
                 </p>
               </div>
             </div>
@@ -747,11 +735,10 @@ export default function ClaimTagPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
-              (isConnected && isPlatformConnected) || (isConnected && isManualMode)
-                ? 'bg-purple-500/5 border-purple-500/30'
-                : 'bg-black/20 border-white/10 opacity-50'
-            }`}
+            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${(isConnected && isPlatformConnected) || (isConnected && isManualMode)
+              ? 'bg-purple-500/5 border-purple-500/30'
+              : 'bg-black/20 border-white/10 opacity-50'
+              }`}
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-4">
               <div className="w-10 h-10 sm:w-11 sm:h-11 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0">
@@ -878,13 +865,12 @@ export default function ClaimTagPage() {
                       )}
                     </div>
                     <span
-                      className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded shrink-0 ${
-                        t.status === 'VERIFIED'
-                          ? 'bg-green-500/20 text-green-400'
-                          : t.status === 'REVOKED'
+                      className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded shrink-0 ${t.status === 'VERIFIED'
+                        ? 'bg-green-500/20 text-green-400'
+                        : t.status === 'REVOKED'
                           ? 'bg-red-500/20 text-red-400'
                           : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
+                        }`}
                     >
                       {t.status}
                     </span>

@@ -452,6 +452,42 @@
       "artifacts": [
         "Pausable"
       ]
+    },
+    "/Users/mrrobot13/Desktop/basedarestar/basedare/contracts/HashHelper.sol": {
+      "lastModificationDate": 1770088025884,
+      "contentHash": "821a92acc8b2bfba63984ccbc7c312f0",
+      "sourceName": "contracts/HashHelper.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "HashHelper"
+      ]
     }
   }
 }

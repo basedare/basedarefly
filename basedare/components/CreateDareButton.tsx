@@ -7,26 +7,25 @@ import { Loader2, CheckCircle2, Wallet, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { PROTOCOL_ABI, USDC_ABI } from '@/abis/BaseDareProtocol'
+import { USDC_ADDRESS, PROTOCOL_CONTRACT_ADDRESS as PROTOCOL_ADDRESS } from '@/lib/contracts'
 
 // CONFIGURATION
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` // Base Sepolia USDC
-const PROTOCOL_ADDRESS = process.env.NEXT_PUBLIC_PROTOCOL_ADDRESS as `0x${string}`
 
 interface CreateDareButtonProps {
   streamerAddress: `0x${string}`
-  amount: string 
+  amount: string
   referrerAddress?: `0x${string}`
 }
 
-export default function CreateDareButton({ 
-  streamerAddress, 
-  amount, 
-  referrerAddress = '0x0000000000000000000000000000000000000000' 
+export default function CreateDareButton({
+  streamerAddress,
+  amount,
+  referrerAddress = '0x0000000000000000000000000000000000000000'
 }: CreateDareButtonProps) {
   const { address } = useAccount()
   const { toast } = useToast()
   const [step, setStep] = useState<'idle' | 'approving' | 'approved' | 'creating' | 'success'>('idle')
-  
+
   const amountBigInt = amount ? parseUnits(amount, 6) : BigInt(0)
   const { writeContractAsync } = useWriteContract()
 
@@ -92,21 +91,21 @@ export default function CreateDareButton({
   // EFFECTS
   useEffect(() => {
     if (isApprovalConfirmed && step === 'approving') {
-      toast({ 
-        title: "USDC Approved", 
-        description: "Now create the dare." 
+      toast({
+        title: "USDC Approved",
+        description: "Now create the dare."
       })
       setStep('approved')
       refetchAllowance()
-      handleCreateDare() 
+      handleCreateDare()
     }
   }, [isApprovalConfirmed, step, toast, refetchAllowance, handleCreateDare])
 
   useEffect(() => {
     if (isCreateConfirmed && step === 'creating') {
-      toast({ 
-        title: "DARE LIVE!", 
-        description: "The trap is set." 
+      toast({
+        title: "DARE LIVE!",
+        description: "The trap is set."
       })
       setStep('success')
     }
@@ -132,13 +131,13 @@ export default function CreateDareButton({
   const needsApproval = allowance !== undefined && allowance < amountBigInt && step === 'idle'
 
   return (
-    <Button 
+    <Button
       onClick={needsApproval ? handleApprove : handleCreateDare}
       disabled={isWaitingApproval || isWaitingCreate || !amount || parseFloat(amount) <= 0}
       className={`
         w-full py-6 text-xl font-black italic uppercase tracking-widest transition-all duration-300 relative overflow-hidden group border
-        ${needsApproval || step === 'approving' 
-          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] border-blue-400' 
+        ${needsApproval || step === 'approving'
+          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] border-blue-400'
           : 'bg-[#FFD700] hover:bg-[#FFC000] text-black shadow-[0_0_30px_rgba(255,215,0,0.5)] border-yellow-300'
         }
       `}

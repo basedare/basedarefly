@@ -1,15 +1,13 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits } from 'viem';
 import { PROTOCOL_ABI, USDC_ABI } from '@/abis/BaseDareProtocol';
-
-const PROTOCOL_ADDRESS = process.env.NEXT_PUBLIC_PROTOCOL_ADDRESS as `0x${string}`;
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
+import { PROTOCOL_CONTRACT_ADDRESS as PROTOCOL_ADDRESS, USDC_ADDRESS } from '@/lib/contracts';
 
 export function useBaseDare() {
   const { writeContractAsync, data: hash } = useWriteContract();
 
   // This is the "Confirmation Watcher"
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = 
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash });
 
   // --- 1. INJECT CAPITAL (The "Live Pot" Feature) ---
@@ -26,7 +24,7 @@ export function useBaseDare() {
         functionName: 'approve',
         args: [PROTOCOL_ADDRESS, parsedAmount],
       });
-      
+
       // Step B: Call injectCapital
       console.log("2. Injecting Capital...");
       return await writeContractAsync({
@@ -43,8 +41,8 @@ export function useBaseDare() {
 
   // --- 2. CREATE DARE ---
   const createDare = async (
-    streamerAddress: string, 
-    amount: string, 
+    streamerAddress: string,
+    amount: string,
     referrerAddress: string = "0x0000000000000000000000000000000000000000"
   ) => {
     try {
@@ -73,12 +71,12 @@ export function useBaseDare() {
     }
   };
 
-  return { 
-    injectCapital, 
-    createDare, 
-    hash, 
-    isConfirming, 
-    isConfirmed 
+  return {
+    injectCapital,
+    createDare,
+    hash,
+    isConfirming,
+    isConfirmed
   };
 }
 

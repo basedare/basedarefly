@@ -209,6 +209,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Notify Creator of Moderation Decision
+    if (dare.targetWalletAddress) {
+      await prisma.notification.create({
+        data: {
+          wallet: dare.targetWalletAddress.toLowerCase(),
+          type: decision === 'APPROVE' ? 'DARE_VERIFIED' : 'DARE_FAILED',
+          title: decision === 'APPROVE' ? 'Dare Approved by Admin!' : 'Dare Rejected by Admin',
+          message: decision === 'APPROVE'
+            ? `Your proof for "${dare.title}" was manually approved.`
+            : `Your proof for "${dare.title}" was rejected by moderators.`,
+          link: '/dashboard',
+        }
+      });
+    }
+
     console.log(
       `[MODERATE] Dare ${dareId} ${decision} by ${auth.moderatorAddress}${note ? ` - ${note}` : ''}`
     );

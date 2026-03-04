@@ -32,8 +32,10 @@ const BASEDARE_ABI = [
   },
 ] as const;
 
-const USDC_ADDRESS = (process.env.NEXT_PUBLIC_USDC_ADDRESS || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') as `0x${string}`;
-const CONTRACT_ADDR = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0') as `0x${string}`;
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
+if (!USDC_ADDRESS) throw new Error('NEXT_PUBLIC_USDC_ADDRESS is not set');
+const CONTRACT_ADDR = (process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_CONTRACT_ADDRESS) as `0x${string}`;
+if (!CONTRACT_ADDR) throw new Error('NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS is not set');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface DareDetail {

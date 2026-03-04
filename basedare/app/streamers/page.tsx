@@ -7,6 +7,7 @@ import { DollarSign, Users, TrendingUp, Trophy, Zap, Tag, Shield, CheckCircle, A
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
+import { ClaimTagModule } from "@/components/ClaimTagModule";
 
 export default function CreatorsPage() {
   const [creators, setCreators] = React.useState<any[]>([]);
@@ -90,13 +91,15 @@ export default function CreatorsPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <Link href="/claim-tag" className="flex-1">
-              <LiquidMetalButton className="w-full" size="md">
-                <Tag className="w-4 h-4" />
-                Claim Your Tag
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </LiquidMetalButton>
-            </Link>
+            <LiquidMetalButton
+              onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="flex-1"
+              size="md"
+            >
+              <Tag className="w-4 h-4" />
+              Claim Your Tag
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </LiquidMetalButton>
             <Link href="/leaderboard" className="flex-1">
               <motion.button
                 whileTap={{ scale: 0.98 }}
@@ -290,33 +293,16 @@ export default function CreatorsPage() {
           </div>
         </motion.div>
 
-        {/* Bottom CTA */}
+        {/* Bottom CTA replaced with the full Claim Tag Module */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="max-w-md mx-auto"
+          className="w-full relative mt-24 mb-12"
         >
-          <div className="backdrop-blur-xl bg-purple-500/5 border border-purple-500/30 rounded-2xl p-6 text-center relative overflow-hidden">
-            {/* Subtle gradient accent */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-yellow-500/5 pointer-events-none" />
-
-            <div className="relative z-10">
-              <h2 className="text-xl font-black text-white mb-2 italic">
-                Ready to Get Paid?
-              </h2>
-              <p className="text-sm text-gray-400 mb-6 font-mono">
-                Claim your tag in under 2 minutes.
-              </p>
-              <Link href="/claim-tag">
-                <LiquidMetalButton className="w-full" size="lg">
-                  <Zap className="w-5 h-5" />
-                  Claim Your Tag Now
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </LiquidMetalButton>
-              </Link>
-            </div>
-          </div>
+          {/* subtle divider */}
+          <div className="w-1/2 mx-auto h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent mb-16" />
+          <ClaimTagModule />
         </motion.div>
 
       </div>

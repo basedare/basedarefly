@@ -82,6 +82,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create Notification if successful and we have a target streamer
+    if (receipt.status === 'success' && streamerAddress) {
+      // Find the streamer tag to get their wallet address or use the provided address
+
+      await prisma.notification.create({
+        data: {
+          wallet: streamerAddress.toLowerCase(),
+          type: 'DARE_CREATED',
+          title: 'New Dare Received!',
+          message: `You have a new dare: "${title || 'On-chain dare'}" for ${amount} USDC`,
+          link: '/dashboard',
+        }
+      });
+    }
+
     console.log(`[AUDIT] On-chain dare created - dbId: ${dbDare.id}, txHash: ${hash}`);
 
     return NextResponse.json({

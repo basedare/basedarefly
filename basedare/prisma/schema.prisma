@@ -341,3 +341,22 @@ model VoterPoints {
 
   @@index([totalPoints])
 }
+
+// ============================================================================
+// IN-APP NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  wallet    String   // Target wallet address
+  type      String   // E.g., 'DARE_CREATED', 'DARE_FUNDED', 'DARE_VERIFIED', 'DARE_FAILED'
+  title     String
+  message   String
+  link      String?  // Optional URL to redirect to
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([wallet, isRead])
+  @@index([createdAt])
+}

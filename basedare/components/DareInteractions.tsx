@@ -9,8 +9,7 @@ import { Zap, Plus } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { FundButton } from '@coinbase/onchainkit/fund'
 import { USDC_ABI } from '@/abis/BaseDareBounty'
-
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`
+import { USDC_ADDRESS } from '@/lib/contracts'
 
 interface DareInteractionsProps {
   dareId: bigint
@@ -86,7 +85,7 @@ export default function DareInteractions({
             amount: pledgeAmount,
             pledgerAddress: address,
           }),
-        }).catch(() => {}) // Ignore errors - notification is best-effort
+        }).catch(() => { }) // Ignore errors - notification is best-effort
       }
 
       setInjectAmount('')

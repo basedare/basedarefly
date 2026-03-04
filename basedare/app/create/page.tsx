@@ -15,8 +15,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI, BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { USDC_ADDRESS, BOUNTY_CONTRACT_ADDRESS } from '@/lib/contracts';
 
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 
 // Liquid Metal Contact Button Component
@@ -240,7 +240,7 @@ export default function CreateDare() {
 
       const { dareId, onChainDareId, targetAddress, referrerAddress } = initData.data;
       const amountInUnits = parseUnits(data.amount.toString(), 6);
-      const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+      const BOUNTY_CONTRACT = BOUNTY_CONTRACT_ADDRESS as `0x${string}`;
 
       // 2. Exact USDC Approval
       const currentAllowance = await publicClient.readContract({
@@ -364,8 +364,8 @@ export default function CreateDare() {
         {/* SUCCESS STATE - Liquid Glass */}
         {successData && (
           <div className={`mb-6 md:mb-8 p-4 md:p-6 rounded-xl md:rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${successData.awaitingClaim
-              ? 'bg-yellow-500/10 border border-yellow-500/20'
-              : 'bg-green-500/10 border border-green-500/20'
+            ? 'bg-yellow-500/10 border border-yellow-500/20'
+            : 'bg-green-500/10 border border-green-500/20'
             }`}>
             <div className="flex items-start md:items-center gap-3 md:gap-4">
               <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${successData.awaitingClaim ? 'bg-yellow-500/20' : 'bg-green-500/20'
@@ -567,14 +567,14 @@ export default function CreateDare() {
                       trigger('click');
                     }}
                     className={`relative w-14 h-8 rounded-full transition-all ${watchIsNearbyDare
-                        ? 'bg-[#FACC15]/20 border-2 border-[#FACC15]'
-                        : 'bg-white/[0.05] border-2 border-white/10'
+                      ? 'bg-[#FACC15]/20 border-2 border-[#FACC15]'
+                      : 'bg-white/[0.05] border-2 border-white/10'
                       }`}
                   >
                     <span
                       className={`absolute top-1 w-5 h-5 rounded-full transition-all ${watchIsNearbyDare
-                          ? 'left-7 bg-[#FACC15]'
-                          : 'left-1 bg-gray-500'
+                        ? 'left-7 bg-[#FACC15]'
+                        : 'left-1 bg-gray-500'
                         }`}
                     />
                   </button>
@@ -585,10 +585,10 @@ export default function CreateDare() {
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Location Status */}
                     <div className={`p-4 rounded-xl border ${coordinates
-                        ? 'bg-green-500/10 border-green-500/20'
-                        : geoError
-                          ? 'bg-red-500/10 border-red-500/20'
-                          : 'bg-white/[0.03] border-white/[0.06]'
+                      ? 'bg-green-500/10 border-green-500/20'
+                      : geoError
+                        ? 'bg-red-500/10 border-red-500/20'
+                        : 'bg-white/[0.03] border-white/[0.06]'
                       }`}>
                       <div className="flex items-center gap-3">
                         {geoLoading ? (
