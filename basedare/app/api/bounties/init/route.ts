@@ -10,6 +10,8 @@ const InitBountySchema = z.object({
     amount: z.number().min(5),
     streamId: z.string().min(1),
     streamerTag: z.string().optional().or(z.literal('')),
+    missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+    missionTag: z.string().max(40).default('nightlife'),
     stakerAddress: z.string().optional(),
 });
 
@@ -39,6 +41,8 @@ export async function POST(request: NextRequest) {
             amount,
             streamId,
             streamerTag,
+            missionMode,
+            missionTag,
             stakerAddress,
         } = validation.data;
 
@@ -54,6 +58,8 @@ export async function POST(request: NextRequest) {
         const dbDare = await prisma.dare.create({
             data: {
                 title,
+                missionMode,
+                tag: missionTag,
                 bounty: amount,
                 streamerHandle: streamerTag || null,
                 status: 'FUNDING',
@@ -77,8 +83,9 @@ export async function POST(request: NextRequest) {
                 shortId
             },
         });
-    } catch (error: any) {
-        console.error('[INIT] Error:', error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[INIT] Error:', message);
         return NextResponse.json(
             { success: false, error: 'Failed to initialize bounty' },
             { status: 500 }

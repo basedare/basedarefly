@@ -24,6 +24,8 @@ model Dare {
   shortId             String?   @unique
   onChainDareId       String?   @unique
   title               String
+  missionMode         String?   @default("IRL")
+  tag                 String?
   bounty              Float
   streamerHandle      String?
   status              String    @default("PENDING")
@@ -56,6 +58,12 @@ model Dare {
   latitude            Float?
   locationLabel       String?
   longitude           Float?
+  venue_key           String?
+  dare_text           String?
+  proof_media         String?
+  completed_at        DateTime?
+  reaction_count      Int       @default(0)
+  geo_bucket          String?
   // Claim-to-attempt fields (for @everyone open dares)
   claimedBy           String?   // Wallet that claimed this dare
   claimedAt           DateTime? // When it was claimed
@@ -83,6 +91,8 @@ model Dare {
   @@index([claimedBy])
   @@index([status, videoUrl])
   @@index([claimRequestStatus])
+  @@index([tag])
+  @@index([geo_bucket])
 }
 
 model Comment {
