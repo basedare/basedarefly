@@ -40,7 +40,10 @@ export async function GET(
 
         // Check if streamer tag is verified in our system
         const streamTag = await prisma.streamerTag.findFirst({
-            where: { tag: { in: [handle, handlePlain], mode: 'insensitive' } },
+            where: {
+                tag: { in: [handle, handlePlain], mode: 'insensitive' },
+                status: 'ACTIVE',
+            },
             select: {
                 tag: true, twitterHandle: true, twitterVerified: true,
                 twitchHandle: true, twitchVerified: true,
@@ -63,7 +66,7 @@ export async function GET(
             data: {
                 handle: handle,
                 displayHandle: `@${handlePlain}`,
-                verified: streamTag?.status === 'ACTIVE',
+                verified: !!streamTag,
                 twitterHandle: streamTag?.twitterHandle || null,
                 twitchHandle: streamTag?.twitchHandle || null,
                 stats: { total, completed, live, acceptRate, totalPool, totalEarned, minBounty },

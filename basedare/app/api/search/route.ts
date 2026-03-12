@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         // 1. Search Streamer Tags (case insensitive exact or partial match)
         const streamers = await prisma.streamerTag.findMany({
             where: {
+                status: 'ACTIVE',
                 tag: {
                     contains: searchTerm,
                     mode: 'insensitive', // ILIKE equivalent

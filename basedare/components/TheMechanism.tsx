@@ -45,7 +45,7 @@ export default function TheMechanism() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-3">The Action</h3>
                 <p className="text-gray-400 leading-relaxed">
-                    The streamer receives the challenge. The chat goes wild. They either perform the dare or lose face forever.
+                    The influencer receives the challenge. The chat goes wild. They either perform the dare or lose face forever.
                 </p>
             </div>
 
@@ -75,4 +75,3 @@ export default function TheMechanism() {
     </section>
   );
 }
-
