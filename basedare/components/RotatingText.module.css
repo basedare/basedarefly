@@ -1,0 +1,42 @@
+.textRotate {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.textRotateSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.textRotateTrack {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.textRotateLines {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.textRotateWord {
+  display: inline-flex;
+}
+
+.textRotateElement {
+  display: inline-block;
+  white-space: pre;
+}
+
+.textRotateSpace {
+  white-space: pre;
+}
