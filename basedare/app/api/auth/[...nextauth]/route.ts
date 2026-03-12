@@ -63,6 +63,11 @@ export const authOptions: NextAuthOptions = {
           token.twitterHandle = (profile as any).data?.username || (profile as any).username;
           token.platformHandle = token.twitterHandle;
           token.platformId = token.twitterId;
+          token.platformBio = (profile as any).data?.description ?? (profile as any).description ?? null;
+          token.platformFollowerCount =
+            (profile as any).data?.public_metrics?.followers_count ??
+            (profile as any).public_metrics?.followers_count ??
+            null;
         }
 
         // Twitch data
@@ -71,6 +76,8 @@ export const authOptions: NextAuthOptions = {
           token.twitchHandle = (profile as any).preferred_username || (profile as any).login;
           token.platformHandle = token.twitchHandle;
           token.platformId = token.twitchId;
+          token.platformBio = (profile as any).description ?? null;
+          token.platformFollowerCount = (profile as any).followers ?? null;
         }
 
         // YouTube/Google data
@@ -79,6 +86,11 @@ export const authOptions: NextAuthOptions = {
           token.youtubeHandle = (profile as any).name || (profile as any).email?.split('@')[0];
           token.platformHandle = token.youtubeHandle;
           token.platformId = token.youtubeId;
+          token.platformBio = (profile as any).bio ?? null;
+          token.platformFollowerCount =
+            (profile as any).subscriberCount ??
+            (profile as any).followers ??
+            null;
         }
       }
       return token;
@@ -98,6 +110,8 @@ export const authOptions: NextAuthOptions = {
         (session as any).twitchHandle = token.twitchHandle;
         (session as any).youtubeId = token.youtubeId;
         (session as any).youtubeHandle = token.youtubeHandle;
+        (session as any).platformBio = token.platformBio;
+        (session as any).platformFollowerCount = token.platformFollowerCount;
       }
       return session;
     },

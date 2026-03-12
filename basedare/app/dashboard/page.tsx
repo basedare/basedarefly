@@ -25,11 +25,15 @@ interface Dare {
 }
 
 interface UserTag {
+  id: string;
   tag: string;
   status: string;
   verificationMethod: string;
   totalEarned: number;
   completedDares: number;
+  bio?: string | null;
+  followerCount?: number | null;
+  tags?: string[];
 }
 
 type DareView = 'funded' | 'forme';
@@ -44,6 +48,10 @@ export default function Dashboard() {
   const [selectedDare, setSelectedDare] = useState<Dare | null>(null);
   const [activeView, setActiveView] = useState<DareView>('funded');
   const [userTag, setUserTag] = useState<UserTag | null>(null);
+  const [creatorTagsInput, setCreatorTagsInput] = useState('');
+  const [savingCreatorTags, setSavingCreatorTags] = useState(false);
+  const [tagsSaveError, setTagsSaveError] = useState<string | null>(null);
+  const [tagsSaveSuccess, setTagsSaveSuccess] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -62,6 +70,62 @@ export default function Dashboard() {
   // Handle wallet connection
   const handleConnect = () => {
     connect({ connector: coinbaseWallet() });
+  };
+
+  // Keep editor in sync with fetched creator tags
+  useEffect(() => {
+    if (userTag?.tags && userTag.tags.length > 0) {
+      setCreatorTagsInput(userTag.tags.join(', '));
+    } else {
+      setCreatorTagsInput('');
+    }
+  }, [userTag?.id, userTag?.tags]);
+
+  const handleSaveCreatorTags = async () => {
+    if (!address || !userTag) return;
+
+    const parsed = Array.from(
+      new Set(
+        creatorTagsInput
+          .split(',')
+          .map((t) => t.replace(/^#/, '').trim().toLowerCase())
+          .filter((t) => t.length >= 2)
+      )
+    );
+
+    if (parsed.length < 3 || parsed.length > 5) {
+      setTagsSaveError('Please enter 3 to 5 tags (comma separated).');
+      setTagsSaveSuccess(null);
+      return;
+    }
+
+    setSavingCreatorTags(true);
+    setTagsSaveError(null);
+    setTagsSaveSuccess(null);
+    try {
+      const res = await fetch('/api/tags', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: address,
+          tag: userTag.tag,
+          tags: parsed,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save creator tags');
+      }
+
+      setUserTag((prev) => (prev ? { ...prev, tags: data.data.tags } : prev));
+      setCreatorTagsInput(data.data.tags.join(', '));
+      setTagsSaveSuccess('Creator tags saved.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to save creator tags';
+      setTagsSaveError(message);
+    } finally {
+      setSavingCreatorTags(false);
+    }
   };
 
   // Fetch user's dares from API (both funded and for-me)
@@ -193,6 +257,32 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {isConnected && userTag && (
+          <div className="mb-8 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-white font-bold text-sm">Creator Tags</p>
+                <p className="text-gray-400 font-mono text-xs">Add 3-5 tags (comma separated). Used for discovery.</p>
+              </div>
+              <button
+                onClick={handleSaveCreatorTags}
+                disabled={savingCreatorTags}
+                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-lg text-purple-300 font-bold text-xs uppercase tracking-wider disabled:opacity-50"
+              >
+                {savingCreatorTags ? 'Saving...' : 'Save Tags'}
+              </button>
+            </div>
+            <input
+              value={creatorTagsInput}
+              onChange={(e) => setCreatorTagsInput(e.target.value)}
+              placeholder="nightlife, gym, street"
+              className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white text-sm font-mono focus:outline-none focus:border-purple-500/50"
+            />
+            {tagsSaveError && <p className="text-red-400 text-xs mt-2">{tagsSaveError}</p>}
+            {tagsSaveSuccess && <p className="text-green-400 text-xs mt-2">{tagsSaveSuccess}</p>}
           </div>
         )}
 

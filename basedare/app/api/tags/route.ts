@@ -2,8 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { isAddress } from 'viem';
+
+type SessionPlatformData = {
+  provider?: string;
+  platformBio?: string | null;
+  platformFollowerCount?: number | null;
+  twitterId?: string | null;
+  twitterHandle?: string | null;
+  twitchId?: string | null;
+  twitchHandle?: string | null;
+  youtubeId?: string | null;
+  youtubeHandle?: string | null;
+};
 
 // ============================================================================
 // GET /api/tags - List all verified tags or check availability
@@ -30,6 +43,9 @@ export async function GET(request: NextRequest) {
           walletAddress: true,
           verifiedAt: true,
           verificationMethod: true,
+          bio: true,
+          followerCount: true,
+          tags: true,
         },
       });
 
@@ -50,6 +66,17 @@ export async function GET(request: NextRequest) {
     if (wallet) {
       const tags = await prisma.streamerTag.findMany({
         where: { walletAddress: wallet.toLowerCase() }, // Normalize to lowercase
+        select: {
+          id: true,
+          tag: true,
+          status: true,
+          verificationMethod: true,
+          totalEarned: true,
+          completedDares: true,
+          bio: true,
+          followerCount: true,
+          tags: true,
+        },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -58,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // List all verified tags (public)
     const verifiedTags = await prisma.streamerTag.findMany({
-      where: { status: 'VERIFIED' },
+      where: { status: { in: ['VERIFIED', 'ACTIVE'] } },
       select: {
         tag: true,
         twitterHandle: true,
@@ -69,6 +96,9 @@ export async function GET(request: NextRequest) {
         totalEarned: true,
         completedDares: true,
         verifiedAt: true,
+        bio: true,
+        followerCount: true,
+        tags: true,
       },
       orderBy: { totalEarned: 'desc' },
       take: 100,
@@ -124,6 +154,7 @@ export async function POST(request: NextRequest) {
 
     // Get session for OAuth-based verification
     const session = await getServerSession(authOptions);
+    const sessionData = (session ?? {}) as SessionPlatformData;
 
     // Platform-specific data
     let platformId: string | null = null;
@@ -131,6 +162,12 @@ export async function POST(request: NextRequest) {
     let verificationMethod: string;
     let status: string;
     let isManualVerification = false;
+    const sessionBio = sessionData.platformBio ?? null;
+    const sessionFollowerCountRaw = sessionData.platformFollowerCount;
+    const sessionFollowerCount =
+      typeof sessionFollowerCountRaw === 'number' && Number.isFinite(sessionFollowerCountRaw)
+        ? Math.max(0, Math.floor(sessionFollowerCountRaw))
+        : null;
 
     // Check if this is a manual verification request (code provided)
     if (effectiveManualCode && effectiveManualUsername) {
@@ -161,7 +198,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const sessionProvider = (session as any).provider;
+      const sessionProvider = sessionData.provider;
 
       // Verify the session matches the requested platform
       const expectedProvider = platform === 'youtube' ? 'google' : platform;
@@ -174,16 +211,16 @@ export async function POST(request: NextRequest) {
 
       // Get platform-specific data from session
       if (platform === 'twitter') {
-        platformId = (session as any).twitterId;
-        platformHandle = (session as any).twitterHandle;
+        platformId = sessionData.twitterId ?? null;
+        platformHandle = sessionData.twitterHandle ?? null;
         verificationMethod = 'TWITTER';
       } else if (platform === 'twitch') {
-        platformId = (session as any).twitchId;
-        platformHandle = (session as any).twitchHandle;
+        platformId = sessionData.twitchId ?? null;
+        platformHandle = sessionData.twitchHandle ?? null;
         verificationMethod = 'TWITCH';
       } else if (platform === 'youtube') {
-        platformId = (session as any).youtubeId;
-        platformHandle = (session as any).youtubeHandle;
+        platformId = sessionData.youtubeId ?? null;
+        platformHandle = sessionData.youtubeHandle ?? null;
         verificationMethod = 'YOUTUBE';
       } else {
         return NextResponse.json(
@@ -286,7 +323,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build update/create data based on platform
-    const platformData: Record<string, string | boolean | null | Date> = {
+    const platformData: Omit<Prisma.StreamerTagCreateInput, 'tag'> = {
       walletAddress,
       verificationMethod,
       status,
@@ -294,6 +331,8 @@ export async function POST(request: NextRequest) {
       revokedAt: null,
       revokedBy: null,
       revokeReason: null,
+      bio: sessionBio,
+      followerCount: sessionFollowerCount,
     };
 
     // Set platform-specific fields
@@ -313,7 +352,9 @@ export async function POST(request: NextRequest) {
         platformData.kickVerified = false;
       }
       // Store verification code in kickVerificationCode field (reused for all manual verifications)
-      platformData.kickVerificationCode = effectiveManualCode;
+      if (effectiveManualCode) {
+        platformData.kickVerificationCode = effectiveManualCode;
+      }
     } else if (platform === 'twitter') {
       platformData.twitterId = platformId;
       platformData.twitterHandle = platformHandle;
@@ -331,7 +372,7 @@ export async function POST(request: NextRequest) {
     // Create or update tag
     const streamerTag = await prisma.streamerTag.upsert({
       where: { tag: normalizedTag },
-      update: platformData,
+      update: platformData as Prisma.StreamerTagUpdateInput,
       create: {
         tag: normalizedTag,
         ...platformData,
@@ -410,6 +451,84 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[TAG] Claim failed:', message);
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+const UpdateTagProfileSchema = z.object({
+  walletAddress: z.string().refine(isAddress, 'Invalid wallet address'),
+  tag: z
+    .string()
+    .min(2, 'Tag must be at least 2 characters')
+    .max(21, 'Tag must be 21 characters or less'),
+  tags: z
+    .array(z.string().min(2).max(24))
+    .min(3, 'Select at least 3 tags')
+    .max(5, 'Maximum 5 tags'),
+});
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const validation = UpdateTagProfileSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const walletAddress = validation.data.walletAddress.toLowerCase();
+    const normalizedTag = validation.data.tag.startsWith('@')
+      ? validation.data.tag
+      : `@${validation.data.tag}`;
+
+    const normalizedTags = Array.from(
+      new Set(
+        validation.data.tags
+          .map((tag) => tag.replace(/^#/, '').trim().toLowerCase())
+          .filter((tag) => tag.length >= 2)
+      )
+    ).slice(0, 5);
+
+    if (normalizedTags.length < 3 || normalizedTags.length > 5) {
+      return NextResponse.json(
+        { success: false, error: 'Please provide between 3 and 5 unique tags' },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.streamerTag.findFirst({
+      where: {
+        tag: { equals: normalizedTag, mode: 'insensitive' },
+        walletAddress,
+        status: { in: ['VERIFIED', 'ACTIVE'] },
+      },
+      select: { id: true, tag: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: 'Tag not found or not owned by this wallet' },
+        { status: 404 }
+      );
+    }
+
+    const updated = await prisma.streamerTag.update({
+      where: { id: existing.id },
+      data: { tags: normalizedTags },
+      select: {
+        id: true,
+        tag: true,
+        tags: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

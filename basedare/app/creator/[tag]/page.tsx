@@ -21,8 +21,6 @@ const STREAMER_IMAGES: Record<string, string> = {
     speed: '/assets/Ishowspeed.jpg',
 };
 
-const CREATOR_TAGS = ['#IRL', '#Gambling', '#Gaming', '#Food', '#Sports', '#Music', '#React'];
-
 interface CreatorStats {
     total: number;
     completed: number;
@@ -49,6 +47,9 @@ interface CreatorProfile {
     verified: boolean;
     twitterHandle: string | null;
     twitchHandle: string | null;
+    bio: string | null;
+    followerCount: number | null;
+    tags: string[];
     stats: CreatorStats;
     recent: RecentDare[];
 }
@@ -141,6 +142,9 @@ export default function CreatorProfilePage() {
                         verified: false,
                         twitterHandle: null,
                         twitchHandle: null,
+                        bio: null,
+                        followerCount: null,
+                        tags: [],
                         stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
                         recent: [],
                     });
@@ -240,11 +244,23 @@ export default function CreatorProfilePage() {
                             )}
                         </div>
 
+                        {typeof profile?.followerCount === 'number' && (
+                            <p className="text-xs text-white/50 font-mono mt-1">
+                                {(profile.followerCount || 0).toLocaleString()} followers
+                            </p>
+                        )}
+
+                        {profile?.bio && (
+                            <p className="text-xs text-white/60 mt-2 leading-relaxed max-w-xl">
+                                {profile.bio}
+                            </p>
+                        )}
+
                         {/* Tags */}
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                            {CREATOR_TAGS.slice(0, 4).map(t => (
+                            {(profile?.tags || []).slice(0, 5).map((t) => (
                                 <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/40">
-                                    {t}
+                                    #{t}
                                 </span>
                             ))}
                         </div>

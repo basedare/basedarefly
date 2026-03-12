@@ -1,0 +1,8 @@
+ALTER TABLE "StreamerTag"
+ADD COLUMN "bio" TEXT;
+
+ALTER TABLE "StreamerTag"
+ADD COLUMN "followerCount" INTEGER;
+
+ALTER TABLE "StreamerTag"
+ADD COLUMN "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

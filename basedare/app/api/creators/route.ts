@@ -7,9 +7,13 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url);
+        const tagFilter = searchParams.get('tag')?.trim().toLowerCase();
+
         const streamers = await prisma.streamerTag.findMany({
             where: {
-                status: 'ACTIVE',
+                status: { in: ['ACTIVE', 'VERIFIED'] },
+                ...(tagFilter ? { tags: { has: tagFilter } } : {}),
             },
             orderBy: {
                 totalEarned: 'desc',
@@ -22,6 +26,9 @@ export async function GET(request: NextRequest) {
                 totalEarned: true,
                 completedDares: true,
                 walletAddress: true,
+                bio: true,
+                followerCount: true,
+                tags: true,
             },
         });
 

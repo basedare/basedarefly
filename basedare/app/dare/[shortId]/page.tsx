@@ -39,7 +39,7 @@ if (!CONTRACT_ADDR) throw new Error('NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS is not 
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface DareDetail {
-  id: string; shortId: string; title: string; bounty: number;
+  id: string; shortId: string; title: string; bounty: number; upvoteCount: number;
   streamerHandle: string | null; status: string; expiresAt: string | null;
   videoUrl: string | null; inviteToken: string | null; claimDeadline: string | null;
   targetWalletAddress: string | null; awaitingClaim: boolean;
@@ -163,8 +163,8 @@ export default function DareDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState('');
-  const [likeCount, setLikeCount] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [upvoteLoading, setUpvoteLoading] = useState(false);
+  const [upvoteError, setUpvoteError] = useState<string | null>(null);
 
   // Action bar state
   const [addAmount, setAddAmount] = useState('5');
@@ -179,6 +179,7 @@ export default function DareDetailPage() {
   const [commentBody, setCommentBody] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
 
   // Claim state (preserved)
@@ -265,6 +266,66 @@ export default function DareDetailPage() {
     } finally { setSubmittingComment(false); }
   };
 
+  // ── Upvote (persisted) ────────────────────────────────────────────────
+  const handleUpvote = async () => {
+    if (!dare) return;
+    if (!isConnected || !address) {
+      setUpvoteError('Connect your wallet to upvote');
+      return;
+    }
+
+    setUpvoteLoading(true);
+    setUpvoteError(null);
+    try {
+      const res = await fetch(`/api/dares/${dare.id}/upvote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upvote');
+      }
+      setDare((prev) => (prev ? { ...prev, upvoteCount: data.data.upvoteCount } : prev));
+    } catch (err: unknown) {
+      setUpvoteError(err instanceof Error ? err.message : 'Failed to upvote');
+    } finally {
+      setUpvoteLoading(false);
+    }
+  };
+
+  // ── Share link (native share + clipboard fallback) ────────────────────
+  const handleShare = useCallback(async () => {
+    const url = `${window.location.origin}/dare/${shortId}`;
+    const title = dare?.title || 'BaseDare Bounty';
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url });
+        setShareFeedback('Shared');
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setShareFeedback('Link copied');
+      } else {
+        window.prompt('Copy this link:', url);
+        setShareFeedback('Link ready');
+      }
+    } catch {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          setShareFeedback('Link copied');
+          return;
+        }
+      } catch {
+        // noop
+      }
+      setShareFeedback('Share failed. Copy URL from address bar.');
+    } finally {
+      setTimeout(() => setShareFeedback(null), 2200);
+    }
+  }, [dare?.title, shortId]);
+
   // ── Add to Pool tx ─────────────────────────────────────────────────────
   const handleAddToPool = async () => {
     if (!dare || !isConnected) return;
@@ -348,89 +409,98 @@ export default function DareDetailPage() {
   );
 
   return (
-    <main className="min-h-screen bg-black text-white pb-32">
+    <main className="min-h-screen overflow-x-hidden bg-transparent text-white pb-16">
       <LiquidBackground />
-
-      {/* ── TOP NAV ── */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-black/60 backdrop-blur-xl border-b border-white/[0.06]">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium hidden sm:inline">Back</span>
-        </button>
-        <div className="flex items-center gap-3">
-          {isUserInvolved && (
-            <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold hover:bg-purple-500/30 transition-colors">
-              <LayoutDashboard className="w-3 h-3" />
-              Dashboard
-            </Link>
-          )}
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/dare/${shortId}`;
-              navigator.clipboard.writeText(url);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 transition-colors"
-          >
-            <Share2 className="w-3 h-3" />
-            Share
-          </button>
-        </div>
-      </div>
+      <div className="fixed bottom-0 left-0 right-0 h-44 z-[2] pointer-events-none bg-gradient-to-t from-[#05060f]/90 via-[#05060f]/45 to-transparent backdrop-blur-[6px]" />
 
       {/* ── HERO ── */}
-      <div className="relative w-full min-h-[300px] md:min-h-[400px] overflow-hidden pt-14">
-        <div className="absolute inset-0">
-          <DareVisual
-            imageUrl={undefined}
-            streamerName={dare.streamerHandle || ''}
-            type={dare.streamerHandle ? 'streamer' : 'open'}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-black" />
+      <div className="relative w-full px-4 md:px-8 pt-6">
+        <div className="max-w-3xl mx-auto mb-3 flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgba(13,16,35,0.45)] border border-white/[0.12] text-white/70 text-xs font-bold hover:text-white hover:bg-[rgba(13,16,35,0.62)] transition-colors backdrop-blur-xl"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back
+          </button>
+          <div className="flex items-center gap-2">
+            {isUserInvolved && (
+              <Link href="/dashboard" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/35 text-purple-300 text-xs font-bold hover:bg-purple-500/30 transition-colors backdrop-blur-xl">
+                <LayoutDashboard className="w-3 h-3" />
+                Dashboard
+              </Link>
+            )}
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgba(13,16,35,0.45)] border border-white/[0.12] text-white/70 text-xs font-bold hover:text-white hover:bg-[rgba(13,16,35,0.62)] transition-colors backdrop-blur-xl"
+            >
+              <Share2 className="w-3 h-3" />
+              Share
+            </button>
+          </div>
         </div>
-        <div className="relative z-10 flex flex-col justify-end h-full min-h-[300px] md:min-h-[400px] px-4 pb-8 md:px-8 max-w-3xl mx-auto">
-          {/* Status + timer badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {sc && (
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${sc.cls}`}>
-                {sc.label === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-                {sc.label}
-              </span>
-            )}
-            {dare.expiresAt && (
-              <span className={`flex items-center gap-1.5 text-xs font-mono font-bold ${timerColor}`}>
-                <Clock className="w-3.5 h-3.5" />
-                {countdown}
-              </span>
-            )}
-            <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
-              <MessageCircle className="w-3.5 h-3.5" />
-              {comments.length} comments
+        {shareFeedback && (
+          <div className="max-w-3xl mx-auto mb-3 text-right">
+            <span className="inline-flex px-2.5 py-1 rounded-md bg-[rgba(13,16,35,0.55)] border border-white/[0.12] text-[11px] text-white/75 backdrop-blur-xl">
+              {shareFeedback}
             </span>
           </div>
+        )}
 
-          {/* Title */}
-          <h1 className="text-3xl md:text-5xl font-black italic uppercase leading-tight text-white tracking-tight mb-4 text-shadow-lg">
-            {dare.title}
-          </h1>
-
-          {/* Dared by row */}
-          {dare.streamerHandle && (
-            <Link
-              href={`/creator/${dare.streamerHandle.replace('@', '')}`}
-              className="inline-flex items-center gap-2 group w-fit"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-xs font-black text-black flex-shrink-0">
-                {dare.streamerHandle.replace('@', '').slice(0, 1).toUpperCase()}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Target</span>
-                <span className="text-sm font-bold text-yellow-400 group-hover:text-yellow-300 transition-colors flex items-center gap-1">
-                  {dare.streamerHandle.startsWith('@') ? dare.streamerHandle : `@${dare.streamerHandle}`}
-                  <ExternalLink className="w-3 h-3 opacity-50" />
+        <div className="relative max-w-3xl mx-auto min-h-[300px] md:min-h-[400px] overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] backdrop-blur-2xl shadow-[0_12px_45px_rgba(5,8,24,0.45)]">
+          <div className="absolute inset-0">
+            <DareVisual
+              imageUrl={undefined}
+              streamerName={dare.streamerHandle || ''}
+              type={dare.streamerHandle ? 'streamer' : 'open'}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[rgba(10,12,26,0.14)] via-[rgba(10,12,26,0.09)] to-[rgba(10,12,26,0.06)]" />
+          </div>
+          <div className="relative z-10 flex flex-col justify-end h-full min-h-[300px] md:min-h-[400px] px-5 md:px-8 pb-8">
+            {/* Status + timer badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {sc && (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${sc.cls}`}>
+                  {sc.label === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                  {sc.label}
                 </span>
-              </div>
-            </Link>
-          )}
+              )}
+              {dare.expiresAt && (
+                <span className={`flex items-center gap-1.5 text-xs font-mono font-bold ${timerColor}`}>
+                  <Clock className="w-3.5 h-3.5" />
+                  {countdown}
+                </span>
+              )}
+              <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
+                <MessageCircle className="w-3.5 h-3.5" />
+                {comments.length} comments
+              </span>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-3xl md:text-5xl font-black italic uppercase leading-tight text-white tracking-tight mb-4 text-shadow-lg">
+              {dare.title}
+            </h1>
+
+            {/* Dared by row */}
+            {dare.streamerHandle && (
+              <Link
+                href={`/creator/${dare.streamerHandle.replace('@', '')}`}
+                className="inline-flex items-center gap-2 group w-fit"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-purple-600 flex items-center justify-center text-xs font-black text-black flex-shrink-0">
+                  {dare.streamerHandle.replace('@', '').slice(0, 1).toUpperCase()}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Target</span>
+                  <span className="text-sm font-bold text-yellow-400 group-hover:text-yellow-300 transition-colors flex items-center gap-1">
+                    {dare.streamerHandle.startsWith('@') ? dare.streamerHandle : `@${dare.streamerHandle}`}
+                    <ExternalLink className="w-3 h-3 opacity-50" />
+                  </span>
+                </div>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -447,11 +517,12 @@ export default function DareDetailPage() {
             </div>
           </div>
           <button
-            onClick={() => { setLiked(v => !v); setLikeCount(c => c + (liked ? -1 : 1)); }}
-            className={`flex flex-col items-center gap-1 transition-all ${liked ? 'text-red-400 scale-110' : 'text-white/30 hover:text-red-400'}`}
+            onClick={handleUpvote}
+            disabled={upvoteLoading}
+            className="flex flex-col items-center gap-1 transition-all text-white/30 hover:text-red-400 disabled:opacity-60"
           >
-            <Heart className={`w-6 h-6 ${liked ? 'fill-red-400' : ''}`} />
-            <span className="text-xs font-mono font-bold">{likeCount}</span>
+            {upvoteLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Heart className="w-6 h-6" />}
+            <span className="text-xs font-mono font-bold">{dare.upvoteCount.toLocaleString()}</span>
           </button>
         </div>
 
@@ -472,6 +543,82 @@ export default function DareDetailPage() {
           <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {txError}
+          </div>
+        )}
+        {upvoteError && (
+          <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {upvoteError}
+          </div>
+        )}
+
+        {/* Action bar (inline, transparent — no fixed black footer overlay) */}
+        {!isExpired && (
+          <div className="p-4 bg-[rgba(15,18,38,0.18)] border border-white/[0.12] rounded-2xl backdrop-blur-2xl shadow-[0_10px_40px_rgba(8,10,24,0.35)]">
+            {/* Add-to-pool amount input (expandable) */}
+            <AnimatePresence>
+              {showAddInput && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden mb-3"
+                >
+                  <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2">
+                    <span className="text-xs text-white/30 font-mono">USDC</span>
+                    <input
+                      type="number" min="1" max="10000" step="1"
+                      value={addAmount}
+                      onChange={e => setAddAmount(e.target.value)}
+                      className="flex-1 bg-transparent text-white font-mono text-sm focus:outline-none"
+                    />
+                    <button
+                      onClick={() => { handleAddToPool(); setShowAddInput(false); }}
+                      disabled={approvePending || fundPending || !isConnected}
+                      className="px-4 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-xs rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Three CTA buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Upvote */}
+              <button
+                onClick={handleUpvote}
+                disabled={upvoteLoading}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl border transition-all bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white disabled:opacity-60"
+              >
+                {upvoteLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className="w-5 h-5" />}
+                <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
+              </button>
+
+              {/* Add to Pool */}
+              <button
+                onClick={() => {
+                  if (!isConnected) { setTxError('Connect your wallet first'); return; }
+                  setShowAddInput(v => !v);
+                }}
+                disabled={approvePending || fundPending}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50"
+              >
+                {approvePending || fundPending
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <Zap className="w-5 h-5" />
+                }
+                <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
+              </button>
+
+              {/* Steal */}
+              <button
+                onClick={() => setShowStealModal(true)}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Steal?</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -559,78 +706,6 @@ export default function DareDetailPage() {
         </div>
 
       </div>
-
-      {/* ── FIXED BOTTOM ACTION BAR (mobile + desktop) ── */}
-      {!isExpired && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0f]/95 border-t border-white/[0.08] backdrop-blur-2xl safe-area-bottom">
-          <div className="max-w-3xl mx-auto px-4 py-3">
-            {/* Add-to-pool amount input (expandable) */}
-            <AnimatePresence>
-              {showAddInput && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden mb-3"
-                >
-                  <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2">
-                    <span className="text-xs text-white/30 font-mono">USDC</span>
-                    <input
-                      type="number" min="1" max="10000" step="1"
-                      value={addAmount}
-                      onChange={e => setAddAmount(e.target.value)}
-                      className="flex-1 bg-transparent text-white font-mono text-sm focus:outline-none"
-                    />
-                    <button
-                      onClick={() => { handleAddToPool(); setShowAddInput(false); }}
-                      disabled={approvePending || fundPending || !isConnected}
-                      className="px-4 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-xs rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Three CTA buttons */}
-            <div className="grid grid-cols-3 gap-2">
-              {/* Upvote */}
-              <button
-                onClick={() => { setLiked(v => !v); setLikeCount(c => c + (liked ? -1 : 1)); }}
-                className={`flex flex-col items-center gap-1 py-3 rounded-xl border transition-all ${liked ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white'
-                  }`}
-              >
-                <Heart className={`w-5 h-5 ${liked ? 'fill-red-400' : ''}`} />
-                <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
-              </button>
-
-              {/* Add to Pool */}
-              <button
-                onClick={() => {
-                  if (!isConnected) { setTxError('Connect your wallet first'); return; }
-                  setShowAddInput(v => !v);
-                }}
-                disabled={approvePending || fundPending}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50"
-              >
-                {approvePending || fundPending
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : <Zap className="w-5 h-5" />
-                }
-                <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
-              </button>
-
-              {/* Steal */}
-              <button
-                onClick={() => setShowStealModal(true)}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all"
-              >
-                <Shield className="w-5 h-5" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Steal?</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Steal modal */}
       <AnimatePresence>

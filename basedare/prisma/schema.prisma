@@ -25,6 +25,7 @@ model Dare {
   onChainDareId       String?   @unique
   title               String
   bounty              Float
+  upvoteCount         Int       @default(0)
   streamerHandle      String?
   status              String    @default("PENDING")
   videoUrl            String?
@@ -112,6 +113,9 @@ model StreamerTag {
   id                   String    @id @default(cuid())
   tag                  String    @unique
   walletAddress        String
+  bio                  String?
+  followerCount        Int?
+  tags                 String[]  @default([])
   verificationMethod   String
   verifiedAt           DateTime?
   twitterId            String?   @unique

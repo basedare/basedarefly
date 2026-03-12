@@ -45,6 +45,7 @@ export async function GET(
                 tag: true, twitterHandle: true, twitterVerified: true,
                 twitchHandle: true, twitchVerified: true,
                 status: true, totalEarned: true,
+                bio: true, followerCount: true, tags: true,
             },
         }).catch(() => null);
 
@@ -63,9 +64,12 @@ export async function GET(
             data: {
                 handle: handle,
                 displayHandle: `@${handlePlain}`,
-                verified: streamTag?.status === 'ACTIVE',
+                verified: streamTag?.status === 'ACTIVE' || streamTag?.status === 'VERIFIED',
                 twitterHandle: streamTag?.twitterHandle || null,
                 twitchHandle: streamTag?.twitchHandle || null,
+                bio: streamTag?.bio || null,
+                followerCount: streamTag?.followerCount || null,
+                tags: streamTag?.tags || [],
                 stats: { total, completed, live, acceptRate, totalPool, totalEarned, minBounty },
                 recent,
             },

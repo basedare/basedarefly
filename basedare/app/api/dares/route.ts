@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
         ],
       }];
     } else if (!includeExpired && !includeAll) {
-      // Default: EXCLUDE expired dares (hide status EXPIRED and past expiresAt)
+      // Default wall behavior: keep all created dares visible until expiry.
+      // We only exclude explicit EXPIRED status or dares past expiresAt.
       where.AND = [{
         NOT: {
           OR: [
@@ -43,11 +44,6 @@ export async function GET(request: NextRequest) {
           ],
         },
       }];
-      // Also filter to active statuses only
-      where.status = { in: ['VERIFIED', 'PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW'] };
-    } else if (!includeAll) {
-      // includeExpired but not includeAll - filter by status but allow expired
-      where.status = { in: ['VERIFIED', 'PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'EXPIRED'] };
     }
 
     // Filter by user address if provided and valid
