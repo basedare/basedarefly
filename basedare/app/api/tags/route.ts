@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           available: false,
           tag: existing.tag,
           status: existing.status,
-          owner: existing.status === 'VERIFIED' ? existing.walletAddress.slice(0, 6) + '...' : null,
+          owner: existing.status === 'ACTIVE' ? existing.walletAddress.slice(0, 6) + '...' : null,
           platform: existing.verificationMethod?.toLowerCase(),
         });
       }
@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      status = 'VERIFIED'; // OAuth is instant verification
+      status = 'ACTIVE'; // OAuth is instant verification
     }
 
     // Check if tag matches platform handle (recommended)
@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
 
     // Check wallet doesn't have too many tags (limit to 3)
     const walletTags = await prisma.streamerTag.count({
-      where: { walletAddress, status: { in: ['VERIFIED', 'PENDING'] } },
+      where: { walletAddress, status: { in: ['ACTIVE', 'PENDING'] } },
     });
 
     if (walletTags >= 3) {
@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
       walletAddress,
       verificationMethod,
       status,
-      verifiedAt: status === 'VERIFIED' ? new Date() : null,
+      verifiedAt: status === 'ACTIVE' ? new Date() : null,
       revokedAt: null,
       revokedBy: null,
       revokeReason: null,
@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `[TAG] ${status === 'VERIFIED' ? 'Claimed' : 'Pending'}: ${normalizedTag} by ${walletAddress} (${verificationMethod}: ${platformHandle})`
+      `[TAG] ${status === 'ACTIVE' ? 'Claimed' : 'Pending'}: ${normalizedTag} by ${walletAddress} (${verificationMethod}: ${platformHandle})`
     );
 
     // -----------------------------------------------------------------------
@@ -389,7 +389,7 @@ export async function POST(request: NextRequest) {
     let activatedDares = 0;
     let totalActivatedBounty = 0;
 
-    if (status === 'VERIFIED') {
+    if (status === 'ACTIVE') {
       // Find all AWAITING_CLAIM dares for this streamer handle
       const pendingDares = await prisma.dare.findMany({
         where: {
@@ -425,9 +425,9 @@ export async function POST(request: NextRequest) {
     if (isManualVerification) {
       message = `Tag submitted for review! An admin will verify your ${platform} account (${effectiveManualUsername}) within 24 hours.`;
     } else if (activatedDares > 0) {
-      message = `Tag claimed and verified! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
+      message = `Tag claimed and activated! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
     } else if (tagMatchesPlatform) {
-      message = 'Tag claimed and verified!';
+      message = 'Tag claimed and active!';
     } else {
       message = `Tag claimed! Note: Your tag (${normalizedTag}) differs from your ${platform} (@${platformHandle}).`;
     }

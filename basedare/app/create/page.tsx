@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from "react";
-import { useForm } from 'react-hook-form';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
@@ -18,6 +18,12 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { USDC_ADDRESS, BOUNTY_CONTRACT_ADDRESS } from '@/lib/contracts';
 
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
+const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
 
 // Liquid Metal Contact Button Component
 function ContactButton() {
@@ -70,13 +76,15 @@ const CreateBountySchema = z.object({
   timeValue: z.number().min(1, 'Time value required'),
   timeUnit: z.enum(['Hours', 'Days', 'Weeks']),
   streamId: z.string().default('dev-stream-001'),
+  missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+  missionTag: z.string().min(1).max(40).default('nightlife'),
   // Nearby dare fields
-  isNearbyDare: z.boolean().default(false),
+  isNearbyDare: z.boolean().default(true),
   locationLabel: z.string().max(100).optional(),
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
 });
 
-type FormData = z.infer<typeof CreateBountySchema>;
+type FormData = z.input<typeof CreateBountySchema>;
 
 interface SuccessData {
   dareId: string;
@@ -139,7 +147,9 @@ export default function CreateDare() {
       timeValue: 24,
       timeUnit: 'Hours',
       streamId: 'dev-stream-001',
-      isNearbyDare: false,
+      missionMode: 'IRL',
+      missionTag: 'nightlife',
+      isNearbyDare: true,
       locationLabel: '',
       discoveryRadiusKm: 5,
     },
@@ -147,6 +157,7 @@ export default function CreateDare() {
 
   // Watch nearby dare toggle to auto-request location
   const watchIsNearbyDare = watch('isNearbyDare');
+  const watchTitle = watch('title');
 
   // Pre-fill form from URL params (coming from home page)
   useEffect(() => {
@@ -156,6 +167,25 @@ export default function CreateDare() {
     if (title) setValue('title', title);
   }, [searchParams, setValue]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.localStorage.getItem(NEARBY_TOAST_KEY)) return;
+
+    toast({
+      title: 'Nearby Dares Enabled!',
+      description: '3 challenges waiting within 500m — open now or turn off in Settings.',
+      duration: 7000,
+    });
+
+    window.localStorage.setItem(NEARBY_TOAST_KEY, '1');
+  }, [toast]);
+
+  useEffect(() => {
+    if (!watchIsNearbyDare) return;
+    if (!geoSupported || geoLoading || coordinates || geoError) return;
+    requestLocation();
+  }, [watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
+
   const watchAmount = watch('amount');
 
   // Balance check for FundButton (skip in simulation mode)
@@ -164,7 +194,7 @@ export default function CreateDare() {
   const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   // Debug: log validation errors
-  const onError = (errors: any) => {
+  const onError = (errors: FieldErrors<FormData>) => {
     console.log('[CREATE] Validation errors:', errors);
   };
 
@@ -176,20 +206,23 @@ export default function CreateDare() {
     setApprovalStatus('idle');
 
     try {
+      const isNearbyDareEnabled = Boolean(data.isNearbyDare);
       const requestBody: Record<string, unknown> = {
         title: data.title,
         amount: data.amount,
         streamerTag: data.streamerTag,
-        streamId: data.streamId,
-        isNearbyDare: data.isNearbyDare,
+        streamId: data.streamId ?? 'dev-stream-001',
+        missionMode: data.missionMode ?? 'IRL',
+        missionTag: data.missionTag ?? 'nightlife',
+        isNearbyDare: isNearbyDareEnabled,
         stakerAddress: address?.toLowerCase(),
       };
 
-      if (data.isNearbyDare && coordinates) {
+      if (isNearbyDareEnabled && coordinates) {
         requestBody.latitude = coordinates.lat;
         requestBody.longitude = coordinates.lng;
         requestBody.locationLabel = data.locationLabel || undefined;
-        requestBody.discoveryRadiusKm = data.discoveryRadiusKm;
+        requestBody.discoveryRadiusKm = data.discoveryRadiusKm ?? 5;
       }
 
       if (IS_SIMULATION_MODE) {
@@ -260,11 +293,12 @@ export default function CreateDare() {
             args: [BOUNTY_CONTRACT, amountInUnits],
           });
           await publicClient.waitForTransactionReceipt({ hash: approveTx });
-        } catch (error: any) {
-          if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+        } catch (error: unknown) {
+          const message = getErrorMessage(error);
+          if (message.includes('User rejected') || message.includes('User denied')) {
             throw new Error("USDC approval canceled");
           }
-          throw new Error("Failed to approve USDC: " + error.message);
+          throw new Error("Failed to approve USDC: " + message);
         }
       }
 
@@ -279,11 +313,12 @@ export default function CreateDare() {
           args: [BigInt(onChainDareId), targetAddress as `0x${string}`, referrerAddress as `0x${string}`, amountInUnits],
         });
         await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
-      } catch (error: any) {
-        if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        if (message.includes('User rejected') || message.includes('User denied')) {
           throw new Error("Dare creation canceled");
         }
-        throw new Error("Dare creation failed onchain: " + error.message);
+        throw new Error("Dare creation failed onchain: " + message);
       }
 
       // 4. Verify & Register with Backend
@@ -309,10 +344,10 @@ export default function CreateDare() {
           streamerTag: regData.data.streamerHandle,
           shortId: regData.data.shortId,
           isOpenBounty: !regData.data.streamerHandle,
-          isNearbyDare: data.isNearbyDare,
+          isNearbyDare: isNearbyDareEnabled,
         });
 
-        if (data.isNearbyDare) clearLocation();
+        if (isNearbyDareEnabled) clearLocation();
 
         toast({
           title: "✅ CONTRACT DEPLOYED",
@@ -321,8 +356,9 @@ export default function CreateDare() {
         });
         reset();
 
-      } catch (error: any) {
-        throw new Error(error.message.includes('sync pending') ? error.message : `Dare created onchain (tx: ${txHash}), sync pending - contact support`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        throw new Error(message.includes('sync pending') ? message : `Dare created onchain (tx: ${txHash}), sync pending - contact support`);
       }
 
     } catch (error: unknown) {
@@ -530,7 +566,14 @@ export default function CreateDare() {
                   </label>
                   <span className="text-[9px] md:text-[10px] text-gray-500 font-mono whitespace-nowrap">AI ASSIST ↓</span>
                 </div>
-                <DareGenerator onSelect={(text) => setValue('title', text)} />
+                <DareGenerator
+                  onSelect={(text) => setValue('title', text)}
+                  shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
+                  onContextChange={({ mode, tag }) => {
+                    setValue('missionMode', mode);
+                    setValue('missionTag', tag);
+                  }}
+                />
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."

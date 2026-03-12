@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   Accordion,
   AccordionContent,
@@ -74,44 +75,51 @@ const FAQ_ITEMS = [
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
       <LiquidBackground />
-      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      <div className="pointer-events-none fixed inset-0 z-10">
+        <GradualBlurOverlay intensity="light" placement="lower" />
+      </div>
 
-      <div className="relative z-10 pt-16 pb-32 px-4 flex-1 mt-12">
-        <div className="max-w-3xl mx-auto">
-          
-          {/* Header */}
+      <div className="pointer-events-none absolute inset-0 z-[1]">
+        <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-purple-500/20 blur-[120px]" />
+        <div className="absolute -right-32 top-40 h-80 w-80 rounded-full bg-cyan-400/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full bg-yellow-400/10 blur-[140px]" />
+      </div>
+
+      <div className="relative z-20 mt-12 px-4 pb-32 pt-16 md:pt-20">
+        <div className="mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
+            className="apple-liquid-glass mb-10 overflow-hidden px-6 py-10 text-center md:px-10 md:py-12"
           >
-            {/* Peebear Head Container - Tight Fit for Badge */}
-            <div className="relative w-80 h-80 mx-auto mb-8">
-               <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-xl animate-pulse" />
-            <motion.img
-                 src="/assets/peebear-head.png"
-              alt="BaseDare Bear"
-                 className="w-full h-full object-contain relative z-10"
-                 animate={{ 
-                   rotate: [0, 5, -5, 0],
-                   scale: [1, 1.05, 1]
-                 }}
-                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-               />
-               
-               {/* AI AGENT BADGE - Tucked tightly to bottom right */}
-               <div className="absolute bottom-0 right-0 z-20 translate-x-1/4 translate-y-1/4">
-                 <div className="bg-purple-600 text-white text-[10px] font-black px-2 py-1 rounded-full border border-white/20 shadow-[0_0_15px_rgba(168,85,247,0.5)] whitespace-nowrap">
-                   AI AGENT
-                 </div>
-               </div>
+            <div className="relative mx-auto mb-6 h-44 w-44 md:h-56 md:w-56">
+              <div className="absolute inset-0 rounded-full bg-yellow-500/20 blur-2xl" />
+              <div className="absolute inset-0 rounded-full border border-white/20 bg-white/5 backdrop-blur-xl" />
+              <motion.div
+                className="relative z-10 h-full w-full"
+                animate={{ rotate: [0, 4, -4, 0], scale: [1, 1.04, 1] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Image
+                  src="/assets/peebear-head.png"
+                  alt="BaseDare Bear"
+                  fill
+                  className="object-contain p-4"
+                  sizes="(max-width: 768px) 176px, 224px"
+                />
+              </motion.div>
+
+              <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
+                <div className="whitespace-nowrap rounded-full border border-white/20 bg-purple-600 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                  AI AGENT
+                </div>
+              </div>
             </div>
-            
-            {/* TEXT PRESSURE TITLE */}
-            <div className="relative h-24 md:h-32 w-full mb-2 cursor-default">
-              <TextPressure 
+
+            <div className="relative mx-auto mb-2 h-24 w-full max-w-3xl cursor-default md:h-28">
+              <TextPressure
                 text="WTF IS THIS?"
                 flex={true}
                 alpha={false}
@@ -124,13 +132,12 @@ export default function FAQPage() {
               />
             </div>
 
-            <p className="text-gray-400 text-lg font-mono uppercase tracking-widest flex items-center justify-center gap-2 mt-4">
+            <p className="mt-4 flex items-center justify-center gap-2 font-mono text-sm uppercase tracking-[0.2em] text-gray-300 md:text-base">
               <Bot className="w-5 h-5 text-purple-400" />
               Peebear answers your questions
             </p>
           </motion.div>
 
-          {/* Accordion */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -141,44 +148,49 @@ export default function FAQPage() {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="bg-white/5 border border-white/10 rounded-2xl px-6 overflow-hidden data-[state=open]:border-yellow-500/30 transition-colors"
+                  className="apple-liquid-glass overflow-hidden px-6 data-[state=open]:border-yellow-500/35 data-[state=open]:bg-white/[0.06] transition-colors"
                 >
                   <AccordionTrigger className="text-left py-6 hover:no-underline group">
-                    <span className="text-white font-bold text-lg md:text-xl group-hover:text-yellow-400 transition-colors uppercase italic tracking-wide">
+                    <span className="text-base font-black uppercase italic tracking-wide text-white transition-colors group-hover:text-yellow-400 md:text-xl">
                       {item.q}
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="text-gray-300 pb-6 text-sm md:text-base font-mono leading-relaxed border-t border-white/5 pt-4">
+                  <AccordionContent className="border-t border-white/10 pb-6 pt-4 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
                     <span className="text-yellow-500 font-bold mr-2">{">"}</span>
-                    {/* Render with bold markdown support */}
-                    <span dangerouslySetInnerHTML={{ __html: item.a.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: item.a.replace(
+                          /\*\*(.*?)\*\*/g,
+                          '<strong class="text-white">$1</strong>'
+                        ),
+                      }}
+                    />
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
           </motion.div>
 
-          {/* CTA */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
             className="mt-16 text-center"
           >
-            <div className="inline-flex flex-col items-center gap-4 p-6 rounded-3xl bg-white/5 border border-white/10">
-                <p className="text-gray-400 text-xs uppercase tracking-widest flex items-center gap-2">
-                   <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                   Still confused?
-                </p>
-                <a
-                  href="https://x.com/basedare_xyz"
-              target="_blank"
-              rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#1DA1F2]/10 border border-[#1DA1F2]/30 text-[#1DA1F2] font-black px-8 py-4 rounded-full hover:bg-[#1DA1F2] hover:text-white transition-all text-sm uppercase tracking-wider group"
-            >
-                  <MessageCircle className="w-5 h-5" />
-                  DM @basedare_xyz
-            </a>
+            <div className="apple-liquid-glass inline-flex flex-col items-center gap-4 rounded-3xl p-6 md:p-8">
+              <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-gray-300">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                Still confused?
+              </p>
+              <a
+                href="https://x.com/basedare_xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 rounded-full border border-[#1DA1F2]/35 bg-[#1DA1F2]/10 px-8 py-4 text-sm font-black uppercase tracking-[0.14em] text-[#1DA1F2] transition-all hover:bg-[#1DA1F2] hover:text-white"
+              >
+                <MessageCircle className="h-5 w-5" />
+                DM @basedare_xyz
+              </a>
             </div>
           </motion.div>
         </div>

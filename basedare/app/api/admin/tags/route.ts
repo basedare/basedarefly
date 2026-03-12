@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       data: {
         tags,
         counts: {
-          verified: countMap['VERIFIED'] || 0,
+          verified: countMap['ACTIVE'] || 0,
           pending: countMap['PENDING'] || 0,
           revoked: countMap['REVOKED'] || 0,
           suspended: countMap['SUSPENDED'] || 0,
@@ -148,7 +148,7 @@ export async function PUT(request: NextRequest) {
         await prisma.streamerTag.update({
           where: { id: streamerTag!.id },
           data: {
-            status: 'VERIFIED',
+            status: 'ACTIVE',
             revokedAt: null,
             revokedBy: null,
             revokeReason: null,
@@ -197,7 +197,7 @@ export async function PUT(request: NextRequest) {
           where: { tag: normalizedTag },
           update: {
             walletAddress,
-            status: 'VERIFIED',
+            status: 'ACTIVE',
             verificationMethod: 'ADMIN',
             verifiedAt: new Date(),
             revokedAt: null,
@@ -208,7 +208,7 @@ export async function PUT(request: NextRequest) {
             tag: normalizedTag,
             walletAddress,
             verificationMethod: 'ADMIN',
-            status: 'VERIFIED',
+            status: 'ACTIVE',
             verifiedAt: new Date(),
           },
         });
@@ -238,7 +238,7 @@ export async function PUT(request: NextRequest) {
         await prisma.streamerTag.update({
           where: { id: streamerTag!.id },
           data: {
-            status: 'VERIFIED',
+            status: 'ACTIVE',
             kickVerified: true,
             verifiedAt: new Date(),
           },
@@ -284,7 +284,7 @@ export async function PUT(request: NextRequest) {
 
         // Update the appropriate verified flag based on verification method
         const verifyData: Record<string, boolean | string | Date> = {
-          status: 'VERIFIED',
+          status: 'ACTIVE',
           verifiedAt: new Date(),
         };
         if (streamerTag!.verificationMethod === 'KICK') {

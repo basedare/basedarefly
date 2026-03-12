@@ -2,9 +2,17 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ui/use-toast';
 
-type VerificationStatus = 'idle' | 'uploading' | 'verifying' | 'verified' | 'failed';
+type VerificationStatus =
+  | 'idle'
+  | 'uploading'
+  | 'verifying'
+  | 'verified'
+  | 'failed'
+  | 'pending_review'
+  | 'pending_payout';
 
 interface SubmitEvidenceProps {
   dareId: string;
@@ -12,6 +20,7 @@ interface SubmitEvidenceProps {
 }
 
 export default function SubmitEvidence({ dareId, onVerificationComplete }: SubmitEvidenceProps) {
+  const { data: session } = useSession();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<VerificationStatus>('idle');
@@ -26,6 +35,19 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+  const parseJsonSafe = async (response: Response): Promise<Record<string, unknown>> => {
+    try {
+      return (await response.json()) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  };
+
+  const readErrorMessage = (payload: Record<string, unknown>, fallback: string): string =>
+    typeof payload.error === 'string' ? payload.error : fallback;
+
+  const getUnknownErrorMessage = (error: unknown, fallback: string): string =>
+    error instanceof Error ? error.message : fallback;
 
   const handleFileSelect = (selectedFile: File) => {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
@@ -103,21 +125,38 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
         body: formData,
       });
 
-      const uploadData = await uploadResponse.json();
+      const uploadData = await parseJsonSafe(uploadResponse);
 
       if (!uploadResponse.ok) {
-        throw new Error(uploadData.error || 'Upload failed');
+        throw new Error(readErrorMessage(uploadData, 'We could not upload your evidence. Please try again.'));
       }
 
-      const videoUrl = uploadData.url || uploadData.ipfsUrl || uploadData.data?.url;
+      const uploadPayload = uploadData as {
+        url?: unknown;
+        ipfsUrl?: unknown;
+        data?: { url?: unknown };
+      };
+      const videoUrl =
+        (typeof uploadPayload.url === 'string' && uploadPayload.url) ||
+        (typeof uploadPayload.ipfsUrl === 'string' && uploadPayload.ipfsUrl) ||
+        (typeof uploadPayload.data?.url === 'string' && uploadPayload.data.url) ||
+        null;
+
+      if (!videoUrl) {
+        throw new Error('Upload succeeded but no file URL was returned. Please retry.');
+      }
       console.log('[EVIDENCE] File uploaded:', videoUrl);
 
       // Step 2: Trigger verification
       setStatus('verifying');
+      const authToken = (session as { token?: string } | null)?.token;
 
       const verifyResponse = await fetch('/api/verify-proof', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({
           dareId,
           proofData: {
@@ -127,20 +166,33 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
         }),
       });
 
-      const verifyData = await verifyResponse.json();
+      const verifyData = await parseJsonSafe(verifyResponse);
 
-      if (!verifyResponse.ok && !verifyData.success) {
+      if (!verifyResponse.ok || verifyData.success !== true) {
+        const verifyCode = typeof verifyData.code === 'string' ? verifyData.code : '';
         // Handle specific error codes
-        if (verifyData.code === 'ALREADY_VERIFIED') {
+        if (verifyCode === 'ALREADY_VERIFIED') {
           setStatus('verified');
           setVerificationResult({ reason: 'This dare has already been verified!' });
           return;
         }
-        throw new Error(verifyData.error || 'Verification failed');
+        throw new Error(readErrorMessage(verifyData, 'Verification failed. Please try again.'));
       }
 
       // Handle verification result
-      const result = verifyData.data;
+      const result = verifyData.data as
+        | {
+            status?: string;
+            verification?: { confidence?: number; reason?: string };
+            appealable?: boolean;
+            message?: string;
+          }
+        | undefined;
+
+      if (!result?.status) {
+        throw new Error('Verification service returned an invalid response. Please try again.');
+      }
+
       if (result.status === 'VERIFIED') {
         setStatus('verified');
         setVerificationResult({
@@ -174,9 +226,43 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
           description: result.verification?.reason || 'The Beta AI Referee could not verify dare completion. You can submit an appeal.',
           duration: 10000,
         });
+      } else if (result.status === 'PENDING_REVIEW') {
+        setStatus('pending_review');
+        setVerificationResult({
+          confidence: result.verification?.confidence,
+          reason:
+            result.verification?.reason ||
+            result.message ||
+            'Your proof is valid and is now under manual review.',
+        });
+        onVerificationComplete?.({ status: 'PENDING_REVIEW', confidence: result.verification?.confidence });
+
+        toast({
+          title: 'Proof Submitted',
+          description: 'Your proof is under manual review. We will notify you once reviewed.',
+          duration: 9000,
+        });
+      } else if (result.status === 'PENDING_PAYOUT') {
+        setStatus('pending_payout');
+        setVerificationResult({
+          confidence: result.verification?.confidence,
+          reason:
+            result.verification?.reason ||
+            result.message ||
+            'Proof verified. Payout is queued and will retry automatically.',
+        });
+        onVerificationComplete?.({ status: 'PENDING_PAYOUT', confidence: result.verification?.confidence });
+
+        toast({
+          title: 'Payout Queued',
+          description: 'Proof verified. Payout is temporarily queued and will retry automatically.',
+          duration: 9000,
+        });
+      } else {
+        throw new Error('Unexpected verification status received. Please refresh and check again.');
       }
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to upload and verify. Please try again.';
+    } catch (err: unknown) {
+      const errorMessage = getUnknownErrorMessage(err, 'Failed to upload and verify. Please try again.');
       setError(errorMessage);
       setStatus('idle');
       console.error('[EVIDENCE] Error:', err);
@@ -198,19 +284,23 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
     }
 
     try {
+      const authToken = (session as { token?: string } | null)?.token;
       const response = await fetch('/api/verify-proof', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({
           dareId,
           reason: appealText,
         }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Appeal submission failed');
+      if (!response.ok || data.success !== true) {
+        throw new Error(readErrorMessage(data, 'Appeal submission failed'));
       }
 
       setAppealSubmitted(true);
@@ -222,8 +312,8 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
         description: 'Your appeal has been submitted for review. You will be notified of the outcome within 24-48 hours.',
         duration: 8000,
       });
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to submit appeal.';
+    } catch (err: unknown) {
+      const errorMessage = getUnknownErrorMessage(err, 'Failed to submit appeal.');
       setError(errorMessage);
 
       // Show appeal error toast
@@ -279,6 +369,39 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
               Verified by Beta AI Referee
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'pending_review' || status === 'pending_payout') {
+    const isReview = status === 'pending_review';
+    return (
+      <div className="group relative h-full bg-yellow-500/5 border-2 border-yellow-500/50 rounded-3xl overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center border border-yellow-500/50">
+            <RefreshCw className="w-8 h-8 text-yellow-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-yellow-400 uppercase tracking-wider mb-1">
+              {isReview ? 'Under Review' : 'Payout Queued'}
+            </h3>
+            <p className="text-xs font-mono text-gray-300 max-w-[240px]">
+              {verificationResult?.reason ||
+                (isReview
+                  ? 'Your proof is waiting for manual review.'
+                  : 'Your payout is queued and will retry automatically.')}
+            </p>
+          </div>
+          <div className="px-3 py-1 rounded bg-yellow-500/10 border border-yellow-500/30 text-[10px] font-bold text-yellow-400 uppercase tracking-widest">
+            {isReview ? 'Manual Review' : 'Auto-Retry Active'}
+          </div>
+          <button
+            onClick={handleRemove}
+            className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-wider transition-colors"
+          >
+            Upload Different Proof
+          </button>
         </div>
       </div>
     );

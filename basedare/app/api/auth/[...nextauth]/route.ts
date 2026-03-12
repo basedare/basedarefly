@@ -53,7 +53,17 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, account, profile }) {
+      // Stable API token exposed to client as session.token.
+      // Used for authenticated browser calls to protected endpoints.
+      if (!token.apiToken) {
+        token.apiToken = crypto.randomUUID();
+      }
+
       if (account && profile) {
+        if (!token.apiToken) {
+          token.apiToken = crypto.randomUUID();
+        }
+
         // Store the provider used
         token.provider = account.provider;
 
@@ -112,6 +122,7 @@ export const authOptions: NextAuthOptions = {
         (session as any).youtubeHandle = token.youtubeHandle;
         (session as any).platformBio = token.platformBio;
         (session as any).platformFollowerCount = token.platformFollowerCount;
+        (session as any).token = token.apiToken;
       }
       return session;
     },

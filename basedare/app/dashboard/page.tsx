@@ -145,7 +145,7 @@ export default function Dashboard() {
         // Fetch user's verified tag
         const tagRes = await fetch(`/api/tags?wallet=${address}`);
         const tagData = tagRes.ok ? await tagRes.json() : { tags: [] };
-        const verifiedTag = tagData.tags?.find((t: UserTag) => t.status === 'VERIFIED');
+        const verifiedTag = tagData.tags?.find((t: UserTag) => t.status === 'ACTIVE');
         setUserTag(verifiedTag || null);
 
         // Fetch dares I funded (as staker)

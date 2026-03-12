@@ -78,7 +78,7 @@ async function resolveTagToAddress(tag: string): Promise<{ address: Address | nu
     select: { walletAddress: true, status: true },
   });
 
-  if (verifiedTag && verifiedTag.status === 'VERIFIED') {
+  if (verifiedTag && verifiedTag.status === 'ACTIVE') {
     console.log(`[TAG] Resolved ${normalizedTag} → ${verifiedTag.walletAddress} (verified)`);
     return {
       address: verifiedTag.walletAddress as Address,
@@ -138,6 +138,12 @@ const StakeBountySchema = z.object({
     .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
     .optional()
     .or(z.literal('')),
+
+  missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+  missionTag: z
+    .string()
+    .max(40, 'Mission tag must be 40 characters or less')
+    .default('nightlife'),
 
   referrerAddress: z
     .string()
@@ -296,9 +302,10 @@ export async function POST(request: NextRequest) {
       amount,
       streamId,
       streamerTag,
+      missionMode,
+      missionTag,
       referrerAddress,
       referrerTag,
-      dareId,
       stakerAddress,
       isNearbyDare,
       latitude,
@@ -441,6 +448,8 @@ export async function POST(request: NextRequest) {
       const dbDare = await prisma.dare.create({
         data: {
           title,
+          missionMode,
+          tag: missionTag,
           bounty: amount,
           streamerHandle: isOpenBounty ? null : streamerTag,
           status: dareStatus,
@@ -603,6 +612,8 @@ export async function POST(request: NextRequest) {
     const dbDarePreCreate = await prisma.dare.create({
       data: {
         title,
+        missionMode,
+        tag: missionTag,
         bounty: amount,
         streamerHandle: isOpenBounty ? null : streamerTag,
         status: 'FUNDING',
@@ -748,23 +759,52 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Bounty stake failed:', message);
+    const normalizedMessage = message.toLowerCase();
 
     // Handle specific error cases
-    if (message.includes('insufficient funds')) {
+    if (normalizedMessage.includes('insufficient funds') || normalizedMessage.includes('insufficient usdc')) {
       return NextResponse.json(
         { success: false, error: 'Insufficient USDC balance', code: 'INSUFFICIENT_FUNDS' },
         { status: 400 }
       );
     }
 
-    if (message.includes('user rejected')) {
+    if (
+      normalizedMessage.includes('user rejected') ||
+      normalizedMessage.includes('user denied') ||
+      normalizedMessage.includes('rejected the request')
+    ) {
       return NextResponse.json(
         { success: false, error: 'Transaction rejected', code: 'USER_REJECTED' },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: false, error: 'An internal error occurred' }, { status: 500 });
+    if (normalizedMessage.includes('stream') && normalizedMessage.includes('active')) {
+      return NextResponse.json(
+        { success: false, error: 'Stream is not active. Start your stream and try again.', code: 'STREAM_INACTIVE' },
+        { status: 400 }
+      );
+    }
+
+    if (normalizedMessage.includes('tag') && normalizedMessage.includes('resolve')) {
+      return NextResponse.json(
+        { success: false, error: 'Could not resolve the creator tag. Check the tag and try again.', code: 'TAG_RESOLUTION_FAILED' },
+        { status: 400 }
+      );
+    }
+
+    if (normalizedMessage.includes('network') || normalizedMessage.includes('timeout')) {
+      return NextResponse.json(
+        { success: false, error: 'Network issue while staking. Please retry in a few seconds.', code: 'NETWORK_ERROR' },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Could not create stake right now. Please try again shortly.', code: 'STAKE_FAILED' },
+      { status: 500 }
+    );
   }
 }
 
@@ -984,7 +1024,7 @@ export async function GET(request: NextRequest) {
       }));
 
       // Combine with mock bounties if database is empty
-      let allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
+      const allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
 
       if (sort === 'amount') {
         allBounties.sort((a, b) => b.amount - a.amount);

@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createPublicClient, createWalletClient, http, isAddress, type Address, keccak256, toBytes } from 'viem';
+import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address, keccak256, toBytes } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
-import { alertVerification, alertPayout } from '@/lib/telegram';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { alertError, alertVerification, alertPayout } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 
 // Network selection based on environment
@@ -28,6 +30,12 @@ const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 const STREAMER_FEE_PERCENT = 89;
 const HOUSE_FEE_PERCENT = 10;
 const REFERRER_FEE_PERCENT = 1;
+const REFEREE_MAX_BALANCE_ETH = '0.05';
+const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
+const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+
+let warnedLegacyRefereeKey = false;
+let lastRefereeBalanceAlertAt = 0;
 
 // ============================================================================
 // ZOD VALIDATION
@@ -49,12 +57,23 @@ const VerifyProofSchema = z.object({
 // ============================================================================
 
 function getRefereeClient() {
-  const privateKey = process.env.REFEREE_PRIVATE_KEY;
+  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error('REFEREE_PRIVATE_KEY not configured');
+    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
+  }
+
+  if (!process.env.REFEREE_HOT_WALLET_PRIVATE_KEY && !warnedLegacyRefereeKey) {
+    console.warn(
+      '[SECURITY] REFEREE_HOT_WALLET_PRIVATE_KEY not set; falling back to REFEREE_PRIVATE_KEY. Configure a dedicated low-balance hot wallet.'
+    );
+    warnedLegacyRefereeKey = true;
   }
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS?.toLowerCase();
+  if (platformWallet && account.address.toLowerCase() === platformWallet) {
+    throw new Error('Referee wallet must be dedicated and different from platform wallet');
+  }
 
   const publicClient = createPublicClient({
     chain: activeChain,
@@ -68,6 +87,35 @@ function getRefereeClient() {
   });
 
   return { publicClient, walletClient, account };
+}
+
+async function enforceRefereeBalanceCap(
+  publicClient: ReturnType<typeof createPublicClient>,
+  refereeAddress: Address,
+  context: string
+): Promise<{ allowed: boolean; balanceEth: string }> {
+  const balanceWei = await publicClient.getBalance({ address: refereeAddress });
+  const balanceEth = formatEther(balanceWei);
+
+  if (balanceWei <= REFEREE_MAX_BALANCE_WEI) {
+    return { allowed: true, balanceEth };
+  }
+
+  console.warn(
+    `[SECURITY] Referee hot wallet balance cap exceeded: ${balanceEth} ETH > ${REFEREE_MAX_BALANCE_ETH} ETH`
+  );
+
+  const now = Date.now();
+  if (now - lastRefereeBalanceAlertAt > REFEREE_ALERT_COOLDOWN_MS) {
+    lastRefereeBalanceAlertAt = now;
+    alertError({
+      type: 'CONTRACT_ERROR',
+      error: `Referee hot wallet balance ${balanceEth} ETH exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap`,
+      context: `${context} paused. Wallet: ${refereeAddress}`,
+    }).catch((err) => console.error('[TELEGRAM] Referee balance alert failed:', err));
+  }
+
+  return { allowed: false, balanceEth };
 }
 
 // ============================================================================
@@ -162,6 +210,11 @@ const VALID_PROOF_PATTERNS = [
 function isValidProofUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   return VALID_PROOF_PATTERNS.some(pattern => pattern.test(url));
+}
+
+function toGeoBucket(geohash: string | null | undefined): string | null {
+  if (!geohash) return null;
+  return geohash.slice(0, 5);
 }
 
 async function validateProof(
@@ -291,10 +344,24 @@ function mockSunderReputation(streamerHandle: string): void {
 
 export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
-  // 0a. AUTHENTICATION - Internal API key required
+  // 0a. AUTHENTICATION - Internal key OR authenticated session token
   // -------------------------------------------------------------------------
-  const authError = verifyInternalApiKey(req);
-  if (authError) return authError;
+  const authHeader = req.headers.get('Authorization');
+  const bearerToken = authHeader?.replace('Bearer ', '').trim();
+
+  const session = await getServerSession(authOptions);
+  const sessionToken = (session as { token?: string } | null)?.token;
+
+  const internalAuthError = verifyInternalApiKey(req);
+  const isInternalAuthorized = !internalAuthError;
+  const isSessionAuthorized = Boolean(sessionToken && bearerToken && sessionToken === bearerToken);
+
+  if (!isInternalAuthorized && !isSessionAuthorized) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
 
   // -------------------------------------------------------------------------
   // 0b. RATE LIMITING - Prevent abuse of AI Referee
@@ -469,6 +536,10 @@ export async function POST(req: NextRequest) {
       // SUCCESS PATH: Trigger on-chain payout
       let txHash: string | null = null;
       let blockNumber: string | null = null;
+      const completedAt = new Date();
+      const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
+      const venueKey = dare.locationLabel?.trim() || dare.geohash || (dare.isNearbyDare ? 'nearby-unknown' : 'stream');
+      const persistedTag = dare.tag || (dare.isNearbyDare ? 'street' : 'stream');
 
       // Calculate fee splits
       const totalBounty = dare.bounty;
@@ -480,7 +551,37 @@ export async function POST(req: NextRequest) {
 
       if (isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION) {
         // Real contract call
-        const { publicClient, walletClient } = getRefereeClient();
+        const { publicClient, walletClient, account } = getRefereeClient();
+
+        const balanceCheck = await enforceRefereeBalanceCap(
+          publicClient,
+          account.address,
+          `verify-proof:${dareId}`
+        );
+
+        if (!balanceCheck.allowed) {
+          await prisma.dare.update({
+            where: { id: dareId },
+            data: {
+              status: 'PENDING_PAYOUT',
+              verifyConfidence: verification.confidence,
+              proofHash: verification.proofHash,
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              dareId,
+              status: 'PENDING_PAYOUT',
+              verification: {
+                confidence: verification.confidence,
+                reason: `Proof verified but payouts are paused. Referee hot wallet balance (${balanceCheck.balanceEth} ETH) exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap.`,
+                proofHash: verification.proofHash,
+              },
+            },
+          });
+        }
 
         try {
           if (!dare.onChainDareId) {
@@ -541,12 +642,19 @@ export async function POST(req: NextRequest) {
         where: { id: dareId },
         data: {
           status: 'VERIFIED',
-          verifiedAt: new Date(),
+          verifiedAt: completedAt,
           verifyTxHash: txHash,
           verifyConfidence: verification.confidence,
           proofHash: verification.proofHash,
           appealStatus: null,
           referrerPayout: referrerFee > 0 ? referrerFee : null,
+          tag: persistedTag,
+          venue_key: venueKey,
+          dare_text: dare.title,
+          proof_media: proofMedia,
+          completed_at: completedAt,
+          reaction_count: dare.reaction_count ?? 0,
+          geo_bucket: toGeoBucket(dare.geohash),
         },
       });
 
@@ -613,31 +721,6 @@ export async function POST(req: NextRequest) {
           },
         },
       });
-
-      // --- Security Check: Referee Wallet Balance ---
-      if (isContractDeployed && dare && !dare.isSimulated) {
-        try {
-          const { publicClient, account } = getRefereeClient();
-          const balance = await publicClient.getBalance({ address: account.address });
-          const balanceEth = Number(balance) / 1e18;
-
-          if (balanceEth > 0.05) {
-            console.warn(`[SECURITY] Referee wallet balance high: ${balanceEth.toFixed(4)} ETH`);
-            // Trigger Telegram admin alert using generic error alert function if we had one, 
-            // or we'll borrow the alertVerification structure for a system alert
-            alertVerification({
-              dareId: 'SYSTEM-ALERT',
-              shortId: 'SECURITY',
-              title: `High Referee Balance: ${balanceEth.toFixed(4)} ETH`,
-              streamerTag: 'ADMIN',
-              result: 'FAILED', // Using FAILED to make it red in Telegram
-              confidence: 100
-            }).catch(e => console.error(e));
-          }
-        } catch (e) {
-          console.error('[SECURITY] Failed to check referee wallet balance:', e);
-        }
-      }
 
     } else {
       // FAILURE PATH: Mark as failed, burn reputation, enable appeal
