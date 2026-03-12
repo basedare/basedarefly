@@ -36,7 +36,7 @@ export async function POST(
     const userTag = await prisma.streamerTag.findFirst({
       where: {
         walletAddress: lowerWallet,
-        status: 'VERIFIED',
+        status: 'ACTIVE',
       },
     });
 

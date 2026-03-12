@@ -20,6 +20,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
+import { useToast } from '@/components/ui/use-toast';
 
 // Platform icons as SVG components
 const TwitterIcon = ({ className }: { className?: string }) => (
@@ -72,6 +73,19 @@ interface PlatformConfig {
   Icon: React.FC<{ className?: string }>;
 }
 
+interface ExistingTag {
+  tag: string;
+  status: string;
+  walletAddress: string;
+}
+
+interface SessionPlatformData {
+  provider?: string;
+  platformHandle?: string;
+  platformId?: string;
+  token?: string;
+}
+
 const PLATFORMS: PlatformConfig[] = [
   {
     id: 'twitter',
@@ -112,9 +126,10 @@ const PLATFORMS: PlatformConfig[] = [
 ];
 
 export function ClaimTagModule() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session } = useSession();
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [tag, setTag] = useState('');
@@ -123,12 +138,11 @@ export function ClaimTagModule() {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [existingTags, setExistingTags] = useState<any[]>([]);
+  const [existingTags, setExistingTags] = useState<ExistingTag[]>([]);
 
   // Manual verification state (works for any platform)
   const [manualCode, setManualCode] = useState<string | null>(null);
   const [manualUsername, setManualUsername] = useState('');
-  const [manualVerifying, setManualVerifying] = useState(false);
   const [useManualVerification, setUseManualVerification] = useState(false);
 
   // Invite flow state
@@ -155,9 +169,9 @@ export function ClaimTagModule() {
   };
 
   // Get platform handle from session
-  const provider = (session as any)?.provider as string | undefined;
-  const platformHandle = (session as any)?.platformHandle as string | undefined;
-  const platformId = (session as any)?.platformId as string | undefined;
+  const sessionData = session as SessionPlatformData | null;
+  const provider = sessionData?.provider;
+  const platformHandle = sessionData?.platformHandle;
 
   const isPlatformConnected = !!platformHandle && !!provider;
 
@@ -316,37 +330,74 @@ export function ClaimTagModule() {
       const body: Record<string, string> = {
         walletAddress: address,
         tag: tag.startsWith('@') ? tag : `@${tag}`,
-        platform: selectedPlatform || 'twitter',
       };
 
-      // Include manual verification data
+      let endpoint = '/api/claim-tag';
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+
+      // Manual/Kick flow still uses /api/tags (admin-reviewed path)
       if (isManualMode) {
+        endpoint = '/api/tags';
+        body.platform = selectedPlatform || 'twitter';
         body.manualUsername = manualUsername;
         body.manualCode = manualCode!;
+      } else {
+        const sessionToken = (session as { token?: string } | null)?.token;
+        if (sessionToken) {
+          headers.Authorization = `Bearer ${sessionToken}`;
+        }
+        if (inviteToken) {
+          body.inviteToken = inviteToken;
+        }
       }
 
-      const res = await fetch('/api/tags', {
+      const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      let data: Record<string, unknown> = {};
+      try {
+        data = (await res.json()) as Record<string, unknown>;
+      } catch {
+        data = {};
+      }
 
-      if (data.success) {
-        setSuccess(data.data.message || 'Tag claimed successfully!');
+      if (res.ok && data.success === true) {
+        const payload = data.data as { message?: string } | undefined;
+        const message = payload?.message || 'Tag claimed successfully!';
+        setSuccess(message);
         setTag('');
         setTagAvailable(null);
         setManualCode(null);
         setManualUsername('');
         setSelectedPlatform(null);
         setUseManualVerification(false);
+        toast({
+          title: 'Tag Claimed',
+          description: message,
+          duration: 7000,
+        });
       } else {
-        setError(data.error || 'Failed to claim tag');
+        const message = typeof data.error === 'string' ? data.error : 'Failed to claim tag';
+        setError(message);
+        toast({
+          variant: 'destructive',
+          title: 'Claim Failed',
+          description: message,
+          duration: 7000,
+        });
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to claim tag';
       setError(message);
+      toast({
+        variant: 'destructive',
+        title: 'Claim Failed',
+        description: message,
+        duration: 7000,
+      });
     } finally {
       setClaiming(false);
     }
@@ -865,7 +916,7 @@ export function ClaimTagModule() {
                       )}
                     </div>
                     <span
-                      className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded shrink-0 ${t.status === 'VERIFIED'
+                      className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded shrink-0 ${t.status === 'ACTIVE'
                         ? 'bg-green-500/20 text-green-400'
                         : t.status === 'REVOKED'
                           ? 'bg-red-500/20 text-red-400'

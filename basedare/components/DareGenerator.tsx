@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 const SUGGESTIONS = {
@@ -103,20 +103,91 @@ const SUGGESTIONS = {
   ]
 };
 
+const IRL_SUGGESTIONS = {
+  nightlife: [
+    "Convince a stranger you're their long-lost cousin — get a hug or a drink",
+    "Order a round for the bar but make the bartender guess your star sign first",
+    "Start a slow clap that turns into the entire bar doing the Macarena",
+    "Tell the bartender you're a drink critic and rate their cocktail out loud",
+    "Ask a stranger to dramatically introduce you to someone across the bar"
+  ],
+  gym: [
+    "Challenge the biggest person in the room to a plank-off — loser buys protein shakes",
+    "Do 20 reps yelling motivational quotes in a bad Arnold Schwarzenegger accent",
+    "Ask someone mid-set if they accept Venmo for spotting you",
+    "Announce your last rep like a sports commentator — crowd has to react",
+    "Tell a stranger their form is perfect and keep a straight face the whole time"
+  ],
+  cafe: [
+    "Order a drink with 12 custom modifications without breaking eye contact",
+    "Convince the barista your name is Batman and wait for them to shout it",
+    "Sit next to a stranger and mirror everything they do for 60 seconds",
+    "Ask the barista for a chef's special and accept whatever they make you",
+    "Stand up and announce the WiFi password like you own the place"
+  ],
+  beach: [
+    "Ask 5 strangers to help you rehearse a wedding proposal — film their reactions",
+    "Convince someone to trade their towel for your sunglasses — no money allowed",
+    "Announce you're a professional sandcastle judge and critique a random one",
+    "Get 5 strangers to do a synchronised jump photo — you direct it like a film shoot",
+    "Tell someone you just spotted a celebrity and watch the crowd turn to look"
+  ],
+  street: [
+    "Get 3 strangers to pose for a fake album cover — you direct the whole shoot",
+    "Ask someone for directions to a place you're already standing in front of",
+    "Pretend to be a tour guide and give 3 strangers completely made-up historical facts",
+    "Start beatboxing and point at a stranger to rap — they have to do something",
+    "Tell a stranger your name is a celebrity's name and see how long before they realise"
+  ]
+};
+
+const IRL_TAGS: Array<{ key: keyof typeof IRL_SUGGESTIONS; label: string }> = [
+  { key: 'nightlife', label: '🍺 Nightlife' },
+  { key: 'gym', label: '💪 Gym / Fitness' },
+  { key: 'cafe', label: '☕ Cafe / Coffee Shop' },
+  { key: 'beach', label: '🏖️ Beach / Outdoors' },
+  { key: 'street', label: '🌆 Street / City' },
+];
+
 interface GeneratorProps {
   onSelect: (text: string) => void;
+  onContextChange?: (context: { mode: 'IRL' | 'STREAM'; tag: string }) => void;
+  shouldAutoFillTitle?: boolean;
 }
 
-export default function DareGenerator({ onSelect }: GeneratorProps) {
-  const [category, setCategory] = useState<keyof typeof SUGGESTIONS>("GAMING");
-  const [suggestion, setSuggestion] = useState(SUGGESTIONS["GAMING"][0]);
+export default function DareGenerator({
+  onSelect,
+  onContextChange,
+  shouldAutoFillTitle = true,
+}: GeneratorProps) {
+  const [mode, setMode] = useState<'IRL' | 'STREAM'>('IRL');
+  const [streamCategory, setStreamCategory] = useState<keyof typeof SUGGESTIONS>('GAMING');
+  const [irlCategory, setIrlCategory] = useState<keyof typeof IRL_SUGGESTIONS>('nightlife');
+  const [suggestion, setSuggestion] = useState(IRL_SUGGESTIONS.nightlife[0]);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  const activeSuggestions = useMemo(() => {
+    return mode === 'IRL' ? IRL_SUGGESTIONS[irlCategory] : SUGGESTIONS[streamCategory];
+  }, [mode, irlCategory, streamCategory]);
+
+  useEffect(() => {
+    const first = activeSuggestions[0];
+    if (shouldAutoFillTitle) {
+      setSuggestion(first);
+      onSelect(first);
+    }
+  }, [activeSuggestions, onSelect, shouldAutoFillTitle]);
+
+  useEffect(() => {
+    const tag = mode === 'IRL' ? irlCategory : streamCategory;
+    onContextChange?.({ mode, tag });
+  }, [mode, irlCategory, streamCategory, onContextChange]);
 
   const generate = () => {
     setIsAnimating(true);
     let shuffles = 0;
     const interval = setInterval(() => {
-      const random = SUGGESTIONS[category][Math.floor(Math.random() * SUGGESTIONS[category].length)];
+      const random = activeSuggestions[Math.floor(Math.random() * activeSuggestions.length)];
       setSuggestion(random);
       shuffles++;
       if (shuffles > 15) {
@@ -134,24 +205,68 @@ export default function DareGenerator({ onSelect }: GeneratorProps) {
           <Sparkles className="w-4 h-4 text-[#FFD700]" /> AI Mission Generator
         </h3>
 
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          <button
+            type="button"
+            onClick={() => setMode('IRL')}
+            className={`px-4 py-2.5 rounded-full font-bold border transition-all text-xs md:text-sm ${
+              mode === 'IRL'
+                ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                : 'border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
+            }`}
+          >
+            IRL
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('STREAM')}
+            className={`px-4 py-2.5 rounded-full font-bold border transition-all text-xs md:text-sm ${
+              mode === 'STREAM'
+                ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                : 'border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
+            }`}
+          >
+            STREAM
+          </button>
+        </div>
+
         {/* Scrollable category buttons */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {(Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>).map(cat => (
-            <button
-              key={cat}
-              onClick={() => {
-                setCategory(cat);
-                setSuggestion(SUGGESTIONS[cat][0]);
-              }}
-              className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
-                category === cat
-                  ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                  : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {mode === 'IRL'
+            ? IRL_TAGS.map((tag) => (
+                <button
+                  key={tag.key}
+                  type="button"
+                  onClick={() => {
+                    setIrlCategory(tag.key);
+                    setSuggestion(IRL_SUGGESTIONS[tag.key][0]);
+                  }}
+                  className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
+                    irlCategory === tag.key
+                      ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                      : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              ))
+            : (Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    setStreamCategory(cat);
+                    setSuggestion(SUGGESTIONS[cat][0]);
+                  }}
+                  className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
+                    streamCategory === cat
+                      ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                      : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
         </div>
       </div>
       
@@ -171,6 +286,7 @@ export default function DareGenerator({ onSelect }: GeneratorProps) {
         </div>
         
         <button 
+          type="button"
           onClick={generate}
           disabled={isAnimating}
           className="bg-[#FFD700] hover:bg-yellow-400 text-black rounded-xl w-14 flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-[0_0_20px_rgba(255,215,0,0.2)]"
@@ -178,6 +294,10 @@ export default function DareGenerator({ onSelect }: GeneratorProps) {
           <RefreshCw className={`w-6 h-6 ${isAnimating ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      <p className="mt-3 text-xs text-gray-400 font-mono">
+        Keep it fun & legal — no harm, no crime.
+      </p>
     </div>
   );
 }

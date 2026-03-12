@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
@@ -228,6 +229,14 @@ export default function Home() {
                       onClick={handleInitiateProtocol}
                     />
                   </div>
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <Link
+                    href="/map"
+                    className="font-mono text-xs md:text-sm tracking-[0.08em] text-[#F5C518] hover:text-white transition-colors"
+                  >
+                    See what&apos;s happening near you →
+                  </Link>
                 </div>
               </div>
 

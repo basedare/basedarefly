@@ -4,26 +4,41 @@ import React from 'react';
 
 interface GradualBlurOverlayProps {
   intensity?: 'full' | 'light' | 'none';
+  placement?: 'default' | 'lower';
 }
 
-export default function GradualBlurOverlay({ intensity = 'full' }: GradualBlurOverlayProps) {
+export default function GradualBlurOverlay({
+  intensity = 'full',
+  placement = 'default',
+}: GradualBlurOverlayProps) {
   // Skip rendering if none
   if (intensity === 'none') return null;
 
-  // We stack multiple layers with varying blur amounts and gradient masks
-  // This creates a smooth "fade to blur" effect - stops at 60% to keep footer readable
-  const fullLayers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '30%' },
-    { blur: '1px',   maskStart: '30%', maskEnd: '45%' },
-    { blur: '2px',   maskStart: '45%', maskEnd: '55%' },
-    { blur: '3px',   maskStart: '55%', maskEnd: '60%' },
-  ];
+  // We stack multiple layers with varying blur amounts and gradient masks.
+  // "lower" starts blur further down the viewport.
+  const fullLayers = placement === 'lower'
+    ? [
+        { blur: '0px', maskStart: '0%', maskEnd: '38%' },
+        { blur: '0.8px', maskStart: '38%', maskEnd: '52%' },
+        { blur: '1.6px', maskStart: '52%', maskEnd: '64%' },
+        { blur: '2.2px', maskStart: '64%', maskEnd: '72%' },
+      ]
+    : [
+        { blur: '0px', maskStart: '0%', maskEnd: '30%' },
+        { blur: '1px', maskStart: '30%', maskEnd: '45%' },
+        { blur: '2px', maskStart: '45%', maskEnd: '55%' },
+        { blur: '3px', maskStart: '55%', maskEnd: '60%' },
+      ];
 
-  // Light version - much subtler blur, ends at 50%
-  const lightLayers = [
-    { blur: '0px',   maskStart: '0%', maskEnd: '35%' },
-    { blur: '1px',   maskStart: '35%', maskEnd: '50%' },
-  ];
+  const lightLayers = placement === 'lower'
+    ? [
+        { blur: '0px', maskStart: '0%', maskEnd: '48%' },
+        { blur: '0.6px', maskStart: '48%', maskEnd: '64%' },
+      ]
+    : [
+        { blur: '0px', maskStart: '0%', maskEnd: '35%' },
+        { blur: '1px', maskStart: '35%', maskEnd: '50%' },
+      ];
 
   const layers = intensity === 'light' ? lightLayers : fullLayers;
 

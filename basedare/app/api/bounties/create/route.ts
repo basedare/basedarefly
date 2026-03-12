@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
-import { createPublicClient, createWalletClient, http, parseUnits, isAddress, type Address } from 'viem';
+import { createPublicClient, createWalletClient, http, parseUnits, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
@@ -25,6 +25,8 @@ const CreateBountySchema = z.object({
   amount: z.number().min(5, 'Minimum bounty is $5 USDC').max(10000, 'Maximum bounty is $10,000 USDC'),
   streamId: z.string().min(1, 'Stream ID is required'),
   streamerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid streamer address'),
+  missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+  missionTag: z.string().max(40).default('nightlife'),
   referrerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid referrer address').optional(),
 });
 
@@ -126,7 +128,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, amount, streamId, streamerAddress, referrerAddress } = validation.data;
+    const { title, amount, streamId, streamerAddress, missionMode, missionTag, referrerAddress } = validation.data;
 
     // 2. Verify Livepeer stream is active
     const streamCheck = await verifyStreamActive(streamId);
@@ -154,6 +156,8 @@ export async function POST(request: NextRequest) {
     const dbDare = await prisma.dare.create({
       data: {
         title,
+        missionMode,
+        tag: missionTag,
         bounty: amount,
         status: 'FUNDING',
         isSimulated: false,
