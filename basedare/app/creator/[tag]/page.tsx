@@ -159,14 +159,14 @@ export default function CreatorProfilePage() {
     }, [tag, displayTag]);
 
     if (loading) return (
-        <main className="min-h-screen bg-black">
+        <main className="min-h-screen bg-transparent text-white">
             <LiquidBackground />
             <ProfileSkeleton />
         </main>
     );
 
     if (error) return (
-        <main className="min-h-screen bg-black flex flex-col items-center justify-center gap-6 px-6">
+        <main className="min-h-screen bg-transparent text-white flex flex-col items-center justify-center gap-6 px-6">
             <LiquidBackground />
             <div className="relative z-10 text-center">
                 <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -181,19 +181,21 @@ export default function CreatorProfilePage() {
     const stats = profile?.stats;
 
     return (
-        <main className="min-h-screen bg-black text-white pb-24">
+        <main className="min-h-screen bg-transparent text-white pb-24">
             <LiquidBackground />
-
-            {/* Top nav */}
-            <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 bg-black/60 backdrop-blur-xl border-b border-white/[0.06]">
-                <button onClick={() => router.back()} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
-                    <ArrowLeft className="w-4 h-4" />
-                </button>
-                <span className="text-sm font-black text-white">{displayTag}</span>
-                {profile?.verified && <CheckCircle className="w-4 h-4 text-blue-400" />}
-            </div>
-
-            <div className="relative z-10 max-w-3xl mx-auto px-4 pt-20 space-y-6">
+            <div className="relative z-10 max-w-3xl mx-auto px-4 pt-4 md:pt-6 space-y-6">
+                {/* Local header controls */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => router.back()}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(13,16,35,0.35)] border border-white/[0.12] text-white/70 text-xs font-bold hover:text-white hover:bg-[rgba(13,16,35,0.55)] transition-colors backdrop-blur-xl"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Back
+                    </button>
+                    <span className="text-sm font-black text-white/90">{displayTag}</span>
+                    {profile?.verified && <CheckCircle className="w-4 h-4 text-blue-400" />}
+                </div>
 
                 {/* ── HEADER ── */}
                 <div className="flex items-end gap-5 pt-4">

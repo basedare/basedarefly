@@ -1,8 +1,7 @@
 'use client';
 
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { useState, useRef, useEffect } from 'react';
-import { Wallet } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useFeedback } from '@/hooks/useFeedback';
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
@@ -18,7 +17,17 @@ export function IdentityButton() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 8 });
   const { trigger } = useFeedback();
+
+  const updateMenuPosition = useCallback(() => {
+    if (!dropdownRef.current || typeof window === 'undefined') return;
+    const rect = dropdownRef.current.getBoundingClientRect();
+    setMenuPosition({
+      top: rect.bottom + 8,
+      right: Math.max(window.innerWidth - rect.right, 8),
+    });
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -30,6 +39,24 @@ export function IdentityButton() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!showDropdown && !showWalletPicker) return;
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [showDropdown, showWalletPicker, updateMenuPosition]);
+
+  // Filter and deduplicate connectors to ensure a clean UI
+  // Wagmi sometimes injects multiple 'injected' connectors depending on the browser
+  const uniqueConnectors = Array.from(new Map(connectors.map(c => [
+    c.id === 'injected' || c.id === 'metaMask' ? 'injected' : c.id,
+    c
+  ])).values());
 
   const handleClick = () => {
     if (isConnected) {
@@ -55,13 +82,6 @@ export function IdentityButton() {
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : '';
 
-  // Filter and deduplicate connectors to ensure a clean UI
-  // Wagmi sometimes injects multiple 'injected' connectors depending on the browser
-  const uniqueConnectors = Array.from(new Map(connectors.map(c => [
-    c.id === 'injected' || c.id === 'metaMask' ? 'injected' : c.id,
-    c
-  ])).values());
-
   return (
     <>
       <div className="relative group p-[1.5px] rounded-2xl overflow-hidden shadow-2xl z-50 transition-all duration-500" ref={dropdownRef}>
@@ -81,13 +101,16 @@ export function IdentityButton() {
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
                 <span className="truncate">{truncatedAddress}</span>
               </>
-            ) : 'Enter Area'}
+            ) : 'Enter Arena'}
           </span>
           <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>
 
         {showDropdown && isConnected && (
-          <div className="absolute top-[calc(100%+8px)] right-0 w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]">
+          <div
+            className="fixed w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]"
+            style={{ top: menuPosition.top, right: menuPosition.right }}
+          >
             <div className="px-4 py-3 border-b border-white/10">
               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected As</p>
               <p className="text-sm text-white font-mono">{truncatedAddress}</p>
@@ -102,11 +125,19 @@ export function IdentityButton() {
         )}
 
         {showWalletPicker && !isConnected && (
-          <div className="absolute top-[calc(100%+8px)] right-0 w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]">
+          <div
+            className="fixed w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]"
+            style={{ top: menuPosition.top, right: menuPosition.right }}
+          >
             <div className="px-4 py-3 border-b border-white/[0.06] bg-black/40">
               <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Select Vault</p>
             </div>
             <div className="flex flex-col p-2 gap-1">
+              {uniqueConnectors.length === 0 && (
+                <div className="px-3 py-4 text-center text-xs text-white/50">
+                  No wallet providers detected. Install a wallet extension or open in a wallet browser.
+                </div>
+              )}
               {uniqueConnectors.map(connector => {
                 const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
                 // Also fallback to mapped injected if meta is missing
