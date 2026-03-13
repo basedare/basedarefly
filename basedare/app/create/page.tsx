@@ -4,6 +4,7 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
@@ -107,6 +108,10 @@ export default function CreateDare() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { trigger } = useFeedback();
+  const { data: session } = useSession();
+
+  const sessionToken = (session as { token?: string } | null)?.token;
+  const sessionWallet = ((session as { walletAddress?: string } | null)?.walletAddress || '').toLowerCase();
 
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
@@ -206,6 +211,20 @@ export default function CreateDare() {
     setApprovalStatus('idle');
 
     try {
+      const connectedWallet = address?.toLowerCase();
+      if (!connectedWallet) {
+        throw new Error('Connect your wallet before deploying a dare');
+      }
+
+      if (!sessionWallet || sessionWallet !== connectedWallet) {
+        throw new Error('Wallet session mismatch. Please reconnect and sign in again.');
+      }
+
+      const jsonHeaders: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+      };
+
       const isNearbyDareEnabled = Boolean(data.isNearbyDare);
       const requestBody: Record<string, unknown> = {
         title: data.title,
@@ -215,7 +234,7 @@ export default function CreateDare() {
         missionMode: data.missionMode ?? 'IRL',
         missionTag: data.missionTag ?? 'nightlife',
         isNearbyDare: isNearbyDareEnabled,
-        stakerAddress: address?.toLowerCase(),
+        stakerAddress: connectedWallet,
       };
 
       if (isNearbyDareEnabled && coordinates) {
@@ -228,7 +247,7 @@ export default function CreateDare() {
       if (IS_SIMULATION_MODE) {
         const response = await fetch('/api/bounties', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders,
           body: JSON.stringify(requestBody),
         });
         const result = await response.json();
@@ -265,7 +284,7 @@ export default function CreateDare() {
       // 1. Initialize Dare in Database (FUNDING state)
       const initRes = await fetch('/api/bounties/init', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeaders,
         body: JSON.stringify(requestBody),
       });
       const initData = await initRes.json();
@@ -326,7 +345,7 @@ export default function CreateDare() {
       try {
         const regRes = await fetch('/api/bounties/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders,
           body: JSON.stringify({ dareId, txHash }),
         });
         const regData = await regRes.json();
