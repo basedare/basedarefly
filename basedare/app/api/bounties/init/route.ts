@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
+import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 
 // Simplified schema for initialization
 const InitBountySchema = z.object({
@@ -13,6 +14,11 @@ const InitBountySchema = z.object({
     missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
     missionTag: z.string().max(40).default('nightlife'),
     stakerAddress: z.string().optional(),
+    isNearbyDare: z.boolean().default(false),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+    locationLabel: z.string().max(100).optional(),
+    discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
 });
 
 function generateShortId(length = 8): string {
@@ -44,7 +50,34 @@ export async function POST(request: NextRequest) {
             missionMode,
             missionTag,
             stakerAddress,
+            isNearbyDare,
+            latitude,
+            longitude,
+            locationLabel,
+            discoveryRadiusKm,
         } = validation.data;
+
+        if (isNearbyDare && (latitude === undefined || longitude === undefined)) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Latitude and longitude are required for nearby dares',
+                    code: 'MISSING_COORDINATES',
+                },
+                { status: 400 }
+            );
+        }
+
+        let geohash: string | null = null;
+        if (isNearbyDare && latitude !== undefined && longitude !== undefined) {
+            if (!isValidCoordinates(latitude, longitude)) {
+                return NextResponse.json(
+                    { success: false, error: 'Invalid coordinates provided', code: 'INVALID_COORDINATES' },
+                    { status: 400 }
+                );
+            }
+            geohash = encodeGeohash(latitude, longitude, 6);
+        }
 
         // Resolve tag to address (dummy implementation for target/referrer in this MVP)
         // We'll use zero address for target if not resolving specifically right now
@@ -68,6 +101,12 @@ export async function POST(request: NextRequest) {
                 expiresAt,
                 shortId,
                 stakerAddress: stakerAddress?.toLowerCase() || null,
+                isNearbyDare,
+                latitude: isNearbyDare ? latitude ?? null : null,
+                longitude: isNearbyDare ? longitude ?? null : null,
+                geohash,
+                locationLabel: isNearbyDare ? locationLabel ?? null : null,
+                discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
             },
         });
 
@@ -80,7 +119,13 @@ export async function POST(request: NextRequest) {
                 onChainDareId,
                 targetAddress,
                 referrerAddress: PLATFORM_WALLET_ADDRESS,
-                shortId
+                shortId,
+                isNearbyDare,
+                latitude: isNearbyDare ? latitude ?? null : null,
+                longitude: isNearbyDare ? longitude ?? null : null,
+                geohash,
+                locationLabel: isNearbyDare ? locationLabel ?? null : null,
+                discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
             },
         });
     } catch (error: unknown) {
