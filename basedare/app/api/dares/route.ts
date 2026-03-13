@@ -2,6 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 
+function toPublicDare(dare: {
+  id: string;
+  title: string;
+  bounty: number;
+  streamerHandle: string | null;
+  status: string;
+  videoUrl: string | null;
+  expiresAt: Date | null;
+  shortId: string | null;
+  createdAt: Date;
+  claimDeadline: Date | null;
+}): {
+  id: string;
+  title: string;
+  bounty: number;
+  streamerHandle: string | null;
+  status: string;
+  videoUrl: string | null;
+  expiresAt: string | null;
+  shortId: string;
+  createdAt: string;
+  awaitingClaim: boolean;
+  claimDeadline: string | null;
+} {
+  return {
+    id: dare.id,
+    title: dare.title,
+    bounty: dare.bounty,
+    streamerHandle: dare.streamerHandle,
+    status: dare.status,
+    videoUrl: dare.videoUrl,
+    expiresAt: dare.expiresAt?.toISOString() || null,
+    shortId: dare.shortId || dare.id.slice(0, 8),
+    createdAt: dare.createdAt.toISOString(),
+    awaitingClaim: dare.status === 'AWAITING_CLAIM',
+    claimDeadline: dare.claimDeadline?.toISOString() || null,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -72,9 +111,9 @@ export async function GET(request: NextRequest) {
       take: 100, // Limit results for performance
     });
 
-    // If includeAll (Dashboard mode), return full dare objects
+    // If includeAll (Dashboard mode), return public-safe dare objects
     if (includeAll) {
-      return NextResponse.json(dares);
+      return NextResponse.json(dares.map(toPublicDare));
     }
 
     // Otherwise, format for the public feed (legacy format)

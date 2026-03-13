@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // ============================================================================
 // COMMUNITY VOTING API
@@ -13,14 +15,37 @@ const CONSENSUS_PERCENT = 60; // >60% one way triggers resolution
 const POINTS_PER_VOTE = 5; // Points awarded for casting a vote
 const CORRECT_VOTE_BONUS = 15; // Bonus points for being on winning side
 
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
+
 // ============================================================================
 // POST /api/dares/[id]/vote - Cast or change a vote
 // ============================================================================
 
 const VoteSchema = z.object({
-  walletAddress: z.string().refine((addr) => isAddress(addr), {
-    message: 'Invalid wallet address',
-  }),
+  walletAddress: z.string().optional(),
   voteType: z.enum(['APPROVE', 'REJECT']),
 });
 
@@ -48,8 +73,25 @@ export async function POST(
       );
     }
 
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { walletAddress, voteType } = validation.data;
-    const normalizedAddress = walletAddress.toLowerCase();
+    const normalizedBodyWallet = walletAddress?.toLowerCase();
+
+    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
+
+    const normalizedAddress = sessionWallet;
 
     // Verify dare exists and is votable
     const dare = await prisma.dare.findUnique({
@@ -288,6 +330,23 @@ export async function GET(
     const { id: dareId } = await params;
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet')?.toLowerCase();
+    const sessionWallet = await getVerifiedSessionWallet(request);
+
+    if (wallet) {
+      if (!isAddress(wallet)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid wallet address' },
+          { status: 400 }
+        );
+      }
+
+      if (!sessionWallet || wallet !== sessionWallet) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized wallet query' },
+          { status: 401 }
+        );
+      }
+    }
 
     if (!dareId) {
       return NextResponse.json(
@@ -320,14 +379,15 @@ export async function GET(
     const rejectCount = voteCounts.find((v) => v.voteType === 'REJECT')?._count || 0;
     const totalVotes = approveCount + rejectCount;
 
-    // Get user's vote if wallet provided
+    // Get user's vote from authenticated session wallet only
     let userVote: string | null = null;
-    if (wallet && isAddress(wallet)) {
+    const effectiveWallet = sessionWallet;
+    if (effectiveWallet) {
       const vote = await prisma.vote.findUnique({
         where: {
           dareId_walletAddress: {
             dareId,
-            walletAddress: wallet,
+            walletAddress: effectiveWallet,
           },
         },
         select: { voteType: true },

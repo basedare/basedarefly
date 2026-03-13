@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   calculateP2PSettlement,
   calculateB2BSettlement,
@@ -14,11 +17,48 @@ import {
 // Community Rewards Pool - Performance-based Distribution
 // ============================================================================
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'basedare-admin-2024';
+const LIVE_POT_ADMIN_SECRET = process.env.LIVE_POT_ADMIN_SECRET;
 
-function isAdmin(request: NextRequest): boolean {
-  const authHeader = request.headers.get('x-admin-secret');
-  return authHeader === ADMIN_SECRET;
+type AdminSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+function hasValidAdminSecret(request: NextRequest): boolean {
+  if (!LIVE_POT_ADMIN_SECRET || LIVE_POT_ADMIN_SECRET.length < 32) {
+    return false;
+  }
+
+  const candidate = request.headers.get('x-admin-secret');
+  if (!candidate || candidate.length !== LIVE_POT_ADMIN_SECRET.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < candidate.length; i++) {
+    result |= candidate.charCodeAt(i) ^ LIVE_POT_ADMIN_SECRET.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+async function hasAdminAuth(request: NextRequest): Promise<boolean> {
+  if (!hasValidAdminSecret(request)) return false;
+
+  const session = (await getServerSession(authOptions)) as AdminSession | null;
+  if (!session) return false;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return false;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  return !!wallet && isAddress(wallet);
 }
 
 // Ensure LivePot exists
@@ -112,6 +152,13 @@ const DepositSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  if (!(await hasAdminAuth(request))) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await request.json();
     const validation = DepositSchema.safeParse(body);
@@ -174,7 +221,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/live-pot - Trigger weekly rewards (admin only)
 // ============================================================================
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) {
+  if (!(await hasAdminAuth(request))) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }

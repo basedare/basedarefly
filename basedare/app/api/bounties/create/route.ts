@@ -116,6 +116,17 @@ async function ensureAllowance(
  * Optional: { referrerAddress }
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'This legacy endpoint is disabled in production. Use /api/bounties instead.',
+        code: 'LEGACY_ROUTE_DISABLED',
+      },
+      { status: 410 }
+    );
+  }
+
   try {
     // 1. Parse and validate request body with Zod
     const body = await request.json();

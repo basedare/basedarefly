@@ -1,14 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const UpvoteSchema = z.object({
   walletAddress: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address format')
-    .refine((addr) => isAddress(addr), 'Invalid wallet address'),
+    .refine((addr) => isAddress(addr), 'Invalid wallet address')
+    .optional(),
 });
+
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+  return wallet.toLowerCase();
+}
 
 export async function POST(
   request: NextRequest,
@@ -16,24 +43,33 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-
-    if (!body?.walletAddress) {
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized: wallet required to upvote',
+          error: 'Unauthorized',
           code: 'UNAUTHORIZED',
         },
         { status: 401 }
       );
     }
 
+    const body = await request.json().catch(() => ({}));
+
     const validation = UpvoteSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { success: false, error: validation.error.issues[0].message },
         { status: 400 }
+      );
+    }
+
+    const normalizedBodyWallet = validation.data.walletAddress?.toLowerCase();
+    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
       );
     }
 

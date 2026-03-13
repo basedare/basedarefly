@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // ============================================================================
 // CAMPAIGN SLOTS API
 // For scouts to claim slots and brands to manage them
 // ============================================================================
 
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
 const ClaimSlotSchema = z.object({
-  scoutWallet: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  scoutWallet: z.string().optional(),
   creatorAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   creatorHandle: z.string().min(1).max(100),
   creatorFollowers: z.number().min(0),
@@ -16,10 +27,27 @@ const ClaimSlotSchema = z.object({
 });
 
 const VetoSlotSchema = z.object({
-  brandWallet: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  brandWallet: z.string().optional(),
   slotId: z.string(),
   reason: z.string().max(200).optional(),
 });
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // GET /api/campaigns/[id]/slots - Get slots for a campaign
@@ -92,8 +120,21 @@ export async function POST(
       );
     }
 
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { scoutWallet, creatorAddress, creatorHandle, creatorFollowers, claimRationale } =
       validation.data;
+    const normalizedScoutWallet = scoutWallet?.toLowerCase();
+
+    if (normalizedScoutWallet && normalizedScoutWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Get campaign
     const campaign = await prisma.campaign.findUnique({
@@ -117,12 +158,12 @@ export async function POST(
 
     // Get or create scout
     let scout = await prisma.scout.findUnique({
-      where: { walletAddress: scoutWallet.toLowerCase() },
+      where: { walletAddress: sessionWallet },
     });
 
     if (!scout) {
       scout = await prisma.scout.create({
-        data: { walletAddress: scoutWallet.toLowerCase() },
+        data: { walletAddress: sessionWallet },
       });
     }
 
@@ -268,7 +309,20 @@ export async function PUT(
       );
     }
 
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { brandWallet, slotId, reason } = validation.data;
+    const normalizedBrandWallet = brandWallet?.toLowerCase();
+
+    if (normalizedBrandWallet && normalizedBrandWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Get campaign and verify brand ownership
     const campaign = await prisma.campaign.findUnique({
@@ -283,7 +337,7 @@ export async function PUT(
       );
     }
 
-    if (campaign.brand.walletAddress.toLowerCase() !== brandWallet.toLowerCase()) {
+    if (campaign.brand.walletAddress.toLowerCase() !== sessionWallet) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - not campaign owner' },
         { status: 403 }

@@ -5,6 +5,7 @@ import { alertVerification } from '@/lib/telegram';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+const TELEGRAM_ADMIN_SECRET = process.env.TELEGRAM_ADMIN_SECRET;
 
 // Fee distribution constants
 const STREAMER_FEE_PERCENT = 89;
@@ -26,6 +27,47 @@ async function sendMessage(text: string) {
   });
 }
 
+function hasValidTelegramAdminSecret(req: NextRequest): boolean {
+  if (!TELEGRAM_ADMIN_SECRET || TELEGRAM_ADMIN_SECRET.length < 32) {
+    return false;
+  }
+
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice('Bearer '.length).trim()
+    : null;
+  const headerSecret = req.headers.get('x-telegram-admin-secret');
+  const candidate = bearerToken || headerSecret;
+
+  if (!candidate || candidate.length !== TELEGRAM_ADMIN_SECRET.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < candidate.length; i++) {
+    result |= candidate.charCodeAt(i) ^ TELEGRAM_ADMIN_SECRET.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+function forbiddenResponse() {
+  return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+}
+
+function methodNotAllowedResponse() {
+  return NextResponse.json({ success: false, error: 'Method not allowed' }, { status: 405 });
+}
+
+export async function POST(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) return forbiddenResponse();
+  return methodNotAllowedResponse();
+}
+
+export async function PUT(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) return forbiddenResponse();
+  return methodNotAllowedResponse();
+}
+
 /**
  * GET /api/telegram/command?cmd=pending
  * GET /api/telegram/command?cmd=approve&id=xxx
@@ -33,6 +75,10 @@ async function sendMessage(text: string) {
  * GET /api/telegram/command?cmd=stats
  */
 export async function GET(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) {
+    return forbiddenResponse();
+  }
+
   const { searchParams } = new URL(req.url);
   const cmd = searchParams.get('cmd');
   const id = searchParams.get('id');
@@ -203,4 +249,14 @@ export async function GET(req: NextRequest) {
     default:
       return NextResponse.json({ error: 'Unknown command' }, { status: 400 });
   }
+}
+
+export async function PATCH(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) return forbiddenResponse();
+  return methodNotAllowedResponse();
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) return forbiddenResponse();
+  return methodNotAllowedResponse();
 }

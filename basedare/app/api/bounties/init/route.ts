@@ -1,18 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
+
+const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
+
+type WalletSession = {
+    token?: string;
+    walletAddress?: string;
+    user?: {
+        walletAddress?: string | null;
+    } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+    const session = (await getServerSession(authOptions)) as WalletSession | null;
+    if (!session) return null;
+
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+    if (session.token && (!bearerToken || bearerToken !== session.token)) {
+        return null;
+    }
+
+    const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+    if (!wallet || !isAddress(wallet)) return null;
+
+    return wallet.toLowerCase();
+}
 
 // Simplified schema for initialization
 const InitBountySchema = z.object({
+    missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+    missionTag: z.string().max(50).optional(),
     title: z.string().min(3),
     description: z.string().optional(),
     amount: z.number().min(5),
     streamId: z.string().min(1),
-    streamerTag: z.string().optional().or(z.literal('')),
-    missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
-    missionTag: z.string().max(40).default('nightlife'),
+    streamerTag: z
+        .string()
+        .max(20, 'Tag must be 20 characters or less')
+        .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
+        .optional()
+        .or(z.literal('')),
     stakerAddress: z.string().optional(),
     isNearbyDare: z.boolean().default(false),
     latitude: z.number().min(-90).max(90).optional(),
@@ -43,12 +78,12 @@ export async function POST(request: NextRequest) {
         }
 
         const {
+            missionMode,
+            missionTag,
             title,
             amount,
             streamId,
             streamerTag,
-            missionMode,
-            missionTag,
             stakerAddress,
             isNearbyDare,
             latitude,
@@ -56,14 +91,26 @@ export async function POST(request: NextRequest) {
             locationLabel,
             discoveryRadiusKm,
         } = validation.data;
+        const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
+        const normalizedMissionTag = missionTag?.trim() || null;
+
+        const normalizedStakerAddress = stakerAddress?.toLowerCase();
+        const sessionWallet = await getVerifiedSessionWallet(request);
+        const shouldRequireWalletAuth = REQUIRE_WALLET_IN_SIMULATION || !FORCE_SIMULATION;
+
+        if (
+            shouldRequireWalletAuth &&
+            (!normalizedStakerAddress || !sessionWallet || normalizedStakerAddress !== sessionWallet)
+        ) {
+            return NextResponse.json(
+                { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+                { status: 401 }
+            );
+        }
 
         if (isNearbyDare && (latitude === undefined || longitude === undefined)) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Latitude and longitude are required for nearby dares',
-                    code: 'MISSING_COORDINATES',
-                },
+                { success: false, error: 'Coordinates are required for nearby dares', code: 'MISSING_COORDINATES' },
                 { status: 400 }
             );
         }
@@ -76,6 +123,7 @@ export async function POST(request: NextRequest) {
                     { status: 400 }
                 );
             }
+
             geohash = encodeGeohash(latitude, longitude, 6);
         }
 
@@ -91,8 +139,8 @@ export async function POST(request: NextRequest) {
         const dbDare = await prisma.dare.create({
             data: {
                 title,
-                missionMode,
-                tag: missionTag,
+                missionMode: normalizedMissionMode,
+                tag: normalizedMissionTag,
                 bounty: amount,
                 streamerHandle: streamerTag || null,
                 status: 'FUNDING',
@@ -100,12 +148,12 @@ export async function POST(request: NextRequest) {
                 isSimulated: false,
                 expiresAt,
                 shortId,
-                stakerAddress: stakerAddress?.toLowerCase() || null,
+                stakerAddress: normalizedStakerAddress || null,
                 isNearbyDare,
-                latitude: isNearbyDare ? latitude ?? null : null,
-                longitude: isNearbyDare ? longitude ?? null : null,
+                latitude: isNearbyDare ? latitude : null,
+                longitude: isNearbyDare ? longitude : null,
                 geohash,
-                locationLabel: isNearbyDare ? locationLabel ?? null : null,
+                locationLabel: isNearbyDare ? locationLabel : null,
                 discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
             },
         });
@@ -121,15 +169,15 @@ export async function POST(request: NextRequest) {
                 referrerAddress: PLATFORM_WALLET_ADDRESS,
                 shortId,
                 isNearbyDare,
-                latitude: isNearbyDare ? latitude ?? null : null,
-                longitude: isNearbyDare ? longitude ?? null : null,
+                latitude: isNearbyDare ? latitude : null,
+                longitude: isNearbyDare ? longitude : null,
                 geohash,
-                locationLabel: isNearbyDare ? locationLabel ?? null : null,
+                locationLabel: isNearbyDare ? locationLabel : null,
                 discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
             },
         });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('[INIT] Error:', message);
         return NextResponse.json(
             { success: false, error: 'Failed to initialize bounty' },

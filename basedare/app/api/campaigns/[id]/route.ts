@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // ============================================================================
 // CAMPAIGN MANAGEMENT API
@@ -8,9 +11,34 @@ import { prisma } from '@/lib/prisma';
 // ============================================================================
 
 const UpdateCampaignSchema = z.object({
-  brandWallet: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  brandWallet: z.string().optional(),
   action: z.enum(['FUND', 'ACTIVATE', 'PAUSE', 'SETTLE', 'CANCEL']),
 });
+
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // GET /api/campaigns/[id] - Get campaign details
@@ -115,7 +143,20 @@ export async function PUT(
       );
     }
 
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { brandWallet, action } = validation.data;
+    const normalizedBodyWallet = brandWallet?.toLowerCase();
+
+    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Get campaign and verify ownership
     const campaign = await prisma.campaign.findUnique({
@@ -130,7 +171,7 @@ export async function PUT(
       );
     }
 
-    if (campaign.brand.walletAddress.toLowerCase() !== brandWallet.toLowerCase()) {
+    if (campaign.brand.walletAddress.toLowerCase() !== sessionWallet) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - not campaign owner' },
         { status: 403 }

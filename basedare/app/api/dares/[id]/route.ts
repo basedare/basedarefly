@@ -1,13 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
+type DareAuthSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+const DarePatchSchema = z
+  .object({
+    title: z
+      .string()
+      .min(3, 'Title must be at least 3 characters')
+      .max(100, 'Title too long')
+      .transform((value) => value.replace(/<[^>]*>/g, ''))
+      .optional(),
+    locationLabel: z.string().max(100, 'Location label too long').optional(),
+    expiresAt: z.string().datetime().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one editable field is required',
+  });
+
+function hasValidAdminSecret(request: NextRequest): boolean {
+  if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) return false;
+  const authHeader = request.headers.get('x-admin-secret');
+  if (!authHeader || authHeader.length !== ADMIN_SECRET.length) return false;
+
+  let result = 0;
+  for (let i = 0; i < authHeader.length; i++) {
+    result |= authHeader.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as DareAuthSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
+
+function canMutateDare(
+  wallet: string,
+  dare: { stakerAddress: string | null; targetWalletAddress: string | null; claimedBy: string | null },
+): boolean {
+  return (
+    dare.stakerAddress?.toLowerCase() === wallet ||
+    dare.targetWalletAddress?.toLowerCase() === wallet ||
+    dare.claimedBy?.toLowerCase() === wallet
+  );
+}
 
 /**
  * GET /api/dares/[id]
  * Get a single dare by ID
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -19,7 +89,6 @@ export async function GET(
       );
     }
 
-    // Fetch dare from Prisma
     const dare = await prisma.dare.findUnique({
       where: { id },
     });
@@ -35,10 +104,10 @@ export async function GET(
       success: true,
       data: dare,
     });
-  } catch (error: any) {
-    console.error('Error fetching dare:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch dare';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch dare' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -46,15 +115,15 @@ export async function GET(
 
 /**
  * PUT /api/dares/[id]
- * Update a dare
+ * Update a dare (strict allowlist + owner/admin auth)
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const isAdmin = hasValidAdminSecret(request);
 
     if (!id) {
       return NextResponse.json(
@@ -63,20 +132,78 @@ export async function PUT(
       );
     }
 
-    // Update dare in Prisma
+    const dare = await prisma.dare.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        stakerAddress: true,
+        targetWalletAddress: true,
+        claimedBy: true,
+      },
+    });
+
+    if (!dare) {
+      return NextResponse.json(
+        { success: false, error: 'Dare not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!isAdmin) {
+      const wallet = await getVerifiedSessionWallet(request);
+      if (!wallet) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      if (!canMutateDare(wallet, dare)) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const body = await request.json();
+    const parsed = DarePatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const updateData: {
+      title?: string;
+      locationLabel?: string | null;
+      expiresAt?: Date;
+    } = {};
+
+    if (parsed.data.title !== undefined) {
+      updateData.title = parsed.data.title;
+    }
+    if (parsed.data.locationLabel !== undefined) {
+      updateData.locationLabel = parsed.data.locationLabel.trim() || null;
+    }
+    if (parsed.data.expiresAt !== undefined) {
+      updateData.expiresAt = new Date(parsed.data.expiresAt);
+    }
+
     const updatedDare = await prisma.dare.update({
       where: { id },
-      data: body,
+      data: updateData,
     });
 
     return NextResponse.json({
       success: true,
       data: updatedDare,
     });
-  } catch (error: any) {
-    console.error('Error updating dare:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update dare';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update dare' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -84,14 +211,15 @@ export async function PUT(
 
 /**
  * DELETE /api/dares/[id]
- * Delete a dare (if needed)
+ * Delete a dare (owner/admin auth required)
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
+    const isAdmin = hasValidAdminSecret(request);
 
     if (!id) {
       return NextResponse.json(
@@ -100,7 +228,40 @@ export async function DELETE(
       );
     }
 
-    // Delete dare from Prisma
+    const dare = await prisma.dare.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        stakerAddress: true,
+        targetWalletAddress: true,
+        claimedBy: true,
+      },
+    });
+
+    if (!dare) {
+      return NextResponse.json(
+        { success: false, error: 'Dare not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!isAdmin) {
+      const wallet = await getVerifiedSessionWallet(request);
+      if (!wallet) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      if (!canMutateDare(wallet, dare)) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden' },
+          { status: 403 }
+        );
+      }
+    }
+
     await prisma.dare.delete({
       where: { id },
     });
@@ -109,12 +270,11 @@ export async function DELETE(
       success: true,
       message: 'Dare deleted successfully',
     });
-  } catch (error: any) {
-    console.error('Error deleting dare:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to delete dare';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to delete dare' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
 }
-

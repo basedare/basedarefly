@@ -2,20 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { isAddress } from 'viem';
 
-type SessionPlatformData = {
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
   provider?: string;
   platformBio?: string | null;
   platformFollowerCount?: number | null;
-  twitterId?: string | null;
-  twitterHandle?: string | null;
-  twitchId?: string | null;
-  twitchHandle?: string | null;
-  youtubeId?: string | null;
-  youtubeHandle?: string | null;
+  twitterId?: string;
+  twitterHandle?: string;
+  twitchId?: string;
+  twitchHandle?: string;
+  youtubeId?: string;
+  youtubeHandle?: string;
 };
 
 // ============================================================================
@@ -54,7 +58,10 @@ export async function GET(request: NextRequest) {
           available: false,
           tag: existing.tag,
           status: existing.status,
-          owner: existing.status === 'ACTIVE' ? existing.walletAddress.slice(0, 6) + '...' : null,
+          owner:
+            existing.status === 'ACTIVE' || existing.status === 'VERIFIED'
+              ? existing.walletAddress.slice(0, 6) + '...'
+              : null,
           platform: existing.verificationMethod?.toLowerCase(),
         });
       }
@@ -66,17 +73,6 @@ export async function GET(request: NextRequest) {
     if (wallet) {
       const tags = await prisma.streamerTag.findMany({
         where: { walletAddress: wallet.toLowerCase() }, // Normalize to lowercase
-        select: {
-          id: true,
-          tag: true,
-          status: true,
-          verificationMethod: true,
-          totalEarned: true,
-          completedDares: true,
-          bio: true,
-          followerCount: true,
-          tags: true,
-        },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -133,6 +129,32 @@ const ClaimTagSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const session = (await getServerSession(authOptions)) as WalletSession | null;
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+    if (session.token && (!bearerToken || bearerToken !== session.token)) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const sessionWalletRaw = session.walletAddress ?? session.user?.walletAddress ?? null;
+    if (!sessionWalletRaw || !isAddress(sessionWalletRaw)) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet session required' },
+        { status: 401 }
+      );
+    }
+    const sessionWallet = sessionWalletRaw.toLowerCase();
+
     // Parse request
     const body = await request.json();
     const validation = ClaimTagSchema.safeParse(body);
@@ -145,16 +167,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { walletAddress: rawWalletAddress, tag, platform, manualUsername, manualCode, kickUsername, kickCode } = validation.data;
-    const walletAddress = rawWalletAddress.toLowerCase(); // Normalize to lowercase for consistent lookups
+    const walletAddress = sessionWallet;
+    if (rawWalletAddress.toLowerCase() !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
     const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
 
     // Support legacy Kick fields by merging into manual fields
     const effectiveManualUsername = manualUsername || kickUsername;
     const effectiveManualCode = manualCode || kickCode;
 
-    // Get session for OAuth-based verification
-    const session = await getServerSession(authOptions);
-    const sessionData = (session ?? {}) as SessionPlatformData;
+    // Session is already loaded above for wallet auth + OAuth provider checks
 
     // Platform-specific data
     let platformId: string | null = null;
@@ -162,8 +188,8 @@ export async function POST(request: NextRequest) {
     let verificationMethod: string;
     let status: string;
     let isManualVerification = false;
-    const sessionBio = sessionData.platformBio ?? null;
-    const sessionFollowerCountRaw = sessionData.platformFollowerCount;
+    const sessionBio = session.platformBio ?? null;
+    const sessionFollowerCountRaw = session.platformFollowerCount;
     const sessionFollowerCount =
       typeof sessionFollowerCountRaw === 'number' && Number.isFinite(sessionFollowerCountRaw)
         ? Math.max(0, Math.floor(sessionFollowerCountRaw))
@@ -198,7 +224,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const sessionProvider = sessionData.provider;
+      const sessionProvider = session.provider;
 
       // Verify the session matches the requested platform
       const expectedProvider = platform === 'youtube' ? 'google' : platform;
@@ -211,16 +237,16 @@ export async function POST(request: NextRequest) {
 
       // Get platform-specific data from session
       if (platform === 'twitter') {
-        platformId = sessionData.twitterId ?? null;
-        platformHandle = sessionData.twitterHandle ?? null;
+        platformId = session.twitterId || null;
+        platformHandle = session.twitterHandle || null;
         verificationMethod = 'TWITTER';
       } else if (platform === 'twitch') {
-        platformId = sessionData.twitchId ?? null;
-        platformHandle = sessionData.twitchHandle ?? null;
+        platformId = session.twitchId || null;
+        platformHandle = session.twitchHandle || null;
         verificationMethod = 'TWITCH';
       } else if (platform === 'youtube') {
-        platformId = sessionData.youtubeId ?? null;
-        platformHandle = sessionData.youtubeHandle ?? null;
+        platformId = session.youtubeId || null;
+        platformHandle = session.youtubeHandle || null;
         verificationMethod = 'YOUTUBE';
       } else {
         return NextResponse.json(
@@ -312,7 +338,7 @@ export async function POST(request: NextRequest) {
 
     // Check wallet doesn't have too many tags (limit to 3)
     const walletTags = await prisma.streamerTag.count({
-      where: { walletAddress, status: { in: ['ACTIVE', 'PENDING'] } },
+      where: { walletAddress, status: { in: ['ACTIVE', 'VERIFIED', 'PENDING'] } },
     });
 
     if (walletTags >= 3) {
@@ -323,11 +349,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Build update/create data based on platform
-    const platformData: Omit<Prisma.StreamerTagCreateInput, 'tag'> = {
+    const platformData: Record<string, string | boolean | null | Date> = {
       walletAddress,
       verificationMethod,
       status,
-      verifiedAt: status === 'ACTIVE' ? new Date() : null,
+      verifiedAt: status === 'ACTIVE' || status === 'VERIFIED' ? new Date() : null,
       revokedAt: null,
       revokedBy: null,
       revokeReason: null,
@@ -352,9 +378,7 @@ export async function POST(request: NextRequest) {
         platformData.kickVerified = false;
       }
       // Store verification code in kickVerificationCode field (reused for all manual verifications)
-      if (effectiveManualCode) {
-        platformData.kickVerificationCode = effectiveManualCode;
-      }
+      platformData.kickVerificationCode = effectiveManualCode;
     } else if (platform === 'twitter') {
       platformData.twitterId = platformId;
       platformData.twitterHandle = platformHandle;
@@ -372,7 +396,7 @@ export async function POST(request: NextRequest) {
     // Create or update tag
     const streamerTag = await prisma.streamerTag.upsert({
       where: { tag: normalizedTag },
-      update: platformData as Prisma.StreamerTagUpdateInput,
+      update: platformData,
       create: {
         tag: normalizedTag,
         ...platformData,
@@ -380,7 +404,7 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `[TAG] ${status === 'ACTIVE' ? 'Claimed' : 'Pending'}: ${normalizedTag} by ${walletAddress} (${verificationMethod}: ${platformHandle})`
+      `[TAG] ${status === 'ACTIVE' || status === 'VERIFIED' ? 'Claimed' : 'Pending'}: ${normalizedTag} by ${walletAddress} (${verificationMethod}: ${platformHandle})`
     );
 
     // -----------------------------------------------------------------------
@@ -389,7 +413,7 @@ export async function POST(request: NextRequest) {
     let activatedDares = 0;
     let totalActivatedBounty = 0;
 
-    if (status === 'ACTIVE') {
+    if (status === 'ACTIVE' || status === 'VERIFIED') {
       // Find all AWAITING_CLAIM dares for this streamer handle
       const pendingDares = await prisma.dare.findMany({
         where: {
@@ -425,9 +449,9 @@ export async function POST(request: NextRequest) {
     if (isManualVerification) {
       message = `Tag submitted for review! An admin will verify your ${platform} account (${effectiveManualUsername}) within 24 hours.`;
     } else if (activatedDares > 0) {
-      message = `Tag claimed and activated! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
+      message = `Tag claimed and verified! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
     } else if (tagMatchesPlatform) {
-      message = 'Tag claimed and active!';
+      message = 'Tag claimed and verified!';
     } else {
       message = `Tag claimed! Note: Your tag (${normalizedTag}) differs from your ${platform} (@${platformHandle}).`;
     }
@@ -451,84 +475,6 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[TAG] Claim failed:', message);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
-}
-
-const UpdateTagProfileSchema = z.object({
-  walletAddress: z.string().refine(isAddress, 'Invalid wallet address'),
-  tag: z
-    .string()
-    .min(2, 'Tag must be at least 2 characters')
-    .max(21, 'Tag must be 21 characters or less'),
-  tags: z
-    .array(z.string().min(2).max(24))
-    .min(3, 'Select at least 3 tags')
-    .max(5, 'Maximum 5 tags'),
-});
-
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const validation = UpdateTagProfileSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error.issues[0].message },
-        { status: 400 }
-      );
-    }
-
-    const walletAddress = validation.data.walletAddress.toLowerCase();
-    const normalizedTag = validation.data.tag.startsWith('@')
-      ? validation.data.tag
-      : `@${validation.data.tag}`;
-
-    const normalizedTags = Array.from(
-      new Set(
-        validation.data.tags
-          .map((tag) => tag.replace(/^#/, '').trim().toLowerCase())
-          .filter((tag) => tag.length >= 2)
-      )
-    ).slice(0, 5);
-
-    if (normalizedTags.length < 3 || normalizedTags.length > 5) {
-      return NextResponse.json(
-        { success: false, error: 'Please provide between 3 and 5 unique tags' },
-        { status: 400 }
-      );
-    }
-
-    const existing = await prisma.streamerTag.findFirst({
-      where: {
-        tag: { equals: normalizedTag, mode: 'insensitive' },
-        walletAddress,
-        status: { in: ['VERIFIED', 'ACTIVE'] },
-      },
-      select: { id: true, tag: true },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { success: false, error: 'Tag not found or not owned by this wallet' },
-        { status: 404 }
-      );
-    }
-
-    const updated = await prisma.streamerTag.update({
-      where: { id: existing.id },
-      data: { tags: normalizedTags },
-      select: {
-        id: true,
-        tag: true,
-        tags: true,
-        updatedAt: true,
-      },
-    });
-
-    return NextResponse.json({ success: true, data: updated });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

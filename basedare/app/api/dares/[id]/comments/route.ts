@@ -1,5 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+
+type WalletSession = {
+    token?: string;
+    walletAddress?: string;
+    user?: {
+        walletAddress?: string | null;
+    } | null;
+};
+
+const CommentPostSchema = z.object({
+    body: z.string().min(1, 'Comment body is required').max(500, 'Comment too long'),
+    displayName: z.string().max(80, 'Display name too long').optional(),
+    walletAddress: z.string().optional(),
+});
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+    const session = (await getServerSession(authOptions)) as WalletSession | null;
+    if (!session) return null;
+
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+    if (session.token && (!bearerToken || bearerToken !== session.token)) {
+        return null;
+    }
+
+    const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+    if (!wallet || !isAddress(wallet)) return null;
+
+    return wallet.toLowerCase();
+}
 
 /**
  * GET /api/dares/[id]/comments
@@ -43,13 +78,27 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const body = await request.json();
-        const { walletAddress, displayName, body: text } = body;
+        const sessionWallet = await getVerifiedSessionWallet(request);
+        if (!sessionWallet) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
 
-        if (!walletAddress || !text?.trim()) {
+        const rawBody = await request.json();
+        const parsed = CommentPostSchema.safeParse(rawBody);
+        if (!parsed.success) {
             return NextResponse.json(
-                { success: false, error: 'walletAddress and body are required' },
+                { success: false, error: parsed.error.issues[0].message },
                 { status: 400 }
+            );
+        }
+
+        const { walletAddress, displayName, body: text } = parsed.data;
+        const normalizedBodyWallet = walletAddress?.toLowerCase();
+
+        if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+            return NextResponse.json(
+                { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+                { status: 401 }
             );
         }
 
@@ -65,8 +114,8 @@ export async function POST(
         const comment = await prisma.comment.create({
             data: {
                 dareId: dare.id,
-                walletAddress: walletAddress.toLowerCase(),
-                displayName: displayName?.trim() || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
+                walletAddress: sessionWallet,
+                displayName: displayName?.trim() || `${sessionWallet.slice(0, 6)}...${sessionWallet.slice(-4)}`,
                 body: text.trim().slice(0, 500), // cap at 500 chars
             },
         });

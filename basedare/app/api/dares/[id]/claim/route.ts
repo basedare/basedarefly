@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -9,9 +11,34 @@ import { isAddress } from 'viem';
 // DELETE /api/dares/[id]/claim - Withdraw a pending claim request
 // ============================================================================
 
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
 const ClaimSchema = z.object({
-  walletAddress: z.string().refine(isAddress, 'Invalid wallet address'),
+  walletAddress: z.string().optional(),
 });
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 export async function POST(
   request: NextRequest,
@@ -19,6 +46,11 @@ export async function POST(
 ) {
   try {
     const { id: dareId } = await params;
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const validation = ClaimSchema.safeParse(body);
 
@@ -30,7 +62,16 @@ export async function POST(
     }
 
     const { walletAddress } = validation.data;
-    const lowerWallet = walletAddress.toLowerCase();
+    const normalizedBodyWallet = walletAddress?.toLowerCase();
+
+    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
+
+    const lowerWallet = sessionWallet;
 
     // Check if user has a verified tag
     const userTag = await prisma.streamerTag.findFirst({
@@ -147,17 +188,31 @@ export async function DELETE(
 ) {
   try {
     const { id: dareId } = await params;
-    const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('wallet');
-
-    if (!walletAddress || !isAddress(walletAddress)) {
-      return NextResponse.json(
-        { success: false, error: 'Valid wallet address required' },
-        { status: 400 }
-      );
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const lowerWallet = walletAddress.toLowerCase();
+    const { searchParams } = new URL(request.url);
+    const walletAddress = searchParams.get('wallet')?.toLowerCase();
+
+    if (walletAddress) {
+      if (!isAddress(walletAddress)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid wallet address' },
+          { status: 400 }
+        );
+      }
+
+      if (walletAddress !== sessionWallet) {
+        return NextResponse.json(
+          { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+          { status: 401 }
+        );
+      }
+    }
+
+    const lowerWallet = sessionWallet;
 
     // Fetch the dare
     const dare = await prisma.dare.findUnique({

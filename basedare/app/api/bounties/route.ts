@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
 import { Livepeer } from 'livepeer';
 import {
   createPublicClient,
@@ -17,6 +18,7 @@ import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -58,6 +60,31 @@ const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
 // Force simulated mode for development (set SIMULATE_BOUNTIES=true in .env.local)
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
+
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // TAG TO ADDRESS RESOLUTION - Uses verified tags from database
@@ -78,7 +105,7 @@ async function resolveTagToAddress(tag: string): Promise<{ address: Address | nu
     select: { walletAddress: true, status: true },
   });
 
-  if (verifiedTag && verifiedTag.status === 'ACTIVE') {
+  if (verifiedTag && verifiedTag.status === 'VERIFIED') {
     console.log(`[TAG] Resolved ${normalizedTag} → ${verifiedTag.walletAddress} (verified)`);
     return {
       address: verifiedTag.walletAddress as Address,
@@ -109,6 +136,9 @@ async function resolveTagToAddress(tag: string): Promise<{ address: Address | nu
 // ============================================================================
 
 const StakeBountySchema = z.object({
+  missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
+  missionTag: z.string().max(50, 'Mission tag too long').optional(),
+
   // Bounty metadata
   title: z
     .string()
@@ -138,12 +168,6 @@ const StakeBountySchema = z.object({
     .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
     .optional()
     .or(z.literal('')),
-
-  missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
-  missionTag: z
-    .string()
-    .max(40, 'Mission tag must be 40 characters or less')
-    .default('nightlife'),
 
   referrerAddress: z
     .string()
@@ -300,12 +324,13 @@ export async function POST(request: NextRequest) {
       title,
       description,
       amount,
-      streamId,
-      streamerTag,
       missionMode,
       missionTag,
+      streamId,
+      streamerTag,
       referrerAddress,
       referrerTag,
+      dareId,
       stakerAddress,
       isNearbyDare,
       latitude,
@@ -313,6 +338,30 @@ export async function POST(request: NextRequest) {
       locationLabel,
       discoveryRadiusKm,
     } = validation.data;
+    const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
+    const normalizedMissionTag = missionTag?.trim() || null;
+
+    const normalizedStakerAddress = stakerAddress?.toLowerCase();
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    const shouldRequireWalletAuth = REQUIRE_WALLET_IN_SIMULATION || !FORCE_SIMULATION;
+
+    if (
+      shouldRequireWalletAuth &&
+      (!normalizedStakerAddress || !sessionWallet || normalizedStakerAddress !== sessionWallet)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
+    // Nearby dares require coordinates
+    if (isNearbyDare && (latitude === undefined || longitude === undefined)) {
+      return NextResponse.json(
+        { success: false, error: 'Coordinates are required for nearby dares', code: 'MISSING_COORDINATES' },
+        { status: 400 }
+      );
+    }
 
     // Calculate geohash for nearby dares
     let geohash: string | null = null;
@@ -448,8 +497,8 @@ export async function POST(request: NextRequest) {
       const dbDare = await prisma.dare.create({
         data: {
           title,
-          missionMode,
-          tag: missionTag,
+          missionMode: normalizedMissionMode,
+          tag: normalizedMissionTag,
           bounty: amount,
           streamerHandle: isOpenBounty ? null : streamerTag,
           status: dareStatus,
@@ -460,7 +509,7 @@ export async function POST(request: NextRequest) {
           shortId,
           referrerTag: referrerTag || null,
           referrerAddress: resolvedReferrerAddress,
-          stakerAddress: stakerAddress?.toLowerCase() || null,
+          stakerAddress: normalizedStakerAddress || null,
           inviteToken,
           claimDeadline,
           targetWalletAddress,
@@ -530,6 +579,8 @@ export async function POST(request: NextRequest) {
           dareId: dbDare.id,
           title,
           description,
+          missionMode: normalizedMissionMode,
+          missionTag: normalizedMissionTag,
           amount,
           streamerTag: isOpenBounty ? null : streamerTag,
           streamerAddress,
@@ -612,8 +663,8 @@ export async function POST(request: NextRequest) {
     const dbDarePreCreate = await prisma.dare.create({
       data: {
         title,
-        missionMode,
-        tag: missionTag,
+        missionMode: normalizedMissionMode,
+        tag: normalizedMissionTag,
         bounty: amount,
         streamerHandle: isOpenBounty ? null : streamerTag,
         status: 'FUNDING',
@@ -624,7 +675,7 @@ export async function POST(request: NextRequest) {
         shortId: shortIdOnChain,
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
-        stakerAddress: stakerAddress?.toLowerCase() || null,
+        stakerAddress: normalizedStakerAddress || null,
         inviteToken: inviteTokenOnChain,
         claimDeadline: claimDeadlineOnChain,
         targetWalletAddress: targetWalletAddressOnChain,
@@ -727,6 +778,8 @@ export async function POST(request: NextRequest) {
         dareId: dbDare.id,
         title,
         description,
+        missionMode: normalizedMissionMode,
+        missionTag: normalizedMissionTag,
         amount,
         streamerTag: isOpenBounty ? null : streamerTag,
         streamerAddress,
@@ -759,52 +812,23 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Bounty stake failed:', message);
-    const normalizedMessage = message.toLowerCase();
 
     // Handle specific error cases
-    if (normalizedMessage.includes('insufficient funds') || normalizedMessage.includes('insufficient usdc')) {
+    if (message.includes('insufficient funds')) {
       return NextResponse.json(
         { success: false, error: 'Insufficient USDC balance', code: 'INSUFFICIENT_FUNDS' },
         { status: 400 }
       );
     }
 
-    if (
-      normalizedMessage.includes('user rejected') ||
-      normalizedMessage.includes('user denied') ||
-      normalizedMessage.includes('rejected the request')
-    ) {
+    if (message.includes('user rejected')) {
       return NextResponse.json(
         { success: false, error: 'Transaction rejected', code: 'USER_REJECTED' },
         { status: 400 }
       );
     }
 
-    if (normalizedMessage.includes('stream') && normalizedMessage.includes('active')) {
-      return NextResponse.json(
-        { success: false, error: 'Stream is not active. Start your stream and try again.', code: 'STREAM_INACTIVE' },
-        { status: 400 }
-      );
-    }
-
-    if (normalizedMessage.includes('tag') && normalizedMessage.includes('resolve')) {
-      return NextResponse.json(
-        { success: false, error: 'Could not resolve the creator tag. Check the tag and try again.', code: 'TAG_RESOLUTION_FAILED' },
-        { status: 400 }
-      );
-    }
-
-    if (normalizedMessage.includes('network') || normalizedMessage.includes('timeout')) {
-      return NextResponse.json(
-        { success: false, error: 'Network issue while staking. Please retry in a few seconds.', code: 'NETWORK_ERROR' },
-        { status: 503 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Could not create stake right now. Please try again shortly.', code: 'STAKE_FAILED' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'An internal error occurred' }, { status: 500 });
   }
 }
 
@@ -927,10 +951,7 @@ export async function GET(request: NextRequest) {
               status: dbBounty.status,
               createdAt: dbBounty.createdAt.toISOString(),
               potSize: Math.floor(dbBounty.bounty * 1.2),
-              // Invite flow fields
-              inviteToken: dbBounty.inviteToken,
               claimDeadline: dbBounty.claimDeadline?.toISOString() || null,
-              targetWalletAddress: dbBounty.targetWalletAddress,
               awaitingClaim: dbBounty.status === 'AWAITING_CLAIM',
             },
           });
@@ -1024,7 +1045,7 @@ export async function GET(request: NextRequest) {
       }));
 
       // Combine with mock bounties if database is empty
-      const allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
+      let allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
 
       if (sort === 'amount') {
         allBounties.sort((a, b) => b.amount - a.amount);

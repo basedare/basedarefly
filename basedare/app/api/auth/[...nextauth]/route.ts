@@ -3,6 +3,35 @@ import TwitterProvider from 'next-auth/providers/twitter';
 import TwitchProvider from 'next-auth/providers/twitch';
 import GoogleProvider from 'next-auth/providers/google';
 
+const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+
+function normalizeWalletAddress(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!EVM_ADDRESS_REGEX.test(trimmed)) return null;
+  return trimmed.toLowerCase();
+}
+
+function walletFromOAuthProfile(profile: unknown): string | null {
+  if (!profile || typeof profile !== 'object') return null;
+  const p = profile as Record<string, unknown>;
+
+  const candidates = [
+    p.walletAddress,
+    p.wallet,
+    p.address,
+    p.eth_address,
+    p.ethereumAddress,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeWalletAddress(candidate);
+    if (normalized) return normalized;
+  }
+
+  return null;
+}
+
 // ============================================================================
 // NEXTAUTH CONFIGURATION
 // Supports: Twitter, Twitch, YouTube (via Google), Kick (manual)
@@ -59,6 +88,15 @@ export const authOptions: NextAuthOptions = {
         token.apiToken = crypto.randomUUID();
       }
 
+      // Preserve wallet identity across JWT refreshes and map known wallet claims.
+      const tokenWallet =
+        normalizeWalletAddress((token as any).walletAddress) ||
+        normalizeWalletAddress(token.sub) ||
+        walletFromOAuthProfile(profile);
+      if (tokenWallet) {
+        (token as any).walletAddress = tokenWallet;
+      }
+
       if (account && profile) {
         if (!token.apiToken) {
           token.apiToken = crypto.randomUUID();
@@ -107,6 +145,17 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
+      const walletAddress =
+        normalizeWalletAddress((token as any).walletAddress) ||
+        normalizeWalletAddress(token.sub);
+
+      if (walletAddress) {
+        (session as any).walletAddress = walletAddress;
+        if (session.user) {
+          (session.user as any).walletAddress = walletAddress;
+        }
+      }
+
       if (session.user) {
         // Add platform data to session
         (session as any).provider = token.provider;
