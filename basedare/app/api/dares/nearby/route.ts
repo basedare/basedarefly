@@ -26,6 +26,7 @@ const NearbyQuerySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const now = new Date();
 
     // Parse and validate query params
     const queryResult = NearbyQuerySchema.safeParse({
@@ -71,7 +72,12 @@ export async function GET(request: NextRequest) {
     const dares = await prisma.dare.findMany({
       where: {
         isNearbyDare: true,
-        status: { in: ['PENDING', 'AWAITING_CLAIM'] },
+        NOT: {
+          OR: [
+            { status: 'EXPIRED' },
+            { expiresAt: { lt: now } },
+          ],
+        },
         geohash: { in: neighborHashes },
         latitude: { not: null },
         longitude: { not: null },

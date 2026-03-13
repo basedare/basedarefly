@@ -32,6 +32,7 @@ export async function GET(
       shortId: dare.shortId || dare.id.slice(0, 8),
       title: dare.title,
       bounty: dare.bounty,
+      upvoteCount: dare.upvoteCount,
       streamerHandle: dare.streamerHandle,
       status: dare.status,
       expiresAt: dare.expiresAt?.toISOString() || null,
