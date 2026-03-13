@@ -203,7 +203,15 @@ export default function DareDetailPage() {
           return;
         }
         const data = await res.json();
-        setDare(data);
+        const normalizedDare: DareDetail = {
+          ...data,
+          bounty: typeof data.bounty === 'number' ? data.bounty : Number(data.bounty ?? 0),
+          upvoteCount:
+            typeof data.upvoteCount === 'number'
+              ? data.upvoteCount
+              : Number(data.upvoteCount ?? 0),
+        };
+        setDare(normalizedDare);
       } catch {
         setError('Failed to load bounty');
       } finally {
@@ -286,7 +294,15 @@ export default function DareDetailPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to upvote');
       }
-      setDare((prev) => (prev ? { ...prev, upvoteCount: data.data.upvoteCount } : prev));
+      const nextUpvoteCount = Number(data?.data?.upvoteCount ?? 0);
+      setDare((prev) =>
+        prev
+          ? {
+              ...prev,
+              upvoteCount: Number.isFinite(nextUpvoteCount) ? nextUpvoteCount : prev.upvoteCount,
+            }
+          : prev
+      );
     } catch (err: unknown) {
       setUpvoteError(err instanceof Error ? err.message : 'Failed to upvote');
     } finally {
@@ -385,6 +401,7 @@ export default function DareDetailPage() {
   const sc = dare ? statusConfig(dare.status) : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
+  const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? dare.upvoteCount : 0;
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -522,7 +539,7 @@ export default function DareDetailPage() {
             className="flex flex-col items-center gap-1 transition-all text-white/30 hover:text-red-400 disabled:opacity-60"
           >
             {upvoteLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Heart className="w-6 h-6" />}
-            <span className="text-xs font-mono font-bold">{dare.upvoteCount.toLocaleString()}</span>
+            <span className="text-xs font-mono font-bold">{safeUpvoteCount.toLocaleString()}</span>
           </button>
         </div>
 
