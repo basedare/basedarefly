@@ -401,6 +401,7 @@ export default function DareDetailPage() {
   const sc = dare ? statusConfig(dare.status) : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
+  const safeBountyAmount = Number.isFinite(dare?.bounty) ? dare.bounty : 0;
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? dare.upvoteCount : 0;
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -527,9 +528,9 @@ export default function DareDetailPage() {
         {/* Bounty + likes row */}
         <div className="flex items-center justify-between p-4 bg-white/[0.04] border border-white/[0.08] rounded-2xl backdrop-blur-xl">
           <div>
-            <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">Pot Size</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-black text-green-400">{dare.bounty.toLocaleString()}</span>
+              <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">Pot Size</p>
+              <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-black text-green-400">{safeBountyAmount.toLocaleString()}</span>
               <span className="text-sm font-bold text-green-600">USDC</span>
             </div>
           </div>
