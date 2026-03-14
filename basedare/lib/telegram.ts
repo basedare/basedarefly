@@ -9,6 +9,8 @@
  * - Expiring dares
  */
 
+import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
@@ -22,6 +24,11 @@ interface TelegramResponse {
   description?: string;
 }
 
+const TELEGRAM_REQUEST_TIMEOUT_MS = 30_000;
+const TELEGRAM_HTTPS_AGENT = new HttpsAgent({
+  keepAlive: true,
+});
+
 /**
  * Send a message to the admin Telegram chat
  */
@@ -32,18 +39,53 @@ async function sendMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'
   }
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text,
-        parse_mode: parseMode,
-        disable_web_page_preview: true,
-      }),
+    const payload = JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: true,
     });
 
-    const result: TelegramResponse = await response.json();
+    const result: TelegramResponse = await new Promise((resolve, reject) => {
+      const req = httpsRequest(
+        {
+          protocol: 'https:',
+          hostname: 'api.telegram.org',
+          path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+          method: 'POST',
+          family: 4,
+          timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+          agent: TELEGRAM_HTTPS_AGENT,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+        },
+        (res) => {
+          let raw = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => {
+            raw += chunk;
+          });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(raw) as TelegramResponse;
+              resolve(parsed);
+            } catch (parseError) {
+              reject(parseError);
+            }
+          });
+        }
+      );
+
+      req.on('timeout', () => {
+        req.destroy(new Error(`Telegram request timeout after ${TELEGRAM_REQUEST_TIMEOUT_MS}ms`));
+      });
+
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
 
     if (!result.ok) {
       console.error('[TELEGRAM] Failed to send message:', result.description);
