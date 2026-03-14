@@ -28,6 +28,7 @@ interface TelegramReplyMarkup {
   keyboard?: Array<Array<{ text: string; request_location?: boolean }>>;
   resize_keyboard?: boolean;
   one_time_keyboard?: boolean;
+  remove_keyboard?: boolean;
 }
 
 export interface TelegramUpdate {
@@ -52,6 +53,7 @@ export interface TelegramUpdate {
 }
 
 const chatState = new Map<string, { awaitingLocation?: boolean }>();
+const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || BASE_URL;
 
 function timingSafeEqualStrings(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -146,6 +148,49 @@ async function sendMessage(
     disable_web_page_preview: true,
     ...(options?.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
   });
+}
+
+async function fetchNearbyDares(lat: number, lng: number): Promise<Array<{
+  id: string;
+  shortId: string | null;
+  title: string;
+  bounty: number;
+  streamerHandle: string | null;
+}>> {
+  const url = new URL('/api/dares/nearby', INTERNAL_API_BASE_URL);
+  url.searchParams.set('lat', lat.toString());
+  url.searchParams.set('lng', lng.toString());
+  url.searchParams.set('limit', '5');
+  url.searchParams.set('radius', '10');
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Nearby dares request failed (${response.status})`);
+  }
+
+  const payload = await response.json() as {
+    success?: boolean;
+    data?: {
+      dares?: Array<{
+        id: string;
+        shortId: string | null;
+        title: string;
+        bounty: number;
+        streamerHandle: string | null;
+      }>;
+    };
+  };
+
+  if (!payload.success) {
+    return [];
+  }
+
+  return payload.data?.dares ?? [];
 }
 
 async function answerCallbackQuery(
@@ -253,21 +298,81 @@ export function validateTelegramWebhookSecret(headers: Headers): boolean {
   return timingSafeEqualStrings(token, expected);
 }
 
-export async function handleTelegramUpdate(update: TelegramUpdate): Promise<void> {
-  const chatId = update.message?.chat.id;
-  if (chatId) {
-    const stateKey = chatId.toString();
-    if (!chatState.has(stateKey)) {
-      chatState.set(stateKey, {});
-    }
-  }
-
+export async function handleTelegramUpdate(update: TelegramUpdate): Promise<boolean> {
   const callbackHandled = await handleCallback(update);
   if (callbackHandled) {
-    return;
+    return true;
   }
 
-  // Keep existing command flow in webhook route.
+  const chatId = update.message?.chat.id;
+  const message = update.message;
+
+  if (!chatId || !message) {
+    return false;
+  }
+
+  const stateKey = chatId.toString();
+  const state = chatState.get(stateKey) || {};
+  const messageText = (message.text || '').trim();
+
+  if (messageText.toLowerCase().startsWith('/dare')) {
+    chatState.set(stateKey, { ...state, awaitingLocation: true });
+    await sendMessage(chatId, 'Drop your location and I will pull the nearest live dares.', {
+      replyMarkup: {
+        keyboard: [[{ text: '📍 Share Location', request_location: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    }).catch(() => {});
+    return true;
+  }
+
+  if (state.awaitingLocation && message.location) {
+    const { latitude, longitude } = message.location;
+
+    try {
+      const nearbyDares = await fetchNearbyDares(latitude, longitude);
+
+      if (nearbyDares.length === 0) {
+        await sendMessage(chatId, 'No nearby dares right now. Check back soon.', {
+          replyMarkup: { remove_keyboard: true },
+        }).catch(() => {});
+        chatState.set(stateKey, { ...state, awaitingLocation: false });
+        return true;
+      }
+
+      const lines = nearbyDares.map((dare, index) => {
+        const tag = dare.streamerHandle || '@open';
+        const link = `${BASE_URL}/dare/${dare.shortId || dare.id}`;
+        return `${index + 1}. ${dare.title} — $${dare.bounty} USDC • ${tag} <a href="${link}">[open]</a>`;
+      });
+
+      await sendMessage(chatId, `<b>Nearby Dares</b>\n\n${lines.join('\n')}`, {
+        replyMarkup: { remove_keyboard: true },
+      }).catch(() => {});
+    } catch (error) {
+      console.error('[TELEGRAM] Nearby dare lookup failed:', error);
+      await sendMessage(chatId, 'Could not fetch nearby dares right now. Please try again shortly.', {
+        replyMarkup: { remove_keyboard: true },
+      }).catch(() => {});
+    }
+
+    chatState.set(stateKey, { ...state, awaitingLocation: false });
+    return true;
+  }
+
+  if (state.awaitingLocation && !message.location) {
+    await sendMessage(chatId, 'Please share location first!', {
+      replyMarkup: {
+        keyboard: [[{ text: '📍 Share Location', request_location: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    }).catch(() => {});
+    return true;
+  }
+
+  return false;
 }
 
 export async function sendDareCreatedAlert(data: {

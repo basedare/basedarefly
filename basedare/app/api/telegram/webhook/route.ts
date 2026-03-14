@@ -277,9 +277,8 @@ export async function POST(req: NextRequest) {
     }
 
     const update: TelegramUpdate = await req.json();
-    await handleTelegramUpdate(update);
-
-    if (update.callback_query) {
+    const handledByBot = await handleTelegramUpdate(update);
+    if (handledByBot) {
       return NextResponse.json({ ok: true });
     }
 
