@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { alertVerification, alertPayout } from '@/lib/telegram';
+import { alertVerification } from '@/lib/telegram';
+import { handleTelegramUpdate, validateTelegramWebhookSecret, type TelegramUpdate } from '@/lib/telegram-bot';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -10,16 +11,6 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 const STREAMER_FEE_PERCENT = 89;
 const HOUSE_FEE_PERCENT = 10;
 const REFERRER_FEE_PERCENT = 1;
-
-interface TelegramUpdate {
-  update_id: number;
-  message?: {
-    message_id: number;
-    from: { id: number; username?: string };
-    chat: { id: number; type: string };
-    text?: string;
-  };
-}
 
 /**
  * Send message to Telegram
@@ -281,7 +272,16 @@ async function handleHelp(chatId: number) {
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!validateTelegramWebhookSecret(req.headers)) {
+      return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const update: TelegramUpdate = await req.json();
+    await handleTelegramUpdate(update);
+
+    if (update.callback_query) {
+      return NextResponse.json({ ok: true });
+    }
 
     // Only process messages
     if (!update.message?.text) {

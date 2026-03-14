@@ -10,6 +10,7 @@
  */
 
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
+import { sendDareCreatedAlert } from '@/lib/telegram-bot';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -122,23 +123,7 @@ export async function alertNewDare(data: {
   isOpenBounty: boolean;
   stakerAddress?: string | null;
 }): Promise<void> {
-  const target = data.isOpenBounty ? '🎯 OPEN DARE' : `👤 ${data.streamerTag}`;
-  const staker = data.stakerAddress
-    ? `${data.stakerAddress.slice(0, 6)}...${data.stakerAddress.slice(-4)}`
-    : 'Anonymous';
-
-  const message = `
-🆕 <b>NEW DARE CREATED</b>
-
-<b>${data.title}</b>
-${target}
-💰 ${formatUSDC(data.amount)}
-👛 Staker: <code>${staker}</code>
-
-🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>
-`.trim();
-
-  await sendMessage(message);
+  await sendDareCreatedAlert(data);
 }
 
 /**
