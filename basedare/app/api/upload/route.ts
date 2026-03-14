@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { PinataSDK } from 'pinata';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 
 type UploadSession = {
   token?: string;
@@ -52,7 +53,8 @@ const pinata = new PinataSDK({
 export async function POST(request: NextRequest) {
   try {
     const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
+    const isInternalAuthorized = isInternalApiAuthorized(request);
+    if (!sessionWallet && !isInternalAuthorized) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isAuthorized =
+      isInternalAuthorized ||
       dare.stakerAddress?.toLowerCase() === sessionWallet ||
       dare.targetWalletAddress?.toLowerCase() === sessionWallet ||
       dare.claimedBy?.toLowerCase() === sessionWallet;

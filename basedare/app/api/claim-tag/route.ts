@@ -5,6 +5,7 @@ import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { alertTagClaimSubmission } from '@/lib/telegram';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 
 const ClaimTagSchema = z.object({
   tag: z
@@ -86,31 +87,6 @@ function getPlatformFields(platform: 'twitter' | 'twitch' | 'youtube' | 'kick', 
 
 export async function POST(request: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions)) as ClaimSession | null;
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Sign in required to claim a tag' },
-        { status: 401 }
-      );
-    }
-
-    const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (session.token && (!bearerToken || bearerToken !== session.token)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid session token' },
-        { status: 401 }
-      );
-    }
-
-    const sessionWallet = (session.walletAddress ?? session.user?.walletAddress ?? '').toLowerCase();
-    if (!sessionWallet || !isAddress(sessionWallet)) {
-      return NextResponse.json(
-        { success: false, error: 'Wallet session is missing. Reconnect and sign in again.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const parsed = ClaimTagSchema.safeParse(body);
     if (!parsed.success) {
@@ -118,6 +94,45 @@ export async function POST(request: NextRequest) {
         { success: false, error: parsed.error.issues[0].message },
         { status: 400 }
       );
+    }
+
+    const isInternalAuthorized = isInternalApiAuthorized(request);
+    const session = (await getServerSession(authOptions)) as ClaimSession | null;
+    if (!session && !isInternalAuthorized) {
+      return NextResponse.json(
+        { success: false, error: 'Sign in required to claim a tag' },
+        { status: 401 }
+      );
+    }
+
+    let sessionWallet = '';
+
+    if (isInternalAuthorized) {
+      const providedWallet = (parsed.data.walletAddress || '').toLowerCase();
+      if (!providedWallet || !isAddress(providedWallet)) {
+        return NextResponse.json(
+          { success: false, error: 'Valid walletAddress is required for internal tag claims' },
+          { status: 400 }
+        );
+      }
+      sessionWallet = providedWallet;
+    } else {
+      const authHeader = request.headers.get('authorization');
+      const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+      if (session?.token && (!bearerToken || bearerToken !== session.token)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid session token' },
+          { status: 401 }
+        );
+      }
+
+      sessionWallet = (session?.walletAddress ?? session?.user?.walletAddress ?? '').toLowerCase();
+      if (!sessionWallet || !isAddress(sessionWallet)) {
+        return NextResponse.json(
+          { success: false, error: 'Wallet session is missing. Reconnect and sign in again.' },
+          { status: 401 }
+        );
+      }
     }
 
     const normalizedTag = normalizeTag(parsed.data.tag);

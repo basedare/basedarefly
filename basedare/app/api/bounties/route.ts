@@ -18,6 +18,7 @@ import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Big pledge threshold for alerts
@@ -343,16 +344,23 @@ export async function POST(request: NextRequest) {
 
     const normalizedStakerAddress = stakerAddress?.toLowerCase();
     const sessionWallet = await getVerifiedSessionWallet(request);
+    const isInternalAuthorized = isInternalApiAuthorized(request);
     const shouldRequireWalletAuth = REQUIRE_WALLET_IN_SIMULATION || !FORCE_SIMULATION;
 
-    if (
-      shouldRequireWalletAuth &&
-      (!normalizedStakerAddress || !sessionWallet || normalizedStakerAddress !== sessionWallet)
-    ) {
-      return NextResponse.json(
-        { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
+    if (shouldRequireWalletAuth) {
+      if (!normalizedStakerAddress) {
+        return NextResponse.json(
+          { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+          { status: 401 }
+        );
+      }
+
+      if (!isInternalAuthorized && (!sessionWallet || normalizedStakerAddress !== sessionWallet)) {
+        return NextResponse.json(
+          { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+          { status: 401 }
+        );
+      }
     }
 
     // Nearby dares require coordinates
