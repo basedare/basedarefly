@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
@@ -96,12 +97,27 @@ export async function POST(request: NextRequest) {
 
         const normalizedStakerAddress = stakerAddress?.toLowerCase();
         const sessionWallet = await getVerifiedSessionWallet(request);
-        const shouldRequireWalletAuth = REQUIRE_WALLET_IN_SIMULATION || !FORCE_SIMULATION;
+        const isInternalAuthorized = isInternalApiAuthorized(request);
 
-        if (
-            shouldRequireWalletAuth &&
-            (!normalizedStakerAddress || !sessionWallet || normalizedStakerAddress !== sessionWallet)
-        ) {
+        if (!normalizedStakerAddress || !isAddress(normalizedStakerAddress)) {
+            return NextResponse.json(
+                { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+                { status: 401 }
+            );
+        }
+
+        if (FORCE_SIMULATION) {
+            if (
+                REQUIRE_WALLET_IN_SIMULATION &&
+                !isInternalAuthorized &&
+                (!sessionWallet || normalizedStakerAddress !== sessionWallet)
+            ) {
+                return NextResponse.json(
+                    { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+                    { status: 401 }
+                );
+            }
+        } else if (!isInternalAuthorized && sessionWallet && normalizedStakerAddress !== sessionWallet) {
             return NextResponse.json(
                 { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
                 { status: 401 }

@@ -54,6 +54,22 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Transaction failed on-chain' }, { status: 400 });
         }
 
+        if (!dare.stakerAddress) {
+            return NextResponse.json(
+                { success: false, error: 'Dare missing staker identity', code: 'MISSING_STAKER' },
+                { status: 400 }
+            );
+        }
+
+        const txSender = receipt.from?.toLowerCase();
+        const expectedSender = dare.stakerAddress.toLowerCase();
+        if (!txSender || txSender !== expectedSender) {
+            return NextResponse.json(
+                { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
+                { status: 401 }
+            );
+        }
+
         // 3. Extract BountyCreated event and verify onChainBountyId
         let foundBountyEvent = false;
         let actualOnChainDareId = null;
@@ -78,7 +94,7 @@ export async function POST(request: NextRequest) {
                         foundBountyEvent = true;
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore logs that don't match our ABI
             }
         }
@@ -108,8 +124,9 @@ export async function POST(request: NextRequest) {
             data: updatedDare
         });
 
-    } catch (error: any) {
-        console.error('[REGISTER] Verification error:', error);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[REGISTER] Verification error:', message);
         return NextResponse.json(
             { success: false, error: 'Failed to verify transaction' },
             { status: 500 }
