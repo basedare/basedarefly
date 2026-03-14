@@ -111,7 +111,8 @@ export default function CreateDare() {
   const { data: session } = useSession();
 
   const sessionToken = (session as { token?: string } | null)?.token;
-  const sessionWallet = ((session as { walletAddress?: string } | null)?.walletAddress || '').toLowerCase();
+  const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
+  const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
 
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
@@ -216,7 +217,7 @@ export default function CreateDare() {
         throw new Error('Connect your wallet before deploying a dare');
       }
 
-      if (!sessionWallet || sessionWallet !== connectedWallet) {
+      if (session && sessionWallet && sessionWallet !== connectedWallet) {
         throw new Error('Wallet session mismatch. Please reconnect and sign in again.');
       }
 
