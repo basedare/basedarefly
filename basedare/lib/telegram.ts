@@ -322,6 +322,56 @@ export async function alertDailyStats(data: {
 }
 
 /**
+ * Alert: New manual tag-claim submission
+ */
+export async function alertTagClaimSubmission(data: {
+  tagClaimId: string;
+  tag: string;
+  platform: 'twitter' | 'twitch' | 'youtube' | 'kick';
+  handle: string;
+  walletAddress: string;
+}): Promise<void> {
+  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
+  const message = `
+🆕 <b>TAG CLAIM SUBMITTED</b>
+
+🏷️ Tag: <code>${data.tag}</code>
+📺 Platform: <b>${data.platform.toUpperCase()}</b>
+👤 Handle: <code>${data.handle}</code>
+👛 Wallet: <code>${wallet}</code>
+🆔 Claim ID: <code>${data.tagClaimId}</code>
+`.trim();
+
+  await sendMessage(message);
+}
+
+/**
+ * Alert: Tag-claim moderation decision
+ */
+export async function alertTagClaimDecision(data: {
+  tagClaimId: string;
+  tag: string;
+  approved: boolean;
+  walletAddress: string;
+  platform: string;
+  handle: string;
+}): Promise<void> {
+  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
+  const status = data.approved ? 'APPROVED ✅' : 'REJECTED ❌';
+  const message = `
+🛡️ <b>TAG CLAIM ${status}</b>
+
+🏷️ Tag: <code>${data.tag}</code>
+📺 Platform: <b>${data.platform}</b>
+👤 Handle: <code>${data.handle}</code>
+👛 Wallet: <code>${wallet}</code>
+🆔 Claim ID: <code>${data.tagClaimId}</code>
+`.trim();
+
+  await sendMessage(message);
+}
+
+/**
  * Test the bot connection
  */
 export async function testBotConnection(): Promise<{ success: boolean; error?: string }> {

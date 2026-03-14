@@ -4,69 +4,89 @@ import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { alertTagClaimSubmission } from '@/lib/telegram';
 
 const ClaimTagSchema = z.object({
-  walletAddress: z.string().refine(isAddress, 'Invalid wallet address'),
   tag: z
     .string()
     .min(2, 'Tag must be at least 2 characters')
     .max(20, 'Tag must be 20 characters or less')
     .regex(/^@?[a-zA-Z0-9_]+$/, 'Tag can only contain letters, numbers, and underscores'),
-  inviteToken: z.string().min(1).optional(),
+  platform: z.enum(['twitter', 'twitch', 'youtube', 'kick']),
+  handle: z
+    .string()
+    .min(1, 'Handle is required')
+    .max(50, 'Handle is too long')
+    .regex(/^@?[a-zA-Z0-9_.-]+$/, 'Handle contains invalid characters'),
+  // Accepted for compatibility but never trusted for auth.
+  walletAddress: z.string().optional(),
 });
 
 type ClaimSession = {
-  provider?: string;
   token?: string;
-  twitterId?: string;
-  twitterHandle?: string;
-  twitchId?: string;
-  twitchHandle?: string;
-  youtubeId?: string;
-  youtubeHandle?: string;
-};
-
-type ProviderContext = {
-  verificationMethod: 'TWITTER' | 'TWITCH' | 'YOUTUBE';
-  platformId: string;
-  platformHandle: string;
+  walletAddress?: string | null;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
 };
 
 function normalizeTag(input: string): string {
-  return input.startsWith('@') ? input : `@${input}`;
+  const cleaned = input.trim().replace(/^@+/, '');
+  return `@${cleaned}`;
 }
 
-function getProviderContext(session: ClaimSession): ProviderContext | null {
-  if (session.provider === 'twitter' && session.twitterId && session.twitterHandle) {
-    return {
-      verificationMethod: 'TWITTER',
-      platformId: session.twitterId,
-      platformHandle: session.twitterHandle,
-    };
-  }
+function normalizeHandle(input: string): string {
+  return input.trim().replace(/^@+/, '');
+}
 
-  if (session.provider === 'twitch' && session.twitchId && session.twitchHandle) {
-    return {
-      verificationMethod: 'TWITCH',
-      platformId: session.twitchId,
-      platformHandle: session.twitchHandle,
-    };
+function mapVerificationMethod(platform: 'twitter' | 'twitch' | 'youtube' | 'kick'): string {
+  switch (platform) {
+    case 'twitter':
+      return 'TWITTER';
+    case 'twitch':
+      return 'TWITCH';
+    case 'youtube':
+      return 'YOUTUBE';
+    case 'kick':
+      return 'KICK';
+    default:
+      return 'MANUAL';
   }
+}
 
-  if (session.provider === 'google' && session.youtubeId && session.youtubeHandle) {
-    return {
-      verificationMethod: 'YOUTUBE',
-      platformId: session.youtubeId,
-      platformHandle: session.youtubeHandle,
-    };
+function getPlatformFields(platform: 'twitter' | 'twitch' | 'youtube' | 'kick', handle: string) {
+  const cleared = {
+    twitterId: null as string | null,
+    twitterHandle: null as string | null,
+    twitterVerified: false,
+    twitchId: null as string | null,
+    twitchHandle: null as string | null,
+    twitchVerified: false,
+    youtubeId: null as string | null,
+    youtubeHandle: null as string | null,
+    youtubeVerified: false,
+    kickHandle: null as string | null,
+    kickVerificationCode: null as string | null,
+    kickVerified: false,
+  };
+
+  switch (platform) {
+    case 'twitter':
+      return { ...cleared, twitterHandle: handle };
+    case 'twitch':
+      return { ...cleared, twitchHandle: handle };
+    case 'youtube':
+      return { ...cleared, youtubeHandle: handle };
+    case 'kick':
+      return { ...cleared, kickHandle: handle };
+    default:
+      return cleared;
   }
-
-  return null;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as ClaimSession | null;
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Sign in required to claim a tag' },
@@ -74,13 +94,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionData = session as unknown as ClaimSession;
-
     const authHeader = request.headers.get('authorization');
     const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (bearerToken && sessionData.token && bearerToken !== sessionData.token) {
+    if (session.token && (!bearerToken || bearerToken !== session.token)) {
       return NextResponse.json(
         { success: false, error: 'Invalid session token' },
+        { status: 401 }
+      );
+    }
+
+    const sessionWallet = (session.walletAddress ?? session.user?.walletAddress ?? '').toLowerCase();
+    if (!sessionWallet || !isAddress(sessionWallet)) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet session is missing. Reconnect and sign in again.' },
         { status: 401 }
       );
     }
@@ -94,150 +120,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const providerContext = getProviderContext(sessionData);
-    if (!providerContext) {
-      return NextResponse.json(
-        { success: false, error: 'OAuth provider session is missing required account data' },
-        { status: 400 }
-      );
-    }
+    const normalizedTag = normalizeTag(parsed.data.tag);
+    const normalizedHandle = normalizeHandle(parsed.data.handle);
 
-    const { walletAddress: rawWalletAddress, tag, inviteToken } = parsed.data;
-    const walletAddress = rawWalletAddress.toLowerCase();
-    const normalizedTag = normalizeTag(tag);
-    const { verificationMethod, platformId, platformHandle } = providerContext;
-
-    const existingTag = await prisma.streamerTag.findUnique({
-      where: { tag: normalizedTag },
-      select: { tag: true, walletAddress: true, status: true },
+    const conflictingTag = await prisma.streamerTag.findFirst({
+      where: {
+        tag: { equals: normalizedTag, mode: 'insensitive' },
+        status: { in: ['ACTIVE', 'PENDING'] },
+      },
+      select: { id: true, tag: true, status: true },
     });
 
-    if (existingTag && existingTag.status !== 'REVOKED' && existingTag.walletAddress !== walletAddress) {
+    if (conflictingTag) {
       return NextResponse.json(
-        { success: false, error: `Tag ${normalizedTag} is already claimed` },
+        {
+          success: false,
+          error: `Tag ${conflictingTag.tag} is already claimed or pending review`,
+        },
         { status: 409 }
       );
     }
 
-    const providerWhere =
-      verificationMethod === 'TWITTER'
-        ? { twitterId: platformId }
-        : verificationMethod === 'TWITCH'
-          ? { twitchId: platformId }
-          : { youtubeId: platformId };
-
-    const existingPlatform = await prisma.streamerTag.findFirst({
-      where: {
-        ...providerWhere,
-        status: { not: 'REVOKED' },
-        NOT: { tag: normalizedTag },
-      },
-      select: { tag: true },
+    const existingTag = await prisma.streamerTag.findFirst({
+      where: { tag: { equals: normalizedTag, mode: 'insensitive' } },
+      select: { id: true },
     });
 
-    if (existingPlatform) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `This ${verificationMethod.toLowerCase()} account is already linked to tag ${existingPlatform.tag}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const walletTagCount = await prisma.streamerTag.count({
-      where: {
-        walletAddress,
-        status: { in: ['ACTIVE', 'PENDING'] },
-        NOT: { tag: normalizedTag },
-      },
-    });
-
-    if (walletTagCount >= 3) {
-      return NextResponse.json(
-        { success: false, error: 'Maximum 3 tags per wallet' },
-        { status: 400 }
-      );
-    }
-
+    const verificationMethod = mapVerificationMethod(parsed.data.platform);
+    const platformFields = getPlatformFields(parsed.data.platform, normalizedHandle);
     const now = new Date();
-    const platformData =
-      verificationMethod === 'TWITTER'
-        ? {
-            twitterId: platformId,
-            twitterHandle: platformHandle,
-            twitterVerified: true,
-          }
-        : verificationMethod === 'TWITCH'
-          ? {
-              twitchId: platformId,
-              twitchHandle: platformHandle,
-              twitchVerified: true,
-            }
-          : {
-              youtubeId: platformId,
-              youtubeHandle: platformHandle,
-              youtubeVerified: true,
-            };
 
-    const streamerTag = await prisma.streamerTag.upsert({
-      where: { tag: normalizedTag },
-      update: {
-        walletAddress,
-        verificationMethod,
-        status: 'ACTIVE',
-        verifiedAt: now,
-        revokedAt: null,
-        revokedBy: null,
-        revokeReason: null,
-        ...platformData,
-      },
-      create: {
-        tag: normalizedTag,
-        walletAddress,
-        verificationMethod,
-        status: 'ACTIVE',
-        verifiedAt: now,
-        ...platformData,
-      },
+    const claimRecord = existingTag
+      ? await prisma.streamerTag.update({
+          where: { id: existingTag.id },
+          data: {
+            tag: normalizedTag,
+            walletAddress: sessionWallet,
+            verificationMethod,
+            status: 'PENDING',
+            verifiedAt: null,
+            revokedAt: null,
+            revokedBy: null,
+            revokeReason: null,
+            updatedAt: now,
+            ...platformFields,
+          },
+        })
+      : await prisma.streamerTag.create({
+          data: {
+            tag: normalizedTag,
+            walletAddress: sessionWallet,
+            verificationMethod,
+            status: 'PENDING',
+            ...platformFields,
+          },
+        });
+
+    void alertTagClaimSubmission({
+      tagClaimId: claimRecord.id,
+      tag: claimRecord.tag,
+      platform: parsed.data.platform,
+      handle: normalizedHandle,
+      walletAddress: sessionWallet,
+    }).catch((error) => {
+      console.error('[CLAIM-TAG] Telegram notification failed:', error);
     });
-
-    const activationWhere = {
-      status: 'AWAITING_CLAIM',
-      streamerHandle: { equals: normalizedTag, mode: 'insensitive' as const },
-      ...(inviteToken ? { inviteToken } : {}),
-    };
-
-    const pendingDares = await prisma.dare.findMany({
-      where: activationWhere,
-      select: { bounty: true },
-    });
-
-    if (pendingDares.length > 0) {
-      await prisma.dare.updateMany({
-        where: activationWhere,
-        data: {
-          status: 'PENDING',
-          targetWalletAddress: walletAddress,
-        },
-      });
-    }
-
-    const totalActivatedBounty = pendingDares.reduce((sum, dare) => sum + dare.bounty, 0);
 
     return NextResponse.json({
       success: true,
+      message: 'Your tag claim is under review',
       data: {
-        tag: streamerTag.tag,
-        walletAddress: streamerTag.walletAddress,
-        status: streamerTag.status,
-        platformHandle,
-        activatedDares: pendingDares.length,
-        totalActivatedBounty,
-        message:
-          pendingDares.length > 0
-            ? `Tag claimed and activated! ${pendingDares.length} pending dare${pendingDares.length > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`
-            : 'Tag claimed and active!',
+        id: claimRecord.id,
+        tag: claimRecord.tag,
+        status: claimRecord.status,
       },
     });
   } catch (error: unknown) {
@@ -246,7 +201,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Unable to claim tag right now. Please try again in a moment.',
+        error: 'Unable to submit tag claim right now. Please try again in a moment.',
         code: 'CLAIM_TAG_FAILED',
       },
       { status: 500 }
