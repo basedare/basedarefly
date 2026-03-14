@@ -97,9 +97,12 @@ const protocolValidation = validateContractAddress(
   'NEXT_PUBLIC_PROTOCOL_ADDRESS'
 );
 
+const bountyEnvAddress =
+  process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+
 const bountyValidation = validateContractAddress(
-  process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS,
-  'NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS'
+  bountyEnvAddress,
+  'NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS (or legacy NEXT_PUBLIC_CONTRACT_ADDRESS)'
 );
 
 const usdcValidation = validateContractAddress(
@@ -191,4 +194,3 @@ if (typeof window === 'undefined') {
 
 // Contract ABIs
 export { BOUNTY_ABI, PROTOCOL_ABI, USDC_ABI };
-

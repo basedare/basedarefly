@@ -16,7 +16,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI, BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { USDC_ADDRESS, BOUNTY_CONTRACT_ADDRESS } from '@/lib/contracts';
+import { USDC_ADDRESS, BOUNTY_CONTRACT_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
@@ -113,6 +113,8 @@ export default function CreateDare() {
   const sessionToken = (session as { token?: string } | null)?.token;
   const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
   const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
+  const isOnchainContractsReady = CONTRACT_VALIDATION.usdc.isValid && CONTRACT_VALIDATION.bounty.isValid;
+  const onchainContractError = CONTRACT_VALIDATION.errors.join(' ');
 
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
@@ -124,7 +126,7 @@ export default function CreateDare() {
     abi: USDC_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address && isOnchainContractsReady },
   });
 
   // Geolocation for nearby dares
@@ -280,6 +282,10 @@ export default function CreateDare() {
       }
 
       // -- NEW REAL ONCHAIN FLOW --
+      if (!isOnchainContractsReady) {
+        throw new Error(onchainContractError || 'Contract configuration missing. Set NEXT_PUBLIC_USDC_ADDRESS and NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS in Vercel, then redeploy.');
+      }
+
       if (!publicClient || !address) throw new Error("Wallet not connected");
 
       // 1. Initialize Dare in Database (FUNDING state)
@@ -777,6 +783,12 @@ export default function CreateDare() {
               {/* BALANCE & FUND BUTTON */}
               {isConnected && !IS_SIMULATION_MODE && (
                 <div className="pt-4 md:pt-6 space-y-3">
+                  {!isOnchainContractsReady && (
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+                      Contract config error: {onchainContractError || 'NEXT_PUBLIC_USDC_ADDRESS / NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS not set in deployed environment.'}
+                    </div>
+                  )}
+
                   {/* Balance Display */}
                   <div className="flex items-center justify-between px-1">
                     <span className="text-xs text-gray-400 font-mono">Your Balance:</span>
@@ -817,14 +829,14 @@ export default function CreateDare() {
 
               {/* DEPLOY BUTTON - Liquid Metal Style */}
               <div className={isConnected && !IS_SIMULATION_MODE ? "pt-3" : "pt-4 md:pt-6"}>
-                {hasInsufficientBalance ? (
+                {hasInsufficientBalance || (!IS_SIMULATION_MODE && !isOnchainContractsReady) ? (
                   /* Disabled state - no spinning border */
                   <button
                     type="button"
                     disabled
                     className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest bg-[#FACC15]/50 text-black/50 rounded-xl flex items-center justify-center cursor-not-allowed"
                   >
-                    Insufficient Balance
+                    {!IS_SIMULATION_MODE && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
                   </button>
                 ) : (
                   /* Active state - with liquid metal border */
@@ -862,7 +874,9 @@ export default function CreateDare() {
                 )}
 
                 <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
-                  {hasInsufficientBalance
+                  {(!IS_SIMULATION_MODE && !isOnchainContractsReady)
+                    ? '* Configure contract env vars and redeploy.'
+                    : hasInsufficientBalance
                     ? '* Fund your wallet with USDC to deploy'
                     : '* Gas fees apply. Smart contract is immutable once deployed.'
                   }
