@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -14,6 +14,7 @@ import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
 import DareVisual from '@/components/DareVisual';
+import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -31,11 +32,6 @@ const BASEDARE_ABI = [
     outputs: []
   },
 ] as const;
-
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`;
-if (!USDC_ADDRESS) throw new Error('NEXT_PUBLIC_USDC_ADDRESS is not set');
-const CONTRACT_ADDR = (process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_CONTRACT_ADDRESS) as `0x${string}`;
-if (!CONTRACT_ADDR) throw new Error('NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS is not set');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface DareDetail {
@@ -154,7 +150,6 @@ function StealModal({ onClose }: { onClose: () => void }) {
 export default function DareDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const shortId = params.shortId as string;
   const { address, isConnected } = useAccount();
 
@@ -345,6 +340,10 @@ export default function DareDetailPage() {
   // ── Add to Pool tx ─────────────────────────────────────────────────────
   const handleAddToPool = async () => {
     if (!dare || !isConnected) return;
+    if (!isOnchainContractsReady) {
+      setTxError(onchainConfigError || 'Contract configuration missing. Add pool is temporarily unavailable.');
+      return;
+    }
     setTxError(null);
     const amountUnits = parseUnits(addAmount || '5', 6);
     try {
@@ -361,7 +360,7 @@ export default function DareDetailPage() {
 
   // After approve confirmed → fund
   useEffect(() => {
-    if (!approveConfirmed || !dare) return;
+    if (!approveConfirmed || !dare || !isOnchainContractsReady) return;
     const amountUnits = parseUnits(addAmount || '5', 6);
     const dareIdBytes = `0x${dare.id.replace(/-/g, '').padEnd(64, '0')}` as `0x${string}`;
     try {
@@ -374,7 +373,7 @@ export default function DareDetailPage() {
     } catch (err: unknown) {
       setTxError(err instanceof Error ? err.message : 'Fund tx failed');
     }
-  }, [approveConfirmed]);
+  }, [addAmount, approveConfirmed, dare, isOnchainContractsReady, writeFund]);
 
   // ── Claim (preserved) ──────────────────────────────────────────────────
   const handleClaimRequest = useCallback(async () => {
@@ -403,6 +402,8 @@ export default function DareDetailPage() {
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
   const safeBountyAmount = Number.isFinite(dare?.bounty) ? dare.bounty : 0;
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? dare.upvoteCount : 0;
+  const isOnchainContractsReady = CONTRACT_VALIDATION.usdc.isValid && CONTRACT_VALIDATION.bounty.isValid;
+  const onchainConfigError = CONTRACT_VALIDATION.errors.join(' ');
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -563,6 +564,12 @@ export default function DareDetailPage() {
             {txError}
           </div>
         )}
+        {!isOnchainContractsReady && (
+          <div className="flex items-center gap-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-300 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {onchainConfigError || 'Contract configuration missing. Pool funding is temporarily unavailable.'}
+          </div>
+        )}
         {upvoteError && (
           <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -590,7 +597,7 @@ export default function DareDetailPage() {
                     />
                     <button
                       onClick={() => { handleAddToPool(); setShowAddInput(false); }}
-                      disabled={approvePending || fundPending || !isConnected}
+                      disabled={approvePending || fundPending || !isConnected || !isOnchainContractsReady}
                       className="px-4 py-1.5 bg-green-500 hover:bg-green-400 text-black font-black text-xs rounded-lg transition-colors disabled:opacity-50"
                     >
                       Confirm
@@ -615,11 +622,12 @@ export default function DareDetailPage() {
               {/* Add to Pool */}
               <button
                 onClick={() => {
+                  if (!isOnchainContractsReady) { setTxError(onchainConfigError || 'Contract configuration missing'); return; }
                   if (!isConnected) { setTxError('Connect your wallet first'); return; }
                   setShowAddInput(v => !v);
                 }}
-                disabled={approvePending || fundPending}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50"
+                disabled={approvePending || fundPending || !isOnchainContractsReady}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {approvePending || fundPending
                   ? <Loader2 className="w-5 h-5 animate-spin" />
