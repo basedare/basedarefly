@@ -235,11 +235,16 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
     done: true,
     hot: true,
   });
+  const [activePinId, setActivePinId] = useState<string | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
 
   const visiblePins = useMemo(
     () => PINS.filter((pin) => activeFilters[pin.status]),
     [activeFilters]
+  );
+  const activePin = useMemo(
+    () => visiblePins.find((pin) => pin.id === activePinId) ?? null,
+    [activePinId, visiblePins]
   );
 
   const handleSpray = () => {
@@ -308,6 +313,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
             <div className="pointer-events-none absolute inset-x-6 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
             <div
               className="relative h-[620px] w-full overflow-hidden sm:h-[660px]"
+              onClick={() => setActivePinId(null)}
               style={{
                 backgroundImage:
                   "radial-gradient(120% 100% at 10% 0%, rgba(86,96,255,0.24), transparent 52%),radial-gradient(120% 90% at 95% 20%, rgba(150,65,255,0.2), transparent 55%),linear-gradient(160deg, #040718 0%, #070d2a 45%, #120a30 100%)",
@@ -316,6 +322,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
               <div className="network-mesh pointer-events-none absolute inset-0 opacity-75" />
               <div className="network-links pointer-events-none absolute inset-0 opacity-45" />
               <div className="starfield pointer-events-none absolute inset-0 opacity-70" />
+              <div className="pixel-screen pointer-events-none absolute inset-0 opacity-35" />
               <div className="glass-haze pointer-events-none absolute inset-0" />
 
               {BLOCKS.map((block, idx) => (
@@ -379,6 +386,18 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                 })}
               </div>
 
+              <div
+                className={`absolute bottom-[72px] left-3 z-20 rounded-full border border-[rgba(245,197,24,0.28)] bg-[rgba(8,12,30,0.82)] px-3 py-1 text-[9px] uppercase tracking-[0.18em] text-[#f5c518]/90 md:hidden ${monoClass}`}
+              >
+                tap a pin to inspect
+              </div>
+
+              <div
+                className={`absolute right-3 top-16 z-20 hidden rounded-full border border-[rgba(122,255,100,0.16)] bg-[rgba(12,18,34,0.72)] px-3 py-1 text-[9px] uppercase tracking-[0.16em] text-[#c8ff86] md:inline-flex ${monoClass}`}
+              >
+                missiondex
+              </div>
+
               <div className="absolute right-3 top-3 z-20 flex flex-col gap-2">
                 <button className="ctrl-btn" aria-label="Zoom in">
                   <Plus className="h-4 w-4" />
@@ -399,32 +418,49 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                 return (
                   <div
                     key={pin.id}
-                    className="group absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform duration-200 hover:z-20 hover:scale-110"
+                    className={`group absolute z-10 -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:z-20 hover:scale-110 ${
+                      activePinId === pin.id ? "z-20 scale-110" : ""
+                    }`}
                     style={{ left: `${pin.left}%`, top: `${pin.top}%` }}
                   >
-                    {meta.hasRipple && (
-                      <span
-                        className={`pin-ripple ${pin.status === "live" ? "pin-ripple-live" : "pin-ripple-hot"}`}
-                      />
-                    )}
-                    <div className={`relative flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full ${meta.ringClass}`}>
-                      <Image
-                        src="/assets/peebear-head.png"
-                        alt="PeeBear pin"
-                        width={42}
-                        height={42}
-                        className="relative z-[1] h-[80%] w-[80%] object-contain"
-                      />
-                      <span
-                        className={`absolute -right-1 -top-1 z-[2] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[#0d0018] text-[9px] font-bold ${meta.badgeClass}`}
+                    <button
+                      type="button"
+                      aria-label={`View mission at ${pin.venue}`}
+                      aria-pressed={activePinId === pin.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActivePinId((current) => (current === pin.id ? null : pin.id));
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {meta.hasRipple && (
+                        <span
+                          className={`pin-ripple ${pin.status === "live" ? "pin-ripple-live" : "pin-ripple-hot"}`}
+                        />
+                      )}
+                      <div
+                        className={`relative flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full ${meta.ringClass} ${
+                          activePinId === pin.id ? "pin-active" : ""
+                        }`}
                       >
-                        {pin.badge}
-                      </span>
-                    </div>
-                    <div className="mx-auto mt-1 h-1 w-4 rounded-full bg-black/50 blur-[2px]" />
+                        <Image
+                          src="/assets/peebear-head.png"
+                          alt="PeeBear pin"
+                          width={42}
+                          height={42}
+                          className="relative z-[1] h-[80%] w-[80%] object-contain"
+                        />
+                        <span
+                          className={`absolute -right-1 -top-1 z-[2] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[#0d0018] text-[9px] font-bold ${meta.badgeClass}`}
+                        >
+                          {pin.badge}
+                        </span>
+                      </div>
+                      <div className="mx-auto mt-1 h-1 w-4 rounded-full bg-black/50 blur-[2px]" />
+                    </button>
 
                     <div
-                      className={`pointer-events-none absolute w-[220px] rounded-xl border border-[rgba(107,33,255,0.3)] bg-[rgba(10,0,22,0.97)] p-3 opacity-0 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-opacity duration-200 group-hover:opacity-100 ${
+                      className={`pixel-panel pointer-events-none absolute hidden w-[220px] border border-[rgba(107,33,255,0.3)] bg-[rgba(10,0,22,0.97)] p-3 opacity-0 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-opacity duration-200 md:block md:group-hover:opacity-100 ${
                         showBelow ? "top-[calc(100%+10px)]" : "bottom-[calc(100%+10px)]"
                       } ${
                         alignRight
@@ -463,6 +499,56 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                   </div>
                 );
               })}
+
+              {activePin && (
+                <div
+                  className="absolute inset-x-3 bottom-20 z-30 md:hidden"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="pixel-panel border border-[rgba(245,197,24,0.24)] bg-[linear-gradient(180deg,rgba(16,24,42,0.94),rgba(9,13,28,0.96))] px-4 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.48)] backdrop-blur-xl">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`mb-1 text-[9px] uppercase tracking-[0.18em] text-[#c8ff86] ${monoClass}`}>
+                          mission sighted
+                        </p>
+                        <h3 className="text-base font-extrabold leading-tight text-white">
+                          {activePin.title}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActivePinId(null)}
+                        className={`rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-white/60 ${monoClass}`}
+                      >
+                        close
+                      </button>
+                    </div>
+                    <div className={`text-[10px] leading-5 text-white/40 ${monoClass}`}>
+                      📍 {activePin.venue}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className={`text-sm font-bold text-[#f5c518] ${monoClass}`}>
+                        {activePin.bounty}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-[0.06em] ${monoClass} ${STATUS_META[activePin.status].tooltipBadgeClass}`}
+                      >
+                        {STATUS_META[activePin.status].label}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-1">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <span
+                          key={`${activePin.id}-pixel-${index}`}
+                          className={`h-1.5 flex-1 rounded-[2px] ${
+                            index < 6 ? "bg-[#c8ff86]/50" : "bg-white/10"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_35%_45%_at_25%_65%,rgba(255,45,85,0.08)_0%,transparent_60%),radial-gradient(ellipse_30%_40%_at_65%_30%,rgba(0,255,148,0.08)_0%,transparent_60%),radial-gradient(ellipse_25%_35%_at_50%_50%,rgba(107,33,255,0.12)_0%,transparent_60%)]" />
 
@@ -538,6 +624,43 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
           );
         }
 
+        .pixel-screen {
+          background-image:
+            linear-gradient(rgba(180, 255, 166, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(180, 255, 166, 0.06) 1px, transparent 1px);
+          background-size: 12px 12px;
+          mix-blend-mode: screen;
+        }
+
+        .pixel-panel {
+          position: relative;
+          border-radius: 18px;
+          clip-path: polygon(
+            0 10px,
+            10px 10px,
+            10px 0,
+            calc(100% - 10px) 0,
+            calc(100% - 10px) 10px,
+            100% 10px,
+            100% calc(100% - 10px),
+            calc(100% - 10px) calc(100% - 10px),
+            calc(100% - 10px) 100%,
+            10px 100%,
+            10px calc(100% - 10px),
+            0 calc(100% - 10px)
+          );
+        }
+
+        .pixel-panel::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 35%),
+            linear-gradient(90deg, rgba(200, 255, 134, 0.08), transparent 28%);
+          pointer-events: none;
+        }
+
         .pin-ripple {
           position: absolute;
           left: 50%;
@@ -557,6 +680,13 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
         .pin-ripple-hot {
           border: 1.5px solid #6b21ff;
           animation-delay: 0.3s;
+        }
+
+        .pin-active {
+          box-shadow:
+            0 0 0 3px rgba(245, 197, 24, 0.7),
+            0 0 28px rgba(245, 197, 24, 0.38),
+            0 6px 20px rgba(0, 0, 0, 0.6);
         }
 
         .ctrl-btn {
