@@ -13,18 +13,9 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const { isControlMode } = useView(); // Use global context
   const [translateY, setTranslateY] = useState(0);
   const [triggerBounce, setTriggerBounce] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const potRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0);
-
-  // Detect mobile for scale
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // THE ELEVATOR SCRIPT (GPU-Accelerated + Basketball Bounce)
   useEffect(() => {
@@ -72,7 +63,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       window.removeEventListener('resize', onScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [triggerBounce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [triggerBounce]);
 
   return (
     <motion.div
@@ -80,7 +71,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       className={`
         fixed z-40 will-change-transform origin-bottom-right
         rounded-full flex flex-col justify-center items-center p-2
-        border-2 backdrop-blur-sm overflow-hidden
+        border-2 overflow-hidden
         w-44 h-44
         bottom-4 right-2 scale-75
         md:bottom-6 md:right-6 md:scale-100
@@ -93,6 +84,12 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       style={{
         transform: `translateY(${translateY}px) translateZ(0)`,
         transition: triggerBounce ? 'none' : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+        borderRadius: '9999px',
+        overflow: 'hidden',
+        isolation: 'isolate',
+        contain: 'paint',
+        WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+        maskImage: 'radial-gradient(circle, white 98%, transparent 100%)',
         // Noir filter for Control mode
         filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
         WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
@@ -163,6 +160,8 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
           transform: 'translateZ(0)',
           WebkitTransform: 'translateZ(0)',
           isolation: 'isolate',
+          overflow: 'hidden',
+          WebkitMaskImage: '-webkit-radial-gradient(white, black)',
         }}
       />
 
