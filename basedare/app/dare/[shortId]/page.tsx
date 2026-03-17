@@ -402,7 +402,7 @@ export default function DareDetailPage() {
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
   const safeBountyAmount = Number.isFinite(dare?.bounty) ? dare.bounty : 0;
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? dare.upvoteCount : 0;
-  const isOnchainContractsReady = CONTRACT_VALIDATION.usdc.isValid && CONTRACT_VALIDATION.bounty.isValid;
+  const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
   const onchainConfigError = CONTRACT_VALIDATION.errors.join(' ');
 
   // ── Render ─────────────────────────────────────────────────────────────

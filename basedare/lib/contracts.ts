@@ -115,11 +115,14 @@ export const CONTRACT_VALIDATION = {
   protocol: protocolValidation,
   bounty: bountyValidation,
   usdc: usdcValidation,
+  coreValid: bountyValidation.isValid && usdcValidation.isValid,
   allValid: protocolValidation.isValid && bountyValidation.isValid && usdcValidation.isValid,
   errors: [
-    protocolValidation.error,
     bountyValidation.error,
     usdcValidation.error,
+  ].filter(Boolean) as string[],
+  warnings: [
+    protocolValidation.error,
   ].filter(Boolean) as string[],
 };
 

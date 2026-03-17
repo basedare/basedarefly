@@ -2,6 +2,7 @@
 
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useFeedback } from '@/hooks/useFeedback';
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
@@ -30,14 +31,14 @@ export function IdentityButton() {
   }, []);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: PointerEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
         setShowWalletPicker(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -82,6 +83,59 @@ export function IdentityButton() {
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : '';
 
+  const accountMenu = showDropdown && isConnected ? (
+    <div
+      className="fixed w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
+      style={{ top: menuPosition.top, right: menuPosition.right }}
+    >
+      <div className="px-4 py-3 border-b border-white/10">
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected As</p>
+        <p className="text-sm text-white font-mono">{truncatedAddress}</p>
+      </div>
+      <button
+        onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
+        className="w-full px-4 py-3 text-left text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors font-medium border-t border-white/5"
+      >
+        Disconnect
+      </button>
+    </div>
+  ) : null;
+
+  const walletPicker = showWalletPicker && !isConnected ? (
+    <div
+      className="fixed w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
+      style={{ top: menuPosition.top, right: menuPosition.right }}
+    >
+      <div className="px-4 py-3 border-b border-white/[0.06] bg-black/40">
+        <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Select Vault</p>
+      </div>
+      <div className="flex flex-col p-2 gap-1">
+        {uniqueConnectors.length === 0 && (
+          <div className="px-3 py-4 text-center text-xs text-white/50">
+            No wallet providers detected. Install a wallet extension or open in a wallet browser.
+          </div>
+        )}
+        {uniqueConnectors.map(connector => {
+          const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
+          const finalMeta = connector.id.toLowerCase().includes('injected') || connector.id.toLowerCase().includes('metamask')
+            ? CONNECTOR_META.injected
+            : meta;
+
+          return (
+            <button
+              key={connector.id}
+              onClick={() => handleConnectWallet(connector.id)}
+              className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn"
+            >
+              <span className="text-xl group-hover/btn:scale-110 transition-transform">{finalMeta.icon}</span>
+              <span className="font-semibold">{finalMeta.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <div className="relative group p-[1.5px] rounded-2xl overflow-hidden shadow-2xl z-50 transition-all duration-500" ref={dropdownRef}>
@@ -106,60 +160,9 @@ export function IdentityButton() {
           <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>
 
-        {showDropdown && isConnected && (
-          <div
-            className="fixed w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]"
-            style={{ top: menuPosition.top, right: menuPosition.right }}
-          >
-            <div className="px-4 py-3 border-b border-white/10">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected As</p>
-              <p className="text-sm text-white font-mono">{truncatedAddress}</p>
-            </div>
-            <button
-              onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
-              className="w-full px-4 py-3 text-left text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors font-medium border-t border-white/5"
-            >
-              Disconnect
-            </button>
-          </div>
-        )}
-
-        {showWalletPicker && !isConnected && (
-          <div
-            className="fixed w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[100]"
-            style={{ top: menuPosition.top, right: menuPosition.right }}
-          >
-            <div className="px-4 py-3 border-b border-white/[0.06] bg-black/40">
-              <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Select Vault</p>
-            </div>
-            <div className="flex flex-col p-2 gap-1">
-              {uniqueConnectors.length === 0 && (
-                <div className="px-3 py-4 text-center text-xs text-white/50">
-                  No wallet providers detected. Install a wallet extension or open in a wallet browser.
-                </div>
-              )}
-              {uniqueConnectors.map(connector => {
-                const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
-                // Also fallback to mapped injected if meta is missing
-                const finalMeta = connector.id.toLowerCase().includes('injected') || connector.id.toLowerCase().includes('metamask')
-                  ? CONNECTOR_META['injected']
-                  : meta;
-
-                return (
-                  <button
-                    key={connector.id}
-                    onClick={() => handleConnectWallet(connector.id)}
-                    className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn"
-                  >
-                    <span className="text-xl group-hover/btn:scale-110 transition-transform">{finalMeta.icon}</span>
-                    <span className="font-semibold">{finalMeta.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
+      {typeof document !== 'undefined' && accountMenu ? createPortal(accountMenu, document.body) : null}
+      {typeof document !== 'undefined' && walletPicker ? createPortal(walletPicker, document.body) : null}
     </>
   );
 }

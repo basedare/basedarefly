@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { CONTRACT_VALIDATION, isContractConfigured } from '@/lib/contracts';
+import { CONTRACT_VALIDATION } from '@/lib/contracts';
 
 interface ContractStatusProps {
   showAll?: boolean;
@@ -14,7 +14,7 @@ interface ContractStatusProps {
  */
 export default function ContractStatus({ showAll = false, className = '' }: ContractStatusProps) {
   // If all contracts are valid and we're not showing all, render nothing
-  if (CONTRACT_VALIDATION.allValid && !showAll) {
+  if (CONTRACT_VALIDATION.coreValid && !showAll) {
     return null;
   }
 
@@ -27,13 +27,13 @@ export default function ContractStatus({ showAll = false, className = '' }: Cont
   return (
     <div className={`rounded-xl border bg-black/40 backdrop-blur-xl p-4 ${className}`}>
       <div className="flex items-center gap-2 mb-3">
-        {CONTRACT_VALIDATION.allValid ? (
+        {CONTRACT_VALIDATION.coreValid ? (
           <CheckCircle className="w-5 h-5 text-green-400" />
         ) : (
           <AlertTriangle className="w-5 h-5 text-yellow-400" />
         )}
         <h3 className="font-bold text-white text-sm">
-          {CONTRACT_VALIDATION.allValid ? 'Contracts Configured' : 'Contract Configuration'}
+          {CONTRACT_VALIDATION.coreValid ? 'Core Contracts Configured' : 'Contract Configuration'}
         </h3>
       </div>
 
@@ -70,7 +70,15 @@ export default function ContractStatus({ showAll = false, className = '' }: Cont
         ))}
       </div>
 
-      {!CONTRACT_VALIDATION.allValid && (
+      {CONTRACT_VALIDATION.warnings.length > 0 && (
+        <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <p className="text-[10px] text-blue-300">
+            <strong>Optional legacy warning.</strong> {CONTRACT_VALIDATION.warnings.join(' ')}
+          </p>
+        </div>
+      )}
+
+      {!CONTRACT_VALIDATION.coreValid && (
         <div className="mt-3 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
           <p className="text-[10px] text-yellow-400">
             <strong>Running in simulation mode.</strong> Deploy contracts and configure .env to enable live transactions.
@@ -85,7 +93,7 @@ export default function ContractStatus({ showAll = false, className = '' }: Cont
  * Inline status indicator for forms
  */
 export function ContractStatusBadge() {
-  if (CONTRACT_VALIDATION.allValid) {
+  if (CONTRACT_VALIDATION.coreValid) {
     return (
       <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-full">
         <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />

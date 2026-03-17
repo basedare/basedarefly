@@ -113,7 +113,7 @@ export default function CreateDare() {
   const sessionToken = (session as { token?: string } | null)?.token;
   const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
   const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
-  const isOnchainContractsReady = CONTRACT_VALIDATION.usdc.isValid && CONTRACT_VALIDATION.bounty.isValid;
+  const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
   const onchainContractError = CONTRACT_VALIDATION.errors.join(' ');
 
   const { writeContractAsync } = useWriteContract();
