@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { Loader2, Trophy, ChevronDown, ChevronUp, Crown, Flame } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -11,7 +12,7 @@ import { LiquidProgressBar } from "@/components/ui/Liquid3DBar";
 interface LeaderboardEntry {
   rank: number;
   user: string;
-  avatar: string;
+  avatar?: string | null;
   staked: string;
   repPoints: number;
   level: number;
@@ -42,12 +43,67 @@ function mapAPIToLeaderboard(entries: APILeaderboardEntry[]): LeaderboardEntry[]
     return {
       rank: entry.rank,
       user: entry.handle || `Creator ${index + 1}`,
-      avatar: `/assets/avatars/${(index % 8) + 1}.jpg`,
+      avatar: null,
       staked: formatVolume(entry.totalVolume),
       repPoints: Math.min(100, entry.totalCompletions * 10 + 20),
       level,
     };
   });
+}
+
+function getLeaderboardInitial(user: string): string {
+  const cleaned = user.replace(/^@+/, "").trim();
+  return cleaned.charAt(0).toUpperCase() || "?";
+}
+
+function getLeaderboardGradient(user: string): string {
+  const cleaned = user.replace(/^@+/, "").trim().toLowerCase();
+  const hash = cleaned.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const gradients = [
+    "from-yellow-400 via-amber-500 to-orange-500",
+    "from-cyan-400 via-sky-500 to-blue-600",
+    "from-fuchsia-400 via-pink-500 to-rose-500",
+    "from-violet-500 via-purple-500 to-indigo-600",
+    "from-emerald-400 via-teal-500 to-cyan-600",
+    "from-orange-400 via-red-500 to-pink-600",
+  ];
+  return gradients[hash % gradients.length];
+}
+
+function LeaderboardAvatar({
+  user,
+  avatar,
+  sizes,
+  textClassName,
+  shadowClassName = "",
+}: {
+  user: string;
+  avatar?: string | null;
+  sizes: string;
+  textClassName: string;
+  shadowClassName?: string;
+}) {
+  if (avatar) {
+    return (
+      <Image
+        src={avatar}
+        alt={user}
+        fill
+        sizes={sizes}
+        style={{ objectFit: "cover" }}
+        priority
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${getLeaderboardGradient(user)} ${shadowClassName}`}
+      aria-label={user}
+    >
+      <span className={textClassName}>{getLeaderboardInitial(user)}</span>
+    </div>
+  );
 }
 
 // Rank colors for progress bars
@@ -93,9 +149,9 @@ export default function LeaderboardPage() {
   const rest = leaderboard.slice(3);
   const displayedRest = isExpanded ? rest : rest.slice(0, 4);
 
-  const FIRST = top3[0] || { user: "---", avatar: "/assets/avatars/1.jpg", staked: "$0", level: 0 };
-  const SECOND = top3[1] || { user: "---", avatar: "/assets/avatars/2.jpg", staked: "$0", level: 0 };
-  const THIRD = top3[2] || { user: "---", avatar: "/assets/avatars/3.jpg", staked: "$0", level: 0 };
+  const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0 };
+  const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0 };
+  const THIRD = top3[2] || { user: "---", avatar: null, staked: "$0", level: 0 };
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -180,13 +236,12 @@ export default function LeaderboardPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-16 h-16 rounded-full border-2 border-yellow-400 overflow-hidden shadow-[0_0_20px_rgba(250,204,21,0.4)]">
-                        <Image
-                          src={FIRST.avatar}
-                          alt={FIRST.user}
-                          fill
+                        <LeaderboardAvatar
+                          user={FIRST.user}
+                          avatar={FIRST.avatar}
                           sizes="64px"
-                          style={{ objectFit: "cover" }}
-                          priority
+                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+                          textClassName="text-2xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
                         />
                       </div>
                       <div className="absolute -top-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black text-sm shadow-lg">
@@ -208,13 +263,12 @@ export default function LeaderboardPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-14 h-14 rounded-full border-2 border-cyan-400 overflow-hidden shadow-[0_0_15px_rgba(87,202,244,0.4)]">
-                        <Image
-                          src={SECOND.avatar}
-                          alt={SECOND.user}
-                          fill
+                        <LeaderboardAvatar
+                          user={SECOND.user}
+                          avatar={SECOND.avatar}
                           sizes="56px"
-                          style={{ objectFit: "cover" }}
-                          priority
+                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                          textClassName="text-xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
                         />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 bg-cyan-400 rounded-full flex items-center justify-center text-black font-black text-xs shadow-lg">
@@ -236,13 +290,12 @@ export default function LeaderboardPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full border-2 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
-                        <Image
-                          src={THIRD.avatar}
-                          alt={THIRD.user}
-                          fill
+                        <LeaderboardAvatar
+                          user={THIRD.user}
+                          avatar={THIRD.avatar}
                           sizes="48px"
-                          style={{ objectFit: "cover" }}
-                          priority
+                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                          textClassName="text-lg font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
                         />
                       </div>
                       <div className="absolute -top-2 -right-2 w-6 h-6 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-xs shadow-lg">
@@ -272,13 +325,12 @@ export default function LeaderboardPage() {
                   <div className="backdrop-blur-xl bg-cyan-500/5 border border-cyan-500/30 rounded-2xl p-5 text-center">
                     <div className="relative w-20 h-20 mx-auto mb-3">
                       <div className="w-full h-full rounded-full border-3 border-cyan-400 overflow-hidden shadow-[0_0_20px_rgba(87,202,244,0.4)]">
-                        <Image
-                          src={SECOND.avatar}
-                          alt={SECOND.user}
-                          fill
+                        <LeaderboardAvatar
+                          user={SECOND.user}
+                          avatar={SECOND.avatar}
                           sizes="80px"
-                          style={{ objectFit: "cover" }}
-                          priority
+                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                          textClassName="text-3xl font-black text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)]"
                         />
                       </div>
                       <div className="absolute -top-2 -right-2 w-8 h-8 bg-cyan-400 rounded-full flex items-center justify-center text-black font-black text-sm shadow-lg">
@@ -306,13 +358,12 @@ export default function LeaderboardPage() {
                     <div className="relative">
                       <div className="relative w-24 h-24 md:w-28 md:h-28 mx-auto mb-4">
                         <div className="w-full h-full rounded-full border-4 border-yellow-400 overflow-hidden shadow-[0_0_30px_rgba(250,204,21,0.5)]">
-                          <Image
-                            src={FIRST.avatar}
-                            alt={FIRST.user}
-                            fill
+                          <LeaderboardAvatar
+                            user={FIRST.user}
+                            avatar={FIRST.avatar}
                             sizes="112px"
-                            style={{ objectFit: "cover" }}
-                            priority
+                            shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+                            textClassName="text-4xl font-black text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]"
                           />
                         </div>
                         <div className="absolute -top-3 -right-3 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black shadow-lg">
@@ -337,13 +388,12 @@ export default function LeaderboardPage() {
                   <div className="backdrop-blur-xl bg-pink-500/5 border border-pink-500/30 rounded-2xl p-4 text-center">
                     <div className="relative w-16 h-16 mx-auto mb-3">
                       <div className="w-full h-full rounded-full border-3 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
-                        <Image
-                          src={THIRD.avatar}
-                          alt={THIRD.user}
-                          fill
+                        <LeaderboardAvatar
+                          user={THIRD.user}
+                          avatar={THIRD.avatar}
                           sizes="64px"
-                          style={{ objectFit: "cover" }}
-                          priority
+                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                          textClassName="text-2xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
                         />
                       </div>
                       <div className="absolute -top-2 -right-2 w-7 h-7 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-sm shadow-lg">
@@ -397,12 +447,12 @@ export default function LeaderboardPage() {
 
                         {/* Avatar */}
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 overflow-hidden shrink-0 relative">
-                          <Image
-                            src={entry.avatar}
-                            alt={entry.user}
-                            fill
+                          <LeaderboardAvatar
+                            user={entry.user}
+                            avatar={entry.avatar}
                             sizes="48px"
-                            style={{ objectFit: "cover" }}
+                            shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+                            textClassName="text-lg font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
                           />
                         </div>
 
@@ -469,12 +519,12 @@ export default function LeaderboardPage() {
                   <p className="text-xs sm:text-sm text-gray-400 font-mono mb-4">
                     Complete more dares to rise through the ranks
                   </p>
-                  <a
+                  <Link
                     href="/"
                     className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-all"
                   >
                     Browse Dares
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>
