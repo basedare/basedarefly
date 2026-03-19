@@ -26,8 +26,6 @@ export async function GET(request: NextRequest) {
                 totalEarned: true,
                 completedDares: true,
                 walletAddress: true,
-                bio: true,
-                followerCount: true,
                 tags: true,
             },
         });
