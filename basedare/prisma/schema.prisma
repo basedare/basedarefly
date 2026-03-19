@@ -32,7 +32,7 @@ model Dare {
   status              String    @default("PENDING")
   videoUrl            String?
   proofHash           String?
-  proofCid            String?   // Store the IPFS CID from Pinata
+  proofCid            String? // Store the IPFS CID from Pinata
   creatorId           String?
   streamId            String?
   txHash              String?
@@ -48,6 +48,7 @@ model Dare {
   referrerAddress     String?
   referrerPayout      Float?
   stakerAddress       String?
+  venueId             String?
   inviteToken         String?   @unique
   claimDeadline       DateTime?
   targetWalletAddress String?
@@ -66,22 +67,23 @@ model Dare {
   reaction_count      Int       @default(0)
   geo_bucket          String?
   // Claim-to-attempt fields (for @everyone open dares)
-  claimedBy           String?   // Wallet that claimed this dare
+  claimedBy           String? // Wallet that claimed this dare
   claimedAt           DateTime? // When it was claimed
   claimExpiresAt      DateTime? // When the claim expires (24h window)
   // Claim request fields (moderated claim flow for open dares)
-  claimRequestWallet  String?   // Wallet requesting to claim
-  claimRequestTag     String?   // Tag of the requester (e.g., @username)
+  claimRequestWallet  String? // Wallet requesting to claim
+  claimRequestTag     String? // Tag of the requester (e.g., @username)
   claimRequestedAt    DateTime? // When request was submitted
-  claimRequestStatus  String?   // PENDING, APPROVED, REJECTED
+  claimRequestStatus  String? // PENDING, APPROVED, REJECTED
   // Moderator decision fields
-  moderatorDecision   String?   // APPROVED or REJECTED
-  moderatorAddress    String?   // Wallet of moderator who decided
+  moderatorDecision   String? // APPROVED or REJECTED
+  moderatorAddress    String? // Wallet of moderator who decided
   moderatedAt         DateTime? // When moderation happened
-  moderatorNote       String?   // Optional note from moderator
+  moderatorNote       String? // Optional note from moderator
   // Vote threshold tracking
-  voteThreshold       Int       @default(5)  // Votes needed for mod review
+  voteThreshold       Int       @default(5) // Votes needed for mod review
   creator             User?     @relation(fields: [creatorId], references: [id])
+  venue               Venue?    @relation(fields: [venueId], references: [id])
   votes               Vote[]
   comments            Comment[]
 
@@ -94,6 +96,92 @@ model Dare {
   @@index([claimRequestStatus])
   @@index([tag])
   @@index([geo_bucket])
+  @@index([venueId, status])
+}
+
+model Venue {
+  id                  String         @id @default(cuid())
+  slug                String         @unique
+  name                String
+  description         String?
+  address             String?
+  city                String?
+  country             String?
+  latitude            Float
+  longitude           Float
+  geohash             String?
+  timezone            String         @default("UTC")
+  categories          String[]       @default([])
+  status              String         @default("ACTIVE")
+  isPartner           Boolean        @default(false)
+  partnerTier         String?
+  placeSource         String?
+  externalPlaceId     String?
+  qrMode              String         @default("ROTATING")
+  qrRotationSeconds   Int            @default(45)
+  checkInRadiusMeters Int            @default(120)
+  hoursJson           Json?
+  metadataJson        Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  dares               Dare[]
+  checkIns            VenueCheckIn[]
+  memories            VenueMemory[]
+
+  @@unique([placeSource, externalPlaceId])
+  @@index([status])
+  @@index([geohash])
+  @@index([city, status])
+}
+
+model VenueCheckIn {
+  id                String    @id @default(cuid())
+  venueId           String
+  walletAddress     String
+  tag               String?
+  dareId            String?
+  status            String    @default("CONFIRMED")
+  proofLevel        String    @default("QR_AND_GPS")
+  source            String    @default("VENUE_QR")
+  venueSessionId    String?
+  qrTokenHash       String?
+  geoDistanceMeters Int?
+  scannedAt         DateTime  @default(now())
+  windowStartAt     DateTime?
+  windowEndAt       DateTime?
+  metadataJson      Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  venue             Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, scannedAt])
+  @@index([walletAddress, scannedAt])
+  @@index([tag])
+  @@index([dareId])
+  @@index([status])
+}
+
+model VenueMemory {
+  id                  String   @id @default(cuid())
+  venueId             String
+  bucketType          String   @default("DAY")
+  bucketStartAt       DateTime
+  bucketEndAt         DateTime
+  checkInCount        Int      @default(0)
+  uniqueVisitorCount  Int      @default(0)
+  dareCount           Int      @default(0)
+  completedDareCount  Int      @default(0)
+  proofCount          Int      @default(0)
+  perkRedemptionCount Int      @default(0)
+  topCreatorTag       String?
+  topMomentDareId     String?
+  metadataJson        Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  venue               Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, bucketType, bucketStartAt])
+  @@index([venueId, bucketStartAt])
 }
 
 model Comment {
@@ -333,7 +421,7 @@ model Vote {
   id            String   @id @default(cuid())
   dareId        String
   walletAddress String
-  voteType      String   // APPROVE or REJECT
+  voteType      String // APPROVE or REJECT
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   dare          Dare     @relation(fields: [dareId], references: [id], onDelete: Cascade)
@@ -362,11 +450,11 @@ model VoterPoints {
 
 model Notification {
   id        String   @id @default(cuid())
-  wallet    String   // Target wallet address
-  type      String   // E.g., 'DARE_CREATED', 'DARE_FUNDED', 'DARE_VERIFIED', 'DARE_FAILED'
+  wallet    String // Target wallet address
+  type      String // E.g., 'DARE_CREATED', 'DARE_FUNDED', 'DARE_VERIFIED', 'DARE_FAILED'
   title     String
   message   String
-  link      String?  // Optional URL to redirect to
+  link      String? // Optional URL to redirect to
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
