@@ -11,13 +11,49 @@ export async function GET(
 ) {
     try {
         const { tag } = await params;
-        const handle = tag.startsWith('@') ? tag : `@${tag}`;
-        const handlePlain = tag.replace('@', '');
+        const rawTag = decodeURIComponent(tag).trim();
+        const handlePlain = rawTag.replace(/^@/, '');
+        const handle = `@${handlePlain}`;
+
+        const streamTag = await prisma.streamerTag.findFirst({
+            where: {
+                OR: [
+                    { tag: { equals: handle, mode: 'insensitive' } },
+                    { tag: { equals: handlePlain, mode: 'insensitive' } },
+                    { twitterHandle: { equals: handlePlain, mode: 'insensitive' } },
+                    { twitchHandle: { equals: handlePlain, mode: 'insensitive' } },
+                    { youtubeHandle: { equals: handlePlain, mode: 'insensitive' } },
+                    { kickHandle: { equals: handlePlain, mode: 'insensitive' } },
+                ],
+                status: { in: ['ACTIVE', 'VERIFIED'] },
+            },
+            select: {
+                tag: true,
+                twitterHandle: true,
+                twitchHandle: true,
+                youtubeHandle: true,
+                kickHandle: true,
+                status: true,
+                totalEarned: true,
+                completedDares: true,
+                bio: true,
+                followerCount: true,
+                tags: true,
+            },
+        }).catch(() => null);
+
+        const canonicalHandle = streamTag?.tag || handle;
+        const canonicalPlain = canonicalHandle.replace(/^@/, '');
+        const handleVariants = Array.from(
+            new Set([canonicalHandle, canonicalPlain, `@${canonicalPlain}`, handle, handlePlain])
+        );
 
         // Fetch all dares targeting this creator (case-insensitive)
         const allDares = await prisma.dare.findMany({
             where: {
-                streamerHandle: { in: [handle, handlePlain, `@${handlePlain}`], mode: 'insensitive' },
+                OR: handleVariants.map((value) => ({
+                    streamerHandle: { equals: value, mode: 'insensitive' },
+                })),
             },
             orderBy: { createdAt: 'desc' },
             take: 50,
@@ -28,29 +64,21 @@ export async function GET(
             },
         });
 
+        if (!streamTag && allDares.length === 0) {
+            return NextResponse.json({ success: false, error: 'Creator not found' }, { status: 404 });
+        }
+
         const total = allDares.length;
         const completed = allDares.filter(d => d.status === 'VERIFIED').length;
         const live = allDares.filter(d => ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW'].includes(d.status)).length;
-        const totalEarned = allDares
+        const earnedFromDares = allDares
             .filter(d => d.status === 'VERIFIED')
             .reduce((sum, d) => sum + d.bounty, 0);
         const totalPool = allDares.reduce((sum, d) => sum + d.bounty, 0);
         const acceptRate = total > 0 ? Math.round((completed / total) * 100) : 0;
         const minBounty = allDares.length > 0 ? Math.min(...allDares.map(d => d.bounty)) : 0;
-
-        // Check if streamer tag is verified in our system
-        const streamTag = await prisma.streamerTag.findFirst({
-            where: {
-                tag: { in: [handle, handlePlain], mode: 'insensitive' },
-                status: 'ACTIVE',
-            },
-            select: {
-                tag: true, twitterHandle: true, twitterVerified: true,
-                twitchHandle: true, twitchVerified: true,
-                status: true, totalEarned: true,
-                bio: true, followerCount: true, tags: true,
-            },
-        }).catch(() => null);
+        const totalEarned = streamTag?.totalEarned ?? earnedFromDares;
+        const completedCount = streamTag?.completedDares ?? completed;
 
         const recent = allDares.slice(0, 12).map(d => ({
             id: d.id,
@@ -65,15 +93,15 @@ export async function GET(
         return NextResponse.json({
             success: true,
             data: {
-                handle: handle,
-                displayHandle: `@${handlePlain}`,
+                handle: canonicalHandle,
+                displayHandle: canonicalHandle.startsWith('@') ? canonicalHandle : `@${canonicalPlain}`,
                 verified: streamTag?.status === 'ACTIVE' || streamTag?.status === 'VERIFIED',
                 twitterHandle: streamTag?.twitterHandle || null,
                 twitchHandle: streamTag?.twitchHandle || null,
                 bio: streamTag?.bio || null,
                 followerCount: streamTag?.followerCount || null,
                 tags: streamTag?.tags || [],
-                stats: { total, completed, live, acceptRate, totalPool, totalEarned, minBounty },
+                stats: { total, completed: completedCount, live, acceptRate, totalPool, totalEarned, minBounty },
                 recent,
             },
         });

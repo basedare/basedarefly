@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
-    Heart, TrendingUp, Target, Award, Loader2, AlertCircle,
+    Heart, TrendingUp, Target, Award, AlertCircle,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -130,12 +130,12 @@ export default function CreatorProfilePage() {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await fetch(`/api/creator/${tag}`);
+                const res = await fetch(`/api/creator/${encodeURIComponent(tag)}`);
                 const data = await res.json();
-                if (data.success) {
+                if (res.ok && data.success) {
                     setProfile(data.data);
-                } else {
-                    // No dares found — show empty profile (creator may exist but have no dares yet)
+                } else if (res.status === 404) {
+                    // No creator record or dares found — show an empty profile instead of a hard error.
                     setProfile({
                         handle: displayTag,
                         displayHandle: displayTag,
@@ -148,6 +148,8 @@ export default function CreatorProfilePage() {
                         stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
                         recent: [],
                     });
+                } else {
+                    throw new Error(data?.error || 'Failed to load creator profile');
                 }
             } catch {
                 setError('Failed to load creator profile');
