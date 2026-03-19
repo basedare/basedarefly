@@ -2,6 +2,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
+const CHIP_BASE =
+  'relative overflow-hidden whitespace-nowrap border font-bold transition-all duration-200 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60';
+
+function getModeButtonClass(active: boolean, tone: 'gold' | 'purple') {
+  if (active) {
+    return `${CHIP_BASE} px-4 py-2.5 rounded-full text-xs md:text-sm text-black shadow-[0_1px_0_rgba(255,255,255,0.35)_inset,0_-6px_10px_rgba(0,0,0,0.22)_inset,0_12px_18px_rgba(0,0,0,0.25)] ${
+      tone === 'gold'
+        ? 'border-[#f8dd6b]/80 bg-[linear-gradient(180deg,#fff0a8_0%,#facc15_44%,#d9a90a_68%,#b77f04_100%)] hover:shadow-[0_1px_0_rgba(255,255,255,0.42)_inset,0_-6px_10px_rgba(0,0,0,0.2)_inset,0_14px_20px_rgba(250,204,21,0.18)]'
+        : 'border-[#c998ff]/80 bg-[linear-gradient(180deg,#ecd6ff_0%,#c084fc_42%,#8b5cf6_68%,#5b21b6_100%)] hover:shadow-[0_1px_0_rgba(255,255,255,0.4)_inset,0_-6px_10px_rgba(0,0,0,0.22)_inset,0_14px_20px_rgba(168,85,247,0.18)]'
+    }`;
+  }
+
+  return `${CHIP_BASE} px-4 py-2.5 rounded-full text-xs md:text-sm text-gray-300 border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_22%,rgba(18,18,22,0.96)_100%)] shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_-6px_10px_rgba(0,0,0,0.28)_inset,0_8px_14px_rgba(0,0,0,0.18)] hover:border-white/20 hover:text-white`;
+}
+
+function getCategoryChipClass(active: boolean, tone: 'gold' | 'purple') {
+  if (active) {
+    return `${CHIP_BASE} flex-shrink-0 rounded-full px-3 py-2 text-[10px] text-black shadow-[0_1px_0_rgba(255,255,255,0.28)_inset,0_-5px_8px_rgba(0,0,0,0.22)_inset,0_10px_14px_rgba(0,0,0,0.18)] ${
+      tone === 'gold'
+        ? 'border-[#f6d75f]/75 bg-[linear-gradient(180deg,#fef1a4_0%,#facc15_44%,#d9a90a_70%,#b77f04_100%)] hover:shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-5px_8px_rgba(0,0,0,0.22)_inset,0_12px_16px_rgba(250,204,21,0.16)]'
+        : 'border-[#c998ff]/75 bg-[linear-gradient(180deg,#ecd6ff_0%,#c084fc_42%,#8b5cf6_70%,#5b21b6_100%)] hover:shadow-[0_1px_0_rgba(255,255,255,0.28)_inset,0_-5px_8px_rgba(0,0,0,0.22)_inset,0_12px_16px_rgba(168,85,247,0.18)]'
+    }`;
+  }
+
+  return `${CHIP_BASE} flex-shrink-0 rounded-full px-3 py-2 text-[10px] text-gray-400 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_18%,rgba(16,15,21,0.95)_100%)] shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_-4px_8px_rgba(0,0,0,0.24)_inset,0_8px_12px_rgba(0,0,0,0.16)] hover:border-white/20 hover:text-white`;
+}
+
 const SUGGESTIONS = {
   "GAMING": [
     "Win a Warzone match using only a pistol",
@@ -209,22 +236,14 @@ export default function DareGenerator({
           <button
             type="button"
             onClick={() => setMode('IRL')}
-            className={`px-4 py-2.5 rounded-full font-bold border transition-all text-xs md:text-sm ${
-              mode === 'IRL'
-                ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                : 'border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
-            }`}
+            className={getModeButtonClass(mode === 'IRL', 'gold')}
           >
             IRL
           </button>
           <button
             type="button"
             onClick={() => setMode('STREAM')}
-            className={`px-4 py-2.5 rounded-full font-bold border transition-all text-xs md:text-sm ${
-              mode === 'STREAM'
-                ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                : 'border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
-            }`}
+            className={getModeButtonClass(mode === 'STREAM', 'purple')}
           >
             STREAM
           </button>
@@ -241,11 +260,7 @@ export default function DareGenerator({
                     setIrlCategory(tag.key);
                     setSuggestion(IRL_SUGGESTIONS[tag.key][0]);
                   }}
-                  className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
-                    irlCategory === tag.key
-                      ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                      : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
-                  }`}
+                  className={getCategoryChipClass(irlCategory === tag.key, 'gold')}
                 >
                   {tag.label}
                 </button>
@@ -258,11 +273,7 @@ export default function DareGenerator({
                     setStreamCategory(cat);
                     setSuggestion(SUGGESTIONS[cat][0]);
                   }}
-                  className={`text-[10px] px-3 py-1.5 rounded-full font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
-                    streamCategory === cat
-                      ? 'bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                      : 'border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
-                  }`}
+                  className={getCategoryChipClass(streamCategory === cat, 'purple')}
                 >
                   {cat}
                 </button>
@@ -271,7 +282,10 @@ export default function DareGenerator({
       </div>
       
       <div className="flex gap-4">
-        <div className="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 font-mono text-white text-sm md:text-lg flex items-center shadow-inner relative overflow-hidden">
+        <div className="flex-1 rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(13,11,20,0.98)_0%,rgba(17,15,26,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-white text-sm md:text-lg flex items-center shadow-[inset_0_2px_3px_rgba(255,255,255,0.05),inset_0_-10px_18px_rgba(0,0,0,0.45),inset_8px_8px_18px_rgba(0,0,0,0.22),inset_-5px_-5px_12px_rgba(255,255,255,0.02),0_1px_0_rgba(255,255,255,0.04)] relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-black/45 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_18%_16%,rgba(192,132,252,0.12),transparent_30%),radial-gradient(circle_at_85%_85%,rgba(250,204,21,0.08),transparent_28%)]" />
           <span className="text-gray-500 mr-2">{">"}</span>
           <span className="relative z-10">{suggestion}</span>
           {/* Scanning Line Effect */}

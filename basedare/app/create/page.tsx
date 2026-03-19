@@ -126,7 +126,7 @@ export default function CreateDare() {
     abi: USDC_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !!address && isOnchainContractsReady },
+    query: { enabled: !IS_SIMULATION_MODE && !!address && isOnchainContractsReady },
   });
 
   // Geolocation for nearby dares
@@ -559,14 +559,23 @@ export default function CreateDare() {
           )}
 
           {/* Apple Liquid Glass Card */}
-          <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-2xl md:rounded-3xl p-5 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
-            {/* Liquid glass gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-2xl md:rounded-3xl" />
-            {/* Top highlight line */}
-            <div className="absolute top-0 left-4 right-4 md:left-0 md:right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            {/* Golden accent line */}
-            <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
-            <div className="space-y-8 md:space-y-12">
+          <div className="relative">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-2 rounded-[1.75rem] bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.12),transparent_34%),radial-gradient(circle_at_18%_20%,rgba(168,85,247,0.14),transparent_32%),radial-gradient(circle_at_82%_78%,rgba(56,189,248,0.08),transparent_28%)] blur-2xl md:-inset-3 md:rounded-[2rem]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-2xl border border-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_45px_rgba(168,85,247,0.08),0_0_70px_rgba(250,204,21,0.05)] md:rounded-3xl"
+            />
+            <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-2xl md:rounded-3xl p-5 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+              {/* Liquid glass gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-2xl md:rounded-3xl" />
+              {/* Top highlight line */}
+              <div className="absolute top-0 left-4 right-4 md:left-0 md:right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              {/* Golden accent line */}
+              <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
+              <div className="space-y-8 md:space-y-12">
 
               {/* 1. TARGET (Optional) */}
               <div className="space-y-3">
@@ -603,7 +612,7 @@ export default function CreateDare() {
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all resize-none font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  className="w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] border border-white/[0.09] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none transition-all resize-none font-mono shadow-[inset_0_2px_3px_rgba(255,255,255,0.05),inset_0_-12px_20px_rgba(0,0,0,0.45),inset_8px_8px_18px_rgba(0,0,0,0.24),inset_-5px_-5px_12px_rgba(255,255,255,0.02),0_1px_0_rgba(255,255,255,0.04)]"
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
@@ -828,61 +837,94 @@ export default function CreateDare() {
               )}
 
               {/* DEPLOY BUTTON - Liquid Metal Style */}
-              <div className={isConnected && !IS_SIMULATION_MODE ? "pt-3" : "pt-4 md:pt-6"}>
-                {hasInsufficientBalance || (!IS_SIMULATION_MODE && !isOnchainContractsReady) ? (
-                  /* Disabled state - no spinning border */
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest bg-[#FACC15]/50 text-black/50 rounded-xl flex items-center justify-center cursor-not-allowed"
-                  >
-                    {!IS_SIMULATION_MODE && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
-                  </button>
-                ) : (
-                  /* Active state - with liquid metal border */
-                  <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
-                    <div
-                      className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#78350f_0%,#facc15_25%,#78350f_50%,#facc15_75%,#78350f_100%)] opacity-80 group-hover:animate-[spin_2s_linear_infinite] transition-opacity duration-500"
-                      aria-hidden="true"
-                    />
+              <div className={`${isConnected && !IS_SIMULATION_MODE ? "pt-3" : "pt-4 md:pt-6"}`}>
+                <div className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-[linear-gradient(155deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_22%,rgba(10,8,16,0.9)_62%,rgba(7,5,12,0.96)_100%)] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_32px_rgba(0,0,0,0.45),0_0_30px_rgba(250,204,21,0.05),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.35)] md:p-4">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.14),transparent_42%),radial-gradient(circle_at_100%_100%,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.1)_0%,transparent_28%,transparent_72%,rgba(0,0,0,0.35)_100%)]"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-black/50 to-transparent"
+                  />
 
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="relative w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest bg-[#FACC15] text-black hover:bg-[#FDE047] transition-all rounded-[10px] flex items-center justify-center gap-2 md:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {/* Inner glow */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20 pointer-events-none rounded-[10px]" />
+                  <div className="relative">
+                    <div className="mb-3 flex items-center justify-between px-1">
+                      <div>
+                        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">Launch Control</p>
+                        <p className="mt-1 text-xs font-mono uppercase tracking-wider text-white/25">
+                          {IS_SIMULATION_MODE ? 'Database simulation active' : 'Onchain escrow deployment'}
+                        </p>
+                      </div>
+                      <div className="h-2.5 w-2.5 rounded-full bg-[#FACC15] shadow-[0_0_12px_rgba(250,204,21,0.65)]" />
+                    </div>
 
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
-                          <span className="relative">
-                            {approvalStatus === 'approving' ? 'Approving USDC...' :
-                              approvalStatus === 'funding' ? 'Deploying Dare...' :
-                                approvalStatus === 'verifying' ? 'Verifying...' : 'Processing...'}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="relative">Deploy Contract</span>
-                          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 relative" />
-                        </>
-                      )}
-                    </button>
+                    {hasInsufficientBalance || (!IS_SIMULATION_MODE && !isOnchainContractsReady) ? (
+                      /* Disabled state - no spinning border */
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest rounded-xl flex items-center justify-center cursor-not-allowed border border-[#f5d977]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.45)_0%,rgba(250,204,21,0.34)_48%,rgba(150,111,9,0.55)_100%)] text-black/45 shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-8px_14px_rgba(126,82,0,0.18)_inset,0_10px_18px_rgba(0,0,0,0.28)]"
+                      >
+                        {!IS_SIMULATION_MODE && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
+                      </button>
+                    ) : (
+                      /* Active state - with static premium border */
+                      <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
+                        <div
+                          className="absolute inset-0 rounded-xl bg-[linear-gradient(135deg,rgba(255,248,204,0.95)_0%,rgba(250,204,21,0.95)_18%,rgba(187,135,4,0.92)_52%,rgba(250,204,21,0.85)_82%,rgba(255,243,179,0.92)_100%)] opacity-95 transition-opacity duration-300"
+                          aria-hidden="true"
+                        />
+                        <div
+                          className="pointer-events-none absolute inset-[1px] rounded-[11px] border border-white/15"
+                          aria-hidden="true"
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="relative w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest rounded-[10px] flex items-center justify-center gap-2 md:gap-3 text-black transition-all duration-200 bg-[linear-gradient(180deg,#fef1a4_0%,#facc15_42%,#e6b90f_62%,#ba8704_100%)] border border-[#f8dd6b]/80 shadow-[0_1px_0_rgba(255,255,255,0.42)_inset,0_-10px_16px_rgba(136,84,0,0.22)_inset,0_18px_26px_rgba(250,204,21,0.16),0_8px_16px_rgba(0,0,0,0.34)] hover:-translate-y-[1px] hover:shadow-[0_1px_0_rgba(255,255,255,0.48)_inset,0_-10px_16px_rgba(136,84,0,0.24)_inset,0_22px_32px_rgba(250,204,21,0.22),0_10px_18px_rgba(0,0,0,0.34)] active:translate-y-[1px] active:shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_8px_rgba(0,0,0,0.28)_inset,0_-3px_8px_rgba(136,84,0,0.18)_inset,0_8px_16px_rgba(0,0,0,0.28)] disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {/* Inner glow */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/25 pointer-events-none rounded-[10px]" />
+                          <div className="absolute left-[10%] right-[10%] top-1 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none rounded-full" />
+
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
+                              <span className="relative">
+                                {approvalStatus === 'approving' ? 'Approving USDC...' :
+                                  approvalStatus === 'funding' ? 'Deploying Dare...' :
+                                    approvalStatus === 'verifying' ? 'Verifying...' : 'Processing...'}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="relative">Deploy Contract</span>
+                              <ChevronRight className="w-6 h-6 md:w-8 md:h-8 relative" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
+                      {(!IS_SIMULATION_MODE && !isOnchainContractsReady)
+                        ? '* Configure contract env vars and redeploy.'
+                        : hasInsufficientBalance
+                        ? '* Fund your wallet with USDC to deploy'
+                        : '* Gas fees apply. Smart contract is immutable once deployed.'
+                      }
+                    </p>
                   </div>
-                )}
-
-                <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
-                  {(!IS_SIMULATION_MODE && !isOnchainContractsReady)
-                    ? '* Configure contract env vars and redeploy.'
-                    : hasInsufficientBalance
-                    ? '* Fund your wallet with USDC to deploy'
-                    : '* Gas fees apply. Smart contract is immutable once deployed.'
-                  }
-                </p>
+                </div>
               </div>
             </div>
+          </div>
           </div>
         </form>
       </div>
