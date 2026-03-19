@@ -10,7 +10,7 @@
  */
 
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
-import { sendDareCreatedAlert } from '@/lib/telegram-bot';
+import { sendDareCreatedAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -358,18 +358,7 @@ export async function alertTagClaimSubmission(data: {
   handle: string;
   walletAddress: string;
 }): Promise<void> {
-  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
-  const message = `
-🆕 <b>TAG CLAIM SUBMITTED</b>
-
-🏷️ Tag: <code>${data.tag}</code>
-📺 Platform: <b>${data.platform.toUpperCase()}</b>
-👤 Handle: <code>${data.handle}</code>
-👛 Wallet: <code>${wallet}</code>
-🆔 Claim ID: <code>${data.tagClaimId}</code>
-`.trim();
-
-  await sendMessage(message);
+  await sendTagClaimSubmissionAlert(data);
 }
 
 /**

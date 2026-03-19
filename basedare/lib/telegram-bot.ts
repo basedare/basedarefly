@@ -160,8 +160,11 @@ function hasInternalApiConfig(): boolean {
   return Boolean(INTERNAL_API_SECRET && BOT_STAKER_ADDRESS && isAddress(BOT_STAKER_ADDRESS));
 }
 
-function buildCallbackData(action: 'approve_dare' | 'reject_dare', dareRef: string): string {
-  const normalizedRef = dareRef.slice(0, 48);
+function buildCallbackData(
+  action: 'approve_dare' | 'reject_dare' | 'approve_tag' | 'reject_tag',
+  ref: string
+): string {
+  const normalizedRef = ref.slice(0, 48);
   return `${action}:${normalizedRef}`;
 }
 
@@ -600,6 +603,90 @@ async function handleModerationCallback(action: 'approve_dare' | 'reject_dare', 
   return { success: true, title: dare.title };
 }
 
+async function handleTagClaimModerationCallback(
+  action: 'approve_tag' | 'reject_tag',
+  tagClaimRef: string
+): Promise<{ success: boolean; tag?: string; status?: string; handle?: string; platform?: string }> {
+  const tagClaim = await prisma.streamerTag.findFirst({
+    where: {
+      OR: [
+        { id: tagClaimRef },
+        { id: { startsWith: tagClaimRef } },
+      ],
+    },
+    select: {
+      id: true,
+      tag: true,
+      status: true,
+      verificationMethod: true,
+      twitterHandle: true,
+      twitchHandle: true,
+      youtubeHandle: true,
+      kickHandle: true,
+    },
+  });
+
+  if (!tagClaim) {
+    return { success: false };
+  }
+
+  if (tagClaim.status !== 'PENDING') {
+    return {
+      success: false,
+      tag: tagClaim.tag,
+      status: tagClaim.status,
+      handle:
+        tagClaim.twitterHandle ||
+        tagClaim.twitchHandle ||
+        tagClaim.youtubeHandle ||
+        tagClaim.kickHandle ||
+        '',
+      platform: tagClaim.verificationMethod,
+    };
+  }
+
+  const approved = action === 'approve_tag';
+
+  const updated = await prisma.streamerTag.update({
+    where: { id: tagClaim.id },
+    data: approved
+      ? {
+          status: 'ACTIVE',
+          verifiedAt: new Date(),
+          revokedAt: null,
+          revokedBy: null,
+          revokeReason: null,
+        }
+      : {
+          status: 'REJECTED',
+          verifiedAt: null,
+          revokeReason: 'Rejected via Telegram inline moderation',
+        },
+    select: {
+      tag: true,
+      status: true,
+      verificationMethod: true,
+      twitterHandle: true,
+      twitchHandle: true,
+      youtubeHandle: true,
+      kickHandle: true,
+    },
+  });
+
+  return {
+    success: true,
+    tag: updated.tag,
+    status: updated.status,
+    handle:
+      updated.twitterHandle ||
+      updated.twitchHandle ||
+      updated.youtubeHandle ||
+      updated.kickHandle ||
+      '',
+    platform: updated.verificationMethod,
+  };
+}
+
 async function handleCreateFlowMessage(chatId: number, message: NonNullable<TelegramUpdate['message']>, state: CreateFlowState): Promise<boolean> {
   const text = (message.text || '').trim();
 
@@ -895,6 +982,51 @@ async function handleCallback(update: TelegramUpdate): Promise<boolean> {
       console.log(`[TELEGRAM] Inline moderation ${action} for ${dareRef}`);
     } catch (error) {
       console.error('[TELEGRAM] Callback moderation error:', error);
+      await sendMessage(chatId, 'Oops, something broke — try again!').catch(() => {});
+    }
+
+    return true;
+  }
+
+  if (callback.data.startsWith('approve_tag:') || callback.data.startsWith('reject_tag:')) {
+    if (!isAdminChat(chatId)) {
+      await sendMessage(chatId, 'Not authorized for moderation actions.').catch(() => {});
+      return true;
+    }
+
+    const [actionRaw, tagClaimRef] = callback.data.split(':');
+    const action = actionRaw as 'approve_tag' | 'reject_tag';
+
+    if (!tagClaimRef || (action !== 'approve_tag' && action !== 'reject_tag')) {
+      await sendMessage(chatId, 'Could not parse tag moderation action.').catch(() => {});
+      return true;
+    }
+
+    try {
+      const result = await handleTagClaimModerationCallback(action, tagClaimRef);
+      if (!result.success) {
+        if (result.tag && result.status) {
+          await sendMessage(
+            chatId,
+            `⚠️ Tag <b>${result.tag}</b> is already <b>${result.status}</b>.`
+          ).catch(() => {});
+        } else {
+          await sendMessage(chatId, `Tag claim ${tagClaimRef} not found.`).catch(() => {});
+        }
+        return true;
+      }
+
+      const decision = action === 'approve_tag' ? 'approved ✅' : 'rejected ❌';
+      const details = [
+        `🛡️ Tag <b>${result.tag || tagClaimRef}</b> ${decision}`,
+        result.platform ? `📺 ${result.platform}` : '',
+        result.handle ? `👤 <code>${result.handle}</code>` : '',
+      ].filter(Boolean).join('\n');
+
+      await sendMessage(chatId, details).catch(() => {});
+      console.log(`[TELEGRAM] Inline tag moderation ${action} for ${tagClaimRef}`);
+    } catch (error) {
+      console.error('[TELEGRAM] Callback tag moderation error:', error);
       await sendMessage(chatId, 'Oops, something broke — try again!').catch(() => {});
     }
 
@@ -1271,6 +1403,39 @@ export async function sendDareCreatedAlert(data: {
       inline_keyboard: [[
         { text: '✅ Approve', callback_data: buildCallbackData('approve_dare', callbackRef) },
         { text: '❌ Reject', callback_data: buildCallbackData('reject_dare', callbackRef) },
+      ]],
+    },
+  });
+}
+
+export async function sendTagClaimSubmissionAlert(data: {
+  tagClaimId: string;
+  tag: string;
+  platform: 'twitter' | 'twitch' | 'youtube' | 'kick';
+  handle: string;
+  walletAddress: string;
+}): Promise<void> {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    return;
+  }
+
+  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
+  const message = [
+    '🆕 <b>TAG CLAIM SUBMITTED</b>',
+    '',
+    `🏷️ Tag: <code>${data.tag}</code>`,
+    `📺 Platform: <b>${data.platform.toUpperCase()}</b>`,
+    `👤 Handle: <code>${data.handle}</code>`,
+    `👛 Wallet: <code>${wallet}</code>`,
+    `🆔 Claim ID: <code>${data.tagClaimId}</code>`,
+  ].join('\n');
+
+  await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
+    parseMode: 'HTML',
+    replyMarkup: {
+      inline_keyboard: [[
+        { text: '✅ Approve Tag', callback_data: buildCallbackData('approve_tag', data.tagClaimId) },
+        { text: '❌ Reject Tag', callback_data: buildCallbackData('reject_tag', data.tagClaimId) },
       ]],
     },
   });
