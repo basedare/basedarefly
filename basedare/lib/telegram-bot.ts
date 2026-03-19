@@ -1395,7 +1395,36 @@ export async function sendDareCreatedAlert(data: {
     `🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>`,
   ].join('\n');
 
+  await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
+    parseMode: 'HTML',
+  });
+}
+
+export async function sendDareReviewAlert(data: {
+  dareId: string;
+  shortId: string;
+  title: string;
+  streamerTag: string | null;
+  confidence?: number;
+}): Promise<void> {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    return;
+  }
+
+  const targetTag = data.streamerTag || 'OPEN';
   const callbackRef = data.shortId || data.dareId;
+  const confidenceLine = typeof data.confidence === 'number'
+    ? `\n🤖 AI Confidence: ${data.confidence}%`
+    : '';
+  const message = [
+    '⏳ <b>DARE NEEDS REVIEW</b>',
+    '',
+    `<b>${data.title}</b>`,
+    `🏷️ Tag: <code>${targetTag}</code>${confidenceLine}`,
+    '',
+    '⚠️ High-value bounty requires manual verification.',
+    `🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>`,
+  ].join('\n');
 
   await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
     parseMode: 'HTML',

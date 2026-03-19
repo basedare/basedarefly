@@ -10,7 +10,7 @@
  */
 
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
-import { sendDareCreatedAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
+import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -191,6 +191,17 @@ export async function alertVerification(data: {
   const reviewNote = data.result === 'PENDING_REVIEW'
     ? '\n\n⚠️ High-value bounty - manual review required'
     : '';
+
+  if (data.result === 'PENDING_REVIEW') {
+    await sendDareReviewAlert({
+      dareId: data.dareId,
+      shortId: data.shortId,
+      title: data.title,
+      streamerTag: data.streamerTag,
+      confidence: data.confidence,
+    });
+    return;
+  }
 
   const message = `
 ${emoji} <b>DARE ${status}</b>
