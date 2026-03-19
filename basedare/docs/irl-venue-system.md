@@ -27,6 +27,30 @@ That turns a venue from a static pin into a place with memory, status, and repea
 4. Venue experiences should feel alive and social, not like a coupon app.
 5. Perks and discounts should reward status, streaks, and verified presence.
 6. Tourism and foot traffic matter because Basedare can turn places into live destinations.
+7. QR should be treated as a premium trust and access layer, not as generic navigation.
+
+## BaseDare Secure Handshakes
+
+BaseDare should use QR as a secure handshake primitive for high-trust actions.
+
+Good handshake use cases:
+- venue check-in
+- dare unlock
+- dare claim
+- perk redemption
+- venue staff validation
+
+Bad handshake use cases:
+- normal browsing
+- generic link sharing
+- ordinary navigation
+
+This means:
+- links remain the normal communication layer
+- QR remains the trusted transition layer
+
+The QR itself is not the source of truth.
+The server-verified handshake is the source of truth.
 
 ## Map Stack Direction
 

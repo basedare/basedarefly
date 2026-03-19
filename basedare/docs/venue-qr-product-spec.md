@@ -14,6 +14,7 @@ QR codes are not the product. The workflow after the scan is the product.
 ## Product Thesis
 
 BaseDare should use QR to prove real-world presence, not just to open a link.
+QR should act as a secure handshake for high-trust actions, not as a universal interaction mode.
 
 The strongest QR use case for BaseDare is:
 - creator arrives at venue
@@ -21,6 +22,23 @@ The strongest QR use case for BaseDare is:
 - BaseDare validates place plus time plus identity
 - venue becomes more alive socially
 - creator earns access, points, or perks
+
+## BaseDare Secure Handshakes
+
+QR should be framed internally as `BaseDare Secure Handshakes`.
+
+Meaning:
+- links handle normal discovery and sharing
+- QR handles trusted transitions
+
+Trusted transitions include:
+- venue presence proof
+- dare unlocks
+- claim binding
+- one-time perk redemption
+- staff or partner confirmation
+
+QR should not become the default mode for every interaction. Overusing it would add friction and weaken the ritual value.
 
 ## Primary Jobs To Be Done
 
@@ -146,6 +164,17 @@ Minimum anti-fraud expectations:
 - optional GPS radius cross-check
 
 Do not rely on screenshot-resistant UX alone. The backend must enforce the truth.
+
+## Handshake Model
+
+Recommended handshake flow:
+1. server issues short-lived token
+2. QR encodes token reference or signed payload
+3. app scans and submits token with identity
+4. server validates scope, expiry, venue, and replay rules
+5. server consumes token and returns the unlock result
+
+The one-time server-validated transition is the important part, not the visual QR itself.
 
 ## Identity Binding
 

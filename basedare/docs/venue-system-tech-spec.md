@@ -25,6 +25,21 @@ It does not yet cover:
 - full perks engine
 - sponsor campaign orchestration
 
+## BaseDare Secure Handshake Concept
+
+In technical terms, QR should be treated as a secure handshake starter for trusted actions.
+
+Default rule:
+- links are the normal communication layer
+- QR is the high-trust transition layer
+
+Examples of high-trust transitions:
+- venue check-in
+- dare unlock
+- dare claim
+- perk redemption
+- staff validation
+
 ## Entity Overview
 
 ### Venue
@@ -149,6 +164,17 @@ Recommended payload pattern:
 - single-use or limited-replay server logic
 
 Do not encode business logic directly in the visible QR string beyond what is needed to resolve the token.
+
+## Suggested Handshake Scopes
+
+First-pass scope values:
+- `VENUE_CHECKIN`
+- `DARE_UNLOCK`
+- `DARE_CLAIM`
+- `PERK_REDEEM`
+- `STAFF_VALIDATE`
+
+Each token should be scoped so a valid check-in token cannot be reused as a perk or dare claim token.
 
 ## Presence Validation Rules
 
