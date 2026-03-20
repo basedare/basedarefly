@@ -296,12 +296,6 @@ export default function Dashboard() {
                   </>
                 ) : isConnected ? (
                   <>
-                    <div>
-                      <h2 className="text-2xl md:text-3xl font-black text-white">Claim your creator tag</h2>
-                      <p className="mt-2 text-gray-400 font-mono text-sm">
-                        Claim your creator tag to start earning and tune how people discover you.
-                      </p>
-                    </div>
                     {address && (
                       <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300 w-fit`}>
                         <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
