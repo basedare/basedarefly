@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         by: ['streamerHandle'],
         where: {
           status: 'VERIFIED',
+          streamerHandle: { not: null },
           verifiedAt: period === 'WEEKLY' ? { gte: weekStart, lt: weekEnd } : undefined,
         },
         _sum: { bounty: true },
@@ -65,6 +66,8 @@ export async function GET(request: NextRequest) {
       }>();
 
       topCreators.forEach((c) => {
+        if (!c.streamerHandle) return;
+
         const existing = creatorMap.get(c.streamerHandle) || {
           handle: c.streamerHandle,
           p2pVolume: 0,

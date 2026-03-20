@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { PinataSDK } from 'pinata';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 
 type UploadSession = {

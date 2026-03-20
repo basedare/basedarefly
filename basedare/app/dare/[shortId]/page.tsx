@@ -337,6 +337,9 @@ export default function DareDetailPage() {
     }
   }, [dare?.title, shortId]);
 
+  const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
+  const onchainConfigError = CONTRACT_VALIDATION.errors.join(' ');
+
   // ── Add to Pool tx ─────────────────────────────────────────────────────
   const handleAddToPool = async () => {
     if (!dare || !isConnected) return;
@@ -400,10 +403,8 @@ export default function DareDetailPage() {
   const sc = dare ? statusConfig(dare.status) : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
-  const safeBountyAmount = Number.isFinite(dare?.bounty) ? dare.bounty : 0;
-  const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? dare.upvoteCount : 0;
-  const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
-  const onchainConfigError = CONTRACT_VALIDATION.errors.join(' ');
+  const safeBountyAmount = Number.isFinite(dare?.bounty) ? (dare?.bounty ?? 0) : 0;
+  const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? (dare?.upvoteCount ?? 0) : 0;
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (

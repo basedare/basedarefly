@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 

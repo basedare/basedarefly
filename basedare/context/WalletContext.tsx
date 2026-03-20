@@ -1,9 +1,10 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAccount, useBalance, useConnect, useDisconnect } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
 import { base } from 'viem/chains';
 import { formatUnits } from 'viem';
+
+const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 
 type WalletState = {
   isConnected: boolean;
@@ -19,21 +20,23 @@ const WalletContext = createContext<WalletState>({} as WalletState);
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   const { address, isConnected } = useAccount();
-  const { data: balanceData } = useBalance({ address, chainId: base.id });
-  const { connectAsync, isPending: isConnecting } = useConnect();
+  const { data: balanceData } = useBalance({
+    address,
+    chainId: base.id,
+    query: { enabled: !IS_SIMULATION_MODE && !!address },
+  });
+  const { isPending: isConnecting } = useConnect();
   const { disconnectAsync } = useDisconnect();
   const [reputation, setReputation] = useState(0);
 
   // Fetch user reputation from API when connected
   useEffect(() => {
-    if (address) {
-      fetch(`/api/users/${address}/reputation`)
-        .then((res) => res.ok ? res.json() : { reputation: 0 })
-        .then((data) => setReputation(data.reputation || 0))
-        .catch(() => setReputation(0));
-    } else {
-      setReputation(0);
-    }
+    if (!address) return;
+
+    fetch(`/api/users/${address}/reputation`)
+      .then((res) => res.ok ? res.json() : { reputation: 0 })
+      .then((data) => setReputation(data.reputation || 0))
+      .catch(() => setReputation(0));
   }, [address]);
 
   const connect = async () => {
@@ -60,7 +63,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         isConnected,
         address: address || null,
         balance: formattedBalance,
-        reputation,
+        reputation: address ? reputation : 0,
         connect,
         disconnect,
         isConnecting,
@@ -72,6 +75,4 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useWallet = () => useContext(WalletContext);
-
-
 

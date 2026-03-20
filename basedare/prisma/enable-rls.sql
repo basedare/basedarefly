@@ -39,6 +39,14 @@ ALTER TABLE "LivePot"                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PotTransaction"           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "LeaderboardEntry"         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "WeeklyRewardDistribution" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Venue"                    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueCheckIn"             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueMemory"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueQrSession"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VoterPoints"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Notification"             ENABLE ROW LEVEL SECURITY;
 
 -- Prisma internal table
 ALTER TABLE "_prisma_migrations"       ENABLE ROW LEVEL SECURITY;
@@ -118,6 +126,46 @@ DROP POLICY IF EXISTS "service_role_all_WeeklyRewardDistribution" ON "WeeklyRewa
 CREATE POLICY "service_role_all_WeeklyRewardDistribution" ON "WeeklyRewardDistribution"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- Venue
+DROP POLICY IF EXISTS "service_role_all_Venue" ON "Venue";
+CREATE POLICY "service_role_all_Venue" ON "Venue"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueCheckIn
+DROP POLICY IF EXISTS "service_role_all_VenueCheckIn" ON "VenueCheckIn";
+CREATE POLICY "service_role_all_VenueCheckIn" ON "VenueCheckIn"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueMemory
+DROP POLICY IF EXISTS "service_role_all_VenueMemory" ON "VenueMemory";
+CREATE POLICY "service_role_all_VenueMemory" ON "VenueMemory"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueQrSession
+DROP POLICY IF EXISTS "service_role_all_VenueQrSession" ON "VenueQrSession";
+CREATE POLICY "service_role_all_VenueQrSession" ON "VenueQrSession"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Comment
+DROP POLICY IF EXISTS "service_role_all_Comment" ON "Comment";
+CREATE POLICY "service_role_all_Comment" ON "Comment"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Vote
+DROP POLICY IF EXISTS "service_role_all_Vote" ON "Vote";
+CREATE POLICY "service_role_all_Vote" ON "Vote"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VoterPoints
+DROP POLICY IF EXISTS "service_role_all_VoterPoints" ON "VoterPoints";
+CREATE POLICY "service_role_all_VoterPoints" ON "VoterPoints"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Notification
+DROP POLICY IF EXISTS "service_role_all_Notification" ON "Notification";
+CREATE POLICY "service_role_all_Notification" ON "Notification"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- _prisma_migrations (internal — only service_role should touch this)
 DROP POLICY IF EXISTS "service_role_all_prisma_migrations" ON "_prisma_migrations";
 CREATE POLICY "service_role_all_prisma_migrations" ON "_prisma_migrations"
@@ -138,7 +186,9 @@ BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'User', 'Dare', 'Referral', 'StreamerTag', 'Brand', 'Campaign',
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
-    'LeaderboardEntry', 'WeeklyRewardDistribution', '_prisma_migrations'
+    'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'VenueCheckIn',
+    'VenueMemory', 'VenueQrSession', 'Comment', 'Vote', 'VoterPoints',
+    'Notification', '_prisma_migrations'
   ]
   LOOP
     EXECUTE format('REVOKE ALL ON TABLE %I FROM anon', tbl);

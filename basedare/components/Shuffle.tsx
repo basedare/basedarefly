@@ -8,7 +8,7 @@ interface ShuffleProps {
   className?: string;
   style?: React.CSSProperties;
   duration?: number;
-  tag?: keyof JSX.IntrinsicElements;
+  tag?: React.ElementType;
   textAlign?: 'left' | 'center' | 'right';
   onShuffleComplete?: () => void;
   shuffleTimes?: number;
@@ -146,11 +146,11 @@ const Shuffle: React.FC<ShuffleProps> = ({
     [isReady, className]
   );
 
-  const Tag = tag;
+  const Tag: React.ElementType = tag;
 
   return (
     <Tag
-      ref={ref as any}
+      ref={ref as React.Ref<HTMLElement>}
       className={classes}
       style={commonStyle}
       onMouseEnter={handleMouseEnter}

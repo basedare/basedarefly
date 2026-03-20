@@ -52,13 +52,6 @@ export default function CreatorsPage() {
     { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every bounty you complete" },
   ];
 
-  const platforms = [
-    { name: "Twitter/X", icon: "𝕏" },
-    { name: "Twitch", icon: "📺" },
-    { name: "YouTube", icon: "▶" },
-    { name: "Kick", icon: "⚡" },
-  ];
-
   return (
     <div className="relative min-h-screen flex flex-col">
       <LiquidBackground />
@@ -265,34 +258,6 @@ export default function CreatorsPage() {
                 <p className="text-[11px] text-gray-500 font-mono leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
-
-        {/* Platform Verification */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="max-w-md mx-auto mb-12"
-        >
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 text-center">
-            <h2 className="text-lg font-black text-white mb-4 italic">
-              Verify With Your Platform
-            </h2>
-            <div className="grid grid-cols-4 gap-2 mb-4">
-              {platforms.map((platform) => (
-                <div
-                  key={platform.name}
-                  className="p-3 bg-white/5 border border-white/10 rounded-xl"
-                >
-                  <div className="text-2xl mb-1">{platform.icon}</div>
-                  <div className="text-[9px] font-medium text-gray-400">{platform.name}</div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-gray-600 font-mono">
-              Instant OAuth verification. Kick requires manual review.
-            </p>
           </div>
         </motion.div>
 

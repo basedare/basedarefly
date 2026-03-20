@@ -29,6 +29,7 @@ const config = createConfig({
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const apiKey = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY;
+  const projectId = process.env.NEXT_PUBLIC_CDP_PROJECT_ID;
 
   if (!apiKey) console.warn('Missing OnchainKit API key!');
 
@@ -39,6 +40,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <OnchainKitProvider
             apiKey={apiKey || ''}
             chain={base}
+            projectId={projectId}
             config={{
               appearance: { mode: 'auto', theme: 'default' },
               // Paymaster for gasless tx - will work if env var is set, otherwise standard gas

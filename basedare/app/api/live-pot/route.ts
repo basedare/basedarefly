@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import {
   calculateP2PSettlement,
   calculateB2BSettlement,
@@ -260,6 +260,7 @@ export async function PUT(request: NextRequest) {
       by: ['streamerHandle'],
       where: {
         status: 'VERIFIED',
+        streamerHandle: { not: null },
         verifiedAt: { gte: weekStart, lt: weekEnd },
       },
       _sum: { bounty: true },
@@ -283,10 +284,12 @@ export async function PUT(request: NextRequest) {
     // Calculate rewards
     const rewards = calculateWeeklyRewards(
       pot.balance,
-      topCreators.map((c) => ({
-        address: c.streamerHandle, // Using handle as address for now
-        volume: c._sum.bounty || 0,
-      })),
+      topCreators
+        .filter((c) => Boolean(c.streamerHandle))
+        .map((c) => ({
+          address: c.streamerHandle as string, // Using handle as address for now
+          volume: c._sum.bounty || 0,
+        })),
       topScouts.map((s) => ({
         address: s.walletAddress,
         creatorsRecruited: s._count.discoveredCreators,

@@ -19,7 +19,7 @@ import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegra
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -210,9 +210,9 @@ const GetBountySchema = z.object({
 // ============================================================================
 
 function getServerClients() {
-  const privateKey = process.env.REFEREE_PRIVATE_KEY;
+  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error('REFEREE_PRIVATE_KEY not configured');
+    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
   }
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
@@ -331,7 +331,6 @@ export async function POST(request: NextRequest) {
       streamerTag,
       referrerAddress,
       referrerTag,
-      dareId,
       stakerAddress,
       isNearbyDare,
       latitude,
@@ -987,9 +986,9 @@ export async function GET(request: NextRequest) {
         abi: BOUNTY_ABI,
         functionName: 'bounties',
         args: [BigInt(validation.data.dareId)],
-      })) as [bigint, Address, Address, boolean];
+      })) as readonly [bigint, Address, Address, Address, boolean];
 
-      const [amount, streamer, referrer, isVerified] = bountyData;
+      const [amount, streamer, referrer, , isVerified] = bountyData;
 
       if (amount === BigInt(0)) {
         return NextResponse.json(
@@ -1053,7 +1052,7 @@ export async function GET(request: NextRequest) {
       }));
 
       // Combine with mock bounties if database is empty
-      let allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
+      const allBounties = realBounties.length > 0 ? realBounties : [...MOCK_BOUNTIES];
 
       if (sort === 'amount') {
         allBounties.sort((a, b) => b.amount - a.amount);

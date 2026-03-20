@@ -77,6 +77,7 @@ interface ExistingTag {
   tag: string;
   status: string;
   walletAddress: string;
+  verificationMethod?: string | null;
 }
 
 interface SessionPlatformData {
@@ -904,7 +905,7 @@ export function ClaimTagModule() {
               <div className="space-y-2">
                 {existingTags.map((t) => (
                   <div
-                    key={t.id}
+                    key={t.tag}
                     className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-lg"
                   >
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">

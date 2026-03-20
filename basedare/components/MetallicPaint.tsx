@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -437,10 +436,10 @@ export default function MetallicPaint({ imageData, params = defaultParams }: Met
       }
 
       function getUniforms(program: WebGLProgram, gl: WebGL2RenderingContext) {
-        let uniforms: Record<string, WebGLUniformLocation | null> = {};
-        let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+        const uniforms: Record<string, WebGLUniformLocation | null> = {};
+        const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
         for (let i = 0; i < uniformCount; i++) {
-          let uniformName = gl.getActiveUniform(program, i)?.name;
+          const uniformName = gl.getActiveUniform(program, i)?.name;
           if (!uniformName) continue;
           uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
         }
@@ -477,6 +476,8 @@ export default function MetallicPaint({ imageData, params = defaultParams }: Met
   useEffect(() => {
     if (!gl || !uniforms) return;
 
+    const activeGl = gl;
+    const activeUniforms = uniforms;
     let renderId: number;
 
     function render(currentTime: number) {
@@ -485,8 +486,8 @@ export default function MetallicPaint({ imageData, params = defaultParams }: Met
 
       const mergedParams = { ...defaultParams, ...params };
       totalAnimationTime.current += deltaTime * mergedParams.speed;
-      if (uniforms.u_time) gl.uniform1f(uniforms.u_time, totalAnimationTime.current);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (activeUniforms.u_time) activeGl.uniform1f(activeUniforms.u_time, totalAnimationTime.current);
+      activeGl.drawArrays(activeGl.TRIANGLE_STRIP, 0, 4);
       renderId = requestAnimationFrame(render);
     }
 
@@ -502,17 +503,19 @@ export default function MetallicPaint({ imageData, params = defaultParams }: Met
     const canvasEl = canvasRef.current;
     if (!canvasEl || !gl || !uniforms) return;
 
+    const activeGl = gl;
+    const activeUniforms = uniforms;
     function resizeCanvas() {
-      if (!canvasEl || !gl || !uniforms || !imageData) return;
+      if (!canvasEl || !imageData) return;
       const imgRatio = imageData.width / imageData.height;
-      if (uniforms.u_img_ratio) gl.uniform1f(uniforms.u_img_ratio, imgRatio);
+      if (activeUniforms.u_img_ratio) activeGl.uniform1f(activeUniforms.u_img_ratio, imgRatio);
 
       const side = 1000;
       canvasEl.width = side * devicePixelRatio;
       canvasEl.height = side * devicePixelRatio;
-      gl.viewport(0, 0, canvasEl.height, canvasEl.height);
-      if (uniforms.u_ratio) gl.uniform1f(uniforms.u_ratio, 1);
-      if (uniforms.u_img_ratio) gl.uniform1f(uniforms.u_img_ratio, imgRatio);
+      activeGl.viewport(0, 0, canvasEl.height, canvasEl.height);
+      if (activeUniforms.u_ratio) activeGl.uniform1f(activeUniforms.u_ratio, 1);
+      if (activeUniforms.u_img_ratio) activeGl.uniform1f(activeUniforms.u_img_ratio, imgRatio);
     }
 
     resizeCanvas();
@@ -569,4 +572,3 @@ export default function MetallicPaint({ imageData, params = defaultParams }: Met
 
   return <canvas ref={canvasRef} className="paint-container" />;
 }
-

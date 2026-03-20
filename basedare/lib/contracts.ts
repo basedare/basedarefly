@@ -173,9 +173,9 @@ export const publicClient = createPublicClient({
 
 // Wallet client factory (for write operations) - SERVER ONLY
 export function getWalletClient() {
-  const privateKey = process.env.REFEREE_PRIVATE_KEY;
+  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error('REFEREE_PRIVATE_KEY not configured. Set this in your .env file (server-side only).');
+    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured. Set this in your .env file (server-side only).');
   }
 
   if (!privateKey.startsWith('0x') || privateKey.length !== 66) {

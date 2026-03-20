@@ -17,7 +17,12 @@ interface SearchResponse {
     dares: SearchResult[];
 }
 
-export function GlobalSearch() {
+interface GlobalSearchProps {
+    isDesktopApp?: boolean;
+}
+
+export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
+    void isDesktopApp;
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResponse>({ streamers: [], dares: [] });

@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { alertError, alertVerification, alertPayout } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 
@@ -36,6 +36,10 @@ const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 
 let warnedLegacyRefereeKey = false;
 let lastRefereeBalanceAlertAt = 0;
+
+type RefereeBalanceClient = {
+  getBalance: (args: { address: Address }) => Promise<bigint>;
+};
 
 // ============================================================================
 // ZOD VALIDATION
@@ -90,7 +94,7 @@ function getRefereeClient() {
 }
 
 async function enforceRefereeBalanceCap(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: RefereeBalanceClient,
   refereeAddress: Address,
   context: string
 ): Promise<{ allowed: boolean; balanceEth: string }> {

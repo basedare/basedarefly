@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque } from "next/font/google";
+import "@fontsource/figtree/400.css";
+import "@fontsource/figtree/500.css";
+import "@fontsource/figtree/600.css";
+import "@fontsource/figtree/700.css";
+import "@fontsource/figtree/800.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
 import localFont from "next/font/local";
 import "./global.css";
 import { Providers } from "@/components/Providers";
@@ -17,17 +23,44 @@ import MobileLightningFlash from "@/components/MobileLightningFlash";
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
 import { ViewProvider } from "@/app/context/ViewContext";
 
-// Headlines - Bricolage Grotesque (edgy, variable)
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-bricolage",
+// Body - Figtree, bundled locally via @fontsource files
+const figtree = localFont({
+  src: [
+    {
+      path: "../node_modules/@fontsource/figtree/files/figtree-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/@fontsource/figtree/files/figtree-latin-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/@fontsource/figtree/files/figtree-latin-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/@fontsource/figtree/files/figtree-latin-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/@fontsource/figtree/files/figtree-latin-800-normal.woff2",
+      weight: "800",
+      style: "normal",
+    },
+  ],
+  variable: "--font-alpha",
   display: "swap",
 });
 
-// Body - Alpha Lyrae (clean, tech)
+// Display - Alpha Lyrae, already self-hosted in the repo
 const alphaLyrae = localFont({
   src: "../public/fonts/AlphaLyrae-Medium.woff2",
-  variable: "--font-alpha",
+  variable: "--font-bricolage",
+  weight: "500",
   display: "swap",
 });
 
@@ -43,7 +76,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${alphaLyrae.variable} ${bricolage.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
+      <body className={`${figtree.variable} ${alphaLyrae.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
         <LiquidFilter />
         <div className="fixed inset-0 -z-50 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
         <div className="hidden md:block">

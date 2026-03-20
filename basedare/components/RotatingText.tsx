@@ -22,6 +22,7 @@ type MotionTransition = Record<string, number | string>;
 type SegmentChunk = { segment: string };
 type SegmenterLike = { segment: (text: string) => Iterable<SegmentChunk> };
 type SegmenterCtor = new (locale?: string, opts?: { granularity?: 'grapheme' }) => SegmenterLike;
+type IntlWithSegmenter = { Segmenter?: SegmenterCtor };
 
 type RotatingTextProps = {
   texts: string[];
@@ -76,7 +77,7 @@ const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>((props, ref)
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
 
   const splitIntoCharacters = (text: string) => {
-    const intlWithSegmenter = Intl as unknown as Intl & { Segmenter?: SegmenterCtor };
+    const intlWithSegmenter = Intl as unknown as IntlWithSegmenter;
     if (typeof Intl !== 'undefined' && typeof intlWithSegmenter.Segmenter === 'function') {
       const segmenter = new intlWithSegmenter.Segmenter('en', { granularity: 'grapheme' });
       return Array.from(segmenter.segment(text), (segment: { segment: string }) => segment.segment);

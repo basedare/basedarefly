@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import AppLoader from "@/components/AppLoader";
 import GalaxyBackground from "@/components/GalaxyBackground";
 import Navbar from "@/components/Navbar";
@@ -13,10 +12,9 @@ import MobileNav from "@/components/MobileNav";
 const MOCK_USER = { email: "you@basedare.com", full_name: "Based Degen" };
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<typeof MOCK_USER | null>(null);
 
   // Load Simulation
   useEffect(() => {
@@ -42,62 +40,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // #region agent log
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isLoaded) {
-      const logData = (msg: string, data: any, hyp: string) => {
-        const payload = JSON.stringify({location:'LayoutWrapper.tsx',message:msg,data,timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:hyp});
-        console.log('[DEBUG]', msg, data); // Also log to console
-        fetch('http://127.0.0.1:7242/ingest/efd3533e-34e9-4910-a6a7-7728a6c635d5',{method:'POST',headers:{'Content-Type':'application/json'},body:payload}).catch((e) => console.error('[DEBUG] Fetch failed:', e));
-      };
-      
-      logData('LayoutWrapper render', {isLoaded,pathname}, 'C');
-      
-      // Check if Tailwind styles are loaded
-      setTimeout(() => {
-        const testEl = document.createElement('div');
-        testEl.className = 'bg-background text-white flex items-center';
-        testEl.style.position = 'fixed';
-        testEl.style.top = '-9999px';
-        document.body.appendChild(testEl);
-        const computedStyle = window.getComputedStyle(testEl);
-        const bgColor = computedStyle.backgroundColor;
-        const textColor = computedStyle.color;
-        const display = computedStyle.display;
-        const hasTailwind = bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
-        document.body.removeChild(testEl);
-        
-        // Check if body has Tailwind classes applied
-        const bodyEl = document.body;
-        const bodyStyle = window.getComputedStyle(bodyEl);
-        
-        // Check if Tailwind CSS file is loaded
-        const stylesheets = Array.from(document.styleSheets);
-        const tailwindSheets = stylesheets.filter(sheet => {
-          try {
-            return sheet.href?.includes('globals') || sheet.href?.includes('tailwind');
-          } catch { return false; }
-        });
-        
-        logData('Tailwind CSS check', {
-          hasTailwindStyles: hasTailwind,
-          testBg: bgColor,
-          testColor: textColor,
-          testDisplay: display,
-          bodyBg: bodyStyle.backgroundColor,
-          bodyColor: bodyStyle.color,
-          bodyClasses: bodyEl.className,
-          hasBgClass: bodyEl.className.includes('bg-'),
-          stylesheetCount: stylesheets.length,
-          tailwindSheetCount: tailwindSheets.length,
-          allSheetHrefs: stylesheets.map(s => {
-            try { return s.href; } catch { return 'CORS blocked'; }
-          }),
-        }, 'G');
-      }, 1500);
-    }
-  }, [isLoaded, pathname]);
-  // #endregion
   return (
     <>
       {/* 1. LOADING SCREEN */}
@@ -110,16 +52,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          // #region agent log
-          ref={(el) => {
-            if (el && typeof window !== 'undefined') {
-              setTimeout(() => {
-                const computedStyle = window.getComputedStyle(el);
-                fetch('http://127.0.0.1:7242/ingest/efd3533e-34e9-4910-a6a7-7728a6c635d5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LayoutWrapper.tsx:54',message:'Main container styles',data:{minHeight:computedStyle.minHeight,display:computedStyle.display,flexDirection:computedStyle.flexDirection,hasMinHScreen:el.classList.contains('min-h-screen')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-              }, 100);
-            }
-          }}
-          // #endregion
         >
           <GalaxyBackground />
           <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} user={user} />
@@ -177,4 +109,3 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     </>
   );
 }
-

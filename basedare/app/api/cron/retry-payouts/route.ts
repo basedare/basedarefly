@@ -29,6 +29,10 @@ const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 let warnedLegacyRefereeKey = false;
 let lastRefereeBalanceAlertAt = 0;
 
+type RefereeBalanceClient = {
+  getBalance: (args: { address: Address }) => Promise<bigint>;
+};
+
 function getRefereeClient() {
   const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
@@ -63,7 +67,7 @@ function getRefereeClient() {
 }
 
 async function enforceRefereeBalanceCap(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: RefereeBalanceClient,
   refereeAddress: Address,
   context: string
 ): Promise<{ allowed: boolean; balanceEth: string }> {

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { isAddress } from 'viem';
 
 type WalletSession = {
@@ -349,7 +350,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build update/create data based on platform
-    const platformData: Record<string, string | boolean | null | Date> = {
+    const platformData: Record<string, string | boolean | number | null | Date> = {
       walletAddress,
       verificationMethod,
       status,
@@ -378,7 +379,7 @@ export async function POST(request: NextRequest) {
         platformData.kickVerified = false;
       }
       // Store verification code in kickVerificationCode field (reused for all manual verifications)
-      platformData.kickVerificationCode = effectiveManualCode;
+      platformData.kickVerificationCode = effectiveManualCode ?? null;
     } else if (platform === 'twitter') {
       platformData.twitterId = platformId;
       platformData.twitterHandle = platformHandle;
@@ -396,11 +397,11 @@ export async function POST(request: NextRequest) {
     // Create or update tag
     const streamerTag = await prisma.streamerTag.upsert({
       where: { tag: normalizedTag },
-      update: platformData,
+      update: platformData as Prisma.StreamerTagUpdateInput,
       create: {
         tag: normalizedTag,
         ...platformData,
-      },
+      } as Prisma.StreamerTagCreateInput,
     });
 
     console.log(

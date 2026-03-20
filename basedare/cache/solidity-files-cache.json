@@ -41,6 +41,42 @@
         "BaseDareBounty"
       ]
     },
+    "/Users/mrrobot13/Desktop/basedarestar/basedare/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+      "lastModificationDate": 1765897145302,
+      "contentHash": "190613e556d509d9e9a0ea43dc5d891d",
+      "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
+      ]
+    },
     "/Users/mrrobot13/Desktop/basedarestar/basedare/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
       "lastModificationDate": 1765897145296,
       "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
@@ -338,7 +374,7 @@
       ]
     },
     "/Users/mrrobot13/Desktop/basedarestar/basedare/contracts/BaseDareProtocol.sol": {
-      "lastModificationDate": 1766301136956,
+      "lastModificationDate": 1766582114700,
       "contentHash": "3ec6220ff6982688e6f1dea7de89e28f",
       "sourceName": "contracts/BaseDareProtocol.sol",
       "solcConfig": {
@@ -377,42 +413,6 @@
       ],
       "artifacts": [
         "BaseDareProtocol"
-      ]
-    },
-    "/Users/mrrobot13/Desktop/basedarestar/basedare/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
-      "lastModificationDate": 1765897145302,
-      "contentHash": "190613e556d509d9e9a0ea43dc5d891d",
-      "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ReentrancyGuard"
       ]
     },
     "/Users/mrrobot13/Desktop/basedarestar/basedare/node_modules/@openzeppelin/contracts/utils/Pausable.sol": {

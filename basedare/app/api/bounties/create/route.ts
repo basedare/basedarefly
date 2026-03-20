@@ -32,9 +32,9 @@ const CreateBountySchema = z.object({
 
 // Server-side clients (auto-selects mainnet or sepolia)
 function getServerClients() {
-  const privateKey = process.env.REFEREE_PRIVATE_KEY;
+  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
-    throw new Error('REFEREE_PRIVATE_KEY not configured');
+    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
   }
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);

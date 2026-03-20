@@ -3,7 +3,15 @@ import { ArrowRight, RadioTower, Waves } from 'lucide-react';
 import { getFeaturedVenues } from '@/lib/venues';
 
 export default async function VenueBeaconStrip() {
-  const venues = await getFeaturedVenues(4);
+  let venues = [];
+
+  try {
+    venues = await getFeaturedVenues(4);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown venue fetch error';
+    console.error('[MAP] Venue beacon strip unavailable:', message);
+    return null;
+  }
 
   if (venues.length === 0) {
     return null;
