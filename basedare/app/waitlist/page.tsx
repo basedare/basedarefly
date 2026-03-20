@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import ChromeText from '@/components/ChromeText';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
+import LiquidBackground from '@/components/LiquidBackground';
 
 export default function WaitlistPage() {
   const [email, setEmail] = useState('');
+  const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,6 +22,7 @@ export default function WaitlistPage() {
       },
       body: JSON.stringify({ 
         email: email,
+        notes: notes,
         source: 'BaseDare Waitlist' // Optional: helps you track where signups come from
       }),
     });
@@ -34,20 +37,20 @@ export default function WaitlistPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-transparent px-4 py-12">
-      <div className="fixed inset-0 z-10 pointer-events-none">
-        <GradualBlurOverlay intensity="light" placement="lower" />
+      <LiquidBackground />
+      <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
+        <GradualBlurOverlay />
       </div>
 
-      {/* Liquid glass atmosphere */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(129,93,255,0.16)_0%,transparent_68%),radial-gradient(ellipse_40%_35%_at_15%_80%,rgba(59,130,246,0.12)_0%,transparent_56%),radial-gradient(ellipse_35%_35%_at_85%_70%,rgba(236,72,153,0.12)_0%,transparent_58%)]" />
-        <div className="absolute inset-0 backdrop-blur-[2px]" />
+      <div className="pointer-events-none absolute inset-0 z-[1]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(168,85,247,0.18),transparent_32%),radial-gradient(circle_at_82%_22%,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_50%_92%,rgba(250,204,21,0.12),transparent_34%),linear-gradient(180deg,rgba(4,5,10,0.2)_0%,rgba(4,5,10,0.5)_100%)]" />
+        <div className="absolute inset-0 backdrop-blur-[1.5px]" />
       </div>
 
       {/* RADIANT AURA: Matches the Hero Bear feel */}
-      <div className="absolute top-1/2 left-1/2 -z-10 h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px] pointer-events-none" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px]" />
 
-      <div className="relative z-20 w-full max-w-md space-y-10 rounded-[28px] border border-white/15 bg-white/[0.04] p-6 text-center shadow-[0_35px_100px_rgba(3,8,26,0.55),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-2xl md:p-8">
+      <div className="relative z-20 w-full max-w-md space-y-10 rounded-[28px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_18%,rgba(8,9,16,0.9)_62%,rgba(6,7,12,0.95)_100%)] p-6 text-center shadow-[0_35px_100px_rgba(3,8,26,0.55),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-18px_24px_rgba(0,0,0,0.24)] backdrop-blur-2xl md:p-8">
         
         {/* THE SENTINEL: Floating head */}
         <div className="relative group mx-auto w-fit">
@@ -73,6 +76,9 @@ export default function WaitlistPage() {
             <p className="mx-auto max-w-[280px] text-sm leading-relaxed text-gray-300/85">
               Enter your email to secure early access to the Truth Protocol.
             </p>
+            <p className="mx-auto max-w-[320px] text-[11px] uppercase tracking-[0.18em] text-gray-400/80">
+              Questions or suggestions? Drop them below.
+            </p>
             
             <form onSubmit={handleSubmit} className="w-full space-y-3">
               <input
@@ -82,6 +88,13 @@ export default function WaitlistPage() {
                 className="w-full rounded-xl border border-white/20 bg-white/[0.08] px-6 py-4 text-center font-mono tracking-widest text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/60 focus:bg-white/[0.12]"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <textarea
+                placeholder="QUESTIONS_OR_SUGGESTIONS (OPTIONAL)"
+                className="min-h-[108px] w-full resize-none rounded-xl border border-white/20 bg-white/[0.08] px-5 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/60 focus:bg-white/[0.12]"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
               />
               
               <button

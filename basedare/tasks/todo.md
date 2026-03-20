@@ -5,22 +5,22 @@
 Use this section for active non-trivial tasks.
 
 ### Task
-- Owner:
-- Goal:
+- Owner: Codex
+- Goal: Refresh the FAQ so it matches the current BaseDare MVP while keeping the Peebear voice.
 
 ### Plan
-- [ ] Step 1
-- [ ] Step 2
-- [ ] Step 3
+- [x] Review the current FAQ and identify outdated or missing product areas.
+- [x] Rewrite the FAQ list with updated verify, IRL, venue, and QR answers.
+- [x] Verify the updated FAQ page still builds cleanly.
 
 ### Verification
-- [ ] Build / lint / test
+- [x] Build / lint / test
 - [ ] Logs or API check
 - [ ] UI or behavior check
 
 ### Review
-- Outcome:
-- Follow-ups:
+- Outcome: FAQ now matches the current BaseDare MVP more closely while keeping Peebear's tone.
+- Follow-ups: Visual review live, then commit and push with the waitlist copy tweak if approved.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

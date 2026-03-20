@@ -30,11 +30,27 @@ const FAQ_ITEMS = [
   },
   {
     q: "What exactly is BaseDare?",
-    a: "It's a **bounty platform** for creator challenges. You fund a dare with USDC, and if the creator completes it, they earn the reward. If they don't complete it within the deadline, you get a full refund. It's crowdfunded challenges meets entertainment."
+    a: "It's a **bounty platform** for creator challenges. You fund a dare with USDC, a creator completes it, and the protocol handles the payout. If it expires or fails review, contributors go through the refund path. Think crowdfunded chaos with receipts."
   },
   {
     q: "Who judges the proof? Can streamers cheat?",
-    a: "Nice try. Our **AI Sentinel** (my evil twin) scans every frame of the evidence video using zkML. If they fake it, cheat, or use deepfakes, we reject it and slash their reputation. Truth is mathematical."
+    a: "Cute theory. The **community review layer** on `/verify` can signal whether proof looks real, but crowd votes do **not** trigger payout directly. Consensus pushes the dare into **referee review**, and the protocol still owns the final payout or failure path. If the proof is fake, weak, or edited into fantasy, it gets bounced."
+  },
+  {
+    q: "What's the difference between IRL and STREAM dares?",
+    a: "**IRL** dares happen in the physical world: places, movement, nearby missions, venue check-ins, real-life nonsense. **STREAM** dares are tied to a creator, stream context, and proof from that world. Same protocol. Different battlefield."
+  },
+  {
+    q: "What is a venue on BaseDare?",
+    a: "A **venue** is not just a pin on a map. It's a live place page with memory: check-ins, active dares, recent presence, and eventually perks. We want places on BaseDare to feel alive, social, and worth showing up to."
+  },
+  {
+    q: "Do I need to scan a QR code to use BaseDare?",
+    a: "No. Relax. QR is **not** the whole app. Normal links are for normal discovery. QR is our **secure handshake** layer when a venue wants stronger proof that you actually showed up. Browse freely. Scan only when trust matters."
+  },
+  {
+    q: "How do venue check-ins work?",
+    a: "At partner venues, the venue console can show a rotating QR. You scan it to prove presence, and we can combine that with time-window and nearby location checks. Translation: harder to fake, better for live dares, and way less interesting to scammers."
   },
   {
     q: "My dare got rejected immediately. Why?",
@@ -50,31 +66,15 @@ const FAQ_ITEMS = [
   },
   {
     q: "When does a dare expire?",
-    a: "That's up to you. You set the expiry timer when you create the dare (e.g., 24h, 3 days, 1 week). If the timer hits zero with no proof submitted, the smart contract **automatically refunds your contribution**. We don't hold your money hostage."
-  },
-  {
-    q: "How do I get on the Hall of Shame?",
-    a: "Fail a dare. Chicken out. Upload a fake video. We publicly roast verified failures on the homepage. It's an honor, really."
+    a: "You choose the expiry when you create the dare: 24h, 3 days, 1 week, whatever flavor of pressure you want. If the clock dies and there is no valid completion, the dare goes through the **refund path**. We are not keeping your money in a haunted vault forever."
   },
   {
     q: "What's the CHAOS / CONTROL switch?",
     a: "It's a vibe selector. **CHAOS mode** is for fans who want to fund dares and watch streamers perform. **CONTROL mode** is for brands and scouts who want to leverage creator challenges for campaigns. Same protocol, different energy. Pick your poison."
   },
   {
-    q: "What is Control Mode / Brand Portal?",
-    a: "The **Brand Portal** is where suits turn marketing budgets into viral moments. Brands create campaigns, set budgets, and define what counts as 'verified content'. Our AI referee does the rest. No influencer DMs. No fake engagement. Just algorithmic brand injection."
-  },
-  {
-    q: "What is the Shadow Army?",
-    a: "The **Shadow Army** is our scout network. They hunt creators, claim bounty slots, and match brands with streamers. In return, they earn **permanent rake** on every successful payout: 0.5% discovery rake + 0.5% active rake. Find one good creator, collect forever. It's passive income for professional stalkers."
-  },
-  {
-    q: "How do Scout tiers work?",
-    a: "You start as a **BLOODHOUND** 🐕. Complete campaigns successfully and level up to **ARBITER** ⚖️, then **ARCHON** 👑. Higher tiers = auto-accepted slot claims, priority access, and flex rights. Fail too many and watch your reputation decay. The Shadow Army has standards."
-  },
-  {
-    q: "Why does Control Mode look like a 1940s film?",
-    a: "Because business is **noir**. While CHAOS mode is vibrant and unhinged, CONTROL mode runs in black and white like the boardrooms it was built for. It's an aesthetic choice. Also, it looks sick."
+    q: "Can brands or venues use this too?",
+    a: "Yes. Fans can fund chaos, but brands and venues can also use BaseDare to run creator challenges, anchor activity to real places, and turn live moments into measurable missions. Same machine. Cleaner shoes."
   },
   {
     q: "Can I collab or report a bug?",
