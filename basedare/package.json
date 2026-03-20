@@ -9,6 +9,9 @@
     "build:turbo": "next build --turbo",
     "start": "next start",
     "lint": "eslint",
+    "contracts:compile": "hardhat clean && hardhat compile",
+    "contracts:test": "hardhat test",
+    "contracts:coverage": "hardhat coverage",
     "clawdbot": "node scripts/clawdbot-poll.js"
   },
   "dependencies": {
