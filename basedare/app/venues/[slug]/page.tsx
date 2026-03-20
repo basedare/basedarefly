@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Activity, ArrowRight, Clock3, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { getVenueDetailBySlug } from '@/lib/venues';
+import VenuePageShell from '../VenuePageShell';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -23,9 +24,9 @@ export default async function VenueDetailPage(
   }
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-transparent text-white">
+    <VenuePageShell>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
-      <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-6">
           <div className={`${raisedPanelClass} px-6 py-8 sm:px-8`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
@@ -219,7 +220,7 @@ export default async function VenueDetailPage(
             </div>
           </div>
         </section>
-      </div>
-    </main>
+      </main>
+    </VenuePageShell>
   );
 }

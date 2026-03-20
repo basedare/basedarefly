@@ -4,7 +4,7 @@ import React from 'react';
 
 interface GradualBlurOverlayProps {
   intensity?: 'full' | 'light' | 'none';
-  placement?: 'default' | 'lower';
+  placement?: 'default' | 'lower' | 'footer-thin';
 }
 
 export default function GradualBlurOverlay({
@@ -16,29 +16,44 @@ export default function GradualBlurOverlay({
 
   // We stack multiple layers with varying blur amounts and gradient masks.
   // "lower" starts blur further down the viewport.
-  const fullLayers = placement === 'lower'
-    ? [
-        { blur: '0px', maskStart: '0%', maskEnd: '38%' },
-        { blur: '0.8px', maskStart: '38%', maskEnd: '52%' },
-        { blur: '1.6px', maskStart: '52%', maskEnd: '64%' },
-        { blur: '2.2px', maskStart: '64%', maskEnd: '72%' },
-      ]
-    : [
-        { blur: '0px', maskStart: '0%', maskEnd: '30%' },
-        { blur: '1px', maskStart: '30%', maskEnd: '45%' },
-        { blur: '2px', maskStart: '45%', maskEnd: '55%' },
-        { blur: '3px', maskStart: '55%', maskEnd: '60%' },
-      ];
+  const fullLayers =
+    placement === 'footer-thin'
+      ? [
+          { blur: '0px', maskStart: '0%', maskEnd: '86%' },
+          { blur: '0.8px', maskStart: '86%', maskEnd: '91%' },
+          { blur: '1.5px', maskStart: '91%', maskEnd: '95%' },
+          { blur: '2.2px', maskStart: '95%', maskEnd: '100%' },
+        ]
+      : placement === 'lower'
+        ? [
+            { blur: '0px', maskStart: '0%', maskEnd: '38%' },
+            { blur: '0.8px', maskStart: '38%', maskEnd: '52%' },
+            { blur: '1.6px', maskStart: '52%', maskEnd: '64%' },
+            { blur: '2.2px', maskStart: '64%', maskEnd: '72%' },
+          ]
+        : [
+            { blur: '0px', maskStart: '0%', maskEnd: '30%' },
+            { blur: '1px', maskStart: '30%', maskEnd: '45%' },
+            { blur: '2px', maskStart: '45%', maskEnd: '55%' },
+            { blur: '3px', maskStart: '55%', maskEnd: '60%' },
+          ];
 
-  const lightLayers = placement === 'lower'
-    ? [
-        { blur: '0px', maskStart: '0%', maskEnd: '48%' },
-        { blur: '0.6px', maskStart: '48%', maskEnd: '64%' },
-      ]
-    : [
-        { blur: '0px', maskStart: '0%', maskEnd: '35%' },
-        { blur: '1px', maskStart: '35%', maskEnd: '50%' },
-      ];
+  const lightLayers =
+    placement === 'footer-thin'
+      ? [
+          { blur: '0px', maskStart: '0%', maskEnd: '89%' },
+          { blur: '0.75px', maskStart: '89%', maskEnd: '95%' },
+          { blur: '1.2px', maskStart: '95%', maskEnd: '100%' },
+        ]
+      : placement === 'lower'
+        ? [
+            { blur: '0px', maskStart: '0%', maskEnd: '48%' },
+            { blur: '0.6px', maskStart: '48%', maskEnd: '64%' },
+          ]
+        : [
+            { blur: '0px', maskStart: '0%', maskEnd: '35%' },
+            { blur: '1px', maskStart: '35%', maskEnd: '50%' },
+          ];
 
   const layers = intensity === 'light' ? lightLayers : fullLayers;
 

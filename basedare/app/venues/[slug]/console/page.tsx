@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getVenueDetailBySlug } from '@/lib/venues';
+import VenuePageShell from '../../VenuePageShell';
 import VenueConsoleClient from './venue-console-client';
 
 export default async function VenueConsolePage(
@@ -12,5 +13,9 @@ export default async function VenueConsolePage(
     notFound();
   }
 
-  return <VenueConsoleClient venue={venue} />;
+  return (
+    <VenuePageShell>
+      <VenueConsoleClient venue={venue} />
+    </VenuePageShell>
+  );
 }

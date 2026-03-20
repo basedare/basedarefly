@@ -67,7 +67,7 @@ export default function Verify() {
     <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8">
       <LiquidBackground />
       {/* Gradual Blur Overlay */}
-      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay intensity="light" /></div>
+      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
       <div className="container mx-auto px-2 sm:px-6 relative z-10 mb-12 flex-grow max-w-7xl">
 

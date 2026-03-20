@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LocateFixed, Minus, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import MapCrosshair from "./MapCrosshair";
 
 type PinStatus = "live" | "funded" | "done" | "hot";
 
@@ -237,6 +238,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
   });
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
+  const mapViewportRef = useRef<HTMLDivElement | null>(null);
 
   const visiblePins = useMemo(
     () => PINS.filter((pin) => activeFilters[pin.status]),
@@ -264,16 +266,17 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
 
       <div className="mx-auto max-w-7xl">
         <div
-          className={`mx-auto mb-8 inline-flex items-center rounded-full border border-[#f5c518]/20 bg-[#f5c518]/8 px-3 py-1.5 text-[10px] tracking-[0.12em] text-[#f5c518]/90 ${monoClass}`}
+          className={`mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(250,204,21,0.16)_0%,rgba(250,204,21,0.06)_100%)] px-4 py-2 text-[10px] tracking-[0.18em] text-[#f5c518]/95 shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.26)] ${monoClass}`}
         >
+          <LocateFixed className="h-3.5 w-3.5" />
           preview*
         </div>
 
         <header className="relative z-[1] pb-10 text-center">
           <div
-            className={`mb-6 inline-flex items-center gap-2 rounded-full border border-[#f5c518]/35 bg-[#f5c518]/10 px-5 py-2 text-[10px] uppercase tracking-[0.22em] text-[#f5c518] ${monoClass}`}
+            className={`mb-6 inline-flex items-center gap-2 rounded-full border border-[#f5c518]/35 bg-[linear-gradient(180deg,rgba(250,204,21,0.16)_0%,rgba(250,204,21,0.05)_100%)] px-5 py-2 text-[10px] uppercase tracking-[0.22em] text-[#f5c518] shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-8px_14px_rgba(0,0,0,0.22)] ${monoClass}`}
           >
-            <span>🌐</span>
+            <LocateFixed className="h-3.5 w-3.5" />
             <span>First IRL Web3 Dare Network</span>
           </div>
           <h1 className="text-5xl font-extrabold leading-[0.9] tracking-[-0.05em] text-white sm:text-7xl lg:text-8xl">
@@ -289,14 +292,15 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
             Real venues. Crypto stakes. On-chain proof. Every pin is a legend permanently
             written to the map.
           </p>
-          <div className="mt-9 inline-flex overflow-hidden rounded-2xl border border-[rgba(107,33,255,0.35)]">
+          <div className="mx-auto mt-9 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-4">
             {STATS.map((stat, index) => (
               <div
                 key={stat.label}
-                className={`bg-[rgba(107,33,255,0.07)] px-5 py-3 text-center sm:px-10 ${
-                  index < STATS.length - 1 ? "border-r border-[rgba(107,33,255,0.25)]" : ""
+                className={`relative overflow-hidden rounded-[24px] border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.02)_14%,rgba(9,8,20,0.94)_100%)] px-5 py-4 text-center shadow-[0_16px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.28)] sm:px-7 ${
+                  index % 2 === 0 ? "sm:translate-y-1" : ""
                 }`}
               >
+                <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                 <span className={`block text-xl font-bold text-[#f5c518] sm:text-3xl ${monoClass}`}>
                   {stat.value}
                 </span>
@@ -309,10 +313,12 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
         </header>
 
         <section className="relative z-[1]">
-          <div className="relative overflow-hidden rounded-[20px] border border-[rgba(138,164,255,0.25)] bg-[rgba(8,12,30,0.42)] shadow-[0_0_0_1px_rgba(107,33,255,0.12),0_45px_120px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-2xl">
+          <div className="relative overflow-hidden rounded-[28px] border border-[rgba(138,164,255,0.22)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.015)_12%,rgba(5,7,18,0.92)_100%)] shadow-[0_0_0_1px_rgba(107,33,255,0.16),0_55px_140px_rgba(0,0,0,0.72),0_0_36px_rgba(107,33,255,0.12),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-20px_28px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
             <div className="pointer-events-none absolute inset-x-6 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_12%_0%,rgba(96,165,250,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.14),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div
-              className="relative h-[620px] w-full overflow-hidden sm:h-[660px]"
+              ref={mapViewportRef}
+              className="relative h-[620px] w-full overflow-hidden rounded-[24px] border border-white/8 sm:h-[660px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.36)]"
               onClick={() => setActivePinId(null)}
               style={{
                 backgroundImage:
@@ -324,11 +330,12 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
               <div className="starfield pointer-events-none absolute inset-0 opacity-70" />
               <div className="pixel-screen pointer-events-none absolute inset-0 opacity-35" />
               <div className="glass-haze pointer-events-none absolute inset-0" />
+              <MapCrosshair containerRef={mapViewportRef} />
 
               {BLOCKS.map((block, idx) => (
                 <div
                   key={`block-${idx}`}
-                  className="absolute rounded-[8px] border border-white/10 bg-[rgba(140,170,255,0.04)] backdrop-blur-[2px]"
+                  className="absolute rounded-[10px] border border-white/10 bg-[linear-gradient(180deg,rgba(170,188,255,0.08)_0%,rgba(57,78,124,0.08)_24%,rgba(12,18,34,0.28)_100%)] shadow-[0_10px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.18)] backdrop-blur-[2px]"
                   style={{
                     left: `${block.left}%`,
                     top: `${block.top}%`,
@@ -341,7 +348,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
               {ROADS.map((road) => (
                 <div
                   key={road.id}
-                  className={`absolute bg-[rgba(126,150,255,0.12)] ${road.thick ? "bg-[rgba(148,88,255,0.2)]" : ""}`}
+                  className={`absolute ${road.thick ? "bg-[rgba(168,85,247,0.32)] shadow-[0_0_16px_rgba(168,85,247,0.18)]" : "bg-[rgba(126,150,255,0.16)] shadow-[0_0_10px_rgba(126,150,255,0.12)]"} blur-[0.2px]`}
                   style={
                     road.axis === "h"
                       ? {
@@ -373,12 +380,13 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                           [status]: !prev[status],
                         }))
                       }
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.08em] transition ${monoClass} ${
+                      className={`relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] shadow-[0_10px_16px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-8px_12px_rgba(0,0,0,0.2)] transition ${monoClass} ${
                         on
-                          ? "border-white/25 bg-[rgba(107,33,255,0.18)] text-white"
-                          : "border-[rgba(107,33,255,0.3)] bg-[rgba(10,0,22,0.9)] text-white/55"
+                          ? "border-white/20 bg-[linear-gradient(180deg,rgba(107,33,255,0.24)_0%,rgba(27,18,52,0.92)_100%)] text-white"
+                          : "border-[rgba(107,33,255,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(10,0,22,0.92)_100%)] text-white/55"
                       }`}
                     >
+                      <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                       <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`} />
                       {meta.label}
                     </button>
@@ -387,18 +395,18 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
               </div>
 
               <div
-                className={`absolute bottom-[72px] left-3 z-20 rounded-full border border-[rgba(245,197,24,0.28)] bg-[rgba(8,12,30,0.82)] px-3 py-1 text-[9px] uppercase tracking-[0.18em] text-[#f5c518]/90 md:hidden ${monoClass}`}
+                className={`absolute bottom-[72px] left-3 z-20 rounded-full border border-[rgba(245,197,24,0.28)] bg-[linear-gradient(180deg,rgba(250,204,21,0.14)_0%,rgba(14,16,28,0.94)_100%)] px-3 py-1.5 text-[9px] uppercase tracking-[0.18em] text-[#f5c518]/95 shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] md:hidden ${monoClass}`}
               >
                 tap a pin to inspect
               </div>
 
               <div
-                className={`absolute right-3 top-16 z-20 hidden rounded-full border border-[rgba(122,255,100,0.16)] bg-[rgba(12,18,34,0.72)] px-3 py-1 text-[9px] uppercase tracking-[0.16em] text-[#c8ff86] md:inline-flex ${monoClass}`}
+                className={`absolute right-3 top-16 z-20 hidden rounded-full border border-[rgba(122,255,100,0.18)] bg-[linear-gradient(180deg,rgba(200,255,134,0.12)_0%,rgba(11,17,30,0.96)_100%)] px-3 py-1.5 text-[9px] uppercase tracking-[0.16em] text-[#c8ff86] shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.1)] md:inline-flex ${monoClass}`}
               >
                 missiondex
               </div>
 
-              <div className="absolute right-3 top-3 z-20 flex flex-col gap-2">
+              <div className="absolute right-3 top-3 z-20 flex flex-col gap-2 rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(7,8,18,0.92)_100%)] p-2 shadow-[0_16px_26px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.24)]">
                 <button className="ctrl-btn" aria-label="Zoom in">
                   <Plus className="h-4 w-4" />
                 </button>
@@ -460,7 +468,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                     </button>
 
                     <div
-                      className={`pixel-panel pointer-events-none absolute hidden w-[220px] border border-[rgba(107,33,255,0.3)] bg-[rgba(10,0,22,0.97)] p-3 opacity-0 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-opacity duration-200 md:block md:group-hover:opacity-100 ${
+                      className={`pixel-panel pointer-events-none absolute hidden w-[228px] border border-[rgba(107,33,255,0.3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(9,0,20,0.98)_14%,rgba(10,0,22,0.98)_100%)] p-3 opacity-0 shadow-[0_18px_38px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-opacity duration-200 md:block md:group-hover:opacity-100 ${
                         showBelow ? "top-[calc(100%+10px)]" : "bottom-[calc(100%+10px)]"
                       } ${
                         alignRight
@@ -473,7 +481,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                       <div className="mb-1 text-[12px] font-extrabold leading-[1.25] text-white">
                         {pin.title}
                       </div>
-                      <div className={`mb-2 text-[9px] text-white/35 ${monoClass}`}>📍 {pin.venue}</div>
+                      <div className={`mb-2 text-[9px] uppercase tracking-[0.14em] text-white/35 ${monoClass}`}>venue // {pin.venue}</div>
                       <div className="flex items-center justify-between gap-2">
                         <span className={`text-[14px] font-bold text-[#f5c518] ${monoClass}`}>{pin.bounty}</span>
                         <span
@@ -505,7 +513,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                   className="absolute inset-x-3 bottom-20 z-30 md:hidden"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <div className="pixel-panel border border-[rgba(245,197,24,0.24)] bg-[linear-gradient(180deg,rgba(16,24,42,0.94),rgba(9,13,28,0.96))] px-4 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.48)] backdrop-blur-xl">
+                  <div className="pixel-panel border border-[rgba(245,197,24,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(16,24,42,0.94)_18%,rgba(9,13,28,0.98)_100%)] px-4 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.24)] backdrop-blur-xl">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className={`mb-1 text-[9px] uppercase tracking-[0.18em] text-[#c8ff86] ${monoClass}`}>
@@ -524,7 +532,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                       </button>
                     </div>
                     <div className={`text-[10px] leading-5 text-white/40 ${monoClass}`}>
-                      📍 {activePin.venue}
+                      venue // {activePin.venue}
                     </div>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <span className={`text-sm font-bold text-[#f5c518] ${monoClass}`}>
@@ -552,7 +560,8 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
 
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_35%_45%_at_25%_65%,rgba(255,45,85,0.08)_0%,transparent_60%),radial-gradient(ellipse_30%_40%_at_65%_30%,rgba(0,255,148,0.08)_0%,transparent_60%),radial-gradient(ellipse_25%_35%_at_50%_50%,rgba(107,33,255,0.12)_0%,transparent_60%)]" />
 
-              <div className="absolute bottom-4 left-4 right-4 z-20 rounded-xl border border-[rgba(107,33,255,0.3)] bg-[rgba(10,0,22,0.92)] px-3 py-2 backdrop-blur-md">
+              <div className="absolute bottom-4 left-4 right-4 z-20 overflow-hidden rounded-2xl border border-[rgba(107,33,255,0.3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(10,0,22,0.96)_18%,rgba(10,0,22,0.98)_100%)] px-3 py-2.5 backdrop-blur-md shadow-[0_14px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.24)]">
+                <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                 <div className="flex items-center gap-3">
                   <span className={`ticker-label text-[9px] font-bold uppercase tracking-[0.12em] text-[#ff2d55] ${monoClass}`}>
                     Live feed
@@ -582,11 +591,11 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-6">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             {FILTERS.map((status) => {
               const meta = STATUS_META[status];
               return (
-                <div key={`legend-${status}`} className={`flex items-center gap-2 text-[11px] text-white/45 ${monoClass}`}>
+                <div key={`legend-${status}`} className={`flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,8,18,0.9)_100%)] px-3 py-1.5 text-[11px] text-white/55 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)] ${monoClass}`}>
                   <span className={`h-2.5 w-2.5 rounded-full ${meta.dotClass}`} />
                   {meta.label}
                 </div>
@@ -605,7 +614,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/waitlist"
-              className={`inline-flex items-center rounded-full border border-[rgba(107,33,255,0.4)] px-6 py-3 text-xs uppercase tracking-[0.1em] text-[#f5c518] transition hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 ${monoClass}`}
+              className={`inline-flex items-center rounded-full border border-[rgba(107,33,255,0.4)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(107,33,255,0.14)_100%)] px-6 py-3 text-xs uppercase tracking-[0.14em] text-[#f5c518] shadow-[0_16px_28px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.22)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 ${monoClass}`}
             >
               Join Waitlist
             </Link>
@@ -686,25 +695,44 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
           box-shadow:
             0 0 0 3px rgba(245, 197, 24, 0.7),
             0 0 28px rgba(245, 197, 24, 0.38),
-            0 6px 20px rgba(0, 0, 0, 0.6);
+            0 12px 28px rgba(0, 0, 0, 0.52);
         }
 
         .ctrl-btn {
-          width: 34px;
-          height: 34px;
-          border-radius: 8px;
-          border: 1px solid rgba(107, 33, 255, 0.3);
-          background: rgba(10, 0, 22, 0.9);
-          color: rgba(255, 255, 255, 0.55);
+          width: 36px;
+          height: 36px;
+          border-radius: 12px;
+          border: 1px solid rgba(107, 33, 255, 0.24);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.08), transparent 42%),
+            linear-gradient(180deg, rgba(22, 24, 40, 0.98), rgba(7, 8, 18, 0.96));
+          color: rgba(255, 255, 255, 0.62);
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow:
+            0 12px 18px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -8px 14px rgba(0, 0, 0, 0.24);
           transition: all 0.15s ease;
         }
 
         .ctrl-btn:hover {
-          border-color: #f5c518;
+          border-color: rgba(245, 197, 24, 0.5);
           color: #f5c518;
+          transform: translateY(-1px);
+          box-shadow:
+            0 16px 22px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -8px 14px rgba(0, 0, 0, 0.24),
+            0 0 18px rgba(245, 197, 24, 0.08);
+        }
+
+        .ctrl-btn:active {
+          transform: translateY(1px);
+          box-shadow:
+            inset 0 2px 4px rgba(0, 0, 0, 0.34),
+            inset 0 -2px 4px rgba(255, 255, 255, 0.03);
         }
 
         .ticker-label::before {
