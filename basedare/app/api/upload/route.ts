@@ -14,14 +14,17 @@ type UploadSession = {
   } | null;
 };
 
-const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100MB
-const ALLOWED_VIDEO_MIME_TYPES = new Set([
+const MAX_MEDIA_SIZE_BYTES = 120 * 1024 * 1024; // 120MB
+const ALLOWED_MEDIA_MIME_TYPES = new Set([
   'video/mp4',
   'video/quicktime',
   'video/webm',
   'video/x-matroska',
   'video/3gpp',
   'video/3gpp2',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
 ]);
 
 async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
@@ -73,16 +76,16 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedMimeType = file.type.toLowerCase();
-    if (!ALLOWED_VIDEO_MIME_TYPES.has(normalizedMimeType)) {
+    if (!ALLOWED_MEDIA_MIME_TYPES.has(normalizedMimeType)) {
       return NextResponse.json(
-        { error: 'Unsupported media type. Video uploads only.' },
+        { error: 'Unsupported media type. Upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).' },
         { status: 415 }
       );
     }
 
-    if (file.size <= 0 || file.size > MAX_VIDEO_SIZE_BYTES) {
+    if (file.size <= 0 || file.size > MAX_MEDIA_SIZE_BYTES) {
       return NextResponse.json(
-        { error: 'Video file is too large. Max size is 100MB.' },
+        { error: 'Media file is too large. Max size is 120MB.' },
         { status: 413 }
       );
     }

@@ -13,7 +13,6 @@ import { authOptions } from '@/lib/auth-options';
 const VOTE_THRESHOLD = 10; // Minimum votes before auto-resolution
 const CONSENSUS_PERCENT = 60; // >60% one way triggers resolution
 const POINTS_PER_VOTE = 5; // Points awarded for casting a vote
-const CORRECT_VOTE_BONUS = 15; // Bonus points for being on winning side
 
 type WalletSession = {
   token?: string;
@@ -181,48 +180,50 @@ export async function POST(
     const rejectCount = voteCounts.find((v) => v.voteType === 'REJECT')?._count || 0;
     const totalVotes = approveCount + rejectCount;
 
-    // Check if threshold met for auto-resolution
-    let resolved = false;
-    let resolutionOutcome: 'VERIFIED' | 'FAILED' | null = null;
+    // Check if threshold met for escalation into manual review
+    let escalatedToReview = false;
+    let reviewSignal: 'APPROVE' | 'REJECT' | 'MIXED' | null = null;
 
     if (totalVotes >= VOTE_THRESHOLD) {
       const approvePercent = (approveCount / totalVotes) * 100;
       const rejectPercent = (rejectCount / totalVotes) * 100;
+      const strongestSignal = Math.max(approvePercent, rejectPercent);
 
       if (approvePercent > CONSENSUS_PERCENT) {
-        // Community approved - mark as VERIFIED
-        await prisma.dare.update({
-          where: { id: dareId },
-          data: {
-            status: 'VERIFIED',
-            verifiedAt: new Date(),
-            verifyConfidence: approvePercent,
-          },
-        });
-        resolved = true;
-        resolutionOutcome = 'VERIFIED';
-        await awardCorrectVoters(dareId, 'APPROVE');
-      } else if (rejectPercent > CONSENSUS_PERCENT) {
-        // Community rejected - mark as FAILED
-        await prisma.dare.update({
-          where: { id: dareId },
-          data: {
-            status: 'FAILED',
-            verifyConfidence: rejectPercent,
-          },
-        });
-        resolved = true;
-        resolutionOutcome = 'FAILED';
-        await awardCorrectVoters(dareId, 'REJECT');
-      } else {
-        // No clear consensus - flag for moderator review
+        // Community lean should inform manual review, not finalize payout.
         await prisma.dare.update({
           where: { id: dareId },
           data: {
             status: 'PENDING_REVIEW',
-            verifyConfidence: Math.max(approvePercent, rejectPercent),
+            verifyConfidence: strongestSignal,
           },
         });
+        escalatedToReview = true;
+        reviewSignal = 'APPROVE';
+        console.log(`[VOTE] Dare ${dareId} reached community PASS consensus (${approvePercent.toFixed(1)}%) and was escalated to manual review`);
+      } else if (rejectPercent > CONSENSUS_PERCENT) {
+        // Community reject lean should also inform manual review, not finalize failure.
+        await prisma.dare.update({
+          where: { id: dareId },
+          data: {
+            status: 'PENDING_REVIEW',
+            verifyConfidence: strongestSignal,
+          },
+        });
+        escalatedToReview = true;
+        reviewSignal = 'REJECT';
+        console.log(`[VOTE] Dare ${dareId} reached community FAIL consensus (${rejectPercent.toFixed(1)}%) and was escalated to manual review`);
+      } else {
+        // No clear consensus - still escalate for moderator review once threshold is met
+        await prisma.dare.update({
+          where: { id: dareId },
+          data: {
+            status: 'PENDING_REVIEW',
+            verifyConfidence: strongestSignal,
+          },
+        });
+        escalatedToReview = true;
+        reviewSignal = 'MIXED';
         console.log(`[VOTE] Dare ${dareId} flagged for moderator review (${approvePercent.toFixed(1)}% approve, ${rejectPercent.toFixed(1)}% reject)`);
       }
     }
@@ -240,8 +241,8 @@ export async function POST(
           reject: rejectCount,
           total: totalVotes,
         },
-        resolved,
-        resolutionOutcome,
+        escalatedToReview,
+        reviewSignal,
         threshold: {
           required: VOTE_THRESHOLD,
           consensusPercent: CONSENSUS_PERCENT,
@@ -255,66 +256,6 @@ export async function POST(
       { success: false, error: message },
       { status: 500 }
     );
-  }
-}
-
-// Award bonus points to voters who picked the winning side
-async function awardCorrectVoters(dareId: string, winningVoteType: 'APPROVE' | 'REJECT') {
-  try {
-    // Get all voters who voted correctly
-    const correctVoters = await prisma.vote.findMany({
-      where: {
-        dareId,
-        voteType: winningVoteType,
-      },
-      select: { walletAddress: true },
-    });
-
-    // Award bonus points and update streaks
-    for (const voter of correctVoters) {
-      const voterPoints = await prisma.voterPoints.findUnique({
-        where: { walletAddress: voter.walletAddress },
-      });
-
-      const currentStreak = voterPoints?.streak || 0;
-      const streakBonus = Math.min(currentStreak * 2, 50); // Cap streak bonus at 50
-      const totalBonus = CORRECT_VOTE_BONUS + streakBonus;
-
-      await prisma.voterPoints.upsert({
-        where: { walletAddress: voter.walletAddress },
-        create: {
-          walletAddress: voter.walletAddress,
-          totalPoints: totalBonus,
-          correctVotes: 1,
-          streak: 1,
-        },
-        update: {
-          totalPoints: { increment: totalBonus },
-          correctVotes: { increment: 1 },
-          streak: { increment: 1 },
-        },
-      });
-    }
-
-    // Reset streak for incorrect voters
-    const incorrectVoters = await prisma.vote.findMany({
-      where: {
-        dareId,
-        voteType: winningVoteType === 'APPROVE' ? 'REJECT' : 'APPROVE',
-      },
-      select: { walletAddress: true },
-    });
-
-    for (const voter of incorrectVoters) {
-      await prisma.voterPoints.updateMany({
-        where: { walletAddress: voter.walletAddress },
-        data: { streak: 0 },
-      });
-    }
-
-    console.log(`[VOTE] Awarded ${correctVoters.length} correct voters for dare ${dareId}`);
-  } catch (error) {
-    console.error('[VOTE] Failed to award correct voters:', error);
   }
 }
 

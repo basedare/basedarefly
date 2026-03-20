@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
 
 // ============================================================================
 // VERIFY QUEUE API
 // Returns dares ready for community voting
 // ============================================================================
+
+type QueueSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as QueueSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+  return wallet.toLowerCase();
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +38,23 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
     const skip = parseInt(searchParams.get('skip') || '0');
     const wallet = searchParams.get('wallet')?.toLowerCase();
+    const sessionWallet = await getVerifiedSessionWallet(request);
+
+    if (wallet) {
+      if (!isAddress(wallet)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid wallet address' },
+          { status: 400 }
+        );
+      }
+
+      if (!sessionWallet || wallet !== sessionWallet) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized wallet query' },
+          { status: 401 }
+        );
+      }
+    }
 
     // Fetch dares that are ready for community voting:
     // - Status is PENDING or PENDING_REVIEW

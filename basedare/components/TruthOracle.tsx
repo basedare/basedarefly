@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, BrainCircuit, Activity, SkipForward, Loader2, AlertCircle, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import TransactionModal from "@/components/TransactionModal";
 
 interface DareForVoting {
@@ -27,6 +29,7 @@ interface TruthOracleProps {
 
 export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
   const { address, isConnected } = useAccount();
+  const { data: session } = useSession();
 
   const [queue, setQueue] = useState<DareForVoting[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -40,6 +43,16 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
   const [txStatus, setTxStatus] = useState<'PROCESSING' | 'SUCCESS'>('PROCESSING');
 
   const currentDare = queue[currentIndex] || null;
+  const sessionToken = (session as { token?: string } | null)?.token || null;
+  const sessionWallet = ((session as { walletAddress?: string } | null)?.walletAddress || '').toLowerCase();
+  const connectedWallet = (address || '').toLowerCase();
+  const hasVerifiedSession = Boolean(
+    isConnected &&
+    connectedWallet &&
+    sessionToken &&
+    sessionWallet &&
+    sessionWallet === connectedWallet
+  );
 
   // Check if all dares have been voted on
   const allDaresVoted = queue.length > 0 && queue.every(d => d.userVote !== null);
@@ -49,8 +62,12 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
     try {
       setLoading(true);
       setError(null);
-      const walletParam = address ? `&wallet=${address.toLowerCase()}` : '';
-      const res = await fetch(`/api/verify/queue?limit=20${walletParam}`);
+      const walletParam = hasVerifiedSession ? `&wallet=${connectedWallet}` : '';
+      const res = await fetch(`/api/verify/queue?limit=20${walletParam}`, {
+        headers: hasVerifiedSession && sessionToken
+          ? { Authorization: `Bearer ${sessionToken}` }
+          : undefined,
+      });
       const data = await res.json();
 
       if (data.success) {
@@ -68,7 +85,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
     } finally {
       setLoading(false);
     }
-  }, [address]);
+  }, [connectedWallet, hasVerifiedSession, sessionToken]);
 
   useEffect(() => {
     fetchQueue();
@@ -87,6 +104,11 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
   const handleVote = async (voteType: 'APPROVE' | 'REJECT') => {
     if (!isConnected || !address || !currentDare) return;
 
+    if (!hasVerifiedSession || !sessionToken) {
+      setError('Sign in with your verified BaseDare session to vote.');
+      return;
+    }
+
     setVoting(true);
     setIsTxOpen(true);
     setTxStatus('PROCESSING');
@@ -94,7 +116,10 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
     try {
       const res = await fetch(`/api/dares/${currentDare.id}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
         body: JSON.stringify({
           walletAddress: address,
           voteType,
@@ -324,6 +349,20 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                   <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-white font-bold text-[10px] sm:text-xs tracking-widest mb-2">CONNECT WALLET TO VOTE</h3>
                   <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono">Earn points for accurate votes</p>
+                </div>
+              ) : !hasVerifiedSession ? (
+                <div className="text-center py-6 sm:py-8 bg-white/5 rounded-xl border border-yellow-500/20">
+                  <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 mx-auto mb-2" />
+                  <h3 className="text-white font-bold text-[10px] sm:text-xs tracking-widest mb-2">SIGN IN TO VOTE</h3>
+                  <p className="text-[9px] sm:text-[10px] text-gray-400 font-mono max-w-[240px] mx-auto">
+                    Your connected wallet must match an authenticated BaseDare session before votes can be submitted.
+                  </p>
+                  <Link
+                    href="/claim-tag"
+                    className="inline-flex mt-4 px-6 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 rounded-lg text-xs font-mono transition-colors"
+                  >
+                    Open Identity Gate
+                  </Link>
                 </div>
               ) : voted ? (
                 <motion.div

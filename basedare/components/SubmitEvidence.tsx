@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, CheckCircle, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
+import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -115,6 +115,7 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
     setError(null);
 
     try {
+      const authToken = (session as { token?: string } | null)?.token;
       // Step 1: Upload file to IPFS via Pinata
       const formData = new FormData();
       formData.append('file', file);
@@ -122,6 +123,9 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
 
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: formData,
       });
 
@@ -149,7 +153,6 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
 
       // Step 2: Trigger verification
       setStatus('verifying');
-      const authToken = (session as { token?: string } | null)?.token;
 
       const verifyResponse = await fetch('/api/verify-proof', {
         method: 'POST',
