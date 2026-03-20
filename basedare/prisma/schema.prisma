@@ -100,8 +100,8 @@ model Dare {
 }
 
 model Venue {
-  id                  String         @id @default(cuid())
-  slug                String         @unique
+  id                  String           @id @default(cuid())
+  slug                String           @unique
   name                String
   description         String?
   address             String?
@@ -110,23 +110,24 @@ model Venue {
   latitude            Float
   longitude           Float
   geohash             String?
-  timezone            String         @default("UTC")
-  categories          String[]       @default([])
-  status              String         @default("ACTIVE")
-  isPartner           Boolean        @default(false)
+  timezone            String           @default("UTC")
+  categories          String[]         @default([])
+  status              String           @default("ACTIVE")
+  isPartner           Boolean          @default(false)
   partnerTier         String?
   placeSource         String?
   externalPlaceId     String?
-  qrMode              String         @default("ROTATING")
-  qrRotationSeconds   Int            @default(45)
-  checkInRadiusMeters Int            @default(120)
+  qrMode              String           @default("ROTATING")
+  qrRotationSeconds   Int              @default(45)
+  checkInRadiusMeters Int              @default(120)
   hoursJson           Json?
   metadataJson        Json?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   dares               Dare[]
   checkIns            VenueCheckIn[]
   memories            VenueMemory[]
+  qrSessions          VenueQrSession[]
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -135,26 +136,28 @@ model Venue {
 }
 
 model VenueCheckIn {
-  id                String    @id @default(cuid())
+  id                String          @id @default(cuid())
   venueId           String
   walletAddress     String
   tag               String?
   dareId            String?
-  status            String    @default("CONFIRMED")
-  proofLevel        String    @default("QR_AND_GPS")
-  source            String    @default("VENUE_QR")
+  status            String          @default("CONFIRMED")
+  proofLevel        String          @default("QR_AND_GPS")
+  source            String          @default("VENUE_QR")
   venueSessionId    String?
   qrTokenHash       String?
   geoDistanceMeters Int?
-  scannedAt         DateTime  @default(now())
+  scannedAt         DateTime        @default(now())
   windowStartAt     DateTime?
   windowEndAt       DateTime?
   metadataJson      Json?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  venue             Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  venue             Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  session           VenueQrSession? @relation(fields: [venueSessionId], references: [id], onDelete: SetNull)
 
   @@index([venueId, scannedAt])
+  @@index([venueSessionId])
   @@index([walletAddress, scannedAt])
   @@index([tag])
   @@index([dareId])
@@ -182,6 +185,30 @@ model VenueMemory {
 
   @@unique([venueId, bucketType, bucketStartAt])
   @@index([venueId, bucketStartAt])
+}
+
+model VenueQrSession {
+  id              String         @id @default(cuid())
+  venueId         String
+  scope           String         @default("VENUE_CHECKIN")
+  sessionKey      String         @unique
+  status          String         @default("LIVE")
+  label           String?
+  campaignLabel   String?
+  rotationSeconds Int            @default(45)
+  startedAt       DateTime       @default(now())
+  endsAt          DateTime?
+  lastRotatedAt   DateTime       @default(now())
+  pausedAt        DateTime?
+  lastCheckInAt   DateTime?
+  metadataJson    Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  venue           Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checkIns        VenueCheckIn[]
+
+  @@index([venueId, status])
+  @@index([startedAt])
 }
 
 model Comment {
