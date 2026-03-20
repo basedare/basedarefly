@@ -1,3 +1,6 @@
+import 'server-only';
+
+import { createHash, randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import {
   calculateDistance,
@@ -6,6 +9,13 @@ import {
   getNeighborGeohashes,
   isValidCoordinates,
 } from '@/lib/geo';
+import type {
+  NearbyVenueItem,
+  VenueDetail,
+  VenueMemorySummary,
+  VenueQrPayload,
+  VenueSessionSummary,
+} from '@/lib/venue-types';
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
@@ -31,7 +41,7 @@ function mapMemorySummary(memory: {
   proofCount: number;
   perkRedemptionCount: number;
   topCreatorTag: string | null;
-} | null) {
+} | null): VenueMemorySummary | null {
   if (!memory) return null;
 
   return {
@@ -50,7 +60,6 @@ function mapMemorySummary(memory: {
 
 function mapSessionSummary(session: {
   id: string;
-  sessionKey: string;
   scope: string;
   status: string;
   label: string | null;
@@ -61,12 +70,11 @@ function mapSessionSummary(session: {
   lastRotatedAt: Date;
   pausedAt: Date | null;
   lastCheckInAt: Date | null;
-} | null) {
+} | null): VenueSessionSummary | null {
   if (!session) return null;
 
   return {
     id: session.id,
-    sessionKey: session.sessionKey,
     scope: session.scope,
     status: session.status,
     label: session.label,
@@ -104,72 +112,274 @@ function mapActiveDare(dare: {
   };
 }
 
-export type NearbyVenueItem = {
+type VenueQrSessionRecord = {
   id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  city: string | null;
-  country: string | null;
-  latitude: number;
-  longitude: number;
-  categories: string[];
+  venueId: string;
+  sessionKey: string;
+  scope: string;
   status: string;
-  isPartner: boolean;
-  partnerTier: string | null;
-  checkInRadiusMeters: number;
-  qrRotationSeconds: number;
-  distanceKm: number;
-  distanceDisplay: string;
-  memorySummary: ReturnType<typeof mapMemorySummary>;
-  liveSession: ReturnType<typeof mapSessionSummary>;
-  activeDareCount: number;
-  checkInCount: number;
+  label: string | null;
+  campaignLabel: string | null;
+  rotationSeconds: number;
+  startedAt: Date;
+  endsAt: Date | null;
+  lastRotatedAt: Date;
+  pausedAt: Date | null;
+  lastCheckInAt: Date | null;
 };
 
-export type VenueDetail = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  address: string | null;
-  city: string | null;
-  country: string | null;
-  latitude: number;
-  longitude: number;
-  timezone: string;
-  categories: string[];
-  status: string;
-  isPartner: boolean;
-  partnerTier: string | null;
-  qrMode: string;
-  qrRotationSeconds: number;
-  checkInRadiusMeters: number;
-  memorySummary: ReturnType<typeof mapMemorySummary>;
-  memoryHistory: Array<ReturnType<typeof mapMemorySummary>>;
-  liveSession: ReturnType<typeof mapSessionSummary>;
-  liveStats: {
-    scansLastHour: number;
-    uniqueVisitorsToday: number;
-    activeDares: number;
+function getHandshakeSecret() {
+  return (
+    process.env.INTERNAL_API_SECRET ||
+    process.env.ADMIN_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.CRON_SECRET ||
+    null
+  );
+}
+
+function getRotationWindow(
+  session: Pick<VenueQrSessionRecord, 'rotationSeconds' | 'lastRotatedAt'>,
+  at: Date
+) {
+  const anchor = session.lastRotatedAt;
+  const rotationMs = Math.max(15, session.rotationSeconds) * 1000;
+  const diffMs = Math.max(0, at.getTime() - anchor.getTime());
+  const windowIndex = Math.floor(diffMs / rotationMs);
+  const windowStartedAt = new Date(anchor.getTime() + windowIndex * rotationMs);
+  const expiresAt = new Date(windowStartedAt.getTime() + rotationMs);
+
+  return {
+    windowIndex,
+    windowStartedAt,
+    expiresAt,
   };
-  recentCheckIns: Array<{
-    tag: string | null;
-    walletAddress: string;
-    proofLevel: string;
-    scannedAt: string;
-  }>;
-  activeDares: Array<ReturnType<typeof mapActiveDare>>;
-  consoleUrl: string;
-};
+}
+
+function createVenueHandshakeToken(input: {
+  venueId: string;
+  sessionId: string;
+  sessionKey: string;
+  scope: string;
+  windowStartedAt: Date;
+}) {
+  const secret = getHandshakeSecret();
+  if (!secret) {
+    throw new Error('Handshake secret is not configured');
+  }
+
+  return createHash('sha256')
+    .update(
+      [
+        secret,
+        input.venueId,
+        input.sessionId,
+        input.sessionKey,
+        input.scope,
+        input.windowStartedAt.toISOString(),
+      ].join(':')
+    )
+    .digest('hex');
+}
+
+export function hashHandshakeToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+export function createVenueSessionKey() {
+  return randomBytes(18).toString('hex');
+}
 
 export function buildVenueHandshakeValue(input: {
-  slug: string;
-  sessionKey: string;
+  venueSlug: string;
+  venueId: string;
+  sessionId: string;
+  token: string;
   scope?: string;
+  expiresAt: Date;
 }) {
   const scope = input.scope ?? 'VENUE_CHECKIN';
-  return `basedare://handshake?scope=${encodeURIComponent(scope)}&venue=${encodeURIComponent(input.slug)}&session=${encodeURIComponent(input.sessionKey)}`;
+  return `basedare://handshake?scope=${encodeURIComponent(scope)}&venue=${encodeURIComponent(input.venueSlug)}&venueId=${encodeURIComponent(input.venueId)}&session=${encodeURIComponent(input.sessionId)}&token=${encodeURIComponent(input.token)}&exp=${input.expiresAt.getTime()}`;
+}
+
+export async function getVenueById(id: string) {
+  return prisma.venue.findUnique({
+    where: { id },
+  });
+}
+
+export async function getActiveVenueSessionByVenueId(venueId: string) {
+  return prisma.venueQrSession.findFirst({
+    where: {
+      venueId,
+      status: { in: [...LIVE_SESSION_STATUSES] },
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+}
+
+export async function getVenueQrPayloadByVenueId(
+  venueId: string,
+  at: Date = new Date()
+): Promise<VenueQrPayload | null> {
+  const [venue, session] = await Promise.all([
+    prisma.venue.findUnique({
+      where: { id: venueId },
+      select: {
+        id: true,
+        slug: true,
+        status: true,
+      },
+    }),
+    getActiveVenueSessionByVenueId(venueId),
+  ]);
+
+  if (!venue || venue.status !== 'ACTIVE' || !session || session.status !== 'LIVE') {
+    return null;
+  }
+
+  if (session.endsAt && session.endsAt <= at) {
+    return null;
+  }
+
+  const rotation = getRotationWindow(session, at);
+  const token = createVenueHandshakeToken({
+    venueId: venue.id,
+    sessionId: session.id,
+    sessionKey: session.sessionKey,
+    scope: session.scope,
+    windowStartedAt: rotation.windowStartedAt,
+  });
+
+  return {
+    token,
+    scope: session.scope,
+    venueId: venue.id,
+    sessionId: session.id,
+    venueSlug: venue.slug,
+    windowStartedAt: rotation.windowStartedAt.toISOString(),
+    expiresAt: rotation.expiresAt.toISOString(),
+    qrValue: buildVenueHandshakeValue({
+      venueSlug: venue.slug,
+      venueId: venue.id,
+      sessionId: session.id,
+      token,
+      scope: session.scope,
+      expiresAt: rotation.expiresAt,
+    }),
+  };
+}
+
+export async function validateVenueHandshakeToken(input: {
+  venueId: string;
+  sessionId: string;
+  token: string;
+  at?: Date;
+}) {
+  const at = input.at ?? new Date();
+  const session = await prisma.venueQrSession.findFirst({
+    where: {
+      id: input.sessionId,
+      venueId: input.venueId,
+    },
+    select: {
+      id: true,
+      venueId: true,
+      sessionKey: true,
+      scope: true,
+      status: true,
+      rotationSeconds: true,
+      lastRotatedAt: true,
+      endsAt: true,
+    },
+  });
+
+  if (!session || session.status !== 'LIVE') {
+    return { ok: false as const, reason: 'SESSION_NOT_LIVE' };
+  }
+
+  if (session.endsAt && session.endsAt <= at) {
+    return { ok: false as const, reason: 'SESSION_EXPIRED' };
+  }
+
+  const currentWindow = getRotationWindow(session, at);
+  const previousWindowStartedAt = new Date(
+    currentWindow.windowStartedAt.getTime() - Math.max(15, session.rotationSeconds) * 1000
+  );
+
+  const candidateWindows = [
+    currentWindow.windowStartedAt,
+    previousWindowStartedAt,
+  ];
+
+  for (const windowStartedAt of candidateWindows) {
+    const expected = createVenueHandshakeToken({
+      venueId: session.venueId,
+      sessionId: session.id,
+      sessionKey: session.sessionKey,
+      scope: session.scope,
+      windowStartedAt,
+    });
+
+    if (expected === input.token) {
+      const expiresAt = new Date(windowStartedAt.getTime() + Math.max(15, session.rotationSeconds) * 1000);
+      return {
+        ok: true as const,
+        session,
+        windowStartedAt,
+        expiresAt,
+      };
+    }
+  }
+
+  return { ok: false as const, reason: 'INVALID_TOKEN' };
+}
+
+export async function getFeaturedVenues(limit = 4) {
+  return prisma.venue.findMany({
+    where: {
+      status: 'ACTIVE',
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      city: true,
+      country: true,
+      categories: true,
+      isPartner: true,
+      partnerTier: true,
+      memories: {
+        orderBy: { bucketStartAt: 'desc' },
+        take: 1,
+      },
+      qrSessions: {
+        where: {
+          status: { in: [...LIVE_SESSION_STATUSES] },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+      },
+    },
+    orderBy: [
+      { isPartner: 'desc' },
+      { updatedAt: 'desc' },
+    ],
+    take: limit,
+  }).then((venues) =>
+    venues.map((venue) => ({
+      id: venue.id,
+      slug: venue.slug,
+      name: venue.name,
+      city: venue.city,
+      country: venue.country,
+      categories: venue.categories,
+      isPartner: venue.isPartner,
+      partnerTier: venue.partnerTier,
+      memorySummary: mapMemorySummary(venue.memories[0] ?? null),
+      liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+    }))
+  );
 }
 
 export async function getNearbyVenues(input: {

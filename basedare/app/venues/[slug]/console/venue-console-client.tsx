@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { Activity, MapPin, PauseCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
-import { buildVenueHandshakeValue, type VenueDetail } from '@/lib/venues';
+import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
 
 function formatCountdown(seconds: number) {
   const safeSeconds = Math.max(0, seconds);
@@ -22,6 +22,9 @@ function getSecondsLeft(lastRotatedAt: string, rotationSeconds: number, nowMs: n
 
 export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [nowMs, setNowMs] = useState<number | null>(null);
+  const [qrPayload, setQrPayload] = useState<VenueQrPayload | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [liveStats, setLiveStats] = useState(venue.liveStats);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -30,24 +33,82 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQr() {
+      try {
+        const response = await fetch(`/api/venues/id/${venue.id}/qr`, {
+          cache: 'no-store',
+        });
+        const payload = await response.json();
+        if (cancelled) return;
+
+        if (!response.ok || !payload?.success) {
+          setQrError(payload?.error ?? 'Unable to fetch live venue QR');
+          setQrPayload(null);
+          return;
+        }
+
+        setQrPayload(payload.data);
+        setQrError(null);
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : 'Unable to fetch live venue QR';
+        setQrError(message);
+        setQrPayload(null);
+      }
+    }
+
+    void loadQr();
+    const interval = window.setInterval(() => {
+      void loadQr();
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [venue.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStats() {
+      try {
+        const response = await fetch(`/api/venues/id/${venue.id}/stats/live`, {
+          cache: 'no-store',
+        });
+        const payload = await response.json();
+        if (cancelled || !response.ok || !payload?.success) {
+          return;
+        }
+
+        setLiveStats(payload.data);
+      } catch {
+        // Keep the seeded/server-rendered stats if live polling fails.
+      }
+    }
+
+    void loadStats();
+    const interval = window.setInterval(() => {
+      void loadStats();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [venue.id]);
+
   const liveSession = venue.liveSession;
   const isLive = liveSession?.status === 'LIVE';
   const isPaused = liveSession?.status === 'PAUSED';
   const rotationSeconds = liveSession?.rotationSeconds ?? venue.qrRotationSeconds;
   const effectiveNowMs = nowMs ?? (liveSession ? new Date(liveSession.lastRotatedAt).getTime() : 0);
-  const secondsLeft = liveSession ? getSecondsLeft(liveSession.lastRotatedAt, rotationSeconds, effectiveNowMs) : 0;
-
-  const qrValue = useMemo(() => {
-    if (!liveSession) {
-      return `basedare://handshake?scope=VENUE_CHECKIN&venue=${encodeURIComponent(venue.slug)}&session=offline-preview`;
-    }
-
-    return buildVenueHandshakeValue({
-      slug: venue.slug,
-      sessionKey: liveSession.sessionKey,
-      scope: liveSession.scope,
-    });
-  }, [liveSession, venue.slug]);
+  const qrWindowStart = qrPayload?.windowStartedAt ?? liveSession?.lastRotatedAt ?? null;
+  const secondsLeft = qrWindowStart ? getSecondsLeft(qrWindowStart, rotationSeconds, effectiveNowMs) : 0;
+  const qrValue = useMemo(() => qrPayload?.qrValue ?? `basedare://handshake?scope=VENUE_CHECKIN&venue=${encodeURIComponent(venue.slug)}&session=offline-preview`, [qrPayload, venue.slug]);
 
   return (
     <main className="min-h-screen bg-[#05010c] text-white">
@@ -121,6 +182,11 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                       ? 'The console is paused. Resume the session to re-enable trusted venue check-ins.'
                       : 'No live venue session is active yet. This screen is showing the seeded pilot preview.'}
                 </p>
+                {qrError ? (
+                  <p className="mt-3 text-center text-xs uppercase tracking-[0.24em] text-rose-300/80">
+                    {qrError}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -130,16 +196,16 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   <p className="text-xs uppercase tracking-[0.25em] text-white/40">Scans Last Hour</p>
                   <div className="mt-3 inline-flex items-center gap-3">
                     <Activity className="h-5 w-5 text-emerald-300" />
-                    <span className="text-3xl font-black">{venue.liveStats.scansLastHour}</span>
+                    <span className="text-3xl font-black">{liveStats.scansLastHour}</span>
                   </div>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
                   <p className="text-xs uppercase tracking-[0.25em] text-white/40">Unique Visitors Today</p>
-                  <div className="mt-3 text-3xl font-black">{venue.liveStats.uniqueVisitorsToday}</div>
+                  <div className="mt-3 text-3xl font-black">{liveStats.uniqueVisitorsToday}</div>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
                   <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Dares</p>
-                  <div className="mt-3 text-3xl font-black">{venue.liveStats.activeDares}</div>
+                  <div className="mt-3 text-3xl font-black">{liveStats.activeDares}</div>
                 </div>
               </div>
 
@@ -156,7 +222,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   </button>
                   <button
                     type="button"
-                    disabled
+                    onClick={() => window.location.reload()}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/45"
                   >
                     <RefreshCcw className="h-4 w-4" />

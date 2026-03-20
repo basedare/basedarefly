@@ -1,6 +1,7 @@
 import { Space_Mono, Syne } from "next/font/google";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import MapClient from "./MapClient";
+import VenueBeaconStrip from "./VenueBeaconStrip";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -19,6 +20,7 @@ export default function MapPage() {
         <GradualBlurOverlay intensity="light" placement="lower" />
       </div>
       <MapClient monoClass={spaceMono.className} />
+      <VenueBeaconStrip />
     </div>
   );
 }
