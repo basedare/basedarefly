@@ -9,8 +9,26 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 import { ClaimTagModule } from "@/components/ClaimTagModule";
 
+type Creator = {
+  tag: string;
+  totalEarned: number;
+  completedDares: number;
+};
+
+const raisedPanelClass =
+  "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+
+const softCardClass =
+  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+
+const insetCardClass =
+  "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
+
+const sectionLabelClass =
+  "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
 export default function CreatorsPage() {
-  const [creators, setCreators] = React.useState<any[]>([]);
+  const [creators, setCreators] = React.useState<Creator[]>([]);
   const [loadingCreators, setLoadingCreators] = React.useState(true);
 
   React.useEffect(() => {
@@ -59,49 +77,56 @@ export default function CreatorsPage() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container mx-auto px-6 py-24 flex-grow relative z-20">
+      <div className="container mx-auto max-w-6xl px-4 py-24 sm:px-6 flex-grow relative z-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="mb-12"
         >
-          <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2 mb-4">
-            <Zap className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-400 font-medium tracking-wide">FOR CREATORS</span>
-          </div>
+          <div className={`${raisedPanelClass} px-5 py-8 sm:px-8 sm:py-10 text-center`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
 
-          <h1 className="text-3xl md:text-5xl font-black text-white mb-3 tracking-tight">
-            Turn Dares Into{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-              Dollars
-            </span>
-          </h1>
+            <div className="relative">
+              <div className={sectionLabelClass}>
+                <Zap className="w-4 h-4 text-fuchsia-300" />
+                FOR CREATORS
+              </div>
 
-          <p className="text-gray-400 font-mono text-sm max-w-md mx-auto mb-8">
-            Your audience dares, you deliver, everyone wins. Get paid to do wild challenges.
-          </p>
+              <h1 className="mt-5 text-4xl md:text-6xl font-black text-white tracking-tight">
+                Turn Dares Into{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500">
+                  Dollars
+                </span>
+              </h1>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <LiquidMetalButton
-              onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-              className="flex-1"
-              size="md"
-            >
-              <Tag className="w-4 h-4" />
-              Claim Your Tag
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </LiquidMetalButton>
-            <Link href="/leaderboard" className="flex-1">
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                className="w-full px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-              >
-                <Trophy className="w-4 h-4 text-yellow-400" />
-                Leaderboard
-              </motion.button>
-            </Link>
+              <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
+                Your audience dares, you deliver, everyone wins. Get paid to do wild challenges.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                <LiquidMetalButton
+                  onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                  className="flex-1"
+                  size="md"
+                >
+                  <Tag className="w-4 h-4" />
+                  Claim Your Tag
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </LiquidMetalButton>
+                <Link href="/leaderboard" className="flex-1">
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(11,11,18,0.95)_100%)] text-white text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-yellow-400/30 hover:text-yellow-100"
+                  >
+                    <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    Leaderboard
+                  </motion.button>
+                </Link>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -110,93 +135,97 @@ export default function CreatorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-4xl mx-auto mb-16"
+          className="max-w-5xl mx-auto mb-16"
         >
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-black text-white tracking-tight italic">
-              ACTIVE CREATORS
-            </h2>
-            <Link href="/leaderboard" className="text-[10px] font-black text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-widest flex items-center gap-2">
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black text-white tracking-tight italic">
+                  ACTIVE CREATORS
+                </h2>
+                <Link href="/leaderboard" className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  View All <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
 
-          {loadingCreators ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-40 bg-white/5 rounded-2xl animate-pulse border border-white/10" />
-              ))}
-            </div>
-          ) : creators.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center backdrop-blur-md">
-              <p className="text-gray-500 font-mono text-xs">No creators verified yet. Be the first!</p>
-              <button
-                onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-block mt-4 text-purple-400 text-sm font-bold hover:underline italic"
-              >
-                Claim your tag →
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {creators.map((creator, index) => {
-                const plainTag = creator.tag.replace("@", "").toLowerCase();
-                const avatarImg = STREAMER_IMAGES[plainTag];
-
-                return (
-                  <motion.div
-                    key={creator.tag}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
+              {loadingCreators ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className={`h-44 animate-pulse ${softCardClass}`} />
+                  ))}
+                </div>
+              ) : creators.length === 0 ? (
+                <div className={`${insetCardClass} p-8 text-center`}>
+                  <p className="text-gray-500 font-mono text-xs">No creators verified yet. Be the first!</p>
+                  <button
+                    onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                    className="inline-flex items-center gap-2 mt-4 rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-4 py-2 text-purple-300 text-sm font-bold tracking-wide hover:border-purple-400/35 hover:text-purple-200 transition-colors italic"
                   >
-                    <Link
-                      href={`/creator/${plainTag}`}
-                      className="group block relative p-5 bg-white/5 hover:bg-white/[0.08] border border-white/10 hover:border-purple-500/50 rounded-2xl transition-all duration-300 text-center overflow-hidden backdrop-blur-sm"
-                    >
-                      {/* Subtle Glow */}
-                      <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/5 transition-colors duration-300" />
+                    Claim your tag <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {creators.map((creator, index) => {
+                    const plainTag = creator.tag.replace("@", "").toLowerCase();
+                    const avatarImg = STREAMER_IMAGES[plainTag];
 
-                      <div className="relative z-10">
-                        <div className="mb-4 mx-auto relative w-16 h-16">
-                          {avatarImg ? (
-                            <img
-                              src={avatarImg}
-                              alt={creator.tag}
-                              className="w-full h-full rounded-full object-cover border-2 border-white/10 group-hover:border-purple-500/50 transition-colors shadow-xl"
-                            />
-                          ) : (
-                            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex items-center justify-center text-xl font-black text-white shadow-xl">
-                              {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                    return (
+                      <motion.div
+                        key={creator.tag}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 + index * 0.05 }}
+                      >
+                        <Link
+                          href={`/creator/${plainTag}`}
+                          className={`${softCardClass} group block p-5 text-center transition-all duration-300 hover:-translate-y-[2px] hover:border-purple-500/35`}
+                        >
+                          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.10),transparent_42%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.12)_100%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                          <div className="relative z-10">
+                            <div className="mb-4 mx-auto relative w-16 h-16">
+                              {avatarImg ? (
+                                <img
+                                  src={avatarImg}
+                                  alt={creator.tag}
+                                  className="w-full h-full rounded-full object-cover border-2 border-white/10 group-hover:border-purple-500/45 transition-colors shadow-[0_14px_26px_rgba(0,0,0,0.3)]"
+                                />
+                              ) : (
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex items-center justify-center text-xl font-black text-white shadow-[0_14px_26px_rgba(0,0,0,0.3)]">
+                                  {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-[#0a0a0f] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.24)]">
+                                <CheckCircle className="w-3 h-3 text-white" />
+                              </div>
                             </div>
-                          )}
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-[#0a0a0f] flex items-center justify-center">
-                            <CheckCircle className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
 
-                        <h3 className="text-sm font-black text-white group-hover:text-purple-400 transition-colors truncate italic italic">
-                          {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
-                        </h3>
+                            <h3 className="text-sm font-black text-white group-hover:text-purple-300 transition-colors truncate italic">
+                              {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
+                            </h3>
 
-                        <div className="flex items-center justify-center gap-3 mt-3">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
-                            <span className="text-[8px] text-gray-500 uppercase font-black tracking-tighter">Earned</span>
+                            <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
+                                <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Earned</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
+                                <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Dares</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="w-[1px] h-6 bg-white/10" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
-                            <span className="text-[8px] text-gray-500 uppercase font-black tracking-tighter">Dares</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </motion.div>
 
         {/* How It Works */}
@@ -204,31 +233,34 @@ export default function CreatorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-xl mx-auto mb-16"
+          className="max-w-4xl mx-auto mb-16"
         >
-          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
-            How It Works
-          </h2>
-          <div className="space-y-3">
-            {verificationSteps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + index * 0.1 }}
-                className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0">
-                    <step.icon className="w-5 h-5 text-purple-400" />
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
+              How It Works
+            </h2>
+            <div className="space-y-3">
+              {verificationSteps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + index * 0.1 }}
+                  className={`${insetCardClass} p-4`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      <step.icon className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-white">{step.title}</h3>
+                      <p className="text-xs text-gray-500 font-mono">{step.description}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-white">{step.title}</h3>
-                    <p className="text-xs text-gray-500 font-mono">{step.description}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </motion.div>
 
@@ -237,27 +269,30 @@ export default function CreatorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="max-w-xl mx-auto mb-16"
+          className="max-w-4xl mx-auto mb-16"
         >
-          <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
-            Why Join?
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + index * 0.05 }}
-                className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
-              >
-                <div className="w-10 h-10 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center mb-3">
-                  <feature.icon className="w-5 h-5 text-yellow-400" />
-                </div>
-                <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
-                <p className="text-[11px] text-gray-500 font-mono leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
+              Why Join?
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 + index * 0.05 }}
+                  className={`${insetCardClass} p-4`}
+                >
+                  <div className="w-10 h-10 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center mb-3 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <feature.icon className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
+                  <p className="text-[11px] text-gray-500 font-mono leading-relaxed">{feature.description}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </motion.div>
 

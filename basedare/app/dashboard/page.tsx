@@ -38,6 +38,21 @@ interface UserTag {
 
 type DareView = 'funded' | 'forme';
 
+const raisedPanelClass =
+  "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+
+const softCardClass =
+  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+
+const insetCardClass =
+  "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
+
+const sectionLabelClass =
+  "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
+const pillClass =
+  "inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]";
+
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -229,142 +244,169 @@ export default function Dashboard() {
   return (
     <div className="relative min-h-screen flex flex-col">
       <LiquidBackground />
-      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      <div className="fixed inset-0 z-10 pointer-events-none hidden md:block"><GradualBlurOverlay /></div>
 
-      <div className="container mx-auto px-6 py-24 mb-12 flex-grow relative z-20">
-        {/* WELCOME HEADER WITH TAG */}
-        {isConnected && userTag && (
-          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-purple-500/10 via-[#FFD700]/10 to-purple-500/10 border border-[#FFD700]/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FFD700]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <p className="text-gray-400 font-mono text-sm mb-1">Ready for your next mission?</p>
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-2">
-                Welcome back, <span className="text-[#FFD700]">{userTag.tag}</span>
-              </h2>
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-green-400 font-mono text-xs">
-                  ✓ Verified
-                </span>
-                {userTag.completedDares > 0 && (
-                  <span className="text-gray-400 font-mono">
-                    {userTag.completedDares} dares completed • ${userTag.totalEarned.toLocaleString()} earned
-                  </span>
+      <div className="container mx-auto px-4 sm:px-6 py-24 mb-12 flex-grow relative z-20">
+        {/* TOP COMMAND TILE */}
+        <div className={`${raisedPanelClass} mb-8 px-5 py-7 sm:px-8 sm:py-8`}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
+          <div className="relative space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+              <div className="flex flex-col gap-3 max-w-3xl">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-[#f6d75f]/70 bg-[linear-gradient(180deg,#fff0a8_0%,#facc15_44%,#d9a90a_70%,#b77f04_100%)] text-black shadow-[0_1px_0_rgba(255,255,255,0.32)_inset,0_-6px_10px_rgba(0,0,0,0.18)_inset,0_16px_24px_rgba(0,0,0,0.22)]">
+                    <Wallet className="h-7 w-7" />
+                  </div>
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
+                    <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Command</span>
+                    <span className="text-[#A855F7] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">Base</span>
+                  </div>
+                </div>
+
+                {isConnected && userTag ? (
+                  <>
+                    <div>
+                      <p className="text-gray-400 font-mono text-sm mb-1">Ready for your next mission?</p>
+                      <h2 className="text-3xl md:text-4xl font-black text-white">
+                        Welcome back, <span className="text-[#FFD700]">{userTag.tag}</span>
+                      </h2>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 text-sm">
+                      <span className={`${pillClass} normal-case tracking-normal text-xs text-green-300 border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.18)_0%,rgba(20,83,45,0.08)_100%)]`}>
+                        ✓ Verified
+                      </span>
+                      {address && (
+                        <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300`}>
+                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          {formatAddress(address)}
+                        </span>
+                      )}
+                      {userTag.completedDares > 0 && (
+                        <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300`}>
+                          {userTag.completedDares} completed • ${userTag.totalEarned.toLocaleString()} earned
+                        </span>
+                      )}
+                      {stats.daresForMe > 0 && (
+                        <span className={`${pillClass} normal-case tracking-normal text-xs text-[#FFD700] border-[#FFD700]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.08)_100%)] animate-pulse`}>
+                          {stats.daresForMe} dare{stats.daresForMe > 1 ? 's' : ''} awaiting you
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : isConnected ? (
+                  <>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-black text-white">Claim your creator tag</h2>
+                      <p className="mt-2 text-gray-400 font-mono text-sm">
+                        Claim your creator tag to start earning and tune how people discover you.
+                      </p>
+                    </div>
+                    {address && (
+                      <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300 w-fit`}>
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                        Connected as {formatAddress(address)}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-black text-white">Connect to enter the protocol</h2>
+                    <p className="mt-2 text-gray-400 font-mono text-sm">
+                      Connect your wallet to see your stats, manage your dares, and enter the protocol properly.
+                    </p>
+                  </div>
                 )}
-                {stats.daresForMe > 0 && (
-                  <span className="px-3 py-1 bg-[#FFD700]/20 border border-[#FFD700]/30 rounded-full text-[#FFD700] font-bold text-xs animate-pulse">
-                    🎯 {stats.daresForMe} dare{stats.daresForMe > 1 ? 's' : ''} awaiting you!
-                  </span>
-                )}
               </div>
-            </div>
-          </div>
-        )}
 
-        {isConnected && userTag && (
-          <div className="mb-8 p-4 rounded-xl bg-white/5 border border-white/10">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <p className="text-white font-bold text-sm">Creator Tags</p>
-                <p className="text-gray-400 font-mono text-xs">Add 3-5 tags (comma separated). Used for discovery.</p>
-              </div>
-              <button
-                onClick={handleSaveCreatorTags}
-                disabled={savingCreatorTags}
-                className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-lg text-purple-300 font-bold text-xs uppercase tracking-wider disabled:opacity-50"
-              >
-                {savingCreatorTags ? 'Saving...' : 'Save Tags'}
-              </button>
-            </div>
-            <input
-              value={creatorTagsInput}
-              onChange={(e) => setCreatorTagsInput(e.target.value)}
-              placeholder="nightlife, gym, street"
-              className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white text-sm font-mono focus:outline-none focus:border-purple-500/50"
-            />
-            {tagsSaveError && <p className="text-red-400 text-xs mt-2">{tagsSaveError}</p>}
-            {tagsSaveSuccess && <p className="text-green-400 text-xs mt-2">{tagsSaveSuccess}</p>}
-          </div>
-        )}
-
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8 border-b border-white/10 pb-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(255,215,0,0.5)]">
-                <Wallet className="w-6 h-6" />
-              </div>
-              <span className="text-[#FACC15]">COMMAND</span> <span className="text-[#A855F7]">BASE</span>
-            </h1>
-            {/* Wallet Identity Badge */}
-            {isConnected && address && (
-              <div className="flex items-center gap-2 ml-16">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs font-mono text-gray-400">Connected as</span>
-                <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-xs font-mono text-purple-300">
-                  {formatAddress(address)}
-                </span>
-                {userTag && (
-                  <span className="px-2 py-1 bg-[#FFD700]/20 border border-[#FFD700]/30 rounded text-xs font-bold text-[#FFD700]">
+              <div className="flex flex-col sm:items-end gap-3 md:min-w-[220px]">
+                <Link href="/create">
+                  <button className="hidden md:flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] uppercase font-bold text-xs hover:-translate-y-[1px] hover:bg-white/10 hover:border-white/30 transition-all text-white shadow-[0_12px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <Plus className="w-4 h-4" /> Create Dare
+                  </button>
+                </Link>
+                {isConnected && userTag && (
+                  <span className={`${pillClass} normal-case tracking-normal text-xs text-[#FFD700] border-[#FFD700]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.08)_100%)]`}>
                     {userTag.tag}
                   </span>
                 )}
               </div>
+            </div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+            {isConnected && userTag ? (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-white font-bold text-sm">Creator Tags</p>
+                    <p className="text-gray-400 font-mono text-xs">Add 3-5 tags (comma separated). Used for discovery.</p>
+                  </div>
+                  <button
+                    onClick={handleSaveCreatorTags}
+                    disabled={savingCreatorTags}
+                    className="self-start sm:self-auto px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:-translate-y-[1px] hover:border-purple-400/50 disabled:opacity-50"
+                  >
+                    {savingCreatorTags ? 'Saving...' : 'Save Tags'}
+                  </button>
+                </div>
+                <input
+                  value={creatorTagsInput}
+                  onChange={(e) => setCreatorTagsInput(e.target.value)}
+                  placeholder="nightlife, gym, street"
+                  className="w-full px-4 py-3 rounded-xl bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] border border-white/10 text-white text-sm font-mono focus:outline-none focus:border-purple-500/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-10px_16px_rgba(0,0,0,0.24)]"
+                />
+                {tagsSaveError && <p className="text-red-400 text-xs">{tagsSaveError}</p>}
+                {tagsSaveSuccess && <p className="text-green-400 text-xs">{tagsSaveSuccess}</p>}
+              </div>
+            ) : isConnected ? (
+              <div className={`${insetCardClass} p-4 flex items-center justify-between gap-4`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-500/25 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <Target className="w-5 h-5 text-purple-400 shrink-0" />
+                  </div>
+                  <div>
+                    <p className="text-purple-300 text-sm font-bold">Claim your tag to start earning</p>
+                    <p className="text-purple-300/70 text-xs font-mono">Verify your identity so fans can dare you</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push('/claim-tag')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                >
+                  <Zap className="w-4 h-4" />
+                  Claim Tag
+                </button>
+              </div>
+            ) : (
+              <div className={`${insetCardClass} p-4 flex items-center justify-between gap-4`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-yellow-500/25 bg-yellow-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0" />
+                  </div>
+                  <p className="text-yellow-300 text-sm font-mono">Connect your wallet to see your personal stats and bounties</p>
+                </div>
+                <button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-yellow-500/40 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.12)_100%)] text-yellow-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] disabled:opacity-50 shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                >
+                  {isConnecting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogIn className="w-4 h-4" />
+                  )}
+                  Connect
+                </button>
+              </div>
             )}
           </div>
-
-          <Link href="/create">
-            <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-lg uppercase font-bold text-xs hover:bg-white/10 hover:border-white/30 transition-all text-white">
-              <Plus className="w-4 h-4" /> Create Dare
-            </button>
-          </Link>
         </div>
-
-        {/* CLAIM TAG PROMPT - Show if connected but no verified tag */}
-        {isConnected && !loading && !userTag && (
-          <div className="mb-8 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Target className="w-5 h-5 text-purple-400 shrink-0" />
-              <div>
-                <p className="text-purple-400 text-sm font-bold">Claim your tag to start earning!</p>
-                <p className="text-purple-400/70 text-xs font-mono">Verify your identity so fans can dare you</p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/claim-tag')}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-lg text-purple-400 font-bold text-xs uppercase tracking-wider transition-colors shrink-0"
-            >
-              <Zap className="w-4 h-4" />
-              Claim Tag
-            </button>
-          </div>
-        )}
-
-        {/* CONNECTION STATUS */}
-        {!isConnected && (
-          <div className="mb-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0" />
-              <p className="text-yellow-400 text-sm font-mono">Connect your wallet to see your personal stats and bounties</p>
-            </div>
-            <button
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-400 font-bold text-xs uppercase tracking-wider transition-colors disabled:opacity-50 shrink-0"
-            >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <LogIn className="w-4 h-4" />
-              )}
-              Connect
-            </button>
-          </div>
-        )}
 
         {/* USER STATS GRID */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
           {/* Card 1: Total Staked */}
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-[#FFD700]/30 transition-colors">
+          <div className={`${softCardClass} p-6 relative group hover:border-[#FFD700]/25 transition-colors`}>
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Wallet className="w-12 h-12 text-[#FFD700]" />
             </div>
@@ -384,7 +426,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 2: Active Bounties */}
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-purple-500/30 transition-colors">
+          <div className={`${softCardClass} p-6 relative group hover:border-purple-500/25 transition-colors`}>
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Target className="w-12 h-12 text-purple-500" />
             </div>
@@ -402,7 +444,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 3: Completed */}
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-green-500/30 transition-colors">
+          <div className={`${softCardClass} p-6 relative group hover:border-green-500/25 transition-colors`}>
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Trophy className="w-12 h-12 text-green-500" />
             </div>
@@ -420,7 +462,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 4: Dares For Me */}
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative group hover:border-[#FFD700]/30 transition-colors">
+          <div className={`${softCardClass} p-6 relative group hover:border-[#FFD700]/25 transition-colors`}>
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Zap className="w-12 h-12 text-[#FFD700]" />
             </div>
@@ -442,15 +484,16 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
 
           {/* LEFT: BOUNTY LIST */}
-          <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+          <div className={`${softCardClass} p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
             {/* Tab Switcher */}
             <div className="flex items-center gap-2 mb-6">
               <button
                 onClick={() => { setActiveView('funded'); setSelectedDare(null); }}
-                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_10px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] ${
                   activeView === 'funded'
-                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    ? 'border border-purple-500/45 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-300'
+                    : 'border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(11,11,18,0.95)_100%)] text-gray-400 hover:bg-white/10'
                 }`}
               >
                 <Wallet className="w-4 h-4" />
@@ -458,10 +501,10 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => { setActiveView('forme'); setSelectedDare(null); }}
-                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_10px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] ${
                   activeView === 'forme'
-                    ? 'bg-[#FFD700]/20 border border-[#FFD700]/50 text-[#FFD700]'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
+                    ? 'border border-[#FFD700]/45 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.12)_100%)] text-[#FFD700]'
+                    : 'border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(11,11,18,0.95)_100%)] text-gray-400 hover:bg-white/10'
                 }`}
               >
                 <Target className="w-4 h-4" />
@@ -485,7 +528,7 @@ export default function Dashboard() {
 
             {!isConnected ? (
               <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <Wallet className="w-8 h-8 text-yellow-400" />
                 </div>
                 <p className="text-gray-400 font-mono text-sm mb-2">Wallet not connected</p>
@@ -493,7 +536,7 @@ export default function Dashboard() {
                 <button
                   onClick={handleConnect}
                   disabled={isConnecting}
-                  className="px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-400 rounded-lg font-bold text-sm uppercase tracking-wider transition-colors disabled:opacity-50"
+                  className="px-6 py-3 rounded-xl border border-yellow-500/40 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.12)_100%)] text-yellow-200 font-bold text-sm uppercase tracking-wider transition-all hover:-translate-y-[1px] disabled:opacity-50 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
                 >
                   {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                 </button>
@@ -524,7 +567,7 @@ export default function Dashboard() {
                 ) : (
                   <button
                     onClick={() => router.push('/claim-tag')}
-                    className="px-6 py-3 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 border border-[#FFD700]/50 text-[#FFD700] rounded-lg font-bold text-sm uppercase tracking-wider transition-colors"
+                    className="px-6 py-3 rounded-xl border border-[#FFD700]/40 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.12)_100%)] text-[#FFD700] font-bold text-sm uppercase tracking-wider transition-all hover:-translate-y-[1px] shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   >
                     Claim Your Tag
                   </button>
@@ -536,10 +579,10 @@ export default function Dashboard() {
                   <div
                     key={dare.id}
                     onClick={() => setSelectedDare(dare)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-[20px] border cursor-pointer transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-8px_14px_rgba(0,0,0,0.24)] ${
                       selectedDare?.id === dare.id
-                        ? 'bg-purple-500/10 border-purple-500/50'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                        ? 'bg-[linear-gradient(180deg,rgba(168,85,247,0.14)_0%,rgba(11,11,18,0.95)_100%)] border-purple-500/45'
+                        : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(11,11,18,0.95)_100%)] border-white/10 hover:bg-white/10 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-2">
@@ -565,7 +608,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* MISSION DETAILS */}
             {selectedDare ? (
-              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 relative">
+              <div className={`${softCardClass} p-6 relative`}>
                 <div className="absolute top-0 right-0 px-4 py-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl border-b border-l border-purple-500/30 z-20">
                   Status: {selectedDare.status}
                 </div>
@@ -590,21 +633,21 @@ export default function Dashboard() {
                   </div>
 
                   {selectedDare.status === 'PENDING' && (
-                    <div className="flex items-start gap-3 text-xs text-gray-500 backdrop-blur-xl bg-black/10 p-4 rounded-xl border border-white/5">
+                    <div className={`${insetCardClass} flex items-start gap-3 text-xs text-gray-500 p-4`}>
                       <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
                       <span>Upload video proof to verify completion. AI Referee will analyze within 60 seconds.</span>
                     </div>
                   )}
 
                   {selectedDare.status === 'VERIFIED' && (
-                    <div className="flex items-start gap-3 text-xs backdrop-blur-xl bg-green-500/10 p-4 rounded-xl border border-green-500/30">
+                    <div className="flex items-start gap-3 text-xs bg-[linear-gradient(180deg,rgba(34,197,94,0.12)_0%,rgba(7,18,10,0.92)_100%)] p-4 rounded-xl border border-green-500/30">
                       <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                       <span className="text-green-400">This dare has been verified and paid out!</span>
                     </div>
                   )}
 
                   {selectedDare.status === 'FAILED' && (
-                    <div className="flex items-start gap-3 text-xs backdrop-blur-xl bg-red-500/10 p-4 rounded-xl border border-red-500/30">
+                    <div className="flex items-start gap-3 text-xs bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(18,8,8,0.92)_100%)] p-4 rounded-xl border border-red-500/30">
                       <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                       <span className="text-red-400">Verification failed. Bounty has been refunded to stakers.</span>
                     </div>
@@ -612,14 +655,14 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 flex items-center justify-center min-h-[200px]">
+              <div className={`${softCardClass} p-6 flex items-center justify-center min-h-[200px]`}>
                 <p className="text-gray-500 font-mono text-sm">Select a bounty to view details</p>
               </div>
             )}
 
             {/* EVIDENCE UPLOAD - Only show for pending dares */}
             {selectedDare && selectedDare.status === 'PENDING' && (
-              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+              <div className={`${softCardClass} p-6`}>
                 <h3 className="text-lg font-black text-white uppercase tracking-wider mb-4 flex items-center gap-3">
                   <Upload className="w-5 h-5 text-cyan-400" />
                   Submit Evidence
@@ -643,7 +686,16 @@ export default function Dashboard() {
 
         {/* LIVE POT & LEADERBOARD */}
         <div className="mt-8">
-          <LivePotLeaderboard />
+          <div className={`${softCardClass} p-3 sm:p-4`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <div className="mb-4 px-2">
+              <div className={sectionLabelClass}>
+                <Trophy className="w-4 h-4 text-fuchsia-300" />
+                FUND SIGNAL
+              </div>
+            </div>
+            <LivePotLeaderboard />
+          </div>
         </div>
       </div>
     </div>

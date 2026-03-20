@@ -14,6 +14,15 @@ import TextPressure from "@/components/TextPressure";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 
+const raisedPanelClass =
+  "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+
+const softCardClass =
+  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+
+const sectionLabelClass =
+  "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
 const FAQ_ITEMS = [
   {
     q: "Who are you and why are you yelling?",
@@ -77,8 +86,8 @@ export default function FAQPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
       <LiquidBackground />
-      <div className="pointer-events-none fixed inset-0 z-10">
-        <GradualBlurOverlay intensity="light" placement="lower" />
+      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
+        <GradualBlurOverlay />
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-[1]">
@@ -92,11 +101,21 @@ export default function FAQPage() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="apple-liquid-glass mb-10 overflow-hidden px-6 py-10 text-center md:px-10 md:py-12"
+            className={`${raisedPanelClass} mb-10 overflow-hidden px-6 py-10 text-center md:px-10 md:py-12`}
           >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
+
+            <div className="relative mx-auto mb-5 inline-flex">
+              <div className={sectionLabelClass}>
+                <Bot className="w-4 h-4 text-fuchsia-300" />
+                FAQ TERMINAL
+              </div>
+            </div>
+
             <div className="relative mx-auto mb-6 h-44 w-44 md:h-56 md:w-56">
               <div className="absolute inset-0 rounded-full bg-yellow-500/20 blur-2xl" />
-              <div className="absolute inset-0 rounded-full border border-white/20 bg-white/5 backdrop-blur-xl" />
+              <div className="absolute inset-0 rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]" />
               <motion.div
                 className="relative z-10 h-full w-full"
                 animate={{ rotate: [0, 4, -4, 0], scale: [1, 1.04, 1] }}
@@ -112,7 +131,7 @@ export default function FAQPage() {
               </motion.div>
 
               <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
-                <div className="whitespace-nowrap rounded-full border border-white/20 bg-purple-600 px-2 py-1 text-[10px] font-black text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                <div className="whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(168,85,247,0.94)_0%,rgba(107,33,168,0.92)_100%)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),0_0_15px_rgba(168,85,247,0.32)]">
                   AI AGENT
                 </div>
               </div>
@@ -148,23 +167,28 @@ export default function FAQPage() {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="apple-liquid-glass overflow-hidden px-6 data-[state=open]:border-yellow-500/35 data-[state=open]:bg-white/[0.06] transition-colors"
+                  className={`${softCardClass} overflow-hidden px-6 transition-all data-[state=open]:border-yellow-500/35 data-[state=open]:shadow-[0_20px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]`}
                 >
+                  <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                   <AccordionTrigger className="text-left py-6 hover:no-underline group">
-                    <span className="text-base font-black uppercase italic tracking-wide text-white transition-colors group-hover:text-yellow-400 md:text-xl">
+                    <span className="pr-4 text-base font-black uppercase italic tracking-wide text-white transition-colors group-hover:text-yellow-400 md:text-xl">
                       {item.q}
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="border-t border-white/10 pb-6 pt-4 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
-                    <span className="text-yellow-500 font-bold mr-2">{">"}</span>
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: item.a.replace(
-                          /\*\*(.*?)\*\*/g,
-                          '<strong class="text-white">$1</strong>'
-                        ),
-                      }}
-                    />
+                  <AccordionContent className="border-t border-white/10 pb-6 pt-4">
+                    <div className="rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]">
+                      <div className="flex items-start gap-2 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
+                        <span className="text-yellow-500 font-bold">{">"}</span>
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: item.a.replace(
+                              /\*\*(.*?)\*\*/g,
+                              '<strong class="text-white">$1</strong>'
+                            ),
+                          }}
+                        />
+                      </div>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -177,7 +201,7 @@ export default function FAQPage() {
             transition={{ delay: 0.4 }}
             className="mt-16 text-center"
           >
-            <div className="apple-liquid-glass inline-flex flex-col items-center gap-4 rounded-3xl p-6 md:p-8">
+            <div className={`${softCardClass} inline-flex flex-col items-center gap-4 rounded-[28px] p-6 md:p-8`}>
               <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-gray-300">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
                 Still confused?

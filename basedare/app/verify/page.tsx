@@ -1,68 +1,11 @@
 'use client';
-import React, { useState, useEffect, useCallback } from "react";
-import { Shield, Zap, Trophy, Flame, Gift, Activity, ScanSearch, Wallet } from "lucide-react";
-import { useAccount } from 'wagmi';
-import Link from 'next/link';
+import React from "react";
+import { Shield, Zap, Activity, ScanSearch, Wallet } from "lucide-react";
 import TruthOracle from "@/components/TruthOracle";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 
-interface VoterPoints {
-  totalPoints: number;
-  correctVotes: number;
-  totalVotes: number;
-  streak: number;
-  accuracy: number;
-  rank: number | null;
-  isNewVoter: boolean;
-}
-
-function getMetricPillClass(tone: 'green' | 'blue' | 'orange' | 'gold') {
-  const toneClass =
-    tone === 'green'
-      ? 'border-green-500/30 text-green-300'
-      : tone === 'blue'
-        ? 'border-blue-500/30 text-blue-300'
-        : tone === 'orange'
-          ? 'border-orange-500/30 text-orange-300'
-          : 'border-yellow-500/30 text-yellow-300';
-
-  return `relative overflow-hidden rounded-full border px-3 py-1.5 backdrop-blur-xl ${toneClass} bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_18%,rgba(12,12,18,0.96)_100%)] shadow-[0_1px_0_rgba(255,255,255,0.09)_inset,0_-6px_10px_rgba(0,0,0,0.26)_inset,0_10px_16px_rgba(0,0,0,0.2)]`;
-}
-
 export default function Verify() {
-  const { address, isConnected } = useAccount();
-  const [points, setPoints] = useState<VoterPoints | null>(null);
-
-  const fetchPoints = useCallback(async () => {
-    if (!address) {
-      setPoints(null);
-      return;
-    }
-    try {
-      const res = await fetch(`/api/verify/points?wallet=${address}`);
-      const data = await res.json();
-      if (data.success) {
-        setPoints(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch points:', error);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadPoints = async () => {
-      if (mounted) {
-        await fetchPoints();
-      }
-    };
-    loadPoints();
-    return () => {
-      mounted = false;
-    };
-  }, [fetchPoints]);
-
   return (
     <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8">
       <LiquidBackground />
@@ -70,61 +13,8 @@ export default function Verify() {
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
       <div className="container mx-auto px-2 sm:px-6 relative z-10 mb-12 flex-grow max-w-7xl">
-
-        {/* AIRDROP TEASER BANNER */}
-        <div className="mb-6 p-4 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 border border-purple-500/20 rounded-xl backdrop-blur-xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 animate-pulse" />
-          <div className="relative flex items-center gap-3 flex-wrap justify-center text-center sm:text-left sm:justify-start">
-            <Gift className="w-5 h-5 text-purple-400 flex-shrink-0" />
-            <p className="text-xs sm:text-sm text-gray-300 font-mono">
-              <span className="text-purple-400 font-bold">Earn VERIFY points</span> for every vote. Community consensus helps move proof into the referee queue.
-              Points will count toward the upcoming <Link href="/airdrop" className="text-yellow-400 font-bold hover:underline">$BARE token airdrop</Link>.
-            </p>
-          </div>
-        </div>
-
         {/* HEADER - Apple Liquid Glass */}
         <div className="mb-8 md:mb-12">
-          {/* Live Badge + Points Display */}
-          <div className="flex flex-wrap justify-center items-center gap-3 mb-4">
-            <div className={`inline-flex items-center gap-2 ${getMetricPillClass('green')}`}>
-              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-mono text-green-400 uppercase tracking-wider">Live</span>
-            </div>
-
-            {isConnected && points && (
-              <>
-                <div className={`inline-flex items-center gap-2 ${getMetricPillClass('blue')}`}>
-                  <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  <Trophy className="w-3 h-3 text-blue-400" />
-                  <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">
-                    {points.totalPoints.toLocaleString()} pts
-                  </span>
-                </div>
-
-                {points.streak > 0 && (
-                  <div className={`inline-flex items-center gap-2 ${getMetricPillClass('orange')}`}>
-                    <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <Flame className="w-3 h-3 text-orange-400" />
-                    <span className="text-[10px] font-mono text-orange-400 uppercase tracking-wider">
-                      {points.streak} streak
-                    </span>
-                  </div>
-                )}
-
-                {points.rank && (
-                  <div className={`inline-flex items-center gap-2 ${getMetricPillClass('gold')}`}>
-                    <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider">
-                      Rank #{points.rank}
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase italic tracking-tighter mb-3 flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
               <Shield className="text-blue-500 w-7 h-7 sm:w-10 sm:h-10 flex-shrink-0" />
@@ -169,7 +59,7 @@ export default function Verify() {
         </div>
 
         {/* THE ORACLE INTERFACE */}
-        <TruthOracle onPointsChange={fetchPoints} />
+        <TruthOracle />
 
         {/* INSTRUCTIONS - Liquid Glass Cards */}
         <div className="mt-8 md:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">

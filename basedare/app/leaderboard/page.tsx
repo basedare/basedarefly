@@ -1,13 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, Trophy, ChevronDown, ChevronUp, Crown, Flame } from "lucide-react";
+import { Loader2, Trophy, ChevronDown, ChevronUp, Crown, Flame, ArrowRight, ArrowLeft } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidProgressBar } from "@/components/ui/Liquid3DBar";
+
+const raisedPanelClass =
+  "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+
+const softCardClass =
+  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+
+const insetCardClass =
+  "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
+
+const sectionLabelClass =
+  "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
 interface LeaderboardEntry {
   rank: number;
@@ -68,6 +80,32 @@ function getLeaderboardGradient(user: string): string {
     "from-orange-400 via-red-500 to-pink-600",
   ];
   return gradients[hash % gradients.length];
+}
+
+function getCreatorHref(user: string): string | null {
+  const cleaned = user.replace(/^@+/, "").trim();
+  if (!cleaned || cleaned === "---") return null;
+  return `/creator/${encodeURIComponent(cleaned)}`;
+}
+
+function LeaderboardCardLink({
+  href,
+  className,
+  children,
+}: {
+  href: string | null;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!href) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <Link href={href} className={`group block ${className ?? ""}`}>
+      {children}
+    </Link>
+  );
 }
 
 function LeaderboardAvatar({
@@ -152,6 +190,9 @@ export default function LeaderboardPage() {
   const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0 };
   const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0 };
   const THIRD = top3[2] || { user: "---", avatar: null, staked: "$0", level: 0 };
+  const firstHref = getCreatorHref(FIRST.user);
+  const secondHref = getCreatorHref(SECOND.user);
+  const thirdHref = getCreatorHref(THIRD.user);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -165,27 +206,50 @@ export default function LeaderboardPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 sm:mb-12"
+          className="mb-8 sm:mb-12 max-w-5xl mx-auto"
         >
-          {/* Crown */}
-          <div className="relative mx-auto w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mb-6">
-            <Image
-              src="/assets/peebear-crown.png"
-              alt="Champion Crown"
-              fill
-              sizes="160px"
-              priority
-              style={{ objectFit: "contain" }}
-              className="drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce-slow"
-            />
-          </div>
+          <div className={`${raisedPanelClass} px-5 py-8 sm:px-8 sm:py-10 text-center`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
 
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight">
-            <span className="text-white">The </span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-              Leaderboard
-            </span>
-          </h1>
+            <div className="relative">
+              <div className="mb-5 flex justify-start">
+                <Link
+                  href="/streamers"
+                  className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 transition-all duration-300 hover:-translate-x-[2px] hover:border-fuchsia-400/30 hover:text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                  Creators
+                </Link>
+              </div>
+              <div className={sectionLabelClass}>
+                <Trophy className="w-4 h-4 text-fuchsia-300" />
+                HALL OF FAME
+              </div>
+
+              <div className="relative mx-auto w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mt-6 mb-6">
+                <Image
+                  src="/assets/peebear-crown.png"
+                  alt="Champion Crown"
+                  fill
+                  sizes="160px"
+                  priority
+                  style={{ objectFit: "contain" }}
+                  className="drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce-slow"
+                />
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight">
+                <span className="text-white">The </span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500">
+                  Leaderboard
+                </span>
+              </h1>
+              <p className="mt-4 text-gray-400 font-mono text-sm max-w-lg mx-auto">
+                The sharpest creators rise here. Volume, completions, and reputation all leave a trail.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Loading / Error States */}
@@ -195,7 +259,8 @@ export default function LeaderboardPage() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-12"
           >
-            <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-8">
+            <div className={`${softCardClass} p-8`}>
+              <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
               <Loader2 className="text-yellow-500 animate-spin mb-4 mx-auto" size={40} />
               <p className="text-gray-400 text-sm font-mono">Loading rankings...</p>
             </div>
@@ -204,21 +269,26 @@ export default function LeaderboardPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-2xl p-6 max-w-md mx-auto text-center"
+            className="max-w-md mx-auto"
           >
-            <p className="text-red-400 text-sm">{error}</p>
+            <div className="relative overflow-hidden rounded-[24px] border border-red-500/30 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(18,8,8,0.92)_100%)] p-6 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
           </motion.div>
         ) : leaderboard.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-8 max-w-md mx-auto text-center"
+            className="max-w-md mx-auto"
           >
-            <Trophy className="text-gray-600 mb-4 mx-auto" size={48} />
-            <h2 className="text-xl font-bold text-white mb-2">No Rankings Yet</h2>
-            <p className="text-gray-400 text-sm font-mono">
-              Complete dares to appear on the leaderboard!
-            </p>
+            <div className={`${softCardClass} p-8 text-center`}>
+              <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+              <Trophy className="text-gray-600 mb-4 mx-auto" size={48} />
+              <h2 className="text-xl font-bold text-white mb-2">No Rankings Yet</h2>
+              <p className="text-gray-400 text-sm font-mono">
+                Complete dares to appear on the leaderboard!
+              </p>
+            </div>
           </motion.div>
         ) : (
           <>
@@ -232,8 +302,14 @@ export default function LeaderboardPage() {
               {/* Mobile: Vertical stack */}
               <div className="flex flex-col sm:hidden gap-3">
                 {/* 1st Place */}
-                <div className="backdrop-blur-xl bg-yellow-500/5 border border-yellow-500/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-4">
+                <LeaderboardCardLink href={firstHref}>
+                  <div className="relative overflow-hidden rounded-[24px] border border-yellow-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.16),transparent_42%),linear-gradient(160deg,rgba(28,22,10,0.96)_0%,rgba(13,11,8,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[2px] group-hover:border-yellow-400/45">
+                    {firstHref ? (
+                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-yellow-400/25 bg-yellow-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-yellow-100/80">
+                        Profile <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-16 h-16 rounded-full border-2 border-yellow-400 overflow-hidden shadow-[0_0_20px_rgba(250,204,21,0.4)]">
                         <LeaderboardAvatar
@@ -256,11 +332,18 @@ export default function LeaderboardPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                </LeaderboardCardLink>
 
                 {/* 2nd Place */}
-                <div className="backdrop-blur-xl bg-cyan-500/5 border border-cyan-500/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-4">
+                <LeaderboardCardLink href={secondHref}>
+                  <div className="relative overflow-hidden rounded-[24px] border border-cyan-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.14),transparent_42%),linear-gradient(160deg,rgba(10,20,28,0.96)_0%,rgba(7,10,14,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[2px] group-hover:border-cyan-400/45">
+                    {secondHref ? (
+                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-cyan-100/80">
+                        Profile <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-14 h-14 rounded-full border-2 border-cyan-400 overflow-hidden shadow-[0_0_15px_rgba(87,202,244,0.4)]">
                         <LeaderboardAvatar
@@ -283,11 +366,18 @@ export default function LeaderboardPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                </LeaderboardCardLink>
 
                 {/* 3rd Place */}
-                <div className="backdrop-blur-xl bg-pink-500/5 border border-pink-500/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-4">
+                <LeaderboardCardLink href={thirdHref}>
+                  <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[2px] group-hover:border-pink-400/45">
+                    {thirdHref ? (
+                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80">
+                        Profile <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-12 h-12 rounded-full border-2 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
                         <LeaderboardAvatar
@@ -310,7 +400,8 @@ export default function LeaderboardPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                </LeaderboardCardLink>
               </div>
 
               {/* Desktop: Podium layout */}
@@ -322,7 +413,13 @@ export default function LeaderboardPage() {
                   transition={{ delay: 0.2 }}
                   className="w-[30%] transform translate-y-4"
                 >
-                  <div className="backdrop-blur-xl bg-cyan-500/5 border border-cyan-500/30 rounded-2xl p-5 text-center">
+                  <LeaderboardCardLink href={secondHref}>
+                    <div className="relative overflow-hidden rounded-[26px] border border-cyan-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.14),transparent_42%),linear-gradient(160deg,rgba(10,20,28,0.96)_0%,rgba(7,10,14,0.98)_100%)] p-5 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-cyan-400/45">
+                    {secondHref ? (
+                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-cyan-100/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        View <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
                     <div className="relative w-20 h-20 mx-auto mb-3">
                       <div className="w-full h-full rounded-full border-3 border-cyan-400 overflow-hidden shadow-[0_0_20px_rgba(87,202,244,0.4)]">
                         <LeaderboardAvatar
@@ -341,7 +438,8 @@ export default function LeaderboardPage() {
                     <p className="text-cyan-400 font-black text-xl mb-3">{SECOND.staked}</p>
                     <LiquidProgressBar value={SECOND.level} color="cyan" />
                     <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(SECOND.level / 10)}</p>
-                  </div>
+                    </div>
+                  </LeaderboardCardLink>
                 </motion.div>
 
                 {/* 1st Place */}
@@ -351,9 +449,15 @@ export default function LeaderboardPage() {
                   transition={{ delay: 0.15 }}
                   className="w-[35%] z-10"
                 >
-                  <div className="backdrop-blur-xl bg-yellow-500/5 border border-yellow-500/30 rounded-2xl p-6 text-center relative overflow-hidden">
+                  <LeaderboardCardLink href={firstHref}>
+                  <div className="relative overflow-hidden rounded-[28px] border border-yellow-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.16),transparent_42%),linear-gradient(160deg,rgba(28,22,10,0.96)_0%,rgba(13,11,8,0.98)_100%)] p-6 text-center shadow-[0_20px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-yellow-400/45">
                     {/* Glow effect */}
                     <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-transparent to-transparent pointer-events-none" />
+                    {firstHref ? (
+                      <div className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full border border-yellow-400/25 bg-yellow-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-yellow-100/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        View <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
 
                     <div className="relative">
                       <div className="relative w-24 h-24 md:w-28 md:h-28 mx-auto mb-4">
@@ -376,6 +480,7 @@ export default function LeaderboardPage() {
                       <p className="text-xs text-gray-500 font-mono mt-2">LVL {Math.floor(FIRST.level / 10)}</p>
                     </div>
                   </div>
+                  </LeaderboardCardLink>
                 </motion.div>
 
                 {/* 3rd Place */}
@@ -385,7 +490,13 @@ export default function LeaderboardPage() {
                   transition={{ delay: 0.25 }}
                   className="w-[30%] transform translate-y-8"
                 >
-                  <div className="backdrop-blur-xl bg-pink-500/5 border border-pink-500/30 rounded-2xl p-4 text-center">
+                  <LeaderboardCardLink href={thirdHref}>
+                    <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-pink-400/45">
+                    {thirdHref ? (
+                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        View <ArrowRight className="h-3 w-3" />
+                      </div>
+                    ) : null}
                     <div className="relative w-16 h-16 mx-auto mb-3">
                       <div className="w-full h-full rounded-full border-3 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
                         <LeaderboardAvatar
@@ -404,7 +515,8 @@ export default function LeaderboardPage() {
                     <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
                     <LiquidProgressBar value={THIRD.level} color="pink" />
                     <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
-                  </div>
+                    </div>
+                  </LeaderboardCardLink>
                 </motion.div>
               </div>
             </motion.div>
@@ -427,78 +539,86 @@ export default function LeaderboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
-                className="max-w-xl mx-auto space-y-2 sm:space-y-3"
+                className="max-w-2xl mx-auto"
               >
-                <AnimatePresence mode="popLayout">
-                  {displayedRest.map((entry, index) => (
-                    <motion.div
-                      key={entry.rank}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-3 sm:p-4 hover:bg-white/5 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        {/* Rank */}
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0">
-                          <span className="text-purple-400 font-black text-sm sm:text-base">{entry.rank}</span>
-                        </div>
-
-                        {/* Avatar */}
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 overflow-hidden shrink-0 relative">
-                          <LeaderboardAvatar
-                            user={entry.user}
-                            avatar={entry.avatar}
-                            sizes="48px"
-                            shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                            textClassName="text-lg font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
-                          />
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <p className="text-white font-bold text-sm truncate">{entry.user}</p>
-                            <p className="text-yellow-400 font-black text-sm shrink-0">{entry.staked}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <LiquidProgressBar value={entry.level} color={getRankColor(entry.rank)} />
+                <div className={`${softCardClass} p-4 sm:p-5`}>
+                  <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                  <div className="space-y-2 sm:space-y-3">
+                    <AnimatePresence mode="popLayout">
+                      {displayedRest.map((entry, index) => (
+                        <motion.div
+                          key={entry.rank}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <LeaderboardCardLink
+                            href={getCreatorHref(entry.user)}
+                            className={`${insetCardClass} p-3 sm:p-4 transition-all duration-300 hover:-translate-y-[1px] hover:border-purple-400/25`}
+                          >
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                              <span className="text-purple-400 font-black text-sm sm:text-base">{entry.rank}</span>
                             </div>
-                            <span className="text-[10px] text-gray-500 font-mono shrink-0">
-                              LVL {Math.floor(entry.level / 10)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
 
-                {/* Expand/Collapse Button */}
-                {rest.length > 4 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center pt-4"
-                  >
-                    <button
-                      onClick={() => setIsExpanded(!isExpanded)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold text-gray-400 hover:text-white uppercase tracking-wider transition-all"
-                    >
-                      {isExpanded ? (
-                        <>
-                          Show Less <ChevronUp className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          View All ({rest.length} creators) <ChevronDown className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                  </motion.div>
-                )}
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-white/20 overflow-hidden shrink-0 relative shadow-[0_10px_18px_rgba(0,0,0,0.16)]">
+                              <LeaderboardAvatar
+                                user={entry.user}
+                                avatar={entry.avatar}
+                                sizes="48px"
+                                shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+                                textClassName="text-lg font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
+                              />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <p className="text-white font-bold text-sm truncate">{entry.user}</p>
+                                <p className="text-yellow-400 font-black text-sm shrink-0">{entry.staked}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                  <LiquidProgressBar value={entry.level} color={getRankColor(entry.rank)} />
+                                </div>
+                                <span className="text-[10px] text-gray-500 font-mono shrink-0">
+                                  LVL {Math.floor(entry.level / 10)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="hidden sm:flex items-center justify-center text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white/60">
+                              <ArrowRight className="h-4 w-4" />
+                            </div>
+                          </div>
+                          </LeaderboardCardLink>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+
+                    {rest.length > 4 && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center pt-4"
+                      >
+                        <button
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(11,11,18,0.95)_100%)] px-4 py-2 text-xs font-bold text-gray-400 hover:text-white uppercase tracking-wider transition-all shadow-[0_12px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        >
+                          {isExpanded ? (
+                            <>
+                              Show Less <ChevronUp className="w-4 h-4" />
+                            </>
+                          ) : (
+                            <>
+                              View All ({rest.length} creators) <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
 
@@ -509,10 +629,11 @@ export default function LeaderboardPage() {
               transition={{ delay: 0.5 }}
               className="max-w-md mx-auto mt-10 sm:mt-12"
             >
-              <div className="backdrop-blur-xl bg-purple-500/5 border border-purple-500/30 rounded-2xl p-5 sm:p-6 text-center relative overflow-hidden">
+              <div className={`${softCardClass} p-5 sm:p-6 text-center`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-yellow-500/5 pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <Flame className="w-6 h-6 text-purple-400" />
                   </div>
                   <h3 className="text-lg font-bold text-white mb-2">Want to Climb?</h3>
