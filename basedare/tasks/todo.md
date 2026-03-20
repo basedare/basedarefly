@@ -1,5 +1,27 @@
 # BaseDare Todo
 
+## Working Template
+
+Use this section for active non-trivial tasks.
+
+### Task
+- Owner:
+- Goal:
+
+### Plan
+- [ ] Step 1
+- [ ] Step 2
+- [ ] Step 3
+
+### Verification
+- [ ] Build / lint / test
+- [ ] Logs or API check
+- [ ] UI or behavior check
+
+### Review
+- Outcome:
+- Follow-ups:
+
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
 - [ ] **Escrow & Payout Logic**: Implement TruthOracle voting trigger to call `releaseBounty` or `refundBounty` on the smart contract.
