@@ -6,12 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Refresh the FAQ so it matches the current BaseDare MVP while keeping the Peebear voice.
+- Goal: Turn BaseDare monetization brainstorming into a reusable revenue architecture, phased roadmap, and strategy memo.
 
 ### Plan
-- [x] Review the current FAQ and identify outdated or missing product areas.
-- [x] Rewrite the FAQ list with updated verify, IRL, venue, and QR answers.
-- [x] Verify the updated FAQ page still builds cleanly.
+- [x] Define the main revenue surfaces across consumer, B2B, venue, and protocol layers.
+- [x] Write a revenue architecture map that separates company revenue from incentives and treasury flows.
+- [x] Write a phased top-10 monetization roadmap.
+- [x] Write a billion-dollar strategy memo that explains the category expansion path.
 
 ### Verification
 - [x] Build / lint / test
@@ -19,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [ ] UI or behavior check
 
 ### Review
-- Outcome: FAQ now matches the current BaseDare MVP more closely while keeping Peebear's tone.
-- Follow-ups: Visual review live, then commit and push with the waitlist copy tweak if approved.
+- Outcome: Strategy pack now covers revenue architecture, monetization roadmap, financial model, and investor memo/deck framing.
+- Follow-ups: Commit and push the docs, then optionally convert the financial model into a sheet and the memo into a pitch deck.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
