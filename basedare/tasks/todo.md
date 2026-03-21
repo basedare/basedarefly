@@ -6,22 +6,22 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Turn BaseDare monetization brainstorming into a reusable revenue architecture, phased roadmap, and strategy memo.
+- Goal: Turn BaseDare strategy work into actual deck slide copy and a founder operating memo.
 
 ### Plan
-- [x] Define the main revenue surfaces across consumer, B2B, venue, and protocol layers.
-- [x] Write a revenue architecture map that separates company revenue from incentives and treasury flows.
-- [x] Write a phased top-10 monetization roadmap.
-- [x] Write a billion-dollar strategy memo that explains the category expansion path.
+- [x] Review the investor memo and financial model for the strongest narrative and economic truths.
+- [ ] Write actual investor deck slide copy.
+- [ ] Write a short founder operating memo focused on monetization discipline.
+- [ ] Verify the new docs and summarize what is ready.
 
 ### Verification
-- [x] Build / lint / test
+- [ ] Build / lint / test
 - [ ] Logs or API check
 - [ ] UI or behavior check
 
 ### Review
-- Outcome: Strategy pack now covers revenue architecture, monetization roadmap, financial model, and investor memo/deck framing.
-- Follow-ups: Commit and push the docs, then optionally convert the financial model into a sheet and the memo into a pitch deck.
+- Outcome:
+- Follow-ups:
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
