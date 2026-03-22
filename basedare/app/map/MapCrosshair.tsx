@@ -5,14 +5,16 @@ import { gsap } from 'gsap';
 
 type MapCrosshairProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
-  color?: string;
+  horizontalColor?: string;
+  verticalColor?: string;
 };
 
 const lerp = (start: number, end: number, amount: number) => (1 - amount) * start + amount * end;
 
 export default function MapCrosshair({
   containerRef,
-  color = 'rgba(245, 197, 24, 0.55)',
+  horizontalColor = 'rgba(184, 127, 255, 0.7)',
+  verticalColor = 'rgba(245, 197, 24, 0.7)',
 }: MapCrosshairProps) {
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
@@ -180,8 +182,8 @@ export default function MapCrosshair({
           height: '1px',
           opacity: 0,
           transform: 'translateY(50%)',
-          background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${color} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
-          boxShadow: '0 0 16px rgba(245,197,24,0.18)',
+          background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${horizontalColor} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
+          boxShadow: '0 0 18px rgba(184,127,255,0.32)',
         }}
       />
 
@@ -195,8 +197,8 @@ export default function MapCrosshair({
           height: '100%',
           opacity: 0,
           transform: 'translateX(50%)',
-          background: `linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${color} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
-          boxShadow: '0 0 16px rgba(245,197,24,0.18)',
+          background: `linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${verticalColor} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
+          boxShadow: '0 0 18px rgba(245,197,24,0.32)',
         }}
       />
     </div>

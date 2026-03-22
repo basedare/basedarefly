@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   MapContainer,
   Marker,
@@ -79,6 +79,27 @@ type SearchResponse = {
   success: boolean;
   data?: {
     results: SearchResult[];
+  };
+};
+
+type PlaceTagItem = {
+  id: string;
+  creatorTag: string | null;
+  walletAddress: string;
+  caption: string | null;
+  vibeTags: string[];
+  proofMediaUrl: string;
+  proofType: string;
+  firstMark: boolean;
+  submittedAt: string;
+};
+
+type PlaceTagsResponse = {
+  success: boolean;
+  data?: {
+    approvedCount: number;
+    heatScore: number;
+    tags: PlaceTagItem[];
   };
 };
 
@@ -212,6 +233,9 @@ export default function RealWorldMap() {
   const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
+  const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
+  const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
+  const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,7 +290,7 @@ export default function RealWorldMap() {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  const fetchNearbyPlaces = async (latitude: number, longitude: number, zoom: number) => {
+  const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
     try {
       const radiusMeters = getRadiusMetersForZoom(zoom);
       const url = new URL('/api/venues/nearby', window.location.origin);
@@ -286,7 +310,84 @@ export default function RealWorldMap() {
     } catch (error) {
       console.error('[REAL_WORLD_MAP] Nearby places failed:', error);
     }
-  };
+  }, []);
+
+  const handleMapReady = useCallback(() => {
+    setMapReady(true);
+  }, []);
+
+  const handleViewportChange = useCallback(
+    (latitude: number, longitude: number, zoom: number) => {
+      void fetchNearbyPlaces(latitude, longitude, zoom);
+    },
+    [fetchNearbyPlaces]
+  );
+
+  const handleMapClick = useCallback((latitude: number, longitude: number) => {
+    setSelectedPlace({
+      name: 'Dropped pin',
+      address: `Custom spot · ${formatCoordinateLabel(latitude, longitude)}`,
+      latitude,
+      longitude,
+      placeSource: 'MAP_DROP',
+    });
+  }, []);
+
+  useEffect(() => {
+    const placeId = selectedPlace?.placeId;
+
+    if (!placeId) {
+      setSelectedPlaceTags([]);
+      setSelectedPlaceTagsLoading(false);
+      setSelectedPlaceTagsError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadPlaceTags = async () => {
+      try {
+        setSelectedPlaceTagsLoading(true);
+        setSelectedPlaceTagsError(null);
+
+        const response = await fetch(`/api/places/${placeId}/tags`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as PlaceTagsResponse;
+
+        if (!response.ok || !payload.success || !payload.data) {
+          throw new Error('Failed to load place marks');
+        }
+
+        setSelectedPlaceTags(payload.data.tags);
+        setSelectedPlace((current) =>
+          current?.placeId === placeId
+            ? {
+                ...current,
+                approvedCount: payload.data?.approvedCount ?? current.approvedCount,
+                heatScore: payload.data?.heatScore ?? current.heatScore,
+              }
+            : current
+        );
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error('[REAL_WORLD_MAP] Place tags failed:', error);
+        setSelectedPlaceTags([]);
+        setSelectedPlaceTagsError('Unable to load recent marks right now.');
+      } finally {
+        if (!controller.signal.aborted) {
+          setSelectedPlaceTagsLoading(false);
+        }
+      }
+    };
+
+    void loadPlaceTags();
+
+    return () => controller.abort();
+  }, [selectedPlace?.placeId]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -447,19 +548,9 @@ export default function RealWorldMap() {
               <MapController
                 targetCenter={targetCenter}
                 targetZoom={targetZoom}
-                onReady={() => setMapReady(true)}
-                onViewportChange={(latitude, longitude, zoom) => {
-                  void fetchNearbyPlaces(latitude, longitude, zoom);
-                }}
-                onMapClick={(latitude, longitude) => {
-                  setSelectedPlace({
-                    name: 'Dropped pin',
-                    address: `Custom spot · ${formatCoordinateLabel(latitude, longitude)}`,
-                    latitude,
-                    longitude,
-                    placeSource: 'MAP_DROP',
-                  });
-                }}
+                onReady={handleMapReady}
+                onViewportChange={handleViewportChange}
+                onMapClick={handleMapClick}
               />
 
               {nearbyPlaces.map((place) => {
@@ -500,10 +591,10 @@ export default function RealWorldMap() {
             </MapContainer>
 
             <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_45%_38%_at_24%_18%,rgba(245,197,24,0.08)_0%,transparent_58%),radial-gradient(ellipse_34%_40%_at_78%_72%,rgba(34,211,238,0.08)_0%,transparent_62%),radial-gradient(ellipse_28%_36%_at_54%_44%,rgba(168,85,247,0.09)_0%,transparent_66%)]" />
-            <div className="network-mesh pointer-events-none absolute inset-0 z-[3] opacity-[0.22]" />
-            <div className="network-links pointer-events-none absolute inset-0 z-[4] opacity-[0.3]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[5] opacity-[0.42]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[6] opacity-[0.12]" />
+            <div className="network-mesh pointer-events-none absolute inset-0 z-[3] opacity-[0.12]" />
+            <div className="network-links pointer-events-none absolute inset-0 z-[4] opacity-[0.16]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[5] opacity-[0.22]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[6] opacity-[0.06]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             <div className="pointer-events-none absolute right-5 top-5 z-[8] hidden md:flex items-center gap-3 rounded-full border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(11,10,22,0.9)_100%)] px-4 py-2 shadow-[0_16px_30px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]">
               <span className="h-2.5 w-2.5 rounded-full bg-[#22d3ee] shadow-[0_0_12px_rgba(34,211,238,0.85)]" />
@@ -524,7 +615,11 @@ export default function RealWorldMap() {
                 className="h-auto w-full"
               />
             </button>
-            <MapCrosshair containerRef={mapViewportRef} color="rgba(245, 197, 24, 0.46)" />
+            <MapCrosshair
+              containerRef={mapViewportRef}
+              horizontalColor="rgba(184, 127, 255, 0.82)"
+              verticalColor="rgba(245, 197, 24, 0.82)"
+            />
 
             {!mapReady ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgba(3,5,12,0.74)] backdrop-blur-sm">
@@ -589,6 +684,60 @@ export default function RealWorldMap() {
                     <p className="mt-2 text-xs text-white/42">{selectedLastSpark}</p>
                   </div>
 
+                  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                      <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
+                      Recent Marks
+                    </div>
+                    {selectedPlaceTagsLoading ? (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
+                        <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+                        Loading recent place memory...
+                      </div>
+                    ) : selectedPlaceTagsError ? (
+                      <p className="mt-3 text-sm text-rose-200/80">{selectedPlaceTagsError}</p>
+                    ) : selectedPlaceTags.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {selectedPlaceTags.slice(0, 3).map((tag) => (
+                          <div
+                            key={tag.id}
+                            className="rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(7,10,16,0.92)_0%,rgba(6,6,12,0.86)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-white">
+                                {tag.creatorTag
+                                  ? `@${tag.creatorTag}`
+                                  : `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
+                              </p>
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-white/36">
+                                {getLastSparkLabel(tag.submittedAt)}
+                              </p>
+                            </div>
+                            <p className="mt-2 text-sm text-white/62">
+                              {tag.caption || 'Verified mark submitted without a caption.'}
+                            </p>
+                            {tag.vibeTags.length > 0 ? (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {tag.vibeTags.map((vibeTag) => (
+                                  <span
+                                    key={vibeTag}
+                                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45"
+                                  >
+                                    {vibeTag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-white/55">
+                        No approved marks are live here yet. First verified mark wins the story.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="mt-4 flex flex-wrap gap-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
@@ -600,6 +749,30 @@ export default function RealWorldMap() {
                       country={selectedPlace.country}
                       placeSource={selectedPlace.placeSource}
                       externalPlaceId={selectedPlace.externalPlaceId}
+                      onPlaceResolved={(place) => {
+                        setSelectedPlace((current) => ({
+                          placeId: place.id,
+                          slug: place.slug,
+                          name: place.name,
+                          address:
+                            place.address ??
+                            [place.city, place.country].filter(Boolean).join(', ') ??
+                            current?.address ??
+                            null,
+                          city: place.city,
+                          country: place.country,
+                          latitude: place.latitude,
+                          longitude: place.longitude,
+                          placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+                          externalPlaceId:
+                            current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+                          approvedCount: current?.approvedCount ?? 0,
+                          heatScore: current?.heatScore ?? 0,
+                          lastTaggedAt: current?.lastTaggedAt ?? null,
+                        }));
+                        setTargetCenter([place.latitude, place.longitude]);
+                        setTargetZoom(15);
+                      }}
                       buttonClassName="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
                     />
 
@@ -658,10 +831,8 @@ export default function RealWorldMap() {
 
         .glass-haze {
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 34%),
-            radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
-          backdrop-filter: blur(1.5px);
-          -webkit-backdrop-filter: blur(1.5px);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 28%),
+            radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.035) 0%, transparent 58%);
         }
 
         .spray-can {
@@ -960,7 +1131,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.leaflet-tile-pane) {
-          filter: brightness(0.34) saturate(0.82) contrast(1.16) hue-rotate(8deg);
+          filter: brightness(0.42) saturate(0.88) contrast(1.14) hue-rotate(8deg);
         }
 
         .basedare-leaflet-map :global(.leaflet-control-zoom),

@@ -19,9 +19,36 @@ type TagPlaceButtonProps = {
   placeSource?: string | null;
   externalPlaceId?: string | null;
   buttonClassName?: string;
+  onPlaceResolved?: (place: {
+    id: string;
+    slug: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    latitude: number;
+    longitude: number;
+  }) => void;
 };
 
 const ACCEPTED_MEDIA_COPY = 'Upload a short image or video proof from the place itself.';
+
+type SessionShape = {
+  token?: string | null;
+  walletAddress?: string | null;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+function getSessionFields(session: SessionShape | null | undefined) {
+  const token = session?.token ?? null;
+  const wallet = session?.walletAddress ?? session?.user?.walletAddress ?? null;
+  return {
+    token,
+    walletAddress: wallet?.toLowerCase() ?? null,
+  };
+}
 
 export default function TagPlaceButton({
   placeId,
@@ -34,6 +61,7 @@ export default function TagPlaceButton({
   placeSource,
   externalPlaceId,
   buttonClassName,
+  onPlaceResolved,
 }: TagPlaceButtonProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -43,8 +71,10 @@ export default function TagPlaceButton({
   const [submitState, setSubmitState] = useState<'idle' | 'success'>('idle');
   const [mounted, setMounted] = useState(false);
   const [resolvedPlaceId, setResolvedPlaceId] = useState<string | null>(placeId ?? null);
+  const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
+  const [authChecking, setAuthChecking] = useState(false);
   const { toast } = useToast();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const {
     coordinates,
     loading: geoLoading,
@@ -53,8 +83,10 @@ export default function TagPlaceButton({
     isSupported: geoSupported,
   } = useGeolocation();
 
-  const sessionToken = (session as { token?: string } | null)?.token;
-  const sessionWallet = (session as { walletAddress?: string | null } | null)?.walletAddress;
+  const primarySession = getSessionFields((session as SessionShape | null) ?? null);
+  const backupSession = getSessionFields(fallbackSession);
+  const sessionToken = primarySession.token ?? backupSession.token;
+  const sessionWallet = primarySession.walletAddress ?? backupSession.walletAddress;
   const canAuthenticate = Boolean(sessionToken && sessionWallet);
   const effectivePlaceId = placeId ?? resolvedPlaceId;
 
@@ -73,6 +105,37 @@ export default function TagPlaceButton({
     }
   }, [open, coordinates, geoLoading, geoError, geoSupported, requestLocation]);
 
+  useEffect(() => {
+    if (!open || canAuthenticate) return;
+
+    let cancelled = false;
+
+    const hydrateSession = async () => {
+      try {
+        setAuthChecking(true);
+        const response = await fetch('/api/auth/session', { cache: 'no-store' });
+        const payload = (await response.json().catch(() => null)) as SessionShape | null;
+        if (!cancelled) {
+          setFallbackSession(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          setFallbackSession(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthChecking(false);
+        }
+      }
+    };
+
+    void hydrateSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, canAuthenticate]);
+
   const locationStatus = useMemo(() => {
     if (!geoSupported) return 'Location is not supported in this browser.';
     if (geoLoading) return 'Locating you near this place...';
@@ -80,6 +143,30 @@ export default function TagPlaceButton({
     if (coordinates) return 'Location locked. Proof will be checked against this place.';
     return 'We need your location to leave a verified mark.';
   }, [coordinates, geoError, geoLoading, geoSupported]);
+
+  const authMessage = useMemo(() => {
+    if (authChecking || sessionStatus === 'loading') {
+      return {
+        title: 'Checking session',
+        description: 'Verifying your wallet-backed session before this mark can hit the grid.',
+        cta: 'Checking...',
+      };
+    }
+
+    if (sessionWallet && !sessionToken) {
+      return {
+        title: 'Reconnect required',
+        description: 'Your wallet is visible, but the secure session token is missing. Refresh or reconnect instead of reclaiming your tag.',
+        cta: 'Reconnect session',
+      };
+    }
+
+    return {
+      title: 'Sign in required',
+      description: 'Place tagging needs your wallet-backed session. If you already claimed your tag, just reconnect your session here.',
+      cta: 'Reconnect session',
+    };
+  }, [authChecking, sessionStatus, sessionToken, sessionWallet]);
 
   async function handleSubmit() {
     if (!canAuthenticate) {
@@ -135,8 +222,15 @@ export default function TagPlaceButton({
           success?: boolean;
           error?: string;
           data?: {
-            place?: {
+              place?: {
               id: string;
+              slug: string;
+              name: string;
+              address: string | null;
+              city: string | null;
+              country: string | null;
+              latitude: number;
+              longitude: number;
             };
           };
         };
@@ -147,6 +241,7 @@ export default function TagPlaceButton({
 
         targetPlaceId = resolvePayload.data.place.id;
         setResolvedPlaceId(targetPlaceId);
+        onPlaceResolved?.(resolvePayload.data.place);
       }
 
       const formData = new FormData();
@@ -327,15 +422,15 @@ export default function TagPlaceButton({
 
                   {!canAuthenticate ? (
                     <div className="mt-5 rounded-[22px] border border-amber-400/20 bg-amber-500/[0.06] px-4 py-4 text-sm text-amber-100">
-                      <p className="font-semibold">Sign in required</p>
+                      <p className="font-semibold">{authMessage.title}</p>
                       <p className="mt-2 text-amber-100/70">
-                        Tagging is tied to a wallet-backed session so your mark can become real place memory.
+                        {authMessage.description}
                       </p>
                       <Link
                         href="/claim-tag"
                         className="mt-4 inline-flex rounded-full border border-amber-300/24 bg-amber-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100"
                       >
-                        Sign in first
+                        {authMessage.cta}
                       </Link>
                     </div>
                   ) : null}
@@ -351,7 +446,7 @@ export default function TagPlaceButton({
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={submitting}
+                      disabled={submitting || authChecking}
                       className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

@@ -351,6 +351,8 @@ export async function getFeaturedVenues(limit = 4) {
       name: true,
       city: true,
       country: true,
+      latitude: true,
+      longitude: true,
       categories: true,
       isPartner: true,
       partnerTier: true,
@@ -381,6 +383,8 @@ export async function getFeaturedVenues(limit = 4) {
     name: venue.name,
     city: venue.city,
     country: venue.country,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
     categories: venue.categories,
     isPartner: venue.isPartner,
     partnerTier: venue.partnerTier,
@@ -410,7 +414,9 @@ export async function getNearbyVenues(input: {
   const venues = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
-      geohash: { in: neighborHashes },
+      OR: neighborHashes.map((hash) => ({
+        geohash: { startsWith: hash },
+      })),
     },
     select: {
       id: true,
