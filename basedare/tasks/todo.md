@@ -6,23 +6,21 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Ship the first PlaceTag foundation: schema + API + basic place-memory signals, without breaking pages before the DB migration is applied.
+- Goal: Ship the first PlaceTag review queue so pending marks can actually become approved place memory.
 
 ### Plan
-- [x] Inspect current schema, auth, upload, and venue/place data flow for the cleanest PlaceTag insertion point.
-- [x] Add PlaceTag to Prisma schema and create a targeted migration.
-- [x] Implement the first place-tag submission API with auth, validation, and pending-review behavior.
-- [x] Expose basic approved-tag signals on place data surfaces for future UI use.
-- [x] Verify the new schema/API foundation and summarize what is ready.
+- [x] Inspect existing admin auth/routes/page patterns and the current PlaceTag schema.
+- [x] Add admin API routes to list pending tags and approve/reject/flag them.
+- [x] Add a minimal admin review UI for pending place tags with proof preview and actions.
+- [x] Verify the queue flow locally with lint/build.
 
 ### Verification
-- [x] `npx prisma generate`
-- [x] Targeted `eslint` on the touched schema/API/UI files
+- [x] Targeted `eslint` on the new admin API + admin page + place tag route
 - [x] `npm run build`
 
 ### Review
-- Outcome: Added the first PlaceTag foundation with a migration, a real `/api/places/:id/tags` submission route, shared media upload helper, and visible marks/heat signals on place surfaces.
-- Follow-ups: Apply the DB migration, build the first review queue for pending tags, then add a real `Tag this place` UI flow on place pages.
+- Outcome: Added the first PlaceTag review queue under `/api/admin/place-tags` and the admin dashboard "Chaos Inbox" tab so pending marks can be approved, rejected, or flagged.
+- Follow-ups: Dogfood with a few pending tags, then add the public `Tag this place` submission UI and derive `Crossed Paths`, `Last Spark`, and `Pulse` from approved tags.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

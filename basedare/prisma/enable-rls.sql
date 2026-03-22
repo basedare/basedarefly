@@ -40,6 +40,7 @@ ALTER TABLE "PotTransaction"           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "LeaderboardEntry"         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "WeeklyRewardDistribution" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Venue"                    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PlaceTag"                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueCheckIn"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueMemory"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueQrSession"           ENABLE ROW LEVEL SECURITY;
@@ -136,6 +137,11 @@ DROP POLICY IF EXISTS "service_role_all_VenueCheckIn" ON "VenueCheckIn";
 CREATE POLICY "service_role_all_VenueCheckIn" ON "VenueCheckIn"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- PlaceTag
+DROP POLICY IF EXISTS "service_role_all_PlaceTag" ON "PlaceTag";
+CREATE POLICY "service_role_all_PlaceTag" ON "PlaceTag"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- VenueMemory
 DROP POLICY IF EXISTS "service_role_all_VenueMemory" ON "VenueMemory";
 CREATE POLICY "service_role_all_VenueMemory" ON "VenueMemory"
@@ -186,7 +192,7 @@ BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'User', 'Dare', 'Referral', 'StreamerTag', 'Brand', 'Campaign',
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
-    'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'VenueCheckIn',
+    'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
     'VenueMemory', 'VenueQrSession', 'Comment', 'Vote', 'VoterPoints',
     'Notification', '_prisma_migrations'
   ]

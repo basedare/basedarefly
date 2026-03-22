@@ -71,7 +71,36 @@ interface ClaimRequest {
   claimRequestStatus: string | null;
 }
 
-type AdminTab = 'moderation' | 'claims' | 'tags';
+interface PendingPlaceTag {
+  id: string;
+  venueId: string;
+  walletAddress: string;
+  creatorTag: string | null;
+  status: string;
+  caption: string | null;
+  vibeTags: string[];
+  proofMediaUrl: string;
+  proofCid: string | null;
+  proofType: string;
+  linkedDareId: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  geoDistanceMeters: number | null;
+  firstMark: boolean;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewerWallet: string | null;
+  reviewReason: string | null;
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  };
+}
+
+type AdminTab = 'moderation' | 'claims' | 'tags' | 'placeTags';
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -93,6 +122,12 @@ export default function AdminPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [adminSecret, setAdminSecret] = useState('');
   const [isTagsAuthorized, setIsTagsAuthorized] = useState(false);
+  const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTag[]>([]);
+  const [placeTagsLoading, setPlaceTagsLoading] = useState(false);
+  const [placeTagsError, setPlaceTagsError] = useState<string | null>(null);
+  const [processingPlaceTag, setProcessingPlaceTag] = useState<string | null>(null);
+  const [selectedPlaceTag, setSelectedPlaceTag] = useState<PendingPlaceTag | null>(null);
+  const [placeTagRejectReason, setPlaceTagRejectReason] = useState('');
 
   // Claims management state
   const [pendingClaims, setPendingClaims] = useState<ClaimRequest[]>([]);
@@ -213,10 +248,82 @@ export default function AdminPage() {
 
   // Load tags when tab switches or secret changes
   useEffect(() => {
-    if (activeTab === 'tags' && adminSecret && !isTagsAuthorized) {
+    if (activeTab === 'tags' && adminSecret && (!isTagsAuthorized || pendingTags.length === 0)) {
       fetchPendingTags();
     }
-  }, [activeTab, adminSecret, isTagsAuthorized, fetchPendingTags]);
+  }, [activeTab, adminSecret, isTagsAuthorized, pendingTags.length, fetchPendingTags]);
+
+  const fetchPendingPlaceTags = useCallback(async () => {
+    if (!adminSecret) return;
+
+    setPlaceTagsLoading(true);
+    setPlaceTagsError(null);
+
+    try {
+      const res = await fetch('/api/admin/place-tags?status=PENDING', {
+        headers: {
+          'x-admin-secret': adminSecret,
+        },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsTagsAuthorized(true);
+        setPendingPlaceTags(data.data.tags);
+      } else if (res.status === 401) {
+        setIsTagsAuthorized(false);
+        setPlaceTagsError('Invalid admin secret');
+      } else {
+        setPlaceTagsError(data.error || 'Failed to load place tags');
+      }
+    } catch {
+      setPlaceTagsError('Failed to connect to server');
+    } finally {
+      setPlaceTagsLoading(false);
+    }
+  }, [adminSecret]);
+
+  const handlePlaceTagAction = async (tagId: string, action: 'APPROVE' | 'REJECT' | 'FLAG') => {
+    if (!adminSecret) return;
+
+    setProcessingPlaceTag(tagId);
+
+    try {
+      const res = await fetch('/api/admin/place-tags', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({
+          tagId,
+          action,
+          reason: action === 'APPROVE' ? undefined : placeTagRejectReason || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPendingPlaceTags((prev) => prev.filter((tag) => tag.id !== tagId));
+        setSelectedPlaceTag(null);
+        setPlaceTagRejectReason('');
+      } else {
+        setPlaceTagsError(data.error || 'Failed to process place tag');
+      }
+    } catch {
+      setPlaceTagsError('Failed to submit decision');
+    } finally {
+      setProcessingPlaceTag(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'placeTags' && adminSecret && (!isTagsAuthorized || pendingPlaceTags.length === 0)) {
+      fetchPendingPlaceTags();
+    }
+  }, [activeTab, adminSecret, isTagsAuthorized, pendingPlaceTags.length, fetchPendingPlaceTags]);
 
   // Fetch pending claims (uses moderator wallet auth, same as moderation queue)
   const fetchPendingClaims = useCallback(async () => {
@@ -351,7 +458,7 @@ export default function AdminPage() {
             </span>
           </h1>
           <p className="text-gray-400 font-mono text-sm max-w-md mx-auto">
-            Manage moderation queue and tag verifications
+            Manage moderation, claims, tags, and the place-memory inbox
           </p>
 
           {/* Tab Switcher */}
@@ -389,6 +496,17 @@ export default function AdminPage() {
               >
                 <Tag className="w-4 h-4 inline mr-2" />
                 Tags {pendingTags.length > 0 && `(${pendingTags.length})`}
+              </button>
+              <button
+                onClick={() => setActiveTab('placeTags')}
+                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'placeTags'
+                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Tag className="w-4 h-4 inline mr-2" />
+                Chaos Inbox {pendingPlaceTags.length > 0 && `(${pendingPlaceTags.length})`}
               </button>
             </div>
           )}
@@ -1002,6 +1120,250 @@ export default function AdminPage() {
                       <div className="text-center">
                         <Tag className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                         <p className="text-gray-400">Select a tag to review</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Authorized Content - Place Tags Tab */}
+        {isConnected && isAuthorized && !loading && activeTab === 'placeTags' && (
+          <div className="space-y-6">
+            {!isTagsAuthorized && (
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-cyan-300" />
+                  Admin Authentication
+                </h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Enter your admin secret to review pending place tags.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    value={adminSecret}
+                    onChange={(e) => setAdminSecret(e.target.value)}
+                    placeholder="Enter admin secret..."
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none font-mono"
+                  />
+                  <button
+                    onClick={fetchPendingPlaceTags}
+                    disabled={!adminSecret || placeTagsLoading}
+                    className="w-full py-3 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {placeTagsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    ) : (
+                      'Authenticate'
+                    )}
+                  </button>
+                  {placeTagsError && (
+                    <p className="text-xs text-red-400 text-center">{placeTagsError}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isTagsAuthorized && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-cyan-300" />
+                    Chaos Inbox ({pendingPlaceTags.length})
+                  </h3>
+
+                  {placeTagsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-cyan-300 animate-spin" />
+                    </div>
+                  ) : pendingPlaceTags.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                      <p className="text-gray-400">No pending place tags. The grid is quiet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                      {pendingPlaceTags.map((tag) => (
+                        <div
+                          key={tag.id}
+                          onClick={() => setSelectedPlaceTag(tag)}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                            selectedPlaceTag?.id === tag.id
+                              ? 'bg-cyan-500/10 border-cyan-500/50'
+                              : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <h4 className="font-bold text-white text-sm line-clamp-1">
+                                {tag.venue.name}
+                              </h4>
+                              <p className="text-[11px] text-gray-500">
+                                {tag.creatorTag || formatAddress(tag.walletAddress)}
+                              </p>
+                            </div>
+                            <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-300 shrink-0">
+                              {tag.proofType}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-gray-400">{tag.venue.city || 'Unknown city'}</span>
+                            <span className="text-gray-500">
+                              {new Date(tag.submittedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {placeTagsError && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                      <p className="text-xs text-red-400">{placeTagsError}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                  {selectedPlaceTag ? (
+                    <>
+                      <h3 className="text-lg font-bold text-white mb-4">Review Place Tag</h3>
+
+                      <div className="mb-4 rounded-xl overflow-hidden bg-black/40">
+                        {selectedPlaceTag.proofType === 'VIDEO' ? (
+                          <video
+                            src={selectedPlaceTag.proofMediaUrl}
+                            controls
+                            className="w-full max-h-[320px] object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={selectedPlaceTag.proofMediaUrl}
+                            alt="Place tag proof"
+                            className="w-full max-h-[320px] object-cover"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-3 mb-6">
+                        <div className="p-3 bg-white/5 rounded-lg">
+                          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Place</p>
+                          <p className="text-white font-bold">{selectedPlaceTag.venue.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {selectedPlaceTag.venue.city || 'Unknown city'}{selectedPlaceTag.venue.country ? `, ${selectedPlaceTag.venue.country}` : ''}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-white/5 rounded-lg">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Creator</p>
+                            <p className="text-cyan-300 font-bold">
+                              {selectedPlaceTag.creatorTag || formatAddress(selectedPlaceTag.walletAddress)}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-white/5 rounded-lg">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Distance</p>
+                            <p className="text-white font-mono text-sm">
+                              {selectedPlaceTag.geoDistanceMeters != null ? `${selectedPlaceTag.geoDistanceMeters}m` : 'Unknown'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-white/5 rounded-lg">
+                          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Caption</p>
+                          <p className="text-gray-300 text-sm">
+                            {selectedPlaceTag.caption || 'No caption provided.'}
+                          </p>
+                        </div>
+
+                        {selectedPlaceTag.vibeTags.length > 0 && (
+                          <div className="p-3 bg-white/5 rounded-lg">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Vibe Tags</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedPlaceTag.vibeTags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[10px] uppercase tracking-wider"
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <a
+                          href={`/venues/${selectedPlaceTag.venue.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-300 hover:bg-cyan-500/15 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span className="text-sm font-bold">Open place page</span>
+                        </a>
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="text-xs text-gray-400 uppercase tracking-wider block mb-2">
+                          Review Note (optional)
+                        </label>
+                        <textarea
+                          value={placeTagRejectReason}
+                          onChange={(e) => setPlaceTagRejectReason(e.target.value)}
+                          placeholder="Low quality, spam, off-place, fake geo..."
+                          className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none resize-none"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'FLAG')}
+                          disabled={processingPlaceTag === selectedPlaceTag.id}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4" />
+                          )}
+                          Flag
+                        </button>
+                        <button
+                          onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'REJECT')}
+                          disabled={processingPlaceTag === selectedPlaceTag.id}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE')}
+                          disabled={processingPlaceTag === selectedPlaceTag.id}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                          Approve
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full min-h-[400px]">
+                      <div className="text-center">
+                        <Tag className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                        <p className="text-gray-400">Select a place tag to review</p>
                       </div>
                     </div>
                   )}
