@@ -29,6 +29,18 @@ type TagPlaceButtonProps = {
     latitude: number;
     longitude: number;
   }) => void;
+  onTagSubmitted?: (tag: {
+    tagId: string;
+    status: string;
+    placeId: string;
+    creatorTag: string | null;
+    caption: string | null;
+    vibeTags: string[];
+    proofMediaUrl: string | null;
+    proofType: 'IMAGE' | 'VIDEO';
+    submittedAt: string;
+    firstMark: boolean;
+  }) => void;
 };
 
 const ACCEPTED_MEDIA_COPY = 'Upload a short image or video proof from the place itself.';
@@ -62,6 +74,7 @@ export default function TagPlaceButton({
   externalPlaceId,
   buttonClassName,
   onPlaceResolved,
+  onTagSubmitted,
 }: TagPlaceButtonProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -262,12 +275,36 @@ export default function TagPlaceButton({
       const payload = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         error?: string;
-        data?: { message?: string };
+        data?: {
+          message?: string;
+          tagId?: string;
+          status?: string;
+          proofMediaUrl?: string | null;
+          creatorTag?: string | null;
+          firstMark?: boolean;
+        };
       };
 
       if (!response.ok || !payload.success) {
         throw new Error(payload.error || 'Failed to submit place tag');
       }
+
+      onTagSubmitted?.({
+        tagId: payload.data?.tagId ?? crypto.randomUUID(),
+        status: payload.data?.status ?? 'PENDING',
+        placeId: targetPlaceId,
+        creatorTag: payload.data?.creatorTag ?? null,
+        caption: caption.trim() || null,
+        vibeTags: vibeTags
+          .split(',')
+          .map((item) => item.trim().toLowerCase().replace(/^#/, ''))
+          .filter(Boolean)
+          .slice(0, 6),
+        proofMediaUrl: payload.data?.proofMediaUrl ?? null,
+        proofType: file.type.toLowerCase().startsWith('image/') ? 'IMAGE' : 'VIDEO',
+        submittedAt: new Date().toISOString(),
+        firstMark: Boolean(payload.data?.firstMark),
+      });
 
       setSubmitState('success');
       setFile(null);

@@ -10,12 +10,14 @@ import {
   useMap,
   useMapEvents,
 } from 'react-leaflet';
-import { divIcon, type LatLngExpression } from 'leaflet';
+import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
   Flame,
   Loader2,
   LocateFixed,
   MapPin,
+  Minus,
+  Plus,
   Search,
   Sparkles,
 } from 'lucide-react';
@@ -103,7 +105,21 @@ type PlaceTagsResponse = {
   };
 };
 
+type PendingPlaceTagItem = {
+  tagId: string;
+  status: string;
+  placeId: string;
+  creatorTag: string | null;
+  caption: string | null;
+  vibeTags: string[];
+  proofMediaUrl: string | null;
+  proofType: 'IMAGE' | 'VIDEO';
+  submittedAt: string;
+  firstMark: boolean;
+};
+
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
+type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'unmarked';
 
 const DEFAULT_CENTER: LatLngExpression = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
@@ -182,6 +198,43 @@ function createPeebearMarkerIcon({
   });
 }
 
+function renderProofPreview(tag: PlaceTagItem) {
+  if (tag.proofType === 'VIDEO') {
+    return (
+      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/30">
+        <video
+          src={tag.proofMediaUrl}
+          className="h-full w-full object-cover"
+          muted
+          playsInline
+          preload="metadata"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.34)_100%)]" />
+        <div className="absolute bottom-2 left-2 rounded-full border border-white/12 bg-black/45 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/78">
+          Video
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/30">
+      <Image
+        src={tag.proofMediaUrl}
+        alt={tag.caption || 'Place tag proof'}
+        fill
+        sizes="96px"
+        className="object-cover"
+        unoptimized
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.24)_100%)]" />
+      <div className="absolute bottom-2 left-2 rounded-full border border-white/12 bg-black/45 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/78">
+        Image
+      </div>
+    </div>
+  );
+}
+
 function MapController({
   targetCenter,
   targetZoom,
@@ -191,14 +244,14 @@ function MapController({
 }: {
   targetCenter: LatLngExpression | null;
   targetZoom: number | null;
-  onReady: () => void;
+  onReady: (map: LeafletMap) => void;
   onViewportChange: (latitude: number, longitude: number, zoom: number) => void;
   onMapClick: (latitude: number, longitude: number) => void;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    onReady();
+    onReady(map);
     const center = map.getCenter();
     onViewportChange(center.lat, center.lng, map.getZoom());
   }, [map, onReady, onViewportChange]);
@@ -223,6 +276,7 @@ function MapController({
 
 export default function RealWorldMap() {
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -236,8 +290,17 @@ export default function RealWorldMap() {
   const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
+  const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
+  const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'ready' | 'denied'>('idle');
 
-  useEffect(() => {
+  const requestApproximateLocation = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationStatus('denied');
+      setLocating(false);
+      return () => undefined;
+    }
+
     let cancelled = false;
 
     setLocating(true);
@@ -247,10 +310,12 @@ export default function RealWorldMap() {
         setTargetCenter([position.coords.latitude, position.coords.longitude]);
         setTargetZoom(14);
         setLocating(false);
+        setLocationStatus('ready');
       },
       () => {
         if (cancelled) return;
         setLocating(false);
+        setLocationStatus('denied');
       },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 8000 }
     );
@@ -259,6 +324,8 @@ export default function RealWorldMap() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => requestApproximateLocation(), [requestApproximateLocation]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
@@ -312,7 +379,8 @@ export default function RealWorldMap() {
     }
   }, []);
 
-  const handleMapReady = useCallback(() => {
+  const handleMapReady = useCallback((map: LeafletMap) => {
+    mapInstanceRef.current = map;
     setMapReady(true);
   }, []);
 
@@ -333,25 +401,18 @@ export default function RealWorldMap() {
     });
   }, []);
 
-  useEffect(() => {
-    const placeId = selectedPlace?.placeId;
+  const loadSelectedPlaceTags = useCallback(
+    async (placeId: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
 
-    if (!placeId) {
-      setSelectedPlaceTags([]);
-      setSelectedPlaceTagsLoading(false);
-      setSelectedPlaceTagsError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const loadPlaceTags = async () => {
       try {
-        setSelectedPlaceTagsLoading(true);
+        if (!silent) {
+          setSelectedPlaceTagsLoading(true);
+        }
         setSelectedPlaceTagsError(null);
 
         const response = await fetch(`/api/places/${placeId}/tags`, {
-          signal: controller.signal,
+          signal,
         });
         const payload = (await response.json()) as PlaceTagsResponse;
 
@@ -360,17 +421,26 @@ export default function RealWorldMap() {
         }
 
         setSelectedPlaceTags(payload.data.tags);
+        setPendingPlaceTags((current) =>
+          current.filter(
+            (pendingTag) =>
+              pendingTag.placeId !== placeId ||
+              !payload.data?.tags.some((approvedTag) => approvedTag.id === pendingTag.tagId)
+          )
+        );
         setSelectedPlace((current) =>
           current?.placeId === placeId
             ? {
                 ...current,
                 approvedCount: payload.data?.approvedCount ?? current.approvedCount,
                 heatScore: payload.data?.heatScore ?? current.heatScore,
+                lastTaggedAt:
+                  payload.data?.tags[0]?.submittedAt ?? current.lastTaggedAt ?? null,
               }
             : current
         );
       } catch (error) {
-        if (controller.signal.aborted) {
+        if (signal?.aborted) {
           return;
         }
 
@@ -378,16 +448,30 @@ export default function RealWorldMap() {
         setSelectedPlaceTags([]);
         setSelectedPlaceTagsError('Unable to load recent marks right now.');
       } finally {
-        if (!controller.signal.aborted) {
+        if (!signal?.aborted && !silent) {
           setSelectedPlaceTagsLoading(false);
         }
       }
-    };
+    },
+    []
+  );
 
-    void loadPlaceTags();
+  useEffect(() => {
+    const placeId = selectedPlace?.placeId;
+
+    if (!placeId) {
+      setSelectedPlaceTags([]);
+      setSelectedPlaceTagsLoading(false);
+      setSelectedPlaceTagsError(null);
+      setPendingPlaceTags([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    void loadSelectedPlaceTags(placeId, controller.signal);
 
     return () => controller.abort();
-  }, [selectedPlace?.placeId]);
+  }, [loadSelectedPlaceTags, selectedPlace?.placeId]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -399,6 +483,27 @@ export default function RealWorldMap() {
     [selectedPlace]
   );
 
+  const selectedPendingPlaceTags = useMemo(() => {
+    if (!selectedPlace?.placeId) {
+      return pendingPlaceTags;
+    }
+
+    return pendingPlaceTags.filter((tag) => tag.placeId === selectedPlace.placeId);
+  }, [pendingPlaceTags, selectedPlace?.placeId]);
+
+  useEffect(() => {
+    const placeId = selectedPlace?.placeId;
+    if (!placeId || selectedPendingPlaceTags.length === 0) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadSelectedPlaceTags(placeId, undefined, { silent: true });
+    }, 12000);
+
+    return () => window.clearInterval(interval);
+  }, [loadSelectedPlaceTags, selectedPendingPlaceTags.length, selectedPlace?.placeId]);
+
   const nearbySummary = useMemo(() => {
     const activeCount = nearbyPlaces.filter((place) => place.tagSummary.approvedCount > 0).length;
     return {
@@ -406,6 +511,74 @@ export default function RealWorldMap() {
       active: activeCount,
     };
   }, [nearbyPlaces]);
+
+  const filteredNearbyPlaces = useMemo(() => {
+    return nearbyPlaces.filter((place) => {
+      if (pulseFilter === 'all') return true;
+      if (pulseFilter === 'unmarked') return place.tagSummary.approvedCount <= 0;
+
+      return (
+        getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt) === pulseFilter
+      );
+    });
+  }, [nearbyPlaces, pulseFilter]);
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<PulseFilter, number> = {
+      all: nearbyPlaces.length,
+      blazing: 0,
+      igniting: 0,
+      simmering: 0,
+      unmarked: 0,
+    };
+
+    nearbyPlaces.forEach((place) => {
+      const approvedCount = place.tagSummary.approvedCount;
+      if (approvedCount <= 0) {
+        counts.unmarked += 1;
+        return;
+      }
+
+      const pulse = getPulse(approvedCount, place.tagSummary.lastTaggedAt);
+      if (pulse === 'blazing' || pulse === 'igniting' || pulse === 'simmering') {
+        counts[pulse] += 1;
+      }
+    });
+
+    return counts;
+  }, [nearbyPlaces]);
+
+  const filterOptions: Array<{
+    value: PulseFilter;
+    label: string;
+    accentClass: string;
+  }> = [
+    {
+      value: 'all',
+      label: 'All',
+      accentClass: 'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.1] data-[active=true]:text-white',
+    },
+    {
+      value: 'blazing',
+      label: 'Blazing',
+      accentClass: 'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
+    },
+    {
+      value: 'igniting',
+      label: 'Igniting',
+      accentClass: 'data-[active=true]:border-cyan-300/45 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
+    },
+    {
+      value: 'simmering',
+      label: 'Simmering',
+      accentClass: 'data-[active=true]:border-amber-300/45 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
+    },
+    {
+      value: 'unmarked',
+      label: 'Unmarked',
+      accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
+    },
+  ];
 
   const handleSpray = () => {
     setSprayBurst(false);
@@ -474,7 +647,7 @@ export default function RealWorldMap() {
         <div className="relative overflow-hidden rounded-[38px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
-          <div className="relative z-20 flex flex-col gap-4 border-b border-white/8 px-4 py-4 sm:px-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="relative z-20 flex flex-col gap-4 border-b border-white/8 px-4 py-4 sm:px-5">
             <div className="relative w-full max-w-xl">
               <div className="flex items-center gap-3 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-3 shadow-[0_16px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.09)]">
                 <Search className="h-4 w-4 text-cyan-200" />
@@ -522,12 +695,56 @@ export default function RealWorldMap() {
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/45">
-              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
-                click the map to drop a pin
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/45">
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                  click the map to drop a pin
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                  {locating
+                    ? 'locating you...'
+                    : locationStatus === 'ready'
+                      ? 'opened near you'
+                      : 'using open map data'}
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                  showing {filteredNearbyPlaces.length} / {nearbyPlaces.length}
+                </div>
+                {locationStatus === 'denied' ? (
+                  <div className="rounded-full border border-amber-300/18 bg-amber-500/[0.08] px-3 py-2 text-amber-100/80">
+                    location blocked
+                  </div>
+                ) : null}
               </div>
-              <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
-                {locating ? 'locating you...' : 'using open map data'}
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={requestApproximateLocation}
+                  disabled={locating}
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/22 bg-cyan-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-cyan-200/35 hover:bg-cyan-500/[0.14] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {locating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <LocateFixed className="h-3.5 w-3.5" />
+                  )}
+                  <span>{locating ? 'Locating...' : 'Locate Me'}</span>
+                </button>
+                {filterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    data-active={pulseFilter === option.value}
+                    onClick={() => setPulseFilter(option.value)}
+                    className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                  >
+                    <span>{option.label}</span>
+                    <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                      {filterCounts[option.value]}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -553,7 +770,7 @@ export default function RealWorldMap() {
                 onMapClick={handleMapClick}
               />
 
-              {nearbyPlaces.map((place) => {
+              {filteredNearbyPlaces.map((place) => {
                 const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
                 const isActive = selectedPlace?.placeId === place.id;
                 return (
@@ -596,6 +813,42 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5] opacity-[0.22]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6] opacity-[0.06]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
+            <div className="absolute left-5 top-5 z-[9] hidden md:flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={requestApproximateLocation}
+                disabled={locating}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,12,20,0.92)_100%)] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-200/38 hover:bg-cyan-500/[0.16] disabled:cursor-wait disabled:opacity-70"
+                aria-label={locating ? 'Locating current position' : 'Center map near my location'}
+                title={locating ? 'Locating...' : 'Locate me'}
+              >
+                {locating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LocateFixed className="h-4 w-4" />
+                )}
+              </button>
+              <div className="overflow-hidden rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,10,20,0.92)_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <button
+                  type="button"
+                  onClick={() => mapInstanceRef.current?.zoomIn()}
+                  className="flex h-11 w-11 items-center justify-center border-b border-white/10 text-white/82 transition hover:bg-white/[0.08] hover:text-white"
+                  aria-label="Zoom in"
+                  title="Zoom in"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mapInstanceRef.current?.zoomOut()}
+                  className="flex h-11 w-11 items-center justify-center text-white/82 transition hover:bg-white/[0.08] hover:text-white"
+                  aria-label="Zoom out"
+                  title="Zoom out"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
             <div className="pointer-events-none absolute right-5 top-5 z-[8] hidden md:flex items-center gap-3 rounded-full border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(11,10,22,0.9)_100%)] px-4 py-2 shadow-[0_16px_30px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]">
               <span className="h-2.5 w-2.5 rounded-full bg-[#22d3ee] shadow-[0_0_12px_rgba(34,211,238,0.85)]" />
               <div>
@@ -684,6 +937,64 @@ export default function RealWorldMap() {
                     <p className="mt-2 text-xs text-white/42">{selectedLastSpark}</p>
                   </div>
 
+                  {selectedPendingPlaceTags.length > 0 ? (
+                    <div className="mt-4 rounded-[22px] border border-amber-400/18 bg-amber-500/[0.06] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-amber-200/80">
+                        <Loader2 className="h-3.5 w-3.5" />
+                        Pending Marks
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {selectedPendingPlaceTags.slice(0, 3).map((tag) => (
+                          <div
+                            key={tag.tagId}
+                            className="rounded-[18px] border border-amber-300/12 bg-black/16 px-3 py-3"
+                          >
+                            <div className="flex gap-3">
+                              {tag.proofMediaUrl ? (
+                                renderProofPreview({
+                                  id: tag.tagId,
+                                  creatorTag: tag.creatorTag,
+                                  walletAddress: 'pending',
+                                  caption: tag.caption,
+                                  vibeTags: tag.vibeTags,
+                                  proofMediaUrl: tag.proofMediaUrl,
+                                  proofType: tag.proofType,
+                                  firstMark: tag.firstMark,
+                                  submittedAt: tag.submittedAt,
+                                })
+                              ) : null}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="truncate text-sm font-semibold text-white">
+                                    {tag.creatorTag ? `@${tag.creatorTag}` : 'Your pending mark'}
+                                  </p>
+                                  <span className="rounded-full border border-amber-300/18 bg-amber-500/[0.1] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-amber-100">
+                                    pending
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm text-white/62">
+                                  {tag.caption || 'Mark submitted and waiting for referee review.'}
+                                </p>
+                                {tag.vibeTags.length > 0 ? (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {tag.vibeTags.map((vibeTag) => (
+                                      <span
+                                        key={vibeTag}
+                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45"
+                                      >
+                                        {vibeTag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -703,31 +1014,36 @@ export default function RealWorldMap() {
                             key={tag.id}
                             className="rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(7,10,16,0.92)_0%,rgba(6,6,12,0.86)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                           >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-white">
-                                {tag.creatorTag
-                                  ? `@${tag.creatorTag}`
-                                  : `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
-                              </p>
-                              <p className="text-[11px] uppercase tracking-[0.2em] text-white/36">
-                                {getLastSparkLabel(tag.submittedAt)}
-                              </p>
-                            </div>
-                            <p className="mt-2 text-sm text-white/62">
-                              {tag.caption || 'Verified mark submitted without a caption.'}
-                            </p>
-                            {tag.vibeTags.length > 0 ? (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {tag.vibeTags.map((vibeTag) => (
-                                  <span
-                                    key={vibeTag}
-                                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45"
-                                  >
-                                    {vibeTag}
-                                  </span>
-                                ))}
+                            <div className="flex gap-3">
+                              {renderProofPreview(tag)}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="truncate text-sm font-semibold text-white">
+                                    {tag.creatorTag
+                                      ? `@${tag.creatorTag}`
+                                      : `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
+                                  </p>
+                                  <p className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-white/36">
+                                    {getLastSparkLabel(tag.submittedAt)}
+                                  </p>
+                                </div>
+                                <p className="mt-2 text-sm text-white/62">
+                                  {tag.caption || 'Verified mark submitted without a caption.'}
+                                </p>
+                                {tag.vibeTags.length > 0 ? (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {tag.vibeTags.map((vibeTag) => (
+                                      <span
+                                        key={vibeTag}
+                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45"
+                                      >
+                                        {vibeTag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
                               </div>
-                            ) : null}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -772,6 +1088,15 @@ export default function RealWorldMap() {
                         }));
                         setTargetCenter([place.latitude, place.longitude]);
                         setTargetZoom(15);
+                      }}
+                      onTagSubmitted={(tag) => {
+                        setPendingPlaceTags((current) => [
+                          {
+                            ...tag,
+                            placeId: selectedPlace?.placeId ?? tag.placeId,
+                          },
+                          ...current.filter((item) => item.tagId !== tag.tagId),
+                        ]);
                       }}
                       buttonClassName="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
                     />
