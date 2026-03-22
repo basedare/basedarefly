@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   MapContainer,
@@ -102,6 +103,27 @@ type PlaceTagsResponse = {
     approvedCount: number;
     heatScore: number;
     tags: PlaceTagItem[];
+  };
+};
+
+type VenueDetailResponse = {
+  success: boolean;
+  data?: {
+    venue: {
+      id: string;
+      slug: string;
+      name: string;
+      address: string | null;
+      city: string | null;
+      country: string | null;
+      latitude: number;
+      longitude: number;
+      tagSummary: {
+        approvedCount: number;
+        heatScore: number;
+        lastTaggedAt: string | null;
+      };
+    };
   };
 };
 
@@ -275,6 +297,7 @@ function MapController({
 }
 
 export default function RealWorldMap() {
+  const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -293,6 +316,7 @@ export default function RealWorldMap() {
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [locationStatus, setLocationStatus] = useState<'idle' | 'ready' | 'denied'>('idle');
+  const deepLinkedPlaceSlug = searchParams.get('place');
 
   const requestApproximateLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -326,6 +350,54 @@ export default function RealWorldMap() {
   }, []);
 
   useEffect(() => requestApproximateLocation(), [requestApproximateLocation]);
+
+  useEffect(() => {
+    if (!deepLinkedPlaceSlug) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadDeepLinkedPlace = async () => {
+      try {
+        const response = await fetch(`/api/venues/${encodeURIComponent(deepLinkedPlaceSlug)}`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as VenueDetailResponse;
+
+        if (!response.ok || !payload.success || !payload.data?.venue) {
+          throw new Error('Failed to load deep-linked place');
+        }
+
+        const { venue } = payload.data;
+        setPulseFilter('all');
+        setSelectedPlace({
+          placeId: venue.id,
+          slug: venue.slug,
+          name: venue.name,
+          address: venue.address,
+          city: venue.city,
+          country: venue.country,
+          latitude: venue.latitude,
+          longitude: venue.longitude,
+          approvedCount: venue.tagSummary.approvedCount,
+          heatScore: venue.tagSummary.heatScore,
+          lastTaggedAt: venue.tagSummary.lastTaggedAt,
+        });
+        setTargetCenter([venue.latitude, venue.longitude]);
+        setTargetZoom(15);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        console.error('[REAL_WORLD_MAP] Deep link place load failed:', error);
+      }
+    };
+
+    void loadDeepLinkedPlace();
+
+    return () => controller.abort();
+  }, [deepLinkedPlaceSlug]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
@@ -523,6 +595,23 @@ export default function RealWorldMap() {
     });
   }, [nearbyPlaces, pulseFilter]);
 
+  const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
+    if (!selectedPlace) {
+      return false;
+    }
+
+    return !filteredNearbyPlaces.some((place) => {
+      if (selectedPlace.placeId && place.id === selectedPlace.placeId) {
+        return true;
+      }
+
+      return (
+        Math.abs(place.latitude - selectedPlace.latitude) < 0.000001 &&
+        Math.abs(place.longitude - selectedPlace.longitude) < 0.000001
+      );
+    });
+  }, [filteredNearbyPlaces, selectedPlace]);
+
   const filterCounts = useMemo(() => {
     const counts: Record<PulseFilter, number> = {
       all: nearbyPlaces.length,
@@ -587,6 +676,18 @@ export default function RealWorldMap() {
       window.setTimeout(() => setSprayBurst(false), 640);
     });
   };
+
+  const selectedPlaceMarkerIcon = useMemo(() => {
+    if (!selectedPlace) {
+      return null;
+    }
+
+    return createPeebearMarkerIcon({
+      pulse: selectedPulse,
+      approvedCount: selectedPlace.approvedCount ?? 0,
+      active: true,
+    });
+  }, [selectedPlace, selectedPulse]);
 
   return (
     <section className="relative z-20 px-4 pb-16 pt-8 sm:px-6 md:px-10">
@@ -805,6 +906,20 @@ export default function RealWorldMap() {
                   />
                 );
               })}
+
+              {selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerIcon ? (
+                <Marker
+                  position={[selectedPlace.latitude, selectedPlace.longitude]}
+                  icon={selectedPlaceMarkerIcon}
+                  zIndexOffset={720}
+                  eventHandlers={{
+                    click: () => {
+                      setTargetCenter([selectedPlace.latitude, selectedPlace.longitude]);
+                      setTargetZoom(15);
+                    },
+                  }}
+                />
+              ) : null}
             </MapContainer>
 
             <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_45%_38%_at_24%_18%,rgba(245,197,24,0.08)_0%,transparent_58%),radial-gradient(ellipse_34%_40%_at_78%_72%,rgba(34,211,238,0.08)_0%,transparent_62%),radial-gradient(ellipse_28%_36%_at_54%_44%,rgba(168,85,247,0.09)_0%,transparent_66%)]" />

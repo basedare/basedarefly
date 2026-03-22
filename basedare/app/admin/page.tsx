@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import {
@@ -13,6 +14,7 @@ import {
   DollarSign,
   Clock,
   Lock,
+  MapPin,
   Tag,
   ExternalLink,
   Copy,
@@ -1216,6 +1218,27 @@ export default function AdminPage() {
                               {new Date(tag.submittedAt).toLocaleDateString()}
                             </span>
                           </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Link
+                              href={`/map?place=${encodeURIComponent(tag.venue.slug)}`}
+                              target="_blank"
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300 transition hover:bg-cyan-500/15"
+                            >
+                              <MapPin className="h-3.5 w-3.5" />
+                              Open on map
+                            </Link>
+                            <Link
+                              href={`/venues/${tag.venue.slug}`}
+                              target="_blank"
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Open place
+                            </Link>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1296,15 +1319,24 @@ export default function AdminPage() {
                           </div>
                         )}
 
-                        <a
-                          href={`/venues/${selectedPlaceTag.venue.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-300 hover:bg-cyan-500/15 transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span className="text-sm font-bold">Open place page</span>
-                        </a>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Link
+                            href={`/map?place=${encodeURIComponent(selectedPlaceTag.venue.slug)}`}
+                            target="_blank"
+                            className="flex items-center gap-2 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-300 hover:bg-cyan-500/15 transition-colors"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm font-bold">Open on map</span>
+                          </Link>
+                          <Link
+                            href={`/venues/${selectedPlaceTag.venue.slug}`}
+                            target="_blank"
+                            className="flex items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            <span className="text-sm font-bold">Open place page</span>
+                          </Link>
+                        </div>
                       </div>
 
                       <div className="mb-4">
