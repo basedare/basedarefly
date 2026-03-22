@@ -49,6 +49,14 @@ export default async function VenueDetailPage(
                       <Waves className="h-4 w-4 text-cyan-300" />
                       {venue.liveSession?.campaignLabel ?? 'Venue check-in live'}
                     </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/16 bg-amber-500/[0.06] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <Activity className="h-4 w-4 text-amber-200" />
+                      Heat {venue.tagSummary.heatScore}
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      <ShieldCheck className="h-4 w-4 text-fuchsia-200" />
+                      {venue.tagSummary.approvedCount} marks
+                    </span>
                   </div>
                 </div>
 
@@ -125,6 +133,72 @@ export default async function VenueDetailPage(
                     <p className="text-xs uppercase tracking-[0.24em] text-white/35">Top Creator</p>
                     <p className="mt-2 text-lg font-bold">{venue.memorySummary?.topCreatorTag ?? 'Waiting...'}</p>
                   </div>
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Creator Marks</p>
+                    <h2 className="mt-2 text-2xl font-bold">Recent tags at this place</h2>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    Heat {venue.tagSummary.heatScore}
+                  </div>
+                </div>
+                <div className="mt-5 space-y-3">
+                  {venue.recentTags.length > 0 ? (
+                    venue.recentTags.map((tag) => (
+                      <div
+                        key={tag.id}
+                        className={`${insetCardClass} flex items-start justify-between gap-4 px-4 py-4`}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-white">
+                              {tag.creatorTag ?? `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
+                            </p>
+                            {tag.firstMark ? (
+                              <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
+                                first mark
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-2 text-sm text-white/60">
+                            {tag.caption ?? 'Verified place mark submitted through BaseDare.'}
+                          </p>
+                          {tag.vibeTags.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {tag.vibeTags.slice(0, 4).map((vibeTag) => (
+                                <span
+                                  key={vibeTag}
+                                  className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48"
+                                >
+                                  #{vibeTag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs uppercase tracking-[0.22em] text-white/35">{tag.proofType}</p>
+                          <p className="mt-2 text-sm text-white/55">
+                            {new Date(tag.submittedAt).toLocaleDateString([], {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={`${insetCardClass} px-4 py-5`}>
+                      <p className="text-sm text-white/58">
+                        No verified marks yet. The first approved tag here will start the place-memory timeline.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
-import { PinataSDK } from 'pinata';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import {
+  uploadPublicMediaFile,
+  validateSupportedMediaFile,
+} from '@/lib/media-upload';
 
 type UploadSession = {
   token?: string;
@@ -13,19 +16,6 @@ type UploadSession = {
     walletAddress?: string | null;
   } | null;
 };
-
-const MAX_MEDIA_SIZE_BYTES = 120 * 1024 * 1024; // 120MB
-const ALLOWED_MEDIA_MIME_TYPES = new Set([
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-  'video/x-matroska',
-  'video/3gpp',
-  'video/3gpp2',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-]);
 
 async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
   const session = (await getServerSession(authOptions)) as UploadSession | null;
@@ -47,11 +37,6 @@ export const config = {
     bodyParser: false,
   },
 };
-
-const pinata = new PinataSDK({
-  pinataJwt: process.env.PINATA_JWT!,
-  pinataGateway: process.env.PINATA_GATEWAY || 'purple-void-gateway.pinata.cloud',
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,18 +60,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedMimeType = file.type.toLowerCase();
-    if (!ALLOWED_MEDIA_MIME_TYPES.has(normalizedMimeType)) {
+    const mediaValidationError = validateSupportedMediaFile(file);
+    if (mediaValidationError) {
       return NextResponse.json(
-        { error: 'Unsupported media type. Upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).' },
-        { status: 415 }
-      );
-    }
-
-    if (file.size <= 0 || file.size > MAX_MEDIA_SIZE_BYTES) {
-      return NextResponse.json(
-        { error: 'Media file is too large. Max size is 120MB.' },
-        { status: 413 }
+        { error: mediaValidationError },
+        { status: mediaValidationError.startsWith('Unsupported media type') ? 415 : 413 }
       );
     }
 
@@ -95,10 +73,6 @@ export async function POST(request: NextRequest) {
         { error: 'Dare ID is required' },
         { status: 400 }
       );
-    }
-
-    if (!process.env.PINATA_JWT) {
-      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
     }
 
     // Check if Dare exists before uploading
@@ -127,25 +101,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Pinata IPFS
-    const upload = await pinata.upload.public
-      .file(file)
-      .name(`BaseDare_Proof_${dareId}`)
-      .keyvalues({ dareId: dareId, app: 'basedare' });
-
-    const gateway = process.env.PINATA_GATEWAY || 'gateway.pinata.cloud';
-    const url = `https://${gateway}/ipfs/${upload.cid}`;
+    const upload = await uploadPublicMediaFile({
+      file,
+      name: `BaseDare_Proof_${dareId}`,
+      keyvalues: { dareId, app: 'basedare' },
+    });
 
     // Update the database with the IPFS CID and video URL, and change status to PENDING_REVIEW
     await prisma.dare.update({
       where: { id: dareId },
       data: {
         proofCid: upload.cid,
-        videoUrl: url,
+        videoUrl: upload.url,
         status: 'PENDING_REVIEW', // Ready for TruthOracle voting
       },
     });
 
-    return NextResponse.json({ success: true, cid: upload.cid, url, status: 'PENDING_REVIEW' }, { status: 200 });
+    return NextResponse.json({ success: true, cid: upload.cid, url: upload.url, status: 'PENDING_REVIEW' }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to upload file';
     console.error('Pinata upload error:', message);

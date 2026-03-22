@@ -9,6 +9,11 @@ import {
   getNeighborGeohashes,
   isValidCoordinates,
 } from '@/lib/geo';
+import {
+  getApprovedTagSummaryMap,
+  getRecentApprovedPlaceTagsByVenueId,
+  getVenueTagSummary,
+} from '@/lib/place-tags';
 import type {
   NearbyVenueItem,
   VenueDetail,
@@ -336,7 +341,7 @@ export async function validateVenueHandshakeToken(input: {
 }
 
 export async function getFeaturedVenues(limit = 4) {
-  return prisma.venue.findMany({
+  const venues = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
     },
@@ -366,20 +371,23 @@ export async function getFeaturedVenues(limit = 4) {
       { updatedAt: 'desc' },
     ],
     take: limit,
-  }).then((venues) =>
-    venues.map((venue) => ({
-      id: venue.id,
-      slug: venue.slug,
-      name: venue.name,
-      city: venue.city,
-      country: venue.country,
-      categories: venue.categories,
-      isPartner: venue.isPartner,
-      partnerTier: venue.partnerTier,
-      memorySummary: mapMemorySummary(venue.memories[0] ?? null),
-      liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
-    }))
-  );
+  });
+
+  const tagSummaryMap = await getApprovedTagSummaryMap(venues.map((venue) => venue.id));
+
+  return venues.map((venue) => ({
+    id: venue.id,
+    slug: venue.slug,
+    name: venue.name,
+    city: venue.city,
+    country: venue.country,
+    categories: venue.categories,
+    isPartner: venue.isPartner,
+    partnerTier: venue.partnerTier,
+    memorySummary: mapMemorySummary(venue.memories[0] ?? null),
+    tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
+    liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+  }));
 }
 
 export async function getNearbyVenues(input: {
@@ -444,6 +452,8 @@ export async function getNearbyVenues(input: {
     take: limit * 3,
   });
 
+  const tagSummaryMap = await getApprovedTagSummaryMap(venues.map((venue) => venue.id));
+
   const nearbyVenues: NearbyVenueItem[] = venues
     .map((venue) => {
       const distanceKm = calculateDistance(lat, lng, venue.latitude, venue.longitude);
@@ -469,6 +479,7 @@ export async function getNearbyVenues(input: {
         distanceKm: Math.round(distanceKm * 100) / 100,
         distanceDisplay: formatDistance(distanceKm),
         memorySummary: mapMemorySummary(venue.memories[0] ?? null),
+        tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
         liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
         activeDareCount: venue._count.dares,
         checkInCount: venue._count.checkIns,
@@ -547,7 +558,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
     return null;
   }
 
-  const [scansLastHour, uniqueVisitorRows, recentCheckIns] = await prisma.$transaction([
+  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags] = await Promise.all([
     prisma.venueCheckIn.count({
       where: {
         venueId: venue.id,
@@ -580,7 +591,10 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
         scannedAt: true,
       },
     }),
+    getRecentApprovedPlaceTagsByVenueId(venue.id, 5),
   ]);
+
+  const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
 
   return {
     id: venue.id,
@@ -602,6 +616,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
     checkInRadiusMeters: venue.checkInRadiusMeters,
     memorySummary: mapMemorySummary(venue.memories[0] ?? null),
     memoryHistory: venue.memories.map((memory) => mapMemorySummary(memory)).filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null),
+    tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
     liveStats: {
       scansLastHour,
@@ -614,6 +629,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
       proofLevel: checkIn.proofLevel,
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
+    recentTags,
     activeDares: venue.dares.map(mapActiveDare),
     consoleUrl: `/venues/${venue.slug}/console`,
   };

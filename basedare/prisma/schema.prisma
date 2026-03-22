@@ -127,12 +127,49 @@ model Venue {
   dares               Dare[]
   checkIns            VenueCheckIn[]
   memories            VenueMemory[]
+  placeTags           PlaceTag[]
   qrSessions          VenueQrSession[]
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
   @@index([geohash])
   @@index([city, status])
+}
+
+model PlaceTag {
+  id                String   @id @default(cuid())
+  venueId           String
+  walletAddress     String
+  creatorTag        String?
+  status            String   @default("PENDING")
+  caption           String?
+  vibeTags          String[] @default([])
+  proofMediaUrl     String
+  proofCid          String?
+  proofHash         String?
+  proofType         String   @default("IMAGE")
+  source            String   @default("DIRECT_TAG")
+  linkedDareId      String?
+  hiddenPromptId    String?
+  latitude          Float?
+  longitude         Float?
+  geoDistanceMeters Int?
+  heatContribution  Int      @default(10)
+  firstMark         Boolean  @default(false)
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+  reviewerWallet    String?
+  reviewReason      String?
+  metadataJson      Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  venue             Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, submittedAt])
+  @@index([venueId, status, submittedAt])
+  @@index([walletAddress, submittedAt])
+  @@index([creatorTag, submittedAt])
+  @@index([linkedDareId])
 }
 
 model VenueCheckIn {

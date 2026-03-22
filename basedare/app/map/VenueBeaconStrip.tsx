@@ -79,9 +79,14 @@ export default async function VenueBeaconStrip() {
                   <p className="mt-2 text-xl font-black text-white">{venue.memorySummary?.checkInCount ?? 0}</p>
                 </div>
                 <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(6,8,14,0.82)_0%,rgba(0,0,0,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Visitors</p>
-                  <p className="mt-2 text-xl font-black text-white">{venue.memorySummary?.uniqueVisitorCount ?? 0}</p>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
+                  <p className="mt-2 text-xl font-black text-white">{venue.tagSummary.heatScore}</p>
                 </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <span>{venue.tagSummary.approvedCount} marks</span>
+                <span>{venue.memorySummary?.uniqueVisitorCount ?? 0} visitors</span>
               </div>
 
               <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/16 bg-cyan-500/[0.06] px-3 py-1.5 text-sm text-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">

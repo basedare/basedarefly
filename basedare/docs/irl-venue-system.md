@@ -4,6 +4,9 @@ Related docs:
 - [QR Product Spec](./venue-qr-product-spec.md)
 - [Venue Console MVP](./venue-console-mvp.md)
 - [Venue System Tech Spec](./venue-system-tech-spec.md)
+- [Place Tags MVP](./place-tags-mvp.md)
+- [Place Memory Schema and API Evolution](./place-memory-schema-api.md)
+- [Place Memory UI Plan](./place-memory-ui-plan.md)
 
 ## Thesis
 

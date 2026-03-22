@@ -11,6 +11,24 @@ export type VenueMemorySummary = {
   topCreatorTag: string | null;
 };
 
+export type VenueTagSummary = {
+  approvedCount: number;
+  heatScore: number;
+  lastTaggedAt: string | null;
+};
+
+export type VenueRecentTag = {
+  id: string;
+  creatorTag: string | null;
+  walletAddress: string;
+  caption: string | null;
+  vibeTags: string[];
+  proofMediaUrl: string;
+  proofType: string;
+  submittedAt: string;
+  firstMark: boolean;
+};
+
 export type VenueSessionSummary = {
   id: string;
   scope: string;
@@ -43,6 +61,7 @@ export type NearbyVenueItem = {
   distanceKm: number;
   distanceDisplay: string;
   memorySummary: VenueMemorySummary | null;
+  tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;
   activeDareCount: number;
   checkInCount: number;
@@ -68,6 +87,7 @@ export type VenueDetail = {
   checkInRadiusMeters: number;
   memorySummary: VenueMemorySummary | null;
   memoryHistory: VenueMemorySummary[];
+  tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;
   liveStats: {
     scansLastHour: number;
@@ -80,6 +100,7 @@ export type VenueDetail = {
     proofLevel: string;
     scannedAt: string;
   }>;
+  recentTags: VenueRecentTag[];
   activeDares: Array<{
     id: string;
     shortId: string;
