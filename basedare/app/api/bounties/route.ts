@@ -17,9 +17,12 @@ import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
-import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { authOptions } from '@/lib/auth-options';
+import {
+  BountyPlaceResolutionError,
+  resolveCanonicalBountyPlaceContext,
+} from '@/lib/bounty-place';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -199,6 +202,8 @@ const StakeBountySchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   locationLabel: z.string().max(100).optional(),
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
+  venueId: z.string().min(1).optional(),
+  creationContext: z.enum(['MAP', 'CREATE']).optional(),
 });
 
 const GetBountySchema = z.object({
@@ -332,11 +337,13 @@ export async function POST(request: NextRequest) {
       referrerAddress,
       referrerTag,
       stakerAddress,
-      isNearbyDare,
-      latitude,
-      longitude,
-      locationLabel,
-      discoveryRadiusKm,
+      isNearbyDare: rawIsNearbyDare,
+      latitude: rawLatitude,
+      longitude: rawLongitude,
+      locationLabel: rawLocationLabel,
+      discoveryRadiusKm: rawDiscoveryRadiusKm,
+      venueId,
+      creationContext,
     } = validation.data;
     const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
     const normalizedMissionTag = missionTag?.trim() || null;
@@ -362,24 +369,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Nearby dares require coordinates
-    if (isNearbyDare && (latitude === undefined || longitude === undefined)) {
-      return NextResponse.json(
-        { success: false, error: 'Coordinates are required for nearby dares', code: 'MISSING_COORDINATES' },
-        { status: 400 }
-      );
-    }
+    const placeContext = await resolveCanonicalBountyPlaceContext({
+      venueId,
+      creationContext,
+      isNearbyDare: rawIsNearbyDare,
+      latitude: rawLatitude,
+      longitude: rawLongitude,
+      locationLabel: rawLocationLabel,
+      discoveryRadiusKm: rawDiscoveryRadiusKm,
+    });
 
-    // Calculate geohash for nearby dares
-    let geohash: string | null = null;
-    if (isNearbyDare && latitude !== undefined && longitude !== undefined) {
-      if (!isValidCoordinates(latitude, longitude)) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid coordinates provided', code: 'INVALID_COORDINATES' },
-          { status: 400 }
-        );
-      }
-      geohash = encodeGeohash(latitude, longitude, 6);
+    const {
+      venueId: canonicalVenueId,
+      isNearbyDare,
+      latitude,
+      longitude,
+      locationLabel,
+      discoveryRadiusKm,
+      geohash,
+    } = placeContext;
+
+    if (geohash) {
       console.log(`[NEARBY] Encoded geohash: ${geohash} for coords (${latitude}, ${longitude})`);
     }
 
@@ -520,6 +530,7 @@ export async function POST(request: NextRequest) {
           inviteToken,
           claimDeadline,
           targetWalletAddress,
+          venueId: canonicalVenueId,
           // Nearby dare fields
           isNearbyDare,
           latitude: isNearbyDare ? latitude : null,
@@ -606,6 +617,7 @@ export async function POST(request: NextRequest) {
           expiresAt: expiresAt.toISOString(),
           shortId,
           shareUrl: `/dare/${shortId}`,
+          venueId: canonicalVenueId,
           // Invite flow fields
           awaitingClaim: isAwaitingClaim,
           inviteLink,
@@ -686,6 +698,7 @@ export async function POST(request: NextRequest) {
         inviteToken: inviteTokenOnChain,
         claimDeadline: claimDeadlineOnChain,
         targetWalletAddress: targetWalletAddressOnChain,
+        venueId: canonicalVenueId,
         isNearbyDare,
         latitude: isNearbyDare ? latitude : null,
         longitude: isNearbyDare ? longitude : null,
@@ -753,9 +766,9 @@ export async function POST(request: NextRequest) {
       shortId,
       title,
       amount,
-      streamerTag: isOpenBounty ? null : streamerTag || null,
-      isOpenBounty,
-      stakerAddress,
+        streamerTag: isOpenBounty ? null : streamerTag || null,
+        isOpenBounty,
+        stakerAddress,
     }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
 
     // Big pledge alert for high-value dares
@@ -817,6 +830,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof BountyPlaceResolutionError) {
+      return NextResponse.json(
+        { success: false, error: error.message, code: error.code },
+        { status: 400 }
+      );
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Bounty stake failed:', message);
 

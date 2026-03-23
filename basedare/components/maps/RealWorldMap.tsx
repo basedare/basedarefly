@@ -25,8 +25,10 @@ import {
   Search,
   Sparkles,
   X,
+  Zap,
 } from 'lucide-react';
 import MapCrosshair from '@/app/map/MapCrosshair';
+import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 
 type SearchResult = {
@@ -59,6 +61,7 @@ type NearbyPlace = {
     heatScore: number;
     lastTaggedAt: string | null;
   };
+  activeDareCount: number;
 };
 
 type SelectedPlace = {
@@ -75,6 +78,7 @@ type SelectedPlace = {
   approvedCount?: number;
   heatScore?: number;
   lastTaggedAt?: string | null;
+  activeDareCount?: number;
 };
 
 type NearbyResponse = {
@@ -130,6 +134,17 @@ type VenueDetailResponse = {
         heatScore: number;
         lastTaggedAt: string | null;
       };
+      activeDares: Array<{
+        id: string;
+        shortId: string;
+        title: string;
+        missionMode: string;
+        bounty: number;
+        status: string;
+        streamerHandle: string | null;
+        expiresAt: string | null;
+        createdAt: string;
+      }>;
     };
   };
 };
@@ -145,6 +160,18 @@ type PendingPlaceTagItem = {
   proofType: 'IMAGE' | 'VIDEO';
   submittedAt: string;
   firstMark: boolean;
+};
+
+type SelectedPlaceActiveDare = {
+  id: string;
+  shortId: string;
+  title: string;
+  missionMode: string;
+  bounty: number;
+  status: string;
+  streamerHandle: string | null;
+  expiresAt: string | null;
+  createdAt: string;
 };
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
@@ -237,6 +264,22 @@ function getLastSparkLabel(lastTaggedAt: string | null) {
 
 function formatCoordinateLabel(latitude: number, longitude: number) {
   return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
+
+function getExpiryLabel(expiresAt: string | null) {
+  if (!expiresAt) return 'no expiry';
+
+  const diffMs = new Date(expiresAt).getTime() - Date.now();
+  if (diffMs <= 0) return 'ending now';
+
+  const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+  if (diffMinutes < 60) return `ends in ${diffMinutes}m`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `ends in ${diffHours}h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `ends in ${diffDays}d`;
 }
 
 function getSparkBadge(approvedCount: number) {
@@ -500,6 +543,8 @@ export default function RealWorldMap() {
   const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
+  const [selectedPlaceActiveDares, setSelectedPlaceActiveDares] = useState<SelectedPlaceActiveDare[]>([]);
+  const [selectedPlaceActiveDaresLoading, setSelectedPlaceActiveDaresLoading] = useState(false);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
@@ -596,7 +641,9 @@ export default function RealWorldMap() {
           approvedCount: venue.tagSummary.approvedCount,
           heatScore: venue.tagSummary.heatScore,
           lastTaggedAt: venue.tagSummary.lastTaggedAt,
+          activeDareCount: venue.activeDares.length,
         });
+        setSelectedPlaceActiveDares(venue.activeDares);
         setTargetCenter([venue.latitude, venue.longitude]);
         setTargetZoom(15);
       } catch (error) {
@@ -721,10 +768,64 @@ export default function RealWorldMap() {
       approvedCount: place.tagSummary.approvedCount,
       heatScore: place.tagSummary.heatScore,
       lastTaggedAt: place.tagSummary.lastTaggedAt,
+      activeDareCount: place.activeDareCount,
     });
     setTargetCenter([place.latitude, place.longitude]);
     setTargetZoom(15);
   }, []);
+
+  const loadSelectedPlaceVenueDetail = useCallback(
+    async (slug: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      try {
+        if (!silent) {
+          setSelectedPlaceActiveDaresLoading(true);
+        }
+
+        const response = await fetch(`/api/venues/${encodeURIComponent(slug)}`, { signal });
+        const payload = (await response.json()) as VenueDetailResponse;
+
+        if (!response.ok || !payload.success || !payload.data?.venue) {
+          throw new Error('Failed to load place detail');
+        }
+
+        const { venue } = payload.data;
+        setSelectedPlaceActiveDares(venue.activeDares);
+        setSelectedPlace((current) => {
+          if (!current) return current;
+          if (current.slug && current.slug !== slug) return current;
+
+          return {
+            ...current,
+            placeId: venue.id,
+            slug: venue.slug,
+            name: venue.name,
+            address: venue.address,
+            city: venue.city,
+            country: venue.country,
+            latitude: venue.latitude,
+            longitude: venue.longitude,
+            approvedCount: venue.tagSummary.approvedCount,
+            heatScore: venue.tagSummary.heatScore,
+            lastTaggedAt: venue.tagSummary.lastTaggedAt,
+            activeDareCount: venue.activeDares.length,
+          };
+        });
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+        console.error('[REAL_WORLD_MAP] Place detail failed:', error);
+        setSelectedPlaceActiveDares([]);
+      } finally {
+        if (!silent && !signal?.aborted) {
+          setSelectedPlaceActiveDaresLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   const loadSelectedPlaceTags = useCallback(
     async (placeId: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
@@ -820,6 +921,21 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [loadSelectedPlaceTags, selectedPlace?.placeId]);
+
+  useEffect(() => {
+    const slug = selectedPlace?.slug;
+
+    if (!slug) {
+      setSelectedPlaceActiveDares((current) => (current.length > 0 ? [] : current));
+      setSelectedPlaceActiveDaresLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    void loadSelectedPlaceVenueDetail(slug, controller.signal, { silent: false });
+
+    return () => controller.abort();
+  }, [loadSelectedPlaceVenueDetail, selectedPlace?.slug]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -1515,6 +1631,59 @@ export default function RealWorldMap() {
 
                   <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                      <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
+                      Active Challenges
+                    </div>
+                    {selectedPlaceActiveDaresLoading ? (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
+                        <Loader2 className="h-4 w-4 animate-spin text-[#f8dd72]" />
+                        Loading place challenges...
+                      </div>
+                    ) : selectedPlaceActiveDares.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {selectedPlaceActiveDares.slice(0, 3).map((dare) => (
+                          <div
+                            key={dare.id}
+                            className="rounded-[20px] border border-[#f5c518]/14 bg-[linear-gradient(180deg,rgba(245,197,24,0.06)_0%,rgba(10,10,18,0.16)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-white">{dare.title}</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                                    ${dare.bounty} USDC
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
+                                    {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open'}
+                                  </span>
+                                  {dare.expiresAt ? (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
+                                      {getExpiryLabel(dare.expiresAt)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                              {dare.shortId ? (
+                                <Link
+                                  href={`/dare/${dare.shortId}`}
+                                  className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72"
+                                >
+                                  Open
+                                </Link>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-white/55">
+                        No live challenges here yet. Fund the first one from this place panel.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
                       Recent Marks
                     </div>
@@ -1577,7 +1746,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -1608,6 +1777,7 @@ export default function RealWorldMap() {
                           approvedCount: current?.approvedCount ?? 0,
                           heatScore: current?.heatScore ?? 0,
                           lastTaggedAt: current?.lastTaggedAt ?? null,
+                          activeDareCount: current?.activeDareCount ?? 0,
                         }));
                         setTargetCenter([place.latitude, place.longitude]);
                         setTargetZoom(15);
@@ -1629,6 +1799,64 @@ export default function RealWorldMap() {
                         });
                       }}
                       buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(4,28,42,0.72)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
+                    />
+
+                    <CreatePlaceChallengeButton
+                      placeId={selectedPlace.placeId}
+                      placeName={selectedPlace.name}
+                      latitude={selectedPlace.latitude}
+                      longitude={selectedPlace.longitude}
+                      address={selectedPlace.address}
+                      city={selectedPlace.city}
+                      country={selectedPlace.country}
+                      placeSource={selectedPlace.placeSource}
+                      externalPlaceId={selectedPlace.externalPlaceId}
+                      onPlaceResolved={(place) => {
+                        setSelectedPlace((current) => ({
+                          placeId: place.id,
+                          slug: place.slug,
+                          name: place.name,
+                          address:
+                            place.address ??
+                            [place.city, place.country].filter(Boolean).join(', ') ??
+                            current?.address ??
+                            null,
+                          city: place.city,
+                          country: place.country,
+                          latitude: place.latitude,
+                          longitude: place.longitude,
+                          placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+                          externalPlaceId:
+                            current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+                          approvedCount: current?.approvedCount ?? 0,
+                          heatScore: current?.heatScore ?? 0,
+                          lastTaggedAt: current?.lastTaggedAt ?? null,
+                          activeDareCount: current?.activeDareCount ?? 0,
+                        }));
+                        setTargetCenter([place.latitude, place.longitude]);
+                        setTargetZoom(15);
+                      }}
+                      onChallengeCreated={({ result }) => {
+                        setSelectedPlace((current) =>
+                          current
+                            ? {
+                                ...current,
+                                activeDareCount: (current.activeDareCount ?? 0) + 1,
+                              }
+                            : current
+                        );
+                        if (selectedPlace.slug) {
+                          void loadSelectedPlaceVenueDetail(selectedPlace.slug, undefined, { silent: true });
+                        }
+                        setCeremonyState({
+                          kind: 'alive-upgrade',
+                          title: 'Challenge live',
+                          body: result.isOpenBounty
+                            ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
+                            : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
+                        });
+                      }}
+                      buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(59,35,5,0.78)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#fff0b1] shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.18]"
                     />
 
                     {selectedPlace.slug ? (

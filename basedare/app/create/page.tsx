@@ -14,17 +14,13 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
-import { USDC_ABI, BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { USDC_ADDRESS, BOUNTY_CONTRACT_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
+import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
+import { submitBountyCreation } from '@/lib/bounty-flow';
 
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
 
 // Liquid Metal Contact Button Component
 function ContactButton() {
@@ -223,169 +219,42 @@ export default function CreateDare() {
         throw new Error('Wallet session mismatch. Please reconnect and sign in again.');
       }
 
-      const jsonHeaders: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-      };
-
       const isNearbyDareEnabled = Boolean(data.isNearbyDare);
-      const requestBody: Record<string, unknown> = {
-        title: data.title,
-        amount: data.amount,
-        streamerTag: data.streamerTag,
-        streamId: data.streamId ?? 'dev-stream-001',
-        missionMode: data.missionMode ?? 'IRL',
-        missionTag: data.missionTag ?? 'nightlife',
-        isNearbyDare: isNearbyDareEnabled,
-        stakerAddress: connectedWallet,
-      };
-
-      if (isNearbyDareEnabled && coordinates) {
-        requestBody.latitude = coordinates.lat;
-        requestBody.longitude = coordinates.lng;
-        requestBody.locationLabel = data.locationLabel || undefined;
-        requestBody.discoveryRadiusKm = data.discoveryRadiusKm ?? 5;
-      }
-
-      if (IS_SIMULATION_MODE) {
-        const response = await fetch('/api/bounties', {
-          method: 'POST',
-          headers: jsonHeaders,
-          body: JSON.stringify(requestBody),
-        });
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error || 'Simulation failed');
-
-        trigger('success');
-        setSuccessData({
-          dareId: result.data.dareId,
-          simulated: result.simulated,
-          awaitingClaim: result.data.awaitingClaim,
-          inviteLink: result.data.inviteLink,
-          claimDeadline: result.data.claimDeadline,
-          streamerTag: result.data.streamerTag,
-          shortId: result.data.shortId,
-          isOpenBounty: result.data.isOpenBounty,
-          isNearbyDare: result.data.isNearbyDare,
-          locationLabel: result.data.locationLabel,
-        });
-
-        if (result.data.isNearbyDare) clearLocation();
-
-        toast({
-          title: '🧪 SIMULATION SUCCESS',
-          description: `Dare ID: ${result.data.dareId}`,
-          duration: 6000,
-        });
-        reset();
-        return;
-      }
-
-      // -- NEW REAL ONCHAIN FLOW --
-      if (!isOnchainContractsReady) {
-        throw new Error(onchainContractError || 'Contract configuration missing. Set NEXT_PUBLIC_USDC_ADDRESS and NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS in Vercel, then redeploy.');
-      }
-
-      if (!publicClient || !address) throw new Error("Wallet not connected");
-
-      // 1. Initialize Dare in Database (FUNDING state)
-      const initRes = await fetch('/api/bounties/init', {
-        method: 'POST',
-        headers: jsonHeaders,
-        body: JSON.stringify(requestBody),
-      });
-      const initData = await initRes.json();
-      if (!initData.success) throw new Error(initData.error || 'Failed to initialize dare');
-
-      const { dareId, onChainDareId, targetAddress, referrerAddress } = initData.data;
-      const amountInUnits = parseUnits(data.amount.toString(), 6);
-      const BOUNTY_CONTRACT = BOUNTY_CONTRACT_ADDRESS as `0x${string}`;
-
-      // 2. Exact USDC Approval
-      const currentAllowance = await publicClient.readContract({
-        address: USDC_ADDRESS,
-        abi: USDC_ABI,
-        functionName: 'allowance',
-        args: [address, BOUNTY_CONTRACT],
-      }) as bigint;
-
-      if (currentAllowance < amountInUnits) {
-        setApprovalStatus('approving');
-        try {
-          const approveTx = await writeContractAsync({
-            address: USDC_ADDRESS,
-            abi: USDC_ABI,
-            functionName: 'approve',
-            args: [BOUNTY_CONTRACT, amountInUnits],
-          });
-          await publicClient.waitForTransactionReceipt({ hash: approveTx });
-        } catch (error: unknown) {
-          const message = getErrorMessage(error);
-          if (message.includes('User rejected') || message.includes('User denied')) {
-            throw new Error("USDC approval canceled");
-          }
-          throw new Error("Failed to approve USDC: " + message);
-        }
-      }
-
-      // 3. Create Bounty On-Chain
-      setApprovalStatus('funding');
-      let txHash: string;
-      try {
-        txHash = await writeContractAsync({
-          address: BOUNTY_CONTRACT,
-          abi: BOUNTY_ABI,
-          functionName: 'fundBounty',
-          args: [BigInt(onChainDareId), targetAddress as `0x${string}`, referrerAddress as `0x${string}`, amountInUnits],
-        });
-        await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
-      } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        if (message.includes('User rejected') || message.includes('User denied')) {
-          throw new Error("Dare creation canceled");
-        }
-        throw new Error("Dare creation failed onchain: " + message);
-      }
-
-      // 4. Verify & Register with Backend
-      setApprovalStatus('verifying');
-      try {
-        const regRes = await fetch('/api/bounties/register', {
-          method: 'POST',
-          headers: jsonHeaders,
-          body: JSON.stringify({ dareId, txHash }),
-        });
-        const regData = await regRes.json();
-
-        if (!regData.success) {
-          throw new Error(`Dare created onchain (tx: ${txHash}), sync pending - contact support`);
-        }
-
-        // Success Handler
-        trigger('success');
-        setSuccessData({
-          dareId: regData.data.id,
-          simulated: false,
-          awaitingClaim: regData.data.status === 'AWAITING_CLAIM',
-          streamerTag: regData.data.streamerHandle,
-          shortId: regData.data.shortId,
-          isOpenBounty: !regData.data.streamerHandle,
+      const result = await submitBountyCreation(
+        {
+          title: data.title,
+          amount: data.amount,
+          streamerTag: data.streamerTag,
+          streamId: data.streamId ?? 'dev-stream-001',
+          missionMode: data.missionMode ?? 'IRL',
+          missionTag: data.missionTag ?? 'nightlife',
           isNearbyDare: isNearbyDareEnabled,
-        });
+          latitude: isNearbyDareEnabled ? coordinates?.lat : undefined,
+          longitude: isNearbyDareEnabled ? coordinates?.lng : undefined,
+          locationLabel: data.locationLabel || undefined,
+          discoveryRadiusKm: data.discoveryRadiusKm ?? 5,
+          creationContext: 'CREATE',
+          stakerAddress: connectedWallet,
+        },
+        {
+          sessionToken,
+          publicClient,
+          writeContractAsync,
+          onApprovalStatusChange: setApprovalStatus,
+        }
+      );
 
-        if (isNearbyDareEnabled) clearLocation();
+      trigger('success');
+      setSuccessData(result);
 
-        toast({
-          title: "✅ CONTRACT DEPLOYED",
-          description: `Dare ID: ${dareId}`,
-          duration: 6000,
-        });
-        reset();
+      if (result.isNearbyDare) clearLocation();
 
-      } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        throw new Error(message.includes('sync pending') ? message : `Dare created onchain (tx: ${txHash}), sync pending - contact support`);
-      }
+      toast({
+        title: result.simulated ? '🧪 SIMULATION SUCCESS' : '✅ CONTRACT DEPLOYED',
+        description: `Dare ID: ${result.dareId}`,
+        duration: 6000,
+      });
+      reset();
 
     } catch (error: unknown) {
       trigger('error');

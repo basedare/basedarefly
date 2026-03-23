@@ -5,8 +5,11 @@ import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { authOptions } from '@/lib/auth-options';
-import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import {
+    BountyPlaceResolutionError,
+    resolveCanonicalBountyPlaceContext,
+} from '@/lib/bounty-place';
 
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
@@ -55,6 +58,8 @@ const InitBountySchema = z.object({
     longitude: z.number().min(-180).max(180).optional(),
     locationLabel: z.string().max(100).optional(),
     discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
+    venueId: z.string().min(1).optional(),
+    creationContext: z.enum(['MAP', 'CREATE']).optional(),
 });
 
 function generateShortId(length = 8): string {
@@ -86,11 +91,13 @@ export async function POST(request: NextRequest) {
             streamId,
             streamerTag,
             stakerAddress,
-            isNearbyDare,
-            latitude,
-            longitude,
-            locationLabel,
-            discoveryRadiusKm,
+            isNearbyDare: rawIsNearbyDare,
+            latitude: rawLatitude,
+            longitude: rawLongitude,
+            locationLabel: rawLocationLabel,
+            discoveryRadiusKm: rawDiscoveryRadiusKm,
+            venueId,
+            creationContext,
         } = validation.data;
         const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
         const normalizedMissionTag = missionTag?.trim() || null;
@@ -124,24 +131,25 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (isNearbyDare && (latitude === undefined || longitude === undefined)) {
-            return NextResponse.json(
-                { success: false, error: 'Coordinates are required for nearby dares', code: 'MISSING_COORDINATES' },
-                { status: 400 }
-            );
-        }
+        const placeContext = await resolveCanonicalBountyPlaceContext({
+            venueId,
+            creationContext,
+            isNearbyDare: rawIsNearbyDare,
+            latitude: rawLatitude,
+            longitude: rawLongitude,
+            locationLabel: rawLocationLabel,
+            discoveryRadiusKm: rawDiscoveryRadiusKm,
+        });
 
-        let geohash: string | null = null;
-        if (isNearbyDare && latitude !== undefined && longitude !== undefined) {
-            if (!isValidCoordinates(latitude, longitude)) {
-                return NextResponse.json(
-                    { success: false, error: 'Invalid coordinates provided', code: 'INVALID_COORDINATES' },
-                    { status: 400 }
-                );
-            }
-
-            geohash = encodeGeohash(latitude, longitude, 6);
-        }
+        const {
+            venueId: canonicalVenueId,
+            isNearbyDare,
+            latitude,
+            longitude,
+            locationLabel,
+            discoveryRadiusKm,
+            geohash,
+        } = placeContext;
 
         // Resolve tag to address (dummy implementation for target/referrer in this MVP)
         // We'll use zero address for target if not resolving specifically right now
@@ -165,6 +173,7 @@ export async function POST(request: NextRequest) {
                 expiresAt,
                 shortId,
                 stakerAddress: normalizedStakerAddress || null,
+                venueId: canonicalVenueId,
                 isNearbyDare,
                 latitude: isNearbyDare ? latitude : null,
                 longitude: isNearbyDare ? longitude : null,
@@ -184,6 +193,7 @@ export async function POST(request: NextRequest) {
                 targetAddress,
                 referrerAddress: PLATFORM_WALLET_ADDRESS,
                 shortId,
+                venueId: canonicalVenueId,
                 isNearbyDare,
                 latitude: isNearbyDare ? latitude : null,
                 longitude: isNearbyDare ? longitude : null,
@@ -193,6 +203,12 @@ export async function POST(request: NextRequest) {
             },
         });
     } catch (error: unknown) {
+        if (error instanceof BountyPlaceResolutionError) {
+            return NextResponse.json(
+                { success: false, error: error.message, code: error.code },
+                { status: 400 }
+            );
+        }
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('[INIT] Error:', message);
         return NextResponse.json(
