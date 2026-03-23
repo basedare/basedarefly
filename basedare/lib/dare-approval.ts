@@ -1,0 +1,490 @@
+import 'server-only';
+
+import { Prisma, type Dare } from '@prisma/client';
+import {
+  createPublicClient,
+  createWalletClient,
+  formatEther,
+  http,
+  isAddress,
+  parseEther,
+  type Address,
+} from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base, baseSepolia } from 'viem/chains';
+
+import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { prisma } from '@/lib/prisma';
+import { isPlaceTagTableMissingError } from '@/lib/place-tags';
+import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
+
+const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+const activeChain = IS_MAINNET ? base : baseSepolia;
+const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
+const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
+
+export const STREAMER_FEE_PERCENT = 89;
+export const HOUSE_FEE_PERCENT = 10;
+export const REFERRER_FEE_PERCENT = 1;
+
+const REFEREE_MAX_BALANCE_ETH = '0.05';
+const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
+const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+
+let warnedLegacyRefereeKey = false;
+let lastRefereeBalanceAlertAt = 0;
+
+type RefereeBalanceClient = {
+  getBalance: (args: { address: Address }) => Promise<bigint>;
+};
+
+type FinalizeVerifiedDareInput = {
+  dareId: string;
+  sourceContext: string;
+  verifiedAt?: Date;
+  verifyTxHash?: string | null;
+  verifyConfidence?: number | null;
+  proofHash?: string | null;
+  proofMedia?: string | null;
+  appealStatus?: string | null;
+  moderatorDecision?: string | null;
+  moderatorAddress?: string | null;
+  moderatedAt?: Date | null;
+  moderatorNote?: string | null;
+  notificationMessage?: string | null;
+};
+
+type ApproveDareWithPayoutInput = Omit<FinalizeVerifiedDareInput, 'verifyTxHash'>;
+
+export type DareApprovalResult =
+  | {
+      status: 'VERIFIED';
+      dare: Dare;
+      txHash: string | null;
+      payout: {
+        streamer: number;
+        house: number;
+        referrer: number;
+      };
+    }
+  | {
+      status: 'PENDING_PAYOUT';
+      dare: Dare;
+      pendingReason: string;
+      payout: {
+        streamer: number;
+        house: number;
+        referrer: number;
+      };
+    };
+
+function getRefereeClient() {
+  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
+  }
+
+  if (!process.env.REFEREE_HOT_WALLET_PRIVATE_KEY && !warnedLegacyRefereeKey) {
+    console.warn(
+      '[SECURITY] REFEREE_HOT_WALLET_PRIVATE_KEY not set; falling back to REFEREE_PRIVATE_KEY. Configure a dedicated low-balance hot wallet.'
+    );
+    warnedLegacyRefereeKey = true;
+  }
+
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS?.toLowerCase();
+  if (platformWallet && account.address.toLowerCase() === platformWallet) {
+    throw new Error('Referee wallet must be dedicated and different from platform wallet');
+  }
+
+  const publicClient = createPublicClient({
+    chain: activeChain,
+    transport: http(rpcUrl),
+  });
+
+  const walletClient = createWalletClient({
+    account,
+    chain: activeChain,
+    transport: http(rpcUrl),
+  });
+
+  return { publicClient, walletClient, account };
+}
+
+async function enforceRefereeBalanceCap(
+  publicClient: RefereeBalanceClient,
+  refereeAddress: Address,
+  context: string
+): Promise<{ allowed: boolean; balanceEth: string }> {
+  const balanceWei = await publicClient.getBalance({ address: refereeAddress });
+  const balanceEth = formatEther(balanceWei);
+
+  if (balanceWei <= REFEREE_MAX_BALANCE_WEI) {
+    return { allowed: true, balanceEth };
+  }
+
+  console.warn(
+    `[SECURITY] Referee hot wallet balance cap exceeded: ${balanceEth} ETH > ${REFEREE_MAX_BALANCE_ETH} ETH`
+  );
+
+  const now = Date.now();
+  if (now - lastRefereeBalanceAlertAt > REFEREE_ALERT_COOLDOWN_MS) {
+    lastRefereeBalanceAlertAt = now;
+    alertError({
+      type: 'CONTRACT_ERROR',
+      error: `Referee hot wallet balance ${balanceEth} ETH exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap`,
+      context: `${context} paused. Wallet: ${refereeAddress}`,
+    }).catch((err) => console.error('[TELEGRAM] Referee balance alert failed:', err));
+  }
+
+  return { allowed: false, balanceEth };
+}
+
+function toGeoBucket(geohash: string | null | undefined): string | null {
+  if (!geohash) return null;
+  return geohash.length <= 5 ? geohash : geohash.slice(0, 5);
+}
+
+function inferProofType(url: string | null): string {
+  if (!url) return 'VIDEO';
+  const lower = url.toLowerCase();
+  if (
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.mov') ||
+    lower.endsWith('.webm') ||
+    lower.includes('.m3u8')
+  ) {
+    return 'VIDEO';
+  }
+  return 'IMAGE';
+}
+
+function calculatePayouts(dare: Dare) {
+  const totalBounty = dare.bounty;
+  const streamer = (totalBounty * STREAMER_FEE_PERCENT) / 100;
+  const house = (totalBounty * HOUSE_FEE_PERCENT) / 100;
+  const referrer = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
+
+  return { totalBounty, streamer, house, referrer };
+}
+
+function getCompletionWalletAddress(dare: Dare): string | null {
+  return (
+    dare.claimedBy?.toLowerCase() ||
+    dare.targetWalletAddress?.toLowerCase() ||
+    dare.stakerAddress?.toLowerCase() ||
+    null
+  );
+}
+
+async function ensureApprovedPlaceTagForVerifiedDare(
+  tx: Prisma.TransactionClient,
+  dare: Dare,
+  sourceContext: string,
+  verifiedAt: Date,
+  proofMedia: string | null,
+  proofHash: string | null,
+  reviewerWallet: string | null
+) {
+  if (!dare.venueId) {
+    return;
+  }
+
+  const walletAddress = getCompletionWalletAddress(dare);
+  if (!walletAddress || !proofMedia) {
+    console.warn(
+      `[PLACE_MEMORY] Skipping completion tag for dare ${dare.id} - missing ${!walletAddress ? 'walletAddress' : 'proofMedia'}`
+    );
+    return;
+  }
+
+  try {
+    const existingTag = await tx.placeTag.findFirst({
+      where: { linkedDareId: dare.id },
+      select: { id: true },
+    });
+
+    if (existingTag) {
+      return;
+    }
+
+    const approvedTagCount = await tx.placeTag.count({
+      where: {
+        venueId: dare.venueId,
+        status: 'APPROVED',
+      },
+    });
+
+    await tx.placeTag.create({
+      data: {
+        venueId: dare.venueId,
+        walletAddress,
+        creatorTag: dare.streamerHandle ?? null,
+        status: 'APPROVED',
+        caption: `Completed: ${dare.title}`,
+        vibeTags: [],
+        proofMediaUrl: proofMedia,
+        proofCid: dare.proofCid,
+        proofHash,
+        proofType: inferProofType(proofMedia),
+        source: 'DARE_COMPLETION',
+        linkedDareId: dare.id,
+        latitude: dare.latitude,
+        longitude: dare.longitude,
+        heatContribution: 15,
+        firstMark: approvedTagCount === 0,
+        submittedAt: verifiedAt,
+        reviewedAt: verifiedAt,
+        reviewerWallet,
+        reviewReason: 'Auto-approved from verified dare completion',
+        metadataJson: {
+          sourceContext,
+          verifyTxHash: dare.verifyTxHash,
+          dareShortId: dare.shortId,
+        },
+      },
+    });
+  } catch (error) {
+    if (isPlaceTagTableMissingError(error)) {
+      console.warn('[PLACE_MEMORY] PlaceTag table unavailable, skipping completion tag creation');
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function markDarePendingPayout(
+  dareId: string,
+  input: {
+    verifyConfidence?: number | null;
+    proofHash?: string | null;
+    appealStatus?: string | null;
+  }
+) {
+  await prisma.dare.update({
+    where: { id: dareId },
+    data: {
+      status: 'PENDING_PAYOUT',
+      appealStatus: input.appealStatus ?? 'APPROVED',
+      verifyConfidence: input.verifyConfidence ?? undefined,
+      proofHash: input.proofHash ?? undefined,
+    },
+  });
+}
+
+export async function finalizeVerifiedDare(
+  input: FinalizeVerifiedDareInput
+): Promise<{
+  dare: Dare;
+  payout: { streamer: number; house: number; referrer: number };
+}> {
+  const existingDare = await prisma.dare.findUnique({
+    where: { id: input.dareId },
+  });
+
+  if (!existingDare) {
+    throw new Error('Dare not found');
+  }
+
+  const verifiedAt = input.verifiedAt ?? existingDare.verifiedAt ?? new Date();
+  const proofMedia = input.proofMedia ?? existingDare.proof_media ?? existingDare.videoUrl ?? null;
+  const proofHash = input.proofHash ?? existingDare.proofHash ?? null;
+  const venueKey =
+    existingDare.locationLabel?.trim() ||
+    existingDare.geohash ||
+    (existingDare.isNearbyDare ? 'nearby-unknown' : 'stream');
+  const persistedTag = existingDare.tag || (existingDare.isNearbyDare ? 'street' : 'stream');
+  const payout = calculatePayouts(existingDare);
+
+  const updatedDare = await prisma.$transaction(async (tx) => {
+    const updateData: Prisma.DareUpdateInput = {
+      status: 'VERIFIED',
+      verifiedAt,
+      referrerPayout: payout.referrer > 0 ? payout.referrer : null,
+      tag: persistedTag,
+      venue_key: venueKey,
+      dare_text: existingDare.title,
+      proof_media: proofMedia,
+      completed_at: verifiedAt,
+      reaction_count: existingDare.reaction_count ?? 0,
+      geo_bucket: toGeoBucket(existingDare.geohash),
+    };
+
+    if (input.verifyTxHash !== undefined) updateData.verifyTxHash = input.verifyTxHash;
+    if (input.verifyConfidence !== undefined) updateData.verifyConfidence = input.verifyConfidence;
+    if (input.proofHash !== undefined) updateData.proofHash = input.proofHash;
+    if (input.appealStatus !== undefined) updateData.appealStatus = input.appealStatus;
+    if (input.moderatorDecision !== undefined) updateData.moderatorDecision = input.moderatorDecision;
+    if (input.moderatorAddress !== undefined) updateData.moderatorAddress = input.moderatorAddress;
+    if (input.moderatedAt !== undefined) updateData.moderatedAt = input.moderatedAt;
+    if (input.moderatorNote !== undefined) updateData.moderatorNote = input.moderatorNote;
+
+    const nextDare = await tx.dare.update({
+      where: { id: existingDare.id },
+      data: updateData,
+    });
+
+    await ensureApprovedPlaceTagForVerifiedDare(
+      tx,
+      nextDare,
+      input.sourceContext,
+      verifiedAt,
+      proofMedia,
+      proofHash,
+      input.moderatorAddress ?? null
+    );
+
+    if (nextDare.targetWalletAddress) {
+      await tx.notification.create({
+        data: {
+          wallet: nextDare.targetWalletAddress.toLowerCase(),
+          type: 'DARE_VERIFIED',
+          title: 'Dare Verified & Paid!',
+          message:
+            input.notificationMessage ??
+            `Your proof for "${nextDare.title}" was approved. ${payout.streamer.toFixed(2)} USDC has been sent to your wallet.`,
+          link: '/dashboard',
+        },
+      });
+    }
+
+    return nextDare;
+  });
+
+  alertVerification({
+    dareId: updatedDare.id,
+    shortId: updatedDare.shortId || updatedDare.id,
+    title: updatedDare.title,
+    streamerTag: updatedDare.streamerHandle,
+    result: 'VERIFIED',
+    confidence:
+      input.verifyConfidence != null ? Math.round(input.verifyConfidence * 100) : undefined,
+    payout: payout.streamer,
+    txHash: input.verifyTxHash ?? null,
+  }).catch((err) => console.error('[TELEGRAM] Verification alert failed:', err));
+
+  if (input.verifyTxHash) {
+    alertPayout({
+      dareId: updatedDare.id,
+      shortId: updatedDare.shortId || updatedDare.id,
+      title: updatedDare.title,
+      streamerTag: updatedDare.streamerHandle,
+      creatorPayout: payout.streamer,
+      platformFee: payout.house,
+      referrerPayout: payout.referrer > 0 ? payout.referrer : undefined,
+      txHash: input.verifyTxHash,
+    }).catch((err) => console.error('[TELEGRAM] Payout alert failed:', err));
+  }
+
+  return { dare: updatedDare, payout };
+}
+
+export async function approveDareWithPayout(
+  input: ApproveDareWithPayoutInput
+): Promise<DareApprovalResult> {
+  const dare = await prisma.dare.findUnique({
+    where: { id: input.dareId },
+  });
+
+  if (!dare) {
+    throw new Error('Dare not found');
+  }
+
+  if (dare.status === 'VERIFIED') {
+    const finalized = await finalizeVerifiedDare(input);
+    return {
+      status: 'VERIFIED',
+      dare: finalized.dare,
+      txHash: dare.verifyTxHash ?? null,
+      payout: finalized.payout,
+    };
+  }
+
+  const payout = calculatePayouts(dare);
+  const needsOnChainPayout = isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION;
+
+  if (needsOnChainPayout) {
+    if (!dare.onChainDareId) {
+      await markDarePendingPayout(dare.id, input);
+      return {
+        status: 'PENDING_PAYOUT',
+        dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),
+        pendingReason: 'Missing on-chain dare ID. Payout has been queued for retry.',
+        payout: {
+          streamer: payout.streamer,
+          house: payout.house,
+          referrer: payout.referrer,
+        },
+      };
+    }
+
+    const { publicClient, walletClient, account } = getRefereeClient();
+    const balanceCheck = await enforceRefereeBalanceCap(
+      publicClient,
+      account.address,
+      `${input.sourceContext}:${dare.id}`
+    );
+
+    if (!balanceCheck.allowed) {
+      await markDarePendingPayout(dare.id, input);
+      return {
+        status: 'PENDING_PAYOUT',
+        dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),
+        pendingReason: `Referee balance cap exceeded (${balanceCheck.balanceEth} ETH). Payout has been queued for retry.`,
+        payout: {
+          streamer: payout.streamer,
+          house: payout.house,
+          referrer: payout.referrer,
+        },
+      };
+    }
+
+    try {
+      const hash = await walletClient.writeContract({
+        address: BOUNTY_CONTRACT_ADDRESS,
+        abi: BOUNTY_ABI,
+        functionName: 'verifyAndPayout',
+        args: [BigInt(dare.onChainDareId)],
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const finalized = await finalizeVerifiedDare({
+        ...input,
+        verifyTxHash: hash,
+      });
+
+      return {
+        status: 'VERIFIED',
+        dare: finalized.dare,
+        txHash: hash,
+        payout: finalized.payout,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Contract call failed';
+      console.error(`[DARE_APPROVAL] On-chain payout failed for ${dare.id}: ${message}`);
+      await markDarePendingPayout(dare.id, input);
+      return {
+        status: 'PENDING_PAYOUT',
+        dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),
+        pendingReason: 'Proof approved but on-chain payout failed. It has been queued for retry.',
+        payout: {
+          streamer: payout.streamer,
+          house: payout.house,
+          referrer: payout.referrer,
+        },
+      };
+    }
+  }
+
+  const finalized = await finalizeVerifiedDare(input);
+  return {
+    status: 'VERIFIED',
+    dare: finalized.dare,
+    txHash: null,
+    payout: finalized.payout,
+  };
+}

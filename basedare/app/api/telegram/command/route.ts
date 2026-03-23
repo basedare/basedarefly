@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { alertVerification } from '@/lib/telegram';
+import { approveDareWithPayout } from '@/lib/dare-approval';
 import {
   getPendingTelegramPlaceTags,
   getTelegramPlaceStats,
@@ -13,24 +13,23 @@ const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 const TELEGRAM_ADMIN_SECRET = process.env.TELEGRAM_ADMIN_SECRET;
 
-// Fee distribution constants
-const STREAMER_FEE_PERCENT = 89;
-const HOUSE_FEE_PERCENT = 10;
-const REFERRER_FEE_PERCENT = 1;
-
 async function sendMessage(text: string) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) return;
 
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_ADMIN_CHAT_ID,
-      text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-    }),
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_ADMIN_CHAT_ID,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    });
+  } catch (error) {
+    console.error('[TELEGRAM] admin command sendMessage failed:', error);
+  }
 }
 
 function hasValidTelegramAdminSecret(req: NextRequest): boolean {
@@ -177,34 +176,19 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Already verified' }, { status: 400 });
       }
 
-      const totalBounty = dare.bounty;
-      const streamerPayout = (totalBounty * STREAMER_FEE_PERCENT) / 100;
-      const houseFee = (totalBounty * HOUSE_FEE_PERCENT) / 100;
-      const referrerFee = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
-
-      await prisma.dare.update({
-        where: { id: dare.id },
-        data: {
-          status: 'VERIFIED',
-          verifiedAt: new Date(),
-          appealStatus: 'APPROVED',
-          verifyConfidence: 1.0,
-          referrerPayout: referrerFee > 0 ? referrerFee : null,
-        },
+      const result = await approveDareWithPayout({
+        dareId: dare.id,
+        sourceContext: 'TELEGRAM_COMMAND',
+        verifiedAt: new Date(),
+        verifyConfidence: 1.0,
+        proofHash: dare.proofHash,
+        proofMedia: dare.videoUrl,
+        appealStatus: 'APPROVED',
+        notificationMessage: `Your proof for "${dare.title}" was approved via Telegram command.`,
       });
 
-      const message = `✅ <b>DARE APPROVED</b>\n\n<b>${dare.title}</b>\n👤 ${dare.streamerHandle || 'Open Dare'}\n💰 $${totalBounty} USDC\n\n<b>Payout:</b>\n• Creator: $${streamerPayout.toFixed(2)}\n• Platform: $${houseFee.toFixed(2)}${referrerFee > 0 ? `\n• Referrer: $${referrerFee.toFixed(2)}` : ''}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>`;
+      const message = `✅ <b>DARE APPROVED</b>\n\n<b>${dare.title}</b>\n👤 ${dare.streamerHandle || 'Open Dare'}\n💰 $${dare.bounty} USDC\n\n<b>Payout:</b>\n• Creator: $${result.payout.streamer.toFixed(2)}\n• Platform: $${result.payout.house.toFixed(2)}${result.payout.referrer > 0 ? `\n• Referrer: $${result.payout.referrer.toFixed(2)}` : ''}${result.status === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason}` : ''}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>`;
       await sendMessage(message);
-
-      alertVerification({
-        dareId: dare.id,
-        shortId: dare.shortId || dare.id,
-        title: dare.title,
-        streamerTag: dare.streamerHandle,
-        result: 'VERIFIED',
-        confidence: 100,
-        payout: streamerPayout,
-      }).catch(() => {});
 
       return NextResponse.json({ success: true, approved: dare.id });
     }

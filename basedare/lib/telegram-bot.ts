@@ -1,6 +1,7 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { approveDareWithPayout } from '@/lib/dare-approval';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -14,7 +15,6 @@ const BOT_STAKER_ADDRESS =
   process.env.MODERATOR_WALLETS?.split(',')[0]?.trim() ||
   '';
 
-const REFERRER_FEE_PERCENT = 1;
 const TELEGRAM_REQUEST_TIMEOUT_MS = 30_000;
 
 const TELEGRAM_HTTPS_AGENT = new HttpsAgent({
@@ -575,17 +575,15 @@ async function handleModerationCallback(action: 'approve_dare' | 'reject_dare', 
   }
 
   if (action === 'approve_dare') {
-    const referrerFee = dare.referrerTag ? (dare.bounty * REFERRER_FEE_PERCENT) / 100 : 0;
-
-    await prisma.dare.update({
-      where: { id: dare.id },
-      data: {
-        status: 'VERIFIED',
-        verifiedAt: new Date(),
-        appealStatus: 'APPROVED',
-        verifyConfidence: 1.0,
-        referrerPayout: referrerFee > 0 ? referrerFee : null,
-      },
+    await approveDareWithPayout({
+      dareId: dare.id,
+      sourceContext: 'TELEGRAM_INLINE',
+      verifiedAt: new Date(),
+      verifyConfidence: 1.0,
+      proofHash: dare.proofHash,
+      proofMedia: dare.videoUrl,
+      appealStatus: 'APPROVED',
+      notificationMessage: `Your proof for "${dare.title}" was approved via Telegram inline moderation.`,
     });
 
     return { success: true, title: dare.title };

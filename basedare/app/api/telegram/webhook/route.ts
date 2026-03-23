@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { alertVerification } from '@/lib/telegram';
+import { approveDareWithPayout } from '@/lib/dare-approval';
 import {
   getPendingTelegramPlaceTags,
   getTelegramPlaceStats,
@@ -13,27 +14,26 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 
-// Fee distribution constants
-const STREAMER_FEE_PERCENT = 89;
-const HOUSE_FEE_PERCENT = 10;
-const REFERRER_FEE_PERCENT = 1;
-
 /**
  * Send message to Telegram
  */
 async function sendMessage(chatId: number | string, text: string, parseMode: 'HTML' | 'Markdown' = 'HTML') {
   if (!TELEGRAM_BOT_TOKEN) return;
 
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: parseMode,
-      disable_web_page_preview: true,
-    }),
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: parseMode,
+        disable_web_page_preview: true,
+      }),
+    });
+  } catch (error) {
+    console.error('[TELEGRAM] sendMessage failed:', error);
+  }
 }
 
 /**
@@ -114,22 +114,15 @@ async function handleApprove(chatId: number, args: string) {
     return;
   }
 
-  // Calculate payouts
-  const totalBounty = dare.bounty;
-  const streamerPayout = (totalBounty * STREAMER_FEE_PERCENT) / 100;
-  const houseFee = (totalBounty * HOUSE_FEE_PERCENT) / 100;
-  const referrerFee = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
-
-  // Update dare to VERIFIED
-  await prisma.dare.update({
-    where: { id: dare.id },
-    data: {
-      status: 'VERIFIED',
-      verifiedAt: new Date(),
-      appealStatus: 'APPROVED',
-      verifyConfidence: 1.0, // Manual approval = 100% confidence
-      referrerPayout: referrerFee > 0 ? referrerFee : null,
-    },
+  const result = await approveDareWithPayout({
+    dareId: dare.id,
+    sourceContext: 'TELEGRAM_WEBHOOK',
+    verifiedAt: new Date(),
+    verifyConfidence: 1.0,
+    proofHash: dare.proofHash,
+    proofMedia: dare.videoUrl,
+    appealStatus: 'APPROVED',
+    notificationMessage: `Your proof for "${dare.title}" was approved by Telegram moderation.`,
   });
 
   // Send success message
@@ -138,28 +131,18 @@ async function handleApprove(chatId: number, args: string) {
 
 <b>${dare.title}</b>
 👤 ${dare.streamerHandle || 'Open Dare'}
-💰 Bounty: $${totalBounty} USDC
+💰 Bounty: $${dare.bounty} USDC
 
 <b>Payout Split:</b>
-• Creator: $${streamerPayout.toFixed(2)}
-• Platform: $${houseFee.toFixed(2)}
-${referrerFee > 0 ? `• Referrer: $${referrerFee.toFixed(2)}` : ''}
+• Creator: $${result.payout.streamer.toFixed(2)}
+• Platform: $${result.payout.house.toFixed(2)}
+${result.payout.referrer > 0 ? `• Referrer: $${result.payout.referrer.toFixed(2)}` : ''}
+${result.status === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason}` : ''}
 
 🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View Dare</a>
 `.trim();
 
   await sendMessage(chatId, message);
-
-  // Send alerts
-  alertVerification({
-    dareId: dare.id,
-    shortId: dare.shortId || dare.id,
-    title: dare.title,
-    streamerTag: dare.streamerHandle,
-    result: 'VERIFIED',
-    confidence: 100,
-    payout: streamerPayout,
-  }).catch(() => {});
 
   console.log(`[AUDIT] Dare ${dare.id} manually approved via Telegram`);
 }

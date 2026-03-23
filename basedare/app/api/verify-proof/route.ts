@@ -9,8 +9,9 @@ import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
-import { alertError, alertVerification, alertPayout } from '@/lib/telegram';
+import { alertError, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
+import { finalizeVerifiedDare } from '@/lib/dare-approval';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -214,11 +215,6 @@ const VALID_PROOF_PATTERNS = [
 function isValidProofUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   return VALID_PROOF_PATTERNS.some(pattern => pattern.test(url));
-}
-
-function toGeoBucket(geohash: string | null | undefined): string | null {
-  if (!geohash) return null;
-  return geohash.slice(0, 5);
 }
 
 async function validateProof(
@@ -542,8 +538,6 @@ export async function POST(req: NextRequest) {
       let blockNumber: string | null = null;
       const completedAt = new Date();
       const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
-      const venueKey = dare.locationLabel?.trim() || dare.geohash || (dare.isNearbyDare ? 'nearby-unknown' : 'stream');
-      const persistedTag = dare.tag || (dare.isNearbyDare ? 'street' : 'stream');
 
       // Calculate fee splits
       const totalBounty = dare.bounty;
@@ -641,66 +635,19 @@ export async function POST(req: NextRequest) {
         console.log(`[REFERRAL] Referrer ${dare.referrerTag} (${dare.referrerAddress}) earns $${referrerFee} (1% of $${totalBounty})`);
       }
 
-      // Only mark VERIFIED after confirmed on-chain success (or simulated mode)
-      await prisma.dare.update({
-        where: { id: dareId },
-        data: {
-          status: 'VERIFIED',
-          verifiedAt: completedAt,
-          verifyTxHash: txHash,
-          verifyConfidence: verification.confidence,
-          proofHash: verification.proofHash,
-          appealStatus: null,
-          referrerPayout: referrerFee > 0 ? referrerFee : null,
-          tag: persistedTag,
-          venue_key: venueKey,
-          dare_text: dare.title,
-          proof_media: proofMedia,
-          completed_at: completedAt,
-          reaction_count: dare.reaction_count ?? 0,
-          geo_bucket: toGeoBucket(dare.geohash),
-        },
+      await finalizeVerifiedDare({
+        dareId,
+        sourceContext: 'VERIFY_PROOF',
+        verifiedAt: completedAt,
+        verifyTxHash: txHash,
+        verifyConfidence: verification.confidence,
+        proofHash: verification.proofHash,
+        proofMedia,
+        appealStatus: null,
+        notificationMessage: `Your proof for "${dare.title}" was approved. ${streamerPayout.toFixed(2)} USDC has been sent to your wallet.`,
       });
 
-      // Notify Creator of Payout
-      if (dare.targetWalletAddress) {
-        await prisma.notification.create({
-          data: {
-            wallet: dare.targetWalletAddress.toLowerCase(),
-            type: 'DARE_VERIFIED',
-            title: 'Dare Verified & Paid!',
-            message: `Your proof for "${dare.title}" was approved. ${streamerPayout} USDC has been sent to your wallet.`,
-            link: '/dashboard',
-          }
-        });
-      }
-
       console.log(`[AUDIT] Dare ${dareId} VERIFIED - streamer: ${dare.streamerHandle}, bounty: $${totalBounty} USDC`);
-
-      // Send Telegram alerts (fire and forget)
-      alertVerification({
-        dareId,
-        shortId: dare.shortId || dareId,
-        title: dare.title,
-        streamerTag: dare.streamerHandle,
-        result: 'VERIFIED',
-        confidence: Math.round(verification.confidence * 100),
-        payout: streamerPayout,
-        txHash,
-      }).catch(err => console.error('[TELEGRAM] Verification alert failed:', err));
-
-      if (txHash) {
-        alertPayout({
-          dareId,
-          shortId: dare.shortId || dareId,
-          title: dare.title,
-          streamerTag: dare.streamerHandle,
-          creatorPayout: streamerPayout,
-          platformFee: houseFee,
-          referrerPayout: referrerFee > 0 ? referrerFee : undefined,
-          txHash,
-        }).catch(err => console.error('[TELEGRAM] Payout alert failed:', err));
-      }
 
       return NextResponse.json({
         success: true,

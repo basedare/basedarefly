@@ -5,7 +5,8 @@ import { base, baseSepolia } from 'viem/chains';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { verifyCronSecret } from '@/lib/api-auth';
-import { alertError, alertPayout } from '@/lib/telegram';
+import { alertError } from '@/lib/telegram';
+import { finalizeVerifiedDare } from '@/lib/dare-approval';
 
 // Network config
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -13,11 +14,6 @@ const activeChain = IS_MAINNET ? base : baseSepolia;
 const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
-
-// Fee distribution (matching contract)
-const STREAMER_FEE_PERCENT = 89;
-const HOUSE_FEE_PERCENT = 10;
-const REFERRER_FEE_PERCENT = 1;
 
 // Safety limits
 const MAX_RETRIES_PER_RUN = 5;
@@ -178,12 +174,13 @@ export async function POST(req: NextRequest) {
 
       if (dare.isSimulated) {
         // Simulated dares don't need on-chain payout — just mark verified
-        await prisma.dare.update({
-          where: { id: dare.id },
-          data: {
-            status: 'VERIFIED',
-            verifiedAt: new Date(),
-          },
+        await finalizeVerifiedDare({
+          dareId: dare.id,
+          sourceContext: 'CRON_RETRY_PAYOUT',
+          verifiedAt: new Date(),
+          verifyConfidence: dare.verifyConfidence,
+          proofHash: dare.proofHash,
+          proofMedia: dare.videoUrl,
         });
         results.push({ dareId: dare.id, status: 'paid' });
         console.log(`[CRON] Simulated dare ${dare.id} marked VERIFIED`);
@@ -215,9 +212,13 @@ export async function POST(req: NextRequest) {
 
         if (isVerified) {
           console.log(`[CRON] Dare ${dare.id} — already verified on-chain, syncing DB`);
-          await prisma.dare.update({
-            where: { id: dare.id },
-            data: { status: 'VERIFIED', verifiedAt: new Date() },
+          await finalizeVerifiedDare({
+            dareId: dare.id,
+            sourceContext: 'CRON_RETRY_PAYOUT',
+            verifiedAt: new Date(),
+            verifyConfidence: dare.verifyConfidence,
+            proofHash: dare.proofHash,
+            proofMedia: dare.videoUrl,
           });
           results.push({ dareId: dare.id, status: 'paid' });
           continue;
@@ -233,37 +234,20 @@ export async function POST(req: NextRequest) {
 
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-        // Calculate fee splits for DB record
-        const totalBounty = dare.bounty;
-        const streamerPayout = (totalBounty * STREAMER_FEE_PERCENT) / 100;
-        const houseFee = (totalBounty * HOUSE_FEE_PERCENT) / 100;
-        const referrerFee = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
-
-        await prisma.dare.update({
-          where: { id: dare.id },
-          data: {
-            status: 'VERIFIED',
-            verifiedAt: new Date(),
-            verifyTxHash: hash,
-            appealStatus: null,
-            referrerPayout: referrerFee > 0 ? referrerFee : null,
-          },
+        await finalizeVerifiedDare({
+          dareId: dare.id,
+          sourceContext: 'CRON_RETRY_PAYOUT',
+          verifiedAt: new Date(),
+          verifyTxHash: hash,
+          verifyConfidence: dare.verifyConfidence,
+          proofHash: dare.proofHash,
+          proofMedia: dare.videoUrl,
+          appealStatus: null,
         });
 
         console.log(`[CRON] Dare ${dare.id} PAID — tx: ${hash}, block: ${receipt.blockNumber}`);
         results.push({ dareId: dare.id, status: 'paid', txHash: hash });
 
-        // Telegram alert (fire and forget)
-        alertPayout({
-          dareId: dare.id,
-          shortId: dare.shortId || dare.id,
-          title: dare.title,
-          streamerTag: dare.streamerHandle || 'unknown',
-          creatorPayout: streamerPayout,
-          platformFee: houseFee,
-          referrerPayout: referrerFee > 0 ? referrerFee : undefined,
-          txHash: hash,
-        }).catch(err => console.error('[CRON] Telegram alert failed:', err));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         console.error(`[CRON] Retry failed for dare ${dare.id}: ${message}`);

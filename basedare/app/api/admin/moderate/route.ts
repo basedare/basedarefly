@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { approveDareWithPayout } from '@/lib/dare-approval';
 
 // ============================================================================
 // ADMIN MODERATE API
@@ -67,7 +68,6 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || 'PENDING_REVIEW';
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     // Fetch dares ready for moderation
@@ -193,32 +193,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine new status based on decision
-    const newStatus = decision === 'APPROVE' ? 'VERIFIED' : 'FAILED';
+    const moderatedAt = new Date();
+    let newStatus: 'VERIFIED' | 'FAILED' | 'PENDING_PAYOUT';
+    let updatedDare = dare;
+    let pendingReason: string | null = null;
 
-    // Update the dare with moderation decision
-    const updatedDare = await prisma.dare.update({
-      where: { id: dareId },
-      data: {
-        status: newStatus,
+    if (decision === 'APPROVE') {
+      const result = await approveDareWithPayout({
+        dareId,
+        sourceContext: 'ADMIN_MODERATE',
+        verifiedAt: moderatedAt,
+        verifyConfidence: 1.0,
+        proofHash: dare.proofHash,
+        proofMedia: dare.videoUrl,
+        appealStatus: 'APPROVED',
         moderatorDecision: decision,
-        moderatorAddress: auth.moderatorAddress,
-        moderatedAt: new Date(),
+        moderatorAddress: auth.moderatorAddress ?? 'admin',
+        moderatedAt,
         moderatorNote: note || null,
-        verifiedAt: decision === 'APPROVE' ? new Date() : null,
-      },
-    });
+      });
+
+      newStatus = result.status;
+      updatedDare = result.dare;
+      pendingReason = result.status === 'PENDING_PAYOUT' ? result.pendingReason : null;
+    } else {
+      newStatus = 'FAILED';
+      updatedDare = await prisma.dare.update({
+        where: { id: dareId },
+        data: {
+          status: newStatus,
+          moderatorDecision: decision,
+          moderatorAddress: auth.moderatorAddress,
+          moderatedAt,
+          moderatorNote: note || null,
+          verifiedAt: null,
+        },
+      });
+    }
 
     // Notify Creator of Moderation Decision
-    if (dare.targetWalletAddress) {
+    if (dare.targetWalletAddress && decision === 'REJECT') {
       await prisma.notification.create({
         data: {
           wallet: dare.targetWalletAddress.toLowerCase(),
-          type: decision === 'APPROVE' ? 'DARE_VERIFIED' : 'DARE_FAILED',
-          title: decision === 'APPROVE' ? 'Dare Approved by Admin!' : 'Dare Rejected by Admin',
-          message: decision === 'APPROVE'
-            ? `Your proof for "${dare.title}" was manually approved.`
-            : `Your proof for "${dare.title}" was rejected by moderators.`,
+          type: 'DARE_FAILED',
+          title: 'Dare Rejected by Admin',
+          message: `Your proof for "${dare.title}" was rejected by moderators.`,
           link: '/dashboard',
         }
       });
@@ -227,9 +247,6 @@ export async function POST(request: NextRequest) {
     console.log(
       `[MODERATE] Dare ${dareId} ${decision} by ${auth.moderatorAddress}${note ? ` - ${note}` : ''}`
     );
-
-    // TODO: Trigger payout if APPROVED, refund if REJECTED
-    // This would call your payout/refund logic
 
     return NextResponse.json({
       success: true,
@@ -240,9 +257,12 @@ export async function POST(request: NextRequest) {
         moderatedAt: updatedDare.moderatedAt,
         moderatorAddress: auth.moderatorAddress,
         note: updatedDare.moderatorNote,
+        pendingReason,
         message:
           decision === 'APPROVE'
-            ? 'Dare approved! Payout will be processed.'
+            ? newStatus === 'PENDING_PAYOUT'
+              ? 'Dare approved. On-chain payout has been queued for retry.'
+              : 'Dare approved and payout processed.'
             : 'Dare rejected. Funds will be refunded to backers.',
       },
     });

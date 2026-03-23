@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { approveDareWithPayout } from '@/lib/dare-approval';
 
 // ============================================================================
 // ADMIN APPEALS API
@@ -164,15 +165,15 @@ export async function PUT(request: NextRequest) {
 
     // Update the dare based on decision
     if (decision === 'APPROVED') {
-      // Approve = Mark as VERIFIED, clear appeal
-      await prisma.dare.update({
-        where: { id: dareId },
-        data: {
-          status: 'VERIFIED',
-          appealStatus: 'APPROVED',
-          verifiedAt: new Date(),
-          // Note: In production, you'd trigger on-chain payout here
-        },
+      const result = await approveDareWithPayout({
+        dareId,
+        sourceContext: 'ADMIN_APPEAL',
+        verifiedAt: new Date(),
+        verifyConfidence: dare.verifyConfidence ?? 1.0,
+        proofHash: dare.proofHash,
+        proofMedia: dare.videoUrl,
+        appealStatus: 'APPROVED',
+        notificationMessage: `Your appeal for "${dare.title}" was approved and your dare has been verified.`,
       });
 
       // If overriding votes, award points to APPROVE voters
@@ -190,8 +191,14 @@ export async function PUT(request: NextRequest) {
           dareId,
           decision: 'APPROVED',
           overrideVotes,
-          message: 'Appeal approved. Dare marked as verified.',
-          note: 'Manual payout may be required if on-chain payout failed.',
+          message:
+            result.status === 'PENDING_PAYOUT'
+              ? 'Appeal approved. Payout has been queued for retry.'
+              : 'Appeal approved. Dare marked as verified.',
+          note:
+            result.status === 'PENDING_PAYOUT'
+              ? result.pendingReason
+              : 'Place memory will now compound from the approved completion.',
         },
       });
     } else {
