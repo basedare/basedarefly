@@ -401,16 +401,18 @@ function createPeebearMarkerIcon({
   approvedCount,
   active,
   visualState,
+  challengeLive,
 }: {
   pulse: PulseState;
   approvedCount: number;
   active: boolean;
   visualState: PlaceVisualState;
+  challengeLive: boolean;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
   const showCount = approvedCount > 0;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${badge}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${challengeLive ? 'challenge' : 'standard'}:${badge}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -423,8 +425,9 @@ function createPeebearMarkerIcon({
     iconAnchor: [41, 62],
     popupAnchor: [0, -48],
     html: `
-      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''}">
+      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${challengeLive ? 'has-challenge-live' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
+        ${challengeLive ? '<span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">LIVE</span>' : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
         <div class="peebear-core peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
@@ -559,6 +562,8 @@ export default function RealWorldMap() {
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
+  const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
+  const autoLocateFallbackAppliedRef = useRef(false);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -572,6 +577,7 @@ export default function RealWorldMap() {
 
     let cancelled = false;
 
+    autoLocateModeRef.current = mapReady ? 'manual' : 'auto';
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -590,7 +596,7 @@ export default function RealWorldMap() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mapReady]);
 
   useEffect(() => requestApproximateLocation(), [requestApproximateLocation]);
 
@@ -731,8 +737,26 @@ export default function RealWorldMap() {
         throw new Error('Failed to load nearby places');
       }
 
+      const nextVenues = payload.data.venues;
+
+      if (
+        nextVenues.length === 0 &&
+        autoLocateModeRef.current === 'auto' &&
+        !autoLocateFallbackAppliedRef.current
+      ) {
+        autoLocateFallbackAppliedRef.current = true;
+        autoLocateModeRef.current = 'idle';
+        setTargetCenter(DEFAULT_CENTER);
+        setTargetZoom(DEFAULT_ZOOM);
+        return;
+      }
+
+      if (nextVenues.length > 0) {
+        autoLocateModeRef.current = 'idle';
+      }
+
       if (requestId === nearbyFetchIdRef.current) {
-        setNearbyPlaces(payload.data.venues);
+        setNearbyPlaces(nextVenues);
       }
     } catch (error) {
       console.error('[REAL_WORLD_MAP] Nearby places failed:', error);
@@ -1101,6 +1125,7 @@ export default function RealWorldMap() {
       approvedCount: selectedPlace.approvedCount ?? 0,
       active: true,
       visualState: selectedVisualState,
+      challengeLive: (selectedPlace.activeDareCount ?? 0) > 0,
     });
   }, [selectedPlace, selectedPulse, selectedVisualState]);
 
@@ -1345,6 +1370,7 @@ export default function RealWorldMap() {
                       approvedCount: place.tagSummary.approvedCount,
                       active: isActive,
                       visualState,
+                      challengeLive: place.activeDareCount > 0,
                     })}
                     zIndexOffset={isActive ? 600 : 240}
                     eventHandlers={{
@@ -2127,6 +2153,18 @@ export default function RealWorldMap() {
           }
         }
 
+        @keyframes peebearChallengePulse {
+          0%,
+          100% {
+            transform: translateX(-50%) scale(1);
+            opacity: 0.88;
+          }
+          50% {
+            transform: translateX(-50%) scale(1.06);
+            opacity: 1;
+          }
+        }
+
         .basedare-leaflet-map :global(.leaflet-container) {
           height: 100%;
           width: 100%;
@@ -2154,6 +2192,42 @@ export default function RealWorldMap() {
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
+        }
+
+        .basedare-leaflet-map :global(.peebear-challenge-ring) {
+          position: absolute;
+          top: 7px;
+          left: 50%;
+          z-index: 0;
+          width: 74px;
+          height: 74px;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          border: 2px solid rgba(245, 197, 24, 0.72);
+          box-shadow:
+            0 0 0 4px rgba(245, 197, 24, 0.14),
+            0 0 22px rgba(245, 197, 24, 0.28),
+            inset 0 0 18px rgba(245, 197, 24, 0.08);
+          animation: peebearChallengePulse 2.8s ease-in-out infinite;
+        }
+
+        .basedare-leaflet-map :global(.peebear-challenge-pill) {
+          position: absolute;
+          right: -2px;
+          top: 8px;
+          z-index: 3;
+          border-radius: 9999px;
+          border: 1px solid rgba(245, 197, 24, 0.34);
+          background: linear-gradient(180deg, rgba(245, 197, 24, 0.22), rgba(72, 46, 9, 0.9));
+          padding: 3px 7px;
+          font-size: 7.5px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          color: rgba(255, 240, 177, 0.96);
+          box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .basedare-leaflet-map :global(.peebear-state) {
@@ -2302,6 +2376,14 @@ export default function RealWorldMap() {
             0 18px 30px rgba(0, 0, 0, 0.5),
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-ring) {
+          border-color: rgba(248, 221, 114, 0.92);
+          box-shadow:
+            0 0 0 5px rgba(245, 197, 24, 0.18),
+            0 0 28px rgba(245, 197, 24, 0.34),
+            inset 0 0 20px rgba(245, 197, 24, 0.1);
         }
 
         .basedare-leaflet-map :global(.peebear-head) {
