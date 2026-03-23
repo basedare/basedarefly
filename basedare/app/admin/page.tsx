@@ -354,7 +354,7 @@ export default function AdminPage() {
     }
   }, [adminSecret]);
 
-  const handlePlaceTagAction = async (
+  const handlePlaceTagAction = useCallback(async (
     tagId: string,
     action: 'APPROVE' | 'REJECT' | 'FLAG',
     options?: { openNext?: boolean }
@@ -399,7 +399,83 @@ export default function AdminPage() {
     } finally {
       setProcessingPlaceTag(null);
     }
-  };
+  }, [adminSecret, pendingPlaceTags, placeTagRejectReason]);
+
+  const selectNextPendingPlaceTag = useCallback(() => {
+    if (!selectedPlaceTag || pendingPlaceTags.length <= 1) {
+      return;
+    }
+
+    const currentIndex = pendingPlaceTags.findIndex((tag) => tag.id === selectedPlaceTag.id);
+    const nextTag =
+      currentIndex >= 0
+        ? pendingPlaceTags.find((tag, index) => index > currentIndex && tag.id !== selectedPlaceTag.id) ||
+          pendingPlaceTags.find((tag) => tag.id !== selectedPlaceTag.id)
+        : pendingPlaceTags[0] ?? null;
+
+    if (nextTag) {
+      setSelectedPlaceTag(nextTag);
+      setPlaceTagRejectReason('');
+    }
+  }, [pendingPlaceTags, selectedPlaceTag]);
+
+  useEffect(() => {
+    if (activeTab !== 'placeTags' || !selectedPlaceTag || !isTagsAuthorized) {
+      return;
+    }
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || processingPlaceTag) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const isTypingSurface =
+        target?.isContentEditable ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT';
+
+      if (isTypingSurface) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === 'a') {
+        event.preventDefault();
+        void handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE');
+        return;
+      }
+
+      if (key === 'r') {
+        event.preventDefault();
+        void handlePlaceTagAction(selectedPlaceTag.id, 'REJECT');
+        return;
+      }
+
+      if (key === 'f') {
+        event.preventDefault();
+        void handlePlaceTagAction(selectedPlaceTag.id, 'FLAG');
+        return;
+      }
+
+      if (key === 'n') {
+        event.preventDefault();
+        selectNextPendingPlaceTag();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [
+    activeTab,
+    handlePlaceTagAction,
+    isTagsAuthorized,
+    processingPlaceTag,
+    selectNextPendingPlaceTag,
+    selectedPlaceTag,
+  ]);
 
   const populatePlaceForm = useCallback((place: AdminPlace | null) => {
     if (!place) {
@@ -1615,6 +1691,10 @@ export default function AdminPage() {
                           Approve + Next
                         </button>
                       </div>
+
+                      <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/35">
+                        Shortcuts: <span className="text-cyan-300">A</span> approve, <span className="text-red-300">R</span> reject, <span className="text-yellow-300">F</span> flag, <span className="text-white/65">N</span> next
+                      </p>
                     </>
                   ) : (
                     <div className="flex items-center justify-center h-full min-h-[400px]">
