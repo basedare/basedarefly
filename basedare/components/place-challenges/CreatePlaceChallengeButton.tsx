@@ -8,6 +8,7 @@ import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
 import { Crosshair, Loader2, Sparkles, Target, Wallet, X, Zap } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { submitBountyCreation, type BountyApprovalStatus, type BountyCreationResult } from '@/lib/bounty-flow';
+import { getPlaceChallengeTemplates, type PlaceChallengeTemplate } from '@/lib/place-challenge-templates';
 
 type SessionShape = {
   token?: string | null;
@@ -34,6 +35,7 @@ type CreatePlaceChallengeButtonProps = {
   address?: string | null;
   city?: string | null;
   country?: string | null;
+  categories?: string[] | null;
   placeSource?: string | null;
   externalPlaceId?: string | null;
   buttonClassName?: string;
@@ -63,6 +65,7 @@ export default function CreatePlaceChallengeButton({
   address,
   city,
   country,
+  categories,
   placeSource,
   externalPlaceId,
   buttonClassName,
@@ -181,6 +184,25 @@ export default function CreatePlaceChallengeButton({
         return PROTOCOL_WINDOW_COPY;
     }
   }, [approvalStatus]);
+
+  const placeChallengeSuggestions = useMemo(
+    () =>
+      getPlaceChallengeTemplates({
+        placeName,
+        address,
+        city,
+        country,
+        categories,
+      }),
+    [address, categories, city, country, placeName]
+  );
+
+  function applyTemplate(template: PlaceChallengeTemplate) {
+    setTitle(template.title);
+    setDescription(template.description);
+    setMissionTag(template.missionTag);
+    setDiscoveryRadiusKm(String(template.discoveryRadiusKm));
+  }
 
   async function resolvePlaceAnchor() {
     if (effectivePlaceId) {
@@ -338,13 +360,14 @@ export default function CreatePlaceChallengeButton({
   }
 
   function resetComposer() {
+    const leadTemplate = placeChallengeSuggestions.templates[0];
     setSubmitState('idle');
     setCreationResult(null);
     setTitle('');
     setDescription('');
     setAmount('10');
-    setMissionTag('place');
-    setDiscoveryRadiusKm('0.5');
+    setMissionTag(leadTemplate?.missionTag ?? 'place');
+    setDiscoveryRadiusKm(String(leadTemplate?.discoveryRadiusKm ?? 0.5));
     setIsTargeted(false);
     setStreamerTag('');
   }
@@ -423,13 +446,65 @@ export default function CreatePlaceChallengeButton({
                         </div>
                       ) : (
                         <div className="space-y-4">
+                          <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
+                                  {placeChallengeSuggestions.title}
+                                </p>
+                                <p className="mt-2 max-w-xl text-sm text-white/62">
+                                  {placeChallengeSuggestions.description}
+                                </p>
+                              </div>
+                              <div className="hidden rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72] sm:inline-flex">
+                                {placeChallengeSuggestions.archetype.replace('-', ' ')}
+                              </div>
+                            </div>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                              {placeChallengeSuggestions.templates.map((template) => {
+                                const active =
+                                  title.trim() === template.title &&
+                                  description.trim() === template.description;
+
+                                return (
+                                  <button
+                                    key={template.id}
+                                    type="button"
+                                    onClick={() => applyTemplate(template)}
+                                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                                      active
+                                        ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] shadow-[0_14px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]'
+                                        : 'border-white/10 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-[#f5c518]/22 hover:bg-[#f5c518]/[0.06]'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                                      <Sparkles className="h-3.5 w-3.5" />
+                                      {template.label}
+                                    </div>
+                                    <p className="mt-3 text-sm font-semibold text-white">
+                                      {template.title}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                                        {template.missionTag}
+                                      </span>
+                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                                        {template.discoveryRadiusKm} km
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
                               <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Challenge title</p>
                               <input
                                 value={title}
                                 onChange={(event) => setTitle(event.target.value)}
-                                placeholder="Film the wildest sunrise jump here"
+                                placeholder={placeChallengeSuggestions.templates[0]?.title ?? 'Film the wildest sunrise jump here'}
                                 className="mt-3 h-12 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
                               />
                             </div>
@@ -456,7 +531,10 @@ export default function CreatePlaceChallengeButton({
                             <textarea
                               value={description}
                               onChange={(event) => setDescription(event.target.value)}
-                              placeholder="What exactly should happen at this place?"
+                              placeholder={
+                                placeChallengeSuggestions.templates[0]?.description ??
+                                'What exactly should happen at this place?'
+                              }
                               className="mt-3 h-28 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
                             />
                           </div>

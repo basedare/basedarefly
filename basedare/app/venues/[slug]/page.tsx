@@ -23,6 +23,8 @@ export default async function VenueDetailPage(
     notFound();
   }
 
+  const totalActiveChallengeFunding = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
+
   return (
     <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
@@ -102,6 +104,71 @@ export default async function VenueDetailPage(
                   <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Dares</p>
                   <div className="mt-3 text-3xl font-black">{venue.liveStats.activeDares}</div>
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Challenges</p>
+                    <h2 className="mt-2 text-2xl font-bold">Funded missions live at this place</h2>
+                    <p className="mt-3 max-w-2xl text-sm text-white/60">
+                      This is where the place turns into a real attention market. Open challenges here can become permanent memory once someone completes and verifies them.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-4 py-2 text-sm text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      {venue.activeDares.length} live
+                    </div>
+                    <div className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-4 py-2 text-sm text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      ${totalActiveChallengeFunding.toFixed(0)} funded
+                    </div>
+                    <Link
+                      href={`/map?place=${encodeURIComponent(venue.slug)}`}
+                      className="rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                    >
+                      Open on map to create challenge
+                    </Link>
+                  </div>
+                </div>
+                <div className="mt-5 space-y-3">
+                  {venue.activeDares.length > 0 ? (
+                    venue.activeDares.map((dare) => (
+                      <Link
+                        key={dare.id}
+                        href={`/dare/${dare.shortId}`}
+                        className={`${insetCardClass} group flex items-start justify-between gap-4 px-4 py-4 transition hover:border-[#f5c518]/25 hover:bg-[#f5c518]/[0.05]`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                              ${dare.bounty.toFixed(0)} USDC
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                              {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open challenge'}
+                            </span>
+                            {dare.expiresAt ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                                ends {new Date(dare.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-lg font-bold text-white">{dare.title}</p>
+                          <p className="mt-2 text-sm text-white/55">
+                            {dare.missionMode} mission anchored to this place{dare.streamerHandle ? ` for ${dare.streamerHandle}` : ''}.
+                          </p>
+                        </div>
+                        <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-white/35 transition group-hover:translate-x-1 group-hover:text-white/70" />
+                      </Link>
+                    ))
+                  ) : (
+                    <div className={`${insetCardClass} px-4 py-5`}>
+                      <p className="text-sm text-white/58">
+                        No live challenges here yet. Open this place on the map to fund the first mission and turn it into a stronger participation surface.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -202,34 +269,6 @@ export default async function VenueDetailPage(
                 </div>
               </div>
 
-              <div className={`${softCardClass} p-6`}>
-                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                <p className="text-xs uppercase tracking-[0.25em] text-white/40">Live Dares</p>
-                <div className="mt-5 space-y-3">
-                  {venue.activeDares.length > 0 ? (
-                    venue.activeDares.map((dare) => (
-                      <Link
-                        key={dare.id}
-                        href={`/dare/${dare.shortId}`}
-                        className={`${insetCardClass} flex items-center justify-between px-4 py-4 transition hover:border-fuchsia-400/35 hover:bg-fuchsia-500/5`}
-                      >
-                        <div>
-                          <p className="font-semibold text-white">{dare.title}</p>
-                          <p className="mt-1 text-sm text-white/50">
-                            {dare.missionMode} · {dare.streamerHandle ?? 'Open venue dare'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-emerald-300">${dare.bounty.toFixed(0)}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.25em] text-white/35">{dare.status}</p>
-                        </div>
-                      </Link>
-                    ))
-                  ) : (
-                    <p className="text-sm text-white/55">No active dares tied to this venue yet.</p>
-                  )}
-                </div>
-              </div>
             </div>
 
             <div className="space-y-6">

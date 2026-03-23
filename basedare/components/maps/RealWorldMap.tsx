@@ -55,6 +55,7 @@ type NearbyPlace = {
   country: string | null;
   latitude: number;
   longitude: number;
+  categories: string[];
   distanceDisplay: string;
   tagSummary: {
     approvedCount: number;
@@ -73,6 +74,7 @@ type SelectedPlace = {
   country?: string | null;
   latitude: number;
   longitude: number;
+  categories?: string[] | null;
   placeSource?: string | null;
   externalPlaceId?: string | null;
   approvedCount?: number;
@@ -129,6 +131,7 @@ type VenueDetailResponse = {
       country: string | null;
       latitude: number;
       longitude: number;
+      categories: string[];
       tagSummary: {
         approvedCount: number;
         heatScore: number;
@@ -640,6 +643,7 @@ export default function RealWorldMap() {
           country: venue.country,
           latitude: venue.latitude,
           longitude: venue.longitude,
+          categories: venue.categories,
           approvedCount: venue.tagSummary.approvedCount,
           heatScore: venue.tagSummary.heatScore,
           lastTaggedAt: venue.tagSummary.lastTaggedAt,
@@ -767,6 +771,7 @@ export default function RealWorldMap() {
       country: place.country,
       latitude: place.latitude,
       longitude: place.longitude,
+      categories: place.categories,
       approvedCount: place.tagSummary.approvedCount,
       heatScore: place.tagSummary.heatScore,
       lastTaggedAt: place.tagSummary.lastTaggedAt,
@@ -808,6 +813,7 @@ export default function RealWorldMap() {
             country: venue.country,
             latitude: venue.latitude,
             longitude: venue.longitude,
+            categories: venue.categories,
             approvedCount: venue.tagSummary.approvedCount,
             heatScore: venue.tagSummary.heatScore,
             lastTaggedAt: venue.tagSummary.lastTaggedAt,
@@ -1213,6 +1219,7 @@ export default function RealWorldMap() {
                           country: result.country,
                           latitude: result.latitude,
                           longitude: result.longitude,
+                          categories: undefined,
                           placeSource: result.placeSource,
                           externalPlaceId: result.externalPlaceId,
                           approvedCount: result.placeSource === 'BASEDARE_VENUE' ? 0 : undefined,
@@ -1773,6 +1780,7 @@ export default function RealWorldMap() {
                           country: place.country,
                           latitude: place.latitude,
                           longitude: place.longitude,
+                          categories: current?.categories ?? null,
                           placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
                           externalPlaceId:
                             current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
@@ -1811,6 +1819,7 @@ export default function RealWorldMap() {
                       address={selectedPlace.address}
                       city={selectedPlace.city}
                       country={selectedPlace.country}
+                      categories={selectedPlace.categories}
                       placeSource={selectedPlace.placeSource}
                       externalPlaceId={selectedPlace.externalPlaceId}
                       onPlaceResolved={(place) => {
@@ -1827,6 +1836,7 @@ export default function RealWorldMap() {
                           country: place.country,
                           latitude: place.latitude,
                           longitude: place.longitude,
+                          categories: current?.categories ?? null,
                           placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
                           externalPlaceId:
                             current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
