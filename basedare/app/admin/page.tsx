@@ -102,7 +102,68 @@ interface PendingPlaceTag {
   };
 }
 
-type AdminTab = 'moderation' | 'claims' | 'tags' | 'placeTags';
+interface AdminPlace {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  latitude: number;
+  longitude: number;
+  status: string;
+  isPartner: boolean;
+  partnerTier: string | null;
+  placeSource: string | null;
+  externalPlaceId: string | null;
+  categories: string[];
+  checkInRadiusMeters: number;
+  qrRotationSeconds: number;
+  createdAt: string;
+  updatedAt: string;
+  _count: {
+    placeTags: number;
+    dares: number;
+  };
+}
+
+type AdminPlaceForm = {
+  id?: string;
+  slug: string;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  country: string;
+  latitude: string;
+  longitude: string;
+  status: string;
+  isPartner: boolean;
+  partnerTier: string;
+  placeSource: string;
+  externalPlaceId: string;
+  categories: string;
+};
+
+type AdminTab = 'moderation' | 'claims' | 'tags' | 'placeTags' | 'places';
+
+const EMPTY_PLACE_FORM: AdminPlaceForm = {
+  slug: '',
+  name: '',
+  description: '',
+  address: '',
+  city: '',
+  country: '',
+  latitude: '',
+  longitude: '',
+  status: 'ACTIVE',
+  isPartner: false,
+  partnerTier: '',
+  placeSource: 'ADMIN_MANUAL',
+  externalPlaceId: '',
+  categories: '',
+};
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
@@ -130,6 +191,13 @@ export default function AdminPage() {
   const [processingPlaceTag, setProcessingPlaceTag] = useState<string | null>(null);
   const [selectedPlaceTag, setSelectedPlaceTag] = useState<PendingPlaceTag | null>(null);
   const [placeTagRejectReason, setPlaceTagRejectReason] = useState('');
+  const [places, setPlaces] = useState<AdminPlace[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [placesError, setPlacesError] = useState<string | null>(null);
+  const [placesSearchQuery, setPlacesSearchQuery] = useState('');
+  const [selectedPlaceRecord, setSelectedPlaceRecord] = useState<AdminPlace | null>(null);
+  const [placeForm, setPlaceForm] = useState<AdminPlaceForm>(EMPTY_PLACE_FORM);
+  const [savingPlace, setSavingPlace] = useState(false);
 
   // Claims management state
   const [pendingClaims, setPendingClaims] = useState<ClaimRequest[]>([]);
@@ -321,11 +389,131 @@ export default function AdminPage() {
     }
   };
 
+  const populatePlaceForm = useCallback((place: AdminPlace | null) => {
+    if (!place) {
+      setPlaceForm(EMPTY_PLACE_FORM);
+      return;
+    }
+
+    setPlaceForm({
+      id: place.id,
+      slug: place.slug,
+      name: place.name,
+      description: place.description ?? '',
+      address: place.address ?? '',
+      city: place.city ?? '',
+      country: place.country ?? '',
+      latitude: String(place.latitude),
+      longitude: String(place.longitude),
+      status: place.status,
+      isPartner: place.isPartner,
+      partnerTier: place.partnerTier ?? '',
+      placeSource: place.placeSource ?? '',
+      externalPlaceId: place.externalPlaceId ?? '',
+      categories: place.categories.join(', '),
+    });
+  }, []);
+
+  const fetchPlaces = useCallback(async (query?: string) => {
+    if (!adminSecret) return;
+
+    setPlacesLoading(true);
+    setPlacesError(null);
+
+    try {
+      const url = new URL('/api/admin/places', window.location.origin);
+      if (query?.trim()) {
+        url.searchParams.set('q', query.trim());
+      }
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          'x-admin-secret': adminSecret,
+        },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsTagsAuthorized(true);
+        setPlaces(data.data.places);
+      } else if (res.status === 401) {
+        setIsTagsAuthorized(false);
+        setPlacesError('Invalid admin secret');
+      } else {
+        setPlacesError(data.error || 'Failed to load places');
+      }
+    } catch {
+      setPlacesError('Failed to connect to server');
+    } finally {
+      setPlacesLoading(false);
+    }
+  }, [adminSecret]);
+
+  const handleSavePlace = async () => {
+    if (!adminSecret) return;
+
+    setSavingPlace(true);
+    setPlacesError(null);
+
+    try {
+      const res = await fetch('/api/admin/places', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({
+          id: placeForm.id || undefined,
+          slug: placeForm.slug || undefined,
+          name: placeForm.name,
+          description: placeForm.description || null,
+          address: placeForm.address || null,
+          city: placeForm.city || null,
+          country: placeForm.country || null,
+          latitude: Number(placeForm.latitude),
+          longitude: Number(placeForm.longitude),
+          status: placeForm.status,
+          isPartner: placeForm.isPartner,
+          partnerTier: placeForm.partnerTier || null,
+          placeSource: placeForm.placeSource || null,
+          externalPlaceId: placeForm.externalPlaceId || null,
+          categories: placeForm.categories
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success || !data.data?.place) {
+        setPlacesError(data.error || 'Failed to save place');
+        return;
+      }
+
+      await fetchPlaces(placesSearchQuery);
+      const nextPlace = data.data.place as AdminPlace;
+      setSelectedPlaceRecord((current) => (current?.id === nextPlace.id ? { ...current, ...nextPlace } : nextPlace));
+      setPlaceForm((current) => ({ ...current, id: nextPlace.id, slug: nextPlace.slug }));
+    } catch {
+      setPlacesError('Failed to save place');
+    } finally {
+      setSavingPlace(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'placeTags' && adminSecret && (!isTagsAuthorized || pendingPlaceTags.length === 0)) {
       fetchPendingPlaceTags();
     }
   }, [activeTab, adminSecret, isTagsAuthorized, pendingPlaceTags.length, fetchPendingPlaceTags]);
+
+  useEffect(() => {
+    if (activeTab === 'places' && adminSecret && (!isTagsAuthorized || places.length === 0)) {
+      fetchPlaces(placesSearchQuery);
+    }
+  }, [activeTab, adminSecret, isTagsAuthorized, places.length, placesSearchQuery, fetchPlaces]);
 
   // Fetch pending claims (uses moderator wallet auth, same as moderation queue)
   const fetchPendingClaims = useCallback(async () => {
@@ -509,6 +697,17 @@ export default function AdminPage() {
               >
                 <Tag className="w-4 h-4 inline mr-2" />
                 Chaos Inbox {pendingPlaceTags.length > 0 && `(${pendingPlaceTags.length})`}
+              </button>
+              <button
+                onClick={() => setActiveTab('places')}
+                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'places'
+                    ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Places
               </button>
             </div>
           )}
@@ -1399,6 +1598,340 @@ export default function AdminPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isConnected && isAuthorized && !loading && activeTab === 'places' && (
+          <div className="space-y-6">
+            {!isTagsAuthorized && (
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-emerald-300" />
+                  Admin Authentication
+                </h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Enter your admin secret to manage places on the map.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    value={adminSecret}
+                    onChange={(e) => setAdminSecret(e.target.value)}
+                    placeholder="Enter admin secret..."
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none font-mono"
+                  />
+                  <button
+                    onClick={() => fetchPlaces(placesSearchQuery)}
+                    disabled={!adminSecret || placesLoading}
+                    className="w-full py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {placesLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    ) : (
+                      'Authenticate'
+                    )}
+                  </button>
+                  {placesError && (
+                    <p className="text-xs text-red-400 text-center">{placesError}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isTagsAuthorized && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-emerald-300" />
+                      Place Ops ({places.length})
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlaceRecord(null);
+                        populatePlaceForm(null);
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 transition hover:bg-emerald-500/15"
+                    >
+                      New place
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3 mb-4">
+                    <input
+                      value={placesSearchQuery}
+                      onChange={(e) => setPlacesSearchQuery(e.target.value)}
+                      placeholder="Search by name, slug, city..."
+                      className="flex-1 p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fetchPlaces(placesSearchQuery)}
+                      disabled={placesLoading}
+                      className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition-colors disabled:opacity-50"
+                    >
+                      {placesLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load'}
+                    </button>
+                  </div>
+
+                  {placesLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-emerald-300 animate-spin" />
+                    </div>
+                  ) : places.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MapPin className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-400">No places loaded yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                      {places.map((place) => (
+                        <div
+                          key={place.id}
+                          onClick={() => {
+                            setSelectedPlaceRecord(place);
+                            populatePlaceForm(place);
+                          }}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                            selectedPlaceRecord?.id === place.id
+                              ? 'bg-emerald-500/10 border-emerald-500/50'
+                              : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <h4 className="font-bold text-white text-sm line-clamp-1">{place.name}</h4>
+                              <p className="text-[11px] text-gray-500">{place.slug}</p>
+                            </div>
+                            <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-emerald-500/20 text-emerald-300 shrink-0">
+                              {place.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-gray-400">{place.city || 'Unknown city'}</span>
+                            <span className="text-gray-500">
+                              {place._count.placeTags} marks / {place._count.dares} dares
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Link
+                              href={`/map?place=${encodeURIComponent(place.slug)}`}
+                              target="_blank"
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300 transition hover:bg-cyan-500/15"
+                            >
+                              <MapPin className="h-3.5 w-3.5" />
+                              Open on map
+                            </Link>
+                            <Link
+                              href={`/venues/${place.slug}`}
+                              target="_blank"
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Open place
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {placesError && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                      <p className="text-xs text-red-400">{placesError}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <h3 className="text-lg font-bold text-white">
+                      {placeForm.id ? 'Edit Place' : 'Create Place'}
+                    </h3>
+                    {placeForm.id ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlaceRecord(null);
+                          populatePlaceForm(null);
+                        }}
+                        className="text-xs uppercase tracking-[0.18em] text-white/50 hover:text-white transition-colors"
+                      >
+                        clear
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={placeForm.name}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, name: e.target.value }))}
+                        placeholder="Place name"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <input
+                        value={placeForm.slug}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, slug: e.target.value }))}
+                        placeholder="Slug (optional)"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                    </div>
+
+                    <textarea
+                      value={placeForm.description}
+                      onChange={(e) => setPlaceForm((current) => ({ ...current, description: e.target.value }))}
+                      placeholder="Short description..."
+                      rows={2}
+                      className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none resize-none"
+                    />
+
+                    <input
+                      value={placeForm.address}
+                      onChange={(e) => setPlaceForm((current) => ({ ...current, address: e.target.value }))}
+                      placeholder="Address"
+                      className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                    />
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={placeForm.city}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, city: e.target.value }))}
+                        placeholder="City"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <input
+                        value={placeForm.country}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, country: e.target.value }))}
+                        placeholder="Country"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={placeForm.latitude}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, latitude: e.target.value }))}
+                        placeholder="Latitude"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none font-mono"
+                      />
+                      <input
+                        value={placeForm.longitude}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, longitude: e.target.value }))}
+                        placeholder="Longitude"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={placeForm.placeSource}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, placeSource: e.target.value }))}
+                        placeholder="Place source"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <input
+                        value={placeForm.externalPlaceId}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, externalPlaceId: e.target.value }))}
+                        placeholder="External place ID"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <input
+                        value={placeForm.categories}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, categories: e.target.value }))}
+                        placeholder="Categories (comma separated)"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <input
+                        value={placeForm.partnerTier}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, partnerTier: e.target.value }))}
+                        placeholder="Partner tier"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
+                      <input
+                        value={placeForm.status}
+                        onChange={(e) => setPlaceForm((current) => ({ ...current, status: e.target.value.toUpperCase() }))}
+                        placeholder="Status"
+                        className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+                        <input
+                          type="checkbox"
+                          checked={placeForm.isPartner}
+                          onChange={(e) => setPlaceForm((current) => ({ ...current, isPartner: e.target.checked }))}
+                          className="rounded border-white/20 bg-transparent text-emerald-400 focus:ring-emerald-400"
+                        />
+                        Partner
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={handleSavePlace}
+                      disabled={
+                        savingPlace ||
+                        !placeForm.name.trim() ||
+                        !placeForm.latitude.trim() ||
+                        !placeForm.longitude.trim()
+                      }
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {savingPlace ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      {placeForm.id ? 'Save place' : 'Create place'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlaceRecord(null);
+                        populatePlaceForm(null);
+                      }}
+                      className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors"
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  {selectedPlaceRecord ? (
+                    <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/35">Current place context</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          href={`/map?place=${encodeURIComponent(selectedPlaceRecord.slug)}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300 transition hover:bg-cyan-500/15"
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                          Open on map
+                        </Link>
+                        <Link
+                          href={`/venues/${selectedPlaceRecord.slug}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open place
+                        </Link>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}
