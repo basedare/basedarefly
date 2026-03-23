@@ -7,6 +7,7 @@ type MapCrosshairProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   horizontalColor?: string;
   verticalColor?: string;
+  reactiveSelector?: string;
 };
 
 const lerp = (start: number, end: number, amount: number) => (1 - amount) * start + amount * end;
@@ -15,6 +16,7 @@ export default function MapCrosshair({
   containerRef,
   horizontalColor = 'rgba(184, 127, 255, 0.7)',
   verticalColor = 'rgba(245, 197, 24, 0.7)',
+  reactiveSelector = 'a, button, .leaflet-marker-icon, .peebear-marker',
 }: MapCrosshairProps) {
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
@@ -137,25 +139,52 @@ export default function MapCrosshair({
       distortionTimeline.restart();
     };
 
-    const interactiveNodes = container.querySelectorAll('a, button');
-    interactiveNodes.forEach((node) => node.addEventListener('mouseenter', triggerDistortion));
+    let activeInteractiveTarget: Element | null = null;
+
+    const handleInteractiveHover = (event: Event) => {
+      const target = event.target as Element | null;
+      const interactiveTarget = target?.closest(reactiveSelector) ?? null;
+
+      if (!interactiveTarget || interactiveTarget === activeInteractiveTarget) {
+        return;
+      }
+
+      activeInteractiveTarget = interactiveTarget;
+      triggerDistortion();
+    };
+
+    const clearInteractiveHover = (event: MouseEvent) => {
+      if (!activeInteractiveTarget) {
+        return;
+      }
+
+      const relatedTarget = event.relatedTarget as Element | null;
+      if (relatedTarget?.closest(reactiveSelector)) {
+        return;
+      }
+
+      activeInteractiveTarget = null;
+    };
 
     container.addEventListener('mouseenter', handleMouseEnter);
     container.addEventListener('mousemove', handleMouseMove);
     container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('mouseover', handleInteractiveHover);
+    container.addEventListener('mouseout', clearInteractiveHover);
 
     return () => {
       container.removeEventListener('mouseenter', handleMouseEnter);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseleave', handleMouseLeave);
-      interactiveNodes.forEach((node) => node.removeEventListener('mouseenter', triggerDistortion));
+      container.removeEventListener('mouseover', handleInteractiveHover);
+      container.removeEventListener('mouseout', clearInteractiveHover);
       distortionTimeline.kill();
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
         frameRef.current = null;
       }
     };
-  }, [containerRef, xFilterId, yFilterId]);
+  }, [containerRef, reactiveSelector, xFilterId, yFilterId]);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[12] hidden md:block overflow-hidden">

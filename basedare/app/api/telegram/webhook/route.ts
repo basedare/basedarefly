@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { alertVerification } from '@/lib/telegram';
+import {
+  getPendingTelegramPlaceTags,
+  getTelegramPlaceStats,
+  reviewTelegramPlaceTag,
+  searchTelegramPlaces,
+} from '@/lib/telegram-place-memory';
 import { handleTelegramUpdate, validateTelegramWebhookSecret, type TelegramUpdate } from '@/lib/telegram-bot';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -243,6 +249,139 @@ async function handleStats(chatId: number) {
   await sendMessage(chatId, message);
 }
 
+async function handlePlaceSearch(chatId: number, args: string) {
+  const query = args.trim();
+
+  if (!query) {
+    await sendMessage(chatId, '❌ Usage: <code>/place [name or area]</code>');
+    return;
+  }
+
+  const places = await searchTelegramPlaces(query, 6);
+
+  if (places.length === 0) {
+    await sendMessage(chatId, `❌ No known BaseDare places found for <b>${query}</b>.`);
+    return;
+  }
+
+  const lines = places.map((place, index) => {
+    const location = [place.city, place.country].filter(Boolean).join(', ') || 'Unknown location';
+    const mapLink = `${BASE_URL}/map?place=${encodeURIComponent(place.slug)}`;
+    const placeLink = `${BASE_URL}/venues/${place.slug}`;
+    return [
+      `${index + 1}. <b>${place.name}</b>`,
+      `   📍 ${location}`,
+      `   ⚡ ${place._count.placeTags} sparks`,
+      `   🗺 <a href="${mapLink}">Open on map</a> · <a href="${placeLink}">Place page</a>`,
+    ].join('\n');
+  });
+
+  await sendMessage(
+    chatId,
+    `🗺 <b>PLACE SEARCH</b>\n\n${lines.join('\n\n')}`
+  );
+}
+
+async function handlePendingPlaceTags(chatId: number) {
+  const pendingTags = await getPendingTelegramPlaceTags(10);
+
+  if (pendingTags.length === 0) {
+    await sendMessage(chatId, '✅ <b>No pending place tags</b>\n\nThe grid is caught up.');
+    return;
+  }
+
+  const lines = pendingTags.map((tag, index) => {
+    const creator = tag.creatorTag || `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`;
+    const mapLink = `${BASE_URL}/map?place=${encodeURIComponent(tag.venue.slug)}`;
+    return [
+      `${index + 1}. <code>${tag.id.slice(0, 8)}</code> → <b>${tag.venue.name}</b>`,
+      `   👤 ${creator}`,
+      `   📝 ${tag.caption || 'No caption'}`,
+      `   🗺 <a href="${mapLink}">Open on map</a>`,
+    ].join('\n');
+  });
+
+  await sendMessage(
+    chatId,
+    `📍 <b>PENDING PLACE TAGS</b> (${pendingTags.length})\n\n${lines.join('\n\n')}\n\nUse <code>/placeapprove [id]</code>, <code>/placereject [id] [reason]</code>, or <code>/placeflag [id] [reason]</code>.`
+  );
+}
+
+async function handlePlaceReview(
+  chatId: number,
+  args: string,
+  action: 'APPROVE' | 'REJECT' | 'FLAG'
+) {
+  const parts = args.trim().split(/\s+/).filter(Boolean);
+  const tagRef = parts[0];
+  const reason = parts.slice(1).join(' ').trim();
+
+  if (!tagRef) {
+    const usage =
+      action === 'APPROVE'
+        ? '/placeapprove [tag_id]'
+        : action === 'REJECT'
+          ? '/placereject [tag_id] [reason]'
+          : '/placeflag [tag_id] [reason]';
+    await sendMessage(chatId, `❌ Usage: <code>${usage}</code>`);
+    return;
+  }
+
+  const result = await reviewTelegramPlaceTag({
+    tagRef,
+    action,
+    reason: reason || undefined,
+    reviewerWallet: 'telegram-admin',
+  });
+
+  if (!result.ok) {
+    await sendMessage(chatId, `❌ ${result.error}`);
+    return;
+  }
+
+  const mapLink = `${BASE_URL}/map?place=${encodeURIComponent(result.tag.venue.slug)}`;
+  const placeLink = `${BASE_URL}/venues/${result.tag.venue.slug}`;
+
+  const actionWord =
+    action === 'APPROVE' ? 'approved' : action === 'REJECT' ? 'rejected' : 'flagged';
+  const badge =
+    action === 'APPROVE' ? '✅' : action === 'REJECT' ? '❌' : '🚩';
+
+  await sendMessage(
+    chatId,
+    [
+      `${badge} <b>PLACE TAG ${actionWord.toUpperCase()}</b>`,
+      '',
+      `<b>${result.tag.venue.name}</b>`,
+      result.tag.creatorTag
+        ? `👤 ${result.tag.creatorTag}`
+        : `👤 ${result.tag.walletAddress.slice(0, 6)}...${result.tag.walletAddress.slice(-4)}`,
+      action === 'APPROVE' && result.firstMark ? '⚡ First spark unlocked' : null,
+      reason ? `📝 ${reason}` : null,
+      `🗺 <a href="${mapLink}">Open on map</a> · <a href="${placeLink}">Place page</a>`,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  );
+}
+
+async function handlePlaceStats(chatId: number) {
+  const stats = await getTelegramPlaceStats();
+
+  await sendMessage(
+    chatId,
+    [
+      '🧠 <b>PLACE MEMORY STATS</b>',
+      '',
+      `📍 Total places: ${stats.totalPlaces}`,
+      `✅ Active places: ${stats.activePlaces}`,
+      `⏳ Pending place tags: ${stats.pendingPlaceTags}`,
+      `⚡ Approved sparks: ${stats.approvedPlaceTags}`,
+      `🔥 Hot places (3+ sparks): ${stats.hotPlaces}`,
+    ].join('\n')
+  );
+}
+
 /**
  * Handle /help command
  */
@@ -254,6 +393,14 @@ async function handleHelp(chatId: number) {
 /pending - List dares awaiting review
 /approve [id] - Approve a dare
 /reject [id] [reason] - Reject a dare
+
+<b>Place Memory:</b>
+/place [query] - Find a known place
+/placepending - List pending place tags
+/placeapprove [id] - Approve a place tag
+/placereject [id] [reason] - Reject a place tag
+/placeflag [id] [reason] - Flag a place tag
+/placestats - Place-memory overview
 
 <b>Stats:</b>
 /stats - Quick stats overview
@@ -312,6 +459,24 @@ export async function POST(req: NextRequest) {
         break;
       case '/stats':
         await handleStats(chatId);
+        break;
+      case '/place':
+        await handlePlaceSearch(chatId, args);
+        break;
+      case '/placepending':
+        await handlePendingPlaceTags(chatId);
+        break;
+      case '/placeapprove':
+        await handlePlaceReview(chatId, args, 'APPROVE');
+        break;
+      case '/placereject':
+        await handlePlaceReview(chatId, args, 'REJECT');
+        break;
+      case '/placeflag':
+        await handlePlaceReview(chatId, args, 'FLAG');
+        break;
+      case '/placestats':
+        await handlePlaceStats(chatId);
         break;
       case '/help':
       case '/start':

@@ -294,6 +294,62 @@ function getPlaceVisualCopy(state: PlaceVisualState) {
   }
 }
 
+function getPulseLegendPalette(pulse: PulseState) {
+  switch (pulse) {
+    case 'blazing':
+      return {
+        activeCount: 4,
+        activeClass: 'from-rose-300 to-amber-200 shadow-[0_0_18px_rgba(251,113,133,0.32)]',
+      };
+    case 'igniting':
+      return {
+        activeCount: 3,
+        activeClass: 'from-cyan-300 to-sky-200 shadow-[0_0_16px_rgba(34,211,238,0.28)]',
+      };
+    case 'simmering':
+      return {
+        activeCount: 2,
+        activeClass: 'from-[#f5c518] to-[#f8dd72] shadow-[0_0_14px_rgba(245,197,24,0.24)]',
+      };
+    case 'cold':
+    default:
+      return {
+        activeCount: 1,
+        activeClass: 'from-white/60 to-white/30 shadow-none',
+      };
+  }
+}
+
+function renderPulseLegend(
+  pulse: PulseState,
+  options?: {
+    compact?: boolean;
+  }
+) {
+  const compact = options?.compact ?? false;
+  const palette = getPulseLegendPalette(pulse);
+  const barClass = compact ? 'h-2 w-6 rounded-full' : 'h-3 w-10 rounded-full';
+
+  return (
+    <div className={compact ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-2'}>
+      {Array.from({ length: 4 }).map((_, index) => {
+        const active = index < palette.activeCount;
+        return (
+          <span
+            key={`${pulse}-${index}`}
+            className={`${barClass} border border-white/10 transition ${
+              active
+                ? `bg-gradient-to-r ${palette.activeClass}`
+                : 'bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+            }`}
+            aria-hidden="true"
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function createPeebearMarkerIcon({
   pulse,
   approvedCount,
@@ -307,6 +363,7 @@ function createPeebearMarkerIcon({
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
+  const showCount = approvedCount > 0;
   const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${badge}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
@@ -316,15 +373,15 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: [72, 82],
-    iconAnchor: [36, 56],
+    iconSize: [82, 96],
+    iconAnchor: [41, 62],
     popupAnchor: [0, -48],
     html: `
       <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
+        ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
         <div class="peebear-core peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
-          <span class="peebear-badge peebear-badge--${visualState === 'first-mark' ? 'first-mark' : visualState === 'pending' ? 'pending' : pulse}">${visualState === 'first-mark' ? '1st' : visualState === 'pending' ? '...' : badge}</span>
         </div>
         <span class="peebear-state peebear-state--${visualState}">${visualState === 'first-mark' ? 'FIRST' : visualState === 'pending' ? 'PENDING' : visualState === 'hot' ? 'HOT' : visualState === 'active' ? 'ALIVE' : 'UNMARKED'}</span>
         <div class="peebear-shadow"></div>
@@ -451,6 +508,7 @@ export default function RealWorldMap() {
   const deepLinkedPlaceSlug = searchParams.get('place');
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
+  const skipNextSearchRef = useRef(false);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -556,6 +614,13 @@ export default function RealWorldMap() {
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
     if (trimmed.length < 2) {
       setSearchResults([]);
       setSearching(false);
@@ -999,6 +1064,11 @@ export default function RealWorldMap() {
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  onBlur={() => {
+                    window.setTimeout(() => {
+                      setSearchResults([]);
+                    }, 120);
+                  }}
                   placeholder="Search any place or address..."
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
                 />
@@ -1012,8 +1082,10 @@ export default function RealWorldMap() {
                       key={result.id}
                       type="button"
                       onClick={() => {
+                        skipNextSearchRef.current = true;
                         setSearchQuery(result.name);
                         setSearchResults([]);
+                        setSearching(false);
                         setSelectedPlace({
                           placeId: result.placeId,
                           slug: result.slug,
@@ -1269,21 +1341,25 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute inset-x-4 bottom-4 z-30 md:right-4 md:left-auto md:w-[420px]">
-                <div className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] md:max-h-[82vh]">
-                  <div className="flex max-h-[58dvh] flex-col overflow-hidden md:max-h-[82vh]">
-                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.92)] px-5 pb-4 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-5 md:pt-5">
+              <div className="absolute inset-x-4 bottom-4 z-30 md:inset-x-auto md:right-4 md:top-28 md:bottom-4 md:w-[440px] lg:w-[456px]">
+                <div className="relative overflow-hidden rounded-[34px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.03)_9%,rgba(7,9,18,0.95)_34%,rgba(5,6,14,0.985)_100%)] shadow-[0_38px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),0_0_84px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-20px_30px_rgba(0,0,0,0.28)] md:h-full md:max-h-none">
+                  <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.12),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.11),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.18)_100%)]" />
+                  <div className="flex max-h-[58dvh] flex-col overflow-hidden md:h-full md:max-h-none">
+                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-5 pb-5 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-6 md:pb-6 md:pt-6">
                     <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 md:hidden" />
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-200">
+                  <div className="flex items-start justify-between gap-5">
+                    <div className="min-w-0 flex-1">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,29,45,0.32)_100%)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.18)]">
                         <Sparkles className="h-3.5 w-3.5" />
                         {selectedPlace.placeId ? 'Place memory anchor' : 'Dropped pin'}
                       </div>
-                      <h3 className="mt-3 text-xl font-black text-white">{selectedPlace.name}</h3>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <h3 className="mt-4 max-w-[15rem] text-[2rem] font-black leading-[0.96] tracking-tight text-white md:max-w-[19rem] md:text-[2.35rem]">
+                        {selectedPlace.name}
+                      </h3>
+                      <div className="mt-4 flex flex-wrap items-center gap-2.5">
                         <span
-                          className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                          className={`rounded-full border px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
                             selectedVisualState === 'hot'
                               ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
                               : selectedVisualState === 'active'
@@ -1298,19 +1374,19 @@ export default function RealWorldMap() {
                           {selectedVisualCopy.label}
                         </span>
                         {selectedPlaceTags.some((tag) => tag.firstMark) ? (
-                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72]">
+                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                             First mark captured
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm text-white/55">
+                      <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-white/58 md:max-w-[20rem]">
                         {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedPlace(null)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70 transition hover:border-white/18 hover:text-white"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
                       aria-label="Close place panel"
                       title="Close place panel"
                     >
@@ -1319,11 +1395,11 @@ export default function RealWorldMap() {
                   </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-5">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-6 md:pb-6">
 
                   {ceremonyState ? (
                     <div
-                      className={`mt-4 rounded-[22px] border px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${
+                      className={`mt-1 rounded-[24px] border px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)] ${
                         ceremonyState.kind === 'pending'
                           ? 'border-amber-300/18 bg-amber-500/[0.08]'
                           : ceremonyState.kind === 'first-spark'
@@ -1338,42 +1414,41 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(6,8,14,0.82)_0%,rgba(0,0,0,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Pulse</p>
-                      <p className="mt-2 text-lg font-black text-white">{selectedPulse}</p>
-                    </div>
-                    <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(6,8,14,0.82)_0%,rgba(0,0,0,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
+                  <div className="mt-5 grid grid-cols-2 gap-3.5">
+                    <div className="rounded-[24px] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.045)_0%,rgba(8,10,16,0.92)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_20px_rgba(0,0,0,0.24)]">
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
-                      <p className="mt-2 text-lg font-black text-white">{selectedPlace.approvedCount ?? 0}</p>
+                      <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
                     </div>
-                    <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(6,8,14,0.82)_0%,rgba(0,0,0,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
+                    <div className="rounded-[24px] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.045)_0%,rgba(8,10,16,0.92)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_20px_rgba(0,0,0,0.24)]">
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
-                      <p className="mt-2 text-lg font-black text-white">{selectedPlace.heatScore ?? 0}</p>
+                      <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
                     </div>
-                    <p className="mt-2 text-sm text-white/80">{selectedVisualCopy.description}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
+                    <p className="mt-3 text-sm leading-relaxed text-white/80">{selectedVisualCopy.description}</p>
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                         {selectedLastSpark}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
-                        Pulse {selectedPulse}
+                      <span
+                        className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        aria-label={`Pulse level ${selectedPulse}`}
+                      >
+                        {renderPulseLegend(selectedPulse, { compact: true })}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                         {selectedPlace.approvedCount ?? 0} sparks on record
                       </span>
                     </div>
                   </div>
 
                   {selectedPendingPlaceTags.length > 0 ? (
-                    <div className="mt-4 rounded-[22px] border border-amber-400/18 bg-amber-500/[0.06] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <div className="mt-5 rounded-[26px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.08)_0%,rgba(10,10,18,0.94)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-amber-200/80">
                         <Loader2 className="h-3.5 w-3.5" />
                         Pending Marks
@@ -1385,7 +1460,7 @@ export default function RealWorldMap() {
                         {selectedPendingPlaceTags.slice(0, 3).map((tag) => (
                           <div
                             key={tag.tagId}
-                            className="rounded-[18px] border border-amber-300/12 bg-black/16 px-3 py-3"
+                            className="rounded-[20px] border border-amber-300/12 bg-[linear-gradient(180deg,rgba(0,0,0,0.14)_0%,rgba(10,10,18,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                           >
                             <div className="flex gap-3">
                               {tag.proofMediaUrl ? (
@@ -1438,7 +1513,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
                       Recent Marks
@@ -1455,7 +1530,7 @@ export default function RealWorldMap() {
                         {selectedPlaceTags.slice(0, 3).map((tag) => (
                           <div
                             key={tag.id}
-                            className="rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(7,10,16,0.92)_0%,rgba(6,6,12,0.86)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-3 py-3 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
                           >
                             <div className="flex gap-3">
                               {renderProofPreview(tag)}
@@ -1502,7 +1577,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-3">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -1553,13 +1628,13 @@ export default function RealWorldMap() {
                             : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
+                      buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(4,28,42,0.72)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
                     />
 
                     {selectedPlace.slug ? (
                       <Link
                         href={`/venues/${selectedPlace.slug}`}
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.18)_0%,rgba(91,33,182,0.08)_100%)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-100 shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.22)_0%,rgba(91,33,182,0.12)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18"
                       >
                         Open place page
                       </Link>
@@ -1831,8 +1906,8 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-marker) {
           position: relative;
-          width: 72px;
-          height: 82px;
+          width: 82px;
+          height: 96px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1840,16 +1915,19 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.peebear-state) {
-          margin-top: 4px;
+          margin-top: 6px;
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(7, 10, 18, 0.82);
-          padding: 2px 7px;
-          font-size: 8px;
+          padding: 3px 9px;
+          font-size: 8.5px;
           font-weight: 800;
           line-height: 1;
           letter-spacing: 0.18em;
           color: rgba(255, 255, 255, 0.55);
+          box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
 
         .basedare-leaflet-map :global(.peebear-state--pending) {
@@ -1875,8 +1953,8 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.peebear-core) {
           position: relative;
           display: flex;
-          height: 54px;
-          width: 54px;
+          height: 60px;
+          width: 60px;
           align-items: center;
           justify-content: center;
           overflow: hidden;
@@ -1987,70 +2065,87 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.peebear-head) {
           position: relative;
           z-index: 1;
-          width: 80%;
-          height: 80%;
+          width: 88%;
+          height: 88%;
           object-fit: contain;
           filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.24));
           user-select: none;
           -webkit-user-drag: none;
         }
 
-        .basedare-leaflet-map :global(.peebear-badge) {
+        .basedare-leaflet-map :global(.peebear-count) {
           position: absolute;
-          right: -4px;
-          top: -4px;
+          left: 50%;
+          top: -16px;
+          transform: translateX(-50%);
           z-index: 2;
           display: flex;
-          min-width: 20px;
-          height: 20px;
+          min-width: 28px;
+          height: 24px;
           align-items: center;
           justify-content: center;
           border-radius: 9999px;
-          border: 2px solid #0d0018;
-          padding: 0 4px;
-          font-size: 9px;
+          border: 2px solid rgba(5, 6, 12, 0.98);
+          background: rgba(10, 12, 22, 0.96);
+          padding: 0 8px;
+          font-size: 12px;
           font-weight: 800;
           line-height: 1;
-          color: #0d0018;
-          letter-spacing: 0.02em;
+          color: white;
+          letter-spacing: 0;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-badge--blazing) {
-          background: #ff2d55;
+        .basedare-leaflet-map :global(.peebear-count--blazing) {
+          border-color: rgba(255, 95, 130, 0.8);
           color: #fff1f4;
+          box-shadow:
+            0 0 0 2px rgba(255, 45, 85, 0.18),
+            0 12px 22px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-badge--igniting) {
-          background: #22d3ee;
-          color: #04151b;
+        .basedare-leaflet-map :global(.peebear-count--igniting) {
+          border-color: rgba(34, 211, 238, 0.8);
+          color: #d8fbff;
+          box-shadow:
+            0 0 0 2px rgba(34, 211, 238, 0.16),
+            0 12px 22px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-badge--simmering) {
-          background: #f5c518;
-          color: #1c1400;
+        .basedare-leaflet-map :global(.peebear-count--simmering) {
+          border-color: rgba(245, 197, 24, 0.82);
+          color: #fff2b7;
+          box-shadow:
+            0 0 0 2px rgba(245, 197, 24, 0.14),
+            0 12px 22px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-badge--cold) {
-          background: rgba(255, 255, 255, 0.92);
-          color: #0d0018;
+        .basedare-leaflet-map :global(.peebear-count--cold) {
+          border-color: rgba(255, 255, 255, 0.22);
+          color: rgba(255, 255, 255, 0.92);
         }
 
-        .basedare-leaflet-map :global(.peebear-badge--pending) {
-          background: #fbbf24;
-          color: #1f1300;
-        }
-
-        .basedare-leaflet-map :global(.peebear-badge--first-mark) {
-          background: #f5c518;
-          color: #1c1400;
+        .basedare-leaflet-map :global(.peebear-count--first-mark) {
+          border-color: rgba(245, 197, 24, 0.9);
+          color: #fff2b7;
+          box-shadow:
+            0 0 0 2px rgba(245, 197, 24, 0.18),
+            0 12px 22px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .basedare-leaflet-map :global(.peebear-ripple) {
           position: absolute;
           left: 50%;
-          top: 27px;
-          width: 54px;
-          height: 54px;
+          top: 30px;
+          width: 60px;
+          height: 60px;
           border-radius: 9999px;
           transform: translate(-50%, -50%);
           animation: peebearRipple 2s infinite;

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { alertVerification } from '@/lib/telegram';
+import {
+  getPendingTelegramPlaceTags,
+  getTelegramPlaceStats,
+  reviewTelegramPlaceTag,
+  searchTelegramPlaces,
+} from '@/lib/telegram-place-memory';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -73,6 +79,12 @@ export async function PUT(req: NextRequest) {
  * GET /api/telegram/command?cmd=approve&id=xxx
  * GET /api/telegram/command?cmd=reject&id=xxx&reason=xxx
  * GET /api/telegram/command?cmd=stats
+ * GET /api/telegram/command?cmd=place&q=hideaway
+ * GET /api/telegram/command?cmd=placepending
+ * GET /api/telegram/command?cmd=placeapprove&id=xxx
+ * GET /api/telegram/command?cmd=placereject&id=xxx&reason=xxx
+ * GET /api/telegram/command?cmd=placeflag&id=xxx&reason=xxx
+ * GET /api/telegram/command?cmd=placestats
  */
 export async function GET(req: NextRequest) {
   if (!hasValidTelegramAdminSecret(req)) {
@@ -83,6 +95,7 @@ export async function GET(req: NextRequest) {
   const cmd = searchParams.get('cmd');
   const id = searchParams.get('id');
   const reason = searchParams.get('reason');
+  const q = searchParams.get('q');
 
   if (!cmd) {
     return NextResponse.json({
@@ -92,6 +105,12 @@ export async function GET(req: NextRequest) {
         approve: '/api/telegram/command?cmd=approve&id=xxx',
         reject: '/api/telegram/command?cmd=reject&id=xxx&reason=xxx',
         stats: '/api/telegram/command?cmd=stats',
+        place: '/api/telegram/command?cmd=place&q=hideaway',
+        placepending: '/api/telegram/command?cmd=placepending',
+        placeapprove: '/api/telegram/command?cmd=placeapprove&id=xxx',
+        placereject: '/api/telegram/command?cmd=placereject&id=xxx&reason=xxx',
+        placeflag: '/api/telegram/command?cmd=placeflag&id=xxx&reason=xxx',
+        placestats: '/api/telegram/command?cmd=placestats',
       }
     }, { status: 400 });
   }
@@ -244,6 +263,115 @@ export async function GET(req: NextRequest) {
         success: true,
         stats: { totalDares, todayDares, pendingReview, verified, totalVolume: totalVolume._sum.bounty || 0 }
       });
+    }
+
+    case 'place': {
+      if (!q?.trim()) {
+        return NextResponse.json({ error: 'Missing q parameter' }, { status: 400 });
+      }
+
+      const places = await searchTelegramPlaces(q, 6);
+      const formatted = places.map((place) => ({
+        id: place.id,
+        slug: place.slug,
+        name: place.name,
+        address: place.address,
+        city: place.city,
+        country: place.country,
+        sparks: place._count.placeTags,
+        mapUrl: `${BASE_URL}/map?place=${encodeURIComponent(place.slug)}`,
+        placeUrl: `${BASE_URL}/venues/${place.slug}`,
+      }));
+
+      if (formatted.length > 0) {
+        const lines = formatted.map((place, index) => (
+          `${index + 1}. <b>${place.name}</b>\n   📍 ${[place.city, place.country].filter(Boolean).join(', ') || 'Unknown'}\n   ⚡ ${place.sparks} sparks\n   🗺 <a href="${place.mapUrl}">Open on map</a>`
+        ));
+        await sendMessage(`🗺 <b>PLACE SEARCH</b>\n\n${lines.join('\n\n')}`);
+      } else {
+        await sendMessage(`❌ <b>No known BaseDare places</b> for "${q}"`);
+      }
+
+      return NextResponse.json({ success: true, places: formatted });
+    }
+
+    case 'placepending': {
+      const pendingTags = await getPendingTelegramPlaceTags(10);
+
+      if (pendingTags.length === 0) {
+        await sendMessage('✅ <b>No pending place tags</b>\n\nThe grid is caught up!');
+        return NextResponse.json({ success: true, pending: 0, tags: [] });
+      }
+
+      const lines = pendingTags.map((tag, index) => {
+        const creator = tag.creatorTag || `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`;
+        return `${index + 1}. <code>${tag.id.slice(0, 8)}</code> → <b>${tag.venue.name}</b>\n   👤 ${creator}\n   📝 ${tag.caption || 'No caption'}\n   🗺 <a href="${BASE_URL}/map?place=${encodeURIComponent(tag.venue.slug)}">Open on map</a>`;
+      });
+
+      await sendMessage(`📍 <b>PENDING PLACE TAGS</b> (${pendingTags.length})\n\n${lines.join('\n\n')}`);
+
+      return NextResponse.json({
+        success: true,
+        pending: pendingTags.length,
+        tags: pendingTags.map((tag) => ({
+          id: tag.id,
+          venue: tag.venue.name,
+          venueSlug: tag.venue.slug,
+          creatorTag: tag.creatorTag,
+          caption: tag.caption,
+        })),
+      });
+    }
+
+    case 'placeapprove':
+    case 'placereject':
+    case 'placeflag': {
+      if (!id) {
+        return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
+      }
+
+      const action =
+        cmd === 'placeapprove' ? 'APPROVE' : cmd === 'placereject' ? 'REJECT' : 'FLAG';
+
+      const result = await reviewTelegramPlaceTag({
+        tagRef: id,
+        action,
+        reason: reason || undefined,
+        reviewerWallet: 'telegram-admin',
+      });
+
+      if (!result.ok) {
+        await sendMessage(`❌ ${result.error}`);
+        return NextResponse.json({ error: result.error }, { status: 404 });
+      }
+
+      const messageLines = [
+        `${action === 'APPROVE' ? '✅' : action === 'REJECT' ? '❌' : '🚩'} <b>PLACE TAG ${action}</b>`,
+        '',
+        `<b>${result.tag.venue.name}</b>`,
+        result.tag.creatorTag || `${result.tag.walletAddress.slice(0, 6)}...${result.tag.walletAddress.slice(-4)}`,
+        action === 'APPROVE' && result.firstMark ? '⚡ First spark unlocked' : null,
+        reason ? `📝 ${reason}` : null,
+        `🗺 <a href="${BASE_URL}/map?place=${encodeURIComponent(result.tag.venue.slug)}">Open on map</a>`,
+      ].filter(Boolean);
+
+      await sendMessage(messageLines.join('\n'));
+
+      return NextResponse.json({
+        success: true,
+        reviewed: result.tag.id,
+        status: result.status,
+        venueSlug: result.tag.venue.slug,
+      });
+    }
+
+    case 'placestats': {
+      const stats = await getTelegramPlaceStats();
+      await sendMessage(
+        `🧠 <b>PLACE MEMORY STATS</b>\n\n📍 Total places: ${stats.totalPlaces}\n✅ Active places: ${stats.activePlaces}\n⏳ Pending place tags: ${stats.pendingPlaceTags}\n⚡ Approved sparks: ${stats.approvedPlaceTags}\n🔥 Hot places (3+ sparks): ${stats.hotPlaces}`
+      );
+
+      return NextResponse.json({ success: true, stats });
     }
 
     default:
