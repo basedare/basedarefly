@@ -13,14 +13,18 @@ import {
 } from 'react-leaflet';
 import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
+  Crosshair,
+  Expand,
   Flame,
   Loader2,
   LocateFixed,
   MapPin,
+  Minimize2,
   Minus,
   Plus,
   Search,
   Sparkles,
+  X,
 } from 'lucide-react';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
@@ -142,6 +146,54 @@ type PendingPlaceTagItem = {
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
 type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'unmarked';
+type MapPreset = 'classic' | 'crt' | 'heat' | 'noir' | 'night';
+type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
+type CeremonyState =
+  | {
+      kind: 'pending' | 'first-spark' | 'alive-upgrade';
+      title: string;
+      body: string;
+    }
+  | null;
+
+const markerIconCache = new Map<string, ReturnType<typeof divIcon>>();
+
+const MAP_PRESET_OPTIONS: Array<{
+  value: MapPreset;
+  label: string;
+  accentClass: string;
+}> = [
+  {
+    value: 'classic',
+    label: 'Classic',
+    accentClass:
+      'data-[active=true]:border-[#f5c518]/38 data-[active=true]:bg-[#f5c518]/[0.12] data-[active=true]:text-[#f8dd72]',
+  },
+  {
+    value: 'crt',
+    label: 'CRT',
+    accentClass:
+      'data-[active=true]:border-[#b87fff]/40 data-[active=true]:bg-[#b87fff]/[0.12] data-[active=true]:text-[#e5c7ff]',
+  },
+  {
+    value: 'heat',
+    label: 'Heat',
+    accentClass:
+      'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
+  },
+  {
+    value: 'noir',
+    label: 'Noir',
+    accentClass:
+      'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.08] data-[active=true]:text-white',
+  },
+  {
+    value: 'night',
+    label: 'Night',
+    accentClass:
+      'data-[active=true]:border-cyan-300/38 data-[active=true]:bg-cyan-500/[0.12] data-[active=true]:text-cyan-100',
+  },
+];
 
 const DEFAULT_CENTER: LatLngExpression = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
@@ -190,34 +242,95 @@ function getSparkBadge(approvedCount: number) {
   return String(approvedCount);
 }
 
+function getPlaceVisualState({
+  approvedCount,
+  lastTaggedAt,
+  pendingCount = 0,
+}: {
+  approvedCount: number;
+  lastTaggedAt: string | null;
+  pendingCount?: number;
+}): PlaceVisualState {
+  if (pendingCount > 0 && approvedCount <= 0) return 'pending';
+  if (approvedCount <= 0) return 'unmarked';
+  if (approvedCount === 1) return 'first-mark';
+
+  const pulse = getPulse(approvedCount, lastTaggedAt);
+  if (pulse === 'blazing') return 'hot';
+  return 'active';
+}
+
+function getPlaceVisualCopy(state: PlaceVisualState) {
+  switch (state) {
+    case 'pending':
+      return {
+        label: 'Pending',
+        description: 'A fresh mark is waiting in the Chaos Inbox.',
+      };
+    case 'first-mark':
+      return {
+        label: 'First Spark',
+        description: 'This place just got its first verified memory.',
+      };
+    case 'active':
+      return {
+        label: 'Alive',
+        description: 'Verified marks are stacking and the place is warming up.',
+      };
+    case 'hot':
+      return {
+        label: 'Hot',
+        description: 'This place is pulsing with recent verified activity.',
+      };
+    case 'unmarked':
+    default:
+      return {
+        label: 'Unmarked',
+        description: 'No approved marks yet. This place is waiting for its first spark.',
+      };
+  }
+}
+
 function createPeebearMarkerIcon({
   pulse,
   approvedCount,
   active,
+  visualState,
 }: {
   pulse: PulseState;
   approvedCount: number;
   active: boolean;
+  visualState: PlaceVisualState;
 }) {
   const badge = getSparkBadge(approvedCount);
-  const showRipple = pulse !== 'cold';
+  const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${badge}`;
 
-  return divIcon({
+  const cachedIcon = markerIconCache.get(cacheKey);
+  if (cachedIcon) {
+    return cachedIcon;
+  }
+
+  const icon = divIcon({
     className: 'peebear-leaflet-icon',
     iconSize: [72, 82],
     iconAnchor: [36, 56],
     popupAnchor: [0, -48],
     html: `
-      <div class="peebear-marker peebear-marker--${pulse} ${active ? 'is-active' : ''}">
-        ${showRipple ? `<span class="peebear-ripple peebear-ripple--${pulse}"></span>` : ''}
-        <div class="peebear-core peebear-core--${pulse}">
+      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''}">
+        ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
+        <div class="peebear-core peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
-          <span class="peebear-badge peebear-badge--${pulse}">${badge}</span>
+          <span class="peebear-badge peebear-badge--${visualState === 'first-mark' ? 'first-mark' : visualState === 'pending' ? 'pending' : pulse}">${visualState === 'first-mark' ? '1st' : visualState === 'pending' ? '...' : badge}</span>
         </div>
+        <span class="peebear-state peebear-state--${visualState}">${visualState === 'first-mark' ? 'FIRST' : visualState === 'pending' ? 'PENDING' : visualState === 'hot' ? 'HOT' : visualState === 'active' ? 'ALIVE' : 'UNMARKED'}</span>
         <div class="peebear-shadow"></div>
       </div>
     `,
   });
+
+  markerIconCache.set(cacheKey, icon);
+  return icon;
 }
 
 function renderProofPreview(tag: PlaceTagItem) {
@@ -315,12 +428,18 @@ export default function RealWorldMap() {
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'ready' | 'denied'>('idle');
+  const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
+  const [isImmersiveMobile, setIsImmersiveMobile] = useState(false);
+  const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const deepLinkedPlaceSlug = searchParams.get('place');
+  const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
+
+  useEffect(() => {
+    pendingPlaceTagsRef.current = pendingPlaceTags;
+  }, [pendingPlaceTags]);
 
   const requestApproximateLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocationStatus('denied');
       setLocating(false);
       return () => undefined;
     }
@@ -334,12 +453,10 @@ export default function RealWorldMap() {
         setTargetCenter([position.coords.latitude, position.coords.longitude]);
         setTargetZoom(14);
         setLocating(false);
-        setLocationStatus('ready');
       },
       () => {
         if (cancelled) return;
         setLocating(false);
-        setLocationStatus('denied');
       },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 8000 }
     );
@@ -350,6 +467,26 @@ export default function RealWorldMap() {
   }, []);
 
   useEffect(() => requestApproximateLocation(), [requestApproximateLocation]);
+
+  useEffect(() => {
+    if (!isImmersiveMobile) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isImmersiveMobile]);
+
+  useEffect(() => {
+    if (!ceremonyState) return;
+
+    const timeout = window.setTimeout(() => setCeremonyState(null), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [ceremonyState]);
 
   useEffect(() => {
     if (!deepLinkedPlaceSlug) {
@@ -407,10 +544,14 @@ export default function RealWorldMap() {
       return;
     }
 
+    const controller = new AbortController();
+
     const timeout = setTimeout(async () => {
       try {
         setSearching(true);
-        const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmed)}`);
+        const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+        });
         const payload = (await response.json()) as SearchResponse;
 
         if (!response.ok || !payload.success || !payload.data?.results) {
@@ -419,14 +560,22 @@ export default function RealWorldMap() {
 
         setSearchResults(payload.data.results);
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error('[REAL_WORLD_MAP] Search failed:', error);
         setSearchResults([]);
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) {
+          setSearching(false);
+        }
       }
     }, 350);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
   }, [searchQuery]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
@@ -473,6 +622,24 @@ export default function RealWorldMap() {
     });
   }, []);
 
+  const focusExistingPlace = useCallback((place: NearbyPlace) => {
+    setSelectedPlace({
+      placeId: place.id,
+      slug: place.slug,
+      name: place.name,
+      address: [place.city, place.country].filter(Boolean).join(', ') || place.description,
+      city: place.city,
+      country: place.country,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      approvedCount: place.tagSummary.approvedCount,
+      heatScore: place.tagSummary.heatScore,
+      lastTaggedAt: place.tagSummary.lastTaggedAt,
+    });
+    setTargetCenter([place.latitude, place.longitude]);
+    setTargetZoom(15);
+  }, []);
+
   const loadSelectedPlaceTags = useCallback(
     async (placeId: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
       const silent = options?.silent ?? false;
@@ -492,6 +659,9 @@ export default function RealWorldMap() {
           throw new Error('Failed to load place marks');
         }
 
+        const nextApprovedCount = payload.data.approvedCount;
+        const nextLastTaggedAt = payload.data.tags[0]?.submittedAt ?? null;
+
         setSelectedPlaceTags(payload.data.tags);
         setPendingPlaceTags((current) =>
           current.filter(
@@ -500,17 +670,37 @@ export default function RealWorldMap() {
               !payload.data?.tags.some((approvedTag) => approvedTag.id === pendingTag.tagId)
           )
         );
-        setSelectedPlace((current) =>
-          current?.placeId === placeId
-            ? {
-                ...current,
-                approvedCount: payload.data?.approvedCount ?? current.approvedCount,
-                heatScore: payload.data?.heatScore ?? current.heatScore,
-                lastTaggedAt:
-                  payload.data?.tags[0]?.submittedAt ?? current.lastTaggedAt ?? null,
-              }
-            : current
-        );
+        setSelectedPlace((current) => {
+          if (current?.placeId !== placeId) {
+            return current;
+          }
+
+          const previousApprovedCount = current.approvedCount ?? 0;
+          const hadPendingForPlace = pendingPlaceTagsRef.current.some((tag) => tag.placeId === placeId);
+
+          if (nextApprovedCount > previousApprovedCount && hadPendingForPlace) {
+            if (previousApprovedCount === 0 && nextApprovedCount === 1) {
+              setCeremonyState({
+                kind: 'first-spark',
+                title: 'First spark unlocked',
+                body: `${current.name} just became real place memory. This spot is alive now.`,
+              });
+            } else {
+              setCeremonyState({
+                kind: 'alive-upgrade',
+                title: 'Place memory upgraded',
+                body: `${current.name} just absorbed a new verified mark and its pulse climbed.`,
+              });
+            }
+          }
+
+          return {
+            ...current,
+            approvedCount: nextApprovedCount ?? current.approvedCount,
+            heatScore: payload.data?.heatScore ?? current.heatScore,
+            lastTaggedAt: nextLastTaggedAt ?? current.lastTaggedAt ?? null,
+          };
+        });
       } catch (error) {
         if (signal?.aborted) {
           return;
@@ -532,10 +722,10 @@ export default function RealWorldMap() {
     const placeId = selectedPlace?.placeId;
 
     if (!placeId) {
-      setSelectedPlaceTags([]);
+      setSelectedPlaceTags((current) => (current.length > 0 ? [] : current));
       setSelectedPlaceTagsLoading(false);
       setSelectedPlaceTagsError(null);
-      setPendingPlaceTags([]);
+      setPendingPlaceTags((current) => (current.length > 0 ? [] : current));
       return;
     }
 
@@ -562,6 +752,20 @@ export default function RealWorldMap() {
 
     return pendingPlaceTags.filter((tag) => tag.placeId === selectedPlace.placeId);
   }, [pendingPlaceTags, selectedPlace?.placeId]);
+
+  const selectedVisualState = useMemo(
+    () =>
+      getPlaceVisualState({
+        approvedCount: selectedPlace?.approvedCount ?? 0,
+        lastTaggedAt: selectedPlace?.lastTaggedAt ?? null,
+        pendingCount: selectedPendingPlaceTags.length,
+      }),
+    [selectedPendingPlaceTags.length, selectedPlace]
+  );
+  const selectedVisualCopy = useMemo(
+    () => getPlaceVisualCopy(selectedVisualState),
+    [selectedVisualState]
+  );
 
   useEffect(() => {
     const placeId = selectedPlace?.placeId;
@@ -686,12 +890,20 @@ export default function RealWorldMap() {
       pulse: selectedPulse,
       approvedCount: selectedPlace.approvedCount ?? 0,
       active: true,
+      visualState: selectedVisualState,
     });
-  }, [selectedPlace, selectedPulse]);
+  }, [selectedPlace, selectedPulse, selectedVisualState]);
 
   return (
-    <section className="relative z-20 px-4 pb-16 pt-8 sm:px-6 md:px-10">
-      <div className="mx-auto max-w-7xl">
+    <section
+      className={
+        isImmersiveMobile
+          ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
+          : 'relative z-20 px-4 pb-16 pt-8 sm:px-6 md:px-10'
+      }
+    >
+      <div className={isImmersiveMobile ? 'h-full w-full' : 'mx-auto max-w-7xl'}>
+        {!isImmersiveMobile ? (
         <header className="relative mb-8 overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(9,7,19,0.96)_14%,rgba(5,4,14,0.97)_100%)] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.5),0_0_34px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)] sm:px-7 sm:py-10">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(192,132,252,0.16),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.14),transparent_36%)]" />
           <div className="relative">
@@ -744,8 +956,19 @@ export default function RealWorldMap() {
             </div>
           </div>
         </header>
+        ) : null}
 
-        <div className="relative overflow-hidden rounded-[38px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)]">
+        <div
+          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] rounded-none border-0 shadow-none' : 'rounded-[38px]'}`}
+          style={
+            isImmersiveMobile
+              ? {
+                  paddingTop: 'env(safe-area-inset-top)',
+                  paddingBottom: 'env(safe-area-inset-bottom)',
+                }
+              : undefined
+          }
+        >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
           <div className="relative z-20 flex flex-col gap-4 border-b border-white/8 px-4 py-4 sm:px-5">
@@ -797,60 +1020,73 @@ export default function RealWorldMap() {
             </div>
 
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/45">
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
-                  click the map to drop a pin
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
-                  {locating
-                    ? 'locating you...'
-                    : locationStatus === 'ready'
-                      ? 'opened near you'
-                      : 'using open map data'}
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
-                  showing {filteredNearbyPlaces.length} / {nearbyPlaces.length}
-                </div>
-                {locationStatus === 'denied' ? (
-                  <div className="rounded-full border border-amber-300/18 bg-amber-500/[0.08] px-3 py-2 text-amber-100/80">
-                    location blocked
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={requestApproximateLocation}
-                  disabled={locating}
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/22 bg-cyan-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-cyan-200/35 hover:bg-cyan-500/[0.14] disabled:cursor-wait disabled:opacity-70"
-                >
-                  {locating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <LocateFixed className="h-3.5 w-3.5" />
-                  )}
-                  <span>{locating ? 'Locating...' : 'Locate Me'}</span>
-                </button>
-                {filterOptions.map((option) => (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
                   <button
-                    key={option.value}
                     type="button"
-                    data-active={pulseFilter === option.value}
-                    onClick={() => setPulseFilter(option.value)}
-                    className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                    onClick={() => setIsImmersiveMobile((current) => !current)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white/75 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/20 hover:text-white md:hidden"
+                    aria-label={isImmersiveMobile ? 'Exit immersive map' : 'Open immersive map'}
+                    title={isImmersiveMobile ? 'Exit immersive map' : 'Open immersive map'}
                   >
-                    <span>{option.label}</span>
-                    <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                      {filterCounts[option.value]}
-                    </span>
+                    {isImmersiveMobile ? (
+                      <Minimize2 className="h-4 w-4" />
+                    ) : (
+                      <Expand className="h-4 w-4" />
+                    )}
                   </button>
-                ))}
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      data-active={pulseFilter === option.value}
+                      onClick={() => setPulseFilter(option.value)}
+                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                    >
+                      <span>{option.label}</span>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                        {filterCounts[option.value]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
+                    View mode
+                  </div>
+                  {MAP_PRESET_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      data-active={mapPreset === option.value}
+                      onClick={() => setMapPreset(option.value)}
+                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${
+                        option.value === 'classic'
+                          ? 'bg-[#f5c518]'
+                          : option.value === 'crt'
+                            ? 'bg-[#b87fff]'
+                            : option.value === 'heat'
+                              ? 'bg-rose-400'
+                              : option.value === 'noir'
+                                ? 'bg-white/70'
+                                : 'bg-cyan-300'
+                      }`} />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div ref={mapViewportRef} className="basedare-leaflet-map relative h-[68vh] min-h-[560px] overflow-hidden">
+          <div
+            ref={mapViewportRef}
+            data-map-preset={mapPreset}
+            className={`basedare-leaflet-map basedare-leaflet-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
+          >
             <MapContainer
               center={DEFAULT_CENTER}
               zoom={DEFAULT_ZOOM}
@@ -873,6 +1109,10 @@ export default function RealWorldMap() {
 
               {filteredNearbyPlaces.map((place) => {
                 const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+                const visualState = getPlaceVisualState({
+                  approvedCount: place.tagSummary.approvedCount,
+                  lastTaggedAt: place.tagSummary.lastTaggedAt,
+                });
                 const isActive = selectedPlace?.placeId === place.id;
                 return (
                   <Marker
@@ -882,26 +1122,11 @@ export default function RealWorldMap() {
                       pulse,
                       approvedCount: place.tagSummary.approvedCount,
                       active: isActive,
+                      visualState,
                     })}
                     zIndexOffset={isActive ? 600 : 240}
                     eventHandlers={{
-                      click: () => {
-                        setSelectedPlace({
-                          placeId: place.id,
-                          slug: place.slug,
-                          name: place.name,
-                          address: [place.city, place.country].filter(Boolean).join(', ') || place.description,
-                          city: place.city,
-                          country: place.country,
-                          latitude: place.latitude,
-                          longitude: place.longitude,
-                          approvedCount: place.tagSummary.approvedCount,
-                          heatScore: place.tagSummary.heatScore,
-                          lastTaggedAt: place.tagSummary.lastTaggedAt,
-                        });
-                        setTargetCenter([place.latitude, place.longitude]);
-                        setTargetZoom(15);
-                      },
+                      click: () => focusExistingPlace(place),
                     }}
                   />
                 );
@@ -922,11 +1147,11 @@ export default function RealWorldMap() {
               ) : null}
             </MapContainer>
 
-            <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_45%_38%_at_24%_18%,rgba(245,197,24,0.08)_0%,transparent_58%),radial-gradient(ellipse_34%_40%_at_78%_72%,rgba(34,211,238,0.08)_0%,transparent_62%),radial-gradient(ellipse_28%_36%_at_54%_44%,rgba(168,85,247,0.09)_0%,transparent_66%)]" />
-            <div className="network-mesh pointer-events-none absolute inset-0 z-[3] opacity-[0.12]" />
-            <div className="network-links pointer-events-none absolute inset-0 z-[4] opacity-[0.16]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[5] opacity-[0.22]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[6] opacity-[0.06]" />
+            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
+            <div className="network-mesh pointer-events-none absolute inset-0 z-[3]" />
+            <div className="network-links pointer-events-none absolute inset-0 z-[4]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             <div className="absolute left-5 top-5 z-[9] hidden md:flex flex-col gap-2">
               <button
@@ -964,14 +1189,31 @@ export default function RealWorldMap() {
                 </button>
               </div>
             </div>
-            <div className="pointer-events-none absolute right-5 top-5 z-[8] hidden md:flex items-center gap-3 rounded-full border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(11,10,22,0.9)_100%)] px-4 py-2 shadow-[0_16px_30px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#22d3ee] shadow-[0_0_12px_rgba(34,211,238,0.85)]" />
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Tag Mode</p>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f5c518]">
-                  Spray the grid
-                </p>
-              </div>
+            <div className="absolute right-5 top-5 z-[8] hidden md:flex items-center gap-2 rounded-full border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(11,10,22,0.9)_100%)] px-3 py-2 shadow-[0_16px_30px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <span
+                title="Tag mode"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b87fff]/26 bg-[#b87fff]/[0.08] text-[#f5c518]"
+              >
+                <Crosshair className="h-4 w-4" />
+              </span>
+              <span
+                title="Unmarked place"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70"
+              >
+                <MapPin className="h-4 w-4" />
+              </span>
+              <span
+                title="First spark"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.1] text-[#f8dd72]"
+              >
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <span
+                title="Hot place"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/[0.1] text-rose-100"
+              >
+                <Flame className="h-4 w-4" />
+              </span>
             </div>
             <div className={`spray-burst ${sprayBurst ? 'bang' : ''}`} />
             <button onClick={handleSpray} className="spray-can hidden md:flex" aria-label="Spray map easter egg">
@@ -1003,14 +1245,39 @@ export default function RealWorldMap() {
 
             {selectedPlace ? (
               <div className="absolute inset-x-4 bottom-4 z-30 md:right-4 md:left-auto md:w-[420px]">
-                <div className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)]">
+                <div className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] md:max-h-[82vh]">
+                  <div className="flex max-h-[58dvh] flex-col overflow-hidden md:max-h-[82vh]">
+                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.92)] px-5 pb-4 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-5 md:pt-5">
+                    <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-200">
                         <Sparkles className="h-3.5 w-3.5" />
-                        {selectedPlace.placeId ? 'Selected place' : 'Dropped pin'}
+                        {selectedPlace.placeId ? 'Place memory anchor' : 'Dropped pin'}
                       </div>
                       <h3 className="mt-3 text-xl font-black text-white">{selectedPlace.name}</h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                            selectedVisualState === 'hot'
+                              ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
+                              : selectedVisualState === 'active'
+                                ? 'border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100'
+                                : selectedVisualState === 'first-mark'
+                                  ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]'
+                                  : selectedVisualState === 'pending'
+                                    ? 'border-amber-300/30 bg-amber-500/[0.12] text-amber-100'
+                                    : 'border-white/12 bg-white/[0.05] text-white/60'
+                          }`}
+                        >
+                          {selectedVisualCopy.label}
+                        </span>
+                        {selectedPlaceTags.some((tag) => tag.firstMark) ? (
+                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72]">
+                            First mark captured
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-2 text-sm text-white/55">
                         {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                       </p>
@@ -1018,11 +1285,33 @@ export default function RealWorldMap() {
                     <button
                       type="button"
                       onClick={() => setSelectedPlace(null)}
-                      className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60 transition hover:text-white"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70 transition hover:border-white/18 hover:text-white"
+                      aria-label="Close place panel"
+                      title="Close place panel"
                     >
-                      close
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-5">
+
+                  {ceremonyState ? (
+                    <div
+                      className={`mt-4 rounded-[22px] border px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${
+                        ceremonyState.kind === 'pending'
+                          ? 'border-amber-300/18 bg-amber-500/[0.08]'
+                          : ceremonyState.kind === 'first-spark'
+                            ? 'border-[#f5c518]/24 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(168,85,247,0.12)_100%)]'
+                            : 'border-cyan-300/22 bg-cyan-500/[0.08]'
+                      }`}
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">
+                        {ceremonyState.title}
+                      </p>
+                      <p className="mt-2 text-sm text-white/78">{ceremonyState.body}</p>
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid grid-cols-3 gap-3">
                     <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(6,8,14,0.82)_0%,rgba(0,0,0,0.26)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
@@ -1044,12 +1333,18 @@ export default function RealWorldMap() {
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
                     </div>
-                    <p className="mt-2 text-sm text-white/70">
-                      {selectedPlace.approvedCount
-                        ? `${selectedPlace.approvedCount} approved marks have already hit this spot.`
-                        : 'No sparks yet. Be the first to leave a verified mark here.'}
-                    </p>
-                    <p className="mt-2 text-xs text-white/42">{selectedLastSpark}</p>
+                    <p className="mt-2 text-sm text-white/80">{selectedVisualCopy.description}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
+                        {selectedLastSpark}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
+                        Pulse {selectedPulse}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/52">
+                        {selectedPlace.approvedCount ?? 0} sparks on record
+                      </span>
+                    </div>
                   </div>
 
                   {selectedPendingPlaceTags.length > 0 ? (
@@ -1058,6 +1353,9 @@ export default function RealWorldMap() {
                         <Loader2 className="h-3.5 w-3.5" />
                         Pending Marks
                       </div>
+                      <p className="mt-2 text-sm text-white/72">
+                        Your mark is pending referee review. Once it clears, this place upgrades automatically.
+                      </p>
                       <div className="mt-3 space-y-3">
                         {selectedPendingPlaceTags.slice(0, 3).map((tag) => (
                           <div
@@ -1090,6 +1388,11 @@ export default function RealWorldMap() {
                                 <p className="mt-2 text-sm text-white/62">
                                   {tag.caption || 'Mark submitted and waiting for referee review.'}
                                 </p>
+                                {tag.firstMark ? (
+                                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f8dd72]">
+                                    If approved, this becomes the first spark here.
+                                  </p>
+                                ) : null}
                                 {tag.vibeTags.length > 0 ? (
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     {tag.vibeTags.map((vibeTag) => (
@@ -1142,6 +1445,11 @@ export default function RealWorldMap() {
                                     {getLastSparkLabel(tag.submittedAt)}
                                   </p>
                                 </div>
+                                {tag.firstMark ? (
+                                  <div className="mt-2 inline-flex rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                                    First spark
+                                  </div>
+                                ) : null}
                                 <p className="mt-2 text-sm text-white/62">
                                   {tag.caption || 'Verified mark submitted without a caption.'}
                                 </p>
@@ -1212,6 +1520,13 @@ export default function RealWorldMap() {
                           },
                           ...current.filter((item) => item.tagId !== tag.tagId),
                         ]);
+                        setCeremonyState({
+                          kind: 'pending',
+                          title: 'Your mark is pending',
+                          body: tag.firstMark
+                            ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
+                            : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
+                        });
                       }}
                       buttonClassName="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
                     />
@@ -1225,6 +1540,8 @@ export default function RealWorldMap() {
                       </Link>
                     ) : null}
                   </div>
+                  </div>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -1233,6 +1550,74 @@ export default function RealWorldMap() {
       </div>
 
       <style jsx>{`
+        .basedare-leaflet-map {
+          --tile-filter: brightness(0.34) saturate(0.72) contrast(1.22) hue-rotate(14deg) sepia(0.16);
+          --preset-atmosphere:
+            radial-gradient(ellipse 45% 38% at 24% 18%, rgba(245, 197, 24, 0.1) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(184, 127, 255, 0.08) 0%, transparent 62%),
+            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(168, 85, 247, 0.09) 0%, transparent 66%);
+          --mesh-opacity: 0.12;
+          --links-opacity: 0.16;
+          --star-opacity: 0.22;
+          --scan-opacity: 0.06;
+          --haze-opacity: 1;
+        }
+
+        .basedare-leaflet-map[data-map-preset='crt'] {
+          --tile-filter: brightness(0.36) saturate(0.74) contrast(1.34) hue-rotate(6deg) sepia(0.22);
+          --preset-atmosphere:
+            radial-gradient(ellipse 45% 38% at 24% 18%, rgba(184, 127, 255, 0.14) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(245, 197, 24, 0.08) 0%, transparent 62%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 18%, rgba(255, 0, 128, 0.02) 100%);
+          --mesh-opacity: 0.16;
+          --links-opacity: 0.2;
+          --star-opacity: 0.14;
+          --scan-opacity: 0.12;
+          --haze-opacity: 0.85;
+        }
+
+        .basedare-leaflet-map[data-map-preset='heat'] {
+          --tile-filter: brightness(0.38) saturate(0.95) contrast(1.3) hue-rotate(-8deg) sepia(0.24);
+          --preset-atmosphere:
+            radial-gradient(ellipse 48% 42% at 24% 18%, rgba(245, 197, 24, 0.16) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(251, 113, 133, 0.12) 0%, transparent 62%),
+            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(184, 127, 255, 0.08) 0%, transparent 66%);
+          --mesh-opacity: 0.1;
+          --links-opacity: 0.12;
+          --star-opacity: 0.16;
+          --scan-opacity: 0.04;
+          --haze-opacity: 0.92;
+        }
+
+        .basedare-leaflet-map[data-map-preset='noir'] {
+          --tile-filter: brightness(0.25) saturate(0.08) contrast(1.4);
+          --preset-atmosphere:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, transparent 28%),
+            radial-gradient(ellipse 40% 34% at 52% 50%, rgba(255, 255, 255, 0.035) 0%, transparent 60%);
+          --mesh-opacity: 0.04;
+          --links-opacity: 0.05;
+          --star-opacity: 0.08;
+          --scan-opacity: 0.03;
+          --haze-opacity: 0.65;
+        }
+
+        .basedare-leaflet-map[data-map-preset='night'] {
+          --tile-filter: brightness(0.32) saturate(0.88) contrast(1.28) hue-rotate(32deg);
+          --preset-atmosphere:
+            radial-gradient(ellipse 42% 38% at 24% 18%, rgba(34, 211, 238, 0.12) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(184, 127, 255, 0.09) 0%, transparent 62%),
+            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(245, 197, 24, 0.08) 0%, transparent 66%);
+          --mesh-opacity: 0.1;
+          --links-opacity: 0.14;
+          --star-opacity: 0.24;
+          --scan-opacity: 0.02;
+          --haze-opacity: 0.8;
+        }
+
+        .preset-atmosphere {
+          background: var(--preset-atmosphere);
+        }
+
         .scanlines {
           background: repeating-linear-gradient(
             0deg,
@@ -1241,6 +1626,7 @@ export default function RealWorldMap() {
             rgba(0, 0, 0, 0.1) 2px,
             rgba(0, 0, 0, 0.1) 4px
           );
+          opacity: var(--scan-opacity);
         }
 
         .network-mesh {
@@ -1248,6 +1634,7 @@ export default function RealWorldMap() {
             linear-gradient(rgba(129, 103, 255, 0.24) 1px, transparent 1px),
             linear-gradient(90deg, rgba(129, 103, 255, 0.24) 1px, transparent 1px);
           background-size: 96px 96px, 96px 96px;
+          opacity: var(--mesh-opacity);
         }
 
         .network-links {
@@ -1257,6 +1644,7 @@ export default function RealWorldMap() {
             linear-gradient(74deg, transparent 48%, rgba(137, 95, 255, 0.14) 50%, transparent 52%);
           background-size: 220px 220px, 240px 240px, 280px 280px;
           background-position: 0 0, 30px 40px, 90px 60px;
+          opacity: var(--links-opacity);
         }
 
         .starfield {
@@ -1267,12 +1655,15 @@ export default function RealWorldMap() {
             radial-gradient(circle at 78% 70%, rgba(255, 255, 255, 0.5) 0 2px, transparent 3px),
             radial-gradient(circle at 40% 44%, rgba(156, 199, 255, 0.42) 0 3px, transparent 4px),
             radial-gradient(circle at 88% 45%, rgba(160, 120, 255, 0.45) 0 2px, transparent 3px);
+          opacity: var(--star-opacity);
         }
 
         .glass-haze {
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 28%),
-            radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.035) 0%, transparent 58%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, rgba(255, 255, 255, 0) 24%),
+            radial-gradient(120% 100% at 50% 0%, rgba(245, 197, 24, 0.035) 0%, transparent 46%),
+            radial-gradient(110% 100% at 50% 100%, rgba(168, 85, 247, 0.045) 0%, transparent 52%);
+          opacity: var(--haze-opacity);
         }
 
         .spray-can {
@@ -1423,6 +1814,39 @@ export default function RealWorldMap() {
           justify-content: flex-start;
         }
 
+        .basedare-leaflet-map :global(.peebear-state) {
+          margin-top: 4px;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(7, 10, 18, 0.82);
+          padding: 2px 7px;
+          font-size: 8px;
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          color: rgba(255, 255, 255, 0.55);
+        }
+
+        .basedare-leaflet-map :global(.peebear-state--pending) {
+          border-color: rgba(251, 191, 36, 0.28);
+          color: rgba(254, 240, 138, 0.9);
+        }
+
+        .basedare-leaflet-map :global(.peebear-state--first-mark) {
+          border-color: rgba(245, 197, 24, 0.35);
+          color: rgba(248, 221, 114, 0.94);
+        }
+
+        .basedare-leaflet-map :global(.peebear-state--active) {
+          border-color: rgba(34, 211, 238, 0.28);
+          color: rgba(165, 243, 252, 0.88);
+        }
+
+        .basedare-leaflet-map :global(.peebear-state--hot) {
+          border-color: rgba(251, 113, 133, 0.34);
+          color: rgba(255, 228, 230, 0.92);
+        }
+
         .basedare-leaflet-map :global(.peebear-core) {
           position: relative;
           display: flex;
@@ -1476,6 +1900,54 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.peebear-core--cold) {
           border-color: rgba(255, 255, 255, 0.22);
           filter: saturate(0.82);
+        }
+
+        .basedare-leaflet-map :global(.peebear-core--unmarked) {
+          border-style: dashed;
+          border-color: rgba(255, 255, 255, 0.18);
+          box-shadow:
+            0 10px 22px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.22);
+          filter: saturate(0.72) brightness(0.94);
+        }
+
+        .basedare-leaflet-map :global(.peebear-core--pending) {
+          border-color: rgba(251, 191, 36, 0.7);
+          box-shadow:
+            0 0 0 3px rgba(251, 191, 36, 0.12),
+            0 0 20px rgba(251, 191, 36, 0.18),
+            0 14px 26px rgba(0, 0, 0, 0.44),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.peebear-core--first-mark) {
+          border-color: rgba(245, 197, 24, 0.84);
+          box-shadow:
+            0 0 0 3px rgba(245, 197, 24, 0.18),
+            0 0 28px rgba(245, 197, 24, 0.28),
+            0 14px 26px rgba(0, 0, 0, 0.44),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.peebear-core--active) {
+          box-shadow:
+            0 0 0 3px rgba(34, 211, 238, 0.16),
+            0 0 24px rgba(34, 211, 238, 0.26),
+            0 14px 26px rgba(0, 0, 0, 0.44),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.peebear-core--hot) {
+          box-shadow:
+            0 0 0 4px rgba(255, 45, 85, 0.22),
+            0 0 34px rgba(255, 45, 85, 0.34),
+            0 16px 30px rgba(0, 0, 0, 0.48),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-active .peebear-core) {
@@ -1538,6 +2010,16 @@ export default function RealWorldMap() {
           color: #0d0018;
         }
 
+        .basedare-leaflet-map :global(.peebear-badge--pending) {
+          background: #fbbf24;
+          color: #1f1300;
+        }
+
+        .basedare-leaflet-map :global(.peebear-badge--first-mark) {
+          background: #f5c518;
+          color: #1c1400;
+        }
+
         .basedare-leaflet-map :global(.peebear-ripple) {
           position: absolute;
           left: 50%;
@@ -1561,6 +2043,10 @@ export default function RealWorldMap() {
           border: 1.5px solid rgba(245, 197, 24, 0.84);
         }
 
+        .basedare-leaflet-map :global(.peebear-ripple--pending) {
+          border: 1.5px dashed rgba(251, 191, 36, 0.76);
+        }
+
         .basedare-leaflet-map :global(.peebear-shadow) {
           margin-top: 5px;
           height: 5px;
@@ -1571,7 +2057,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.leaflet-tile-pane) {
-          filter: brightness(0.42) saturate(0.88) contrast(1.14) hue-rotate(8deg);
+          filter: var(--tile-filter);
         }
 
         .basedare-leaflet-map :global(.leaflet-control-zoom),

@@ -82,6 +82,7 @@ export default function TagPlaceButton({
   const [vibeTags, setVibeTags] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<'idle' | 'success'>('idle');
+  const [submittedFirstMark, setSubmittedFirstMark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [resolvedPlaceId, setResolvedPlaceId] = useState<string | null>(placeId ?? null);
   const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
@@ -111,6 +112,17 @@ export default function TagPlaceButton({
   useEffect(() => {
     setResolvedPlaceId(placeId ?? null);
   }, [placeId, latitude, longitude, externalPlaceId]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open && !coordinates && !geoLoading && !geoError && geoSupported) {
@@ -307,6 +319,7 @@ export default function TagPlaceButton({
       });
 
       setSubmitState('success');
+      setSubmittedFirstMark(Boolean(payload.data?.firstMark));
       setFile(null);
       setCaption('');
       setVibeTags('');
@@ -333,6 +346,7 @@ export default function TagPlaceButton({
         onClick={() => {
           setOpen(true);
           setSubmitState('idle');
+          setSubmittedFirstMark(false);
         }}
         className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200'}
       >
@@ -342,13 +356,24 @@ export default function TagPlaceButton({
 
       {open && mounted
         ? createPortal(
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(2,4,10,0.82)] px-4 py-6 backdrop-blur-xl">
-          <div className="relative w-full max-w-xl overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)]">
+        <div
+          className="fixed inset-0 z-[120] bg-[rgba(2,4,10,0.56)] backdrop-blur-lg sm:flex sm:items-center sm:justify-center sm:bg-[rgba(2,4,10,0.82)] sm:px-4 sm:py-6 sm:backdrop-blur-xl"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative flex h-full w-full items-end sm:items-center sm:justify-center"
+          >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="relative mt-auto flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/12 border-b-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] sm:mt-0 sm:max-h-[92dvh] sm:max-w-xl sm:rounded-[30px] sm:border-b"
+          >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.12),transparent_36%)]" />
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
 
-            <div className="relative px-6 py-6 sm:px-7">
-              <div className="flex items-start justify-between gap-4">
+            <div className="relative flex flex-1 flex-col overflow-hidden">
+              <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(8,10,20,0.88)] px-5 pb-4 pt-3 backdrop-blur-xl sm:border-b-0 sm:bg-transparent sm:px-7 sm:pb-0 sm:pt-6">
+                <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 sm:hidden" />
+                <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-200">
                     <Crosshair className="h-3.5 w-3.5" />
@@ -367,14 +392,24 @@ export default function TagPlaceButton({
                   <X className="h-4 w-4" />
                 </button>
               </div>
+              </div>
 
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               {submitState === 'success' ? (
-                <div className="mt-6 rounded-[24px] border border-emerald-500/20 bg-emerald-500/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Submitted</p>
+                <div className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Mark pending</p>
                   <p className="mt-3 text-lg font-bold text-white">Your mark is in the Chaos Inbox.</p>
                   <p className="mt-2 text-sm text-white/65">
-                    Once approved, it will start feeding the place memory, heat, and soon the Crossed Paths layer.
+                    {submittedFirstMark
+                      ? 'If this clears, you ignite the first spark here and wake the place up.'
+                      : 'If this clears, the place memory upgrades and the pulse climbs automatically.'}
                   </p>
+                  <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">What happens next</p>
+                    <p className="mt-2 text-sm text-white/70">
+                      Referees review the proof, then the map updates with your spark, heat, and recent mark.
+                    </p>
+                  </div>
                   <div className="mt-5 flex gap-3">
                     <button
                       type="button"
@@ -385,7 +420,10 @@ export default function TagPlaceButton({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSubmitState('idle')}
+                      onClick={() => {
+                        setSubmitState('idle');
+                        setSubmittedFirstMark(false);
+                      }}
                       className="rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200"
                     >
                       Submit another
@@ -394,7 +432,7 @@ export default function TagPlaceButton({
                 </div>
               ) : (
                 <>
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
                       <label className="mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 bg-white/[0.03] px-4 py-5 text-center transition hover:border-cyan-400/30 hover:bg-cyan-500/[0.04]">
@@ -471,8 +509,13 @@ export default function TagPlaceButton({
                       </Link>
                     </div>
                   ) : null}
+                </>
+              )}
+              </div>
 
-                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              {submitState !== 'success' ? (
+                <div className="sticky bottom-0 z-10 border-t border-white/10 bg-[rgba(7,9,18,0.92)] px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl sm:px-7">
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
@@ -490,9 +533,10 @@ export default function TagPlaceButton({
                       Submit mark
                     </button>
                   </div>
-                </>
-              )}
+                </div>
+              ) : null}
             </div>
+          </div>
           </div>
         </div>,
         document.body
