@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import {
   Shield,
@@ -167,6 +168,7 @@ const EMPTY_PLACE_FORM: AdminPlaceForm = {
 
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
+  const placeTagRejectReasonRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>('moderation');
   const [dares, setDares] = useState<DareForModeration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,6 +403,27 @@ export default function AdminPage() {
     }
   }, [adminSecret, pendingPlaceTags, placeTagRejectReason]);
 
+  const focusPlaceTagRejectReason = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      placeTagRejectReasonRef.current?.focus();
+      placeTagRejectReasonRef.current?.select();
+    });
+  }, []);
+
+  const handlePlaceTagRejectIntent = useCallback(
+    (options?: { openNext?: boolean }) => {
+      if (!selectedPlaceTag) return;
+
+      if (!placeTagRejectReason.trim()) {
+        focusPlaceTagRejectReason();
+        return;
+      }
+
+      void handlePlaceTagAction(selectedPlaceTag.id, 'REJECT', options);
+    },
+    [focusPlaceTagRejectReason, handlePlaceTagAction, placeTagRejectReason, selectedPlaceTag]
+  );
+
   const selectNextPendingPlaceTag = useCallback(() => {
     if (!selectedPlaceTag || pendingPlaceTags.length <= 1) {
       return;
@@ -450,7 +473,7 @@ export default function AdminPage() {
 
       if (key === 'r') {
         event.preventDefault();
-        void handlePlaceTagAction(selectedPlaceTag.id, 'REJECT');
+        handlePlaceTagRejectIntent();
         return;
       }
 
@@ -471,6 +494,7 @@ export default function AdminPage() {
   }, [
     activeTab,
     handlePlaceTagAction,
+    handlePlaceTagRejectIntent,
     isTagsAuthorized,
     processingPlaceTag,
     selectNextPendingPlaceTag,
@@ -1551,11 +1575,16 @@ export default function AdminPage() {
                             className="w-full max-h-[320px] object-cover"
                           />
                         ) : (
-                          <img
-                            src={selectedPlaceTag.proofMediaUrl}
-                            alt="Place tag proof"
-                            className="w-full max-h-[320px] object-cover"
-                          />
+                          <div className="relative h-[320px] w-full">
+                            <Image
+                              src={selectedPlaceTag.proofMediaUrl}
+                              alt="Place tag proof"
+                              fill
+                              sizes="(max-width: 1024px) 100vw, 50vw"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
                         )}
                       </div>
 
@@ -1631,6 +1660,7 @@ export default function AdminPage() {
                           Review Note (optional)
                         </label>
                         <textarea
+                          ref={placeTagRejectReasonRef}
                           value={placeTagRejectReason}
                           onChange={(e) => setPlaceTagRejectReason(e.target.value)}
                           placeholder="Low quality, spam, off-place, fake geo..."
@@ -1639,7 +1669,7 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                         <button
                           onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'FLAG')}
                           disabled={processingPlaceTag === selectedPlaceTag.id}
@@ -1653,7 +1683,21 @@ export default function AdminPage() {
                           Flag
                         </button>
                         <button
-                          onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'REJECT')}
+                          onClick={() =>
+                            handlePlaceTagAction(selectedPlaceTag.id, 'FLAG', { openNext: true })
+                          }
+                          disabled={processingPlaceTag === selectedPlaceTag.id || pendingPlaceTags.length <= 1}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500/14 hover:bg-yellow-500/24 border border-yellow-500/40 text-yellow-200 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4" />
+                          )}
+                          Flag + Next
+                        </button>
+                        <button
+                          onClick={() => handlePlaceTagRejectIntent()}
                           disabled={processingPlaceTag === selectedPlaceTag.id}
                           className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                         >
@@ -1663,6 +1707,20 @@ export default function AdminPage() {
                             <XCircle className="w-4 h-4" />
                           )}
                           Reject
+                        </button>
+                        <button
+                          onClick={() =>
+                            handlePlaceTagRejectIntent({ openNext: true })
+                          }
+                          disabled={processingPlaceTag === selectedPlaceTag.id || pendingPlaceTags.length <= 1}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/14 hover:bg-red-500/24 border border-red-500/40 text-red-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Reject + Next
                         </button>
                         <button
                           onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE')}
