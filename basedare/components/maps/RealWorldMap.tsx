@@ -441,11 +441,13 @@ function renderProofPreview(tag: PlaceTagItem) {
     return (
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
-        <div className="absolute inset-x-3 top-3 rounded-full border border-[#f5c518]/28 bg-black/20 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-          Seeded memory
-        </div>
-        <div className="absolute inset-x-3 bottom-3 rounded-[12px] border border-white/10 bg-black/24 px-2.5 py-2 text-[10px] uppercase tracking-[0.18em] text-white/72">
-          Grid bootstrap
+        <div className="absolute inset-x-3 top-3 rounded-[14px] border border-[#f5c518]/20 bg-black/28 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+            Seeded memory
+          </div>
+          <div className="mt-1 text-[9px] uppercase tracking-[0.12em] text-white/58">
+            Bootstrap
+          </div>
         </div>
       </div>
     );
@@ -1746,7 +1748,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -1798,7 +1800,7 @@ export default function RealWorldMap() {
                             : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(4,28,42,0.72)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13]"
+                      buttonClassName="inline-flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(4,28,42,0.72)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13] sm:text-[11px]"
                     />
 
                     <CreatePlaceChallengeButton
@@ -1856,15 +1858,17 @@ export default function RealWorldMap() {
                             : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(59,35,5,0.78)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#fff0b1] shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.18]"
+                      buttonClassName="inline-flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(59,35,5,0.78)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#fff0b1] shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.18] sm:text-[11px]"
                     />
 
                     {selectedPlace.slug ? (
                       <Link
                         href={`/venues/${selectedPlace.slug}`}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.22)_0%,rgba(91,33,182,0.12)_100%)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18"
+                        className="inline-flex min-h-[58px] w-full items-center justify-center rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.22)_0%,rgba(91,33,182,0.12)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18 sm:text-[11px] xl:tracking-[0.18em]"
                       >
-                        Open place page
+                        <span className="max-w-[8rem] leading-[1.15] sm:max-w-none">
+                          Open place page
+                        </span>
                       </Link>
                     ) : null}
                   </div>

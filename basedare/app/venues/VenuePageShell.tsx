@@ -16,7 +16,7 @@ export default function VenuePageShell({
       <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
         <GradualBlurOverlay />
       </div>
-      <div className="pointer-events-none fixed inset-x-0 top-24 z-30 px-4 sm:px-6 lg:px-8">
+      <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),0.85rem)] z-[80] px-4 sm:px-6 lg:top-24 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <BackToMapButton mapHref={mapHref} />
         </div>
