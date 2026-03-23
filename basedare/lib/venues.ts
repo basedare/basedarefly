@@ -6,7 +6,6 @@ import {
   calculateDistance,
   encodeGeohash,
   formatDistance,
-  getNeighborGeohashes,
   isValidCoordinates,
 } from '@/lib/geo';
 import {
@@ -33,6 +32,18 @@ function startOfDay(date: Date) {
 
 function subHours(date: Date, hours: number) {
   return new Date(date.getTime() - hours * 60 * 60 * 1000);
+}
+
+function getBoundingBox(lat: number, lng: number, radiusKm: number) {
+  const latDelta = radiusKm / 111;
+  const lngDelta = radiusKm / Math.max(0.1, 111 * Math.cos((lat * Math.PI) / 180));
+
+  return {
+    minLat: lat - latDelta,
+    maxLat: lat + latDelta,
+    minLng: lng - lngDelta,
+    maxLng: lng + lngDelta,
+  };
 }
 
 function mapMemorySummary(memory: {
@@ -408,15 +419,20 @@ export async function getNearbyVenues(input: {
 
   const precision = radiusMeters > 5000 ? 5 : 6;
   const queryGeohash = encodeGeohash(lat, lng, precision);
-  const neighborHashes = getNeighborGeohashes(queryGeohash);
   const radiusKm = radiusMeters / 1000;
+  const bounds = getBoundingBox(lat, lng, radiusKm);
 
   const venues = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
-      OR: neighborHashes.map((hash) => ({
-        geohash: { startsWith: hash },
-      })),
+      latitude: {
+        gte: bounds.minLat,
+        lte: bounds.maxLat,
+      },
+      longitude: {
+        gte: bounds.minLng,
+        lte: bounds.maxLng,
+      },
     },
     select: {
       id: true,

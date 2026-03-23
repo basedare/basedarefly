@@ -14,7 +14,7 @@ export default async function VenueConsolePage(
   }
 
   return (
-    <VenuePageShell>
+    <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
       <VenueConsoleClient venue={venue} />
     </VenuePageShell>
   );

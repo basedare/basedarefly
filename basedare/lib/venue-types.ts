@@ -25,6 +25,7 @@ export type VenueRecentTag = {
   vibeTags: string[];
   proofMediaUrl: string;
   proofType: string;
+  source?: string | null;
   submittedAt: string;
   firstMark: boolean;
 };

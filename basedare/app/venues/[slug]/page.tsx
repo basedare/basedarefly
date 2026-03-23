@@ -24,7 +24,7 @@ export default async function VenueDetailPage(
   }
 
   return (
-    <VenuePageShell>
+    <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
       <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-6">

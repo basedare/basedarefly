@@ -85,6 +85,7 @@ export async function getRecentApprovedPlaceTagsByVenueId(
         vibeTags: true,
         proofMediaUrl: true,
         proofType: true,
+        source: true,
         submittedAt: true,
         firstMark: true,
       },
@@ -98,6 +99,7 @@ export async function getRecentApprovedPlaceTagsByVenueId(
       vibeTags: tag.vibeTags,
       proofMediaUrl: tag.proofMediaUrl,
       proofType: tag.proofType,
+      source: tag.source,
       submittedAt: tag.submittedAt.toISOString(),
       firstMark: tag.firstMark,
     }));

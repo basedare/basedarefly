@@ -33,6 +33,8 @@ type SearchResult = {
   id: string;
   externalPlaceId: string;
   placeSource: string;
+  placeId?: string;
+  slug?: string;
   name: string;
   displayName: string;
   address: string | null;
@@ -97,6 +99,7 @@ type PlaceTagItem = {
   vibeTags: string[];
   proofMediaUrl: string;
   proofType: string;
+  source?: string | null;
   firstMark: boolean;
   submittedAt: string;
 };
@@ -334,6 +337,20 @@ function createPeebearMarkerIcon({
 }
 
 function renderProofPreview(tag: PlaceTagItem) {
+  if (tag.source === 'SEEDED_MEMORY') {
+    return (
+      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
+        <div className="absolute inset-x-3 top-3 rounded-full border border-[#f5c518]/28 bg-black/20 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+          Seeded memory
+        </div>
+        <div className="absolute inset-x-3 bottom-3 rounded-[12px] border border-white/10 bg-black/24 px-2.5 py-2 text-[10px] uppercase tracking-[0.18em] text-white/72">
+          Grid bootstrap
+        </div>
+      </div>
+    );
+  }
+
   if (tag.proofType === 'VIDEO') {
     return (
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/30">
@@ -433,6 +450,7 @@ export default function RealWorldMap() {
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const deepLinkedPlaceSlug = searchParams.get('place');
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
+  const nearbyFetchIdRef = useRef(0);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -579,6 +597,7 @@ export default function RealWorldMap() {
   }, [searchQuery]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
+    const requestId = ++nearbyFetchIdRef.current;
     try {
       const radiusMeters = getRadiusMetersForZoom(zoom);
       const url = new URL('/api/venues/nearby', window.location.origin);
@@ -594,7 +613,9 @@ export default function RealWorldMap() {
         throw new Error('Failed to load nearby places');
       }
 
-      setNearbyPlaces(payload.data.venues);
+      if (requestId === nearbyFetchIdRef.current) {
+        setNearbyPlaces(payload.data.venues);
+      }
     } catch (error) {
       console.error('[REAL_WORLD_MAP] Nearby places failed:', error);
     }
@@ -994,6 +1015,8 @@ export default function RealWorldMap() {
                         setSearchQuery(result.name);
                         setSearchResults([]);
                         setSelectedPlace({
+                          placeId: result.placeId,
+                          slug: result.slug,
                           name: result.name,
                           address: result.address,
                           city: result.city,
@@ -1002,6 +1025,8 @@ export default function RealWorldMap() {
                           longitude: result.longitude,
                           placeSource: result.placeSource,
                           externalPlaceId: result.externalPlaceId,
+                          approvedCount: result.placeSource === 'BASEDARE_VENUE' ? 0 : undefined,
+                          heatScore: result.placeSource === 'BASEDARE_VENUE' ? 0 : undefined,
                         });
                         setTargetCenter([result.latitude, result.longitude]);
                         setTargetZoom(15);

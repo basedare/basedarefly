@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isValidCoordinates } from '@/lib/geo';
+import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 
@@ -69,6 +70,51 @@ function normalizeResult(result: NominatimResult) {
   };
 }
 
+async function searchKnownPlaces(query: string) {
+  const venues = await prisma.venue.findMany({
+    where: {
+      status: 'ACTIVE',
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } },
+        { slug: { contains: query.toLowerCase().replace(/\s+/g, '-'), mode: 'insensitive' } },
+        { city: { contains: query, mode: 'insensitive' } },
+        { country: { contains: query, mode: 'insensitive' } },
+        { address: { contains: query, mode: 'insensitive' } },
+      ],
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      address: true,
+      city: true,
+      country: true,
+      latitude: true,
+      longitude: true,
+    },
+    orderBy: [
+      { isPartner: 'desc' },
+      { updatedAt: 'desc' },
+    ],
+    take: 6,
+  });
+
+  return venues.map((venue) => ({
+    id: venue.id,
+    externalPlaceId: `venue:${venue.slug}`,
+    placeSource: 'BASEDARE_VENUE',
+    name: venue.name,
+    displayName: [venue.name, venue.address, venue.city, venue.country].filter(Boolean).join(', '),
+    address: venue.address,
+    city: venue.city,
+    country: venue.country,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+    slug: venue.slug,
+    placeId: venue.id,
+  }));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -81,29 +127,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
-    nominatimUrl.searchParams.set('format', 'jsonv2');
-    nominatimUrl.searchParams.set('addressdetails', '1');
-    nominatimUrl.searchParams.set('limit', '6');
-    nominatimUrl.searchParams.set('dedupe', '1');
-    nominatimUrl.searchParams.set('q', query.data.q);
+    const [knownPlaces, nominatimResults] = await Promise.all([
+      searchKnownPlaces(query.data.q),
+      (async () => {
+        const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
+        nominatimUrl.searchParams.set('format', 'jsonv2');
+        nominatimUrl.searchParams.set('addressdetails', '1');
+        nominatimUrl.searchParams.set('limit', '6');
+        nominatimUrl.searchParams.set('dedupe', '1');
+        nominatimUrl.searchParams.set('q', query.data.q);
 
-    const response = await fetch(nominatimUrl.toString(), {
-      headers: {
-        'User-Agent': 'BaseDare/1.0 (https://www.basedare.xyz)',
-        'Accept-Language': 'en',
-      },
-      next: { revalidate: 3600 },
+        const response = await fetch(nominatimUrl.toString(), {
+          headers: {
+            'User-Agent': 'BaseDare/1.0 (https://www.basedare.xyz)',
+            'Accept-Language': 'en',
+          },
+          next: { revalidate: 3600 },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Nominatim returned ${response.status}`);
+        }
+
+        const payload = (await response.json()) as NominatimResult[];
+        return payload
+          .map(normalizeResult)
+          .filter((item): item is NonNullable<typeof item> => item !== null);
+      })(),
+    ]);
+
+    const seen = new Set<string>();
+    const results = [...knownPlaces, ...nominatimResults].filter((result) => {
+      const key = result.externalPlaceId;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
     });
-
-    if (!response.ok) {
-      throw new Error(`Nominatim returned ${response.status}`);
-    }
-
-    const payload = (await response.json()) as NominatimResult[];
-    const results = payload
-      .map(normalizeResult)
-      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     return NextResponse.json({
       success: true,
