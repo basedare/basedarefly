@@ -354,10 +354,22 @@ export default function AdminPage() {
     }
   }, [adminSecret]);
 
-  const handlePlaceTagAction = async (tagId: string, action: 'APPROVE' | 'REJECT' | 'FLAG') => {
+  const handlePlaceTagAction = async (
+    tagId: string,
+    action: 'APPROVE' | 'REJECT' | 'FLAG',
+    options?: { openNext?: boolean }
+  ) => {
     if (!adminSecret) return;
 
     setProcessingPlaceTag(tagId);
+    const openNext = options?.openNext ?? false;
+    const currentIndex = pendingPlaceTags.findIndex((tag) => tag.id === tagId);
+    const nextTagCandidate =
+      currentIndex >= 0
+        ? pendingPlaceTags.find((tag, index) => index > currentIndex && tag.id !== tagId) ||
+          pendingPlaceTags.find((tag) => tag.id !== tagId)
+        : null;
+    const normalizedNextTag = nextTagCandidate ?? null;
 
     try {
       const res = await fetch('/api/admin/place-tags', {
@@ -377,7 +389,7 @@ export default function AdminPage() {
 
       if (data.success) {
         setPendingPlaceTags((prev) => prev.filter((tag) => tag.id !== tagId));
-        setSelectedPlaceTag(null);
+        setSelectedPlaceTag(openNext ? normalizedNextTag : null);
         setPlaceTagRejectReason('');
       } else {
         setPlaceTagsError(data.error || 'Failed to process place tag');
@@ -1551,7 +1563,7 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                         <button
                           onClick={() => handlePlaceTagAction(selectedPlaceTag.id, 'FLAG')}
                           disabled={processingPlaceTag === selectedPlaceTag.id}
@@ -1587,6 +1599,20 @@ export default function AdminPage() {
                             <CheckCircle className="w-4 h-4" />
                           )}
                           Approve
+                        </button>
+                        <button
+                          onClick={() =>
+                            handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE', { openNext: true })
+                          }
+                          disabled={processingPlaceTag === selectedPlaceTag.id || pendingPlaceTags.length <= 1}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          {processingPlaceTag === selectedPlaceTag.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                          Approve + Next
                         </button>
                       </div>
                     </>
