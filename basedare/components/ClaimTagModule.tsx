@@ -698,7 +698,7 @@ export function ClaimTagModule() {
                   <Share2 className={`w-5 h-5 ${isPlatformConnected ? 'text-cyan-200' : 'text-gray-400'}`} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white">Social Connect</h3>
+                  <h3 className="text-sm font-bold text-white">Connect Identity</h3>
                   <p className="text-xs text-gray-500 font-mono">
                     Plug your creator identity into BaseDare so claim flow, share rails, and your map all point the same way.
                   </p>
@@ -752,7 +752,58 @@ export function ClaimTagModule() {
               </div>
             </div>
 
-            {isPlatformConnected && connectedPlatform ? (
+            {!isPlatformConnected && !isManualMode && (
+              <div className="mt-4 rounded-[20px] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Choose Platform</p>
+                    <p className="mt-1 text-xs text-white/52">
+                      Connect a platform now, or fall back to manual verification if OAuth gives you trouble.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-200/80">Step 2</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                  {PLATFORMS.map((platform) => (
+                    <button
+                      key={platform.id}
+                      onClick={() => handlePlatformSelect(platform.id)}
+                      disabled={!isConnected}
+                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
+                      <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
+                      {platform.provider === null && (
+                        <span className="text-[10px] sm:text-xs text-gray-400">Manual</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
+                  <p className="text-xs text-gray-400 mb-2">
+                    {error && error.includes('OAuth')
+                      ? 'OAuth not working? Use manual verification instead:'
+                      : 'Having trouble with OAuth? Try manual verification:'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORMS.filter(p => p.provider !== null).map((platform) => (
+                      <button
+                        key={platform.id}
+                        onClick={() => enableManualVerification(platform.id)}
+                        disabled={!isConnected}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${platform.bgColor} ${platform.borderColor} ${platform.color} hover:opacity-80 disabled:opacity-50`}
+                      >
+                        {platform.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isPlatformConnected && connectedPlatform && !isManualMode) ? (
               <div className="mt-4 rounded-[20px] border border-cyan-400/18 bg-cyan-400/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -789,140 +840,30 @@ export function ClaimTagModule() {
                     >
                       Open Map
                     </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                {PLATFORMS.filter((platform) => platform.provider !== null).map((platform) => (
-                  <button
-                    key={`social-connect-${platform.id}`}
-                    type="button"
-                    onClick={() => handlePlatformSelect(platform.id)}
-                    disabled={!isConnected}
-                    className={`flex items-center justify-between rounded-[18px] border px-4 py-3 text-left transition-all ${platform.bgColor} ${platform.borderColor} hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <platform.Icon className={`w-5 h-5 ${platform.color}`} />
-                      <div>
-                        <p className={`text-sm font-semibold ${platform.color}`}>{platform.name}</p>
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">Connect</p>
-                      </div>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-white/35" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Step 2: Choose Platform */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${isPlatformConnected || isManualMode
-              ? 'bg-green-500/5 border-green-500/30'
-              : 'bg-black/20 border-white/10'
-              } ${!isConnected ? 'opacity-50' : ''}`}
-          >
-            <div className="flex items-center gap-3 sm:gap-4 mb-4">
-              <div
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${isPlatformConnected || isManualMode
-                  ? 'bg-green-500/20 border border-green-500/30'
-                  : 'bg-white/5 border border-white/10'
-                  }`}
-              >
-                <Shield
-                  className={`w-5 h-5 ${isPlatformConnected || isManualMode
-                    ? 'text-green-400'
-                    : 'text-gray-400'
-                    }`}
-                />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white">Verify Identity</h3>
-                <p className="text-xs text-gray-500 font-mono truncate">
-                  {isPlatformConnected
-                    ? `Connected as ${platformHandle} via ${connectedPlatform}`
-                    : isManualMode
-                      ? 'Manual verification required'
-                      : 'Choose your verification method'}
-                </p>
-              </div>
-            </div>
-
-            {/* Platform Selection Grid */}
-            {!isPlatformConnected && !isManualMode && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  {PLATFORMS.map((platform) => (
                     <button
-                      key={platform.id}
-                      onClick={() => handlePlatformSelect(platform.id)}
-                      disabled={!isConnected}
-                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
+                      type="button"
+                      onClick={() => signOut()}
+                      className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:text-white"
                     >
-                      <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
-                      <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
-                      {platform.provider === null && (
-                        <span className="text-[10px] sm:text-xs text-gray-400">Manual</span>
-                      )}
+                      Disconnect
                     </button>
-                  ))}
-                </div>
-
-                {/* Manual Verification Fallback - always show */}
-                <div className="p-3 bg-white/5 border border-white/10 rounded-xl">
-                  <p className="text-xs text-gray-400 mb-2">
-                    {error && error.includes('OAuth')
-                      ? 'OAuth not working? Use manual verification instead:'
-                      : 'Having trouble with OAuth? Try manual verification:'}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {PLATFORMS.filter(p => p.provider !== null).map((platform) => (
-                      <button
-                        key={platform.id}
-                        onClick={() => enableManualVerification(platform.id)}
-                        disabled={!isConnected}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${platform.bgColor} ${platform.borderColor} ${platform.color} hover:opacity-80 disabled:opacity-50`}
-                      >
-                        {platform.name}
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Connected Platform Display */}
-            {isPlatformConnected && connectedPlatform && !isManualMode && (
-              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  {(() => {
-                    const config = getPlatformConfig(connectedPlatform);
-                    return (
-                      <>
-                        <config.Icon className={`w-5 h-5 sm:w-6 sm:h-6 shrink-0 ${config.color}`} />
-                        <span className="text-white text-sm font-mono truncate">@{platformHandle}</span>
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                  <button
-                    onClick={() => signOut()}
-                    className="text-[10px] sm:text-xs text-gray-500 hover:text-white transition-colors"
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Manual Verification (works for any platform) */}
             {isManualMode && manualCode && selectedPlatform && (
+              <div className="mt-4 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Manual Verification</p>
+                    <p className="mt-1 text-xs text-white/52">
+                      Use this when OAuth is not available or the platform needs admin review.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Fallback</span>
+                </div>
+
               <div className="space-y-3 sm:space-y-4">
                 {(() => {
                   const config = getPlatformConfig(selectedPlatform);
@@ -998,6 +939,7 @@ export function ClaimTagModule() {
                 >
                   ← Choose different platform
                 </button>
+              </div>
               </div>
             )}
           </motion.div>
