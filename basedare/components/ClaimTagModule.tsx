@@ -87,6 +87,22 @@ interface SessionPlatformData {
   platformHandle?: string;
   platformId?: string;
   token?: string;
+  platformBio?: string | null;
+  platformFollowerCount?: number | null;
+}
+
+function formatCompactCount(value: number | null | undefined): string | null {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
+
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
+  }
+
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
+  }
+
+  return value.toString();
 }
 
 const PLATFORMS: PlatformConfig[] = [
@@ -175,6 +191,9 @@ export function ClaimTagModule() {
   const sessionData = session as SessionPlatformData | null;
   const provider = sessionData?.provider;
   const platformHandle = sessionData?.platformHandle;
+  const platformBio = sessionData?.platformBio?.trim() || null;
+  const platformFollowerCount = sessionData?.platformFollowerCount ?? null;
+  const compactFollowerCount = formatCompactCount(platformFollowerCount);
 
   const isPlatformConnected = !!platformHandle && !!provider;
 
@@ -603,6 +622,146 @@ export function ClaimTagModule() {
             </div>
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.125 }}
+            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
+              isPlatformConnected
+                ? 'bg-cyan-500/5 border-cyan-400/30'
+                : 'bg-[linear-gradient(180deg,rgba(34,211,238,0.06)_0%,rgba(7,9,18,0.92)_100%)] border-cyan-400/18'
+            } ${!isConnected ? 'opacity-50' : ''}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                    isPlatformConnected
+                      ? 'bg-cyan-400/15 border border-cyan-400/30'
+                      : 'bg-white/5 border border-white/10'
+                  }`}
+                >
+                  <Share2 className={`w-5 h-5 ${isPlatformConnected ? 'text-cyan-200' : 'text-gray-400'}`} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white">Social Connect</h3>
+                  <p className="text-xs text-gray-500 font-mono">
+                    Plug your creator identity into BaseDare so claim flow, share rails, and your map all point the same way.
+                  </p>
+                </div>
+              </div>
+              {isPlatformConnected ? (
+                <div className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-100">
+                  Connected
+                </div>
+              ) : (
+                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Optional but powerful</span>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center gap-2 text-cyan-200">
+                  <Shield className="h-4 w-4" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity</span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-white">
+                  {isPlatformConnected ? `Anchored as @${platformHandle}` : 'Connect your real handle'}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-white/55">
+                  Clean handle alignment keeps payouts, claim review, and BaseDare Brain routing grounded in one creator identity.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center gap-2 text-[#f5c518]">
+                  <Share2 className="h-4 w-4" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Cross-Post</span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-white">Approved wins share cleaner now</p>
+                <p className="mt-2 text-xs leading-5 text-white/55">
+                  One consistent BaseDare share payload means tighter growth loops, cleaner proof framing, and better deep links back to the map.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center gap-2 text-purple-200">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Your Map</span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-white">
+                  {inviteData ? 'Claim first, then wake the place up' : 'This becomes your place layer'}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-white/55">
+                  Social connect is the front door to Suggested Footprint now, and later to imported residue review without weakening verified memory.
+                </p>
+              </div>
+            </div>
+
+            {isPlatformConnected && connectedPlatform ? (
+              <div className="mt-4 rounded-[20px] border border-cyan-400/18 bg-cyan-400/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const config = getPlatformConfig(connectedPlatform);
+                        return <config.Icon className={`w-5 h-5 shrink-0 ${config.color}`} />;
+                      })()}
+                      <span className="text-sm font-semibold text-white">@{platformHandle}</span>
+                      {compactFollowerCount ? (
+                        <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.14em] text-white/60">
+                          {compactFollowerCount} audience
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-white/55">
+                      {platformBio || 'Connected identity is ready for claim matching, share rails, and the next Suggested Footprint layer.'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {!hasMatchingVerifiedTag && platformHandle ? (
+                      <button
+                        type="button"
+                        onClick={() => setTag(platformHandle)}
+                        className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                      >
+                        Use @{platformHandle}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => router.push('/map')}
+                      className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                    >
+                      Open Map
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {PLATFORMS.filter((platform) => platform.provider !== null).map((platform) => (
+                  <button
+                    key={`social-connect-${platform.id}`}
+                    type="button"
+                    onClick={() => handlePlatformSelect(platform.id)}
+                    disabled={!isConnected}
+                    className={`flex items-center justify-between rounded-[18px] border px-4 py-3 text-left transition-all ${platform.bgColor} ${platform.borderColor} hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <platform.Icon className={`w-5 h-5 ${platform.color}`} />
+                      <div>
+                        <p className={`text-sm font-semibold ${platform.color}`}>{platform.name}</p>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">Connect</p>
+                      </div>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-white/35" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
           {/* Step 2: Choose Platform */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -631,7 +790,7 @@ export function ClaimTagModule() {
                 <h3 className="text-sm font-bold text-white">Verify Identity</h3>
                 <p className="text-xs text-gray-500 font-mono truncate">
                   {isPlatformConnected
-                    ? `Verified as ${platformHandle} via ${connectedPlatform}`
+                    ? `Connected as ${platformHandle} via ${connectedPlatform}`
                     : isManualMode
                       ? 'Manual verification required'
                       : 'Choose your verification method'}
