@@ -91,6 +91,19 @@ interface SessionPlatformData {
   platformFollowerCount?: number | null;
 }
 
+interface CreatorFootprint {
+  handle: string;
+  displayHandle: string;
+  verified: boolean;
+  tags: string[];
+  stats: {
+    total: number;
+    completed: number;
+    live: number;
+    totalEarned: number;
+  };
+}
+
 function formatCompactCount(value: number | null | undefined): string | null {
   if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
 
@@ -186,6 +199,8 @@ export function ClaimTagModule() {
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [footprintLoading, setFootprintLoading] = useState(false);
+  const [footprintData, setFootprintData] = useState<CreatorFootprint | null>(null);
 
   // Get platform handle from session
   const sessionData = session as SessionPlatformData | null;
@@ -288,6 +303,45 @@ export function ClaimTagModule() {
         .catch(console.error);
     }
   }, [address, success]);
+
+  useEffect(() => {
+    if (!platformHandle) {
+      setFootprintData(null);
+      setFootprintLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setFootprintLoading(true);
+
+    fetch(`/api/creator/${encodeURIComponent(platformHandle)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.data) {
+          return null;
+        }
+        return data.data as CreatorFootprint;
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setFootprintData(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFootprintData(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFootprintLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platformHandle]);
 
   // Check tag availability
   const checkTagAvailability = useCallback(async (tagValue: string) => {
@@ -1040,6 +1094,106 @@ export function ClaimTagModule() {
                   </button>
                 </div>
               </div>
+
+              {platformHandle ? (
+                <div className="mt-4 rounded-[18px] border border-white/10 bg-black/20 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-cyan-200">
+                        <MapPin className="h-4 w-4" />
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Live Footprint</span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-white">
+                        {footprintData ? `${footprintData.displayHandle} already has signal on the grid` : `Checking ${platformHandle} across the grid`}
+                      </p>
+                    </div>
+                    {footprintData?.verified ? (
+                      <div className="rounded-full border border-green-400/25 bg-green-400/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-green-200">
+                        Verified
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {footprintLoading ? (
+                    <p className="mt-3 text-xs leading-5 text-white/55">
+                      Pulling claimed tag and dare history so Suggested Footprint can stay grounded in real BaseDare activity.
+                    </p>
+                  ) : footprintData ? (
+                    <>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Live</p>
+                          <p className="mt-2 text-lg font-black text-white">{footprintData.stats.live}</p>
+                        </div>
+                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Completed</p>
+                          <p className="mt-2 text-lg font-black text-white">{footprintData.stats.completed}</p>
+                        </div>
+                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Earned</p>
+                          <p className="mt-2 text-lg font-black text-white">${footprintData.stats.totalEarned.toLocaleString()}</p>
+                        </div>
+                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Tags</p>
+                          <p className="mt-2 text-lg font-black text-white">{footprintData.tags.length}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {footprintData.tags.slice(0, 4).map((tagChip) => (
+                          <span
+                            key={tagChip}
+                            className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/55"
+                          >
+                            #{tagChip}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/creator/${footprintData.handle.replace(/^@/, '').toLowerCase()}`)}
+                          className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                        >
+                          Open Creator Page
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => router.push('/map')}
+                          className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                        >
+                          View On Map
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-3 text-xs leading-5 text-white/55">
+                        No claimed creator footprint found yet. That is fine. Connect, claim, and the first verified win starts the graph cleanly.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {!hasMatchingVerifiedTag && platformHandle ? (
+                          <button
+                            type="button"
+                            onClick={() => setTag(platformHandle)}
+                            className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                          >
+                            Claim @{platformHandle}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => router.push('/map')}
+                          className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                        >
+                          Open Map
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
             </motion.div>
           )}
 
