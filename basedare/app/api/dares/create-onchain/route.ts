@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { getWalletClient, PROTOCOL_CONTRACT_ADDRESS, PROTOCOL_ABI, publicClient } from '@/lib/contracts';
 import { parseUnits, isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { generateOnChainDareId } from '@/lib/dare-id';
 import { verifyInternalApiKey } from '@/lib/api-auth';
+import { extractDareIdFromReceipt } from '@/lib/contracts/utils';
 import type { Address } from 'viem';
 
 const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const walletClient = getWalletClient();
     const amountInUnits = parseUnits(amount.toString(), 6);
 
-    // Create DB record first to get deterministic on-chain ID
+    // Create DB record first so we can reconcile the actual contract event back to DB.
     const dbDare = await prisma.dare.create({
       data: {
         title: title || 'On-chain dare',
@@ -56,8 +56,6 @@ export async function POST(request: NextRequest) {
         isSimulated: false,
       },
     });
-
-    const onChainDareId = generateOnChainDareId(dbDare.id);
 
     const hash = await walletClient.writeContract({
       address: PROTOCOL_CONTRACT_ADDRESS,
@@ -71,6 +69,26 @@ export async function POST(request: NextRequest) {
     });
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const actualOnChainDareId = receipt.status === 'success' ? extractDareIdFromReceipt(receipt) : null;
+
+    if (receipt.status === 'success' && actualOnChainDareId === null) {
+      await prisma.dare.update({
+        where: { id: dbDare.id },
+        data: {
+          status: 'FUNDING',
+          txHash: hash,
+          onChainDareId: null,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'On-chain dare created but DareCreated event could not be decoded for reconciliation',
+        },
+        { status: 502 }
+      );
+    }
 
     // Update DB with tx result
     await prisma.dare.update({
@@ -78,7 +96,7 @@ export async function POST(request: NextRequest) {
       data: {
         status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
         txHash: hash,
-        onChainDareId: onChainDareId.toString(),
+        onChainDareId: actualOnChainDareId?.toString() ?? null,
       },
     });
 
@@ -104,7 +122,7 @@ export async function POST(request: NextRequest) {
       data: {
         transactionHash: hash,
         dareId: dbDare.id,
-        onChainDareId: onChainDareId.toString(),
+        onChainDareId: actualOnChainDareId?.toString() ?? null,
         blockNumber: receipt.blockNumber.toString(),
       },
     });

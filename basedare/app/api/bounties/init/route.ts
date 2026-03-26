@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
-import { isAddress } from 'viem';
+import { isAddress, type Address } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { authOptions } from '@/lib/auth-options';
@@ -13,6 +13,11 @@ import {
 
 const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
+const OPEN_BOUNTY_TAGS = ['@everyone', '@anyone', '@all'];
+const LEGACY_TAG_MAP: Record<string, Address> = {
+    '@KaiCenat': '0x1234567890123456789012345678901234567890',
+    '@xQc': '0x2345678901234567890123456789012345678901',
+};
 
 type WalletSession = {
     token?: string;
@@ -71,6 +76,42 @@ function generateShortId(length = 8): string {
     return result;
 }
 
+async function resolveTagToAddress(
+    tag: string
+): Promise<{ address: Address | null; simulated: boolean; verified: boolean }> {
+    const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
+
+    const verifiedTag = await prisma.streamerTag.findUnique({
+        where: { tag: normalizedTag },
+        select: { walletAddress: true, status: true },
+    });
+
+    if (verifiedTag && verifiedTag.status === 'VERIFIED') {
+        return {
+            address: verifiedTag.walletAddress as Address,
+            simulated: false,
+            verified: true,
+        };
+    }
+
+    const normalizedLower = normalizedTag.toLowerCase();
+    for (const [knownTag, address] of Object.entries(LEGACY_TAG_MAP)) {
+        if (knownTag.toLowerCase() === normalizedLower) {
+            return {
+                address,
+                simulated: false,
+                verified: false,
+            };
+        }
+    }
+
+    return {
+        address: null,
+        simulated: true,
+        verified: false,
+    };
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -101,6 +142,9 @@ export async function POST(request: NextRequest) {
         } = validation.data;
         const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
         const normalizedMissionTag = missionTag?.trim() || null;
+        const normalizedTag = streamerTag?.trim().toLowerCase() || '';
+        const isOpenBounty =
+            !streamerTag || streamerTag.trim() === '' || OPEN_BOUNTY_TAGS.includes(normalizedTag);
 
         const normalizedStakerAddress = stakerAddress?.toLowerCase();
         const sessionWallet = await getVerifiedSessionWallet(request);
@@ -151,9 +195,32 @@ export async function POST(request: NextRequest) {
             geohash,
         } = placeContext;
 
-        // Resolve tag to address (dummy implementation for target/referrer in this MVP)
-        // We'll use zero address for target if not resolving specifically right now
-        const targetAddress = '0x0000000000000000000000000000000000000000';
+        if (isOpenBounty) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error:
+                        'Live onchain funding requires a verified target tag. Open challenges should use the database-only flow.',
+                    code: 'TARGET_REQUIRED',
+                },
+                { status: 400 }
+            );
+        }
+
+        const tagResolution = await resolveTagToAddress(streamerTag);
+        if (!tagResolution.address || tagResolution.simulated || !tagResolution.verified) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error:
+                        'Live onchain funding requires a claimed, verified target tag with a wallet address.',
+                    code: 'TARGET_NOT_VERIFIED',
+                },
+                { status: 400 }
+            );
+        }
+
+        const targetAddress = tagResolution.address;
         const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS || '0x0000000000000000000000000000000000000000';
 
         // Create DB record in FUNDING state
@@ -173,6 +240,7 @@ export async function POST(request: NextRequest) {
                 expiresAt,
                 shortId,
                 stakerAddress: normalizedStakerAddress || null,
+                targetWalletAddress: targetAddress,
                 venueId: canonicalVenueId,
                 isNearbyDare,
                 latitude: isNearbyDare ? latitude : null,

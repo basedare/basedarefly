@@ -16,3 +16,10 @@ Handles the creation, staking, and resolution of user dares.
 ## Deployment & Setup
 - Local development utilizes Wagmi and viem to interact with the contracts.
 - Ensure the `NEXT_PUBLIC_CONTRACT_ADDRESS` is defined in your `.env.local` to point to the correct deployment on Base Sepolia (Testnet) or Base Mainnet.
+
+## Current Launch Policy
+
+- Live onchain funding currently requires a **claimed, verified target wallet**.
+- **Open bounties** and **unverified tags** must stay on the database-only or simulated path for now.
+- This is intentional: the current live escrow flow needs a concrete payout recipient and does not yet support the V2 crowd-funding model with per-backer refund accounting.
+- Revisit this policy before opening permissionless crowd-funding or trustless open-bounty escrow to real users.
