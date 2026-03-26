@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload, LogIn } from "lucide-react";
+import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload, LogIn, Share2, MapPin } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
@@ -10,6 +10,7 @@ import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import { useAccount, useConnect } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
+import { useSession } from 'next-auth/react';
 
 interface Dare {
   id: string;
@@ -36,6 +37,13 @@ interface UserTag {
   tags?: string[];
 }
 
+interface SessionPlatformData {
+  provider?: string | null;
+  platformHandle?: string | null;
+  platformBio?: string | null;
+  platformFollowerCount?: number | null;
+}
+
 type DareView = 'funded' | 'forme';
 
 const raisedPanelClass =
@@ -53,10 +61,32 @@ const sectionLabelClass =
 const pillClass =
   "inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]";
 
+function formatCompactCount(value: number | null | undefined): string | null {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
+
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
+  }
+
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
+  }
+
+  return value.toString();
+}
+
+function getProviderLabel(provider: string | null | undefined): string {
+  if (provider === 'twitter') return 'X';
+  if (provider === 'twitch') return 'Twitch';
+  if (provider === 'google') return 'YouTube';
+  return 'Social';
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { connect, isPending: isConnecting } = useConnect();
+  const { data: session } = useSession();
   const [fundedDares, setFundedDares] = useState<Dare[]>([]);
   const [forMeDares, setForMeDares] = useState<Dare[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +106,16 @@ export default function Dashboard() {
 
   // Get the active dares list based on view
   const dares = activeView === 'funded' ? fundedDares : forMeDares;
+  const sessionData = session as SessionPlatformData | null;
+  const connectedProvider = sessionData?.provider || null;
+  const connectedHandle = sessionData?.platformHandle?.replace(/^@/, '').trim() || null;
+  const connectedPlatformBio = sessionData?.platformBio?.trim() || null;
+  const connectedAudience = formatCompactCount(sessionData?.platformFollowerCount ?? null);
+  const hasConnectedSocial = Boolean(connectedProvider && connectedHandle);
+  const normalizedUserTag = userTag?.tag?.replace(/^@/, '').toLowerCase() || null;
+  const socialMatchesClaimedTag = Boolean(
+    connectedHandle && normalizedUserTag && connectedHandle.toLowerCase() === normalizedUserTag
+  );
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
@@ -352,25 +392,136 @@ export default function Dashboard() {
                 />
                 {tagsSaveError && <p className="text-red-400 text-xs">{tagsSaveError}</p>}
                 {tagsSaveSuccess && <p className="text-green-400 text-xs">{tagsSaveSuccess}</p>}
-              </div>
-            ) : isConnected ? (
-              <div className={`${insetCardClass} p-4 flex items-center justify-between gap-4`}>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-500/25 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <Target className="w-5 h-5 text-purple-400 shrink-0" />
+
+                <div className={`${insetCardClass} p-4`}>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-cyan-200">
+                        <Share2 className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-100">Social Connect</span>
+                      </div>
+                      <p className="mt-3 text-sm font-bold text-white">
+                        {hasConnectedSocial ? `Connected to ${getProviderLabel(connectedProvider)} as @${connectedHandle}` : 'Connect a social identity to strengthen your creator graph'}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-white/55 max-w-2xl">
+                        {hasConnectedSocial
+                          ? connectedPlatformBio || 'This identity is now available for claim matching, distribution rails, and future footprint routing.'
+                          : 'Linking a real handle helps BaseDare keep claim flow, map footprint, and share rails pointed at one creator identity.'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => router.push('/claim-tag')}
+                        className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                      >
+                        {hasConnectedSocial ? 'Manage Social' : 'Connect Social'}
+                      </button>
+                      <button
+                        onClick={() => router.push('/map')}
+                        className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                      >
+                        Open Map
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-purple-300 text-sm font-bold">Claim your tag to start earning</p>
-                    <p className="text-purple-300/70 text-xs font-mono">Verify your identity so fans can dare you</p>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Status</p>
+                      <p className="mt-2 text-sm font-black text-white">
+                        {hasConnectedSocial ? 'Connected' : 'Not connected'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/48">
+                        {hasConnectedSocial ? `${getProviderLabel(connectedProvider)} identity available` : 'No linked distribution rail yet'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Claim Match</p>
+                      <p className="mt-2 text-sm font-black text-white">
+                        {hasConnectedSocial ? (socialMatchesClaimedTag ? 'Aligned' : 'Needs match') : 'Waiting'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/48">
+                        {hasConnectedSocial
+                          ? (socialMatchesClaimedTag ? 'Your social handle matches your claimed BaseDare tag.' : `Connected handle is @${connectedHandle}.`)
+                          : 'Connect first, then anchor the right tag.'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Share Ready</p>
+                      <p className="mt-2 text-sm font-black text-white">
+                        {hasConnectedSocial ? 'Yes' : 'Later'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/48">
+                        {hasConnectedSocial
+                          ? `${connectedAudience ? `${connectedAudience} audience linked, ` : ''}approved wins can route through cleaner X share rails.`
+                          : 'Connect socials to make distribution feel native, not bolted on.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => router.push('/claim-tag')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
-                >
-                  <Zap className="w-4 h-4" />
-                  Claim Tag
-                </button>
+              </div>
+            ) : isConnected ? (
+              <div className={`${insetCardClass} p-4 space-y-4`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-500/25 bg-purple-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <Target className="w-5 h-5 text-purple-400 shrink-0" />
+                    </div>
+                    <div>
+                      <p className="text-purple-300 text-sm font-bold">Claim your tag to start earning</p>
+                      <p className="text-purple-300/70 text-xs font-mono">Verify your identity so fans can dare you</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/claim-tag')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Claim Tag
+                  </button>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                    <div className="flex items-center gap-2 text-cyan-200">
+                      <Share2 className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Social Status</span>
+                    </div>
+                    <p className="mt-2 text-sm font-black text-white">
+                      {hasConnectedSocial ? `@${connectedHandle}` : 'Not connected'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/48">
+                      {hasConnectedSocial ? `${getProviderLabel(connectedProvider)} linked and waiting for tag alignment.` : 'Connect socials so claim flow and distribution point the same way.'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                    <div className="flex items-center gap-2 text-[#f5c518]">
+                      <Zap className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Next Step</span>
+                    </div>
+                    <p className="mt-2 text-sm font-black text-white">
+                      {hasConnectedSocial ? 'Match your tag' : 'Connect and claim'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/48">
+                      {hasConnectedSocial ? 'Your connected handle is ready to be anchored as a BaseDare tag.' : 'Wallet is ready. Social connect makes the creator identity legible next.'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                    <div className="flex items-center gap-2 text-purple-200">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Map Layer</span>
+                    </div>
+                    <p className="mt-2 text-sm font-black text-white">Footprint later</p>
+                    <p className="mt-1 text-[11px] text-white/48">
+                      Claiming the right identity is what lets future footprint, place memory, and creator routing stay trustworthy.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className={`${insetCardClass} p-4 flex items-center justify-between gap-4`}>

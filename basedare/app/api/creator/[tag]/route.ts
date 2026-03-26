@@ -96,6 +96,8 @@ export async function GET(
                 verified: streamTag?.status === 'ACTIVE' || streamTag?.status === 'VERIFIED',
                 twitterHandle: streamTag?.twitterHandle || null,
                 twitchHandle: streamTag?.twitchHandle || null,
+                youtubeHandle: streamTag?.youtubeHandle || null,
+                kickHandle: streamTag?.kickHandle || null,
                 bio: null,
                 followerCount: null,
                 tags: streamTag?.tags || [],

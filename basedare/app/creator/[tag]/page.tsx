@@ -49,11 +49,27 @@ interface CreatorProfile {
     verified: boolean;
     twitterHandle: string | null;
     twitchHandle: string | null;
+    youtubeHandle: string | null;
+    kickHandle: string | null;
     bio: string | null;
     followerCount: number | null;
     tags: string[];
     stats: CreatorStats;
     recent: RecentDare[];
+}
+
+function formatCompactCount(value: number | null | undefined): string | null {
+    if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
+
+    if (value >= 1_000_000) {
+        return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
+    }
+
+    if (value >= 1_000) {
+        return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
+    }
+
+    return value.toString();
 }
 
 const raisedPanelClass =
@@ -166,6 +182,8 @@ export default function CreatorProfilePage() {
                         verified: false,
                         twitterHandle: null,
                         twitchHandle: null,
+                        youtubeHandle: null,
+                        kickHandle: null,
                         bio: null,
                         followerCount: null,
                         tags: [],
@@ -211,6 +229,13 @@ export default function CreatorProfilePage() {
     );
 
     const stats = profile?.stats;
+    const connectedPlatforms = [
+        profile?.twitterHandle ? { label: 'X', handle: profile.twitterHandle, href: `https://twitter.com/${profile.twitterHandle}`, accent: 'text-cyan-200' } : null,
+        profile?.twitchHandle ? { label: 'Twitch', handle: profile.twitchHandle, href: `https://twitch.tv/${profile.twitchHandle}`, accent: 'text-purple-200' } : null,
+        profile?.youtubeHandle ? { label: 'YouTube', handle: profile.youtubeHandle, href: `https://youtube.com/@${profile.youtubeHandle}`, accent: 'text-red-300' } : null,
+        profile?.kickHandle ? { label: 'Kick', handle: profile.kickHandle, href: `https://kick.com/${profile.kickHandle}`, accent: 'text-green-300' } : null,
+    ].filter(Boolean) as Array<{ label: string; handle: string; href: string; accent: string }>;
+    const audienceLabel = formatCompactCount(profile?.followerCount);
 
     return (
         <main className="min-h-screen bg-transparent text-white pb-24">
@@ -282,28 +307,18 @@ export default function CreatorProfilePage() {
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2.5 mt-3">
-                                        {profile?.twitterHandle && (
+                                        {connectedPlatforms.map((platform) => (
                                             <a
-                                                href={`https://twitter.com/${profile.twitterHandle}`}
+                                                key={`${platform.label}-${platform.handle}`}
+                                                href={platform.href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className={`${pillClass} normal-case tracking-normal text-xs hover:text-cyan-200 transition-colors`}
+                                                className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
                                             >
-                                                𝕏 @{profile.twitterHandle}
+                                                {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
                                                 <ExternalLink className="w-3 h-3" />
                                             </a>
-                                        )}
-                                        {profile?.twitchHandle && (
-                                            <a
-                                                href={`https://twitch.tv/${profile.twitchHandle}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`${pillClass} normal-case tracking-normal text-xs hover:text-purple-200 transition-colors`}
-                                            >
-                                                Twitch {profile.twitchHandle}
-                                                <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                        )}
+                                        ))}
                                         {typeof profile?.followerCount === 'number' && (
                                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/60`}>
                                                 {(profile.followerCount || 0).toLocaleString()} followers
@@ -340,6 +355,97 @@ export default function CreatorProfilePage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className={`${softCardClass} p-5 sm:p-6`}>
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                <Zap className="w-3.5 h-3.5" />
+                                Social Status
+                            </div>
+                            <h2 className="mt-4 text-lg font-black text-white">Connected identity and distribution layer</h2>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
+                                Creator pages now show whether this identity is socially anchored enough for clean distribution, creator trust, and future footprint routing.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Link
+                                href={`/create?streamer=${encodeURIComponent(displayTag)}`}
+                                className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                            >
+                                Dare {displayTag}
+                            </Link>
+                            <Link
+                                href="/claim-tag"
+                                className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                            >
+                                Connect Social
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 md:grid-cols-4">
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Linked Platforms</p>
+                            <p className="mt-2 text-2xl font-black text-white">{connectedPlatforms.length}</p>
+                            <p className="mt-1 text-[11px] text-white/46">
+                                {connectedPlatforms.length > 0 ? 'Identity is externally legible.' : 'No linked social handles exposed yet.'}
+                            </p>
+                        </div>
+
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Distribution</p>
+                            <p className="mt-2 text-2xl font-black text-white">{connectedPlatforms.length > 0 ? 'Ready' : 'Thin'}</p>
+                            <p className="mt-1 text-[11px] text-white/46">
+                                {connectedPlatforms.length > 0 ? 'Shared wins can point back to a real creator surface.' : 'BaseDare signal exists, but distribution rails are still weak.'}
+                            </p>
+                        </div>
+
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Audience</p>
+                            <p className="mt-2 text-2xl font-black text-white">{audienceLabel || '--'}</p>
+                            <p className="mt-1 text-[11px] text-white/46">
+                                {audienceLabel ? 'Current stored audience signal.' : 'No audience count stored on this profile yet.'}
+                            </p>
+                        </div>
+
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Footprint State</p>
+                            <p className="mt-2 text-2xl font-black text-white">
+                                {profile?.verified ? 'Anchored' : connectedPlatforms.length > 0 ? 'Emerging' : 'Unanchored'}
+                            </p>
+                            <p className="mt-1 text-[11px] text-white/46">
+                                {profile?.verified
+                                    ? 'Claimed identity and BaseDare activity are already tied together.'
+                                    : connectedPlatforms.length > 0
+                                        ? 'Social signal exists, but the strongest trust still comes from claimed BaseDare proof.'
+                                        : 'This creator needs claim + activity before the footprint feels real.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                        {connectedPlatforms.length > 0 ? (
+                            connectedPlatforms.map((platform) => (
+                                <a
+                                    key={`surface-${platform.label}-${platform.handle}`}
+                                    href={platform.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
+                                >
+                                    {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            ))
+                        ) : (
+                            <span className={`${pillClass} normal-case tracking-normal text-xs text-white/42`}>
+                                No linked social identity exposed on this creator yet
+                            </span>
+                        )}
                     </div>
                 </div>
 
