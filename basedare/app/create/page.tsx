@@ -5,20 +5,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, Share2, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
 import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
+import ShareComposerButton from "@/components/ShareComposerButton";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
-import { buildXSharePayload } from '@/lib/social-share';
 
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
@@ -363,31 +363,14 @@ export default function CreateDare() {
                   </div>
                 </div>
 
-                {/* Share on X Button - Liquid Metal Style */}
-                <div className="relative group p-[1px] rounded-xl overflow-hidden">
-                  <div
-                    className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
-                    aria-hidden="true"
-                  />
-                  <button
-                    onClick={() => {
-                      trigger('click');
-                      const fullUrl = `${window.location.origin}${successData.inviteLink}`;
-                      const payload = buildXSharePayload({
-                        title: 'Live BaseDare invite',
-                        streamerTag: successData.streamerTag,
-                        inviteUrl: fullUrl,
-                        status: 'invite',
-                      });
-                      window.open(payload.url, '_blank', 'width=550,height=420');
-                    }}
-                    className="relative w-full py-3 bg-[#0a0a0a] text-white font-bold text-xs md:text-sm uppercase tracking-wider rounded-[11px] transition-all flex items-center justify-center gap-2"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-transparent to-white/[0.03] pointer-events-none rounded-[11px]" />
-                    <Share2 className="w-4 h-4 relative z-10" />
-                    <span className="relative z-10">Share on X</span>
-                  </button>
-                </div>
+                <ShareComposerButton
+                  title="Live BaseDare invite"
+                  streamerTag={successData.streamerTag}
+                  inviteUrl={typeof window !== 'undefined' ? `${window.location.origin}${successData.inviteLink}` : successData.inviteLink}
+                  placeName={successData.locationLabel}
+                  status="invite"
+                  buttonLabel="Share Invite"
+                />
 
                 {/* Refund Deadline */}
                 {successData.claimDeadline && (
@@ -405,7 +388,17 @@ export default function CreateDare() {
 
             {/* Normal Success - Show Share Link */}
             {!successData.awaitingClaim && successData.shortId && (
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <ShareComposerButton
+                  title={watchTitle || 'Live BaseDare challenge'}
+                  bounty={watchAmount}
+                  streamerTag={successData.streamerTag}
+                  shortId={successData.shortId}
+                  placeName={successData.locationLabel}
+                  status="live"
+                  buttonLabel="Share Live Dare"
+                  compact
+                />
                 <a
                   href={`/dare/${successData.shortId}`}
                   className="text-sm text-purple-400 hover:text-purple-300 font-mono transition-colors"
