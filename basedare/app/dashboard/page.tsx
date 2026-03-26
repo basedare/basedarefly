@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Wallet, Trophy, Target, Zap, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, Upload, LogIn, Share2, MapPin } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
+import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
@@ -14,6 +15,7 @@ import { useSession } from 'next-auth/react';
 
 interface Dare {
   id: string;
+  shortId?: string;
   title: string;
   bounty: number;
   streamerHandle: string;
@@ -23,6 +25,7 @@ interface Dare {
   isSimulated?: boolean;
   stakerAddress?: string;
   targetWalletAddress?: string;
+  locationLabel?: string | null;
 }
 
 interface UserTag {
@@ -785,9 +788,26 @@ export default function Dashboard() {
                   )}
 
                   {selectedDare.status === 'VERIFIED' && (
-                    <div className="flex items-start gap-3 text-xs bg-[linear-gradient(180deg,rgba(34,197,94,0.12)_0%,rgba(7,18,10,0.92)_100%)] p-4 rounded-xl border border-green-500/30">
-                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                      <span className="text-green-400">This dare has been verified and paid out!</span>
+                    <div className="bg-[linear-gradient(180deg,rgba(34,197,94,0.12)_0%,rgba(7,18,10,0.92)_100%)] p-4 rounded-xl border border-green-500/30">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 text-xs">
+                          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                          <div>
+                            <span className="text-green-400">This dare has been verified and paid out!</span>
+                            <p className="mt-2 text-[11px] font-mono text-green-200/70">
+                              Turn the verified result into distribution while the outcome is still fresh.
+                            </p>
+                          </div>
+                        </div>
+                        <ShareWinButton
+                          dare={selectedDare.title}
+                          amount={selectedDare.bounty}
+                          streamer={selectedDare.streamerHandle}
+                          shortId={selectedDare.shortId}
+                          placeName={selectedDare.locationLabel}
+                          compact
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -814,6 +834,11 @@ export default function Dashboard() {
                 </h3>
                 <SubmitEvidence
                   dareId={selectedDare.id}
+                  dareTitle={selectedDare.title}
+                  bountyAmount={selectedDare.bounty}
+                  streamerHandle={selectedDare.streamerHandle}
+                  shortId={selectedDare.shortId}
+                  placeName={selectedDare.locationLabel}
                   onVerificationComplete={(result: { status: string }) => {
                     // Refresh dares lists on verification complete
                     if (result.status === 'VERIFIED' || result.status === 'FAILED') {

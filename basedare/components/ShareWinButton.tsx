@@ -1,44 +1,168 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Share2, Copy, ExternalLink, CheckCircle2, MapPin, X } from "lucide-react";
 import { buildXSharePayload } from '@/lib/social-share';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ShareWinButtonProps {
   dare?: string;
   amount?: string | number;
   streamer?: string;
   shortId?: string;
-  placeName?: string;
+  placeName?: string | null;
+  compact?: boolean;
 }
 
-export default function ShareWinButton({ dare, amount, streamer, shortId, placeName }: ShareWinButtonProps) {
-  const handleShare = () => {
-    const payload = buildXSharePayload({
-      title: dare || 'Verified BaseDare completion',
-      amountWon: amount,
-      streamerTag: streamer,
-      shortId,
-      placeName,
-      status: 'verified',
-    });
+export default function ShareWinButton({
+  dare,
+  amount,
+  streamer,
+  shortId,
+  placeName,
+  compact = false,
+}: ShareWinButtonProps) {
+  const [open, setOpen] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const { toast } = useToast();
 
-    window.open(
-      payload.url,
-      "_blank",
-      "width=600,height=400"
-    );
+  const payload = useMemo(
+    () =>
+      buildXSharePayload({
+        title: dare || 'Verified BaseDare completion',
+        amountWon: amount,
+        streamerTag: streamer,
+        shortId,
+        placeName,
+        status: 'verified',
+      }),
+    [dare, amount, streamer, shortId, placeName]
+  );
+
+  const handleCopyText = async () => {
+    await navigator.clipboard.writeText(payload.text);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 1800);
+    toast({
+      title: 'Caption copied',
+      description: 'Your verified win caption is ready to paste anywhere.',
+      duration: 3000,
+    });
+  };
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(payload.shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 1800);
+    toast({
+      title: 'Link copied',
+      description: 'Deep link copied. Send people straight back to the dare.',
+      duration: 3000,
+    });
+  };
+
+  const handleShareToX = () => {
+    window.open(payload.url, "_blank", "width=700,height=620");
   };
 
   return (
-    <Button
-      onClick={handleShare}
-      className="bg-gradient-to-r from-[#00ff41] to-green-500 hover:from-green-500 hover:to-[#00ff41] text-black font-black gap-2"
-    >
-      <Share2 className="w-4 h-4" />
-      Share Your Win
-    </Button>
+    <>
+      <Button
+        onClick={() => setOpen(true)}
+        className={
+          compact
+            ? "bg-[linear-gradient(180deg,rgba(34,211,238,0.18)_0%,rgba(8,11,22,0.92)_100%)] border border-cyan-400/25 text-cyan-100 font-black gap-2 hover:bg-cyan-400/16"
+            : "bg-[linear-gradient(180deg,rgba(34,211,238,0.18)_0%,rgba(8,11,22,0.92)_100%)] border border-cyan-400/25 text-cyan-100 font-black gap-2 hover:bg-cyan-400/16"
+        }
+      >
+        <Share2 className="w-4 h-4" />
+        {compact ? 'Share Win' : 'Share Your Win'}
+      </Button>
+
+      {open ? (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-[30px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_10%,rgba(8,11,22,0.96)_100%)] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-16px_22px_rgba(0,0,0,0.24)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(250,204,21,0.09),transparent_30%)]" />
+
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-100">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Verified Share
+                  </div>
+                  <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-white">Turn the win into distribution</h3>
+                  <p className="mt-2 max-w-lg text-sm leading-6 text-white/58">
+                    Clean caption, exact deep link, and stronger verified framing. This is the premium version of the old tweet-intent rail.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 transition hover:border-white/20 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-5 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,9,18,0.92)_0%,rgba(4,5,10,0.98)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-green-400/25 bg-green-400/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-green-200">
+                    Verified
+                  </span>
+                  {placeName ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-white/60">
+                      <MapPin className="h-3 w-3" />
+                      {placeName}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 whitespace-pre-wrap rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-white/82">
+                  {payload.text}
+                </div>
+
+                <div className="mt-4 rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/36">Deep Link</p>
+                  <p className="mt-2 break-all font-mono text-xs text-cyan-100/80">{payload.shareUrl}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={handleCopyText}
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80 transition hover:border-white/20 hover:text-white"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copiedText ? 'Copied' : 'Copy Caption'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80 transition hover:border-white/20 hover:text-white"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copiedLink ? 'Copied' : 'Copy Link'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShareToX}
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Share To X
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
-

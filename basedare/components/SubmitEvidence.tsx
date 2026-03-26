@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ui/use-toast';
+import ShareWinButton from '@/components/ShareWinButton';
 
 type VerificationStatus =
   | 'idle'
@@ -16,10 +17,23 @@ type VerificationStatus =
 
 interface SubmitEvidenceProps {
   dareId: string;
+  dareTitle?: string;
+  bountyAmount?: number | string;
+  streamerHandle?: string;
+  shortId?: string;
+  placeName?: string | null;
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
-export default function SubmitEvidence({ dareId, onVerificationComplete }: SubmitEvidenceProps) {
+export default function SubmitEvidence({
+  dareId,
+  dareTitle,
+  bountyAmount,
+  streamerHandle,
+  shortId,
+  placeName,
+  onVerificationComplete,
+}: SubmitEvidenceProps) {
   const { data: session } = useSession();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -371,6 +385,15 @@ export default function SubmitEvidence({ dareId, onVerificationComplete }: Submi
             <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider">
               Verified by Beta AI Referee
             </div>
+          </div>
+          <div className="pt-2">
+            <ShareWinButton
+              dare={dareTitle}
+              amount={bountyAmount}
+              streamer={streamerHandle}
+              shortId={shortId}
+              placeName={placeName}
+            />
           </div>
         </div>
       </div>

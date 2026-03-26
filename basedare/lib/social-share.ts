@@ -51,6 +51,7 @@ export function buildXSharePayload(input: DareShareInput) {
 
     return {
       text,
+      shareUrl,
       url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
     };
   }
@@ -62,6 +63,7 @@ export function buildXSharePayload(input: DareShareInput) {
 
     return {
       text,
+      shareUrl,
       url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
     };
   }
@@ -73,7 +75,7 @@ export function buildXSharePayload(input: DareShareInput) {
 
   return {
     text,
+    shareUrl,
     url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
   };
 }
-
