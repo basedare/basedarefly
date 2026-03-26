@@ -3,19 +3,29 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
+import { buildXSharePayload } from '@/lib/social-share';
 
 interface ShareWinButtonProps {
   dare?: string;
   amount?: string | number;
   streamer?: string;
+  shortId?: string;
+  placeName?: string;
 }
 
-export default function ShareWinButton({ dare, amount, streamer }: ShareWinButtonProps) {
+export default function ShareWinButton({ dare, amount, streamer, shortId, placeName }: ShareWinButtonProps) {
   const handleShare = () => {
-    const text = `Just won 2x pot on @basedare – forced ${streamer || "@streamer"} to ${dare || "complete an epic dare"} 🔥 LFG #BaseDare #XDARE`;
+    const payload = buildXSharePayload({
+      title: dare || 'Verified BaseDare completion',
+      amountWon: amount,
+      streamerTag: streamer,
+      shortId,
+      placeName,
+      status: 'verified',
+    });
 
     window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      payload.url,
       "_blank",
       "width=600,height=400"
     );
@@ -31,5 +41,4 @@ export default function ShareWinButton({ dare, amount, streamer }: ShareWinButto
     </Button>
   );
 }
-
 

@@ -4,24 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Loader2, Clock, CheckCircle, Share2 } from "lucide-react";
+import { buildXSharePayload } from '@/lib/social-share';
 
 function shareDareOnX(dare: Dare, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
-    const dareUrl = `${baseUrl}/dare/${dare.short_id}`;
-
-    const text = `🎯 $${dare.stake_amount?.toLocaleString() || '0'} USDC bounty on @${dare.streamer_name}
-
-"${dare.description}"
-
-Think they'll do it? 👇
-
-#BaseDare #Base`;
-
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
-    window.open(twitterUrl, '_blank', 'width=550,height=420');
+    const payload = buildXSharePayload({
+        title: dare.description,
+        bounty: dare.stake_amount,
+        streamerTag: dare.streamer_name,
+        shortId: dare.short_id,
+        status: 'live',
+    });
+    window.open(payload.url, '_blank', 'width=550,height=420');
 }
 
 interface Dare {
@@ -181,7 +176,7 @@ export default function DaresPage() {
                         </span>
                     </h1>
                     <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                        View active challenges, fund a bounty, and call the shot. If they don't complete it, you get a full refund.
+                        View active challenges, fund a bounty, and call the shot. If they do not complete it, you get a full refund.
                     </p>
                 </div>
 
@@ -205,4 +200,3 @@ export default function DaresPage() {
         </div>
     );
 }
-

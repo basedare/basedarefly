@@ -1,20 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Share2, Clock, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import DareVisual from './DareVisual';
+import { buildXSharePayload } from '@/lib/social-share';
 import './PremiumDareCard.css';
 
 function shareDareOnX(dare: string, bounty: number, streamer: string, shortId: string, e: React.MouseEvent) {
   e.preventDefault();
   e.stopPropagation();
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basedare.xyz';
-  const dareUrl = `${baseUrl}/dare/${shortId}`;
-  const text = `🎯 $${bounty.toLocaleString()} USDC bounty on @${streamer.replace('@', '')}\n\n"${dare}"\n\nAdd to the pot 👇\n\n#BaseDare #Base`;
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(dareUrl)}`;
-  window.open(twitterUrl, '_blank', 'width=550,height=420');
+  const payload = buildXSharePayload({
+    title: dare,
+    bounty,
+    streamerTag: streamer,
+    shortId,
+    status: 'live',
+  });
+  window.open(payload.url, '_blank', 'width=550,height=420');
 }
 
 function formatTimeRemaining(ms: number): string {
@@ -91,26 +95,30 @@ export default function PremiumDareCard({
   const router = useRouter();
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
-  const [liveTimeRemaining, setLiveTimeRemaining] = useState(timeRemaining || '');
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('locked-');
   const isExpired = status === 'expired';
   const isRestricted = status === 'restricted';
 
-  // Live countdown
   useEffect(() => {
     if (!expiresAt || isExpired || status === 'completed' || isRestricted) {
-      setLiveTimeRemaining(timeRemaining || '');
       return;
     }
-    const update = () => {
-      const diff = new Date(expiresAt).getTime() - Date.now();
-      setLiveTimeRemaining(formatTimeRemaining(diff));
-    };
-    update();
-    const id = window.setInterval(update, 1000);
+    const id = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
     return () => window.clearInterval(id);
-  }, [expiresAt, status, timeRemaining, isExpired, isRestricted]);
+  }, [expiresAt, status, isExpired, isRestricted]);
+
+  const liveTimeRemaining = useMemo(() => {
+    if (!expiresAt || isExpired || status === 'completed' || isRestricted) {
+      return timeRemaining || '';
+    }
+
+    const diff = new Date(expiresAt).getTime() - nowMs;
+    return formatTimeRemaining(diff);
+  }, [expiresAt, isExpired, isRestricted, nowMs, status, timeRemaining]);
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();

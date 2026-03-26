@@ -18,6 +18,7 @@ import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
+import { buildXSharePayload } from '@/lib/social-share';
 
 const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
@@ -372,9 +373,13 @@ export default function CreateDare() {
                     onClick={() => {
                       trigger('click');
                       const fullUrl = `${window.location.origin}${successData.inviteLink}`;
-                      const text = `Hey ${successData.streamerTag}! Someone just put up a bounty for you on BaseDare. Claim it before it expires!\n\n${fullUrl}`;
-                      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-                      window.open(twitterUrl, '_blank', 'width=550,height=420');
+                      const payload = buildXSharePayload({
+                        title: 'Live BaseDare invite',
+                        streamerTag: successData.streamerTag,
+                        inviteUrl: fullUrl,
+                        status: 'invite',
+                      });
+                      window.open(payload.url, '_blank', 'width=550,height=420');
                     }}
                     className="relative w-full py-3 bg-[#0a0a0a] text-white font-bold text-xs md:text-sm uppercase tracking-wider rounded-[11px] transition-all flex items-center justify-center gap-2"
                   >

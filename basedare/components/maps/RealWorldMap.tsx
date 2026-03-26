@@ -228,7 +228,7 @@ const MAP_PRESET_OPTIONS: Array<{
   },
 ];
 
-const DEFAULT_CENTER: LatLngExpression = [-33.8688, 151.2093];
+const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
 
 function getRadiusMetersForZoom(zoom: number) {

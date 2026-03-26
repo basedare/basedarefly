@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useAccount } from 'wagmi';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Wallet,
@@ -18,6 +18,8 @@ import {
   Zap,
   Gift,
   Clock,
+  MapPin,
+  Share2,
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
@@ -126,7 +128,24 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+const OAUTH_ERRORS: Record<string, string> = {
+  OAuthSignin: 'Error starting OAuth signin. Check provider configuration.',
+  OAuthCallback: 'Error during OAuth callback. Try again.',
+  OAuthCreateAccount: 'Could not create account with OAuth provider.',
+  EmailCreateAccount: 'Could not create email account.',
+  Callback: 'Error in OAuth callback.',
+  OAuthAccountNotLinked: 'This account is already linked to another user.',
+  EmailSignin: 'Email signin failed.',
+  CredentialsSignin: 'Sign in failed. Check your credentials.',
+  SessionRequired: 'Please sign in to access this page.',
+  twitter: 'Twitter OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitter',
+  twitch: 'Twitch OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitch',
+  google: 'Google OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/google',
+  default: 'OAuth authentication failed. Please try again.',
+};
+
 export function ClaimTagModule() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
@@ -152,23 +171,6 @@ export function ClaimTagModule() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  // OAuth error messages
-  const OAUTH_ERRORS: Record<string, string> = {
-    'OAuthSignin': 'Error starting OAuth signin. Check provider configuration.',
-    'OAuthCallback': 'Error during OAuth callback. Try again.',
-    'OAuthCreateAccount': 'Could not create account with OAuth provider.',
-    'EmailCreateAccount': 'Could not create email account.',
-    'Callback': 'Error in OAuth callback.',
-    'OAuthAccountNotLinked': 'This account is already linked to another user.',
-    'EmailSignin': 'Email signin failed.',
-    'CredentialsSignin': 'Sign in failed. Check your credentials.',
-    'SessionRequired': 'Please sign in to access this page.',
-    'twitter': 'Twitter OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitter',
-    'twitch': 'Twitch OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitch',
-    'google': 'Google OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/google',
-    'default': 'OAuth authentication failed. Please try again.',
-  };
-
   // Get platform handle from session
   const sessionData = session as SessionPlatformData | null;
   const provider = sessionData?.provider;
@@ -186,6 +188,11 @@ export function ClaimTagModule() {
   };
 
   const connectedPlatform = getConnectedPlatform();
+  const normalizedPlatformHandle = platformHandle?.replace(/^@/, '').trim().toLowerCase() || null;
+  const hasMatchingVerifiedTag = Boolean(
+    normalizedPlatformHandle &&
+      existingTags.some((existingTag) => existingTag.tag.replace(/^@/, '').toLowerCase() === normalizedPlatformHandle)
+  );
 
   // Auto-set selectedPlatform when returning from OAuth redirect
   useEffect(() => {
@@ -199,7 +206,7 @@ export function ClaimTagModule() {
     if (platformHandle && !tag) {
       setTag(platformHandle);
     }
-  }, [platformHandle]);
+  }, [platformHandle, tag]);
 
   // Check for OAuth errors in URL params
   useEffect(() => {
@@ -249,7 +256,7 @@ export function ClaimTagModule() {
       // Pre-fill from handle param even without invite token
       setTag(handle);
     }
-  }, [searchParams]);
+  }, [searchParams, tag]);
 
   // Fetch existing tags for this wallet
   useEffect(() => {
@@ -781,6 +788,101 @@ export function ClaimTagModule() {
               </div>
             )}
           </motion.div>
+
+          {(isPlatformConnected || isManualMode || inviteData) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+              className="backdrop-blur-xl border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.08)_0%,rgba(8,11,22,0.92)_100%)] rounded-2xl p-4 shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.05)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
+                    <Zap className="w-3 h-3" />
+                    Your Grid
+                  </div>
+                  <h3 className="mt-3 text-sm font-bold text-white">Suggested Footprint</h3>
+                  <p className="mt-1 text-xs text-white/55">
+                    BaseDare uses connected socials for identity, distribution, and the next layer of place memory suggestions.
+                  </p>
+                </div>
+                {platformHandle ? (
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-mono text-white/70">
+                    @{platformHandle}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {!hasMatchingVerifiedTag && platformHandle ? (
+                  <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-center gap-2 text-cyan-200">
+                      <Shield className="h-4 w-4" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Claim Match</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-white">Lock in @{platformHandle}</p>
+                    <p className="mt-2 text-xs leading-5 text-white/55">
+                      Matching your connected handle keeps payouts, social proof, and BaseDare Brain routing aligned.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setTag(platformHandle)}
+                      className="mt-4 inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                    >
+                      Use @{platformHandle}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-center gap-2 text-green-300">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity Ready</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-white">
+                      {hasMatchingVerifiedTag ? 'Your handle is already anchored' : 'Connected identity detected'}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-white/55">
+                      This account is ready to plug into share rails and future imported-residue review once that layer goes live.
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                  <div className="flex items-center gap-2 text-[#f5c518]">
+                    <Share2 className="h-4 w-4" />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Cross-Post Rail</span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-white">Verified wins can now share cleaner</p>
+                  <p className="mt-2 text-xs leading-5 text-white/55">
+                    BaseDare now uses one X payload rail instead of scattered generic tweets. That means tighter growth loops and cleaner venue proof.
+                  </p>
+                </div>
+
+                <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+                  <div className="flex items-center gap-2 text-purple-200">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Map Next</span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-white">
+                    {inviteData ? 'Claim, then wake the place up' : 'Open your place layer'}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-white/55">
+                    {inviteData
+                      ? 'Once this identity clears, pending dares can roll straight into live place memory and challenge heat.'
+                      : 'The map is where challenge-live states, venue pulse, and future footprint suggestions become visible.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/map')}
+                    className="mt-4 inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                  >
+                    Open Map
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Step 3: Claim Tag */}
           <motion.div
