@@ -2,24 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Share2, Clock, MapPin } from 'lucide-react';
+import { Heart, Clock, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import DareVisual from './DareVisual';
-import { buildXSharePayload } from '@/lib/social-share';
+import ShareComposerButton from '@/components/ShareComposerButton';
 import './PremiumDareCard.css';
-
-function shareDareOnX(dare: string, bounty: number, streamer: string, shortId: string, e: React.MouseEvent) {
-  e.preventDefault();
-  e.stopPropagation();
-  const payload = buildXSharePayload({
-    title: dare,
-    bounty,
-    streamerTag: streamer,
-    shortId,
-    status: 'live',
-  });
-  window.open(payload.url, '_blank', 'width=550,height=420');
-}
 
 function formatTimeRemaining(ms: number): string {
   if (ms <= 0) return 'EXPIRED';
@@ -193,14 +180,16 @@ export default function PremiumDareCard({
 
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-xl" aria-hidden="true">{emoji}</span>
-            <button
-              onClick={(e) => shareDareOnX(dare, bounty, streamer, shortId, e)}
-              className="p-1.5 bg-black/50 hover:bg-black/70 border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-              title="Share on X"
-              type="button"
-            >
-              <Share2 className="w-3 h-3 text-white/70" />
-            </button>
+            <ShareComposerButton
+              title={dare}
+              bounty={bounty}
+              streamerTag={streamer}
+              shortId={shortId}
+              placeName={locationLabel}
+              status="live"
+              compact
+              className="opacity-0 group-hover:opacity-100"
+            />
           </div>
         </div>
 

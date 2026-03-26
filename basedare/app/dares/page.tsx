@@ -3,21 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Zap, Loader2, Clock, CheckCircle, Share2 } from "lucide-react";
-import { buildXSharePayload } from '@/lib/social-share';
-
-function shareDareOnX(dare: Dare, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const payload = buildXSharePayload({
-        title: dare.description,
-        bounty: dare.stake_amount,
-        streamerTag: dare.streamer_name,
-        shortId: dare.short_id,
-        status: 'live',
-    });
-    window.open(payload.url, '_blank', 'width=550,height=420');
-}
+import { ArrowRight, Zap, Loader2, Clock, CheckCircle } from "lucide-react";
+import ShareComposerButton from '@/components/ShareComposerButton';
 
 interface Dare {
     id: string;
@@ -86,13 +73,15 @@ function LiveDareFeed({ dares, loading, error }: { dares: Dare[]; loading: boole
                                transition-all duration-300 transform hover:scale-[1.02] cursor-pointer group relative overflow-hidden"
                 >
                     {/* Share Button */}
-                    <button
-                        onClick={(e) => shareDareOnX(dare, e)}
-                        className="absolute top-3 right-3 z-20 p-2 bg-black/60 hover:bg-black/80 border border-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-                        title="Share on X"
-                    >
-                        <Share2 className="w-4 h-4 text-white" />
-                    </button>
+                    <ShareComposerButton
+                        title={dare.description}
+                        bounty={dare.stake_amount}
+                        streamerTag={dare.streamer_name}
+                        shortId={dare.short_id}
+                        status="live"
+                        compact
+                        className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 hover:scale-110"
+                    />
 
                     <div className="relative z-10 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">

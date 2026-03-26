@@ -18,6 +18,7 @@ interface ShareComposerButtonProps {
   status: ShareComposerStatus;
   buttonLabel?: string;
   compact?: boolean;
+  className?: string;
 }
 
 function getShareMeta(status: ShareComposerStatus) {
@@ -58,6 +59,7 @@ export default function ShareComposerButton({
   status,
   buttonLabel,
   compact = false,
+  className = "",
 }: ShareComposerButtonProps) {
   const [open, setOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -107,15 +109,21 @@ export default function ShareComposerButton({
     window.open(payload.url, "_blank", "width=700,height=620");
   };
 
+  const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(true);
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         className={
-          compact
+          `${compact
             ? "inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-            : "inline-flex items-center justify-center gap-2 rounded-[18px] border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+            : "inline-flex items-center justify-center gap-2 rounded-[18px] border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"} ${className}`.trim()
         }
       >
         <Share2 className="h-4 w-4" />
