@@ -114,6 +114,11 @@ function mapActiveDare(dare: {
   streamerHandle: string | null;
   expiresAt: Date | null;
   createdAt: Date;
+  targetWalletAddress: string | null;
+  claimedBy: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: Date | null;
+  claimRequestStatus: string | null;
   linkedCampaign: {
     title: string;
     brand: {
@@ -133,6 +138,11 @@ function mapActiveDare(dare: {
     createdAt: dare.createdAt.toISOString(),
     campaignTitle: dare.linkedCampaign?.title ?? null,
     brandName: dare.linkedCampaign?.brand.name ?? null,
+    targetWalletAddress: dare.targetWalletAddress,
+    claimedBy: dare.claimedBy,
+    claimRequestTag: dare.claimRequestTag,
+    claimRequestedAt: dare.claimRequestedAt?.toISOString() ?? null,
+    claimRequestStatus: dare.claimRequestStatus,
   };
 }
 
@@ -579,6 +589,11 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
           streamerHandle: true,
           expiresAt: true,
           createdAt: true,
+          targetWalletAddress: true,
+          claimedBy: true,
+          claimRequestTag: true,
+          claimRequestedAt: true,
+          claimRequestStatus: true,
           linkedCampaign: {
             select: {
               title: true,

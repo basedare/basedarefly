@@ -475,22 +475,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check wallet doesn't have too many tags (limit to 3)
-    const walletTags = await prisma.streamerTag.count({
-      where: {
-        walletAddress,
-        status: { in: ['ACTIVE', 'VERIFIED', 'PENDING'] },
-        ...(existingTag ? { id: { not: existingTag.id } } : {}),
-      },
-    });
-
-    if (walletTags >= 3) {
-      return NextResponse.json(
-        { success: false, error: 'Maximum 3 tags per wallet' },
-        { status: 400 }
-      );
-    }
-
     // Build update/create data based on platform
     const platformData: Record<string, string | boolean | number | null | Date> = {
       walletAddress,

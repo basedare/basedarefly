@@ -13,6 +13,33 @@ const softCardClass =
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
 
+function getVenueActivationState(dare: {
+  streamerHandle: string | null;
+  targetWalletAddress: string | null;
+  claimedBy: string | null;
+  claimRequestTag: string | null;
+  claimRequestStatus: string | null;
+}) {
+  if (dare.claimRequestStatus === 'PENDING') {
+    return {
+      label: dare.claimRequestTag ? `pending ${dare.claimRequestTag}` : 'creator pending',
+      className: 'border-amber-400/18 bg-amber-500/[0.08] text-amber-200',
+    };
+  }
+
+  if (dare.claimedBy || dare.targetWalletAddress) {
+    return {
+      label: dare.streamerHandle ? `claimed by ${dare.streamerHandle}` : 'creator attached',
+      className: 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-200',
+    };
+  }
+
+  return {
+    label: dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open challenge',
+    className: 'border-white/10 bg-white/[0.04] text-white/48',
+  };
+}
+
 export default async function VenueDetailPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
@@ -24,6 +51,9 @@ export default async function VenueDetailPage(
   }
 
   const totalActiveChallengeFunding = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
+  const paidActivationCount = venue.activeDares.filter((dare) => Boolean(dare.brandName)).length;
+  const pendingActivationCount = venue.activeDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length;
+  const claimedActivationCount = venue.activeDares.filter((dare) => Boolean(dare.claimedBy || dare.targetWalletAddress)).length;
 
   return (
     <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
@@ -124,6 +154,20 @@ export default async function VenueDetailPage(
                     <div className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-4 py-2 text-sm text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       ${totalActiveChallengeFunding.toFixed(0)} funded
                     </div>
+                    {paidActivationCount > 0 ? (
+                      <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-4 py-2 text-sm text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        {paidActivationCount} paid activations
+                      </div>
+                    ) : null}
+                    {pendingActivationCount > 0 ? (
+                      <div className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-4 py-2 text-sm text-amber-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        {pendingActivationCount} creator pending
+                      </div>
+                    ) : claimedActivationCount > 0 ? (
+                      <div className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-4 py-2 text-sm text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        {claimedActivationCount} creator attached
+                      </div>
+                    ) : null}
                     <Link
                       href={`/map?place=${encodeURIComponent(venue.slug)}`}
                       className="rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
@@ -134,7 +178,10 @@ export default async function VenueDetailPage(
                 </div>
                 <div className="mt-5 space-y-3">
                   {venue.activeDares.length > 0 ? (
-                    venue.activeDares.map((dare) => (
+                    venue.activeDares.map((dare) => {
+                      const activationState = getVenueActivationState(dare);
+
+                      return (
                       <Link
                         key={dare.id}
                         href={`/dare/${dare.shortId}`}
@@ -150,8 +197,13 @@ export default async function VenueDetailPage(
                                 {dare.brandName}
                               </span>
                             ) : null}
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
-                              {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open challenge'}
+                            {dare.brandName ? (
+                              <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
+                                paid activation
+                              </span>
+                            ) : null}
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>
+                              {activationState.label}
                             </span>
                             {dare.expiresAt ? (
                               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
@@ -171,7 +223,8 @@ export default async function VenueDetailPage(
                         </div>
                         <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-white/35 transition group-hover:translate-x-1 group-hover:text-white/70" />
                       </Link>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>
                       <p className="text-sm text-white/58">

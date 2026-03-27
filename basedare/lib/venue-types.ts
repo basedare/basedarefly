@@ -114,6 +114,11 @@ export type VenueDetail = {
     createdAt: string;
     campaignTitle: string | null;
     brandName: string | null;
+    targetWalletAddress: string | null;
+    claimedBy: string | null;
+    claimRequestTag: string | null;
+    claimRequestedAt: string | null;
+    claimRequestStatus: string | null;
   }>;
   consoleUrl: string;
 };

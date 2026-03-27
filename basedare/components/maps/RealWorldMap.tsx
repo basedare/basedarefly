@@ -153,6 +153,11 @@ type VenueDetailResponse = {
         createdAt: string;
         campaignTitle: string | null;
         brandName: string | null;
+        targetWalletAddress: string | null;
+        claimedBy: string | null;
+        claimRequestTag: string | null;
+        claimRequestedAt: string | null;
+        claimRequestStatus: string | null;
       }>;
     };
   };
@@ -183,6 +188,11 @@ type SelectedPlaceActiveDare = {
   createdAt: string;
   campaignTitle: string | null;
   brandName: string | null;
+  targetWalletAddress: string | null;
+  claimedBy: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: string | null;
+  claimRequestStatus: string | null;
 };
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
@@ -256,6 +266,30 @@ function getPulse(approvedCount: number, lastTaggedAt: string | null): PulseStat
   if (diffMinutes <= 180) return 'igniting';
   if (diffMinutes <= 1440) return 'simmering';
   return 'cold';
+}
+
+function getActivationStateCopy(dare: SelectedPlaceActiveDare) {
+  if (dare.claimRequestStatus === 'PENDING') {
+    return {
+      label: dare.claimRequestTag ? `pending ${dare.claimRequestTag}` : 'creator pending',
+      className:
+        'border-amber-300/18 bg-amber-500/[0.08] text-amber-100',
+    };
+  }
+
+  if (dare.claimedBy || dare.targetWalletAddress) {
+    return {
+      label: dare.streamerHandle ? `claimed by ${dare.streamerHandle}` : 'creator attached',
+      className:
+        'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100',
+    };
+  }
+
+  return {
+    label: dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open',
+    className:
+      'border-white/10 bg-white/[0.04] text-white/45',
+  };
 }
 
 function getLastSparkLabel(lastTaggedAt: string | null) {
@@ -1724,9 +1758,25 @@ export default function RealWorldMap() {
                   ) : null}
 
                   <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
-                      <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
-                      Active Challenges
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
+                        Active Challenges
+                      </div>
+                      {selectedPlaceActiveDares.length > 0 ? (
+                        <div className="flex flex-wrap justify-end gap-2 text-[10px] uppercase tracking-[0.18em]">
+                          {selectedPlaceActiveDares.filter((dare) => Boolean(dare.brandName)).length > 0 ? (
+                            <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-cyan-100">
+                              {selectedPlaceActiveDares.filter((dare) => Boolean(dare.brandName)).length} paid live
+                            </span>
+                          ) : null}
+                          {selectedPlaceActiveDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length > 0 ? (
+                            <span className="rounded-full border border-amber-300/18 bg-amber-500/[0.08] px-2.5 py-1 text-amber-100">
+                              {selectedPlaceActiveDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length} pending
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                     {selectedPlaceActiveDaresLoading ? (
                       <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
@@ -1735,7 +1785,10 @@ export default function RealWorldMap() {
                       </div>
                     ) : selectedPlaceActiveDares.length > 0 ? (
                       <div className="mt-3 space-y-3">
-                        {selectedPlaceActiveDares.slice(0, 3).map((dare) => (
+                        {selectedPlaceActiveDares.slice(0, 3).map((dare) => {
+                          const activationState = getActivationStateCopy(dare);
+
+                          return (
                           <div
                             key={dare.id}
                             className="rounded-[20px] border border-[#f5c518]/14 bg-[linear-gradient(180deg,rgba(245,197,24,0.06)_0%,rgba(10,10,18,0.16)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
@@ -1752,8 +1805,13 @@ export default function RealWorldMap() {
                                       {dare.brandName}
                                     </span>
                                   ) : null}
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
-                                    {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open'}
+                                  {dare.brandName ? (
+                                    <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
+                                      paid activation
+                                    </span>
+                                  ) : null}
+                                  <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>
+                                    {activationState.label}
                                   </span>
                                   {dare.expiresAt ? (
                                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
@@ -1777,7 +1835,8 @@ export default function RealWorldMap() {
                               ) : null}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="mt-3 text-sm text-white/55">
