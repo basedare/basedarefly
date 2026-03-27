@@ -28,6 +28,11 @@ interface LeaderboardEntry {
   staked: string;
   totalVolume: number;
   completions: number;
+  p2pVolume: number;
+  p2pCount: number;
+  b2bVolume: number;
+  b2bCount: number;
+  rewardTier: string | null;
   repPoints: number;
   level: number;
   color?: string;
@@ -38,6 +43,11 @@ interface APILeaderboardEntry {
   handle: string;
   totalVolume: number;
   totalCompletions: number;
+  p2pVolume: number;
+  p2pCount: number;
+  b2bVolume: number;
+  b2bCount: number;
+  rewardTier: string | null;
 }
 
 function formatVolume(volume: number): string {
@@ -61,6 +71,11 @@ function mapAPIToLeaderboard(entries: APILeaderboardEntry[]): LeaderboardEntry[]
       staked: formatVolume(entry.totalVolume),
       totalVolume: entry.totalVolume,
       completions: entry.totalCompletions,
+      p2pVolume: entry.p2pVolume,
+      p2pCount: entry.p2pCount,
+      b2bVolume: entry.b2bVolume,
+      b2bCount: entry.b2bCount,
+      rewardTier: entry.rewardTier,
       repPoints: Math.min(100, entry.totalCompletions * 10 + 20),
       level,
     };
@@ -191,9 +206,9 @@ export default function LeaderboardPage() {
   const rest = leaderboard.slice(3);
   const displayedRest = isExpanded ? rest : rest.slice(0, 12);
 
-  const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0 };
-  const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0 };
-  const THIRD = top3[2] || { user: "---", avatar: null, staked: "$0", level: 0 };
+  const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
+  const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
+  const THIRD = top3[2] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
   const firstHref = getCreatorHref(FIRST.user);
   const secondHref = getCreatorHref(SECOND.user);
   const thirdHref = getCreatorHref(THIRD.user);
@@ -331,6 +346,10 @@ export default function LeaderboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold truncate">{FIRST.user}</p>
                       <p className="text-yellow-400 font-black text-lg">{FIRST.staked}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{FIRST.completions} completions</span>
+                        {FIRST.rewardTier ? <span className="text-yellow-200/70">{FIRST.rewardTier}</span> : null}
+                      </div>
                       <div className="mt-2">
                         <LiquidProgressBar value={FIRST.level} color="yellow" />
                       </div>
@@ -365,6 +384,10 @@ export default function LeaderboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold text-sm truncate">{SECOND.user}</p>
                       <p className="text-cyan-400 font-black">{SECOND.staked}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{SECOND.completions} completions</span>
+                        {SECOND.rewardTier ? <span className="text-cyan-100/70">{SECOND.rewardTier}</span> : null}
+                      </div>
                       <div className="mt-2">
                         <LiquidProgressBar value={SECOND.level} color="cyan" />
                       </div>
@@ -399,6 +422,10 @@ export default function LeaderboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold text-sm truncate">{THIRD.user}</p>
                       <p className="text-pink-400 font-black">{THIRD.staked}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{THIRD.completions} completions</span>
+                        {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                      </div>
                       <div className="mt-2">
                         <LiquidProgressBar value={THIRD.level} color="pink" />
                       </div>
@@ -440,6 +467,10 @@ export default function LeaderboardPage() {
                     </div>
                     <p className="text-white font-bold truncate mb-1">{SECOND.user}</p>
                     <p className="text-cyan-400 font-black text-xl mb-3">{SECOND.staked}</p>
+                    <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                      <span>{SECOND.completions} completions</span>
+                      {SECOND.rewardTier ? <span className="text-cyan-100/70">{SECOND.rewardTier}</span> : null}
+                    </div>
                     <LiquidProgressBar value={SECOND.level} color="cyan" />
                     <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(SECOND.level / 10)}</p>
                     </div>
@@ -480,6 +511,10 @@ export default function LeaderboardPage() {
                       </div>
                       <p className="text-white font-bold text-lg truncate mb-1">{FIRST.user}</p>
                       <p className="text-yellow-400 font-black text-2xl md:text-3xl mb-4">{FIRST.staked}</p>
+                      <div className="mb-4 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{FIRST.completions} completions</span>
+                        {FIRST.rewardTier ? <span className="text-yellow-100/75">{FIRST.rewardTier}</span> : null}
+                      </div>
                       <LiquidProgressBar value={FIRST.level} color="yellow" />
                       <p className="text-xs text-gray-500 font-mono mt-2">LVL {Math.floor(FIRST.level / 10)}</p>
                     </div>
@@ -517,6 +552,10 @@ export default function LeaderboardPage() {
                     </div>
                     <p className="text-white font-bold text-sm truncate mb-1">{THIRD.user}</p>
                     <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
+                    <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                      <span>{THIRD.completions} completions</span>
+                      {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                    </div>
                     <LiquidProgressBar value={THIRD.level} color="pink" />
                     <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
                     </div>
@@ -596,6 +635,12 @@ export default function LeaderboardPage() {
                                 <span>{entry.completions} completions</span>
                                 <span>•</span>
                                 <span>{entry.repPoints} rep</span>
+                              </div>
+                              <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em] text-white/40">
+                                {entry.p2pCount > 0 ? <span>P2P {formatVolume(entry.p2pVolume)}</span> : null}
+                                {entry.p2pCount > 0 && entry.b2bCount > 0 ? <span>•</span> : null}
+                                {entry.b2bCount > 0 ? <span>B2B {formatVolume(entry.b2bVolume)}</span> : null}
+                                {!entry.p2pCount && !entry.b2bCount ? <span>fresh trail</span> : null}
                               </div>
                               <div className="flex items-center gap-2">
                                 <div className="flex-1">

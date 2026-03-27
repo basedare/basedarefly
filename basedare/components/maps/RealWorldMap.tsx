@@ -649,6 +649,28 @@ export default function RealWorldMap() {
     );
   }, [deepLinkedDareShortId, selectedPlaceActiveDares, selectedPlaceFeaturedPaidActivation]);
 
+  const showFeaturedPaidActivation = useMemo(
+    () =>
+      Boolean(selectedPlaceFeaturedPaidActivation) &&
+      selectedPlaceFeaturedPaidActivation?.shortId !== focusedCreatorActivation?.shortId,
+    [focusedCreatorActivation?.shortId, selectedPlaceFeaturedPaidActivation]
+  );
+
+  const visibleActiveDares = useMemo(() => {
+    if (!focusedCreatorActivation) {
+      return selectedPlaceActiveDares.slice(0, 3);
+    }
+
+    const ordered = [
+      focusedCreatorActivation,
+      ...selectedPlaceActiveDares.filter((dare) => dare.id !== focusedCreatorActivation.id),
+    ];
+
+    return ordered.slice(0, 3);
+  }, [focusedCreatorActivation, selectedPlaceActiveDares]);
+
+  const featuredPaidActivation = showFeaturedPaidActivation ? selectedPlaceFeaturedPaidActivation : null;
+
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
   }, [pendingPlaceTags]);
@@ -1761,7 +1783,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  {selectedPlaceFeaturedPaidActivation ? (
+                  {featuredPaidActivation ? (
                     <div className="mt-5 rounded-[26px] border border-rose-300/18 bg-[linear-gradient(180deg,rgba(251,113,133,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-rose-100/80">
@@ -1774,32 +1796,32 @@ export default function RealWorldMap() {
                       </div>
                       <div className="mt-3 flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-lg font-bold text-white">{selectedPlaceFeaturedPaidActivation.title}</p>
+                          <p className="text-lg font-bold text-white">{featuredPaidActivation.title}</p>
                           <p className="mt-2 text-sm text-white/65">
-                            {selectedPlaceFeaturedPaidActivation.brandName ?? 'Brand-backed'} activation live at this place.
+                            {featuredPaidActivation.brandName ?? 'Brand-backed'} activation live at this place.
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
-                              ${selectedPlaceFeaturedPaidActivation.bounty} USDC
+                              ${featuredPaidActivation.bounty} USDC
                             </span>
-                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(selectedPlaceFeaturedPaidActivation).className}`}>
-                              {getActivationStateCopy(selectedPlaceFeaturedPaidActivation).label}
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(featuredPaidActivation).className}`}>
+                              {getActivationStateCopy(featuredPaidActivation).label}
                             </span>
-                            {selectedPlaceFeaturedPaidActivation.expiresAt ? (
+                            {featuredPaidActivation.expiresAt ? (
                               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
-                                {getExpiryLabel(selectedPlaceFeaturedPaidActivation.expiresAt)}
+                                {getExpiryLabel(featuredPaidActivation.expiresAt)}
                               </span>
                             ) : null}
                           </div>
                         </div>
-                        {selectedPlaceFeaturedPaidActivation.shortId ? (
+                        {featuredPaidActivation.shortId ? (
                           <Link
-                            href={`/dare/${selectedPlaceFeaturedPaidActivation.shortId}`}
+                            href={`/dare/${featuredPaidActivation.shortId}`}
                             className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100"
                           >
-                            {selectedPlaceFeaturedPaidActivation.claimedBy || selectedPlaceFeaturedPaidActivation.targetWalletAddress || selectedPlaceFeaturedPaidActivation.claimRequestStatus === 'PENDING'
+                            {featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING'
                               ? 'Open Brief'
-                              : 'Claim This'}
+                              : 'Claim Now'}
                           </Link>
                         ) : null}
                       </div>
@@ -1922,7 +1944,7 @@ export default function RealWorldMap() {
                       </div>
                     ) : selectedPlaceActiveDares.length > 0 ? (
                     <div className="mt-3 space-y-3">
-                        {selectedPlaceActiveDares.slice(0, 3).map((dare) => {
+                        {visibleActiveDares.map((dare) => {
                           const activationState = getActivationStateCopy(dare);
                           const isFocusedCreatorActivation = dare.shortId === deepLinkedDareShortId;
 
