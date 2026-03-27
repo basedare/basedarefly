@@ -69,7 +69,12 @@ interface Opportunity {
     id: string;
     shortId: string | null;
     status: string;
+    streamerHandle?: string | null;
+    targetWalletAddress?: string | null;
+    claimRequestWallet?: string | null;
+    claimRequestStatus?: string | null;
   } | null;
+  claimable?: boolean;
   shortlisted: boolean;
 }
 
@@ -114,9 +119,15 @@ function getProviderLabel(provider: string | null | undefined): string {
 function OpportunityCard({
   opportunity,
   onOpen,
+  onClaim,
+  claimLoading,
+  claimFeedback,
 }: {
   opportunity: Opportunity;
   onOpen: (href: string) => void;
+  onClaim: (opportunity: Opportunity) => void;
+  claimLoading: boolean;
+  claimFeedback?: string;
 }) {
   const href = opportunity.linkedDare?.shortId
     ? `/dare/${opportunity.linkedDare.shortId}`
@@ -168,12 +179,34 @@ function OpportunityCard({
         ))}
       </div>
 
-      <button
-        onClick={() => onOpen(href)}
-        className="mt-5 w-full rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
-      >
-        Open Brief
-      </button>
+      {claimFeedback ? (
+        <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-green-300">
+          {claimFeedback}
+        </div>
+      ) : null}
+
+      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          onClick={() => onOpen(href)}
+          className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+        >
+          Open Brief
+        </button>
+
+        {opportunity.claimable ? (
+          <button
+            onClick={() => onClaim(opportunity)}
+            disabled={claimLoading}
+            className="rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f5d75f] transition hover:border-[#f5d75f]/50 hover:bg-[#f5c518]/16 disabled:opacity-50"
+          >
+            {claimLoading ? 'Claiming...' : 'Claim This Activation'}
+          </button>
+        ) : (
+          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+            {opportunity.linkedDare?.claimRequestStatus === 'PENDING' ? 'Claim pending review' : 'Live brief'}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -196,6 +229,8 @@ export default function Dashboard() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
   const [opportunitiesReason, setOpportunitiesReason] = useState<string | null>(null);
+  const [claimingOpportunityId, setClaimingOpportunityId] = useState<string | null>(null);
+  const [claimFeedback, setClaimFeedback] = useState<Record<string, string>>({});
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -384,6 +419,60 @@ export default function Dashboard() {
 
     fetchOpportunities();
   }, [address, sessionToken]);
+
+  const handleClaimOpportunity = async (opportunity: Opportunity) => {
+    if (!address || !opportunity.linkedDare?.id) return;
+
+    try {
+      setClaimingOpportunityId(opportunity.id);
+      const response = await fetch(`/api/dares/${opportunity.linkedDare.id}/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!payload.success) {
+        throw new Error(payload.error || 'Failed to claim activation');
+      }
+
+      setClaimFeedback((current) => ({
+        ...current,
+        [opportunity.id]: 'Claim request sent',
+      }));
+
+      setOpportunities((current) =>
+        current.map((entry) =>
+          entry.id === opportunity.id
+            ? {
+                ...entry,
+                claimable: false,
+                linkedDare: entry.linkedDare
+                  ? {
+                      ...entry.linkedDare,
+                      claimRequestWallet: address.toLowerCase(),
+                      claimRequestStatus: 'PENDING',
+                    }
+                  : entry.linkedDare,
+              }
+            : entry
+        )
+      );
+    } catch (error) {
+      setClaimFeedback((current) => ({
+        ...current,
+        [opportunity.id]:
+          error instanceof Error ? error.message : 'Failed to claim activation',
+      }));
+    } finally {
+      setClaimingOpportunityId(null);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -821,6 +910,9 @@ export default function Dashboard() {
                   key={opportunity.id}
                   opportunity={opportunity}
                   onOpen={(href) => router.push(href)}
+                  onClaim={handleClaimOpportunity}
+                  claimLoading={claimingOpportunityId === opportunity.id}
+                  claimFeedback={claimFeedback[opportunity.id]}
                 />
               ))}
             </div>

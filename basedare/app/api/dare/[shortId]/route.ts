@@ -37,9 +37,18 @@ export async function GET(
       status: dare.status,
       expiresAt: dare.expiresAt?.toISOString() || null,
       videoUrl: dare.videoUrl,
+      inviteToken: dare.inviteToken,
       createdAt: dare.createdAt.toISOString(),
       claimDeadline: dare.claimDeadline?.toISOString() || null,
-      awaitingClaim: dare.status === 'AWAITING_CLAIM',
+      targetWalletAddress: dare.targetWalletAddress,
+      claimRequestWallet: dare.claimRequestWallet,
+      claimRequestTag: dare.claimRequestTag,
+      claimRequestedAt: dare.claimRequestedAt?.toISOString() || null,
+      claimRequestStatus: dare.claimRequestStatus,
+      stakerAddress: dare.stakerAddress,
+      awaitingClaim:
+        dare.status === 'AWAITING_CLAIM' ||
+        (!dare.streamerHandle && dare.status === 'PENDING' && !dare.targetWalletAddress),
     });
   } catch (error) {
     console.error('[API] Error fetching dare:', error);

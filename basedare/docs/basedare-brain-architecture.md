@@ -28,6 +28,33 @@ Increase BaseDare growth by improving:
 - campaign opportunities
 - product learning
 
+## Current Product Sequencing
+
+The current marketplace build order is intentionally:
+1. Control foundation
+2. Social Connect
+3. Creator enrichment
+4. Campaign requirements
+5. Matching
+6. Shadow Army expansion
+
+This order matters because BaseDare should create real demand pull before adding more routing/admin complexity.
+
+## Current Marketplace Rules
+
+- Creator pull comes before Shadow Army expansion.
+- Soft matching comes before strict qualification gates.
+- While creator density is low, campaign requirements should guide ranking instead of filtering creators out.
+- Brand shortlists are internal operator signals, not public Pulse or place-energy signals.
+- The same demand graph should power both sides:
+  - Brand creates campaign
+  - campaign creates linked dare
+  - creator sees opportunity
+  - creator claims linked dare
+  - creator submits proof
+  - verification settles
+  - place memory compounds
+
 ## Design Principles
 
 1. The brain should optimize for measurable business outcomes, not activity theater.

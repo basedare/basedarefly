@@ -23,6 +23,11 @@ const ClaimSchema = z.object({
   walletAddress: z.string().optional(),
 });
 
+function normalizeWallet(value: string | null | undefined): string | null {
+  if (!value || !isAddress(value)) return null;
+  return value.toLowerCase();
+}
+
 async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
   const session = (await getServerSession(authOptions)) as WalletSession | null;
   if (!session) return null;
@@ -46,11 +51,6 @@ export async function POST(
 ) {
   try {
     const { id: dareId } = await params;
-    const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const validation = ClaimSchema.safeParse(body);
 
@@ -62,16 +62,20 @@ export async function POST(
     }
 
     const { walletAddress } = validation.data;
-    const normalizedBodyWallet = walletAddress?.toLowerCase();
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    const normalizedBodyWallet = normalizeWallet(walletAddress);
+    const lowerWallet = sessionWallet ?? normalizedBodyWallet;
 
-    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+    if (!lowerWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
       return NextResponse.json(
         { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
         { status: 401 }
       );
     }
-
-    const lowerWallet = sessionWallet;
 
     // Check if user has a verified tag
     const userTag = await prisma.streamerTag.findFirst({

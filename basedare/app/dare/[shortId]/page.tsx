@@ -390,17 +390,25 @@ export default function DareDetailPage() {
     setClaimLoading(true); setClaimError(null);
     try {
       const res = await fetch(`/api/dares/${dare.id}/claim`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({ walletAddress: address }),
       });
       const data = await res.json();
       if (data.success) {
         setClaimSuccess(true);
-        setDare(prev => prev ? { ...prev, claimRequestWallet: address.toLowerCase(), claimRequestStatus: 'PENDING' } : null);
+        setDare(prev => prev ? {
+          ...prev,
+          claimRequestWallet: address.toLowerCase(),
+          claimRequestStatus: 'PENDING',
+        } : null);
       } else { setClaimError(data.error || 'Claim request failed'); }
     } catch { setClaimError('Network error'); }
     finally { setClaimLoading(false); }
-  }, [dare, address]);
+  }, [dare, address, sessionToken]);
 
   const isUserInvolved = dare && address &&
     (address.toLowerCase() === dare.stakerAddress?.toLowerCase() ||
@@ -669,6 +677,17 @@ export default function DareDetailPage() {
               {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               {claimSuccess ? '✓ Request Sent' : 'Request to Claim'}
             </button>
+          </div>
+        )}
+
+        {dare.awaitingClaim && dare.claimRequestStatus === 'PENDING' && dare.claimRequestTag && (
+          <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl">
+            <h3 className="text-sm font-black text-cyan-300 mb-2">Activation claim pending</h3>
+            <p className="text-xs text-white/55">
+              {dare.claimRequestWallet?.toLowerCase() === address?.toLowerCase()
+                ? 'Your claim request is in. A moderator will review it before this activation is assigned.'
+                : `${dare.claimRequestTag} has already requested this activation. Check back soon or browse another live brief.`}
+            </p>
           </div>
         )}
 

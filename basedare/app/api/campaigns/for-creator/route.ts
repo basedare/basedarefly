@@ -110,6 +110,10 @@ export async function GET(request: NextRequest) {
             id: true,
             shortId: true,
             status: true,
+            streamerHandle: true,
+            targetWalletAddress: true,
+            claimRequestWallet: true,
+            claimRequestStatus: true,
           },
         },
       },
@@ -146,6 +150,13 @@ export async function GET(request: NextRequest) {
           status: campaign.status,
           venue: campaign.venue,
           linkedDare: campaign.linkedDare,
+          claimable: Boolean(
+            campaign.linkedDare &&
+              !campaign.linkedDare.streamerHandle &&
+              campaign.linkedDare.status === 'PENDING' &&
+              !campaign.linkedDare.targetWalletAddress &&
+              !campaign.linkedDare.claimRequestWallet
+          ),
           shortlisted: false,
         };
       })
