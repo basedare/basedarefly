@@ -13,6 +13,13 @@ function toPublicDare(dare: {
   shortId: string | null;
   createdAt: Date;
   claimDeadline: Date | null;
+  claimedBy: string | null;
+  targetWalletAddress: string | null;
+  claimRequestWallet: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: Date | null;
+  claimRequestStatus: string | null;
+  locationLabel: string | null;
 }): {
   id: string;
   title: string;
@@ -25,6 +32,13 @@ function toPublicDare(dare: {
   createdAt: string;
   awaitingClaim: boolean;
   claimDeadline: string | null;
+  claimedBy: string | null;
+  targetWalletAddress: string | null;
+  claimRequestWallet: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: string | null;
+  claimRequestStatus: string | null;
+  locationLabel: string | null;
 } {
   return {
     id: dare.id,
@@ -38,6 +52,13 @@ function toPublicDare(dare: {
     createdAt: dare.createdAt.toISOString(),
     awaitingClaim: dare.status === 'AWAITING_CLAIM',
     claimDeadline: dare.claimDeadline?.toISOString() || null,
+    claimedBy: dare.claimedBy,
+    targetWalletAddress: dare.targetWalletAddress,
+    claimRequestWallet: dare.claimRequestWallet,
+    claimRequestTag: dare.claimRequestTag,
+    claimRequestedAt: dare.claimRequestedAt?.toISOString() || null,
+    claimRequestStatus: dare.claimRequestStatus,
+    locationLabel: dare.locationLabel,
   };
 }
 
@@ -93,13 +114,19 @@ export async function GET(request: NextRequest) {
         // Only dares I funded
         where.stakerAddress = lowerAddress;
       } else if (role === 'creator') {
-        // Only dares targeting me
-        where.targetWalletAddress = lowerAddress;
+        // Dares I have requested, claimed, or been assigned
+        where.OR = [
+          { targetWalletAddress: lowerAddress },
+          { claimedBy: lowerAddress },
+          { claimRequestWallet: lowerAddress },
+        ];
       } else {
-        // Both: dares I funded OR dares targeting me
+        // Both: dares I funded OR have creator-side involvement in
         where.OR = [
           { stakerAddress: lowerAddress },
           { targetWalletAddress: lowerAddress },
+          { claimedBy: lowerAddress },
+          { claimRequestWallet: lowerAddress },
         ];
       }
     }

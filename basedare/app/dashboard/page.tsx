@@ -18,13 +18,20 @@ interface Dare {
   shortId?: string;
   title: string;
   bounty: number;
-  streamerHandle: string;
+  streamerHandle: string | null;
   status: string;
   videoUrl?: string;
   createdAt: string;
   isSimulated?: boolean;
   stakerAddress?: string;
   targetWalletAddress?: string;
+  claimedBy?: string | null;
+  claimRequestWallet?: string | null;
+  claimRequestTag?: string | null;
+  claimRequestedAt?: string | null;
+  claimRequestStatus?: string | null;
+  awaitingClaim?: boolean;
+  claimDeadline?: string | null;
   locationLabel?: string | null;
 }
 
@@ -128,6 +135,75 @@ function getIdentityStatusLabel(status: string | null | undefined): string {
   if (status === 'PENDING') return 'Pending verification';
   if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Rejected';
   return 'Not connected';
+}
+
+function walletsMatch(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  return left.toLowerCase() === right.toLowerCase();
+}
+
+function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
+  const isPendingRequester = walletsMatch(dare.claimRequestWallet, walletAddress);
+  const isAssignedCreator =
+    walletsMatch(dare.targetWalletAddress, walletAddress) || walletsMatch(dare.claimedBy, walletAddress);
+
+  if (isPendingRequester && dare.claimRequestStatus === 'PENDING') {
+    return {
+      label: 'Claim Pending',
+      detail: 'Moderator review is still in flight.',
+      cta: 'Open Brief',
+      tone: 'yellow',
+      priority: 1,
+    };
+  }
+
+  if (isAssignedCreator && dare.status === 'PENDING') {
+    return {
+      label: 'Ready for Proof',
+      detail: 'You have the activation. Submit proof now.',
+      cta: 'Submit Proof',
+      tone: 'cyan',
+      priority: 0,
+    };
+  }
+
+  if (isAssignedCreator && dare.status === 'PENDING_REVIEW') {
+    return {
+      label: 'In Review',
+      detail: 'Proof submitted. Waiting on referee review.',
+      cta: 'Open Brief',
+      tone: 'amber',
+      priority: 2,
+    };
+  }
+
+  if (isAssignedCreator && dare.status === 'VERIFIED') {
+    return {
+      label: 'Paid',
+      detail: 'Verified completion cleared and paid out.',
+      cta: 'Open Brief',
+      tone: 'green',
+      priority: 4,
+    };
+  }
+
+  if (isAssignedCreator && dare.status === 'FAILED') {
+    return {
+      label: 'Needs Retry',
+      detail: 'Proof was rejected. Open the brief and try again.',
+      cta: 'Open Brief',
+      tone: 'red',
+      priority: 3,
+    };
+  }
+
+  return {
+    label: dare.status,
+    detail: 'Open the brief for the latest state.',
+    cta: 'Open Brief',
+    tone: 'gray',
+    priority: 5,
+  };
 }
 
 function OpportunityCard({
@@ -282,10 +358,27 @@ export default function Dashboard() {
     const query = params.toString();
     return query ? `/claim-tag?${query}` : '/claim-tag';
   })();
+  const creatorClaims = React.useMemo(() => {
+    const lowerAddress = address?.toLowerCase() || null;
+    return [...forMeDares].sort((left, right) => {
+      const leftPriority = getClaimLoopState(left, lowerAddress).priority;
+      const rightPriority = getClaimLoopState(right, lowerAddress).priority;
+      if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+  }, [address, forMeDares]);
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const focusClaim = (dare: Dare) => {
+    setActiveView('forme');
+    setSelectedDare(dare);
+    window.requestAnimationFrame(() => {
+      document.getElementById('mission-control')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   // Handle wallet connection
@@ -523,6 +616,12 @@ export default function Dashboard() {
             <CheckCircle className="w-3 h-3" /> Verified
           </span>
         );
+      case 'PENDING_REVIEW':
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30 flex items-center gap-1">
+            <Loader2 className="w-3 h-3" /> In Review
+          </span>
+        );
       case 'FAILED':
         return (
           <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-400 rounded-full border border-red-500/30 flex items-center gap-1">
@@ -537,6 +636,7 @@ export default function Dashboard() {
         );
     }
   };
+  const selectedClaimLoopState = selectedDare ? getClaimLoopState(selectedDare, address) : null;
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -920,12 +1020,12 @@ export default function Dashboard() {
             <div className="relative z-10 text-xs text-green-400 mt-2 font-mono">Paid Out</div>
           </div>
 
-          {/* Card 4: Dares For Me */}
+          {/* Card 4: My Activations */}
           <div className={`${softCardClass} p-6 relative group hover:border-[#FFD700]/25 transition-colors`}>
             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-50 transition-opacity z-10">
               <Zap className="w-12 h-12 text-[#FFD700]" />
             </div>
-            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">Dares For Me</div>
+            <div className="relative z-10 text-gray-400 font-mono text-xs uppercase tracking-widest mb-2">My Activations</div>
             <div className="relative z-10 text-2xl md:text-3xl font-black text-white">
               {!isConnected ? (
                 <span className="text-gray-500">--</span>
@@ -935,7 +1035,7 @@ export default function Dashboard() {
                 <>{stats.daresForMe} <span className="text-[#FFD700]">PENDING</span></>
               )}
             </div>
-            <div className="relative z-10 text-xs text-[#FFD700] mt-2 font-mono">Complete to Earn</div>
+            <div className="relative z-10 text-xs text-[#FFD700] mt-2 font-mono">Claim to Proof</div>
           </div>
         </div>
 
@@ -1011,8 +1111,91 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* MY CLAIM LOOP */}
+        {isConnected && creatorClaims.length > 0 ? (
+          <div className={`${softCardClass} p-6 mb-12`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className={sectionLabelClass}>
+                  <Target className="w-4 h-4 text-[#f5d75f]" />
+                  CLAIM LOOP
+                </div>
+                <h3 className="mt-4 text-xl font-black uppercase tracking-[0.12em] text-white">
+                  My Activations
+                </h3>
+                <p className="mt-2 max-w-2xl text-sm text-white/55">
+                  The shortest path from seeing money to getting paid. Follow the next live step on each activation.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {creatorClaims.slice(0, 6).map((dare) => {
+                const loopState = getClaimLoopState(dare, address);
+                const toneClass =
+                  loopState.tone === 'cyan'
+                    ? 'border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-100'
+                    : loopState.tone === 'yellow'
+                      ? 'border-yellow-400/20 bg-yellow-400/[0.08] text-yellow-100'
+                      : loopState.tone === 'amber'
+                        ? 'border-amber-400/20 bg-amber-400/[0.08] text-amber-100'
+                        : loopState.tone === 'green'
+                          ? 'border-green-400/20 bg-green-400/[0.08] text-green-100'
+                          : loopState.tone === 'red'
+                            ? 'border-red-400/20 bg-red-400/[0.08] text-red-100'
+                            : 'border-white/10 bg-white/[0.03] text-white/70';
+
+                return (
+                  <div key={dare.id} className={`${insetCardClass} p-4`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-base font-black text-white line-clamp-2">{dare.title}</p>
+                        <p className="mt-2 text-xs text-white/45">
+                          {dare.locationLabel || dare.streamerHandle || 'Live activation'}
+                        </p>
+                      </div>
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
+                        {loopState.label}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                        ${dare.bounty} USDC
+                      </span>
+                      {dare.claimRequestStatus === 'PENDING' && dare.claimRequestedAt ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                          requested {new Date(dare.claimRequestedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-4 text-sm text-white/58">{loopState.detail}</p>
+
+                    <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button
+                        onClick={() => focusClaim(dare)}
+                        className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+                      >
+                        {loopState.cta}
+                      </button>
+                      <button
+                        onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:bg-white/[0.06]"
+                      >
+                        Open Brief
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         {/* MAIN CONTENT GRID */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        <div id="mission-control" className="grid lg:grid-cols-2 gap-8 mb-12">
 
           {/* LEFT: BOUNTY LIST */}
           <div className={`${softCardClass} p-6`}>
@@ -1039,7 +1222,7 @@ export default function Dashboard() {
                 }`}
               >
                 <Target className="w-4 h-4" />
-                For Me ({forMeDares.length})
+                My Activations ({forMeDares.length})
               </button>
             </div>
 
@@ -1052,7 +1235,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   <Target className="w-5 h-5 text-[#FFD700]" />
-                  Dares For You
+                  My Activations
                 </>
               )}
             </h3>
@@ -1086,12 +1269,12 @@ export default function Dashboard() {
                   )}
                 </div>
                 <p className="text-gray-400 font-mono text-sm mb-2">
-                  {activeView === 'funded' ? 'No bounties funded yet' : 'No dares for you yet'}
+                  {activeView === 'funded' ? 'No bounties funded yet' : 'No activations yet'}
                 </p>
                 <p className="text-gray-500 font-mono text-xs mb-6">
                   {activeView === 'funded'
                     ? 'Create a dare to stake on a creator'
-                    : 'Claim your tag so fans can dare you!'}
+                    : 'Claim an activation and your proof loop will appear here.'}
                 </p>
                 {activeView === 'funded' ? (
                   <InitProtocolButton onClick={() => router.push('/create')} />
@@ -1141,7 +1324,7 @@ export default function Dashboard() {
             {selectedDare ? (
               <div className={`${softCardClass} p-6 relative`}>
                 <div className="absolute top-0 right-0 px-4 py-2 bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl border-b border-l border-purple-500/30 z-20">
-                  Status: {selectedDare.status}
+                  Status: {selectedClaimLoopState?.label || selectedDare.status}
                 </div>
 
                 <div className="relative z-10">
@@ -1162,6 +1345,13 @@ export default function Dashboard() {
                       <span className="text-gray-300">{new Date(selectedDare.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
+
+                  {selectedClaimLoopState && selectedClaimLoopState.label !== 'Ready for Proof' ? (
+                    <div className={`${insetCardClass} flex items-start gap-3 text-xs text-gray-500 p-4`}>
+                      <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
+                      <span>{selectedClaimLoopState.detail}</span>
+                    </div>
+                  ) : null}
 
                   {selectedDare.status === 'PENDING' && (
                     <div className={`${insetCardClass} flex items-start gap-3 text-xs text-gray-500 p-4`}>
@@ -1185,7 +1375,7 @@ export default function Dashboard() {
                         <ShareWinButton
                           dare={selectedDare.title}
                           amount={selectedDare.bounty}
-                          streamer={selectedDare.streamerHandle}
+                          streamer={selectedDare.streamerHandle ?? undefined}
                           shortId={selectedDare.shortId}
                           placeName={selectedDare.locationLabel}
                           compact
@@ -1208,8 +1398,8 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* EVIDENCE UPLOAD - Only show for pending dares */}
-            {selectedDare && selectedDare.status === 'PENDING' && (
+            {/* EVIDENCE UPLOAD - Only show when this creator has the activation and proof is next */}
+            {selectedDare && selectedClaimLoopState?.label === 'Ready for Proof' && selectedDare.status === 'PENDING' && (
               <div className={`${softCardClass} p-6`}>
                 <h3 className="text-lg font-black text-white uppercase tracking-wider mb-4 flex items-center gap-3">
                   <Upload className="w-5 h-5 text-cyan-400" />
@@ -1219,7 +1409,7 @@ export default function Dashboard() {
                   dareId={selectedDare.id}
                   dareTitle={selectedDare.title}
                   bountyAmount={selectedDare.bounty}
-                  streamerHandle={selectedDare.streamerHandle}
+                  streamerHandle={selectedDare.streamerHandle ?? undefined}
                   shortId={selectedDare.shortId}
                   placeName={selectedDare.locationLabel}
                   onVerificationComplete={(result: { status: string }) => {
