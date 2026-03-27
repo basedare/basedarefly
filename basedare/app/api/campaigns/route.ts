@@ -214,6 +214,7 @@ export async function GET(request: NextRequest) {
             id: true,
             shortId: true,
             status: true,
+            videoUrl: true,
             verifiedAt: true,
             completed_at: true,
             createdAt: true,

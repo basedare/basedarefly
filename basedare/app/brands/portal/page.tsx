@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, PlayCircle, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 
 // ============================================================================
@@ -52,6 +52,7 @@ interface Campaign {
     id: string;
     shortId: string | null;
     status: string;
+    videoUrl?: string | null;
     verifiedAt?: string | null;
     completedAt?: string | null;
     streamerHandle?: string | null;
@@ -706,6 +707,87 @@ export default function BrandPortalPage() {
     }
 
     return null;
+  };
+
+  const getCampaignOutcomeSteps = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    const creatorAttached = Boolean(dare?.claimedBy || dare?.targetWalletAddress);
+    const creatorPending = dare?.claimRequestStatus === 'PENDING';
+    const proofAttached = Boolean(dare?.videoUrl);
+    const proofInReview = dare?.status === 'PENDING_REVIEW';
+    const payoutQueued = dare?.status === 'PENDING_PAYOUT';
+    const paid = dare?.status === 'VERIFIED';
+
+    return [
+      {
+        label: 'Live',
+        state: dare ? 'done' : campaign.status === 'LIVE' ? 'done' : 'idle',
+      },
+      {
+        label: 'Creator',
+        state: creatorAttached ? 'done' : creatorPending ? 'active' : 'idle',
+      },
+      {
+        label: 'Proof',
+        state: paid || payoutQueued || proofInReview || proofAttached ? 'done' : 'idle',
+      },
+      {
+        label: 'Paid',
+        state: paid ? 'done' : payoutQueued ? 'active' : 'idle',
+      },
+    ] as const;
+  };
+
+  const getCampaignOutcomeSummary = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    if (!dare) {
+      return {
+        label: 'No linked activation yet',
+        detail: 'This campaign has not produced a live proof rail yet.',
+      };
+    }
+
+    if (dare.status === 'VERIFIED') {
+      return {
+        label: 'Verified result',
+        detail: dare.verifiedAt
+          ? `proof cleared ${new Date(dare.verifiedAt).toLocaleString()}`
+          : 'proof cleared and payout completed',
+      };
+    }
+
+    if (dare.status === 'PENDING_PAYOUT') {
+      return {
+        label: 'Proof cleared',
+        detail: 'Waiting for payout retry to complete automatically.',
+      };
+    }
+
+    if (dare.status === 'PENDING_REVIEW') {
+      return {
+        label: 'Proof submitted',
+        detail: dare.videoUrl ? 'Proof media is attached and waiting on referee review.' : 'Submission is waiting on referee review.',
+      };
+    }
+
+    if (dare.claimRequestStatus === 'PENDING') {
+      return {
+        label: 'Claim request in',
+        detail: 'A creator has raised a hand. Review is still in flight.',
+      };
+    }
+
+    if (dare.claimedBy || dare.targetWalletAddress) {
+      return {
+        label: 'Creator attached',
+        detail: 'The activation is claimed and waiting for proof.',
+      };
+    }
+
+    return {
+      label: 'Open activation',
+      detail: 'Live on the map and waiting for creator movement.',
+    };
   };
 
   // Determine current view state
@@ -1424,6 +1506,8 @@ export default function BrandPortalPage() {
                 const shortlistedCount = (shortlistedCreators[campaign.id] ?? []).length;
                 const isMatchesExpanded = expandedMatchesCampaignId === campaign.id;
                 const creatorIntent = getCampaignIntent(campaign);
+                const outcomeSteps = getCampaignOutcomeSteps(campaign);
+                const outcomeSummary = getCampaignOutcomeSummary(campaign);
                 return (
                   <div
                     key={campaign.id}
@@ -1529,6 +1613,36 @@ export default function BrandPortalPage() {
                         </div>
                       ) : null}
 
+                      <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                              Result Proof
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-zinc-900">
+                              {outcomeSummary.label}
+                            </div>
+                            <div className="mt-1 text-xs text-zinc-500">{outcomeSummary.detail}</div>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {outcomeSteps.map((step) => (
+                              <div
+                                key={`${campaign.id}-${step.label}`}
+                                className={`rounded-lg border px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                  step.state === 'done'
+                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                                    : step.state === 'active'
+                                      ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                      : 'border-zinc-200 bg-white text-zinc-400'
+                                }`}
+                              >
+                                {step.label}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
@@ -1562,6 +1676,17 @@ export default function BrandPortalPage() {
                         </span>
                       </div>
                       <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {campaign.linkedDare?.videoUrl ? (
+                          <a
+                            href={campaign.linkedDare.videoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                          >
+                            <PlayCircle className="h-3.5 w-3.5" />
+                            Watch Proof
+                          </a>
+                        ) : null}
                         {campaign.linkedDare?.shortId ? (
                           <Link
                             href={`/dare/${encodeURIComponent(campaign.linkedDare.shortId)}`}
