@@ -57,11 +57,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch dares that are ready for community voting:
-    // - Status is PENDING or PENDING_REVIEW
+    // - Status is still PENDING
     // - Has proof submitted (videoUrl is not null)
+    // Once a dare escalates into PENDING_REVIEW it should leave the public
+    // voting loop and sit in the referee/admin review lane.
     const dares = await prisma.dare.findMany({
       where: {
-        status: { in: ['PENDING', 'PENDING_REVIEW'] },
+        status: 'PENDING',
         videoUrl: { not: null },
       },
       orderBy: [
@@ -138,7 +140,7 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const totalCount = await prisma.dare.count({
       where: {
-        status: { in: ['PENDING', 'PENDING_REVIEW'] },
+        status: 'PENDING',
         videoUrl: { not: null },
       },
     });

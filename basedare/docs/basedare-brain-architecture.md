@@ -59,6 +59,8 @@ This order matters because BaseDare should create real demand pull before adding
 - Pending identity proofs should still let creators continue through the product; verification should strengthen trust, not block first use.
 - Creator opportunity context should carry through dashboard, map, and venue surfaces so a matched activation stays in focus instead of becoming a generic place view.
 - Control should show operator-visible activation outcomes per campaign, including creator movement, proof progression, and payout state, not just campaign status labels.
+- The public `/verify` queue is a community-signal lane only. Once proof escalates into `PENDING_REVIEW`, it should leave public voting and sit in referee/admin review instead of living in both states at once.
+- Admin review should show campaign and venue context alongside proof freshness so operators can resolve activations quickly without jumping across disconnected surfaces.
 - The same demand graph should power both sides:
   - Brand creates campaign
   - campaign creates linked dare

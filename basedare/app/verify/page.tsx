@@ -79,7 +79,7 @@ export default function Verify() {
             {
               step: '3',
               title: 'Escalate Review',
-              description: 'Strong community consensus pushes a dare into referee review. Final approval and payout are handled by protocol.',
+              description: 'Once signal is strong enough, the proof leaves this queue and moves into referee review. Final approval and payout are handled by protocol.',
               color: 'green'
             }
           ].map((item) => (
@@ -128,7 +128,7 @@ export default function Verify() {
               <span className="text-green-400 font-bold">Signal</span> helps prioritise referee review
             </div>
             <div>
-              <span className="text-orange-400 font-bold">Final</span> payout still belongs to the protocol
+              <span className="text-orange-400 font-bold">Final</span> review and payout happen off this public queue
             </div>
           </div>
         </div>

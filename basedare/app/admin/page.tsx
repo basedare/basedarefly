@@ -35,6 +35,18 @@ interface DareForModeration {
   claimedBy: string | null;
   targetWalletAddress: string | null;
   createdAt: string;
+  updatedAt: string;
+  venue: {
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  } | null;
+  linkedCampaign: {
+    id: string;
+    title: string;
+    brandName: string | null;
+  } | null;
   votes: {
     approve: number;
     reject: number;
@@ -67,6 +79,17 @@ function formatIdentityPlatformLabel(platform: string | null | undefined) {
   if (platform === 'twitter') return 'X';
   if (platform === 'TWITTER') return 'X';
   return platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase();
+}
+
+function formatRelativeTime(value: string | null | undefined) {
+  if (!value) return 'just now';
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
 }
 
 interface ClaimRequest {
@@ -879,6 +902,32 @@ export default function AdminPage() {
 
         {/* Authorized Content - Moderation Tab */}
         {isConnected && isAuthorized && !loading && activeTab === 'moderation' && (
+          <div className="space-y-6">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Proof Queue</p>
+                <p className="mt-2 text-3xl font-black text-white">{dares.length}</p>
+              </div>
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Campaign-Backed</p>
+                <p className="mt-2 text-3xl font-black text-cyan-300">
+                  {dares.filter((dare) => Boolean(dare.linkedCampaign)).length}
+                </p>
+              </div>
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Community Signal</p>
+                <p className="mt-2 text-3xl font-black text-yellow-300">
+                  {dares.filter((dare) => dare.status === 'PENDING').length}
+                </p>
+              </div>
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Referee Review</p>
+                <p className="mt-2 text-3xl font-black text-orange-300">
+                  {dares.filter((dare) => dare.status === 'PENDING_REVIEW').length}
+                </p>
+              </div>
+            </div>
+
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Queue List */}
             <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
@@ -914,6 +963,22 @@ export default function AdminPage() {
                           }`}
                         >
                           {dare.status}
+                        </span>
+                      </div>
+
+                      <div className="mb-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em]">
+                        {dare.linkedCampaign ? (
+                          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-cyan-300">
+                            {dare.linkedCampaign.brandName ? `${dare.linkedCampaign.brandName} campaign` : 'campaign-backed'}
+                          </span>
+                        ) : null}
+                        {dare.venue ? (
+                          <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-2 py-1 text-fuchsia-300">
+                            {dare.venue.name}
+                          </span>
+                        ) : null}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-gray-400">
+                          proof {formatRelativeTime(dare.updatedAt)}
                         </span>
                       </div>
 
@@ -979,6 +1044,39 @@ export default function AdminPage() {
                       <p className="text-white font-bold">{selectedDare.title}</p>
                     </div>
 
+                    {selectedDare.linkedCampaign || selectedDare.venue ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {selectedDare.linkedCampaign ? (
+                          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Campaign Context</p>
+                            <p className="text-cyan-200 font-bold">
+                              {selectedDare.linkedCampaign.brandName
+                                ? `${selectedDare.linkedCampaign.brandName} • ${selectedDare.linkedCampaign.title}`
+                                : selectedDare.linkedCampaign.title}
+                            </p>
+                          </div>
+                        ) : null}
+                        {selectedDare.venue ? (
+                          <div className="p-3 bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-lg">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Venue</p>
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-fuchsia-200 font-bold">
+                                {selectedDare.venue.name}
+                                {selectedDare.venue.city ? ` • ${selectedDare.venue.city}` : ''}
+                              </p>
+                              <Link
+                                href={`/venues/${selectedDare.venue.slug}`}
+                                className="inline-flex items-center gap-1 text-xs text-fuchsia-200 hover:text-fuchsia-100"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Open
+                              </Link>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-white/5 rounded-lg">
                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Bounty</p>
@@ -991,6 +1089,9 @@ export default function AdminPage() {
                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Votes</p>
                         <p className="text-white font-bold">
                           {selectedDare.votes.total} / {selectedDare.voteThreshold} threshold
+                        </p>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          proof {formatRelativeTime(selectedDare.updatedAt)}
                         </p>
                       </div>
                     </div>
@@ -1072,6 +1173,7 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         )}
 

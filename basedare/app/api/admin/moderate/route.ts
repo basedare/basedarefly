@@ -87,6 +87,25 @@ export async function GET(request: NextRequest) {
       take: limit,
       include: {
         votes: true,
+        venue: {
+          select: {
+            slug: true,
+            name: true,
+            city: true,
+            country: true,
+          },
+        },
+        linkedCampaign: {
+          select: {
+            id: true,
+            title: true,
+            brand: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         _count: { select: { votes: true } },
       },
     });
@@ -108,6 +127,15 @@ export async function GET(request: NextRequest) {
         claimedBy: dare.claimedBy,
         targetWalletAddress: dare.targetWalletAddress,
         createdAt: dare.createdAt,
+        updatedAt: dare.updatedAt,
+        venue: dare.venue,
+        linkedCampaign: dare.linkedCampaign
+          ? {
+              id: dare.linkedCampaign.id,
+              title: dare.linkedCampaign.title,
+              brandName: dare.linkedCampaign.brand?.name ?? null,
+            }
+          : null,
         votes: {
           approve: approveVotes,
           reject: rejectVotes,

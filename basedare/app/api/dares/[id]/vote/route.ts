@@ -110,9 +110,10 @@ export async function POST(
       );
     }
 
-    // Only allow voting on dares with proof (videoUrl) that are pending
-    const votableStatuses = ['PENDING', 'PENDING_REVIEW'];
-    if (!votableStatuses.includes(dare.status) || !dare.videoUrl) {
+    // Only allow voting while the dare is still in the community-signal lane.
+    // Once it escalates to PENDING_REVIEW, it should leave public voting and
+    // move into referee/admin review instead of collecting more votes forever.
+    if (dare.status !== 'PENDING' || !dare.videoUrl) {
       return NextResponse.json(
         { success: false, error: 'This dare is not available for voting' },
         { status: 400 }
