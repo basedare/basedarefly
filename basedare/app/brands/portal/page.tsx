@@ -18,6 +18,13 @@ interface Brand {
   walletAddress: string;
   verified: boolean;
   totalSpend: number;
+  campaignSummary?: {
+    total: number;
+    live: number;
+    settled: number;
+    place: number;
+    creator: number;
+  };
 }
 
 interface Campaign {
@@ -44,7 +51,33 @@ interface Campaign {
     id: string;
     shortId: string | null;
     status: string;
+    verifiedAt?: string | null;
+    completedAt?: string | null;
   } | null;
+  truth?: {
+    sourceOfTruth: 'LINKED_DARE' | 'CAMPAIGN';
+    lifecycleState: string;
+    followsLinkedDare: boolean;
+    creatorRoutingDormant: boolean;
+    linkedDareState: {
+      id: string;
+      shortId: string | null;
+      status: string;
+      verifiedAt: string | null;
+      completedAt: string | null;
+      createdAt: string | null;
+      venueId: string | null;
+    } | null;
+    timeline: {
+      createdAt: string | null;
+      fundedAt: string | null;
+      liveAt: string | null;
+      settledAt: string | null;
+      linkedDareVerifiedAt: string | null;
+      linkedDareCompletedAt: string | null;
+      lastOperationalAt: string | null;
+    };
+  };
   slotCounts: {
     total: number;
     open: number;
@@ -332,6 +365,8 @@ export default function BrandPortalPage() {
         setPlaceQuery('');
         setPlaceResults([]);
         setSelectedPlace(null);
+      } else if (data.code === 'CREATOR_CAMPAIGNS_DORMANT') {
+        alert(data.error);
       } else {
         alert(data.error);
       }
@@ -658,7 +693,7 @@ export default function BrandPortalPage() {
                   {
                     value: 'CREATOR',
                     title: 'Creator Routing',
-                    body: 'Legacy scout-slot workflow. Keep using this for Shadow Army recruitment.',
+                    body: 'Kept visible in Control Mode, but new creator-routing launches are currently parked while we finish real social routing.',
                   },
                 ] as const).map((option) => {
                   const isSelected = formData.type === option.value;
@@ -810,6 +845,12 @@ export default function BrandPortalPage() {
               <div className="space-y-4">
                 {formData.type === 'CREATOR' ? (
                   <>
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                      <div className="text-sm font-semibold text-amber-800">Creator routing is parked</div>
+                      <div className="mt-2 text-sm text-amber-700">
+                        Existing scout workflows stay intact, but new CREATOR campaigns are temporarily paused until the linked social-routing path is fully wired.
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
                       <input
@@ -969,12 +1010,16 @@ export default function BrandPortalPage() {
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <button
                 onClick={handleCreateCampaign}
-                disabled={!formData.title.trim() || (formData.type === 'PLACE' && !selectedPlace?.placeId)}
+                disabled={
+                  !formData.title.trim() ||
+                  formData.type === 'CREATOR' ||
+                  (formData.type === 'PLACE' && !selectedPlace?.placeId)
+                }
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >
                 {formData.type === 'PLACE'
                   ? `LAUNCH PLACE CAMPAIGN ($${budget.total.toLocaleString()} USDC)`
-                  : `CREATE ($${budget.total.toLocaleString()} USDC)`}
+                  : 'CREATOR ROUTING PARKED'}
               </button>
               <button
                 onClick={() => setShowCreateCampaign(false)}
@@ -1029,6 +1074,11 @@ export default function BrandPortalPage() {
                           {campaign.type === 'PLACE' && campaign.linkedDare?.shortId ? (
                             <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-cyan-500">
                               Live dare {campaign.linkedDare.shortId}
+                            </div>
+                          ) : null}
+                          {campaign.truth?.creatorRoutingDormant ? (
+                            <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-amber-500">
+                              Creator routing parked
                             </div>
                           ) : null}
                         </div>
@@ -1086,7 +1136,13 @@ export default function BrandPortalPage() {
                             ? `${campaign.slotCounts.completed > 0 ? 'completed' : 'live on map'}`
                             : `${campaign.slotCounts.open} open • ${campaign.slotCounts.claimed} claimed • ${campaign.slotCounts.assigned} assigned`}
                         </span>
-                        <span>{campaign.slotCounts.completed} completed</span>
+                        <span>
+                          {campaign.truth?.timeline.settledAt
+                            ? `settled ${new Date(campaign.truth.timeline.settledAt).toLocaleDateString()}`
+                            : campaign.truth?.timeline.liveAt
+                              ? `live ${new Date(campaign.truth.timeline.liveAt).toLocaleDateString()}`
+                              : `${campaign.slotCounts.completed} completed`}
+                        </span>
                       </div>
                     </div>
                   </div>

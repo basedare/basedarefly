@@ -33,6 +33,16 @@ export async function GET(request: NextRequest) {
       where: { walletAddress: walletAddress.toLowerCase() },
       include: {
         campaigns: {
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            venueId: true,
+            linkedDareId: true,
+            settledAt: true,
+            liveAt: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
@@ -48,7 +58,17 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: brand,
+      data: {
+        ...brand,
+        campaignSummary: {
+          total: brand.campaigns.length,
+          live: brand.campaigns.filter((campaign) => ['LIVE', 'RECRUITING'].includes(campaign.status))
+            .length,
+          settled: brand.campaigns.filter((campaign) => campaign.status === 'SETTLED').length,
+          place: brand.campaigns.filter((campaign) => campaign.type === 'PLACE').length,
+          creator: brand.campaigns.filter((campaign) => campaign.type === 'CREATOR').length,
+        },
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

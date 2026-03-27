@@ -4,6 +4,11 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
+import {
+  buildCampaignPayoutTotals,
+  buildCampaignSlotCounts,
+  buildCampaignTruth,
+} from '@/lib/campaign-truth';
 
 // ============================================================================
 // CAMPAIGN MANAGEMENT API
@@ -56,6 +61,20 @@ export async function GET(
         brand: {
           select: { name: true, logo: true, walletAddress: true },
         },
+        venue: {
+          select: { id: true, slug: true, name: true, city: true, country: true },
+        },
+        linkedDare: {
+          select: {
+            id: true,
+            shortId: true,
+            status: true,
+            verifiedAt: true,
+            completed_at: true,
+            createdAt: true,
+            venueId: true,
+          },
+        },
         slots: {
           include: {
             scout: {
@@ -80,29 +99,9 @@ export async function GET(
       );
     }
 
-    // Calculate slot statistics
-    const slotStats = {
-      total: campaign.creatorCountTarget,
-      open: campaign.slots.filter((s) => s.status === 'OPEN').length,
-      claimed: campaign.slots.filter((s) => s.status === 'CLAIMED').length,
-      vetoed: campaign.slots.filter((s) => s.status === 'VETOED').length,
-      assigned: campaign.slots.filter((s) => s.status === 'ASSIGNED').length,
-      submitted: campaign.slots.filter((s) => s.status === 'SUBMITTED').length,
-      verified: campaign.slots.filter((s) => s.status === 'VERIFIED').length,
-      paid: campaign.slots.filter((s) => s.status === 'PAID').length,
-      forfeited: campaign.slots.filter((s) => s.status === 'FORFEITED').length,
-    };
-
-    // Calculate payout totals
-    const verifiedSlots = campaign.slots.filter(
-      (s) => s.status === 'VERIFIED' || s.status === 'PAID'
-    );
-    const payoutTotals = {
-      totalCreatorPayout: verifiedSlots.reduce((sum, s) => sum + (s.totalPayout || 0), 0),
-      totalDiscoveryRake: verifiedSlots.reduce((sum, s) => sum + (s.discoveryRake || 0), 0),
-      totalActiveRake: verifiedSlots.reduce((sum, s) => sum + (s.activeRake || 0), 0),
-      strikeBonusesPaid: verifiedSlots.reduce((sum, s) => sum + (s.precisionBonus || 0), 0),
-    };
+    const slotStats = buildCampaignSlotCounts(campaign.slots, campaign.creatorCountTarget);
+    const payoutTotals = buildCampaignPayoutTotals(campaign.slots);
+    const truth = buildCampaignTruth(campaign);
 
     return NextResponse.json({
       success: true,
@@ -110,6 +109,7 @@ export async function GET(
         ...campaign,
         slotStats,
         payoutTotals,
+        truth,
         targetingCriteria: JSON.parse(campaign.targetingCriteria || '{}'),
         verificationCriteria: JSON.parse(campaign.verificationCriteria || '{}'),
       },
@@ -175,6 +175,18 @@ export async function PUT(
       return NextResponse.json(
         { success: false, error: 'Unauthorized - not campaign owner' },
         { status: 403 }
+      );
+    }
+
+    if (campaign.type === 'PLACE') {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'PLACE campaigns follow the linked dare lifecycle automatically. Manage the linked dare instead of manually mutating campaign state.',
+          code: 'PLACE_CAMPAIGN_STATE_FOLLOWS_DARE',
+        },
+        { status: 409 }
       );
     }
 
