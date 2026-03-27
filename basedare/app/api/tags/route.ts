@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tag = searchParams.get('tag');
   const wallet = searchParams.get('wallet');
+  const normalizedWallet = wallet && isAddress(wallet) ? wallet.toLowerCase() : null;
 
   try {
     // Check specific tag availability
@@ -68,8 +69,12 @@ export async function GET(request: NextRequest) {
       });
 
       if (existing) {
+        const ownedByCurrentWallet =
+          Boolean(normalizedWallet) && existing.walletAddress.toLowerCase() === normalizedWallet;
+
         return NextResponse.json({
-          available: false,
+          available: ownedByCurrentWallet,
+          ownedByCurrentWallet,
           tag: existing.tag,
           status: existing.status,
           owner:
@@ -86,7 +91,7 @@ export async function GET(request: NextRequest) {
     // Get tags for a specific wallet
     if (wallet) {
       const tags = await prisma.streamerTag.findMany({
-        where: { walletAddress: wallet.toLowerCase() }, // Normalize to lowercase
+        where: { walletAddress: normalizedWallet ?? wallet.toLowerCase() }, // Normalize to lowercase
         orderBy: { createdAt: 'desc' },
       });
 

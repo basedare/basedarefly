@@ -144,6 +144,7 @@ export function ClaimTagModule() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [tag, setTag] = useState('');
   const [tagAvailable, setTagAvailable] = useState<boolean | null>(null);
+  const [tagOwnedByCurrentWallet, setTagOwnedByCurrentWallet] = useState(false);
   const [checking, setChecking] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -270,20 +271,26 @@ export function ClaimTagModule() {
   const checkTagAvailability = useCallback(async (tagValue: string) => {
     if (tagValue.length < 2) {
       setTagAvailable(null);
+      setTagOwnedByCurrentWallet(false);
       return;
     }
 
     setChecking(true);
     try {
-      const res = await fetch(`/api/tags?tag=${encodeURIComponent(tagValue)}`);
+      const params = new URLSearchParams({ tag: tagValue });
+      if (address) {
+        params.set('wallet', address);
+      }
+      const res = await fetch(`/api/tags?${params.toString()}`);
       const data = await res.json();
       setTagAvailable(data.available);
+      setTagOwnedByCurrentWallet(Boolean(data.ownedByCurrentWallet));
     } catch (err) {
       console.error('Failed to check tag:', err);
     } finally {
       setChecking(false);
     }
-  }, []);
+  }, [address]);
 
   // Debounced tag check
   useEffect(() => {
@@ -1096,8 +1103,14 @@ export function ClaimTagModule() {
                 </div>
               </div>
 
-              {tagAvailable === false && (
+              {tagAvailable === false && !tagOwnedByCurrentWallet && (
                 <p className="text-[10px] sm:text-xs text-red-400 font-mono">This tag is already taken</p>
+              )}
+
+              {tagOwnedByCurrentWallet && (
+                <p className="text-[10px] sm:text-xs text-cyan-300 font-mono">
+                  This tag is already linked to your wallet. You can re-submit the proof to update or re-verify it.
+                </p>
               )}
 
               {platformHandle &&
@@ -1132,7 +1145,7 @@ export function ClaimTagModule() {
                   !isConnected ||
                   (!isPlatformConnected && !isManualMode) ||
                   !tag ||
-                  !tagAvailable ||
+                  (tagAvailable !== true && !tagOwnedByCurrentWallet) ||
                   claiming ||
                   (isManualMode && !manualUsername)
                 }
