@@ -26,6 +26,16 @@ const ClaimTagSchema = z.object({
 type ClaimSession = {
   token?: string;
   walletAddress?: string | null;
+  provider?: 'twitter' | 'twitch' | 'google' | string | null;
+  platformHandle?: string | null;
+  platformBio?: string | null;
+  platformFollowerCount?: number | null;
+  twitterId?: string | null;
+  twitterHandle?: string | null;
+  twitchId?: string | null;
+  twitchHandle?: string | null;
+  youtubeId?: string | null;
+  youtubeHandle?: string | null;
   user?: {
     walletAddress?: string | null;
   } | null;
@@ -85,6 +95,56 @@ function getPlatformFields(platform: 'twitter' | 'twitch' | 'youtube' | 'kick', 
   }
 }
 
+function buildSocialEnrichment(
+  session: ClaimSession | null,
+  platform: 'twitter' | 'twitch' | 'youtube' | 'kick',
+  handle: string
+) {
+  const normalizedHandle = handle.toLowerCase();
+  const platformBio = session?.platformBio?.trim() || null;
+  const platformFollowerCount =
+    typeof session?.platformFollowerCount === 'number' && Number.isFinite(session.platformFollowerCount)
+      ? session.platformFollowerCount
+      : null;
+
+  const base = {
+    bio: platformBio,
+    followerCount: platformFollowerCount,
+  };
+
+  switch (platform) {
+    case 'twitter':
+      return {
+        ...base,
+        twitterId: session?.twitterId ?? null,
+        twitterHandle: session?.twitterHandle ?? handle,
+        twitterVerified:
+          session?.provider === 'twitter' &&
+          session?.platformHandle?.replace(/^@/, '').trim().toLowerCase() === normalizedHandle,
+      };
+    case 'twitch':
+      return {
+        ...base,
+        twitchId: session?.twitchId ?? null,
+        twitchHandle: session?.twitchHandle ?? handle,
+        twitchVerified:
+          session?.provider === 'twitch' &&
+          session?.platformHandle?.replace(/^@/, '').trim().toLowerCase() === normalizedHandle,
+      };
+    case 'youtube':
+      return {
+        ...base,
+        youtubeId: session?.youtubeId ?? null,
+        youtubeHandle: session?.youtubeHandle ?? handle,
+        youtubeVerified:
+          session?.provider === 'google' &&
+          session?.platformHandle?.replace(/^@/, '').trim().toLowerCase() === normalizedHandle,
+      };
+    default:
+      return base;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -137,6 +197,7 @@ export async function POST(request: NextRequest) {
 
     const normalizedTag = normalizeTag(parsed.data.tag);
     const normalizedHandle = normalizeHandle(parsed.data.handle);
+    const socialEnrichment = buildSocialEnrichment(session, parsed.data.platform, normalizedHandle);
 
     const conflictingTag = await prisma.streamerTag.findFirst({
       where: {
@@ -179,6 +240,7 @@ export async function POST(request: NextRequest) {
             revokeReason: null,
             updatedAt: now,
             ...platformFields,
+            ...socialEnrichment,
           },
         })
       : await prisma.streamerTag.create({
@@ -188,6 +250,7 @@ export async function POST(request: NextRequest) {
             verificationMethod,
             status: 'PENDING',
             ...platformFields,
+            ...socialEnrichment,
           },
         });
 

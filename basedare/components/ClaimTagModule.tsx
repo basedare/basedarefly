@@ -427,6 +427,11 @@ export function ClaimTagModule() {
         if (sessionToken) {
           headers.Authorization = `Bearer ${sessionToken}`;
         }
+        if (!selectedPlatform || !platformHandle) {
+          throw new Error('Connect a creator identity before claiming this tag.');
+        }
+        body.platform = selectedPlatform;
+        body.handle = platformHandle;
         if (inviteToken) {
           body.inviteToken = inviteToken;
         }
