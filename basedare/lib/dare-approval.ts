@@ -80,6 +80,79 @@ export type DareApprovalResult =
       };
     };
 
+export async function syncLinkedCampaignForDareState(input: {
+  dareId: string;
+  status?: string | null;
+  occurredAt?: Date | null;
+}) {
+  const dare = await prisma.dare.findUnique({
+    where: { id: input.dareId },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+  if (!dare) {
+    throw new Error('Dare not found');
+  }
+
+  const nextStatus = input.status ?? dare.status ?? null;
+  if (!nextStatus) {
+    return { updated: false, reason: 'NO_STATUS' as const };
+  }
+
+  const campaign = await prisma.campaign.findFirst({
+    where: { linkedDareId: dare.id },
+    select: {
+      id: true,
+      status: true,
+      settledAt: true,
+    },
+  });
+
+  if (!campaign) {
+    return { updated: false, reason: 'NO_LINKED_CAMPAIGN' as const };
+  }
+
+  if (nextStatus === 'VERIFIED') {
+    if (campaign.status === 'SETTLED' || campaign.settledAt) {
+      return { updated: false, reason: 'ALREADY_SETTLED' as const };
+    }
+
+    await prisma.campaign.update({
+      where: { id: campaign.id },
+      data: {
+        status: 'SETTLED',
+        settledAt: input.occurredAt ?? new Date(),
+      },
+    });
+
+    return { updated: true, reason: 'SETTLED' as const };
+  }
+
+  if (['FAILED', 'REFUNDED', 'EXPIRED'].includes(nextStatus)) {
+    if (campaign.status === 'SETTLED' || campaign.settledAt) {
+      return { updated: false, reason: 'SETTLED_WINS' as const };
+    }
+
+    if (campaign.status === 'CANCELLED') {
+      return { updated: false, reason: 'ALREADY_CANCELLED' as const };
+    }
+
+    await prisma.campaign.update({
+      where: { id: campaign.id },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    return { updated: true, reason: 'CANCELLED' as const };
+  }
+
+  return { updated: false, reason: 'NON_TERMINAL_STATUS' as const };
+}
+
 function getRefereeClient() {
   const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {

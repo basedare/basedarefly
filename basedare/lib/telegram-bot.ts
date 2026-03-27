@@ -1,7 +1,7 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { approveDareWithPayout } from '@/lib/dare-approval';
+import { approveDareWithPayout, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -596,6 +596,10 @@ async function handleModerationCallback(action: 'approve_dare' | 'reject_dare', 
       appealStatus: 'REJECTED',
       appealReason: 'Rejected via Telegram inline moderation',
     },
+  });
+  await syncLinkedCampaignForDareState({
+    dareId: dare.id,
+    status: 'FAILED',
   });
 
   return { success: true, title: dare.title };

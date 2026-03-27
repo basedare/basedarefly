@@ -11,7 +11,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { alertError, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
-import { finalizeVerifiedDare } from '@/lib/dare-approval';
+import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -688,6 +688,10 @@ export async function POST(req: NextRequest) {
           verifyConfidence: verification.confidence,
           proofHash: verification.proofHash,
         },
+      });
+      await syncLinkedCampaignForDareState({
+        dareId,
+        status: 'FAILED',
       });
 
       // Notify Creator of Failure

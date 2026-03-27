@@ -11,6 +11,7 @@ import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
+import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -100,6 +101,10 @@ export async function POST(request: NextRequest) {
               status: 'REFUNDED',
             },
           });
+          await syncLinkedCampaignForDareState({
+            dareId: dare.id,
+            status: 'REFUNDED',
+          });
 
           results.push({
             dareId: dare.id,
@@ -118,6 +123,10 @@ export async function POST(request: NextRequest) {
           await prisma.dare.update({
             where: { id: dare.id },
             data: { status: 'REFUNDED' },
+          });
+          await syncLinkedCampaignForDareState({
+            dareId: dare.id,
+            status: 'REFUNDED',
           });
           results.push({ dareId: dare.id, status: 'simulated' });
           continue;
@@ -140,6 +149,10 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'REFUNDED',
           },
+        });
+        await syncLinkedCampaignForDareState({
+          dareId: dare.id,
+          status: 'REFUNDED',
         });
 
         results.push({

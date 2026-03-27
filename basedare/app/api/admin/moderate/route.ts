@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
-import { approveDareWithPayout } from '@/lib/dare-approval';
+import { approveDareWithPayout, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // ============================================================================
 // ADMIN MODERATE API
@@ -228,6 +228,10 @@ export async function POST(request: NextRequest) {
           moderatorNote: note || null,
           verifiedAt: null,
         },
+      });
+      await syncLinkedCampaignForDareState({
+        dareId,
+        status: 'FAILED',
       });
     }
 

@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { alertError } from '@/lib/telegram';
-import { finalizeVerifiedDare } from '@/lib/dare-approval';
+import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // Network config
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -205,6 +205,10 @@ export async function POST(req: NextRequest) {
           await prisma.dare.update({
             where: { id: dare.id },
             data: { status: 'FAILED', appealStatus: 'NONE', appealReason: 'Bounty not found on-chain during retry' },
+          });
+          await syncLinkedCampaignForDareState({
+            dareId: dare.id,
+            status: 'FAILED',
           });
           results.push({ dareId: dare.id, status: 'failed', error: 'Bounty not found on-chain' });
           continue;
