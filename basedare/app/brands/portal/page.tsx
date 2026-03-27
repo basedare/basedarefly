@@ -637,11 +637,46 @@ export default function BrandPortalPage() {
     const dare = campaign.linkedDare;
     if (!dare) return null;
 
+    const actor =
+      (dare.streamerHandle && dare.streamerHandle !== '@open' ? dare.streamerHandle : null) ||
+      dare.claimRequestTag ||
+      formatWallet(dare.claimRequestWallet || dare.claimedBy || dare.targetWalletAddress) ||
+      'Creator';
+
+    if (dare.status === 'VERIFIED') {
+      return {
+        label: 'Paid',
+        tone: 'emerald' as const,
+        actor,
+        detail: dare.verifiedAt
+          ? `verified ${new Date(dare.verifiedAt).toLocaleString()}`
+          : 'activation verified and payout cleared',
+      };
+    }
+
+    if (dare.status === 'PENDING_PAYOUT') {
+      return {
+        label: 'Payout queued',
+        tone: 'cyan' as const,
+        actor,
+        detail: 'proof cleared, payout retry is running automatically',
+      };
+    }
+
+    if (dare.status === 'PENDING_REVIEW') {
+      return {
+        label: 'Proof in review',
+        tone: 'amber' as const,
+        actor,
+        detail: 'creator submitted proof, waiting on referee review',
+      };
+    }
+
     if (dare.claimRequestStatus === 'PENDING') {
       return {
         label: 'Pending claim',
         tone: 'amber' as const,
-        actor: dare.claimRequestTag || formatWallet(dare.claimRequestWallet) || 'Creator',
+        actor,
         detail: dare.claimRequestedAt
           ? `requested ${new Date(dare.claimRequestedAt).toLocaleString()}`
           : 'awaiting moderator review',
@@ -650,17 +685,23 @@ export default function BrandPortalPage() {
 
     if (dare.claimedBy || dare.targetWalletAddress) {
       return {
-        label: 'Claimed',
-        tone: 'emerald' as const,
-        actor:
-          (dare.streamerHandle && dare.streamerHandle !== '@open' ? dare.streamerHandle : null) ||
-          formatWallet(dare.claimedBy || dare.targetWalletAddress) ||
-          'Creator attached',
+        label: dare.status === 'PENDING' ? 'Ready for proof' : 'Claimed',
+        tone: 'blue' as const,
+        actor,
         detail: dare.claimedAt
           ? `claimed ${new Date(dare.claimedAt).toLocaleString()}`
-          : dare.status === 'VERIFIED'
-            ? 'verified and routed'
+          : dare.status === 'PENDING'
+            ? 'creator is attached and can submit proof now'
             : 'creator is attached to this activation',
+      };
+    }
+
+    if (campaign.type === 'PLACE') {
+      return {
+        label: 'Open',
+        tone: 'zinc' as const,
+        actor: 'No creator yet',
+        detail: 'live on the map and waiting for creator pull',
       };
     }
 
@@ -1465,13 +1506,19 @@ export default function BrandPortalPage() {
                           className={`mb-4 rounded-xl border px-4 py-3 ${
                             creatorIntent.tone === 'amber'
                               ? 'border-amber-300 bg-amber-50 text-amber-900'
+                              : creatorIntent.tone === 'cyan'
+                                ? 'border-cyan-300 bg-cyan-50 text-cyan-900'
+                                : creatorIntent.tone === 'blue'
+                                  ? 'border-blue-300 bg-blue-50 text-blue-900'
+                                  : creatorIntent.tone === 'zinc'
+                                    ? 'border-zinc-300 bg-zinc-50 text-zinc-900'
                               : 'border-emerald-300 bg-emerald-50 text-emerald-900'
                           }`}
                         >
                           <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-                                Creator Intent
+                                Activation State
                               </div>
                               <div className="mt-1 text-sm font-semibold">
                                 {creatorIntent.label} • {creatorIntent.actor}
@@ -1503,6 +1550,12 @@ export default function BrandPortalPage() {
                         <span>
                           {campaign.truth?.timeline.settledAt
                             ? `settled ${new Date(campaign.truth.timeline.settledAt).toLocaleDateString()}`
+                            : campaign.linkedDare?.status === 'PENDING_REVIEW'
+                              ? 'proof in review'
+                              : campaign.linkedDare?.status === 'PENDING_PAYOUT'
+                                ? 'payout queued'
+                                : campaign.linkedDare?.status === 'VERIFIED'
+                                  ? 'paid and verified'
                             : campaign.truth?.timeline.liveAt
                               ? `live ${new Date(campaign.truth.timeline.liveAt).toLocaleDateString()}`
                               : `${campaign.slotCounts.completed} completed`}
