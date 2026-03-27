@@ -243,7 +243,7 @@ export default function Home() {
               <HowItWorks />
               <MintAnnouncement />
 
-              <div className="w-full flex flex-col items-center py-20 z-30">
+              <div id="active-bounties" className="w-full flex flex-col items-center py-20 z-30">
                 <div className="mb-12 flex flex-col items-center">
                   <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
                   <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />

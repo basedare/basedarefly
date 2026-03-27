@@ -26,6 +26,8 @@ interface LeaderboardEntry {
   user: string;
   avatar?: string | null;
   staked: string;
+  totalVolume: number;
+  completions: number;
   repPoints: number;
   level: number;
   color?: string;
@@ -57,6 +59,8 @@ function mapAPIToLeaderboard(entries: APILeaderboardEntry[]): LeaderboardEntry[]
       user: entry.handle || `Creator ${index + 1}`,
       avatar: null,
       staked: formatVolume(entry.totalVolume),
+      totalVolume: entry.totalVolume,
+      completions: entry.totalCompletions,
       repPoints: Math.min(100, entry.totalCompletions * 10 + 20),
       level,
     };
@@ -588,6 +592,11 @@ export default function LeaderboardPage() {
                                 <p className="text-white font-bold text-sm truncate">{entry.user}</p>
                                 <p className="text-yellow-400 font-black text-sm shrink-0">{entry.staked}</p>
                               </div>
+                              <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em] text-gray-500">
+                                <span>{entry.completions} completions</span>
+                                <span>•</span>
+                                <span>{entry.repPoints} rep</span>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <div className="flex-1">
                                   <LiquidProgressBar value={entry.level} color={getRankColor(entry.rank)} />
@@ -652,7 +661,7 @@ export default function LeaderboardPage() {
                     Complete more dares to rise through the ranks
                   </p>
                   <Link
-                    href="/"
+                    href="/#active-bounties"
                     className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-all"
                   >
                     Browse Dares
