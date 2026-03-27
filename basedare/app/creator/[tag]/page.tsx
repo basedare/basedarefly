@@ -47,6 +47,9 @@ interface CreatorProfile {
     handle: string;
     displayHandle: string;
     verified: boolean;
+    identityPlatform: string | null;
+    identityHandle: string | null;
+    identityStatus: string | null;
     twitterHandle: string | null;
     twitchHandle: string | null;
     youtubeHandle: string | null;
@@ -70,6 +73,16 @@ function formatCompactCount(value: number | null | undefined): string | null {
     }
 
     return value.toString();
+}
+
+function getIdentityLabel(platform: string | null | undefined): string {
+    if (platform === 'twitter') return 'X';
+    if (platform === 'youtube') return 'YouTube';
+    if (platform === 'twitch') return 'Twitch';
+    if (platform === 'instagram') return 'Instagram';
+    if (platform === 'tiktok') return 'TikTok';
+    if (platform === 'other') return 'Other';
+    return 'Identity';
 }
 
 const raisedPanelClass =
@@ -180,6 +193,9 @@ export default function CreatorProfilePage() {
                         handle: displayTag,
                         displayHandle: displayTag,
                         verified: false,
+                        identityPlatform: null,
+                        identityHandle: null,
+                        identityStatus: null,
                         twitterHandle: null,
                         twitchHandle: null,
                         youtubeHandle: null,
@@ -230,11 +246,36 @@ export default function CreatorProfilePage() {
 
     const stats = profile?.stats;
     const connectedPlatforms = [
-        profile?.twitterHandle ? { label: 'X', handle: profile.twitterHandle, href: `https://twitter.com/${profile.twitterHandle}`, accent: 'text-cyan-200' } : null,
+        profile?.identityHandle && profile?.identityPlatform
+            ? {
+                label: getIdentityLabel(profile.identityPlatform),
+                handle: profile.identityHandle,
+                href:
+                    profile.identityPlatform === 'instagram'
+                        ? `https://instagram.com/${profile.identityHandle}`
+                        : profile.identityPlatform === 'tiktok'
+                            ? `https://www.tiktok.com/@${profile.identityHandle}`
+                            : profile.identityPlatform === 'youtube'
+                                ? `https://youtube.com/@${profile.identityHandle}`
+                                : profile.identityPlatform === 'twitter'
+                                    ? `https://twitter.com/${profile.identityHandle}`
+                                    : null,
+                accent: profile.identityPlatform === 'instagram'
+                    ? 'text-pink-200'
+                    : profile.identityPlatform === 'tiktok'
+                        ? 'text-cyan-200'
+                        : profile.identityPlatform === 'youtube'
+                            ? 'text-red-300'
+                            : profile.identityPlatform === 'twitter'
+                                ? 'text-cyan-200'
+                                : 'text-white/70',
+            }
+            : null,
+        profile?.twitterHandle && profile?.twitterHandle !== profile?.identityHandle ? { label: 'X', handle: profile.twitterHandle, href: `https://twitter.com/${profile.twitterHandle}`, accent: 'text-cyan-200' } : null,
         profile?.twitchHandle ? { label: 'Twitch', handle: profile.twitchHandle, href: `https://twitch.tv/${profile.twitchHandle}`, accent: 'text-purple-200' } : null,
         profile?.youtubeHandle ? { label: 'YouTube', handle: profile.youtubeHandle, href: `https://youtube.com/@${profile.youtubeHandle}`, accent: 'text-red-300' } : null,
         profile?.kickHandle ? { label: 'Kick', handle: profile.kickHandle, href: `https://kick.com/${profile.kickHandle}`, accent: 'text-green-300' } : null,
-    ].filter(Boolean) as Array<{ label: string; handle: string; href: string; accent: string }>;
+    ].filter(Boolean) as Array<{ label: string; handle: string; href: string | null; accent: string }>;
     const audienceLabel = formatCompactCount(profile?.followerCount);
 
     return (
@@ -308,16 +349,25 @@ export default function CreatorProfilePage() {
 
                                     <div className="flex flex-wrap items-center gap-2.5 mt-3">
                                         {connectedPlatforms.map((platform) => (
-                                            <a
-                                                key={`${platform.label}-${platform.handle}`}
-                                                href={platform.href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
-                                            >
-                                                {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
-                                                <ExternalLink className="w-3 h-3" />
-                                            </a>
+                                            platform.href ? (
+                                                <a
+                                                    key={`${platform.label}-${platform.handle}`}
+                                                    href={platform.href}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
+                                                >
+                                                    {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                            ) : (
+                                                <span
+                                                    key={`${platform.label}-${platform.handle}`}
+                                                    className={`${pillClass} normal-case tracking-normal text-xs ${platform.accent}`}
+                                                >
+                                                    {platform.label} @{platform.handle}
+                                                </span>
+                                            )
                                         ))}
                                         {typeof profile?.followerCount === 'number' && (
                                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/60`}>
@@ -368,7 +418,7 @@ export default function CreatorProfilePage() {
                             </div>
                             <h2 className="mt-4 text-lg font-black text-white">Connected identity and distribution layer</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-                                Creator pages now show whether this identity is socially anchored enough for clean distribution, creator trust, and future footprint routing.
+                                Live now this page shows which verified public identity is anchored to the creator. Coming soon it becomes a richer routing and footprint surface.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -382,7 +432,7 @@ export default function CreatorProfilePage() {
                                 href="/claim-tag"
                                 className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
                             >
-                                Connect Social
+                                Connect Identity
                             </Link>
                         </div>
                     </div>
@@ -430,16 +480,25 @@ export default function CreatorProfilePage() {
                     <div className="mt-5 flex flex-wrap gap-2">
                         {connectedPlatforms.length > 0 ? (
                             connectedPlatforms.map((platform) => (
-                                <a
-                                    key={`surface-${platform.label}-${platform.handle}`}
-                                    href={platform.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
-                                >
-                                    {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
-                                    <ExternalLink className="w-3 h-3" />
-                                </a>
+                                platform.href ? (
+                                    <a
+                                        key={`surface-${platform.label}-${platform.handle}`}
+                                        href={platform.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
+                                    >
+                                        {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
+                                        <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                ) : (
+                                    <span
+                                        key={`surface-${platform.label}-${platform.handle}`}
+                                        className={`${pillClass} normal-case tracking-normal text-xs ${platform.accent}`}
+                                    >
+                                        {platform.label} @{platform.handle}
+                                    </span>
+                                )
                             ))
                         ) : (
                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/42`}>

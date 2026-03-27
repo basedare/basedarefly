@@ -130,6 +130,11 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+function sanitizeTagCandidate(value: string | null | undefined): string {
+  if (!value) return '';
+  return value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_]/g, '');
+}
+
 export function ClaimTagModule() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -168,7 +173,10 @@ export function ClaimTagModule() {
 
   useEffect(() => {
     if (platformHandle && !tag) {
-      setTag(platformHandle);
+      const suggestedTag = sanitizeTagCandidate(platformHandle);
+      if (suggestedTag) {
+        setTag(suggestedTag);
+      }
     }
   }, [platformHandle, tag]);
 
@@ -398,6 +406,7 @@ export function ClaimTagModule() {
     setError(null);
     setUseManualVerification(true);
     setManualUsername('');
+    setTag('');
     generateManualCode();
   }, []);
 
@@ -590,7 +599,7 @@ export function ClaimTagModule() {
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white">Connect Identity</h3>
                   <p className="text-xs text-gray-500 font-mono">
-                    Plug your creator identity into BaseDare so claim flow, share rails, and your map all point the same way.
+                    Live now: link your public creator handle to your wallet and submit proof for review. Coming soon: richer enrichment, imported residue, and stronger routing.
                   </p>
                 </div>
               </div>
@@ -637,7 +646,7 @@ export function ClaimTagModule() {
                   {inviteData ? 'Claim first, then wake the place up' : 'This becomes your place layer'}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/55">
-                  Social connect is the front door to Suggested Footprint now, and later to imported residue review without weakening verified memory.
+                  Live now this anchors your handle to payouts, tag review, and the first layer of creator routing. Later it becomes the front door to suggested footprint and imported residue review.
                 </p>
               </div>
             </div>
@@ -786,6 +795,11 @@ export function ClaimTagModule() {
                           placeholder={`your_${selectedPlatform}_handle`}
                           className={`w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-opacity-50 focus:outline-none font-mono`}
                         />
+                        {manualUsername && sanitizeTagCandidate(manualUsername) !== manualUsername.replace(/^@+/, '').trim() ? (
+                          <p className="mt-2 text-[11px] leading-5 text-white/45">
+                            BaseDare tags only use letters, numbers, and underscores. We will suggest a cleaned tag after you enter your handle.
+                          </p>
+                        ) : null}
                       </div>
 
                       {/* Verification Code */}

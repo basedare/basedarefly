@@ -1442,7 +1442,7 @@ export async function sendDareReviewAlert(data: {
 export async function sendTagClaimSubmissionAlert(data: {
   tagClaimId: string;
   tag: string;
-  platform: 'twitter' | 'twitch' | 'youtube' | 'kick';
+  platform: string;
   handle: string;
   walletAddress: string;
 }): Promise<void> {
@@ -1455,7 +1455,7 @@ export async function sendTagClaimSubmissionAlert(data: {
     '🆕 <b>TAG CLAIM SUBMITTED</b>',
     '',
     `🏷️ Tag: <code>${data.tag}</code>`,
-    `📺 Platform: <b>${data.platform.toUpperCase()}</b>`,
+    `📺 Platform: <b>${data.platform === 'twitter' ? 'X' : data.platform.toUpperCase()}</b>`,
     `👤 Handle: <code>${data.handle}</code>`,
     `👛 Wallet: <code>${wallet}</code>`,
     `🆔 Claim ID: <code>${data.tagClaimId}</code>`,

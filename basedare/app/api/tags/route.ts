@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
+import { alertTagClaimSubmission } from '@/lib/telegram';
 import { isAddress } from 'viem';
 
 type WalletSession = {
@@ -303,7 +304,11 @@ export async function POST(request: NextRequest) {
       where: { tag: normalizedTag },
     });
 
-    if (existingTag && existingTag.status !== 'REVOKED') {
+    const isSameWalletExistingTag =
+      Boolean(existingTag) &&
+      existingTag!.walletAddress.toLowerCase() === walletAddress;
+
+    if (existingTag && existingTag.status !== 'REVOKED' && !isSameWalletExistingTag) {
       return NextResponse.json(
         { success: false, error: 'This tag is already claimed' },
         { status: 400 }
@@ -353,7 +358,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (existingHandle) {
+      const isSameWalletExistingHandle =
+        existingHandle &&
+        existingHandle.walletAddress.toLowerCase() === walletAddress &&
+        existingHandle.tag.toLowerCase() === normalizedTag.toLowerCase();
+
+      if (existingHandle && !isSameWalletExistingHandle) {
         return NextResponse.json(
           {
             success: false,
@@ -366,7 +376,11 @@ export async function POST(request: NextRequest) {
 
     // Check wallet doesn't have too many tags (limit to 3)
     const walletTags = await prisma.streamerTag.count({
-      where: { walletAddress, status: { in: ['ACTIVE', 'VERIFIED', 'PENDING'] } },
+      where: {
+        walletAddress,
+        status: { in: ['ACTIVE', 'VERIFIED', 'PENDING'] },
+        ...(existingTag ? { id: { not: existingTag.id } } : {}),
+      },
     });
 
     if (walletTags >= 3) {
@@ -437,6 +451,16 @@ export async function POST(request: NextRequest) {
     console.log(
       `[TAG] ${status === 'ACTIVE' || status === 'VERIFIED' ? 'Claimed' : 'Pending'}: ${normalizedTag} by ${walletAddress} (${verificationMethod}: ${platformHandle})`
     );
+
+    if (isManualVerification) {
+      void alertTagClaimSubmission({
+        tagClaimId: streamerTag.id,
+        tag: streamerTag.tag,
+        platform: claimPlatform,
+        handle: platformHandle || '',
+        walletAddress,
+      }).catch((err) => console.error('[TELEGRAM] Tag claim alert failed:', err));
+    }
 
     // -----------------------------------------------------------------------
     // ACTIVATE PENDING DARES - When tag is verified, update AWAITING_CLAIM dares

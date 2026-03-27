@@ -33,6 +33,9 @@ interface UserTag {
   tag: string;
   status: string;
   verificationMethod: string;
+  identityPlatform?: string | null;
+  identityHandle?: string | null;
+  identityVerificationCode?: string | null;
   totalEarned: number;
   completedDares: number;
   bio?: string | null;
@@ -113,7 +116,18 @@ function getProviderLabel(provider: string | null | undefined): string {
   if (provider === 'twitter') return 'X';
   if (provider === 'twitch') return 'Twitch';
   if (provider === 'google') return 'YouTube';
+  if (provider === 'youtube') return 'YouTube';
+  if (provider === 'instagram') return 'Instagram';
+  if (provider === 'tiktok') return 'TikTok';
+  if (provider === 'other') return 'Other';
   return 'Social';
+}
+
+function getIdentityStatusLabel(status: string | null | undefined): string {
+  if (status === 'ACTIVE' || status === 'VERIFIED') return 'Verified';
+  if (status === 'PENDING') return 'Pending verification';
+  if (status === 'REJECTED') return 'Rejected';
+  return 'Not connected';
 }
 
 function OpportunityCard({
@@ -244,13 +258,20 @@ export default function Dashboard() {
   const sessionToken = sessionData?.token ?? null;
   const connectedProvider = sessionData?.provider || null;
   const connectedHandle = sessionData?.platformHandle?.replace(/^@/, '').trim() || null;
-  const connectedPlatformBio = sessionData?.platformBio?.trim() || null;
   const connectedAudience = formatCompactCount(sessionData?.platformFollowerCount ?? null);
-  const hasConnectedSocial = Boolean(connectedProvider && connectedHandle);
   const normalizedUserTag = userTag?.tag?.replace(/^@/, '').toLowerCase() || null;
   const socialMatchesClaimedTag = Boolean(
     connectedHandle && normalizedUserTag && connectedHandle.toLowerCase() === normalizedUserTag
   );
+  const identityHandle =
+    userTag?.identityHandle ||
+    userTag?.tag?.replace(/^@/, '') ||
+    connectedHandle ||
+    null;
+  const identityPlatform = userTag?.identityPlatform || connectedProvider || null;
+  const identityStatus = userTag?.status || null;
+  const hasVerifiedIdentity = identityStatus === 'ACTIVE' || identityStatus === 'VERIFIED';
+  const hasPendingIdentity = identityStatus === 'PENDING';
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
@@ -335,8 +356,12 @@ export default function Dashboard() {
         // Fetch user's verified tag
         const tagRes = await fetch(`/api/tags?wallet=${address}`);
         const tagData = tagRes.ok ? await tagRes.json() : { tags: [] };
-        const verifiedTag = tagData.tags?.find((t: UserTag) => t.status === 'ACTIVE');
-        setUserTag(verifiedTag || null);
+        const primaryTag =
+          tagData.tags?.find((t: UserTag) => t.status === 'ACTIVE' || t.status === 'VERIFIED') ||
+          tagData.tags?.find((t: UserTag) => t.status === 'PENDING') ||
+          tagData.tags?.[0] ||
+          null;
+        setUserTag(primaryTag || null);
 
         // Fetch dares I funded (as staker)
         const fundedParams = new URLSearchParams({
@@ -529,19 +554,34 @@ export default function Dashboard() {
                 {isConnected && userTag ? (
                   <>
                     <div>
-                      <p className="text-gray-400 font-mono text-sm mb-1">Ready for your next mission?</p>
+                      <p className="text-gray-400 font-mono text-sm mb-1">
+                        {hasPendingIdentity ? 'Identity proof submitted. Waiting on review.' : 'Ready for your next mission?'}
+                      </p>
                       <h2 className="text-3xl md:text-4xl font-black text-white">
                         Welcome back, <span className="text-[#FFD700]">{userTag.tag}</span>
                       </h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5 text-sm">
-                      <span className={`${pillClass} normal-case tracking-normal text-xs text-green-300 border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.18)_0%,rgba(20,83,45,0.08)_100%)]`}>
-                        ✓ Verified
+                      <span
+                        className={`${pillClass} normal-case tracking-normal text-xs ${
+                          hasVerifiedIdentity
+                            ? 'text-green-300 border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.18)_0%,rgba(20,83,45,0.08)_100%)]'
+                            : hasPendingIdentity
+                              ? 'text-yellow-300 border-yellow-500/25 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.08)_100%)]'
+                              : 'text-gray-300 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)]'
+                        }`}
+                      >
+                        {hasVerifiedIdentity ? '✓ Verified' : hasPendingIdentity ? '◌ Pending review' : 'Identity not verified'}
                       </span>
                       {address && (
                         <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300`}>
                           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                           {formatAddress(address)}
+                        </span>
+                      )}
+                      {identityHandle && identityPlatform && (
+                        <span className={`${pillClass} normal-case tracking-normal text-xs text-cyan-200 border-cyan-500/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(8,11,18,0.92)_100%)]`}>
+                          @{identityHandle} on {getProviderLabel(identityPlatform)}
                         </span>
                       )}
                       {userTag.completedDares > 0 && (
@@ -620,15 +660,19 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-cyan-200">
                         <Share2 className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-100">Social Connect</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-100">Connect Identity</span>
                       </div>
                       <p className="mt-3 text-sm font-bold text-white">
-                        {hasConnectedSocial ? `Connected to ${getProviderLabel(connectedProvider)} as @${connectedHandle}` : 'Connect a social identity to strengthen your creator graph'}
+                        {identityHandle && identityPlatform
+                          ? `Linked to ${getProviderLabel(identityPlatform)} as @${identityHandle}`
+                          : 'Link your main creator handle to your wallet'}
                       </p>
                       <p className="mt-2 text-xs leading-5 text-white/55 max-w-2xl">
-                        {hasConnectedSocial
-                          ? connectedPlatformBio || 'This identity is now available for claim matching, distribution rails, and future footprint routing.'
-                          : 'Linking a real handle helps BaseDare keep claim flow, map footprint, and share rails pointed at one creator identity.'}
+                        {hasVerifiedIdentity
+                          ? 'Live now: your verified handle anchors payouts, creator opportunities, and your public creator graph. Coming soon: richer enrichment, imported residue, and smarter matching.'
+                          : hasPendingIdentity
+                            ? 'Live now: your handle proof is in review and already tied to your wallet. Coming soon: automatic enrichment and deeper footprint routing once the identity clears.'
+                            : 'Live now: you can link a creator handle and submit a public proof for review. Coming soon: richer enrichment, imported residue, and smarter matching.'}
                       </p>
                     </div>
 
@@ -637,7 +681,7 @@ export default function Dashboard() {
                         onClick={() => router.push('/claim-tag')}
                         className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
                       >
-                        {hasConnectedSocial ? 'Manage Social' : 'Connect Social'}
+                        {hasPendingIdentity ? 'Update Handle / Re-verify' : identityHandle ? 'Manage Identity' : 'Connect Identity'}
                       </button>
                       <button
                         onClick={() => router.push('/map')}
@@ -652,21 +696,23 @@ export default function Dashboard() {
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
                       <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Status</p>
                       <p className="mt-2 text-sm font-black text-white">
-                        {hasConnectedSocial ? 'Connected' : 'Not connected'}
+                        {getIdentityStatusLabel(identityStatus)}
                       </p>
                       <p className="mt-1 text-[11px] text-white/48">
-                        {hasConnectedSocial ? `${getProviderLabel(connectedProvider)} identity available` : 'No linked distribution rail yet'}
+                        {identityPlatform && identityHandle
+                          ? `${getProviderLabel(identityPlatform)} handle @${identityHandle}`
+                          : 'No linked creator handle yet'}
                       </p>
                     </div>
 
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
                       <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Claim Match</p>
                       <p className="mt-2 text-sm font-black text-white">
-                        {hasConnectedSocial ? (socialMatchesClaimedTag ? 'Aligned' : 'Needs match') : 'Waiting'}
+                        {identityHandle ? (socialMatchesClaimedTag ? 'Aligned' : 'Needs match') : 'Waiting'}
                       </p>
                       <p className="mt-1 text-[11px] text-white/48">
-                        {hasConnectedSocial
-                          ? (socialMatchesClaimedTag ? 'Your social handle matches your claimed BaseDare tag.' : `Connected handle is @${connectedHandle}.`)
+                        {identityHandle
+                          ? (socialMatchesClaimedTag ? 'Your linked handle matches your claimed BaseDare tag.' : `Linked handle is @${identityHandle}.`)
                           : 'Connect first, then anchor the right tag.'}
                       </p>
                     </div>
@@ -674,12 +720,14 @@ export default function Dashboard() {
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
                       <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Share Ready</p>
                       <p className="mt-2 text-sm font-black text-white">
-                        {hasConnectedSocial ? 'Yes' : 'Later'}
+                        {hasVerifiedIdentity ? 'Yes' : hasPendingIdentity ? 'Pending' : 'Later'}
                       </p>
                       <p className="mt-1 text-[11px] text-white/48">
-                        {hasConnectedSocial
-                          ? `${connectedAudience ? `${connectedAudience} audience linked, ` : ''}approved wins can route through cleaner X share rails.`
-                          : 'Connect socials to make distribution feel native, not bolted on.'}
+                        {hasVerifiedIdentity
+                          ? `${connectedAudience ? `${connectedAudience} audience linked, ` : ''}approved wins can route through one anchored creator identity.`
+                          : hasPendingIdentity
+                            ? 'Your handle is under review now. Once approved, share and matching rails will point through the same identity.'
+                            : 'Connect identity to make payouts, matching, and distribution point the same way.'}
                       </p>
                     </div>
                   </div>
@@ -694,7 +742,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-purple-300 text-sm font-bold">Claim your tag to start earning</p>
-                      <p className="text-purple-300/70 text-xs font-mono">Verify your identity so fans can dare you</p>
+                      <p className="text-purple-300/70 text-xs font-mono">Link your handle so payouts and opportunities point the same way</p>
                     </div>
                   </div>
                   <button
@@ -702,7 +750,7 @@ export default function Dashboard() {
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   >
                     <Zap className="w-4 h-4" />
-                    Claim Tag
+                    Connect Identity
                   </button>
                 </div>
 
@@ -713,10 +761,10 @@ export default function Dashboard() {
                       <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Social Status</span>
                     </div>
                     <p className="mt-2 text-sm font-black text-white">
-                      {hasConnectedSocial ? `@${connectedHandle}` : 'Not connected'}
+                      {identityHandle ? `@${identityHandle}` : 'Not connected'}
                     </p>
                     <p className="mt-1 text-[11px] text-white/48">
-                      {hasConnectedSocial ? `${getProviderLabel(connectedProvider)} linked and waiting for tag alignment.` : 'Connect socials so claim flow and distribution point the same way.'}
+                      {identityHandle && identityPlatform ? `${getProviderLabel(identityPlatform)} linked and waiting for tag alignment.` : 'Link your public creator handle first, then claim the right tag.'}
                     </p>
                   </div>
 
@@ -726,10 +774,10 @@ export default function Dashboard() {
                       <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Next Step</span>
                     </div>
                     <p className="mt-2 text-sm font-black text-white">
-                      {hasConnectedSocial ? 'Match your tag' : 'Connect and claim'}
+                      {identityHandle ? 'Match your tag' : 'Connect and claim'}
                     </p>
                     <p className="mt-1 text-[11px] text-white/48">
-                      {hasConnectedSocial ? 'Your connected handle is ready to be anchored as a BaseDare tag.' : 'Wallet is ready. Social connect makes the creator identity legible next.'}
+                      {identityHandle ? 'Your linked handle is ready to be anchored as a BaseDare tag.' : 'Wallet is ready. Connect identity next, then claim your tag.'}
                     </p>
                   </div>
 
@@ -860,7 +908,7 @@ export default function Dashboard() {
                 Opportunities For You
               </h3>
               <p className="mt-2 max-w-2xl text-sm text-white/55">
-                Money that fits your tag, your socials, and the places brands are trying to heat up right now.
+                Money that fits your tag, your linked identity, and the places brands are trying to heat up right now.
               </p>
             </div>
             <button
@@ -886,7 +934,7 @@ export default function Dashboard() {
               <p className="text-sm text-white/65">
                 {opportunitiesReason === 'CLAIM_TAG_REQUIRED'
                   ? 'Paid activations will appear here once you claim your tag. That gives BaseDare a real creator identity to match against live brand demand.'
-                  : 'Paid activations will appear here as brands target your style. Connect more socials and save a few creator tags to improve matches.'}
+                  : 'Paid activations will appear here as brands target your style. Link your creator identity and save a few creator tags to improve matches.'}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
@@ -899,7 +947,7 @@ export default function Dashboard() {
                   onClick={() => router.push('/claim-tag')}
                   className="rounded-full border border-purple-400/25 bg-purple-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
                 >
-                  Connect Social
+                  Connect Identity
                 </button>
               </div>
             </div>

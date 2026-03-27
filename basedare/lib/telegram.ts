@@ -365,7 +365,7 @@ export async function alertDailyStats(data: {
 export async function alertTagClaimSubmission(data: {
   tagClaimId: string;
   tag: string;
-  platform: 'twitter' | 'twitch' | 'youtube' | 'kick';
+  platform: string;
   handle: string;
   walletAddress: string;
 }): Promise<void> {
