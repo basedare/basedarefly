@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { signIn, signOut, useSession } from 'next-auth/react';
 import { useAccount } from 'wagmi';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -20,6 +19,9 @@ import {
   Clock,
   MapPin,
   Share2,
+  Camera,
+  Music2,
+  Globe2,
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
@@ -31,25 +33,11 @@ const TwitterIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const TwitchIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-  </svg>
-);
+type Platform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'other';
 
-const YouTubeIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-  </svg>
-);
-
-const KickIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M1.333 0v24h5.334v-8l2.666 2.667L14.667 24H22l-8-8 8-8h-7.333l-5.334 5.333V0z" />
-  </svg>
-);
-
-type Platform = 'twitter' | 'twitch' | 'youtube' | 'kick';
+const InstagramIcon = ({ className }: { className?: string }) => <Camera className={className} />;
+const TikTokIcon = ({ className }: { className?: string }) => <Music2 className={className} />;
+const OtherIcon = ({ className }: { className?: string }) => <Globe2 className={className} />;
 
 interface InviteData {
   streamerHandle: string;
@@ -71,7 +59,6 @@ interface PlatformConfig {
   color: string;
   bgColor: string;
   borderColor: string;
-  provider: string | null; // null = manual verification
   Icon: React.FC<{ className?: string }>;
 }
 
@@ -80,15 +67,7 @@ interface ExistingTag {
   status: string;
   walletAddress: string;
   verificationMethod?: string | null;
-}
-
-interface SessionPlatformData {
-  provider?: string;
-  platformHandle?: string;
-  platformId?: string;
-  token?: string;
-  platformBio?: string | null;
-  platformFollowerCount?: number | null;
+  identityPlatform?: string | null;
 }
 
 interface CreatorFootprint {
@@ -104,38 +83,22 @@ interface CreatorFootprint {
   };
 }
 
-function formatCompactCount(value: number | null | undefined): string | null {
-  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
-
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
-  }
-
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
-  }
-
-  return value.toString();
-}
-
 const PLATFORMS: PlatformConfig[] = [
   {
-    id: 'twitter',
-    name: 'Twitter/X',
-    color: 'text-white',
-    bgColor: 'bg-black/80',
-    borderColor: 'border-white/30',
-    provider: 'twitter',
-    Icon: TwitterIcon,
+    id: 'instagram',
+    name: 'Instagram',
+    color: 'text-pink-300',
+    bgColor: 'bg-pink-500/15',
+    borderColor: 'border-pink-400/35',
+    Icon: InstagramIcon,
   },
   {
-    id: 'twitch',
-    name: 'Twitch',
-    color: 'text-[#9146FF]',
-    bgColor: 'bg-[#9146FF]/20',
-    borderColor: 'border-[#9146FF]/50',
-    provider: 'twitch',
-    Icon: TwitchIcon,
+    id: 'tiktok',
+    name: 'TikTok',
+    color: 'text-cyan-200',
+    bgColor: 'bg-cyan-500/15',
+    borderColor: 'border-cyan-400/35',
+    Icon: TikTokIcon,
   },
   {
     id: 'youtube',
@@ -143,39 +106,32 @@ const PLATFORMS: PlatformConfig[] = [
     color: 'text-[#FF0000]',
     bgColor: 'bg-[#FF0000]/20',
     borderColor: 'border-[#FF0000]/50',
-    provider: 'google',
-    Icon: YouTubeIcon,
+    Icon: ({ className }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+      </svg>
+    ),
   },
   {
-    id: 'kick',
-    name: 'Kick',
-    color: 'text-[#53FC18]',
-    bgColor: 'bg-[#53FC18]/20',
-    borderColor: 'border-[#53FC18]/50',
-    provider: null, // Manual verification
-    Icon: KickIcon,
+    id: 'twitter',
+    name: 'Twitter/X',
+    color: 'text-white',
+    bgColor: 'bg-black/80',
+    borderColor: 'border-white/30',
+    Icon: TwitterIcon,
+  },
+  {
+    id: 'other',
+    name: 'Other',
+    color: 'text-white/80',
+    bgColor: 'bg-white/5',
+    borderColor: 'border-white/15',
+    Icon: OtherIcon,
   },
 ];
 
-const OAUTH_ERRORS: Record<string, string> = {
-  OAuthSignin: 'Error starting OAuth signin. Check provider configuration.',
-  OAuthCallback: 'Error during OAuth callback. Try again.',
-  OAuthCreateAccount: 'Could not create account with OAuth provider.',
-  EmailCreateAccount: 'Could not create email account.',
-  Callback: 'Error in OAuth callback.',
-  OAuthAccountNotLinked: 'This account is already linked to another user.',
-  EmailSignin: 'Email signin failed.',
-  CredentialsSignin: 'Sign in failed. Check your credentials.',
-  SessionRequired: 'Please sign in to access this page.',
-  twitter: 'Twitter OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitter',
-  twitch: 'Twitch OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/twitch',
-  google: 'Google OAuth failed. Check if callback URL is configured: http://localhost:3000/api/auth/callback/google',
-  default: 'OAuth authentication failed. Please try again.',
-};
-
 export function ClaimTagModule() {
   const router = useRouter();
-  const { data: session } = useSession();
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -195,66 +151,26 @@ export function ClaimTagModule() {
   const [useManualVerification, setUseManualVerification] = useState(false);
 
   // Invite flow state
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [footprintLoading, setFootprintLoading] = useState(false);
   const [footprintData, setFootprintData] = useState<CreatorFootprint | null>(null);
-
-  // Get platform handle from session
-  const sessionData = session as SessionPlatformData | null;
-  const provider = sessionData?.provider;
-  const platformHandle = sessionData?.platformHandle;
-  const platformBio = sessionData?.platformBio?.trim() || null;
-  const platformFollowerCount = sessionData?.platformFollowerCount ?? null;
-  const compactFollowerCount = formatCompactCount(platformFollowerCount);
-
-  const isPlatformConnected = !!platformHandle && !!provider;
-
-  // Determine which platform is connected via OAuth
-  const getConnectedPlatform = (): Platform | null => {
-    if (!provider) return null;
-    if (provider === 'twitter') return 'twitter';
-    if (provider === 'twitch') return 'twitch';
-    if (provider === 'google') return 'youtube';
-    return null;
-  };
-
-  const connectedPlatform = getConnectedPlatform();
+  const platformHandle = manualUsername.trim() || null;
+  const connectedPlatform = selectedPlatform;
+  const isPlatformConnected = Boolean(selectedPlatform && platformHandle);
   const normalizedPlatformHandle = platformHandle?.replace(/^@/, '').trim().toLowerCase() || null;
   const hasMatchingVerifiedTag = Boolean(
     normalizedPlatformHandle &&
       existingTags.some((existingTag) => existingTag.tag.replace(/^@/, '').toLowerCase() === normalizedPlatformHandle)
   );
+  const primaryPlatform = PLATFORMS.find((platform) => platform.id === 'instagram') ?? PLATFORMS[0];
 
-  // Auto-set selectedPlatform when returning from OAuth redirect
-  useEffect(() => {
-    if (connectedPlatform && !selectedPlatform) {
-      setSelectedPlatform(connectedPlatform);
-    }
-  }, [connectedPlatform, selectedPlatform]);
-
-  // Pre-fill tag from platform handle after OAuth return
   useEffect(() => {
     if (platformHandle && !tag) {
       setTag(platformHandle);
     }
   }, [platformHandle, tag]);
-
-  // Check for OAuth errors in URL params
-  useEffect(() => {
-    const oauthError = searchParams.get('error');
-    if (oauthError) {
-      const errorMessage = OAUTH_ERRORS[oauthError] || OAUTH_ERRORS['default'];
-      setError(errorMessage);
-      // Clear the error param from URL to prevent showing on refresh
-      const url = new URL(window.location.href);
-      url.searchParams.delete('error');
-      url.searchParams.delete('callbackUrl');
-      window.history.replaceState({}, '', url.toString());
-    }
-  }, [searchParams]);
 
   // Fetch invite data from URL params
   useEffect(() => {
@@ -262,7 +178,6 @@ export function ClaimTagModule() {
     const handle = searchParams.get('handle');
 
     if (invite) {
-      setInviteToken(invite);
       setInviteLoading(true);
 
       fetch(`/api/invite/${invite}`)
@@ -384,14 +299,13 @@ export function ClaimTagModule() {
   };
 
   // Switch to manual verification mode
-  const enableManualVerification = (platform: Platform) => {
+  const enableManualVerification = (platform: Platform = 'twitter') => {
     setSelectedPlatform(platform);
     setUseManualVerification(true);
     generateManualCode();
   };
 
-  // Check if using manual verification for current platform
-  const isManualMode = useManualVerification || selectedPlatform === 'kick';
+  const isManualMode = Boolean(selectedPlatform && useManualVerification);
 
   // Claim the tag
   const handleClaimTag = async () => {
@@ -400,8 +314,7 @@ export function ClaimTagModule() {
     // For manual verification, need username and code
     if (isManualMode && (!manualUsername || !manualCode)) return;
 
-    // For OAuth platforms (not manual), need to be connected
-    if (!isManualMode && !isPlatformConnected) return;
+    if (!selectedPlatform || !manualUsername || !manualCode) return;
 
     setClaiming(true);
     setError(null);
@@ -416,26 +329,12 @@ export function ClaimTagModule() {
       let endpoint = '/api/claim-tag';
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
 
-      // Manual/Kick flow still uses /api/tags (admin-reviewed path)
-      if (isManualMode) {
-        endpoint = '/api/tags';
-        body.platform = selectedPlatform || 'twitter';
-        body.manualUsername = manualUsername;
-        body.manualCode = manualCode!;
-      } else {
-        const sessionToken = (session as { token?: string } | null)?.token;
-        if (sessionToken) {
-          headers.Authorization = `Bearer ${sessionToken}`;
-        }
-        if (!selectedPlatform || !platformHandle) {
-          throw new Error('Connect a creator identity before claiming this tag.');
-        }
-        body.platform = selectedPlatform;
-        body.handle = platformHandle;
-        if (inviteToken) {
-          body.inviteToken = inviteToken;
-        }
-      }
+      endpoint = '/api/tags';
+      // Keep the legacy platform field populated while the tag rail still expects it.
+      body.platform = 'twitter';
+      body.identityPlatform = selectedPlatform;
+      body.manualUsername = manualUsername;
+      body.manualCode = manualCode!;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -494,27 +393,13 @@ export function ClaimTagModule() {
   const getPlatformConfig = (id: Platform) => PLATFORMS.find((p) => p.id === id)!;
 
   // Handle platform selection
-  const handlePlatformSelect = (platform: Platform) => {
+  const handlePlatformSelect = useCallback((platform: Platform) => {
     setSelectedPlatform(platform);
     setError(null);
-    setUseManualVerification(false);
-
-    // If it's an OAuth platform, redirect to provider
-    // After OAuth, NextAuth redirects back to /claim-tag and the
-    // session will contain provider/platformHandle. The useEffect
-    // above auto-restores selectedPlatform from the session.
-    const config = getPlatformConfig(platform);
-    if (config.provider && !connectedPlatform) {
-      const callbackUrl = typeof window !== 'undefined' ? window.location.href : '/claim-tag';
-      signIn(config.provider, { callbackUrl });
-      return;
-    }
-
-    // For Kick (always manual), generate a verification code
-    if (platform === 'kick' && !manualCode) {
-      generateManualCode();
-    }
-  };
+    setUseManualVerification(true);
+    setManualUsername('');
+    generateManualCode();
+  }, []);
 
   return (
     <div id="claim-tag-section" className="relative w-full max-w-2xl mx-auto">
@@ -763,46 +648,40 @@ export function ClaimTagModule() {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Choose Platform</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Connect a platform now, or fall back to manual verification if OAuth gives you trouble.
+                      Pick the creator platform you actually use. We will verify it with a proof code.
                     </p>
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-200/80">Step 2</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
                   {PLATFORMS.map((platform) => (
                     <button
+                      type="button"
                       key={platform.id}
                       onClick={() => handlePlatformSelect(platform.id)}
                       disabled={!isConnected}
-                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${selectedPlatform === platform.id ? 'ring-2 ring-cyan-300/40' : ''} ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
                       <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
-                      {platform.provider === null && (
-                        <span className="text-[10px] sm:text-xs text-gray-400">Manual</span>
-                      )}
                     </button>
                   ))}
                 </div>
 
                 <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
                   <p className="text-xs text-gray-400 mb-2">
-                    {error && error.includes('OAuth')
-                      ? 'OAuth not working? Use manual verification instead:'
-                      : 'Having trouble with OAuth? Try manual verification:'}
+                    Connect Identity links your main creator profile to your wallet so claims, payouts, and future matches point the same way.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {PLATFORMS.filter(p => p.provider !== null).map((platform) => (
-                      <button
-                        key={platform.id}
-                        onClick={() => enableManualVerification(platform.id)}
-                        disabled={!isConnected}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${platform.bgColor} ${platform.borderColor} ${platform.color} hover:opacity-80 disabled:opacity-50`}
-                      >
-                        {platform.name}
-                      </button>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => enableManualVerification(selectedPlatform ?? primaryPlatform.id)}
+                      disabled={!isConnected || !selectedPlatform}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${primaryPlatform.bgColor} ${primaryPlatform.borderColor} ${primaryPlatform.color} hover:opacity-80 disabled:opacity-50`}
+                    >
+                      Verify Handle
+                    </button>
                   </div>
                 </div>
               </div>
@@ -818,14 +697,12 @@ export function ClaimTagModule() {
                         return <config.Icon className={`w-5 h-5 shrink-0 ${config.color}`} />;
                       })()}
                       <span className="text-sm font-semibold text-white">@{platformHandle}</span>
-                      {compactFollowerCount ? (
-                        <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.14em] text-white/60">
-                          {compactFollowerCount} audience
-                        </span>
-                      ) : null}
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.14em] text-yellow-300/80">
+                        Pending verification
+                      </span>
                     </div>
                     <p className="mt-2 text-xs leading-5 text-white/55">
-                      {platformBio || 'Connected identity is ready for claim matching, share rails, and the next Suggested Footprint layer.'}
+                      We will verify this handle from your profile proof. Once approved, payouts, claim review, and future matching all stay anchored to the same creator identity.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -847,10 +724,15 @@ export function ClaimTagModule() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => signOut()}
+                      onClick={() => {
+                        setSelectedPlatform(null);
+                        setManualCode(null);
+                        setManualUsername('');
+                        setUseManualVerification(false);
+                      }}
                       className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:text-white"
                     >
-                      Disconnect
+                      Reset
                     </button>
                   </div>
                 </div>
@@ -863,21 +745,23 @@ export function ClaimTagModule() {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Manual Verification</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Use this when OAuth is not available or the platform needs admin review.
+                      Use this proof code on your selected platform so we can verify the handle manually.
                     </p>
                   </div>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Fallback</span>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Manual proof</span>
                 </div>
 
               <div className="space-y-3 sm:space-y-4">
                 {(() => {
                   const config = getPlatformConfig(selectedPlatform);
-                  const platformUrls: Record<Platform, string> = {
-                    twitter: `https://twitter.com/${manualUsername || ''}`,
-                    twitch: `https://twitch.tv/${manualUsername || ''}`,
+                  const profileUrlMap: Record<Platform, string | null> = {
+                    instagram: `https://instagram.com/${manualUsername || ''}`,
+                    tiktok: `https://www.tiktok.com/@${manualUsername || ''}`,
                     youtube: `https://youtube.com/@${manualUsername || ''}`,
-                    kick: `https://kick.com/${manualUsername || ''}`,
+                    twitter: `https://twitter.com/${manualUsername || ''}`,
+                    other: null,
                   };
+                  const profileUrl = profileUrlMap[selectedPlatform];
                   return (
                     <div className={`p-3 sm:p-4 ${config.bgColor} border ${config.borderColor} rounded-xl space-y-3`}>
                       <div className="flex items-center gap-2">
@@ -886,20 +770,20 @@ export function ClaimTagModule() {
                       </div>
 
                       <div className="text-xs sm:text-sm text-gray-300 space-y-1.5 sm:space-y-2">
-                        <p>1. Enter your {config.name} username below</p>
+                        <p>1. Enter your {config.name} handle below</p>
                         <p>2. Copy the verification code</p>
-                        <p>3. Add this code to your {config.name} bio or display on stream</p>
+                        <p>3. Add this code to your bio, pinned post, or story highlight</p>
                         <p>4. Click submit (admin will verify within 24h)</p>
                       </div>
 
                       {/* Username Input */}
                       <div>
-                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">{config.name} Username</label>
+                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">{config.name} Handle</label>
                         <input
                           type="text"
                           value={manualUsername}
-                          onChange={(e) => setManualUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                          placeholder={`your_${selectedPlatform}_username`}
+                          onChange={(e) => setManualUsername(e.target.value.replace(/^@+/, '').trim())}
+                          placeholder={`your_${selectedPlatform}_handle`}
                           className={`w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-opacity-50 focus:outline-none font-mono`}
                         />
                       </div>
@@ -920,20 +804,27 @@ export function ClaimTagModule() {
                         </div>
                       </div>
 
-                      <a
-                        href={platformUrls[selectedPlatform]}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-2 text-xs sm:text-sm ${config.color} hover:underline`}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Open your {config.name} profile
-                      </a>
+                      {profileUrl ? (
+                        <a
+                          href={profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-2 text-xs sm:text-sm ${config.color} hover:underline`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          Open your {config.name} profile
+                        </a>
+                      ) : (
+                        <p className="text-xs sm:text-sm text-white/45">
+                          Use the exact handle you want BaseDare to route payouts, matching, and creator history through.
+                        </p>
+                      )}
                     </div>
                   );
                 })()}
 
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedPlatform(null);
                     setManualCode(null);
@@ -942,7 +833,7 @@ export function ClaimTagModule() {
                   }}
                   className="text-xs text-gray-500 hover:text-white transition-colors"
                 >
-                  ← Choose different platform
+                  ← Back to platform selection
                 </button>
               </div>
               </div>
@@ -964,7 +855,7 @@ export function ClaimTagModule() {
                   </div>
                   <h3 className="mt-3 text-sm font-bold text-white">Suggested Footprint</h3>
                   <p className="mt-1 text-xs text-white/55">
-                    BaseDare uses connected socials for identity, distribution, and the next layer of place memory suggestions.
+                    BaseDare uses your linked creator identity for payouts, routing, distribution, and the next layer of place memory suggestions.
                   </p>
                 </div>
                 {platformHandle ? (
@@ -1011,11 +902,11 @@ export function ClaimTagModule() {
                 <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
                   <div className="flex items-center gap-2 text-[#f5c518]">
                     <Share2 className="h-4 w-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Cross-Post Rail</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Distribution Rail</span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-white">Verified wins can now share cleaner</p>
+                  <p className="mt-3 text-sm font-semibold text-white">Verified wins route cleaner now</p>
                   <p className="mt-2 text-xs leading-5 text-white/55">
-                    BaseDare now uses one X payload rail instead of scattered generic tweets. That means tighter growth loops and cleaner venue proof.
+                    One anchored creator handle keeps approved wins, share payloads, and future opportunity routing pointing back to the same identity.
                   </p>
                 </div>
 
@@ -1237,21 +1128,19 @@ export function ClaimTagModule() {
                 {claiming ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {isManualMode ? 'Submitting...' : 'Claiming...'}
+                    Submitting...
                   </>
                 ) : (
                   <>
                     <Shield className="w-4 h-4" />
-                    {isManualMode ? 'Submit for Review' : 'Claim Tag'}
+                    Submit for Review
                   </>
                 )}
               </LiquidMetalButton>
 
-              {isManualMode && (
-                <p className="text-[10px] sm:text-xs text-gray-500 text-center">
-                  Manual verification requires admin approval (usually within 24 hours)
-                </p>
-              )}
+              <p className="text-[10px] sm:text-xs text-gray-500 text-center">
+                Manual verification requires admin approval (usually within 24 hours)
+              </p>
             </div>
           </motion.div>
 
@@ -1263,7 +1152,7 @@ export function ClaimTagModule() {
               transition={{ delay: 0.25 }}
               className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
             >
-              <h3 className="text-sm font-bold text-white mb-3">Your Verified Tags</h3>
+              <h3 className="text-sm font-bold text-white mb-3">Your Tags</h3>
               <div className="space-y-2">
                 {existingTags.map((t) => (
                   <div
@@ -1274,7 +1163,7 @@ export function ClaimTagModule() {
                       <span className="text-purple-400 font-mono text-sm font-bold truncate">{t.tag}</span>
                       {t.verificationMethod && (
                         <span className="text-[10px] sm:text-xs text-gray-500 shrink-0">
-                          via {t.verificationMethod.toLowerCase()}
+                          via {(t.verificationMethod || t.identityPlatform || 'manual').toLowerCase()}
                         </span>
                       )}
                     </div>

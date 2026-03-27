@@ -46,6 +46,16 @@ This order matters because BaseDare should create real demand pull before adding
 - Soft matching comes before strict qualification gates.
 - While creator density is low, campaign requirements should guide ranking instead of filtering creators out.
 - Brand shortlists are internal operator signals, not public Pulse or place-energy signals.
+- `Connect Identity` means linking the creator handle a person actually uses to their wallet.
+- `Connect Identity` is multi-platform and manual-first for now:
+  - Instagram
+  - TikTok
+  - YouTube
+  - X
+  - Other
+- Creator identity should reuse the existing tag + admin-review rails instead of introducing a second identity system.
+- OAuth is optional future enrichment, not the core trust rail for creator onboarding right now.
+- Pending identity proofs should still let creators continue through the product; verification should strengthen trust, not block first use.
 - The same demand graph should power both sides:
   - Brand creates campaign
   - campaign creates linked dare

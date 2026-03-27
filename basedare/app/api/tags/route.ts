@@ -21,7 +21,16 @@ type WalletSession = {
   twitchHandle?: string;
   youtubeId?: string;
   youtubeHandle?: string;
+  identityPlatform?: string;
+  identityHandle?: string;
 };
+
+const MANUAL_IDENTITY_PLATFORMS = ['instagram', 'tiktok', 'youtube', 'twitter', 'other'] as const;
+
+function formatPlatformLabel(platform: string) {
+  if (platform === 'twitter') return 'X';
+  return platform.charAt(0).toUpperCase() + platform.slice(1);
+}
 
 // ============================================================================
 // GET /api/tags - List all verified tags or check availability
@@ -48,6 +57,9 @@ export async function GET(request: NextRequest) {
           walletAddress: true,
           verifiedAt: true,
           verificationMethod: true,
+          identityPlatform: true,
+          identityHandle: true,
+          identityVerificationCode: true,
           bio: true,
           followerCount: true,
           tags: true,
@@ -90,6 +102,9 @@ export async function GET(request: NextRequest) {
         youtubeHandle: true,
         kickHandle: true,
         verificationMethod: true,
+        identityPlatform: true,
+        identityHandle: true,
+        identityVerificationCode: true,
         totalEarned: true,
         completedDares: true,
         verifiedAt: true,
@@ -120,6 +135,7 @@ const ClaimTagSchema = z.object({
     .max(20, 'Tag must be 20 characters or less')
     .regex(/^@?[a-zA-Z0-9_]+$/, 'Tag can only contain letters, numbers, and underscores'),
   platform: z.enum(['twitter', 'twitch', 'youtube', 'kick']).optional().default('twitter'),
+  identityPlatform: z.enum(MANUAL_IDENTITY_PLATFORMS).optional(),
   // For manual verification (any platform)
   manualUsername: z.string().optional(),
   manualCode: z.string().optional(),
@@ -131,30 +147,6 @@ const ClaimTagSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const session = (await getServerSession(authOptions)) as WalletSession | null;
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (session.token && (!bearerToken || bearerToken !== session.token)) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const sessionWalletRaw = session.walletAddress ?? session.user?.walletAddress ?? null;
-    if (!sessionWalletRaw || !isAddress(sessionWalletRaw)) {
-      return NextResponse.json(
-        { success: false, error: 'Wallet session required' },
-        { status: 401 }
-      );
-    }
-    const sessionWallet = sessionWalletRaw.toLowerCase();
 
     // Parse request
     const body = await request.json();
@@ -167,19 +159,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { walletAddress: rawWalletAddress, tag, platform, manualUsername, manualCode, kickUsername, kickCode } = validation.data;
-    const walletAddress = sessionWallet;
-    if (rawWalletAddress.toLowerCase() !== sessionWallet) {
-      return NextResponse.json(
-        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
-        { status: 401 }
-      );
-    }
+    const {
+      walletAddress: rawWalletAddress,
+      tag,
+      platform,
+      identityPlatform,
+      manualUsername,
+      manualCode,
+      kickUsername,
+      kickCode,
+    } = validation.data;
     const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
 
     // Support legacy Kick fields by merging into manual fields
     const effectiveManualUsername = manualUsername || kickUsername;
     const effectiveManualCode = manualCode || kickCode;
+    const isManualRequest = Boolean(effectiveManualCode && effectiveManualUsername);
+    const claimPlatform = (isManualRequest ? (identityPlatform ?? platform) : platform) as string;
+
+    let sessionWallet: string | null = null;
+    if (session) {
+      const authHeader = request.headers.get('authorization');
+      const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+      if (session.token && (!bearerToken || bearerToken !== session.token)) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      const sessionWalletRaw = session.walletAddress ?? session.user?.walletAddress ?? null;
+      if (sessionWalletRaw && isAddress(sessionWalletRaw)) {
+        sessionWallet = sessionWalletRaw.toLowerCase();
+      }
+    }
+
+    const bodyWallet = rawWalletAddress && isAddress(rawWalletAddress)
+      ? rawWalletAddress.toLowerCase()
+      : null;
+    const walletAddress = sessionWallet ?? bodyWallet;
+
+    if (!walletAddress) {
+      return NextResponse.json(
+        { success: false, error: isManualRequest ? 'Wallet connection required' : 'Wallet session required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionWallet && bodyWallet && bodyWallet !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Session is already loaded above for wallet auth + OAuth provider checks
 
@@ -189,38 +221,35 @@ export async function POST(request: NextRequest) {
     let verificationMethod: string;
     let status: string;
     let isManualVerification = false;
-    const sessionBio = session.platformBio ?? null;
-    const sessionFollowerCountRaw = session.platformFollowerCount;
+    const sessionBio = session?.platformBio ?? null;
+    const sessionFollowerCountRaw = session?.platformFollowerCount;
     const sessionFollowerCount =
       typeof sessionFollowerCountRaw === 'number' && Number.isFinite(sessionFollowerCountRaw)
         ? Math.max(0, Math.floor(sessionFollowerCountRaw))
         : null;
 
     // Check if this is a manual verification request (code provided)
-    if (effectiveManualCode && effectiveManualUsername) {
+    if (isManualRequest) {
+      const manualCodeValue = effectiveManualCode!;
+      const manualUsernameValue = effectiveManualUsername!;
+
       // Manual verification for any platform
-      if (!effectiveManualCode.startsWith('BASEDARE-')) {
+      if (!manualCodeValue.startsWith('BASEDARE-')) {
         return NextResponse.json(
           { success: false, error: 'Invalid verification code format' },
           { status: 400 }
         );
       }
 
-      platformHandle = effectiveManualUsername;
-      verificationMethod = platform.toUpperCase();
+      platformHandle = manualUsernameValue;
+      verificationMethod = claimPlatform.toUpperCase();
       status = 'PENDING'; // Requires admin verification
       isManualVerification = true;
-    } else if (platform === 'kick') {
-      // Kick always requires manual verification
-      return NextResponse.json(
-        { success: false, error: 'Kick username and verification code are required' },
-        { status: 400 }
-      );
     } else {
       // OAuth-based verification (Twitter, Twitch, YouTube)
-      if (!session) {
+      if (!session || !sessionWallet) {
         return NextResponse.json(
-          { success: false, error: `Please sign in with ${platform} first, or use manual verification` },
+          { success: false, error: `Please sign in with ${claimPlatform} first, or use manual verification` },
           { status: 401 }
         );
       }
@@ -228,24 +257,24 @@ export async function POST(request: NextRequest) {
       const sessionProvider = session.provider;
 
       // Verify the session matches the requested platform
-      const expectedProvider = platform === 'youtube' ? 'google' : platform;
+      const expectedProvider = claimPlatform === 'youtube' ? 'google' : claimPlatform;
       if (sessionProvider !== expectedProvider) {
         return NextResponse.json(
-          { success: false, error: `Please sign in with ${platform}, not ${sessionProvider}` },
+          { success: false, error: `Please sign in with ${formatPlatformLabel(claimPlatform)}, not ${sessionProvider}` },
           { status: 400 }
         );
       }
 
       // Get platform-specific data from session
-      if (platform === 'twitter') {
+      if (claimPlatform === 'twitter') {
         platformId = session.twitterId || null;
         platformHandle = session.twitterHandle || null;
         verificationMethod = 'TWITTER';
-      } else if (platform === 'twitch') {
+      } else if (claimPlatform === 'twitch') {
         platformId = session.twitchId || null;
         platformHandle = session.twitchHandle || null;
         verificationMethod = 'TWITCH';
-      } else if (platform === 'youtube') {
+      } else if (claimPlatform === 'youtube') {
         platformId = session.youtubeId || null;
         platformHandle = session.youtubeHandle || null;
         verificationMethod = 'YOUTUBE';
@@ -258,7 +287,7 @@ export async function POST(request: NextRequest) {
 
       if (!platformId || !platformHandle) {
         return NextResponse.json(
-          { success: false, error: `${platform} verification failed. Please try again.` },
+          { success: false, error: `${formatPlatformLabel(claimPlatform)} verification failed. Please try again.` },
           { status: 400 }
         );
       }
@@ -282,13 +311,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if platform account already used (for OAuth platforms)
-    if (platform !== 'kick' && platformId) {
+    if (claimPlatform !== 'kick' && platformId) {
       const existingPlatform = await prisma.streamerTag.findFirst({
         where: {
           OR: [
-            { twitterId: platform === 'twitter' ? platformId : undefined },
-            { twitchId: platform === 'twitch' ? platformId : undefined },
-            { youtubeId: platform === 'youtube' ? platformId : undefined },
+            { twitterId: claimPlatform === 'twitter' ? platformId : undefined },
+            { twitchId: claimPlatform === 'twitch' ? platformId : undefined },
+            { youtubeId: claimPlatform === 'youtube' ? platformId : undefined },
           ],
           status: { not: 'REVOKED' },
         },
@@ -298,7 +327,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `This ${platform} account is already linked to tag ${existingPlatform.tag}`,
+            error: `This ${formatPlatformLabel(claimPlatform)} account is already linked to tag ${existingPlatform.tag}`,
           },
           { status: 400 }
         );
@@ -307,30 +336,28 @@ export async function POST(request: NextRequest) {
 
     // Check if platform handle already used (for manual verification)
     if (isManualVerification && effectiveManualUsername) {
-      let existingHandle;
-      if (platform === 'kick') {
-        existingHandle = await prisma.streamerTag.findFirst({
-          where: { kickHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
-        });
-      } else if (platform === 'twitter') {
-        existingHandle = await prisma.streamerTag.findFirst({
-          where: { twitterHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
-        });
-      } else if (platform === 'twitch') {
-        existingHandle = await prisma.streamerTag.findFirst({
-          where: { twitchHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
-        });
-      } else if (platform === 'youtube') {
-        existingHandle = await prisma.streamerTag.findFirst({
-          where: { youtubeHandle: effectiveManualUsername, status: { not: 'REVOKED' } },
-        });
-      }
+      const normalizedManualHandle = effectiveManualUsername.toLowerCase();
+      const existingHandle = await prisma.streamerTag.findFirst({
+        where: {
+          status: { not: 'REVOKED' },
+          OR: [
+            {
+              identityPlatform: claimPlatform,
+              identityHandle: normalizedManualHandle,
+            },
+            { twitterHandle: claimPlatform === 'twitter' ? effectiveManualUsername : undefined },
+            { twitchHandle: claimPlatform === 'twitch' ? effectiveManualUsername : undefined },
+            { youtubeHandle: claimPlatform === 'youtube' ? effectiveManualUsername : undefined },
+            { kickHandle: claimPlatform === 'kick' ? effectiveManualUsername : undefined },
+          ],
+        },
+      });
 
       if (existingHandle) {
         return NextResponse.json(
           {
             success: false,
-            error: `This ${platform} username is already linked to tag ${existingHandle.tag}`,
+            error: `This ${formatPlatformLabel(claimPlatform)} handle is already linked to tag ${existingHandle.tag}`,
           },
           { status: 400 }
         );
@@ -353,6 +380,9 @@ export async function POST(request: NextRequest) {
     const platformData: Record<string, string | boolean | number | null | Date> = {
       walletAddress,
       verificationMethod,
+      identityPlatform: claimPlatform,
+      identityHandle: platformHandle ? platformHandle.toLowerCase() : null,
+      identityVerificationCode: isManualVerification ? effectiveManualCode ?? null : null,
       status,
       verifiedAt: status === 'ACTIVE' || status === 'VERIFIED' ? new Date() : null,
       revokedAt: null,
@@ -365,30 +395,30 @@ export async function POST(request: NextRequest) {
     // Set platform-specific fields
     if (isManualVerification) {
       // Manual verification - store handle and code for admin review
-      if (platform === 'twitter') {
+      if (claimPlatform === 'twitter') {
         platformData.twitterHandle = platformHandle;
         platformData.twitterVerified = false;
-      } else if (platform === 'twitch') {
+      } else if (claimPlatform === 'twitch') {
         platformData.twitchHandle = platformHandle;
         platformData.twitchVerified = false;
-      } else if (platform === 'youtube') {
+      } else if (claimPlatform === 'youtube') {
         platformData.youtubeHandle = platformHandle;
         platformData.youtubeVerified = false;
-      } else if (platform === 'kick') {
+      } else if (claimPlatform === 'kick') {
         platformData.kickHandle = platformHandle;
         platformData.kickVerified = false;
       }
       // Store verification code in kickVerificationCode field (reused for all manual verifications)
       platformData.kickVerificationCode = effectiveManualCode ?? null;
-    } else if (platform === 'twitter') {
+    } else if (claimPlatform === 'twitter') {
       platformData.twitterId = platformId;
       platformData.twitterHandle = platformHandle;
       platformData.twitterVerified = true;
-    } else if (platform === 'twitch') {
+    } else if (claimPlatform === 'twitch') {
       platformData.twitchId = platformId;
       platformData.twitchHandle = platformHandle;
       platformData.twitchVerified = true;
-    } else if (platform === 'youtube') {
+    } else if (claimPlatform === 'youtube') {
       platformData.youtubeId = platformId;
       platformData.youtubeHandle = platformHandle;
       platformData.youtubeVerified = true;
@@ -448,13 +478,13 @@ export async function POST(request: NextRequest) {
     // Build response message
     let message: string;
     if (isManualVerification) {
-      message = `Tag submitted for review! An admin will verify your ${platform} account (${effectiveManualUsername}) within 24 hours.`;
+      message = `Tag submitted for review! An admin will verify your ${formatPlatformLabel(claimPlatform)} handle (${effectiveManualUsername}) within 24 hours.`;
     } else if (activatedDares > 0) {
       message = `Tag claimed and verified! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;
     } else if (tagMatchesPlatform) {
       message = 'Tag claimed and verified!';
     } else {
-      message = `Tag claimed! Note: Your tag (${normalizedTag}) differs from your ${platform} (@${platformHandle}).`;
+      message = `Tag claimed! Note: Your tag (${normalizedTag}) differs from your ${formatPlatformLabel(claimPlatform)} handle (@${platformHandle}).`;
     }
 
     return NextResponse.json({
@@ -462,7 +492,7 @@ export async function POST(request: NextRequest) {
       data: {
         tag: streamerTag.tag,
         walletAddress: streamerTag.walletAddress,
-        platform: platform,
+        platform: claimPlatform,
         platformHandle: platformHandle,
         status: streamerTag.status,
         verifiedAt: streamerTag.verifiedAt,

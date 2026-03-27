@@ -281,6 +281,9 @@ model StreamerTag {
   followerCount        Int?
   tags                 String[]  @default([])
   verificationMethod   String
+  identityPlatform     String?
+  identityHandle       String?
+  identityVerificationCode String?
   verifiedAt           DateTime?
   twitterId            String?   @unique
   twitterHandle        String?
@@ -305,6 +308,8 @@ model StreamerTag {
 
   @@index([walletAddress])
   @@index([twitterHandle])
+  @@index([identityPlatform, identityHandle])
+  @@index([identityHandle])
   @@index([status])
 }
 

@@ -50,6 +50,9 @@ interface PendingTag {
   tag: string;
   walletAddress: string;
   verificationMethod: string;
+  identityPlatform: string | null;
+  identityHandle: string | null;
+  identityVerificationCode: string | null;
   status: string;
   twitterHandle: string | null;
   twitchHandle: string | null;
@@ -57,6 +60,13 @@ interface PendingTag {
   kickHandle: string | null;
   kickVerificationCode: string | null;
   createdAt: string;
+}
+
+function formatIdentityPlatformLabel(platform: string | null | undefined) {
+  if (!platform) return 'Unknown';
+  if (platform === 'twitter') return 'X';
+  if (platform === 'TWITTER') return 'X';
+  return platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase();
 }
 
 interface ClaimRequest {
@@ -1284,7 +1294,15 @@ export default function AdminPage() {
                   ) : (
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                       {pendingTags.map((tag) => {
-                        const platformHandle = tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle;
+                        const platformHandle =
+                          tag.identityHandle ||
+                          tag.twitterHandle ||
+                          tag.twitchHandle ||
+                          tag.youtubeHandle ||
+                          tag.kickHandle;
+                        const platformLabel = formatIdentityPlatformLabel(
+                          tag.identityPlatform || tag.verificationMethod
+                        );
                         return (
                           <div
                             key={tag.id}
@@ -1298,7 +1316,7 @@ export default function AdminPage() {
                             <div className="flex items-start justify-between gap-3 mb-2">
                               <h4 className="font-bold text-white text-sm">{tag.tag}</h4>
                               <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-yellow-500/20 text-yellow-400">
-                                {tag.verificationMethod}
+                                {platformLabel}
                               </span>
                             </div>
 
@@ -1329,12 +1347,16 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="p-3 bg-white/5 rounded-lg">
                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Platform</p>
-                            <p className="text-white font-bold">{selectedTag.verificationMethod}</p>
+                            <p className="text-white font-bold">
+                              {formatIdentityPlatformLabel(
+                                selectedTag.identityPlatform || selectedTag.verificationMethod
+                              )}
+                            </p>
                           </div>
                           <div className="p-3 bg-white/5 rounded-lg">
                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Handle</p>
                             <p className="text-white font-mono">
-                              @{selectedTag.twitterHandle || selectedTag.twitchHandle || selectedTag.youtubeHandle || selectedTag.kickHandle}
+                              @{selectedTag.identityHandle || selectedTag.twitterHandle || selectedTag.twitchHandle || selectedTag.youtubeHandle || selectedTag.kickHandle}
                             </p>
                           </div>
                         </div>
@@ -1344,13 +1366,13 @@ export default function AdminPage() {
                           <p className="text-gray-300 font-mono text-sm">{selectedTag.walletAddress}</p>
                         </div>
 
-                        {selectedTag.kickVerificationCode && (
+                        {(selectedTag.identityVerificationCode || selectedTag.kickVerificationCode) && (
                           <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Verification Code</p>
                             <div className="flex items-center gap-2">
-                              <code className="text-yellow-400 font-mono font-bold">{selectedTag.kickVerificationCode}</code>
+                              <code className="text-yellow-400 font-mono font-bold">{selectedTag.identityVerificationCode || selectedTag.kickVerificationCode}</code>
                               <button
-                                onClick={() => navigator.clipboard.writeText(selectedTag.kickVerificationCode!)}
+                                onClick={() => navigator.clipboard.writeText(selectedTag.identityVerificationCode || selectedTag.kickVerificationCode || '')}
                                 className="p-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 rounded transition-colors"
                               >
                                 <Copy className="w-3.5 h-3.5 text-yellow-400" />
@@ -1364,14 +1386,20 @@ export default function AdminPage() {
 
                         {/* Platform Profile Link */}
                         {(() => {
-                          const handle = selectedTag.twitterHandle || selectedTag.twitchHandle || selectedTag.youtubeHandle || selectedTag.kickHandle;
-                          const platformUrls: Record<string, string> = {
+                          const handle = selectedTag.identityHandle || selectedTag.twitterHandle || selectedTag.twitchHandle || selectedTag.youtubeHandle || selectedTag.kickHandle;
+                          const platformUrls: Record<string, string | null> = {
                             TWITTER: `https://twitter.com/${handle}`,
                             TWITCH: `https://twitch.tv/${handle}`,
                             YOUTUBE: `https://youtube.com/@${handle}`,
                             KICK: `https://kick.com/${handle}`,
+                            instagram: `https://instagram.com/${handle}`,
+                            tiktok: `https://www.tiktok.com/@${handle}`,
+                            youtube: `https://youtube.com/@${handle}`,
+                            twitter: `https://twitter.com/${handle}`,
+                            other: null,
                           };
-                          const url = platformUrls[selectedTag.verificationMethod];
+                          const platformKey = selectedTag.identityPlatform || selectedTag.verificationMethod;
+                          const url = platformUrls[platformKey];
                           return url ? (
                             <a
                               href={url}
@@ -1380,7 +1408,9 @@ export default function AdminPage() {
                               className="flex items-center gap-2 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-400 hover:bg-purple-500/20 transition-colors"
                             >
                               <ExternalLink className="w-4 h-4" />
-                              <span className="text-sm font-bold">Open {selectedTag.verificationMethod} Profile</span>
+                              <span className="text-sm font-bold">
+                                Open {formatIdentityPlatformLabel(platformKey)} Profile
+                              </span>
                             </a>
                           ) : null;
                         })()}
