@@ -57,6 +57,7 @@ This order matters because BaseDare should create real demand pull before adding
 - The app should derive one clear primary creator identity from the existing tag rail and show that same primary handle consistently across dashboard, claim flow, profile, and creator APIs.
 - OAuth is optional future enrichment, not the core trust rail for creator onboarding right now.
 - Pending identity proofs should still let creators continue through the product; verification should strengthen trust, not block first use.
+- Creator opportunity context should carry through dashboard, map, and venue surfaces so a matched activation stays in focus instead of becoming a generic place view.
 - The same demand graph should power both sides:
   - Brand creates campaign
   - campaign creates linked dare

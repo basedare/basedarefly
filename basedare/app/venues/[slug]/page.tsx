@@ -41,9 +41,16 @@ function getVenueActivationState(dare: {
 }
 
 export default async function VenueDetailPage(
-  { params }: { params: Promise<{ slug: string }> }
+  {
+    params,
+    searchParams,
+  }: {
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ source?: string; dare?: string }>;
+  }
 ) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const venue = await getVenueDetailBySlug(slug);
 
   if (!venue) {
@@ -57,9 +64,18 @@ export default async function VenueDetailPage(
   const featuredPaidActivationState = venue.featuredPaidActivation
     ? getVenueActivationState(venue.featuredPaidActivation)
     : null;
+  const focusedDareShortId = resolvedSearchParams?.dare;
+  const isCreatorContext = resolvedSearchParams?.source === 'creator';
+  const focusedActivation =
+    (focusedDareShortId && venue.activeDares.find((dare) => dare.shortId === focusedDareShortId)) ||
+    (venue.featuredPaidActivation?.shortId === focusedDareShortId ? venue.featuredPaidActivation : null);
+  const focusedActivationState = focusedActivation ? getVenueActivationState(focusedActivation) : null;
+  const mapHref = `/map?place=${encodeURIComponent(venue.slug)}${
+    isCreatorContext ? `&source=creator${focusedDareShortId ? `&dare=${encodeURIComponent(focusedDareShortId)}` : ''}` : ''
+  }`;
 
   return (
-    <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
+    <VenuePageShell mapHref={mapHref}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
       <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="space-y-6">
@@ -172,13 +188,65 @@ export default async function VenueDetailPage(
                       </div>
                     ) : null}
                     <Link
-                      href={`/map?place=${encodeURIComponent(venue.slug)}`}
+                      href={mapHref}
                       className="rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                     >
                       Open on map to create challenge
                     </Link>
                   </div>
                 </div>
+                {isCreatorContext && focusedActivation ? (
+                  <div className={`${insetCardClass} mt-5 px-4 py-5`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
+                        <Flame className="h-3.5 w-3.5 text-cyan-200" />
+                        You Match Here
+                      </div>
+                      <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                        creator view
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-2xl font-black text-white">{focusedActivation.title}</p>
+                        <p className="mt-2 text-sm text-white/62">
+                          This is the live activation your dashboard pointed you to at this venue.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                            ${focusedActivation.bounty.toFixed(0)} USDC
+                          </span>
+                          {focusedActivationState ? (
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${focusedActivationState.className}`}>
+                              {focusedActivationState.label}
+                            </span>
+                          ) : null}
+                          {focusedActivation.expiresAt ? (
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                              ends {new Date(focusedActivation.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/dare/${focusedActivation.shortId}`}
+                          className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/34 hover:bg-cyan-500/[0.14]"
+                        >
+                          {focusedActivation.claimedBy || focusedActivation.targetWalletAddress || focusedActivation.claimRequestStatus === 'PENDING'
+                            ? 'Open brief'
+                            : 'Claim this activation'}
+                        </Link>
+                        <Link
+                          href={mapHref}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08]"
+                        >
+                          View on map
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 {venue.featuredPaidActivation ? (
                   <div className={`${insetCardClass} mt-5 px-4 py-5`}>
                     <div className="flex items-center justify-between gap-3">
@@ -227,12 +295,15 @@ export default async function VenueDetailPage(
                   {venue.activeDares.length > 0 ? (
                     venue.activeDares.map((dare) => {
                       const activationState = getVenueActivationState(dare);
+                      const isFocusedActivation = dare.shortId === focusedDareShortId;
 
                       return (
                       <Link
                         key={dare.id}
                         href={`/dare/${dare.shortId}`}
-                        className={`${insetCardClass} group flex items-start justify-between gap-4 px-4 py-4 transition hover:border-[#f5c518]/25 hover:bg-[#f5c518]/[0.05]`}
+                        className={`${insetCardClass} group flex items-start justify-between gap-4 px-4 py-4 transition hover:border-[#f5c518]/25 hover:bg-[#f5c518]/[0.05] ${
+                          isFocusedActivation ? 'border-cyan-300/24 bg-cyan-500/[0.06]' : ''
+                        }`}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -247,6 +318,11 @@ export default async function VenueDetailPage(
                             {dare.brandName ? (
                               <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
                                 paid activation
+                              </span>
+                            ) : null}
+                            {isFocusedActivation ? (
+                              <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                your match
                               </span>
                             ) : null}
                             <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>

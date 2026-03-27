@@ -627,13 +627,27 @@ export default function RealWorldMap() {
   const deepLinkedPlaceSlug = searchParams.get('place');
   const controlSource = searchParams.get('source');
   const deepLinkedCampaignId = searchParams.get('campaignId');
+  const deepLinkedDareShortId = searchParams.get('dare');
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
+  const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
+
+  const focusedCreatorActivation = useMemo(() => {
+    if (!deepLinkedDareShortId) return null;
+
+    if (selectedPlaceFeaturedPaidActivation?.shortId === deepLinkedDareShortId) {
+      return selectedPlaceFeaturedPaidActivation;
+    }
+
+    return (
+      selectedPlaceActiveDares.find((dare) => dare.shortId === deepLinkedDareShortId) ?? null
+    );
+  }, [deepLinkedDareShortId, selectedPlaceActiveDares, selectedPlaceFeaturedPaidActivation]);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -1616,6 +1630,16 @@ export default function RealWorldMap() {
                             Back to Control
                           </Link>
                         </div>
+                      ) : isCreatorSource ? (
+                        <div className="mb-3">
+                          <Link
+                            href="/dashboard"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                          >
+                            <ArrowLeft className="h-3 w-3" />
+                            Back to Dashboard
+                          </Link>
+                        </div>
                       ) : null}
                       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,29,45,0.32)_100%)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.18)]">
                         <Sparkles className="h-3.5 w-3.5" />
@@ -1691,6 +1715,51 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
                   </div>
+
+                  {isCreatorSource && focusedCreatorActivation ? (
+                    <div className="mt-5 rounded-[26px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
+                          <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+                          You Match This Activation
+                        </div>
+                        <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                          creator view
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-lg font-bold text-white">{focusedCreatorActivation.title}</p>
+                          <p className="mt-2 text-sm text-white/65">
+                            This is the live paid activation your dashboard pointed you to here.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                              ${focusedCreatorActivation.bounty} USDC
+                            </span>
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(focusedCreatorActivation).className}`}>
+                              {getActivationStateCopy(focusedCreatorActivation).label}
+                            </span>
+                            {focusedCreatorActivation.expiresAt ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
+                                {getExpiryLabel(focusedCreatorActivation.expiresAt)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        {focusedCreatorActivation.shortId ? (
+                          <Link
+                            href={`/dare/${focusedCreatorActivation.shortId}`}
+                            className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100"
+                          >
+                            {focusedCreatorActivation.claimedBy || focusedCreatorActivation.targetWalletAddress || focusedCreatorActivation.claimRequestStatus === 'PENDING'
+                              ? 'Open Brief'
+                              : 'Claim Now'}
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
 
                   {selectedPlaceFeaturedPaidActivation ? (
                     <div className="mt-5 rounded-[26px] border border-rose-300/18 bg-[linear-gradient(180deg,rgba(251,113,133,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
@@ -1852,14 +1921,19 @@ export default function RealWorldMap() {
                         Loading place challenges...
                       </div>
                     ) : selectedPlaceActiveDares.length > 0 ? (
-                      <div className="mt-3 space-y-3">
+                    <div className="mt-3 space-y-3">
                         {selectedPlaceActiveDares.slice(0, 3).map((dare) => {
                           const activationState = getActivationStateCopy(dare);
+                          const isFocusedCreatorActivation = dare.shortId === deepLinkedDareShortId;
 
                           return (
                           <div
                             key={dare.id}
-                            className="rounded-[20px] border border-[#f5c518]/14 bg-[linear-gradient(180deg,rgba(245,197,24,0.06)_0%,rgba(10,10,18,0.16)_100%)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                            className={`rounded-[20px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+                              isFocusedCreatorActivation
+                                ? 'border-cyan-300/26 bg-[linear-gradient(180deg,rgba(34,211,238,0.11)_0%,rgba(10,10,18,0.16)_100%)]'
+                                : 'border-[#f5c518]/14 bg-[linear-gradient(180deg,rgba(245,197,24,0.06)_0%,rgba(10,10,18,0.16)_100%)]'
+                            }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
@@ -1876,6 +1950,11 @@ export default function RealWorldMap() {
                                   {dare.brandName ? (
                                     <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
                                       paid activation
+                                    </span>
+                                  ) : null}
+                                  {isFocusedCreatorActivation ? (
+                                    <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                      your match
                                     </span>
                                   ) : null}
                                   <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>
@@ -2095,7 +2174,11 @@ export default function RealWorldMap() {
 
                     {selectedPlace.slug ? (
                       <Link
-                        href={`/venues/${selectedPlace.slug}`}
+                        href={`/venues/${selectedPlace.slug}${
+                          isCreatorSource
+                            ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
+                            : ''
+                        }`}
                         className="inline-flex min-h-[58px] w-full items-center justify-center rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.22)_0%,rgba(91,33,182,0.12)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18 sm:text-[11px] xl:tracking-[0.18em]"
                       >
                         <span className="max-w-[8rem] leading-[1.15] sm:max-w-none">

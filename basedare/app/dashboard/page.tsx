@@ -235,6 +235,11 @@ function OpportunityCard({
     : opportunity.venue?.slug
       ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}`
       : '/map';
+  const mapHref = opportunity.venue?.slug
+    ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator${
+        opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''
+      }`
+    : '/map';
 
   return (
     <div className={`${insetCardClass} p-4`}>
@@ -286,13 +291,26 @@ function OpportunityCard({
         </div>
       ) : null}
 
-      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div
+        className={`mt-5 grid grid-cols-1 gap-2 ${
+          opportunity.venue?.slug ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+        }`}
+      >
         <button
           onClick={() => onOpen(href)}
           className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
         >
           Open Brief
         </button>
+
+        {opportunity.venue?.slug ? (
+          <button
+            onClick={() => onOpen(mapHref)}
+            className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-fuchsia-100 transition hover:border-fuchsia-300/50 hover:bg-fuchsia-500/16"
+          >
+            View on Map
+          </button>
+        ) : null}
 
         {opportunity.claimable ? (
           <button
