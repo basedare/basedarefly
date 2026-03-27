@@ -112,6 +112,8 @@ export type VenueDetail = {
     streamerHandle: string | null;
     expiresAt: string | null;
     createdAt: string;
+    campaignTitle: string | null;
+    brandName: string | null;
   }>;
   consoleUrl: string;
 };

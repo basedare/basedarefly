@@ -19,6 +19,7 @@ import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegra
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { authOptions } from '@/lib/auth-options';
+import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
@@ -496,49 +497,35 @@ export async function POST(request: NextRequest) {
         console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
       }
 
-      // Set expiry to 24 hours from now
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const shortId = generateShortId();
-
-      // Determine status and invite flow based on tag verification
-      // Open bounties go straight to PENDING (anyone can complete)
-      // Targeted bounties with unverified tags go to AWAITING_CLAIM
-      const isAwaitingClaim = !isOpenBounty && !tagVerified;
-      const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
-      // If tag is unverified, set 30-day claim deadline
-      const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
-      const dareStatus = isAwaitingClaim ? 'AWAITING_CLAIM' : 'PENDING';
-      // Only set targetWalletAddress if tag is verified
-      const targetWalletAddress = tagVerified ? streamerAddress : null;
-
-      const dbDare = await prisma.dare.create({
-        data: {
-          title,
-          missionMode: normalizedMissionMode,
-          tag: normalizedMissionTag,
-          bounty: amount,
-          streamerHandle: isOpenBounty ? null : streamerTag,
-          status: dareStatus,
-          streamId,
-          txHash: null,
-          isSimulated: true,
-          expiresAt,
-          shortId,
-          referrerTag: referrerTag || null,
-          referrerAddress: resolvedReferrerAddress,
-          stakerAddress: normalizedStakerAddress || null,
-          inviteToken,
-          claimDeadline,
-          targetWalletAddress,
-          venueId: canonicalVenueId,
-          // Nearby dare fields
-          isNearbyDare,
-          latitude: isNearbyDare ? latitude : null,
-          longitude: isNearbyDare ? longitude : null,
-          geohash,
-          locationLabel: isNearbyDare ? locationLabel : null,
-          discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
-        },
+      const {
+        dare: dbDare,
+        shortId,
+        expiresAt,
+        inviteToken,
+        inviteLink,
+        claimDeadline,
+        isAwaitingClaim,
+        dareStatus,
+      } = await createDatabaseBackedBounty({
+        title,
+        missionMode: normalizedMissionMode,
+        missionTag: normalizedMissionTag,
+        amount,
+        streamerTag: isOpenBounty ? null : streamerTag || null,
+        streamId,
+        tagVerified,
+        stakerAddress: normalizedStakerAddress || null,
+        referrerTag: referrerTag || null,
+        referrerAddress: resolvedReferrerAddress,
+        targetWalletAddress: streamerAddress,
+        venueId: canonicalVenueId,
+        isNearbyDare,
+        latitude,
+        longitude,
+        geohash,
+        locationLabel,
+        discoveryRadiusKm,
+        isSimulated: true,
       });
 
       console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
@@ -579,11 +566,6 @@ export async function POST(request: NextRequest) {
           txHash: null,
         }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
       }
-
-      // Build invite link for unclaimed tags (not for open bounties)
-      const inviteLink = isAwaitingClaim && streamerTag
-        ? `/claim-tag?invite=${inviteToken}&handle=${encodeURIComponent(streamerTag.replace('@', ''))}`
-        : null;
 
       return NextResponse.json({
         success: true,

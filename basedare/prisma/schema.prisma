@@ -84,6 +84,7 @@ model Dare {
   voteThreshold       Int       @default(5) // Votes needed for mod review
   creator             User?     @relation(fields: [creatorId], references: [id])
   venue               Venue?    @relation(fields: [venueId], references: [id])
+  linkedCampaign      Campaign? @relation("CampaignLinkedDare")
   votes               Vote[]
   comments            Comment[]
 
@@ -125,6 +126,7 @@ model Venue {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   dares               Dare[]
+  campaigns           Campaign[]
   checkIns            VenueCheckIn[]
   memories            VenueMemory[]
   placeTags           PlaceTag[]
@@ -322,12 +324,15 @@ model Campaign {
   id                   String         @id @default(cuid())
   shortId              String         @unique @default(cuid())
   brandId              String
+  type                 String         @default("CREATOR")
   tier                 String
   title                String
   description          String?
   budgetUsdc           Float
   creatorCountTarget   Int
   payoutPerCreator     Float
+  venueId              String?
+  linkedDareId         String?        @unique
   targetingCriteria    String         @default("{}")
   verificationCriteria String         @default("{}")
   syncTime             DateTime?
@@ -345,7 +350,12 @@ model Campaign {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   brand                Brand          @relation(fields: [brandId], references: [id])
+  venue                Venue?         @relation(fields: [venueId], references: [id])
+  linkedDare           Dare?          @relation("CampaignLinkedDare", fields: [linkedDareId], references: [id])
   slots                CampaignSlot[]
+
+  @@index([type, status])
+  @@index([venueId, status])
 }
 
 model CampaignSlot {

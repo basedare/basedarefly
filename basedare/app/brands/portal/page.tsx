@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -23,6 +23,7 @@ interface Brand {
 interface Campaign {
   id: string;
   shortId: string;
+  type: string;
   tier: string;
   title: string;
   description: string | null;
@@ -32,6 +33,18 @@ interface Campaign {
   status: string;
   syncTime: string | null;
   createdAt: string;
+  venue?: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  } | null;
+  linkedDare?: {
+    id: string;
+    shortId: string | null;
+    status: string;
+  } | null;
   slotCounts: {
     total: number;
     open: number;
@@ -42,6 +55,7 @@ interface Campaign {
 }
 
 interface CampaignFormData {
+  type: 'PLACE' | 'CREATOR';
   tier: 'SIP_MENTION' | 'SIP_SHILL' | 'CHALLENGE' | 'APEX';
   title: string;
   description: string;
@@ -64,6 +78,16 @@ interface CampaignFormData {
       fuzzyMatch: boolean;
     };
   };
+}
+
+interface PlaceSearchResult {
+  id: string;
+  name: string;
+  displayName: string;
+  city: string | null;
+  country: string | null;
+  slug?: string;
+  placeId?: string;
 }
 
 const TIER_INFO = {
@@ -124,6 +148,7 @@ export default function BrandPortalPage() {
   const [registerName, setRegisterName] = useState('');
 
   const [formData, setFormData] = useState<CampaignFormData>({
+    type: 'PLACE',
     tier: 'SIP_SHILL',
     title: '',
     description: '',
@@ -140,6 +165,10 @@ export default function BrandPortalPage() {
     },
   });
   const [hashtagInput, setHashtagInput] = useState('');
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
+  const [placeLoading, setPlaceLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(null);
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -182,6 +211,55 @@ export default function BrandPortalPage() {
     fetchData();
   }, [isConnected, address]);
 
+  useEffect(() => {
+    if (formData.type !== 'PLACE') {
+      setPlaceResults([]);
+      setPlaceLoading(false);
+      return;
+    }
+
+    const trimmedQuery = placeQuery.trim();
+    if (trimmedQuery.length < 2) {
+      setPlaceResults([]);
+      setPlaceLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        setPlaceLoading(true);
+        const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmedQuery)}`, {
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+        if (!cancelled) {
+          const results = payload.success ? payload.data?.results ?? [] : [];
+          setPlaceResults(results.filter((place: PlaceSearchResult) => Boolean(place.placeId)));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to search places:', error);
+          setPlaceResults([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setPlaceLoading(false);
+        }
+      }
+    };
+
+    const timer = window.setTimeout(run, 220);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [formData.type, placeQuery]);
+
   const handleRegister = async () => {
     if (!address || !registerName.trim()) return;
 
@@ -218,12 +296,19 @@ export default function BrandPortalPage() {
         return;
       }
 
+      if (formData.type === 'PLACE' && !selectedPlace?.placeId) {
+        alert('Choose a valid BaseDare place for this activation.');
+        return;
+      }
+
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brandWallet: address,
           ...formData,
+          creatorCountTarget: formData.type === 'PLACE' ? 1 : formData.creatorCountTarget,
+          venueId: formData.type === 'PLACE' ? selectedPlace?.placeId : undefined,
           syncTime: formData.syncTime || undefined,
         }),
       });
@@ -234,6 +319,7 @@ export default function BrandPortalPage() {
         setCampaigns([data.data, ...campaigns]);
         setShowCreateCampaign(false);
         setFormData({
+          type: 'PLACE',
           tier: 'SIP_SHILL',
           title: '',
           description: '',
@@ -243,6 +329,9 @@ export default function BrandPortalPage() {
           targetingCriteria: { niche: '', minFollowers: 5000 },
           verificationCriteria: { hashtagsRequired: [], minDurationSeconds: 30 },
         });
+        setPlaceQuery('');
+        setPlaceResults([]);
+        setSelectedPlace(null);
       } else {
         alert(data.error);
       }
@@ -267,9 +356,10 @@ export default function BrandPortalPage() {
 
   const calculateBudget = () => {
     const tierConfig = TIER_INFO[formData.tier];
-    const gross = formData.payoutPerCreator * formData.creatorCountTarget;
+    const effectiveSlotCount = formData.type === 'PLACE' ? 1 : formData.creatorCountTarget;
+    const gross = formData.payoutPerCreator * effectiveSlotCount;
     const rake = gross * (parseInt(tierConfig.rake) / 100);
-    return { gross, rake, total: gross + rake };
+    return { gross, rake, total: gross + rake, effectiveSlotCount };
   };
 
   const budget = calculateBudget();
@@ -556,6 +646,46 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Campaign Details */}
+            <div className="mb-6">
+              <label className="block text-sm text-zinc-600 mb-2">Campaign Type</label>
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  {
+                    value: 'PLACE',
+                    title: 'Place Activation',
+                    body: 'One campaign creates one real venue-linked challenge on the map.',
+                  },
+                  {
+                    value: 'CREATOR',
+                    title: 'Creator Routing',
+                    body: 'Legacy scout-slot workflow. Keep using this for Shadow Army recruitment.',
+                  },
+                ] as const).map((option) => {
+                  const isSelected = formData.type === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() =>
+                        setFormData((current) => ({
+                          ...current,
+                          type: option.value,
+                          creatorCountTarget: option.value === 'PLACE' ? 1 : current.creatorCountTarget,
+                        }))
+                      }
+                      className={`rounded-xl border p-4 text-left transition ${
+                        isSelected
+                          ? 'border-purple-500/60 bg-purple-500/[0.08] text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]'
+                          : 'border-zinc-300 bg-white hover:border-zinc-400'
+                      }`}
+                    >
+                      <div className="font-semibold">{option.title}</div>
+                      <div className="mt-1 text-xs text-zinc-500">{option.body}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <div className="space-y-4">
                 <div>
@@ -580,26 +710,86 @@ export default function BrandPortalPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {formData.type === 'PLACE' ? (
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Creator Count</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Target Place</label>
                     <input
-                      type="number"
-                      value={formData.creatorCountTarget}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          creatorCountTarget: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      min={1}
-                      max={1000}
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
+                      type="text"
+                      value={selectedPlace ? selectedPlace.displayName : placeQuery}
+                      onChange={(e) => {
+                        setSelectedPlace(null);
+                        setPlaceQuery(e.target.value);
+                      }}
+                      placeholder="Search for a BaseDare venue..."
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
+                    <div className="mt-2 text-xs text-zinc-500">
+                      PLACE campaigns use the same venue-linked challenge rail as map-funded missions.
+                    </div>
+                    {placeLoading ? (
+                      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                        Searching places...
+                      </div>
+                    ) : !selectedPlace && placeResults.length > 0 ? (
+                      <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+                        {placeResults.slice(0, 5).map((place) => (
+                          <button
+                            key={place.id}
+                            onClick={() => {
+                              setSelectedPlace(place);
+                              setPlaceQuery(place.displayName);
+                              setPlaceResults([]);
+                            }}
+                            className="w-full rounded-lg border border-transparent bg-white px-3 py-3 text-left transition hover:border-purple-300 hover:bg-purple-50"
+                          >
+                            <div className="font-medium text-zinc-900">{place.name}</div>
+                            <div className="text-xs text-zinc-500">{place.displayName}</div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : placeQuery.trim().length >= 2 && !selectedPlace ? (
+                      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+                        No BaseDare venue matched yet. Search a seeded venue or add the place to the map first.
+                      </div>
+                    ) : null}
+                    {selectedPlace ? (
+                      <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
+                        <div className="text-sm font-semibold text-emerald-800">{selectedPlace.name}</div>
+                        <div className="text-xs text-emerald-700">{selectedPlace.displayName}</div>
+                      </div>
+                    ) : null}
                   </div>
+                ) : null}
+
+                <div className="grid grid-cols-2 gap-4">
+                  {formData.type === 'CREATOR' ? (
+                    <div>
+                      <label className="block text-sm text-zinc-600 mb-2">Creator Count</label>
+                      <input
+                        type="number"
+                        value={formData.creatorCountTarget}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            creatorCountTarget: parseInt(e.target.value) || 1,
+                          })
+                        }
+                        min={1}
+                        max={1000}
+                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm text-zinc-600 mb-2">Challenge Count</label>
+                      <div className="w-full rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-3 text-zinc-700">
+                        1 live place challenge
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm text-zinc-600 mb-2">
-                      Payout Per Creator ($)
+                      {formData.type === 'PLACE' ? 'Payout for This Challenge ($)' : 'Payout Per Creator ($)'}
                     </label>
                     <input
                       type="number"
@@ -618,40 +808,51 @@ export default function BrandPortalPage() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
-                  <input
-                    type="text"
-                    value={formData.targetingCriteria.niche}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        targetingCriteria: { ...formData.targetingCriteria, niche: e.target.value },
-                      })
-                    }
-                    placeholder="e.g., Gaming, Fitness, Tech"
-                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                  />
-                </div>
+                {formData.type === 'CREATOR' ? (
+                  <>
+                    <div>
+                      <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
+                      <input
+                        type="text"
+                        value={formData.targetingCriteria.niche}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            targetingCriteria: { ...formData.targetingCriteria, niche: e.target.value },
+                          })
+                        }
+                        placeholder="e.g., Gaming, Fitness, Tech"
+                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
-                  <input
-                    type="number"
-                    value={formData.targetingCriteria.minFollowers}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        targetingCriteria: {
-                          ...formData.targetingCriteria,
-                          minFollowers: parseInt(e.target.value) || 0,
-                        },
-                      })
-                    }
-                    min={0}
-                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
+                      <input
+                        type="number"
+                        value={formData.targetingCriteria.minFollowers}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            targetingCriteria: {
+                              ...formData.targetingCriteria,
+                              minFollowers: parseInt(e.target.value) || 0,
+                            },
+                          })
+                        }
+                        min={0}
+                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                    <div className="text-sm font-semibold text-zinc-900">Place campaign wiring</div>
+                    <div className="mt-2 text-sm text-zinc-600">
+                      This campaign creates one real venue-linked challenge, appears on the map and place page, and settles back into place memory on completion.
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm text-zinc-600 mb-2">Required Hashtags</label>
@@ -740,9 +941,11 @@ export default function BrandPortalPage() {
                 </div>
                 <div>
                   <div className="text-lg md:text-2xl font-bold text-zinc-900">
-                    {formData.creatorCountTarget} × ${formData.payoutPerCreator}
+                    {budget.effectiveSlotCount} × ${formData.payoutPerCreator}
                   </div>
-                  <div className="text-xs text-zinc-500">Slots × Payout</div>
+                  <div className="text-xs text-zinc-500">
+                    {formData.type === 'PLACE' ? 'Live challenge × payout' : 'Slots × Payout'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -766,10 +969,12 @@ export default function BrandPortalPage() {
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <button
                 onClick={handleCreateCampaign}
-                disabled={!formData.title.trim()}
+                disabled={!formData.title.trim() || (formData.type === 'PLACE' && !selectedPlace?.placeId)}
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                CREATE (${budget.total.toLocaleString()} USDC)
+                {formData.type === 'PLACE'
+                  ? `LAUNCH PLACE CAMPAIGN ($${budget.total.toLocaleString()} USDC)`
+                  : `CREATE ($${budget.total.toLocaleString()} USDC)`}
               </button>
               <button
                 onClick={() => setShowCreateCampaign(false)}
@@ -819,7 +1024,13 @@ export default function BrandPortalPage() {
                           <div className="font-semibold text-sm md:text-base">{campaign.title}</div>
                           <div className="text-xs md:text-sm text-zinc-500">
                             {new Date(campaign.createdAt).toLocaleDateString()}
+                            {campaign.venue ? ` • ${campaign.venue.name}` : ''}
                           </div>
+                          {campaign.type === 'PLACE' && campaign.linkedDare?.shortId ? (
+                            <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-cyan-500">
+                              Live dare {campaign.linkedDare.shortId}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
 
@@ -863,7 +1074,7 @@ export default function BrandPortalPage() {
                           style={{
                             width: `${
                               ((campaign.slotCounts.assigned + campaign.slotCounts.completed) /
-                                campaign.slotCounts.total) *
+                                Math.max(1, campaign.slotCounts.total)) *
                               100
                             }%`,
                           }}
@@ -871,8 +1082,9 @@ export default function BrandPortalPage() {
                       </div>
                       <div className="flex justify-between mt-2 text-xs text-zinc-500">
                         <span>
-                          {campaign.slotCounts.open} open • {campaign.slotCounts.claimed} claimed •{' '}
-                          {campaign.slotCounts.assigned} assigned
+                          {campaign.type === 'PLACE'
+                            ? `${campaign.slotCounts.completed > 0 ? 'completed' : 'live on map'}`
+                            : `${campaign.slotCounts.open} open • ${campaign.slotCounts.claimed} claimed • ${campaign.slotCounts.assigned} assigned`}
                         </span>
                         <span>{campaign.slotCounts.completed} completed</span>
                       </div>

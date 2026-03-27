@@ -145,6 +145,11 @@ export default async function VenueDetailPage(
                             <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
                               ${dare.bounty.toFixed(0)} USDC
                             </span>
+                            {dare.brandName ? (
+                              <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                {dare.brandName}
+                              </span>
+                            ) : null}
                             <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
                               {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open challenge'}
                             </span>
@@ -158,6 +163,11 @@ export default async function VenueDetailPage(
                           <p className="mt-2 text-sm text-white/55">
                             {dare.missionMode} mission anchored to this place{dare.streamerHandle ? ` for ${dare.streamerHandle}` : ''}.
                           </p>
+                          {dare.campaignTitle ? (
+                            <p className="mt-2 text-xs uppercase tracking-[0.2em] text-cyan-200/70">
+                              Campaign: {dare.campaignTitle}
+                            </p>
+                          ) : null}
                         </div>
                         <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-white/35 transition group-hover:translate-x-1 group-hover:text-white/70" />
                       </Link>

@@ -256,6 +256,79 @@ async function ensureApprovedPlaceTagForVerifiedDare(
   }
 }
 
+async function ensureCampaignWritebackForVerifiedDare(
+  tx: Prisma.TransactionClient,
+  dare: Dare,
+  verifiedAt: Date
+) {
+  const campaign = await tx.campaign.findFirst({
+    where: { linkedDareId: dare.id },
+    include: {
+      slots: {
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+      },
+    },
+  });
+
+  if (!campaign) {
+    return;
+  }
+
+  const completionWallet = getCompletionWalletAddress(dare);
+  const primarySlot = campaign.slots[0] ?? null;
+  const alreadySettled = campaign.status === 'SETTLED' || campaign.settledAt !== null;
+
+  if (!alreadySettled) {
+    await tx.campaign.update({
+      where: { id: campaign.id },
+      data: {
+        status: 'SETTLED',
+        settledAt: verifiedAt,
+      },
+    });
+
+    await tx.brand.update({
+      where: { id: campaign.brandId },
+      data: {
+        totalSpend: {
+          increment: dare.bounty,
+        },
+      },
+    });
+  }
+
+  if (!primarySlot) {
+    return;
+  }
+
+  if (!['VERIFIED', 'PAID'].includes(primarySlot.status)) {
+    await tx.campaignSlot.update({
+      where: { id: primarySlot.id },
+      data: {
+        status: 'VERIFIED',
+        creatorAddress: completionWallet ?? primarySlot.creatorAddress,
+        creatorHandle:
+          dare.streamerHandle ?? dare.claimRequestTag ?? primarySlot.creatorHandle ?? null,
+        submittedAt: primarySlot.submittedAt ?? verifiedAt,
+        paidAt: primarySlot.paidAt ?? verifiedAt,
+        basePayout: primarySlot.basePayout ?? dare.bounty,
+        totalPayout: primarySlot.totalPayout ?? dare.bounty,
+      },
+    });
+
+    if (primarySlot.scoutId) {
+      await tx.scout.update({
+        where: { id: primarySlot.scoutId },
+        data: {
+          successfulSlots: { increment: 1 },
+          totalCampaigns: { increment: 1 },
+        },
+      });
+    }
+  }
+}
+
 async function markDarePendingPayout(
   dareId: string,
   input: {
@@ -336,6 +409,8 @@ export async function finalizeVerifiedDare(
       proofHash,
       input.moderatorAddress ?? null
     );
+
+    await ensureCampaignWritebackForVerifiedDare(tx, nextDare, verifiedAt);
 
     if (nextDare.targetWalletAddress) {
       await tx.notification.create({

@@ -147,6 +147,8 @@ type VenueDetailResponse = {
         streamerHandle: string | null;
         expiresAt: string | null;
         createdAt: string;
+        campaignTitle: string | null;
+        brandName: string | null;
       }>;
     };
   };
@@ -175,6 +177,8 @@ type SelectedPlaceActiveDare = {
   streamerHandle: string | null;
   expiresAt: string | null;
   createdAt: string;
+  campaignTitle: string | null;
+  brandName: string | null;
 };
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
@@ -1707,6 +1711,11 @@ export default function RealWorldMap() {
                                   <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
                                     ${dare.bounty} USDC
                                   </span>
+                                  {dare.brandName ? (
+                                    <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                      {dare.brandName}
+                                    </span>
+                                  ) : null}
                                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
                                     {dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open'}
                                   </span>
@@ -1716,6 +1725,11 @@ export default function RealWorldMap() {
                                     </span>
                                   ) : null}
                                 </div>
+                                {dare.campaignTitle ? (
+                                  <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-cyan-200/70">
+                                    Campaign: {dare.campaignTitle}
+                                  </p>
+                                ) : null}
                               </div>
                               {dare.shortId ? (
                                 <Link

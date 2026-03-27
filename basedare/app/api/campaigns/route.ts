@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
+import {
+  BountyPlaceResolutionError,
+  resolveCanonicalBountyPlaceContext,
+} from '@/lib/bounty-place';
 
 // ============================================================================
 // CAMPAIGNS API
@@ -39,6 +47,29 @@ const TIER_CONFIG = {
   },
 } as const;
 
+function mapCampaignWithCounts<T extends { slots: Array<{ status: string }>; creatorCountTarget: number }>(
+  campaign: T
+) {
+  const openSlots = campaign.slots.filter((s) => s.status === 'OPEN').length;
+  const claimedSlots = campaign.slots.filter((s) => s.status === 'CLAIMED').length;
+  const assignedSlots = campaign.slots.filter((s) => s.status === 'ASSIGNED').length;
+  const completedSlots = campaign.slots.filter(
+    (s) => s.status === 'VERIFIED' || s.status === 'PAID'
+  ).length;
+
+  return {
+    ...campaign,
+    slots: undefined,
+    slotCounts: {
+      total: campaign.creatorCountTarget,
+      open: openSlots,
+      claimed: claimedSlots,
+      assigned: assignedSlots,
+      completed: completedSlots,
+    },
+  };
+}
+
 // Zod schemas
 const TargetingCriteriaSchema = z.object({
   niche: z.string().optional(),
@@ -62,17 +93,44 @@ const VerificationCriteriaSchema = z.object({
   minDurationSeconds: z.number().optional(),
 });
 
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
 const CreateCampaignSchema = z.object({
   brandWallet: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  type: z.enum(['PLACE', 'CREATOR']).default('PLACE'),
   tier: z.enum(['SIP_MENTION', 'SIP_SHILL', 'CHALLENGE', 'APEX']),
   title: z.string().min(5).max(200),
   description: z.string().max(1000).optional(),
   creatorCountTarget: z.number().min(1).max(1000),
   payoutPerCreator: z.number().min(50),
+  venueId: z.string().min(1).optional(),
   syncTime: z.string().datetime().optional(),
   targetingCriteria: TargetingCriteriaSchema.optional(),
   verificationCriteria: VerificationCriteriaSchema,
 });
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // GET /api/campaigns - List campaigns (for brands or scouts)
@@ -102,6 +160,7 @@ export async function GET(request: NextRequest) {
     // For scouts, only show RECRUITING campaigns
     if (forScouts) {
       where.status = 'RECRUITING';
+      where.type = 'CREATOR';
     }
 
     const campaigns = await prisma.campaign.findMany({
@@ -109,6 +168,12 @@ export async function GET(request: NextRequest) {
       include: {
         brand: {
           select: { name: true, logo: true },
+        },
+        venue: {
+          select: { id: true, slug: true, name: true, city: true, country: true },
+        },
+        linkedDare: {
+          select: { id: true, shortId: true, status: true },
         },
         slots: {
           select: { status: true },
@@ -118,26 +183,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add slot counts
-    const campaignsWithCounts = campaigns.map((campaign) => {
-      const openSlots = campaign.slots.filter((s) => s.status === 'OPEN').length;
-      const claimedSlots = campaign.slots.filter((s) => s.status === 'CLAIMED').length;
-      const assignedSlots = campaign.slots.filter((s) => s.status === 'ASSIGNED').length;
-      const completedSlots = campaign.slots.filter(
-        (s) => s.status === 'VERIFIED' || s.status === 'PAID'
-      ).length;
-
-      return {
-        ...campaign,
-        slots: undefined, // Don't expose raw slots
-        slotCounts: {
-          total: campaign.creatorCountTarget,
-          open: openSlots,
-          claimed: claimedSlots,
-          assigned: assignedSlots,
-          completed: completedSlots,
-        },
-      };
-    });
+    const campaignsWithCounts = campaigns.map(mapCampaignWithCounts);
 
     return NextResponse.json({
       success: true,
@@ -170,15 +216,29 @@ export async function POST(request: NextRequest) {
 
     const {
       brandWallet,
+      type,
       tier,
       title,
       description,
       creatorCountTarget,
       payoutPerCreator,
+      venueId,
       syncTime,
       targetingCriteria,
       verificationCriteria,
     } = validation.data;
+
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (brandWallet.toLowerCase() !== sessionWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Verify brand exists
     const brand = await prisma.brand.findUnique({
@@ -207,59 +267,168 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate total budget (payout * count + platform rake)
-    const grossBudget = payoutPerCreator * creatorCountTarget;
+    const effectiveCreatorCountTarget = type === 'PLACE' ? 1 : creatorCountTarget;
+    const grossBudget = payoutPerCreator * effectiveCreatorCountTarget;
     const platformRake = grossBudget * (tierConfig.rakePercent / 100);
     const totalBudget = grossBudget + platformRake;
 
     // Calculate veto window (24h after campaign goes to RECRUITING)
     const vetoWindowEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Create campaign with open slots
-    const campaign = await prisma.campaign.create({
-      data: {
-        brandId: brand.id,
-        tier,
-        title,
-        description,
-        budgetUsdc: totalBudget,
-        creatorCountTarget,
-        payoutPerCreator,
-        syncTime: syncTime ? new Date(syncTime) : null,
-        windowHours: tierConfig.windowHours,
-        strikeWindowMinutes: tierConfig.strikeWindowMinutes,
-        precisionMultiplier: tierConfig.precisionMultiplier,
-        rakePercent: tierConfig.rakePercent,
-        targetingCriteria: JSON.stringify(targetingCriteria || {}),
-        verificationCriteria: JSON.stringify(verificationCriteria),
-        vetoWindowEndsAt,
-        status: 'DRAFT',
-        // Create open slots
-        slots: {
-          create: Array.from({ length: creatorCountTarget }, () => ({
-            status: 'OPEN',
-          })),
+    let campaign;
+
+    if (type === 'PLACE') {
+      if (!venueId) {
+        return NextResponse.json(
+          { success: false, error: 'PLACE campaigns require a valid venue.' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const placeContext = await resolveCanonicalBountyPlaceContext({
+          venueId,
+          creationContext: 'MAP',
+          discoveryRadiusKm: 0.5,
+        });
+
+        campaign = await prisma.$transaction(async (tx) => {
+          const createdCampaign = await tx.campaign.create({
+            data: {
+              brandId: brand.id,
+              type,
+              tier,
+              title,
+              description,
+              budgetUsdc: totalBudget,
+              creatorCountTarget: 1,
+              payoutPerCreator,
+              venueId: placeContext.venueId,
+              syncTime: syncTime ? new Date(syncTime) : null,
+              windowHours: tierConfig.windowHours,
+              strikeWindowMinutes: tierConfig.strikeWindowMinutes,
+              precisionMultiplier: tierConfig.precisionMultiplier,
+              rakePercent: tierConfig.rakePercent,
+              targetingCriteria: JSON.stringify(targetingCriteria || {}),
+              verificationCriteria: JSON.stringify(verificationCriteria),
+              vetoWindowEndsAt,
+              status: 'LIVE',
+              fundedAt: new Date(),
+              liveAt: new Date(),
+              slots: {
+                create: [{ status: 'OPEN' }],
+              },
+            },
+          });
+
+          const bounty = await createDatabaseBackedBounty({
+            db: tx,
+            title,
+            missionMode: 'IRL',
+            missionTag: 'brand-campaign',
+            amount: payoutPerCreator,
+            streamerTag: null,
+            streamId: `campaign:${createdCampaign.id}`,
+            tagVerified: false,
+            stakerAddress: brand.walletAddress,
+            targetWalletAddress: null,
+            venueId: placeContext.venueId,
+            isNearbyDare: placeContext.isNearbyDare,
+            latitude: placeContext.latitude,
+            longitude: placeContext.longitude,
+            geohash: placeContext.geohash,
+            locationLabel: placeContext.locationLabel,
+            discoveryRadiusKm: placeContext.discoveryRadiusKm,
+            isSimulated: true,
+          });
+
+          return tx.campaign.update({
+            where: { id: createdCampaign.id },
+            data: {
+              linkedDareId: bounty.dare.id,
+            },
+            include: {
+              brand: {
+                select: { name: true, logo: true },
+              },
+              venue: {
+                select: { id: true, slug: true, name: true, city: true, country: true },
+              },
+              linkedDare: {
+                select: { id: true, shortId: true, status: true },
+              },
+              slots: true,
+            },
+          });
+        });
+      } catch (error) {
+        if (error instanceof BountyPlaceResolutionError) {
+          return NextResponse.json(
+            { success: false, error: error.message, code: error.code },
+            { status: 400 }
+          );
+        }
+        throw error;
+      }
+    } else {
+      campaign = await prisma.campaign.create({
+        data: {
+          brandId: brand.id,
+          type,
+          tier,
+          title,
+          description,
+          budgetUsdc: totalBudget,
+          creatorCountTarget: effectiveCreatorCountTarget,
+          payoutPerCreator,
+          syncTime: syncTime ? new Date(syncTime) : null,
+          windowHours: tierConfig.windowHours,
+          strikeWindowMinutes: tierConfig.strikeWindowMinutes,
+          precisionMultiplier: tierConfig.precisionMultiplier,
+          rakePercent: tierConfig.rakePercent,
+          targetingCriteria: JSON.stringify(targetingCriteria || {}),
+          verificationCriteria: JSON.stringify(verificationCriteria),
+          vetoWindowEndsAt,
+          status: 'DRAFT',
+          slots: {
+            create: Array.from({ length: effectiveCreatorCountTarget }, () => ({
+              status: 'OPEN',
+            })),
+          },
         },
-      },
-      include: {
-        slots: true,
-      },
-    });
+        include: {
+          brand: {
+            select: { name: true, logo: true },
+          },
+          venue: {
+            select: { id: true, slug: true, name: true, city: true, country: true },
+          },
+          linkedDare: {
+            select: { id: true, shortId: true, status: true },
+          },
+          slots: true,
+        },
+      });
+    }
 
     console.log(
-      `[CAMPAIGNS] Created: ${title} (${tier}) - $${totalBudget} for ${creatorCountTarget} creators`
+      `[CAMPAIGNS] Created: ${title} (${type}/${tier}) - $${totalBudget} for ${effectiveCreatorCountTarget} creator slots`
+    );
+
+    const campaignWithCounts = mapCampaignWithCounts(
+      campaign as { slots: Array<{ status: string }>; creatorCountTarget: number } & Record<string, unknown>
     );
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...campaign,
+      data: Object.assign({}, campaignWithCounts as Record<string, unknown>, {
         budgetBreakdown: {
           grossPayout: grossBudget,
           platformRake,
           totalBudget,
           rakePercent: tierConfig.rakePercent,
         },
-      },
+      }),
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

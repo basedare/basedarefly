@@ -114,6 +114,12 @@ function mapActiveDare(dare: {
   streamerHandle: string | null;
   expiresAt: Date | null;
   createdAt: Date;
+  linkedCampaign: {
+    title: string;
+    brand: {
+      name: string;
+    };
+  } | null;
 }) {
   return {
     id: dare.id,
@@ -125,6 +131,8 @@ function mapActiveDare(dare: {
     streamerHandle: dare.streamerHandle,
     expiresAt: dare.expiresAt?.toISOString() ?? null,
     createdAt: dare.createdAt.toISOString(),
+    campaignTitle: dare.linkedCampaign?.title ?? null,
+    brandName: dare.linkedCampaign?.brand.name ?? null,
   };
 }
 
@@ -571,6 +579,16 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
           streamerHandle: true,
           expiresAt: true,
           createdAt: true,
+          linkedCampaign: {
+            select: {
+              title: true,
+              brand: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
         },
       },
     },
