@@ -53,6 +53,9 @@ interface Campaign {
     shortId: string | null;
     status: string;
     videoUrl?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    moderatedAt?: string | null;
     verifiedAt?: string | null;
     completedAt?: string | null;
     streamerHandle?: string | null;
@@ -787,6 +790,68 @@ export default function BrandPortalPage() {
     return {
       label: 'Open activation',
       detail: 'Live on the map and waiting for creator movement.',
+    };
+  };
+
+  const getCampaignRecentMovement = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    if (!dare) {
+      return {
+        label: 'No movement yet',
+        detail: 'The activation is live but no creator has touched it yet.',
+      };
+    }
+
+    if (dare.status === 'VERIFIED') {
+      return {
+        label: 'Paid out',
+        detail: dare.verifiedAt
+          ? `verified ${new Date(dare.verifiedAt).toLocaleString()}`
+          : 'verified completion cleared payout',
+      };
+    }
+
+    if (dare.status === 'PENDING_PAYOUT') {
+      return {
+        label: 'Awaiting chain settlement',
+        detail: dare.moderatedAt
+          ? `approved ${new Date(dare.moderatedAt).toLocaleString()}`
+          : 'proof is approved and payout retry is running',
+      };
+    }
+
+    if (dare.status === 'PENDING_REVIEW') {
+      return {
+        label: 'Proof landed',
+        detail: dare.updatedAt
+          ? `submitted ${new Date(dare.updatedAt).toLocaleString()}`
+          : 'proof is in referee review now',
+      };
+    }
+
+    if (dare.claimRequestStatus === 'PENDING') {
+      return {
+        label: 'Creator raised a hand',
+        detail: dare.claimRequestedAt
+          ? `requested ${new Date(dare.claimRequestedAt).toLocaleString()}`
+          : 'claim request is waiting for review',
+      };
+    }
+
+    if (dare.claimedBy || dare.targetWalletAddress) {
+      return {
+        label: 'Creator attached',
+        detail: dare.claimedAt
+          ? `attached ${new Date(dare.claimedAt).toLocaleString()}`
+          : 'creator can submit proof now',
+      };
+    }
+
+    return {
+      label: 'Open on the grid',
+      detail: dare.createdAt
+        ? `linked ${new Date(dare.createdAt).toLocaleString()}`
+        : 'activation is waiting for creator pull',
     };
   };
 
@@ -1612,6 +1677,23 @@ export default function BrandPortalPage() {
                           </div>
                         </div>
                       ) : null}
+
+                      {(() => {
+                        const recentMovement = getCampaignRecentMovement(campaign);
+                        return (
+                          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                            <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                                  Recent Movement
+                                </div>
+                                <div className="mt-1 text-sm font-semibold text-zinc-900">{recentMovement.label}</div>
+                              </div>
+                              <div className="text-xs text-zinc-500">{recentMovement.detail}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

@@ -62,6 +62,7 @@ This order matters because BaseDare should create real demand pull before adding
 - The public `/verify` queue is a community-signal lane only. Once proof escalates into `PENDING_REVIEW`, it should leave public voting and sit in referee/admin review instead of living in both states at once.
 - Admin review should show campaign and venue context alongside proof freshness so operators can resolve activations quickly without jumping across disconnected surfaces.
 - Telegram should mirror the real operator handoff points, not every intermediate state. Claim requests, tag moderation decisions, and proof escalations into admin review should alert operators; passive browsing states should not.
+- Review ops should prioritize the hottest proofs first: already-escalated referee items, campaign-backed activations, and aging proofs should rise to the top. Control should mirror that same lifecycle with a compact recent-movement readout instead of only static status pills.
 - The same demand graph should power both sides:
   - Brand creates campaign
   - campaign creates linked dare

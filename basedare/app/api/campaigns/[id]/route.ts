@@ -75,6 +75,8 @@ export async function GET(
             shortId: true,
             status: true,
             videoUrl: true,
+            updatedAt: true,
+            moderatedAt: true,
             verifiedAt: true,
             completed_at: true,
             createdAt: true,

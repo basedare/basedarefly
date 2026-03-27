@@ -115,6 +115,24 @@ export async function GET(request: NextRequest) {
       const approveVotes = dare.votes.filter((v) => v.voteType === 'APPROVE').length;
       const rejectVotes = dare.votes.filter((v) => v.voteType === 'REJECT').length;
       const totalVotes = dare.votes.length;
+      const proofAgeHours = Math.max(
+        0,
+        Math.round((Date.now() - new Date(dare.updatedAt).getTime()) / (1000 * 60 * 60))
+      );
+      const readyForDecision = totalVotes >= dare.voteThreshold;
+      const queueStage = dare.status === 'PENDING_REVIEW' ? 'REFEREE' : 'COMMUNITY';
+      const priorityScore =
+        (dare.status === 'PENDING_REVIEW' ? 100 : 0) +
+        (readyForDecision ? 30 : 0) +
+        (dare.linkedCampaign ? 20 : 0) +
+        Math.min(proofAgeHours, 48) +
+        Math.min(Math.round(dare.bounty / 25), 20);
+      const priorityReason =
+        dare.status === 'PENDING_REVIEW'
+          ? 'Already escalated into referee review.'
+          : readyForDecision
+            ? 'Community voting reached threshold and needs a moderator decision.'
+            : 'Proof is live in the community signal lane and aging toward review.';
 
       return {
         id: dare.id,
@@ -142,16 +160,36 @@ export async function GET(request: NextRequest) {
           total: totalVotes,
           approvePercent: totalVotes > 0 ? Math.round((approveVotes / totalVotes) * 100) : 0,
         },
-        readyForDecision: totalVotes >= dare.voteThreshold,
+        readyForDecision,
         voteThreshold: dare.voteThreshold,
+        proofAgeHours,
+        queueStage,
+        priorityScore,
+        priorityReason,
       };
     });
+
+    const sortedDares = daresWithVoteSummary.sort((left, right) => {
+      if (right.priorityScore !== left.priorityScore) return right.priorityScore - left.priorityScore;
+      return new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime();
+    });
+
+    const oldestProofHours = sortedDares.reduce((maxHours, dare) => Math.max(maxHours, dare.proofAgeHours), 0);
+    const readyNowCount = sortedDares.filter((dare) => dare.status === 'PENDING_REVIEW' || dare.readyForDecision).length;
+    const campaignBackedReadyCount = sortedDares.filter(
+      (dare) => Boolean(dare.linkedCampaign) && (dare.status === 'PENDING_REVIEW' || dare.readyForDecision)
+    ).length;
 
     return NextResponse.json({
       success: true,
       data: {
-        dares: daresWithVoteSummary,
-        total: daresWithVoteSummary.length,
+        dares: sortedDares,
+        total: sortedDares.length,
+        queueSummary: {
+          readyNow: readyNowCount,
+          oldestProofHours,
+          campaignBackedReady: campaignBackedReadyCount,
+        },
       },
     });
   } catch (error: unknown) {

@@ -215,6 +215,8 @@ export async function GET(request: NextRequest) {
             shortId: true,
             status: true,
             videoUrl: true,
+            updatedAt: true,
+            moderatedAt: true,
             verifiedAt: true,
             completed_at: true,
             createdAt: true,

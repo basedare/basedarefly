@@ -55,6 +55,16 @@ interface DareForModeration {
   };
   readyForDecision: boolean;
   voteThreshold: number;
+  proofAgeHours: number;
+  queueStage: 'COMMUNITY' | 'REFEREE';
+  priorityScore: number;
+  priorityReason: string;
+}
+
+interface QueueSummary {
+  readyNow: number;
+  oldestProofHours: number;
+  campaignBackedReady: number;
 }
 
 interface PendingTag {
@@ -90,6 +100,12 @@ function formatRelativeTime(value: string | null | undefined) {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.round(diffHours / 24);
   return `${diffDays}d ago`;
+}
+
+function formatProofAge(hours: number) {
+  if (hours < 1) return '<1h';
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 interface ClaimRequest {
@@ -210,6 +226,11 @@ export default function AdminPage() {
   const [moderating, setModerating] = useState<string | null>(null);
   const [selectedDare, setSelectedDare] = useState<DareForModeration | null>(null);
   const [moderateNote, setModerateNote] = useState('');
+  const [queueSummary, setQueueSummary] = useState<QueueSummary>({
+    readyNow: 0,
+    oldestProofHours: 0,
+    campaignBackedReady: 0,
+  });
 
   // Tags management state
   const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
@@ -260,7 +281,20 @@ export default function AdminPage() {
 
       if (data.success) {
         setIsAuthorized(true);
-        setDares(data.data.dares);
+        const nextDares = data.data.dares || [];
+        setDares(nextDares);
+        setQueueSummary(
+          data.data.queueSummary || {
+            readyNow: 0,
+            oldestProofHours: 0,
+            campaignBackedReady: 0,
+          }
+        );
+        setSelectedDare((current) => {
+          if (!nextDares.length) return null;
+          if (!current) return nextDares[0];
+          return nextDares.find((dare: DareForModeration) => dare.id === current.id) || nextDares[0];
+        });
       } else if (res.status === 401) {
         setIsAuthorized(false);
         setError('Your wallet is not authorized as a moderator');
@@ -909,22 +943,16 @@ export default function AdminPage() {
                 <p className="mt-2 text-3xl font-black text-white">{dares.length}</p>
               </div>
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Campaign-Backed</p>
-                <p className="mt-2 text-3xl font-black text-cyan-300">
-                  {dares.filter((dare) => Boolean(dare.linkedCampaign)).length}
-                </p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Ready Now</p>
+                <p className="mt-2 text-3xl font-black text-emerald-300">{queueSummary.readyNow}</p>
               </div>
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Community Signal</p>
-                <p className="mt-2 text-3xl font-black text-yellow-300">
-                  {dares.filter((dare) => dare.status === 'PENDING').length}
-                </p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Campaign-Backed Hot</p>
+                <p className="mt-2 text-3xl font-black text-cyan-300">{queueSummary.campaignBackedReady}</p>
               </div>
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Referee Review</p>
-                <p className="mt-2 text-3xl font-black text-orange-300">
-                  {dares.filter((dare) => dare.status === 'PENDING_REVIEW').length}
-                </p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Oldest Proof</p>
+                <p className="mt-2 text-3xl font-black text-orange-300">{formatProofAge(queueSummary.oldestProofHours)}</p>
               </div>
             </div>
 
@@ -967,6 +995,21 @@ export default function AdminPage() {
                       </div>
 
                       <div className="mb-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em]">
+                        <span
+                          className={`rounded-full border px-2 py-1 ${
+                            dare.status === 'PENDING_REVIEW'
+                              ? 'border-orange-500/30 bg-orange-500/10 text-orange-300'
+                              : dare.readyForDecision
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
+                          }`}
+                        >
+                          {dare.status === 'PENDING_REVIEW'
+                            ? 'referee now'
+                            : dare.readyForDecision
+                              ? 'decision ready'
+                              : 'watching votes'}
+                        </span>
                         {dare.linkedCampaign ? (
                           <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-cyan-300">
                             {dare.linkedCampaign.brandName ? `${dare.linkedCampaign.brandName} campaign` : 'campaign-backed'}
@@ -988,6 +1031,7 @@ export default function AdminPage() {
                         </span>
                         <span className="text-[#FFD700] font-bold">${dare.bounty}</span>
                       </div>
+                      <p className="mt-2 text-[11px] text-gray-500">{dare.priorityReason}</p>
 
                       {/* Vote Bar */}
                       <div className="mt-3">
@@ -1108,6 +1152,24 @@ export default function AdminPage() {
                           {100 - selectedDare.votes.approvePercent}% Fail
                         </span>
                       </div>
+                    </div>
+
+                    <div className="p-3 bg-white/5 rounded-lg">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Operator Read</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+                          {selectedDare.queueStage === 'REFEREE' ? 'Referee Review' : 'Community Signal'}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+                          proof age {formatProofAge(selectedDare.proofAgeHours)}
+                        </span>
+                        {selectedDare.linkedCampaign ? (
+                          <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                            campaign-backed
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm text-gray-300">{selectedDare.priorityReason}</p>
                     </div>
 
                     {selectedDare.targetWalletAddress && (
