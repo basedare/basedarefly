@@ -13,6 +13,7 @@ import {
 } from 'react-leaflet';
 import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
+  ArrowLeft,
   Crosshair,
   Expand,
   Flame,
@@ -570,6 +571,10 @@ export default function RealWorldMap() {
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
+  const controlSource = searchParams.get('source');
+  const deepLinkedCampaignId = searchParams.get('campaignId');
+  const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
+  const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
@@ -610,12 +615,16 @@ export default function RealWorldMap() {
   }, [mapReady]);
 
   useEffect(() => {
+    if (hasDeepLinkedPlace) {
+      return;
+    }
+
     if (!bootstrappedDefaultPins) {
       return;
     }
 
     return requestApproximateLocation();
-  }, [bootstrappedDefaultPins, requestApproximateLocation]);
+  }, [bootstrappedDefaultPins, hasDeepLinkedPlace, requestApproximateLocation]);
 
   useEffect(() => {
     if (!isImmersiveMobile) {
@@ -656,6 +665,8 @@ export default function RealWorldMap() {
         }
 
         const { venue } = payload.data;
+        autoLocateModeRef.current = 'idle';
+        autoLocateFallbackAppliedRef.current = true;
         setPulseFilter('all');
         setSelectedPlace({
           placeId: venue.id,
@@ -786,13 +797,13 @@ export default function RealWorldMap() {
   }, []);
 
   useEffect(() => {
-    if (!mapReady || bootstrappedDefaultPins || nearbyPlaces.length > 0) {
+    if (!mapReady || bootstrappedDefaultPins || nearbyPlaces.length > 0 || hasDeepLinkedPlace) {
       return;
     }
 
     setBootstrappedDefaultPins(true);
     void fetchNearbyPlaces(DEFAULT_CENTER[0], DEFAULT_CENTER[1], DEFAULT_ZOOM);
-  }, [bootstrappedDefaultPins, fetchNearbyPlaces, mapReady, nearbyPlaces.length]);
+  }, [bootstrappedDefaultPins, fetchNearbyPlaces, hasDeepLinkedPlace, mapReady, nearbyPlaces.length]);
 
   const handleViewportChange = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
@@ -1538,6 +1549,17 @@ export default function RealWorldMap() {
                     <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
                     <div className="min-w-0 flex-1">
+                      {showBackToControl ? (
+                        <div className="mb-3">
+                          <Link
+                            href="/brands/portal"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                          >
+                            <ArrowLeft className="h-3 w-3" />
+                            Back to Control
+                          </Link>
+                        </div>
+                      ) : null}
                       <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,29,45,0.32)_100%)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.18)]">
                         <Sparkles className="h-3.5 w-3.5" />
                         {selectedPlace.placeId ? 'Place memory anchor' : 'Dropped pin'}
