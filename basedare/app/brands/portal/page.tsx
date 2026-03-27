@@ -25,6 +25,11 @@ interface Brand {
     settled: number;
     place: number;
     creator: number;
+    creatorMovement: number;
+    proofsSubmitted: number;
+    inReview: number;
+    payoutQueued: number;
+    paid: number;
   };
 }
 
@@ -264,6 +269,24 @@ export default function BrandPortalPage() {
   const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
   const [shortlistedCreators, setShortlistedCreators] = useState<Record<string, string[]>>({});
+  const campaignSummary = brand?.campaignSummary;
+  const liveCampaignCount =
+    campaignSummary?.live ?? campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length;
+  const creatorMovementCount =
+    campaignSummary?.creatorMovement ??
+    campaigns.filter(
+      (campaign) =>
+        campaign.linkedDare?.claimRequestStatus === 'PENDING' ||
+        Boolean(campaign.linkedDare?.claimedBy || campaign.linkedDare?.targetWalletAddress)
+    ).length;
+  const proofsSubmittedCount =
+    campaignSummary?.proofsSubmitted ?? campaigns.filter((campaign) => Boolean(campaign.linkedDare?.videoUrl)).length;
+  const paidOutCount =
+    campaignSummary?.paid ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'VERIFIED').length;
+  const inReviewCount =
+    campaignSummary?.inReview ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW').length;
+  const payoutQueuedCount =
+    campaignSummary?.payoutQueued ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT').length;
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -1098,34 +1121,32 @@ export default function BrandPortalPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
             <div className="text-zinc-500 text-xs md:text-sm">Total Spend</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">${brand?.totalSpend.toLocaleString() || 0}</div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Active Campaigns</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">
-              {campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length}
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
+            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+              {campaignSummary?.total ?? campaigns.length} campaigns launched
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Total Creators</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">
-              {campaigns.reduce((sum, c) => sum + c.slotCounts.completed, 0)}
+            <div className="text-zinc-500 text-xs md:text-sm">Live Campaigns</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">{liveCampaignCount}</div>
+            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+              {(campaignSummary?.place ?? campaigns.filter((campaign) => campaign.type === 'PLACE').length)} place
+              {' • '}
+              {(campaignSummary?.creator ?? campaigns.filter((campaign) => campaign.type === 'CREATOR').length)} creator
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Avg Completion</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">
-              {campaigns.length > 0
-                ? Math.round(
-                    (campaigns.reduce(
-                      (sum, c) => sum + c.slotCounts.completed / c.slotCounts.total,
-                      0
-                    ) /
-                      campaigns.length) *
-                      100
-                  )
-                : 0}
-              %
+            <div className="text-zinc-500 text-xs md:text-sm">Creator Movement</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">{creatorMovementCount}</div>
+            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+              {proofsSubmittedCount} proofs landed
+            </div>
+          </div>
+          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
+            <div className="text-zinc-500 text-xs md:text-sm">Paid Outcomes</div>
+            <div className="text-xl md:text-2xl font-bold text-zinc-900">{paidOutCount}</div>
+            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+              {inReviewCount} in review {' • '} {payoutQueuedCount} queued
             </div>
           </div>
         </div>

@@ -42,9 +42,17 @@ export async function GET(request: NextRequest) {
             settledAt: true,
             liveAt: true,
             createdAt: true,
+            linkedDare: {
+              select: {
+                status: true,
+                videoUrl: true,
+                targetWalletAddress: true,
+                claimedBy: true,
+                claimRequestStatus: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
-          take: 10,
         },
       },
     });
@@ -56,17 +64,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const liveCampaigns = brand.campaigns.filter((campaign) => ['LIVE', 'RECRUITING'].includes(campaign.status));
+    const creatorMovement = brand.campaigns.filter(
+      (campaign) =>
+        campaign.linkedDare?.claimRequestStatus === 'PENDING' ||
+        Boolean(campaign.linkedDare?.claimedBy || campaign.linkedDare?.targetWalletAddress)
+    );
+    const proofsSubmitted = brand.campaigns.filter((campaign) => Boolean(campaign.linkedDare?.videoUrl));
+    const inReview = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW');
+    const payoutQueued = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT');
+    const paid = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'VERIFIED');
+
     return NextResponse.json({
       success: true,
       data: {
         ...brand,
         campaignSummary: {
           total: brand.campaigns.length,
-          live: brand.campaigns.filter((campaign) => ['LIVE', 'RECRUITING'].includes(campaign.status))
-            .length,
+          live: liveCampaigns.length,
           settled: brand.campaigns.filter((campaign) => campaign.status === 'SETTLED').length,
           place: brand.campaigns.filter((campaign) => campaign.type === 'PLACE').length,
           creator: brand.campaigns.filter((campaign) => campaign.type === 'CREATOR').length,
+          creatorMovement: creatorMovement.length,
+          proofsSubmitted: proofsSubmitted.length,
+          inReview: inReview.length,
+          payoutQueued: payoutQueued.length,
+          paid: paid.length,
         },
       },
     });

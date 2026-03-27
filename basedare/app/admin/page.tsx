@@ -67,6 +67,16 @@ interface QueueSummary {
   campaignBackedReady: number;
 }
 
+function deriveQueueSummary(dares: DareForModeration[]): QueueSummary {
+  return {
+    readyNow: dares.filter((dare) => dare.readyForDecision || dare.status === 'PENDING_REVIEW').length,
+    oldestProofHours: dares.length ? Math.max(...dares.map((dare) => dare.proofAgeHours)) : 0,
+    campaignBackedReady: dares.filter(
+      (dare) => dare.linkedCampaign && (dare.readyForDecision || dare.status === 'PENDING_REVIEW')
+    ).length,
+  };
+}
+
 interface PendingTag {
   id: string;
   tag: string;
@@ -263,6 +273,27 @@ export default function AdminPage() {
   const [selectedClaim, setSelectedClaim] = useState<ClaimRequest | null>(null);
   const [claimRejectReason, setClaimRejectReason] = useState('');
 
+  const selectRelativeDare = useCallback(
+    (direction: 1 | -1) => {
+      if (!dares.length) {
+        setSelectedDare(null);
+        return;
+      }
+
+      if (!selectedDare) {
+        setSelectedDare(dares[0]);
+        return;
+      }
+
+      const currentIndex = dares.findIndex((dare) => dare.id === selectedDare.id);
+      const nextIndex = currentIndex === -1
+        ? 0
+        : (currentIndex + direction + dares.length) % dares.length;
+      setSelectedDare(dares[nextIndex]);
+    },
+    [dares, selectedDare]
+  );
+
   // Fetch moderation queue
   const fetchQueue = useCallback(async () => {
     if (!address) return;
@@ -283,13 +314,7 @@ export default function AdminPage() {
         setIsAuthorized(true);
         const nextDares = data.data.dares || [];
         setDares(nextDares);
-        setQueueSummary(
-          data.data.queueSummary || {
-            readyNow: 0,
-            oldestProofHours: 0,
-            campaignBackedReady: 0,
-          }
-        );
+        setQueueSummary(data.data.queueSummary || deriveQueueSummary(nextDares));
         setSelectedDare((current) => {
           if (!nextDares.length) return null;
           if (!current) return nextDares[0];
@@ -767,7 +792,7 @@ export default function AdminPage() {
   }, [activeTab, isAuthorized, fetchPendingClaims]);
 
   // Handle moderation decision
-  const handleModerate = async (
+  const handleModerate = useCallback(async (
     dareId: string,
     decision: 'APPROVE' | 'REJECT',
     options?: { openNext?: boolean }
@@ -800,8 +825,9 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Remove from list
-        setDares((prev) => prev.filter((d) => d.id !== dareId));
+        const remainingDares = dares.filter((d) => d.id !== dareId);
+        setDares(remainingDares);
+        setQueueSummary(deriveQueueSummary(remainingDares));
         setSelectedDare(openNext ? nextDareCandidate ?? null : null);
         setModerateNote('');
       } else {
@@ -812,9 +838,42 @@ export default function AdminPage() {
     } finally {
       setModerating(null);
     }
-  };
+  }, [address, dares, moderateNote]);
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+
+  useEffect(() => {
+    if (activeTab !== 'moderation' || !isAuthorized) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+      const isTyping =
+        target?.isContentEditable ||
+        tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'SELECT';
+
+      if (isTyping || moderating) return;
+
+      if (event.key === 'j') {
+        event.preventDefault();
+        selectRelativeDare(1);
+      } else if (event.key === 'k') {
+        event.preventDefault();
+        selectRelativeDare(-1);
+      } else if (event.key === 'a' && selectedDare) {
+        event.preventDefault();
+        void handleModerate(selectedDare.id, 'APPROVE', { openNext: true });
+      } else if (event.key === 'x' && selectedDare) {
+        event.preventDefault();
+        void handleModerate(selectedDare.id, 'REJECT', { openNext: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, handleModerate, isAuthorized, moderating, selectRelativeDare, selectedDare]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -974,6 +1033,12 @@ export default function AdminPage() {
                 <Users className="w-5 h-5 text-purple-400" />
                 Pending Review ({dares.length})
               </h3>
+              <div className="mb-4 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-gray-400">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">J next</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">K previous</span>
+                <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-1 text-green-300">A approve + next</span>
+                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 text-red-300">X reject + next</span>
+              </div>
 
               {dares.length === 0 ? (
                 <div className="text-center py-12">
