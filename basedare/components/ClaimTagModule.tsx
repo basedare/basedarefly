@@ -130,6 +130,10 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+function isPlatform(value: string | null | undefined): value is Platform {
+  return Boolean(value && PLATFORMS.some((platform) => platform.id === value));
+}
+
 function sanitizeTagCandidate(value: string | null | undefined): string {
   if (!value) return '';
   return value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_]/g, '');
@@ -215,6 +219,35 @@ export function ClaimTagModule() {
       setTag(handle);
     }
   }, [searchParams, tag]);
+
+  useEffect(() => {
+    const platformParam = searchParams.get('platform');
+    const handleParam = searchParams.get('handle');
+    const tagParam = searchParams.get('tag');
+
+    if (tagParam && !tag) {
+      const suggestedTag = sanitizeTagCandidate(tagParam);
+      if (suggestedTag) {
+        setTag(suggestedTag);
+      }
+    }
+
+    if (handleParam && !manualUsername) {
+      setManualUsername(handleParam.replace(/^@+/, '').trim());
+    }
+
+    if (isPlatform(platformParam)) {
+      if (selectedPlatform !== platformParam) {
+        setSelectedPlatform(platformParam);
+      }
+      if (!useManualVerification) {
+        setUseManualVerification(true);
+      }
+      if (!manualCode) {
+        generateManualCode();
+      }
+    }
+  }, [searchParams, tag, manualUsername, manualCode, selectedPlatform, useManualVerification]);
 
   // Fetch existing tags for this wallet
   useEffect(() => {

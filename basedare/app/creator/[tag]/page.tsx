@@ -85,6 +85,13 @@ function getIdentityLabel(platform: string | null | undefined): string {
     return 'Identity';
 }
 
+function getIdentityStateLabel(status: string | null | undefined): string {
+    if (status === 'ACTIVE' || status === 'VERIFIED') return 'Verified';
+    if (status === 'PENDING') return 'Pending review';
+    if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Needs re-verify';
+    return 'Unverified';
+}
+
 const raisedPanelClass =
     'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
 
@@ -277,6 +284,14 @@ export default function CreatorProfilePage() {
         profile?.kickHandle ? { label: 'Kick', handle: profile.kickHandle, href: `https://kick.com/${profile.kickHandle}`, accent: 'text-green-300' } : null,
     ].filter(Boolean) as Array<{ label: string; handle: string; href: string | null; accent: string }>;
     const audienceLabel = formatCompactCount(profile?.followerCount);
+    const identityCtaHref = (() => {
+        const params = new URLSearchParams();
+        if (profile?.identityPlatform) params.set('platform', profile.identityPlatform);
+        if (profile?.identityHandle) params.set('handle', profile.identityHandle);
+        if (profile?.handle) params.set('tag', profile.handle.replace(/^@/, ''));
+        const query = params.toString();
+        return query ? `/claim-tag?${query}` : '/claim-tag';
+    })();
 
     return (
         <main className="min-h-screen bg-transparent text-white pb-24">
@@ -429,20 +444,26 @@ export default function CreatorProfilePage() {
                                 Dare {displayTag}
                             </Link>
                             <Link
-                                href="/claim-tag"
+                                href={identityCtaHref}
                                 className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
                             >
-                                Connect Identity
+                                {profile?.identityStatus === 'PENDING'
+                                    ? 'Update Proof'
+                                    : profile?.identityStatus === 'REJECTED' || profile?.identityStatus === 'REVOKED' || profile?.identityStatus === 'SUSPENDED'
+                                        ? 'Re-verify'
+                                        : 'Connect Identity'}
                             </Link>
                         </div>
                     </div>
 
                     <div className="mt-5 grid gap-3 md:grid-cols-4">
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Linked Platforms</p>
-                            <p className="mt-2 text-2xl font-black text-white">{connectedPlatforms.length}</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Identity State</p>
+                            <p className="mt-2 text-2xl font-black text-white">{getIdentityStateLabel(profile?.identityStatus)}</p>
                             <p className="mt-1 text-[11px] text-white/46">
-                                {connectedPlatforms.length > 0 ? 'Identity is externally legible.' : 'No linked social handles exposed yet.'}
+                                {profile?.identityHandle
+                                    ? `@${profile.identityHandle}${profile.identityPlatform ? ` on ${getIdentityLabel(profile.identityPlatform)}` : ''}`
+                                    : 'No linked handle yet.'}
                             </p>
                         </div>
 
@@ -465,11 +486,13 @@ export default function CreatorProfilePage() {
                         <div className={`${insetCardClass} px-4 py-4`}>
                             <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Footprint State</p>
                             <p className="mt-2 text-2xl font-black text-white">
-                                {profile?.verified ? 'Anchored' : connectedPlatforms.length > 0 ? 'Emerging' : 'Unanchored'}
+                                {profile?.verified ? 'Anchored' : profile?.identityStatus === 'PENDING' ? 'Pending' : connectedPlatforms.length > 0 ? 'Emerging' : 'Unanchored'}
                             </p>
                             <p className="mt-1 text-[11px] text-white/46">
                                 {profile?.verified
                                     ? 'Claimed identity and BaseDare activity are already tied together.'
+                                    : profile?.identityStatus === 'PENDING'
+                                        ? 'A proof is under review now. Once cleared, the footprint locks in.'
                                     : connectedPlatforms.length > 0
                                         ? 'Social signal exists, but the strongest trust still comes from claimed BaseDare proof.'
                                         : 'This creator needs claim + activity before the footprint feels real.'}

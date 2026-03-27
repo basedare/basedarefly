@@ -29,7 +29,7 @@ export default function ClaimTagPage() {
             <div className="relative">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.14)_0%,rgba(250,204,21,0.05)_100%)] px-4 py-2 text-[10px] uppercase tracking-[0.24em] text-[#f5c518] shadow-[0_12px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.12)]">
                 <Shield className="h-3.5 w-3.5" />
-                Social Connect
+                Connect Identity
               </div>
 
               <h1 className="mt-5 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl">
@@ -40,8 +40,7 @@ export default function ClaimTagPage() {
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm text-white/68 sm:text-base">
-                Connect your socials, anchor your wallet-backed tag, and point BaseDare’s share rails, payout flow,
-                and map memory at the same creator signal.
+                Link your public creator handle to this wallet, submit proof, and anchor payouts and routing to one identity.
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -52,7 +51,7 @@ export default function ClaimTagPage() {
                   </div>
                   <p className="mt-2 text-sm font-semibold text-white">Claim the right handle</p>
                   <p className="mt-2 text-xs leading-5 text-white/48">
-                    Keep wallet, socials, and payout identity aligned from the start.
+                    Keep wallet, handle, and payouts aligned.
                   </p>
                 </div>
 
@@ -61,9 +60,9 @@ export default function ClaimTagPage() {
                     <Share2 className="h-4 w-4" />
                     <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Distribution</p>
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-white">Share wins with cleaner rails</p>
+                  <p className="mt-2 text-sm font-semibold text-white">Route wins cleanly</p>
                   <p className="mt-2 text-xs leading-5 text-white/48">
-                    Approved dares now point back to BaseDare with tighter copy and better deep links.
+                    One anchored handle keeps proofs and links clean.
                   </p>
                 </div>
 
@@ -72,9 +71,9 @@ export default function ClaimTagPage() {
                     <MapPin className="h-4 w-4" />
                     <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Your Map</p>
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-white">Prepare your footprint layer</p>
+                  <p className="mt-2 text-sm font-semibold text-white">Start your map layer</p>
                   <p className="mt-2 text-xs leading-5 text-white/48">
-                    Social connect is the front door to Suggested Footprint and later imported residue review.
+                    Your creator footprint starts here.
                   </p>
                 </div>
               </div>

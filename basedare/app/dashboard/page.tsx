@@ -126,7 +126,7 @@ function getProviderLabel(provider: string | null | undefined): string {
 function getIdentityStatusLabel(status: string | null | undefined): string {
   if (status === 'ACTIVE' || status === 'VERIFIED') return 'Verified';
   if (status === 'PENDING') return 'Pending verification';
-  if (status === 'REJECTED') return 'Rejected';
+  if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Rejected';
   return 'Not connected';
 }
 
@@ -272,6 +272,16 @@ export default function Dashboard() {
   const identityStatus = userTag?.status || null;
   const hasVerifiedIdentity = identityStatus === 'ACTIVE' || identityStatus === 'VERIFIED';
   const hasPendingIdentity = identityStatus === 'PENDING';
+  const hasRejectedIdentity =
+    identityStatus === 'REJECTED' || identityStatus === 'REVOKED' || identityStatus === 'SUSPENDED';
+  const claimTagHref = (() => {
+    const params = new URLSearchParams();
+    if (identityPlatform) params.set('platform', identityPlatform);
+    if (identityHandle) params.set('handle', identityHandle);
+    if (userTag?.tag) params.set('tag', userTag.tag.replace(/^@/, ''));
+    const query = params.toString();
+    return query ? `/claim-tag?${query}` : '/claim-tag';
+  })();
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
@@ -555,7 +565,11 @@ export default function Dashboard() {
                   <>
                     <div>
                       <p className="text-gray-400 font-mono text-sm mb-1">
-                        {hasPendingIdentity ? 'Identity proof submitted. Waiting on review.' : 'Ready for your next mission?'}
+                        {hasPendingIdentity
+                          ? 'Identity proof submitted. Waiting on review.'
+                          : hasRejectedIdentity
+                            ? 'Identity needs a fresh proof.'
+                            : 'Ready for your next mission?'}
                       </p>
                       <h2 className="text-3xl md:text-4xl font-black text-white">
                         Welcome back, <span className="text-[#FFD700]">{userTag.tag}</span>
@@ -568,10 +582,18 @@ export default function Dashboard() {
                             ? 'text-green-300 border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.18)_0%,rgba(20,83,45,0.08)_100%)]'
                             : hasPendingIdentity
                               ? 'text-yellow-300 border-yellow-500/25 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.08)_100%)]'
-                              : 'text-gray-300 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)]'
+                              : hasRejectedIdentity
+                                ? 'text-red-300 border-red-500/25 bg-[linear-gradient(180deg,rgba(239,68,68,0.18)_0%,rgba(127,29,29,0.08)_100%)]'
+                                : 'text-gray-300 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)]'
                         }`}
                       >
-                        {hasVerifiedIdentity ? '✓ Verified' : hasPendingIdentity ? '◌ Pending review' : 'Identity not verified'}
+                        {hasVerifiedIdentity
+                          ? '✓ Verified'
+                          : hasPendingIdentity
+                            ? '◌ Pending review'
+                            : hasRejectedIdentity
+                              ? '✕ Re-verify'
+                              : 'Identity not verified'}
                       </span>
                       {address && (
                         <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300`}>
@@ -669,19 +691,27 @@ export default function Dashboard() {
                       </p>
                       <p className="mt-2 text-xs leading-5 text-white/55 max-w-2xl">
                         {hasVerifiedIdentity
-                          ? 'Live now: your verified handle anchors payouts, creator opportunities, and your public creator graph. Coming soon: richer enrichment, imported residue, and smarter matching.'
+                          ? 'Your verified handle anchors payouts, creator opportunities, and your public creator graph.'
                           : hasPendingIdentity
-                            ? 'Live now: your handle proof is in review and already tied to your wallet. Coming soon: automatic enrichment and deeper footprint routing once the identity clears.'
-                            : 'Live now: you can link a creator handle and submit a public proof for review. Coming soon: richer enrichment, imported residue, and smarter matching.'}
+                            ? 'Your handle proof is in review and already tied to this wallet.'
+                            : hasRejectedIdentity
+                              ? 'Your last proof did not clear. Update the handle or submit a fresh proof.'
+                              : 'Link a creator handle and submit a public proof for review.'}
                       </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={() => router.push('/claim-tag')}
+                        onClick={() => router.push(claimTagHref)}
                         className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
                       >
-                        {hasPendingIdentity ? 'Update Handle / Re-verify' : identityHandle ? 'Manage Identity' : 'Connect Identity'}
+                        {hasPendingIdentity
+                          ? 'Update Handle / Re-verify'
+                          : hasRejectedIdentity
+                            ? 'Re-verify Identity'
+                            : identityHandle
+                              ? 'Manage Identity'
+                              : 'Connect Identity'}
                       </button>
                       <button
                         onClick={() => router.push('/map')}
@@ -701,17 +731,21 @@ export default function Dashboard() {
                       <p className="mt-1 text-[11px] text-white/48">
                         {identityPlatform && identityHandle
                           ? `${getProviderLabel(identityPlatform)} handle @${identityHandle}`
-                          : 'No linked creator handle yet'}
+                          : hasRejectedIdentity
+                            ? 'Last proof was rejected. Submit a fresh handle proof.'
+                            : 'No linked creator handle yet'}
                       </p>
                     </div>
 
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
                       <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Claim Match</p>
                       <p className="mt-2 text-sm font-black text-white">
-                        {identityHandle ? (socialMatchesClaimedTag ? 'Aligned' : 'Needs match') : 'Waiting'}
+                        {hasRejectedIdentity ? 'Needs re-verify' : identityHandle ? (socialMatchesClaimedTag ? 'Aligned' : 'Needs match') : 'Waiting'}
                       </p>
                       <p className="mt-1 text-[11px] text-white/48">
-                        {identityHandle
+                        {hasRejectedIdentity
+                          ? 'Re-submit the handle proof, then match it cleanly to your BaseDare tag.'
+                          : identityHandle
                           ? (socialMatchesClaimedTag ? 'Your linked handle matches your claimed BaseDare tag.' : `Linked handle is @${identityHandle}.`)
                           : 'Connect first, then anchor the right tag.'}
                       </p>
@@ -720,14 +754,16 @@ export default function Dashboard() {
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
                       <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Share Ready</p>
                       <p className="mt-2 text-sm font-black text-white">
-                        {hasVerifiedIdentity ? 'Yes' : hasPendingIdentity ? 'Pending' : 'Later'}
+                        {hasVerifiedIdentity ? 'Yes' : hasPendingIdentity ? 'Pending' : hasRejectedIdentity ? 'Blocked' : 'Later'}
                       </p>
                       <p className="mt-1 text-[11px] text-white/48">
                         {hasVerifiedIdentity
                           ? `${connectedAudience ? `${connectedAudience} audience linked, ` : ''}approved wins can route through one anchored creator identity.`
                           : hasPendingIdentity
                             ? 'Your handle is under review now. Once approved, share and matching rails will point through the same identity.'
-                            : 'Connect identity to make payouts, matching, and distribution point the same way.'}
+                            : hasRejectedIdentity
+                              ? 'Clear a fresh proof first. Then payouts, matching, and distribution can point through one identity again.'
+                              : 'Connect identity to make payouts, matching, and distribution point the same way.'}
                       </p>
                     </div>
                   </div>
@@ -746,7 +782,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <button
-                    onClick={() => router.push('/claim-tag')}
+                    onClick={() => router.push(claimTagHref)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/40 bg-[linear-gradient(180deg,rgba(168,85,247,0.18)_0%,rgba(88,28,135,0.12)_100%)] text-purple-200 font-bold text-xs uppercase tracking-wider transition-all hover:-translate-y-[1px] shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   >
                     <Zap className="w-4 h-4" />
@@ -761,10 +797,14 @@ export default function Dashboard() {
                       <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Social Status</span>
                     </div>
                     <p className="mt-2 text-sm font-black text-white">
-                      {identityHandle ? `@${identityHandle}` : 'Not connected'}
+                      {identityHandle ? `@${identityHandle}` : hasRejectedIdentity ? 'Needs re-verify' : 'Not connected'}
                     </p>
                     <p className="mt-1 text-[11px] text-white/48">
-                      {identityHandle && identityPlatform ? `${getProviderLabel(identityPlatform)} linked and waiting for tag alignment.` : 'Link your public creator handle first, then claim the right tag.'}
+                      {identityHandle && identityPlatform
+                        ? `${getProviderLabel(identityPlatform)} linked and waiting for tag alignment.`
+                        : hasRejectedIdentity
+                          ? 'Open Connect Identity again and submit a fresh proof.'
+                          : 'Link your public creator handle first, then claim the right tag.'}
                     </p>
                   </div>
 
@@ -774,10 +814,14 @@ export default function Dashboard() {
                       <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Next Step</span>
                     </div>
                     <p className="mt-2 text-sm font-black text-white">
-                      {identityHandle ? 'Match your tag' : 'Connect and claim'}
+                      {hasRejectedIdentity ? 'Re-verify first' : identityHandle ? 'Match your tag' : 'Connect and claim'}
                     </p>
                     <p className="mt-1 text-[11px] text-white/48">
-                      {identityHandle ? 'Your linked handle is ready to be anchored as a BaseDare tag.' : 'Wallet is ready. Connect identity next, then claim your tag.'}
+                      {hasRejectedIdentity
+                        ? 'Your last proof failed. Open Connect Identity and try again.'
+                        : identityHandle
+                          ? 'Your linked handle is ready to be anchored as a BaseDare tag.'
+                          : 'Wallet is ready. Connect identity next, then claim your tag.'}
                     </p>
                   </div>
 
