@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { alertTagClaimDecision } from '@/lib/telegram';
 
 // ============================================================================
 // ADMIN TAG MANAGEMENT
@@ -61,6 +62,28 @@ function deriveIdentityHandle(tag: {
   kickHandle?: string | null;
 }) {
   return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
+}
+
+type DecisionTag = {
+  id: string;
+  tag: string;
+  walletAddress: string;
+  verificationMethod: string | null;
+  twitterHandle: string | null;
+  twitchHandle: string | null;
+  youtubeHandle: string | null;
+  kickHandle: string | null;
+};
+
+function getDecisionPayload(tag: DecisionTag, approved: boolean) {
+  return {
+    tagClaimId: tag.id,
+    tag: tag.tag,
+    approved,
+    walletAddress: tag.walletAddress,
+    platform: deriveIdentityPlatform(tag) || 'other',
+    handle: deriveIdentityHandle(tag) || tag.tag.replace(/^@/, ''),
+  };
 }
 
 function isAdmin(request: NextRequest): boolean {
@@ -301,6 +324,9 @@ export async function PUT(request: NextRequest) {
             verifiedAt: new Date(),
           },
         });
+        void alertTagClaimDecision(getDecisionPayload(streamerTag!, true)).catch((err) =>
+          console.error('[TELEGRAM] Tag approval alert failed:', err)
+        );
         console.log(`[ADMIN] Kick tag ${streamerTag!.tag} VERIFIED by ${adminWallet}`);
         return NextResponse.json({
           success: true,
@@ -325,6 +351,9 @@ export async function PUT(request: NextRequest) {
             revokeReason: reason || 'Verification code not found on Kick profile/stream',
           },
         });
+        void alertTagClaimDecision(getDecisionPayload(streamerTag!, false)).catch((err) =>
+          console.error('[TELEGRAM] Tag rejection alert failed:', err)
+        );
         console.log(`[ADMIN] Kick tag ${streamerTag!.tag} REJECTED by ${adminWallet}: ${reason}`);
         return NextResponse.json({
           success: true,
@@ -359,6 +388,9 @@ export async function PUT(request: NextRequest) {
           where: { id: streamerTag!.id },
           data: verifyData,
         });
+        void alertTagClaimDecision(getDecisionPayload(streamerTag!, true)).catch((err) =>
+          console.error('[TELEGRAM] Tag approval alert failed:', err)
+        );
 
         // Activate any pending dares for this streamer
         const activatedDares = await prisma.dare.updateMany({
@@ -397,6 +429,9 @@ export async function PUT(request: NextRequest) {
             revokeReason: reason || 'Verification code not found on profile',
           },
         });
+        void alertTagClaimDecision(getDecisionPayload(streamerTag!, false)).catch((err) =>
+          console.error('[TELEGRAM] Tag rejection alert failed:', err)
+        );
         console.log(`[ADMIN] Tag ${streamerTag!.tag} (${streamerTag!.verificationMethod}) REJECTED by ${adminWallet}: ${reason}`);
         return NextResponse.json({
           success: true,

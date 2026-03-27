@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
+import { alertDareNeedsReview } from '@/lib/telegram';
 
 // ============================================================================
 // COMMUNITY VOTING API
@@ -97,9 +98,11 @@ export async function POST(
       where: { id: dareId },
       select: {
         id: true,
+        shortId: true,
         status: true,
         videoUrl: true,
         title: true,
+        streamerHandle: true,
       },
     });
 
@@ -189,6 +192,7 @@ export async function POST(
       const approvePercent = (approveCount / totalVotes) * 100;
       const rejectPercent = (rejectCount / totalVotes) * 100;
       const strongestSignal = Math.max(approvePercent, rejectPercent);
+      let reviewReason = `Community voting reached ${totalVotes}/${VOTE_THRESHOLD} and needs moderator review.`;
 
       if (approvePercent > CONSENSUS_PERCENT) {
         // Community lean should inform manual review, not finalize payout.
@@ -201,6 +205,7 @@ export async function POST(
         });
         escalatedToReview = true;
         reviewSignal = 'APPROVE';
+        reviewReason = `Community voting leaned approve (${approvePercent.toFixed(0)}%) and now needs moderator review.`;
         console.log(`[VOTE] Dare ${dareId} reached community PASS consensus (${approvePercent.toFixed(1)}%) and was escalated to manual review`);
       } else if (rejectPercent > CONSENSUS_PERCENT) {
         // Community reject lean should also inform manual review, not finalize failure.
@@ -213,6 +218,7 @@ export async function POST(
         });
         escalatedToReview = true;
         reviewSignal = 'REJECT';
+        reviewReason = `Community voting leaned reject (${rejectPercent.toFixed(0)}%) and now needs moderator review.`;
         console.log(`[VOTE] Dare ${dareId} reached community FAIL consensus (${rejectPercent.toFixed(1)}%) and was escalated to manual review`);
       } else {
         // No clear consensus - still escalate for moderator review once threshold is met
@@ -225,7 +231,19 @@ export async function POST(
         });
         escalatedToReview = true;
         reviewSignal = 'MIXED';
+        reviewReason = `Community voting was mixed (${approvePercent.toFixed(0)}% approve / ${rejectPercent.toFixed(0)}% reject) and now needs moderator review.`;
         console.log(`[VOTE] Dare ${dareId} flagged for moderator review (${approvePercent.toFixed(1)}% approve, ${rejectPercent.toFixed(1)}% reject)`);
+      }
+
+      if (escalatedToReview) {
+        void alertDareNeedsReview({
+          dareId,
+          shortId: dare.shortId || dareId,
+          title: dare.title,
+          streamerTag: dare.streamerHandle,
+          confidence: Math.round(strongestSignal),
+          reviewReason,
+        }).catch((err) => console.error('[TELEGRAM] Community review alert failed:', err));
       }
     }
 

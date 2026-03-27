@@ -1408,6 +1408,7 @@ export async function sendDareReviewAlert(data: {
   title: string;
   streamerTag: string | null;
   confidence?: number;
+  reviewReason?: string;
 }): Promise<void> {
   if (!TELEGRAM_ADMIN_CHAT_ID) {
     return;
@@ -1418,13 +1419,14 @@ export async function sendDareReviewAlert(data: {
   const confidenceLine = typeof data.confidence === 'number'
     ? `\n🤖 AI Confidence: ${data.confidence}%`
     : '';
+  const reviewReason = data.reviewReason || 'Manual review required.';
   const message = [
     '⏳ <b>DARE NEEDS REVIEW</b>',
     '',
     `<b>${data.title}</b>`,
     `🏷️ Tag: <code>${targetTag}</code>${confidenceLine}`,
     '',
-    '⚠️ High-value bounty requires manual verification.',
+    `⚠️ ${reviewReason}`,
     `🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>`,
   ].join('\n');
 

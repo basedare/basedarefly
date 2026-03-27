@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
+import { alertClaimRequestSubmission } from '@/lib/telegram';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -165,6 +166,15 @@ export async function POST(
     });
 
     console.log(`[CLAIM REQUEST] Dare ${dareId} requested by ${userTag.tag} (${lowerWallet})`);
+
+    void alertClaimRequestSubmission({
+      dareId: updatedDare.id,
+      shortId: updatedDare.shortId || updatedDare.id,
+      title: updatedDare.title,
+      bounty: updatedDare.bounty,
+      claimTag: userTag.tag,
+      walletAddress: lowerWallet,
+    }).catch((err) => console.error('[TELEGRAM] Claim request alert failed:', err));
 
     return NextResponse.json({
       success: true,

@@ -193,12 +193,13 @@ export async function alertVerification(data: {
     : '';
 
   if (data.result === 'PENDING_REVIEW') {
-    await sendDareReviewAlert({
+    await alertDareNeedsReview({
       dareId: data.dareId,
       shortId: data.shortId,
       title: data.title,
       streamerTag: data.streamerTag,
       confidence: data.confidence,
+      reviewReason: 'High-value bounty requires manual verification.',
     });
     return;
   }
@@ -210,6 +211,53 @@ ${emoji} <b>DARE ${status}</b>
 👤 ${target}${confidenceLine}${payoutLine}${txLink}${reviewNote}
 
 🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>
+`.trim();
+
+  await sendMessage(message);
+}
+
+/**
+ * Alert: Dare needs admin review
+ */
+export async function alertDareNeedsReview(data: {
+  dareId: string;
+  shortId: string;
+  title: string;
+  streamerTag: string | null;
+  confidence?: number;
+  reviewReason?: string;
+}): Promise<void> {
+  await sendDareReviewAlert({
+    dareId: data.dareId,
+    shortId: data.shortId,
+    title: data.title,
+    streamerTag: data.streamerTag,
+    confidence: data.confidence,
+    reviewReason: data.reviewReason,
+  });
+}
+
+/**
+ * Alert: Creator submitted a claim request for an open activation
+ */
+export async function alertClaimRequestSubmission(data: {
+  dareId: string;
+  shortId: string;
+  title: string;
+  bounty: number;
+  claimTag: string;
+  walletAddress: string;
+}): Promise<void> {
+  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
+  const message = `
+🙋 <b>CLAIM REQUEST SUBMITTED</b>
+
+<b>${data.title}</b>
+🏷️ Claimant: <code>${data.claimTag}</code>
+👛 Wallet: <code>${wallet}</code>
+💰 Pot: ${formatUSDC(data.bounty)}
+
+🔗 <a href="${BASE_URL}/dare/${data.shortId}">Review Dare</a>
 `.trim();
 
   await sendMessage(message);
