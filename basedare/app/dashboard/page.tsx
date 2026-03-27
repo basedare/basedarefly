@@ -45,6 +45,32 @@ interface SessionPlatformData {
   platformHandle?: string | null;
   platformBio?: string | null;
   platformFollowerCount?: number | null;
+  token?: string | null;
+}
+
+interface Opportunity {
+  id: string;
+  shortId: string;
+  title: string;
+  description: string | null;
+  payoutAmount: number;
+  payoutCurrency: 'USDC';
+  matchScore: number;
+  matchReasons: string[];
+  status: string;
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  } | null;
+  linkedDare: {
+    id: string;
+    shortId: string | null;
+    status: string;
+  } | null;
+  shortlisted: boolean;
 }
 
 type DareView = 'funded' | 'forme';
@@ -85,6 +111,73 @@ function getProviderLabel(provider: string | null | undefined): string {
   return 'Social';
 }
 
+function OpportunityCard({
+  opportunity,
+  onOpen,
+}: {
+  opportunity: Opportunity;
+  onOpen: (href: string) => void;
+}) {
+  const href = opportunity.linkedDare?.shortId
+    ? `/dare/${opportunity.linkedDare.shortId}`
+    : opportunity.venue?.slug
+      ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}`
+      : '/map';
+
+  return (
+    <div className={`${insetCardClass} p-4`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-cyan-200">
+            <MapPin className="w-4 h-4" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Live Activation</span>
+          </div>
+          <p className="mt-2 text-base font-black text-white line-clamp-1">
+            {opportunity.venue?.name || 'Venue activation'}
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            {opportunity.venue?.city || 'Map-linked'}
+            {opportunity.venue?.country ? ` • ${opportunity.venue.country}` : ''}
+          </p>
+        </div>
+
+        <div className="text-right shrink-0">
+          <div className="text-xl font-black text-[#22c55e]">
+            ${opportunity.payoutAmount}
+            <span className="ml-1 text-xs font-bold text-[#22c55e]/80">{opportunity.payoutCurrency}</span>
+          </div>
+          <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
+            score {opportunity.matchScore}
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm font-bold text-white line-clamp-2">{opportunity.title}</p>
+      {opportunity.description ? (
+        <p className="mt-2 text-xs leading-5 text-white/50 line-clamp-2">{opportunity.description}</p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {opportunity.matchReasons.slice(0, 3).map((reason) => (
+          <span
+            key={`${opportunity.id}-${reason}`}
+            className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55"
+          >
+            {reason}
+          </span>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onOpen(href)}
+        className="mt-5 w-full rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+      >
+        Open Brief
+      </button>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -100,6 +193,9 @@ export default function Dashboard() {
   const [savingCreatorTags, setSavingCreatorTags] = useState(false);
   const [tagsSaveError, setTagsSaveError] = useState<string | null>(null);
   const [tagsSaveSuccess, setTagsSaveSuccess] = useState<string | null>(null);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
+  const [opportunitiesReason, setOpportunitiesReason] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -110,6 +206,7 @@ export default function Dashboard() {
   // Get the active dares list based on view
   const dares = activeView === 'funded' ? fundedDares : forMeDares;
   const sessionData = session as SessionPlatformData | null;
+  const sessionToken = sessionData?.token ?? null;
   const connectedProvider = sessionData?.provider || null;
   const connectedHandle = sessionData?.platformHandle?.replace(/^@/, '').trim() || null;
   const connectedPlatformBio = sessionData?.platformBio?.trim() || null;
@@ -254,6 +351,39 @@ export default function Dashboard() {
 
     fetchDares();
   }, [address, activeView]);
+
+  useEffect(() => {
+    const fetchOpportunities = async () => {
+      if (!address) {
+        setOpportunities([]);
+        setOpportunitiesReason(null);
+        return;
+      }
+
+      try {
+        setOpportunitiesLoading(true);
+        const response = await fetch(`/api/campaigns/for-creator?wallet=${encodeURIComponent(address)}`, {
+          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+        });
+        const payload = await response.json();
+
+        if (!payload.success) {
+          throw new Error(payload.error || 'Failed to load creator opportunities');
+        }
+
+        setOpportunities(payload.data?.campaigns ?? []);
+        setOpportunitiesReason(payload.data?.reason ?? null);
+      } catch (error) {
+        console.error('Failed to load creator opportunities:', error);
+        setOpportunities([]);
+        setOpportunitiesReason('LOAD_FAILED');
+      } finally {
+        setOpportunitiesLoading(false);
+      }
+    };
+
+    fetchOpportunities();
+  }, [address, sessionToken]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -626,6 +756,75 @@ export default function Dashboard() {
             </div>
             <div className="relative z-10 text-xs text-[#FFD700] mt-2 font-mono">Complete to Earn</div>
           </div>
+        </div>
+
+        {/* OPPORTUNITIES FOR YOU */}
+        <div className={`${softCardClass} p-6 mb-12`}>
+          <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className={sectionLabelClass}>
+                <Zap className="w-4 h-4 text-fuchsia-300" />
+                CREATOR PULL
+              </div>
+              <h3 className="mt-4 text-xl font-black uppercase tracking-[0.12em] text-white">
+                Opportunities For You
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm text-white/55">
+                Money that fits your tag, your socials, and the places brands are trying to heat up right now.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/map')}
+              className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+            >
+              <MapPin className="w-4 h-4" />
+              Open Map
+            </button>
+          </div>
+
+          {!isConnected ? (
+            <div className={`${insetCardClass} p-5 text-sm text-white/55`}>
+              Connect your wallet to see paid activations that fit your creator profile.
+            </div>
+          ) : opportunitiesLoading ? (
+            <div className={`${insetCardClass} flex items-center justify-center p-6 text-sm text-white/55`}>
+              <Loader2 className="mr-3 h-5 w-5 animate-spin text-cyan-300" />
+              Pulling live activations for your profile...
+            </div>
+          ) : opportunities.length === 0 ? (
+            <div className={`${insetCardClass} p-5`}>
+              <p className="text-sm text-white/65">
+                {opportunitiesReason === 'CLAIM_TAG_REQUIRED'
+                  ? 'Paid activations will appear here once you claim your tag. That gives BaseDare a real creator identity to match against live brand demand.'
+                  : 'Paid activations will appear here as brands target your style. Connect more socials and save a few creator tags to improve matches.'}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push('/claim-tag')}
+                  className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                >
+                  Claim Tag
+                </button>
+                <button
+                  onClick={() => router.push('/claim-tag')}
+                  className="rounded-full border border-purple-400/25 bg-purple-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                >
+                  Connect Social
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {opportunities.map((opportunity) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onOpen={(href) => router.push(href)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* MAIN CONTENT GRID */}
