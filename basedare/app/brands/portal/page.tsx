@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft, MapPin, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 
 // ============================================================================
@@ -86,6 +86,7 @@ interface Campaign {
     assigned: number;
     completed: number;
   };
+  targetingCriteria?: string;
 }
 
 interface CampaignFormData {
@@ -99,6 +100,8 @@ interface CampaignFormData {
   targetingCriteria: {
     niche: string;
     minFollowers: number;
+    location: 'anywhere' | 'near-venue';
+    platforms: string[];
   };
   verificationCriteria: {
     hashtagsRequired: string[];
@@ -113,6 +116,40 @@ interface CampaignFormData {
     };
   };
 }
+
+interface CampaignMatch {
+  score: number;
+  reasons: string[];
+  creator: {
+    id: string;
+    tag: string;
+    bio: string | null;
+    followerCount: number | null;
+    tags: string[];
+    status: string;
+    totalEarned: number;
+    completedDares: number;
+    platforms: {
+      twitter: { handle: string; verified: boolean } | null;
+      twitch: { handle: string; verified: boolean } | null;
+      youtube: { handle: string; verified: boolean } | null;
+      kick: { handle: string; verified: boolean } | null;
+    };
+  };
+}
+
+interface CampaignMatchesState {
+  loading: boolean;
+  data: CampaignMatch[];
+  error: string | null;
+}
+
+const PLATFORM_OPTIONS = [
+  { value: 'twitter', label: 'X' },
+  { value: 'twitch', label: 'Twitch' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'kick', label: 'Kick' },
+] as const;
 
 interface PlaceSearchResult {
   id: string;
@@ -198,7 +235,9 @@ export default function BrandPortalPage() {
     syncTime: '',
     targetingCriteria: {
       niche: '',
-      minFollowers: 5000,
+      minFollowers: 0,
+      location: 'anywhere',
+      platforms: [],
     },
     verificationCriteria: {
       hashtagsRequired: [],
@@ -210,6 +249,9 @@ export default function BrandPortalPage() {
   const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
   const [placeLoading, setPlaceLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(null);
+  const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
+  const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
+  const [shortlistedCreators, setShortlistedCreators] = useState<Record<string, string[]>>({});
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -417,7 +459,7 @@ export default function BrandPortalPage() {
           creatorCountTarget: 10,
           payoutPerCreator: 100,
           syncTime: '',
-          targetingCriteria: { niche: '', minFollowers: 5000 },
+          targetingCriteria: { niche: '', minFollowers: 0, location: 'anywhere', platforms: [] },
           verificationCriteria: { hashtagsRequired: [], minDurationSeconds: 30 },
         });
         setPlaceQuery('');
@@ -444,6 +486,113 @@ export default function BrandPortalPage() {
         },
       });
       setHashtagInput('');
+    }
+  };
+
+  const togglePreferredPlatform = (platform: string) => {
+    setFormData((current) => {
+      const hasPlatform = current.targetingCriteria.platforms.includes(platform);
+      return {
+        ...current,
+        targetingCriteria: {
+          ...current.targetingCriteria,
+          platforms: hasPlatform
+            ? current.targetingCriteria.platforms.filter((entry) => entry !== platform)
+            : [...current.targetingCriteria.platforms, platform],
+        },
+      };
+    });
+  };
+
+  const fetchMatchesForCampaign = async (campaignId: string) => {
+    if (!address) return;
+
+    setMatchesByCampaign((current) => ({
+      ...current,
+      [campaignId]: {
+        loading: true,
+        data: current[campaignId]?.data ?? [],
+        error: null,
+      },
+    }));
+
+    try {
+      const response = await fetch(
+        `/api/campaigns/${encodeURIComponent(campaignId)}/matches?brandWallet=${encodeURIComponent(address)}`,
+        {
+          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+        }
+      );
+      const payload = await response.json();
+
+      if (!payload.success) {
+        throw new Error(payload.error || 'Failed to load matches');
+      }
+
+      setMatchesByCampaign((current) => ({
+        ...current,
+        [campaignId]: {
+          loading: false,
+          data: payload.data?.matches ?? [],
+          error: null,
+        },
+      }));
+    } catch (error) {
+      setMatchesByCampaign((current) => ({
+        ...current,
+        [campaignId]: {
+          loading: false,
+          data: current[campaignId]?.data ?? [],
+          error: error instanceof Error ? error.message : 'Failed to load matches',
+        },
+      }));
+    }
+  };
+
+  const toggleCampaignMatches = async (campaignId: string) => {
+    const willExpand = expandedMatchesCampaignId !== campaignId;
+    setExpandedMatchesCampaignId(willExpand ? campaignId : null);
+
+    if (!willExpand) return;
+    if (matchesByCampaign[campaignId]?.data?.length || matchesByCampaign[campaignId]?.loading) return;
+
+    await fetchMatchesForCampaign(campaignId);
+  };
+
+  const toggleShortlistCreator = (campaignId: string, creatorId: string) => {
+    setShortlistedCreators((current) => {
+      const currentList = current[campaignId] ?? [];
+      const nextList = currentList.includes(creatorId)
+        ? currentList.filter((id) => id !== creatorId)
+        : [...currentList, creatorId];
+      return {
+        ...current,
+        [campaignId]: nextList,
+      };
+    });
+  };
+
+  const formatTargetingPreview = (targetingRaw?: string) => {
+    if (!targetingRaw) return [];
+
+    try {
+      const targeting = JSON.parse(targetingRaw) as CampaignFormData['targetingCriteria'];
+      const chips: string[] = [];
+      if (targeting.minFollowers && targeting.minFollowers > 0) {
+        chips.push(`min ${targeting.minFollowers.toLocaleString()} followers`);
+      }
+      if (targeting.platforms?.length) {
+        chips.push(targeting.platforms.map((platform) => platform.toUpperCase()).join(' + '));
+      }
+      if (targeting.niche?.trim()) {
+        chips.push(targeting.niche.trim());
+      }
+      if (targeting.location === 'near-venue') {
+        chips.push('venue-local');
+      }
+      return chips;
+    } catch {
+      return [];
     }
   };
 
@@ -908,48 +1057,12 @@ export default function BrandPortalPage() {
 
               <div className="space-y-4">
                 {formData.type === 'CREATOR' ? (
-                  <>
-                    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                      <div className="text-sm font-semibold text-amber-800">Creator routing is parked</div>
-                      <div className="mt-2 text-sm text-amber-700">
-                        Existing scout workflows stay intact, but new CREATOR campaigns are temporarily paused until the linked social-routing path is fully wired.
-                      </div>
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                    <div className="text-sm font-semibold text-amber-800">Creator routing is parked</div>
+                    <div className="mt-2 text-sm text-amber-700">
+                      Existing scout workflows stay intact, but new CREATOR campaigns are temporarily paused until the linked social-routing path is fully wired.
                     </div>
-                    <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
-                      <input
-                        type="text"
-                        value={formData.targetingCriteria.niche}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            targetingCriteria: { ...formData.targetingCriteria, niche: e.target.value },
-                          })
-                        }
-                        placeholder="e.g., Gaming, Fitness, Tech"
-                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
-                      <input
-                        type="number"
-                        value={formData.targetingCriteria.minFollowers}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            targetingCriteria: {
-                              ...formData.targetingCriteria,
-                              minFollowers: parseInt(e.target.value) || 0,
-                            },
-                          })
-                        }
-                        min={0}
-                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                      />
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                     <div className="text-sm font-semibold text-zinc-900">Place campaign wiring</div>
@@ -958,6 +1071,93 @@ export default function BrandPortalPage() {
                     </div>
                   </div>
                 )}
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900">Creator fit</div>
+                    <div className="mt-1 text-sm text-zinc-600">
+                      Keep these soft while we onboard creators. They steer ranking instead of blocking participation.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
+                    <input
+                      type="text"
+                      value={formData.targetingCriteria.niche}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          targetingCriteria: { ...formData.targetingCriteria, niche: e.target.value },
+                        })
+                      }
+                      placeholder="e.g., Surf, Nightlife, Food"
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
+                    <input
+                      type="number"
+                      value={formData.targetingCriteria.minFollowers}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          targetingCriteria: {
+                            ...formData.targetingCriteria,
+                            minFollowers: parseInt(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      min={0}
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-zinc-600 mb-2">Preferred Platforms</label>
+                    <div className="flex flex-wrap gap-2">
+                      {PLATFORM_OPTIONS.map((platform) => {
+                        const active = formData.targetingCriteria.platforms.includes(platform.value);
+                        return (
+                          <button
+                            key={platform.value}
+                            type="button"
+                            onClick={() => togglePreferredPlatform(platform.value)}
+                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                              active
+                                ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
+                                : 'border-zinc-300 bg-white text-zinc-600 hover:border-zinc-400'
+                            }`}
+                          >
+                            {platform.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-zinc-600 mb-2">Location Relevance</label>
+                    <select
+                      value={formData.targetingCriteria.location}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          targetingCriteria: {
+                            ...formData.targetingCriteria,
+                            location: e.target.value as 'anywhere' | 'near-venue',
+                          },
+                        })
+                      }
+                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
+                    >
+                      <option value="anywhere">Anywhere for now</option>
+                      <option value="near-venue">Prefer creators already around this venue</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-sm text-zinc-600 mb-2">Required Hashtags</label>
@@ -1117,6 +1317,10 @@ export default function BrandPortalPage() {
             <div className="space-y-4">
               {campaigns.map((campaign) => {
                 const tierInfo = TIER_INFO[campaign.tier as keyof typeof TIER_INFO];
+                const targetingPreview = formatTargetingPreview(campaign.targetingCriteria);
+                const matchesState = matchesByCampaign[campaign.id];
+                const shortlistedCount = (shortlistedCreators[campaign.id] ?? []).length;
+                const isMatchesExpanded = expandedMatchesCampaignId === campaign.id;
                 return (
                   <div
                     key={campaign.id}
@@ -1143,6 +1347,18 @@ export default function BrandPortalPage() {
                           {campaign.truth?.creatorRoutingDormant ? (
                             <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-amber-500">
                               Creator routing parked
+                            </div>
+                          ) : null}
+                          {targetingPreview.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {targetingPreview.map((item) => (
+                                <span
+                                  key={`${campaign.id}-${item}`}
+                                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600"
+                                >
+                                  {item}
+                                </span>
+                              ))}
                             </div>
                           ) : null}
                         </div>
@@ -1208,8 +1424,16 @@ export default function BrandPortalPage() {
                               : `${campaign.slotCounts.completed} completed`}
                         </span>
                       </div>
-                      {campaign.venue?.slug ? (
-                        <div className="mt-3 flex justify-end">
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleCampaignMatches(campaign.id)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                        >
+                          <Users className="h-3.5 w-3.5" />
+                          {isMatchesExpanded ? 'Hide Matches' : shortlistedCount > 0 ? `Matches • ${shortlistedCount} shortlisted` : 'Matches'}
+                        </button>
+                        {campaign.venue?.slug ? (
                           <Link
                             href={`/map?place=${encodeURIComponent(campaign.venue.slug)}&campaignId=${encodeURIComponent(campaign.id)}&source=control`}
                             className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
@@ -1217,6 +1441,100 @@ export default function BrandPortalPage() {
                             <MapPin className="h-3.5 w-3.5" />
                             View on Map
                           </Link>
+                        ) : null}
+                      </div>
+
+                      {isMatchesExpanded ? (
+                        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-zinc-900">Matches</div>
+                              <div className="mt-1 text-xs text-zinc-500">
+                                Ranked softly so brands can see emerging fits even before the creator graph is dense.
+                              </div>
+                            </div>
+                            {matchesState?.loading ? (
+                              <div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Loading</div>
+                            ) : null}
+                          </div>
+
+                          {matchesState?.error ? (
+                            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                              {matchesState.error}
+                            </div>
+                          ) : null}
+
+                          {!matchesState?.loading && (matchesState?.data?.length ?? 0) === 0 ? (
+                            <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                              No creator matches yet. That is expected while onboarding is still at zero. Social connect and tag claims will start feeding this list.
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 space-y-3">
+                            {(matchesState?.data ?? []).slice(0, 5).map((match) => {
+                              const shortlist = (shortlistedCreators[campaign.id] ?? []).includes(match.creator.id);
+                              const platformLabels = Object.entries(match.creator.platforms)
+                                .filter(([, value]) => value?.handle)
+                                .map(([platform]) => platform.toUpperCase());
+
+                              return (
+                                <div
+                                  key={match.creator.id}
+                                  className="rounded-xl border border-white/10 bg-white/5 p-3"
+                                >
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="font-semibold text-zinc-900">{match.creator.tag}</div>
+                                        <div className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                                          score {match.score}
+                                        </div>
+                                      </div>
+                                      <div className="mt-1 text-sm text-zinc-600">
+                                        {match.creator.followerCount
+                                          ? `${match.creator.followerCount.toLocaleString()} followers`
+                                          : 'audience signal pending'}
+                                        {' • '}
+                                        {match.creator.completedDares} wins
+                                        {' • '}
+                                        ${Math.round(match.creator.totalEarned)} earned
+                                      </div>
+                                      {platformLabels.length > 0 ? (
+                                        <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                                          {platformLabels.join(' • ')}
+                                        </div>
+                                      ) : null}
+                                      {match.creator.bio ? (
+                                        <div className="mt-2 text-sm text-zinc-600 line-clamp-2">{match.creator.bio}</div>
+                                      ) : null}
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {match.reasons.slice(0, 3).map((reason) => (
+                                          <span
+                                            key={`${match.creator.id}-${reason}`}
+                                            className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600"
+                                          >
+                                            {reason}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleShortlistCreator(campaign.id, match.creator.id)}
+                                      className={`rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                                        shortlist
+                                          ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
+                                          : 'border-white/10 bg-white/5 text-zinc-700 hover:border-white/20 hover:bg-white/10 hover:text-zinc-900'
+                                      }`}
+                                    >
+                                      {shortlist ? 'Shortlisted' : 'Shortlist'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : null}
                     </div>

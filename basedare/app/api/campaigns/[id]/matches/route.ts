@@ -82,16 +82,10 @@ export async function GET(
 
         const targeting = parseCampaignTargetingCriteria(campaign.targetingCriteria);
 
-        const where: Record<string, unknown> = {
-            status: { in: ['ACTIVE', 'VERIFIED'] },
-        };
-
-        if (typeof targeting.minFollowers === 'number') {
-            where.followerCount = { gte: targeting.minFollowers };
-        }
-
         const candidates = await prisma.streamerTag.findMany({
-            where,
+            where: {
+                status: { in: ['ACTIVE', 'VERIFIED'] },
+            },
             select: {
                 id: true,
                 tag: true,
@@ -139,4 +133,3 @@ export async function GET(
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
-

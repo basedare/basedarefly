@@ -40,6 +40,13 @@ function normalizePlatforms(platforms?: string[] | null) {
     return (platforms ?? []).map((platform) => platform.trim().toLowerCase()).filter(Boolean);
 }
 
+function splitNicheValues(niche?: string | null) {
+    return (niche ?? '')
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+}
+
 function candidatePlatforms(candidate: StreamerTagCandidate) {
     return [
         candidate.twitterHandle ? 'twitter' : null,
@@ -52,6 +59,7 @@ function candidatePlatforms(candidate: StreamerTagCandidate) {
 export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: CampaignTargetingCriteria) {
     const requiredPlatforms = normalizePlatforms(targeting.platforms);
     const creatorPlatforms = candidatePlatforms(candidate);
+    const requestedNiches = splitNicheValues(targeting.niche);
     const reasons: string[] = [];
     let score = 0;
 
@@ -66,7 +74,7 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
             score += 25;
             reasons.push(`meets reach floor (${followers.toLocaleString()} followers)`);
         } else if (typeof targeting.minFollowers === 'number') {
-            score -= 30;
+            score -= 10;
             reasons.push(`below min reach (${followers.toLocaleString()} followers)`);
         } else {
             score += Math.min(20, Math.floor(followers / 5000));
@@ -85,7 +93,7 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
             score += platformHits.length * 12;
             reasons.push(`connected on ${platformHits.join(', ')}`);
         } else {
-            score -= 18;
+            score -= 8;
             reasons.push('missing preferred platforms');
         }
     } else if (creatorPlatforms.length > 0) {
@@ -93,15 +101,19 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
         reasons.push(`connected socials: ${creatorPlatforms.join(', ')}`);
     }
 
-    const normalizedNiche = targeting.niche?.trim().toLowerCase();
-    if (normalizedNiche) {
-        const nicheMatch = candidate.tags.some((tag) => tag.toLowerCase() === normalizedNiche);
-        if (nicheMatch) {
-            score += 18;
-            reasons.push(`niche match: ${targeting.niche}`);
+    if (requestedNiches.length > 0) {
+        const candidateTags = candidate.tags.map((tag) => tag.toLowerCase());
+        const nicheHits = requestedNiches.filter((niche) => candidateTags.includes(niche));
+        if (nicheHits.length > 0) {
+            score += nicheHits.length * 10;
+            reasons.push(`niche fit: ${nicheHits.join(', ')}`);
         } else {
-            reasons.push(`niche not yet confirmed: ${targeting.niche}`);
+            reasons.push(`niche signal still forming: ${requestedNiches.join(', ')}`);
         }
+    }
+
+    if (targeting.location === 'near-venue') {
+        reasons.push('location relevance requested once creator footprint is live');
     }
 
     if (candidate.completedDares > 0) {
@@ -143,4 +155,3 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
         },
     };
 }
-
