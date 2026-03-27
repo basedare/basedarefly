@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -152,6 +153,8 @@ export default function DareDetailPage() {
   const router = useRouter();
   const shortId = params.shortId as string;
   const { address, isConnected } = useAccount();
+  const { data: session } = useSession();
+  const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
   // Dare state
   const [dare, setDare] = useState<DareDetail | null>(null);
@@ -250,7 +253,10 @@ export default function DareDetailPage() {
     try {
       const res = await fetch(`/api/dares/${dare.id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({
           walletAddress: address,
           displayName: `${address.slice(0, 6)}...${address.slice(-4)}`,

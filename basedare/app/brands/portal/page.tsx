@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
@@ -117,10 +118,15 @@ interface PlaceSearchResult {
   id: string;
   name: string;
   displayName: string;
+  address?: string | null;
   city: string | null;
   country: string | null;
   slug?: string;
   placeId?: string;
+  placeSource?: string;
+  externalPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const TIER_INFO = {
@@ -169,6 +175,8 @@ const TIER_INFO = {
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+  const { data: session } = useSession();
+  const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
   // Hydration guard to prevent SSR/client mismatch flickering
   const [mounted, setMounted] = useState(false);
@@ -270,7 +278,7 @@ export default function BrandPortalPage() {
         const payload = await response.json();
         if (!cancelled) {
           const results = payload.success ? payload.data?.results ?? [] : [];
-          setPlaceResults(results.filter((place: PlaceSearchResult) => Boolean(place.placeId)));
+          setPlaceResults(results);
         }
       } catch (error) {
         if (!cancelled) {
@@ -299,7 +307,10 @@ export default function BrandPortalPage() {
     try {
       const res = await fetch('/api/brands', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({
           name: registerName,
           walletAddress: address,
@@ -330,18 +341,65 @@ export default function BrandPortalPage() {
       }
 
       if (formData.type === 'PLACE' && !selectedPlace?.placeId) {
-        alert('Choose a valid BaseDare place for this activation.');
-        return;
+        if (
+          !selectedPlace?.externalPlaceId ||
+          typeof selectedPlace.latitude !== 'number' ||
+          typeof selectedPlace.longitude !== 'number'
+        ) {
+          alert('Choose a valid place for this activation.');
+          return;
+        }
+      }
+
+      let resolvedVenueId = selectedPlace?.placeId;
+      if (formData.type === 'PLACE' && !resolvedVenueId && selectedPlace) {
+        const resolveResponse = await fetch('/api/places/resolve-or-create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          },
+          body: JSON.stringify({
+            name: selectedPlace.name,
+            latitude: selectedPlace.latitude,
+            longitude: selectedPlace.longitude,
+            address: selectedPlace.address ?? selectedPlace.displayName,
+            city: selectedPlace.city,
+            country: selectedPlace.country,
+            placeSource: selectedPlace.placeSource ?? 'OSM_NOMINATIM',
+            externalPlaceId: selectedPlace.externalPlaceId ?? selectedPlace.id,
+          }),
+        });
+
+        const resolvePayload = await resolveResponse.json();
+        if (!resolvePayload.success || !resolvePayload.data?.place?.id) {
+          throw new Error(resolvePayload.error || 'Failed to resolve place');
+        }
+
+        resolvedVenueId = resolvePayload.data.place.id;
+        setSelectedPlace((current) =>
+          current
+            ? {
+                ...current,
+                placeId: resolvePayload.data.place.id,
+                slug: resolvePayload.data.place.slug ?? current.slug,
+                address: resolvePayload.data.place.address ?? current.address,
+              }
+            : current
+        );
       }
 
       const res = await fetch('/api/campaigns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({
           brandWallet: address,
           ...formData,
           creatorCountTarget: formData.type === 'PLACE' ? 1 : formData.creatorCountTarget,
-          venueId: formData.type === 'PLACE' ? selectedPlace?.placeId : undefined,
+          venueId: formData.type === 'PLACE' ? resolvedVenueId : undefined,
           syncTime: formData.syncTime || undefined,
         }),
       });
@@ -759,7 +817,7 @@ export default function BrandPortalPage() {
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
                     <div className="mt-2 text-xs text-zinc-500">
-                      PLACE campaigns use the same venue-linked challenge rail as map-funded missions.
+                      PLACE campaigns use the same venue-linked challenge rail as map-funded missions. You can select a seeded venue or create a new canonical place from search.
                     </div>
                     {placeLoading ? (
                       <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
@@ -779,18 +837,24 @@ export default function BrandPortalPage() {
                           >
                             <div className="font-medium text-zinc-900">{place.name}</div>
                             <div className="text-xs text-zinc-500">{place.displayName}</div>
+                            <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+                              {place.placeId ? 'Seeded place' : 'New place from search'}
+                            </div>
                           </button>
                         ))}
                       </div>
                     ) : placeQuery.trim().length >= 2 && !selectedPlace ? (
                       <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-                        No BaseDare venue matched yet. Search a seeded venue or add the place to the map first.
+                        No matching place yet. Try a nearby landmark, venue, or district name.
                       </div>
                     ) : null}
                     {selectedPlace ? (
                       <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
                         <div className="text-sm font-semibold text-emerald-800">{selectedPlace.name}</div>
                         <div className="text-xs text-emerald-700">{selectedPlace.displayName}</div>
+                        <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-emerald-700">
+                          {selectedPlace.placeId ? 'Canonical venue ready' : 'Will create canonical venue on launch'}
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -1013,7 +1077,7 @@ export default function BrandPortalPage() {
                 disabled={
                   !formData.title.trim() ||
                   formData.type === 'CREATOR' ||
-                  (formData.type === 'PLACE' && !selectedPlace?.placeId)
+                  (formData.type === 'PLACE' && !selectedPlace)
                 }
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >

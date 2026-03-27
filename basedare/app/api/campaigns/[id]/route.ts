@@ -45,6 +45,11 @@ async function getVerifiedSessionWallet(request: NextRequest): Promise<string | 
   return wallet.toLowerCase();
 }
 
+function normalizeWalletForControl(value: string | null | undefined): string | null {
+  if (!value || !isAddress(value)) return null;
+  return value.toLowerCase();
+}
+
 // ============================================================================
 // GET /api/campaigns/[id] - Get campaign details
 // ============================================================================
@@ -143,17 +148,18 @@ export async function PUT(
       );
     }
 
+    const { brandWallet, action } = validation.data;
     const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
+    const normalizedBodyWallet = normalizeWalletForControl(brandWallet);
+    const actingWallet = sessionWallet ?? normalizedBodyWallet;
+
+    if (!actingWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { brandWallet, action } = validation.data;
-    const normalizedBodyWallet = brandWallet?.toLowerCase();
-
-    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+    if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
       return NextResponse.json(
-        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
+        { success: false, error: 'Wallet mismatch. Use the connected brand wallet.' },
         { status: 401 }
       );
     }
@@ -171,7 +177,7 @@ export async function PUT(
       );
     }
 
-    if (campaign.brand.walletAddress.toLowerCase() !== sessionWallet) {
+    if (campaign.brand.walletAddress.toLowerCase() !== actingWallet) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - not campaign owner' },
         { status: 403 }

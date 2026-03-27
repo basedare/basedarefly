@@ -44,6 +44,9 @@ type SearchResult = {
   country: string | null;
   latitude: number;
   longitude: number;
+  activeDareCount?: number;
+  approvedCount?: number;
+  lastTaggedAt?: string | null;
 };
 
 type NearbyPlace = {
@@ -1270,11 +1273,22 @@ export default function RealWorldMap() {
                           categories: undefined,
                           placeSource: result.placeSource,
                           externalPlaceId: result.externalPlaceId,
-                          approvedCount: result.placeSource === 'BASEDARE_VENUE' ? 0 : undefined,
-                          heatScore: result.placeSource === 'BASEDARE_VENUE' ? 0 : undefined,
+                          approvedCount:
+                            result.placeSource === 'BASEDARE_VENUE'
+                              ? (result.approvedCount ?? 0)
+                              : undefined,
+                          heatScore:
+                            result.placeSource === 'BASEDARE_VENUE'
+                              ? (result.approvedCount ?? 0)
+                              : undefined,
+                          lastTaggedAt: result.lastTaggedAt ?? null,
+                          activeDareCount: result.activeDareCount ?? 0,
                         });
                         setTargetCenter([result.latitude, result.longitude]);
                         setTargetZoom(15);
+                        if (result.slug) {
+                          void loadSelectedPlaceVenueDetail(result.slug, undefined, { silent: false });
+                        }
                       }}
                       className="flex w-full items-start gap-3 border-b border-white/6 px-4 py-3 text-left transition hover:bg-white/[0.05] last:border-b-0"
                     >

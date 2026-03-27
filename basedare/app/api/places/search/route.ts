@@ -71,15 +71,30 @@ function normalizeResult(result: NominatimResult) {
 }
 
 async function searchKnownPlaces(query: string) {
+  const normalizedSlugQuery = query.toLowerCase().replace(/\s+/g, '-');
+  const tokens = query
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+
+  const tokenClauses = tokens.flatMap((token) => [
+    { name: { contains: token, mode: 'insensitive' as const } },
+    { slug: { contains: token.toLowerCase(), mode: 'insensitive' as const } },
+    { city: { contains: token, mode: 'insensitive' as const } },
+    { country: { contains: token, mode: 'insensitive' as const } },
+    { address: { contains: token, mode: 'insensitive' as const } },
+  ]);
+
   const venues = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
-        { slug: { contains: query.toLowerCase().replace(/\s+/g, '-'), mode: 'insensitive' } },
+        { slug: { contains: normalizedSlugQuery, mode: 'insensitive' } },
         { city: { contains: query, mode: 'insensitive' } },
         { country: { contains: query, mode: 'insensitive' } },
         { address: { contains: query, mode: 'insensitive' } },
+        ...tokenClauses,
       ],
     },
     select: {
@@ -91,6 +106,17 @@ async function searchKnownPlaces(query: string) {
       country: true,
       latitude: true,
       longitude: true,
+      dares: {
+        where: {
+          NOT: {
+            OR: [
+              { status: { in: ['EXPIRED', 'FAILED', 'VERIFIED'] } },
+              { expiresAt: { lt: new Date() } },
+            ],
+          },
+        },
+        select: { id: true },
+      },
     },
     orderBy: [
       { isPartner: 'desc' },
@@ -98,6 +124,30 @@ async function searchKnownPlaces(query: string) {
     ],
     take: 6,
   });
+
+  const tagSummaryMap = await prisma.placeTag.groupBy({
+    by: ['venueId'],
+    where: {
+      status: 'APPROVED',
+      venueId: { in: venues.map((venue) => venue.id) },
+    },
+    _count: {
+      _all: true,
+    },
+    _max: {
+      submittedAt: true,
+    },
+  });
+
+  const tagSummaryByVenueId = new Map(
+    tagSummaryMap.map((summary) => [
+      summary.venueId,
+      {
+        approvedCount: summary._count._all,
+        lastTaggedAt: summary._max.submittedAt?.toISOString() ?? null,
+      },
+    ])
+  );
 
   return venues.map((venue) => ({
     id: venue.id,
@@ -112,6 +162,9 @@ async function searchKnownPlaces(query: string) {
     longitude: venue.longitude,
     slug: venue.slug,
     placeId: venue.id,
+    activeDareCount: venue.dares.length,
+    approvedCount: tagSummaryByVenueId.get(venue.id)?.approvedCount ?? 0,
+    lastTaggedAt: tagSummaryByVenueId.get(venue.id)?.lastTaggedAt ?? null,
   }));
 }
 

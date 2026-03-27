@@ -36,6 +36,11 @@ async function getVerifiedSessionWallet(request: NextRequest): Promise<string | 
     return wallet.toLowerCase();
 }
 
+function normalizeWalletForComments(walletAddress?: string | null): string | null {
+    if (!walletAddress || !isAddress(walletAddress)) return null;
+    return walletAddress.toLowerCase();
+}
+
 /**
  * GET /api/dares/[id]/comments
  * Fetch paginated comments for a dare, newest first.
@@ -78,11 +83,6 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const sessionWallet = await getVerifiedSessionWallet(request);
-        if (!sessionWallet) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-        }
-
         const rawBody = await request.json();
         const parsed = CommentPostSchema.safeParse(rawBody);
         if (!parsed.success) {
@@ -93,9 +93,22 @@ export async function POST(
         }
 
         const { walletAddress, displayName, body: text } = parsed.data;
-        const normalizedBodyWallet = walletAddress?.toLowerCase();
+        const sessionWallet = await getVerifiedSessionWallet(request);
+        const normalizedBodyWallet = normalizeWalletForComments(walletAddress);
+        const actingWallet = sessionWallet ?? normalizedBodyWallet;
 
-        if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+        if (!actingWallet) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Unauthorized',
+                    code: 'COMMENT_AUTH_REQUIRED',
+                },
+                { status: 401 }
+            );
+        }
+
+        if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
             return NextResponse.json(
                 { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
                 { status: 401 }
@@ -114,8 +127,10 @@ export async function POST(
         const comment = await prisma.comment.create({
             data: {
                 dareId: dare.id,
-                walletAddress: sessionWallet,
-                displayName: displayName?.trim() || `${sessionWallet.slice(0, 6)}...${sessionWallet.slice(-4)}`,
+                walletAddress: actingWallet,
+                displayName:
+                    displayName?.trim() ||
+                    `${actingWallet.slice(0, 6)}...${actingWallet.slice(-4)}`,
                 body: text.trim().slice(0, 500), // cap at 500 chars
             },
         });
