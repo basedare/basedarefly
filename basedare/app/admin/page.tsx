@@ -767,10 +767,21 @@ export default function AdminPage() {
   }, [activeTab, isAuthorized, fetchPendingClaims]);
 
   // Handle moderation decision
-  const handleModerate = async (dareId: string, decision: 'APPROVE' | 'REJECT') => {
+  const handleModerate = async (
+    dareId: string,
+    decision: 'APPROVE' | 'REJECT',
+    options?: { openNext?: boolean }
+  ) => {
     if (!address) return;
 
     setModerating(dareId);
+    const openNext = options?.openNext ?? false;
+    const currentIndex = dares.findIndex((dare) => dare.id === dareId);
+    const nextDareCandidate =
+      currentIndex >= 0
+        ? dares.find((dare, index) => index > currentIndex && dare.id !== dareId) ||
+          dares.find((dare) => dare.id !== dareId)
+        : null;
 
     try {
       const res = await fetch('/api/admin/moderate', {
@@ -791,7 +802,7 @@ export default function AdminPage() {
       if (data.success) {
         // Remove from list
         setDares((prev) => prev.filter((d) => d.id !== dareId));
-        setSelectedDare(null);
+        setSelectedDare(openNext ? nextDareCandidate ?? null : null);
         setModerateNote('');
       } else {
         setError(data.error || 'Failed to moderate');
@@ -1223,6 +1234,24 @@ export default function AdminPage() {
                         <CheckCircle className="w-4 h-4" />
                       )}
                       Approve
+                    </button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleModerate(selectedDare.id, 'REJECT', { openNext: true })}
+                      disabled={moderating === selectedDare.id}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 font-bold text-[11px] uppercase tracking-[0.18em] rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {moderating === selectedDare.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                      Reject + Next
+                    </button>
+                    <button
+                      onClick={() => handleModerate(selectedDare.id, 'APPROVE', { openNext: true })}
+                      disabled={moderating === selectedDare.id}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-300 font-bold text-[11px] uppercase tracking-[0.18em] rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {moderating === selectedDare.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                      Approve + Next
                     </button>
                   </div>
                 </>

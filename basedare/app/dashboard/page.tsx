@@ -22,10 +22,14 @@ interface Dare {
   status: string;
   videoUrl?: string;
   createdAt: string;
+  updatedAt?: string;
+  moderatedAt?: string | null;
+  verifiedAt?: string | null;
   isSimulated?: boolean;
   stakerAddress?: string;
   targetWalletAddress?: string;
   claimedBy?: string | null;
+  claimedAt?: string | null;
   claimRequestWallet?: string | null;
   claimRequestTag?: string | null;
   claimRequestedAt?: string | null;
@@ -143,6 +147,16 @@ function walletsMatch(left?: string | null, right?: string | null) {
   return left.toLowerCase() === right.toLowerCase();
 }
 
+function formatStatusTimestamp(value?: string | null, fallback = 'just now') {
+  if (!value) return fallback;
+  return new Date(value).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   const isPendingRequester = walletsMatch(dare.claimRequestWallet, walletAddress);
   const isAssignedCreator =
@@ -151,7 +165,9 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isPendingRequester && dare.claimRequestStatus === 'PENDING') {
     return {
       label: 'Claim Pending',
-      detail: 'Moderator review is still in flight.',
+      detail: dare.claimRequestedAt
+        ? `Requested ${formatStatusTimestamp(dare.claimRequestedAt)}. Moderator review is still in flight.`
+        : 'Moderator review is still in flight.',
       cta: 'Open Brief',
       tone: 'yellow',
       priority: 1,
@@ -161,7 +177,9 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'PENDING') {
     return {
       label: 'Ready for Proof',
-      detail: 'You have the activation. Submit proof now.',
+      detail: dare.claimedAt
+        ? `Attached ${formatStatusTimestamp(dare.claimedAt)}. Submit proof now.`
+        : 'You have the activation. Submit proof now.',
       cta: 'Submit Proof',
       tone: 'cyan',
       priority: 0,
@@ -171,7 +189,9 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'PENDING_REVIEW') {
     return {
       label: 'In Review',
-      detail: 'Proof submitted. Waiting on referee review.',
+      detail: dare.updatedAt
+        ? `Proof submitted ${formatStatusTimestamp(dare.updatedAt)}. Waiting on referee review.`
+        : 'Proof submitted. Waiting on referee review.',
       cta: 'Open Brief',
       tone: 'amber',
       priority: 2,
@@ -181,7 +201,9 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'PENDING_PAYOUT') {
     return {
       label: 'Payout Queued',
-      detail: 'Proof cleared. Payout will retry automatically.',
+      detail: dare.moderatedAt
+        ? `Approved ${formatStatusTimestamp(dare.moderatedAt)}. Payout will retry automatically.`
+        : 'Proof cleared. Payout will retry automatically.',
       cta: 'Open Brief',
       tone: 'green',
       priority: 3,
@@ -191,7 +213,9 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'VERIFIED') {
     return {
       label: 'Paid',
-      detail: 'Verified completion cleared and paid out.',
+      detail: dare.verifiedAt
+        ? `Paid ${formatStatusTimestamp(dare.verifiedAt)}.`
+        : 'Verified completion cleared and paid out.',
       cta: 'Open Brief',
       tone: 'green',
       priority: 4,
@@ -215,6 +239,36 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
     tone: 'gray',
     priority: 5,
   };
+}
+
+function getClaimLoopTrustLine(dare: Dare, walletAddress?: string | null) {
+  const loopState = getClaimLoopState(dare, walletAddress);
+
+  if (loopState.label === 'Claim Pending') {
+    return 'You are in the queue. No extra action needed until moderator review resolves.';
+  }
+
+  if (loopState.label === 'Ready for Proof') {
+    return 'This is live and attached to you now. Proof is the only thing standing between you and review.';
+  }
+
+  if (loopState.label === 'In Review') {
+    return 'Proof is safely in the referee lane. You do not need to re-upload unless moderators reject it.';
+  }
+
+  if (loopState.label === 'Payout Queued') {
+    return 'The hard part is over. Chain settlement is retrying automatically in the background.';
+  }
+
+  if (loopState.label === 'Paid') {
+    return 'Completed and settled. This win now compounds your creator history.';
+  }
+
+  if (loopState.label === 'Needs Retry') {
+    return 'The brief is still open to you. Tighten the proof and resubmit.';
+  }
+
+  return 'Open the brief to see the latest state and next move.';
 }
 
 function OpportunityCard({
@@ -1169,6 +1223,7 @@ export default function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {creatorClaims.slice(0, 6).map((dare) => {
                 const loopState = getClaimLoopState(dare, address);
+                const trustLine = getClaimLoopTrustLine(dare, address);
                 const toneClass =
                   loopState.tone === 'cyan'
                     ? 'border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-100'
@@ -1208,6 +1263,7 @@ export default function Dashboard() {
                     </div>
 
                     <p className="mt-4 text-sm text-white/58">{loopState.detail}</p>
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-white/38">{trustLine}</p>
 
                     <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
@@ -1385,14 +1441,26 @@ export default function Dashboard() {
                   {selectedClaimLoopState && selectedClaimLoopState.label !== 'Ready for Proof' ? (
                     <div className={`${insetCardClass} flex items-start gap-3 text-xs text-gray-500 p-4`}>
                       <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
-                      <span>{selectedClaimLoopState.detail}</span>
+                      <div>
+                        <span>{selectedClaimLoopState.detail}</span>
+                        <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-white/35">
+                          {getClaimLoopTrustLine(selectedDare, address)}
+                        </p>
+                      </div>
                     </div>
                   ) : null}
 
                   {selectedDare.status === 'PENDING' && (
                     <div className={`${insetCardClass} flex items-start gap-3 text-xs text-gray-500 p-4`}>
                       <AlertCircle className="w-4 h-4 text-[#FFD700] shrink-0" />
-                      <span>Upload video proof to verify completion. AI Referee will analyze within 60 seconds.</span>
+                      <div>
+                        <span>Upload video proof to verify completion. AI Referee will analyze within 60 seconds.</span>
+                        {selectedDare.claimedAt ? (
+                          <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-white/35">
+                            attached {formatStatusTimestamp(selectedDare.claimedAt)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   )}
 
@@ -1406,6 +1474,11 @@ export default function Dashboard() {
                             <p className="mt-2 text-[11px] font-mono text-green-200/70">
                               Turn the verified result into distribution while the outcome is still fresh.
                             </p>
+                            {selectedDare.verifiedAt ? (
+                              <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-green-200/55">
+                                paid {formatStatusTimestamp(selectedDare.verifiedAt)}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                         <ShareWinButton
@@ -1423,7 +1496,14 @@ export default function Dashboard() {
                   {selectedDare.status === 'FAILED' && (
                     <div className="flex items-start gap-3 text-xs bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(18,8,8,0.92)_100%)] p-4 rounded-xl border border-red-500/30">
                       <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                      <span className="text-red-400">Verification failed. Bounty has been refunded to stakers.</span>
+                      <div>
+                        <span className="text-red-400">Verification failed. Bounty has been refunded to stakers.</span>
+                        {selectedDare.moderatedAt ? (
+                          <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-red-200/55">
+                            reviewed {formatStatusTimestamp(selectedDare.moderatedAt)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   )}
                 </div>

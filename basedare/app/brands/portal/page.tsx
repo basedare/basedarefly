@@ -855,6 +855,58 @@ export default function BrandPortalPage() {
     };
   };
 
+  const getCampaignCompletionHistory = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    if (!dare) return [];
+
+    const entries = [
+      dare.claimRequestedAt
+        ? {
+            key: 'claim-request',
+            label: 'Claim requested',
+            detail: dare.claimRequestTag || formatWallet(dare.claimRequestWallet) || 'Creator',
+            at: dare.claimRequestedAt,
+          }
+        : null,
+      dare.claimedAt
+        ? {
+            key: 'creator-attached',
+            label: 'Creator attached',
+            detail: dare.streamerHandle || formatWallet(dare.claimedBy || dare.targetWalletAddress) || 'Creator',
+            at: dare.claimedAt,
+          }
+        : null,
+      dare.updatedAt && dare.videoUrl
+        ? {
+            key: 'proof-submitted',
+            label: 'Proof submitted',
+            detail: 'Media landed in the activation rail',
+            at: dare.updatedAt,
+          }
+        : null,
+      dare.moderatedAt
+        ? {
+            key: 'moderated',
+            label: dare.status === 'FAILED' ? 'Rejected' : 'Approved',
+            detail: dare.status === 'FAILED' ? 'Review closed this activation' : 'Review cleared the proof',
+            at: dare.moderatedAt,
+          }
+        : null,
+      dare.verifiedAt
+        ? {
+            key: 'paid',
+            label: 'Paid',
+            detail: 'Completion settled to the creator',
+            at: dare.verifiedAt,
+          }
+        : null,
+    ].filter(Boolean) as Array<{ key: string; label: string; detail: string; at: string }>;
+
+    return entries
+      .sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime())
+      .slice(0, 4);
+  };
+
   // Determine current view state
   const showNotConnected = mounted && !isConnected;
   const showLoading = mounted && isConnected && loading;
@@ -1573,6 +1625,7 @@ export default function BrandPortalPage() {
                 const creatorIntent = getCampaignIntent(campaign);
                 const outcomeSteps = getCampaignOutcomeSteps(campaign);
                 const outcomeSummary = getCampaignOutcomeSummary(campaign);
+                const completionHistory = getCampaignCompletionHistory(campaign);
                 return (
                   <div
                     key={campaign.id}
@@ -1724,6 +1777,30 @@ export default function BrandPortalPage() {
                           </div>
                         </div>
                       </div>
+
+                      {completionHistory.length > 0 ? (
+                        <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                            Completion History
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {completionHistory.map((entry) => (
+                              <div
+                                key={`${campaign.id}-${entry.key}`}
+                                className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 md:flex-row md:items-center md:justify-between"
+                              >
+                                <div>
+                                  <div className="text-xs font-semibold text-zinc-900">{entry.label}</div>
+                                  <div className="text-[11px] text-zinc-500">{entry.detail}</div>
+                                </div>
+                                <div className="text-[11px] uppercase tracking-[0.14em] text-zinc-400">
+                                  {new Date(entry.at).toLocaleString()}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
 
                       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div

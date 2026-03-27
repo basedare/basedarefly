@@ -63,6 +63,7 @@ This order matters because BaseDare should create real demand pull before adding
 - Admin review should show campaign and venue context alongside proof freshness so operators can resolve activations quickly without jumping across disconnected surfaces.
 - Telegram should mirror the real operator handoff points, not every intermediate state. Claim requests, tag moderation decisions, and proof escalations into admin review should alert operators; passive browsing states should not.
 - Review ops should prioritize the hottest proofs first: already-escalated referee items, campaign-backed activations, and aging proofs should rise to the top. Control should mirror that same lifecycle with a compact recent-movement readout instead of only static status pills.
+- Completion trust should be time-based and visible on both sides: creators should see when the last meaningful action happened and what comes next, while brands should see a compact completion history rather than only a final status label.
 - The same demand graph should power both sides:
   - Brand creates campaign
   - campaign creates linked dare

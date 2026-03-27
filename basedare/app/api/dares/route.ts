@@ -12,8 +12,12 @@ function toPublicDare(dare: {
   expiresAt: Date | null;
   shortId: string | null;
   createdAt: Date;
+  updatedAt: Date;
+  moderatedAt: Date | null;
+  verifiedAt: Date | null;
   claimDeadline: Date | null;
   claimedBy: string | null;
+  claimedAt: Date | null;
   targetWalletAddress: string | null;
   claimRequestWallet: string | null;
   claimRequestTag: string | null;
@@ -30,9 +34,13 @@ function toPublicDare(dare: {
   expiresAt: string | null;
   shortId: string;
   createdAt: string;
+  updatedAt: string;
+  moderatedAt: string | null;
+  verifiedAt: string | null;
   awaitingClaim: boolean;
   claimDeadline: string | null;
   claimedBy: string | null;
+  claimedAt: string | null;
   targetWalletAddress: string | null;
   claimRequestWallet: string | null;
   claimRequestTag: string | null;
@@ -50,9 +58,13 @@ function toPublicDare(dare: {
     expiresAt: dare.expiresAt?.toISOString() || null,
     shortId: dare.shortId || dare.id.slice(0, 8),
     createdAt: dare.createdAt.toISOString(),
+    updatedAt: dare.updatedAt.toISOString(),
+    moderatedAt: dare.moderatedAt?.toISOString() || null,
+    verifiedAt: dare.verifiedAt?.toISOString() || null,
     awaitingClaim: dare.status === 'AWAITING_CLAIM',
     claimDeadline: dare.claimDeadline?.toISOString() || null,
     claimedBy: dare.claimedBy,
+    claimedAt: dare.claimedAt?.toISOString() || null,
     targetWalletAddress: dare.targetWalletAddress,
     claimRequestWallet: dare.claimRequestWallet,
     claimRequestTag: dare.claimRequestTag,
