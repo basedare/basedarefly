@@ -159,6 +159,25 @@ type VenueDetailResponse = {
         claimRequestedAt: string | null;
         claimRequestStatus: string | null;
       }>;
+      paidActivationCount: number;
+      featuredPaidActivation: {
+        id: string;
+        shortId: string;
+        title: string;
+        missionMode: string;
+        bounty: number;
+        status: string;
+        streamerHandle: string | null;
+        expiresAt: string | null;
+        createdAt: string;
+        campaignTitle: string | null;
+        brandName: string | null;
+        targetWalletAddress: string | null;
+        claimedBy: string | null;
+        claimRequestTag: string | null;
+        claimRequestedAt: string | null;
+        claimRequestStatus: string | null;
+      } | null;
     };
   };
 };
@@ -598,6 +617,7 @@ export default function RealWorldMap() {
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
   const [selectedPlaceActiveDares, setSelectedPlaceActiveDares] = useState<SelectedPlaceActiveDare[]>([]);
   const [selectedPlaceActiveDaresLoading, setSelectedPlaceActiveDaresLoading] = useState(false);
+  const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
@@ -894,6 +914,7 @@ export default function RealWorldMap() {
 
         const { venue } = payload.data;
         setSelectedPlaceActiveDares(venue.activeDares);
+        setSelectedPlaceFeaturedPaidActivation(venue.featuredPaidActivation);
         setSelectedPlace((current) => {
           if (!current) return current;
           if (current.slug && current.slug !== slug) return current;
@@ -921,6 +942,7 @@ export default function RealWorldMap() {
         }
         console.error('[REAL_WORLD_MAP] Place detail failed:', error);
         setSelectedPlaceActiveDares([]);
+        setSelectedPlaceFeaturedPaidActivation(null);
       } finally {
         if (!silent && !signal?.aborted) {
           setSelectedPlaceActiveDaresLoading(false);
@@ -1030,6 +1052,7 @@ export default function RealWorldMap() {
 
     if (!slug) {
       setSelectedPlaceActiveDares((current) => (current.length > 0 ? [] : current));
+      setSelectedPlaceFeaturedPaidActivation(null);
       setSelectedPlaceActiveDaresLoading(false);
       return;
     }
@@ -1668,6 +1691,51 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
                   </div>
+
+                  {selectedPlaceFeaturedPaidActivation ? (
+                    <div className="mt-5 rounded-[26px] border border-rose-300/18 bg-[linear-gradient(180deg,rgba(251,113,133,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-rose-100/80">
+                          <Flame className="h-3.5 w-3.5 text-rose-300" />
+                          Money Live Here
+                        </div>
+                        <span className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-rose-100">
+                          paid activation
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-lg font-bold text-white">{selectedPlaceFeaturedPaidActivation.title}</p>
+                          <p className="mt-2 text-sm text-white/65">
+                            {selectedPlaceFeaturedPaidActivation.brandName ?? 'Brand-backed'} activation live at this place.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                              ${selectedPlaceFeaturedPaidActivation.bounty} USDC
+                            </span>
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(selectedPlaceFeaturedPaidActivation).className}`}>
+                              {getActivationStateCopy(selectedPlaceFeaturedPaidActivation).label}
+                            </span>
+                            {selectedPlaceFeaturedPaidActivation.expiresAt ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
+                                {getExpiryLabel(selectedPlaceFeaturedPaidActivation.expiresAt)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        {selectedPlaceFeaturedPaidActivation.shortId ? (
+                          <Link
+                            href={`/dare/${selectedPlaceFeaturedPaidActivation.shortId}`}
+                            className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100"
+                          >
+                            {selectedPlaceFeaturedPaidActivation.claimedBy || selectedPlaceFeaturedPaidActivation.targetWalletAddress || selectedPlaceFeaturedPaidActivation.claimRequestStatus === 'PENDING'
+                              ? 'Open Brief'
+                              : 'Claim This'}
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">

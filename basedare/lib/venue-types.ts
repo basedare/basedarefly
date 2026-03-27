@@ -120,6 +120,25 @@ export type VenueDetail = {
     claimRequestedAt: string | null;
     claimRequestStatus: string | null;
   }>;
+  paidActivationCount: number;
+  featuredPaidActivation: {
+    id: string;
+    shortId: string;
+    title: string;
+    missionMode: string;
+    bounty: number;
+    status: string;
+    streamerHandle: string | null;
+    expiresAt: string | null;
+    createdAt: string;
+    campaignTitle: string | null;
+    brandName: string | null;
+    targetWalletAddress: string | null;
+    claimedBy: string | null;
+    claimRequestTag: string | null;
+    claimRequestedAt: string | null;
+    claimRequestStatus: string | null;
+  } | null;
   consoleUrl: string;
 };
 

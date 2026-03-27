@@ -146,6 +146,28 @@ function mapActiveDare(dare: {
   };
 }
 
+function getFeaturedPaidActivation<
+  T extends {
+    brandName: string | null;
+    bounty: number;
+    createdAt: string;
+  },
+>(activeDares: T[]): T | null {
+  const paidActivations = activeDares.filter((dare) => Boolean(dare.brandName));
+
+  if (paidActivations.length === 0) {
+    return null;
+  }
+
+  return paidActivations.sort((left, right) => {
+    if (right.bounty !== left.bounty) {
+      return right.bounty - left.bounty;
+    }
+
+    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+  })[0] ?? null;
+}
+
 type VenueQrSessionRecord = {
   id: string;
   venueId: string;
@@ -650,6 +672,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
   ]);
 
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
+  const activeDares = venue.dares.map(mapActiveDare);
 
   return {
     id: venue.id,
@@ -685,7 +708,9 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
     recentTags,
-    activeDares: venue.dares.map(mapActiveDare),
+    activeDares,
+    paidActivationCount: venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length,
+    featuredPaidActivation: getFeaturedPaidActivation(activeDares),
     consoleUrl: `/venues/${venue.slug}/console`,
   };
 }

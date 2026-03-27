@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Activity, ArrowRight, Clock3, MapPin, ShieldCheck, Waves } from 'lucide-react';
+import { Activity, ArrowRight, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import VenuePageShell from '../VenuePageShell';
 
@@ -54,6 +54,9 @@ export default async function VenueDetailPage(
   const paidActivationCount = venue.activeDares.filter((dare) => Boolean(dare.brandName)).length;
   const pendingActivationCount = venue.activeDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length;
   const claimedActivationCount = venue.activeDares.filter((dare) => Boolean(dare.claimedBy || dare.targetWalletAddress)).length;
+  const featuredPaidActivationState = venue.featuredPaidActivation
+    ? getVenueActivationState(venue.featuredPaidActivation)
+    : null;
 
   return (
     <VenuePageShell mapHref={`/map?place=${encodeURIComponent(venue.slug)}`}>
@@ -176,6 +179,50 @@ export default async function VenueDetailPage(
                     </Link>
                   </div>
                 </div>
+                {venue.featuredPaidActivation ? (
+                  <div className={`${insetCardClass} mt-5 px-4 py-5`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-rose-100/80">
+                        <Flame className="h-3.5 w-3.5 text-rose-300" />
+                        Money Live Here
+                      </div>
+                      <span className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-rose-100">
+                        paid activation
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-2xl font-black text-white">{venue.featuredPaidActivation.title}</p>
+                        <p className="mt-2 text-sm text-white/62">
+                          {venue.featuredPaidActivation.brandName ?? 'Brand-backed'} activation live at this venue right now.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
+                            ${venue.featuredPaidActivation.bounty.toFixed(0)} USDC
+                          </span>
+                          {featuredPaidActivationState ? (
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${featuredPaidActivationState.className}`}>
+                              {featuredPaidActivationState.label}
+                            </span>
+                          ) : null}
+                          {venue.featuredPaidActivation.expiresAt ? (
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
+                              ends {new Date(venue.featuredPaidActivation.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/dare/${venue.featuredPaidActivation.shortId}`}
+                        className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-4 py-2 text-sm font-semibold text-rose-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-rose-300/34 hover:bg-rose-500/[0.14]"
+                      >
+                        {venue.featuredPaidActivation.claimedBy || venue.featuredPaidActivation.targetWalletAddress || venue.featuredPaidActivation.claimRequestStatus === 'PENDING'
+                          ? 'Open brief'
+                          : 'Claim this activation'}
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-5 space-y-3">
                   {venue.activeDares.length > 0 ? (
                     venue.activeDares.map((dare) => {
