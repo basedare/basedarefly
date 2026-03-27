@@ -14,6 +14,8 @@ type Creator = {
   tag: string;
   totalEarned: number;
   completedDares: number;
+  status: string;
+  tags?: string[];
 };
 
 const raisedPanelClass =
@@ -31,6 +33,9 @@ const sectionLabelClass =
 export default function CreatorsPage() {
   const [creators, setCreators] = React.useState<Creator[]>([]);
   const [loadingCreators, setLoadingCreators] = React.useState(true);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [filterMode, setFilterMode] = React.useState<"all" | "verified">("all");
+  const [sortMode, setSortMode] = React.useState<"earned" | "dares" | "az">("earned");
 
   React.useEffect(() => {
     async function fetchCreators() {
@@ -70,6 +75,32 @@ export default function CreatorsPage() {
     { icon: Shield, title: "Verify Identity", description: "Connect Twitter, Twitch, YouTube, or Kick" },
     { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every bounty you complete" },
   ];
+
+  const filteredCreators = React.useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    const visible = creators.filter((creator) => {
+      const matchesFilter = filterMode === "all" || creator.status === "VERIFIED";
+      const matchesSearch =
+        !normalizedSearch ||
+        creator.tag.toLowerCase().includes(normalizedSearch) ||
+        creator.tags?.some((tag) => tag.toLowerCase().includes(normalizedSearch));
+
+      return matchesFilter && matchesSearch;
+    });
+
+    return [...visible].sort((a, b) => {
+      if (sortMode === "az") {
+        return a.tag.localeCompare(b.tag);
+      }
+
+      if (sortMode === "dares") {
+        return b.completedDares - a.completedDares || b.totalEarned - a.totalEarned;
+      }
+
+      return b.totalEarned - a.totalEarned || b.completedDares - a.completedDares;
+    });
+  }, [creators, filterMode, searchQuery, sortMode]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -150,15 +181,64 @@ export default function CreatorsPage() {
                 </Link>
               </div>
 
+              <div className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search creator or tag"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none transition focus:border-fuchsia-400/30"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: "all", label: "All" },
+                    { value: "verified", label: "Verified" },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setFilterMode(option.value)}
+                      className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                        filterMode === option.value
+                          ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-100"
+                          : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: "earned", label: "Top Earned" },
+                    { value: "dares", label: "Most Dares" },
+                    { value: "az", label: "A-Z" },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSortMode(option.value)}
+                      className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                        sortMode === option.value
+                          ? "border-purple-400/30 bg-purple-500/[0.12] text-purple-100"
+                          : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {loadingCreators ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className={`h-44 animate-pulse ${softCardClass}`} />
                   ))}
                 </div>
-              ) : creators.length === 0 ? (
+              ) : filteredCreators.length === 0 ? (
                 <div className={`${insetCardClass} p-8 text-center`}>
-                  <p className="text-gray-500 font-mono text-xs">No creators verified yet. Be the first!</p>
+                  <p className="text-gray-500 font-mono text-xs">
+                    {creators.length === 0 ? "No creators verified yet. Be the first!" : "No creators match that search yet."}
+                  </p>
                   <button
                     onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
                     className="inline-flex items-center gap-2 mt-4 rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-4 py-2 text-purple-300 text-sm font-bold tracking-wide hover:border-purple-400/35 hover:text-purple-200 transition-colors italic"
@@ -171,8 +251,12 @@ export default function CreatorsPage() {
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-[#0a0913] to-transparent" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-[#0a0913] to-transparent" />
                   <div className="max-h-[38rem] overflow-y-auto pr-1 sm:pr-2">
+                    <div className="mb-4 flex items-center justify-between text-[11px] font-mono uppercase tracking-[0.16em] text-gray-500">
+                      <span>{filteredCreators.length} visible</span>
+                      <span>{filterMode === "verified" ? "verified only" : "all creators"}</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                      {creators.map((creator, index) => {
+                      {filteredCreators.map((creator, index) => {
                         const plainTag = creator.tag.replace("@", "").toLowerCase();
                         const avatarImg = STREAMER_IMAGES[plainTag];
 

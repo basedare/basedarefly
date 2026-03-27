@@ -70,6 +70,12 @@ export async function GET(request: NextRequest) {
         campaign.linkedDare?.claimRequestStatus === 'PENDING' ||
         Boolean(campaign.linkedDare?.claimedBy || campaign.linkedDare?.targetWalletAddress)
     );
+    const claimRequestsPending = brand.campaigns.filter(
+      (campaign) => campaign.linkedDare?.claimRequestStatus === 'PENDING'
+    );
+    const creatorsAttached = brand.campaigns.filter(
+      (campaign) => Boolean(campaign.linkedDare?.claimedBy || campaign.linkedDare?.targetWalletAddress)
+    );
     const proofsSubmitted = brand.campaigns.filter((campaign) => Boolean(campaign.linkedDare?.videoUrl));
     const inReview = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW');
     const payoutQueued = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT');
@@ -86,6 +92,8 @@ export async function GET(request: NextRequest) {
           place: brand.campaigns.filter((campaign) => campaign.type === 'PLACE').length,
           creator: brand.campaigns.filter((campaign) => campaign.type === 'CREATOR').length,
           creatorMovement: creatorMovement.length,
+          claimRequestsPending: claimRequestsPending.length,
+          creatorsAttached: creatorsAttached.length,
           proofsSubmitted: proofsSubmitted.length,
           inReview: inReview.length,
           payoutQueued: payoutQueued.length,

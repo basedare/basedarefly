@@ -26,6 +26,8 @@ interface Brand {
     place: number;
     creator: number;
     creatorMovement: number;
+    claimRequestsPending: number;
+    creatorsAttached: number;
     proofsSubmitted: number;
     inReview: number;
     payoutQueued: number;
@@ -281,6 +283,12 @@ export default function BrandPortalPage() {
     ).length;
   const proofsSubmittedCount =
     campaignSummary?.proofsSubmitted ?? campaigns.filter((campaign) => Boolean(campaign.linkedDare?.videoUrl)).length;
+  const claimRequestsPendingCount =
+    campaignSummary?.claimRequestsPending ??
+    campaigns.filter((campaign) => campaign.linkedDare?.claimRequestStatus === 'PENDING').length;
+  const creatorsAttachedCount =
+    campaignSummary?.creatorsAttached ??
+    campaigns.filter((campaign) => Boolean(campaign.linkedDare?.claimedBy || campaign.linkedDare?.targetWalletAddress)).length;
   const paidOutCount =
     campaignSummary?.paid ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'VERIFIED').length;
   const inReviewCount =
@@ -1630,6 +1638,29 @@ export default function BrandPortalPage() {
         {/* Campaigns List */}
         <div>
           <h2 className="text-xl font-bold mb-4">Your Campaigns</h2>
+
+          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Portfolio Pulse</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">{claimRequestsPendingCount}</div>
+              <div className="text-xs text-zinc-500">claim requests waiting</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Creators Attached</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">{creatorsAttachedCount}</div>
+              <div className="text-xs text-zinc-500">live activations with an owner</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Proofs Landed</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">{proofsSubmittedCount}</div>
+              <div className="text-xs text-zinc-500">{inReviewCount} in review now</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Paid Outcomes</div>
+              <div className="mt-1 text-lg font-bold text-zinc-900">{paidOutCount}</div>
+              <div className="text-xs text-zinc-500">{payoutQueuedCount} queued for payout</div>
+            </div>
+          </div>
 
           {campaigns.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
