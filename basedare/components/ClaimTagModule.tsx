@@ -606,7 +606,7 @@ export function ClaimTagModule() {
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white">Connect Identity</h3>
                   <p className="text-xs text-gray-500 font-mono">
-                    Live now: link your public creator handle to your wallet and submit proof for review. Coming soon: richer enrichment, imported residue, and stronger routing.
+                    Link your public creator handle to this wallet.
                   </p>
                 </div>
               </div>
@@ -629,18 +629,18 @@ export function ClaimTagModule() {
                   {isPlatformConnected ? `Anchored as @${platformHandle}` : 'Connect your real handle'}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/55">
-                  Clean handle alignment keeps payouts, claim review, and BaseDare Brain routing grounded in one creator identity.
+                  Keeps payouts and review tied to one creator.
                 </p>
               </div>
 
               <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center gap-2 text-[#f5c518]">
                   <Share2 className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Cross-Post</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Distribution</span>
                 </div>
-                <p className="mt-3 text-sm font-semibold text-white">Approved wins share cleaner now</p>
+                <p className="mt-3 text-sm font-semibold text-white">Verified wins share cleaner</p>
                 <p className="mt-2 text-xs leading-5 text-white/55">
-                  One consistent BaseDare share payload means tighter growth loops, cleaner proof framing, and better deep links back to the map.
+                  One handle keeps proof and links consistent.
                 </p>
               </div>
 
@@ -653,7 +653,7 @@ export function ClaimTagModule() {
                   {inviteData ? 'Claim first, then wake the place up' : 'This becomes your place layer'}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-white/55">
-                  Live now this anchors your handle to payouts, tag review, and the first layer of creator routing. Later it becomes the front door to suggested footprint and imported residue review.
+                  Routing now. Footprint later.
                 </p>
               </div>
             </div>
@@ -664,7 +664,7 @@ export function ClaimTagModule() {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Choose Platform</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Pick the creator platform you actually use. We will verify it with a proof code.
+                      Pick the platform you actually use.
                     </p>
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-200/80">Step 2</span>
@@ -686,9 +686,7 @@ export function ClaimTagModule() {
                 </div>
 
                 <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
-                  <p className="text-xs text-gray-400 mb-2">
-                    Connect Identity links your main creator profile to your wallet so claims, payouts, and future matches point the same way.
-                  </p>
+                  <p className="text-xs text-gray-400 mb-2">We verify it with a proof code.</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -718,7 +716,7 @@ export function ClaimTagModule() {
                       </span>
                     </div>
                     <p className="mt-2 text-xs leading-5 text-white/55">
-                      We will verify this handle from your profile proof. Once approved, payouts, claim review, and future matching all stay anchored to the same creator identity.
+                      Review pending. Once approved, this becomes your anchored creator handle.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -761,7 +759,7 @@ export function ClaimTagModule() {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Manual Verification</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Use this proof code on your selected platform so we can verify the handle manually.
+                      Add this code to your profile so we can verify the handle.
                     </p>
                   </div>
                     <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Manual proof</span>
@@ -786,10 +784,10 @@ export function ClaimTagModule() {
                       </div>
 
                       <div className="text-xs sm:text-sm text-gray-300 space-y-1.5 sm:space-y-2">
-                        <p>1. Enter your {config.name} handle below</p>
-                        <p>2. Copy the verification code</p>
-                        <p>3. Add this code to your bio, pinned post, or story highlight</p>
-                        <p>4. Click submit (admin will verify within 24h)</p>
+                        <p>1. Enter your handle</p>
+                        <p>2. Copy the code</p>
+                        <p>3. Put it in your bio, pinned post, or story</p>
+                        <p>4. Submit for review</p>
                       </div>
 
                       {/* Username Input */}
@@ -876,7 +874,7 @@ export function ClaimTagModule() {
                   </div>
                   <h3 className="mt-3 text-sm font-bold text-white">Suggested Footprint</h3>
                   <p className="mt-1 text-xs text-white/55">
-                    BaseDare uses your linked creator identity for payouts, routing, distribution, and the next layer of place memory suggestions.
+                    Your linked handle powers payouts, routing, and map suggestions.
                   </p>
                 </div>
                 {platformHandle ? (
@@ -895,7 +893,7 @@ export function ClaimTagModule() {
                     </div>
                     <p className="mt-3 text-sm font-semibold text-white">Lock in @{platformHandle}</p>
                     <p className="mt-2 text-xs leading-5 text-white/55">
-                      Matching your connected handle keeps payouts, social proof, and BaseDare Brain routing aligned.
+                      Keep your tag and handle aligned.
                     </p>
                     <button
                       type="button"
@@ -915,7 +913,7 @@ export function ClaimTagModule() {
                       {hasMatchingVerifiedTag ? 'Your handle is already anchored' : 'Connected identity detected'}
                     </p>
                     <p className="mt-2 text-xs leading-5 text-white/55">
-                      This account is ready to plug into share rails and future imported-residue review once that layer goes live.
+                      Ready for payouts, routing, and proofs.
                     </p>
                   </div>
                 )}
@@ -925,9 +923,9 @@ export function ClaimTagModule() {
                     <Share2 className="h-4 w-4" />
                     <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Distribution Rail</span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-white">Verified wins route cleaner now</p>
+                  <p className="mt-3 text-sm font-semibold text-white">Verified wins route cleaner</p>
                   <p className="mt-2 text-xs leading-5 text-white/55">
-                    One anchored creator handle keeps approved wins, share payloads, and future opportunity routing pointing back to the same identity.
+                    One handle keeps wins and briefs pointed back to you.
                   </p>
                 </div>
 
@@ -941,8 +939,8 @@ export function ClaimTagModule() {
                   </p>
                   <p className="mt-2 text-xs leading-5 text-white/55">
                     {inviteData
-                      ? 'Once this identity clears, pending dares can roll straight into live place memory and challenge heat.'
-                      : 'The map is where challenge-live states, venue pulse, and future footprint suggestions become visible.'}
+                      ? 'Once this clears, the venue can light up.'
+                      : 'See challenge-live state and your next layer on the map.'}
                   </p>
                   <button
                     type="button"
@@ -974,9 +972,9 @@ export function ClaimTagModule() {
                   </div>
 
                   {footprintLoading ? (
-                    <p className="mt-3 text-xs leading-5 text-white/55">
-                      Pulling claimed tag and dare history so Suggested Footprint can stay grounded in real BaseDare activity.
-                    </p>
+                      <p className="mt-3 text-xs leading-5 text-white/55">
+                        Pulling claimed tag and dare history.
+                      </p>
                   ) : footprintData ? (
                     <>
                       <div className="mt-4 grid gap-2 sm:grid-cols-4">
@@ -1029,7 +1027,7 @@ export function ClaimTagModule() {
                   ) : (
                     <>
                       <p className="mt-3 text-xs leading-5 text-white/55">
-                        No claimed creator footprint found yet. That is fine. Connect, claim, and the first verified win starts the graph cleanly.
+                        No creator footprint yet. Claim once and the graph starts clean.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {!hasMatchingVerifiedTag && platformHandle ? (
@@ -1072,7 +1070,7 @@ export function ClaimTagModule() {
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-white">Claim Your Tag</h3>
-                <p className="text-xs text-gray-500 font-mono">Choose your unique creator tag</p>
+                <p className="text-xs text-gray-500 font-mono">Choose the tag you want to use publicly</p>
               </div>
             </div>
 
@@ -1109,7 +1107,7 @@ export function ClaimTagModule() {
 
               {tagOwnedByCurrentWallet && (
                 <p className="text-[10px] sm:text-xs text-cyan-300 font-mono">
-                  This tag is already linked to your wallet. You can re-submit the proof to update or re-verify it.
+                  This tag is already yours. You can re-submit proof anytime.
                 </p>
               )}
 
@@ -1119,8 +1117,7 @@ export function ClaimTagModule() {
                   <div className="flex items-start gap-2 p-2.5 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                     <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-0.5" />
                     <p className="text-[10px] sm:text-xs text-yellow-400">
-                      Your tag (@{tag}) differs from your {connectedPlatform} handle (@
-                      {platformHandle}). You can still claim it, but matching tags are recommended.
+                      Your tag (@{tag}) does not match your handle (@{platformHandle}). Matching them keeps things cleaner.
                     </p>
                   </div>
                 )}
@@ -1145,7 +1142,7 @@ export function ClaimTagModule() {
                   !isConnected ||
                   (!isPlatformConnected && !isManualMode) ||
                   !tag ||
-                  (tagAvailable !== true && !tagOwnedByCurrentWallet) ||
+                  (tagAvailable === false && !tagOwnedByCurrentWallet) ||
                   claiming ||
                   (isManualMode && !manualUsername)
                 }
@@ -1166,7 +1163,7 @@ export function ClaimTagModule() {
               </LiquidMetalButton>
 
               <p className="text-[10px] sm:text-xs text-gray-500 text-center">
-                Manual verification requires admin approval (usually within 24 hours)
+                Manual verification needs admin approval.
               </p>
             </div>
           </motion.div>

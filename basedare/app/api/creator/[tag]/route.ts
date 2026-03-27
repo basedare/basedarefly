@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+function deriveIdentityPlatform(tag: {
+    verificationMethod?: string | null;
+    twitterHandle?: string | null;
+    twitchHandle?: string | null;
+    youtubeHandle?: string | null;
+    kickHandle?: string | null;
+}) {
+    const method = tag.verificationMethod?.toLowerCase() ?? null;
+    if (method === 'twitter' || method === 'x') return 'twitter';
+    if (method === 'twitch') return 'twitch';
+    if (method === 'youtube' || method === 'google') return 'youtube';
+    if (method === 'instagram' || method === 'tiktok' || method === 'other' || method === 'kick') return method;
+    if (tag.twitterHandle) return 'twitter';
+    if (tag.twitchHandle) return 'twitch';
+    if (tag.youtubeHandle) return 'youtube';
+    if (tag.kickHandle) return 'other';
+    return null;
+}
+
+function deriveIdentityHandle(tag: {
+    twitterHandle?: string | null;
+    twitchHandle?: string | null;
+    youtubeHandle?: string | null;
+    kickHandle?: string | null;
+}) {
+    return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
+}
+
 /**
  * GET /api/creator/[tag]
  * Returns profile stats + recent dares for a streamer handle.
@@ -20,7 +48,6 @@ export async function GET(
                 OR: [
                     { tag: { equals: handle, mode: 'insensitive' } },
                     { tag: { equals: handlePlain, mode: 'insensitive' } },
-                    { identityHandle: { equals: handlePlain.toLowerCase(), mode: 'insensitive' } },
                     { twitterHandle: { equals: handlePlain, mode: 'insensitive' } },
                     { twitchHandle: { equals: handlePlain, mode: 'insensitive' } },
                     { youtubeHandle: { equals: handlePlain, mode: 'insensitive' } },
@@ -32,8 +59,7 @@ export async function GET(
                 tag: true,
                 bio: true,
                 followerCount: true,
-                identityPlatform: true,
-                identityHandle: true,
+                verificationMethod: true,
                 twitterHandle: true,
                 twitterVerified: true,
                 twitchHandle: true,
@@ -103,8 +129,8 @@ export async function GET(
                 handle: canonicalHandle,
                 displayHandle: canonicalHandle.startsWith('@') ? canonicalHandle : `@${canonicalPlain}`,
                 verified: streamTag?.status === 'ACTIVE' || streamTag?.status === 'VERIFIED',
-                identityPlatform: streamTag?.identityPlatform || null,
-                identityHandle: streamTag?.identityHandle || null,
+                identityPlatform: streamTag ? deriveIdentityPlatform(streamTag) : null,
+                identityHandle: streamTag ? deriveIdentityHandle(streamTag) : null,
                 identityStatus: streamTag?.status || null,
                 twitterHandle: streamTag?.twitterHandle || null,
                 twitchHandle: streamTag?.twitchHandle || null,

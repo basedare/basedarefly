@@ -11,6 +11,58 @@ import { isAddress } from 'viem';
 // Admin authentication (same as appeals)
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
+const TAG_ADMIN_SELECT = {
+  id: true,
+  tag: true,
+  walletAddress: true,
+  verificationMethod: true,
+  twitterHandle: true,
+  twitchHandle: true,
+  youtubeHandle: true,
+  kickHandle: true,
+  kickVerificationCode: true,
+  status: true,
+  verifiedAt: true,
+  bio: true,
+  followerCount: true,
+  tags: true,
+  totalEarned: true,
+  completedDares: true,
+  createdAt: true,
+  updatedAt: true,
+  revokedAt: true,
+  revokedBy: true,
+  revokeReason: true,
+} as const;
+
+function deriveIdentityPlatform(tag: {
+  verificationMethod?: string | null;
+  twitterHandle?: string | null;
+  twitchHandle?: string | null;
+  youtubeHandle?: string | null;
+  kickHandle?: string | null;
+}) {
+  const method = tag.verificationMethod?.toLowerCase() ?? null;
+  if (method === 'twitter' || method === 'x') return 'twitter';
+  if (method === 'twitch') return 'twitch';
+  if (method === 'youtube' || method === 'google') return 'youtube';
+  if (method === 'instagram' || method === 'tiktok' || method === 'other' || method === 'kick') return method;
+  if (tag.twitterHandle) return 'twitter';
+  if (tag.twitchHandle) return 'twitch';
+  if (tag.youtubeHandle) return 'youtube';
+  if (tag.kickHandle) return 'other';
+  return null;
+}
+
+function deriveIdentityHandle(tag: {
+  twitterHandle?: string | null;
+  twitchHandle?: string | null;
+  youtubeHandle?: string | null;
+  kickHandle?: string | null;
+}) {
+  return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
+}
+
 function isAdmin(request: NextRequest): boolean {
   if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) {
     console.error('[SECURITY] Admin access denied - ADMIN_SECRET not properly configured');
@@ -46,6 +98,7 @@ export async function GET(request: NextRequest) {
 
     const tags = await prisma.streamerTag.findMany({
       where,
+      select: TAG_ADMIN_SELECT,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -66,7 +119,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        tags,
+        tags: tags.map((tag) => ({
+          ...tag,
+          identityPlatform: deriveIdentityPlatform(tag),
+          identityHandle: deriveIdentityHandle(tag),
+          identityVerificationCode: tag.kickVerificationCode || null,
+        })),
         counts: {
           verified: countMap['ACTIVE'] || 0,
           pending: countMap['PENDING'] || 0,
@@ -115,10 +173,10 @@ export async function PUT(request: NextRequest) {
     // Find the tag
     let streamerTag;
     if (tagId) {
-      streamerTag = await prisma.streamerTag.findUnique({ where: { id: tagId } });
+      streamerTag = await prisma.streamerTag.findUnique({ where: { id: tagId }, select: TAG_ADMIN_SELECT });
     } else if (tag) {
       const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
-      streamerTag = await prisma.streamerTag.findUnique({ where: { tag: normalizedTag } });
+      streamerTag = await prisma.streamerTag.findUnique({ where: { tag: normalizedTag }, select: TAG_ADMIN_SELECT });
     }
 
     if (!streamerTag && action !== 'ASSIGN') {

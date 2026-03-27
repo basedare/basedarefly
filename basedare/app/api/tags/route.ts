@@ -33,6 +33,40 @@ function formatPlatformLabel(platform: string) {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
+type StreamerTagIdentityShape = {
+  verificationMethod?: string | null;
+  twitterHandle?: string | null;
+  twitchHandle?: string | null;
+  youtubeHandle?: string | null;
+  kickHandle?: string | null;
+  kickVerificationCode?: string | null;
+};
+
+function deriveIdentityPlatform(tag: StreamerTagIdentityShape): string | null {
+  const method = tag.verificationMethod?.toLowerCase() ?? null;
+
+  if (method === 'twitter' || method === 'x') return 'twitter';
+  if (method === 'twitch') return 'twitch';
+  if (method === 'youtube' || method === 'google') return 'youtube';
+  if (method === 'instagram' || method === 'tiktok' || method === 'other' || method === 'kick') {
+    return method;
+  }
+
+  if (tag.twitterHandle) return 'twitter';
+  if (tag.twitchHandle) return 'twitch';
+  if (tag.youtubeHandle) return 'youtube';
+  if (tag.kickHandle) return 'other';
+  return null;
+}
+
+function deriveIdentityHandle(tag: StreamerTagIdentityShape): string | null {
+  return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
+}
+
+function deriveIdentityVerificationCode(tag: StreamerTagIdentityShape): string | null {
+  return tag.kickVerificationCode || null;
+}
+
 // ============================================================================
 // GET /api/tags - List all verified tags or check availability
 // ============================================================================
@@ -59,9 +93,7 @@ export async function GET(request: NextRequest) {
           walletAddress: true,
           verifiedAt: true,
           verificationMethod: true,
-          identityPlatform: true,
-          identityHandle: true,
-          identityVerificationCode: true,
+          kickVerificationCode: true,
           bio: true,
           followerCount: true,
           tags: true,
@@ -82,6 +114,9 @@ export async function GET(request: NextRequest) {
               ? existing.walletAddress.slice(0, 6) + '...'
               : null,
           platform: existing.verificationMethod?.toLowerCase(),
+          identityPlatform: deriveIdentityPlatform(existing),
+          identityHandle: deriveIdentityHandle(existing),
+          identityVerificationCode: deriveIdentityVerificationCode(existing),
         });
       }
 
@@ -92,10 +127,45 @@ export async function GET(request: NextRequest) {
     if (wallet) {
       const tags = await prisma.streamerTag.findMany({
         where: { walletAddress: normalizedWallet ?? wallet.toLowerCase() }, // Normalize to lowercase
+        select: {
+          id: true,
+          tag: true,
+          walletAddress: true,
+          bio: true,
+          followerCount: true,
+          tags: true,
+          verificationMethod: true,
+          verifiedAt: true,
+          twitterHandle: true,
+          twitterVerified: true,
+          twitchHandle: true,
+          twitchVerified: true,
+          youtubeHandle: true,
+          youtubeVerified: true,
+          kickHandle: true,
+          kickVerificationCode: true,
+          kickVerified: true,
+          status: true,
+          revokedAt: true,
+          revokedBy: true,
+          revokeReason: true,
+          totalEarned: true,
+          completedDares: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { createdAt: 'desc' },
       });
 
-      return NextResponse.json({ success: true, tags });
+      return NextResponse.json({
+        success: true,
+        tags: tags.map((tagRecord) => ({
+          ...tagRecord,
+          identityPlatform: deriveIdentityPlatform(tagRecord),
+          identityHandle: deriveIdentityHandle(tagRecord),
+          identityVerificationCode: deriveIdentityVerificationCode(tagRecord),
+        })),
+      });
     }
 
     // List all verified tags (public)
@@ -107,10 +177,8 @@ export async function GET(request: NextRequest) {
         twitchHandle: true,
         youtubeHandle: true,
         kickHandle: true,
+        kickVerificationCode: true,
         verificationMethod: true,
-        identityPlatform: true,
-        identityHandle: true,
-        identityVerificationCode: true,
         totalEarned: true,
         completedDares: true,
         verifiedAt: true,
@@ -122,7 +190,15 @@ export async function GET(request: NextRequest) {
       take: 100,
     });
 
-    return NextResponse.json({ success: true, tags: verifiedTags });
+    return NextResponse.json({
+      success: true,
+      tags: verifiedTags.map((tagRecord) => ({
+        ...tagRecord,
+        identityPlatform: deriveIdentityPlatform(tagRecord),
+        identityHandle: deriveIdentityHandle(tagRecord),
+        identityVerificationCode: deriveIdentityVerificationCode(tagRecord),
+      })),
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -307,6 +383,12 @@ export async function POST(request: NextRequest) {
     // Check if tag already claimed
     const existingTag = await prisma.streamerTag.findUnique({
       where: { tag: normalizedTag },
+      select: {
+        id: true,
+        tag: true,
+        walletAddress: true,
+        status: true,
+      },
     });
 
     const isSameWalletExistingTag =
@@ -331,6 +413,12 @@ export async function POST(request: NextRequest) {
           ],
           status: { not: 'REVOKED' },
         },
+        select: {
+          id: true,
+          tag: true,
+          walletAddress: true,
+          status: true,
+        },
       });
 
       if (existingPlatform) {
@@ -346,20 +434,28 @@ export async function POST(request: NextRequest) {
 
     // Check if platform handle already used (for manual verification)
     if (isManualVerification && effectiveManualUsername) {
-      const normalizedManualHandle = effectiveManualUsername.toLowerCase();
+      const handleWhere =
+        claimPlatform === 'twitter'
+          ? { twitterHandle: effectiveManualUsername }
+          : claimPlatform === 'twitch'
+            ? { twitchHandle: effectiveManualUsername }
+            : claimPlatform === 'youtube'
+              ? { youtubeHandle: effectiveManualUsername }
+              : {
+                  kickHandle: effectiveManualUsername,
+                  verificationMethod: claimPlatform.toUpperCase(),
+                };
+
       const existingHandle = await prisma.streamerTag.findFirst({
         where: {
           status: { not: 'REVOKED' },
-          OR: [
-            {
-              identityPlatform: claimPlatform,
-              identityHandle: normalizedManualHandle,
-            },
-            { twitterHandle: claimPlatform === 'twitter' ? effectiveManualUsername : undefined },
-            { twitchHandle: claimPlatform === 'twitch' ? effectiveManualUsername : undefined },
-            { youtubeHandle: claimPlatform === 'youtube' ? effectiveManualUsername : undefined },
-            { kickHandle: claimPlatform === 'kick' ? effectiveManualUsername : undefined },
-          ],
+          OR: [handleWhere],
+        },
+        select: {
+          id: true,
+          tag: true,
+          walletAddress: true,
+          status: true,
         },
       });
 
@@ -399,9 +495,6 @@ export async function POST(request: NextRequest) {
     const platformData: Record<string, string | boolean | number | null | Date> = {
       walletAddress,
       verificationMethod,
-      identityPlatform: claimPlatform,
-      identityHandle: platformHandle ? platformHandle.toLowerCase() : null,
-      identityVerificationCode: isManualVerification ? effectiveManualCode ?? null : null,
       status,
       verifiedAt: status === 'ACTIVE' || status === 'VERIFIED' ? new Date() : null,
       revokedAt: null,
@@ -423,11 +516,11 @@ export async function POST(request: NextRequest) {
       } else if (claimPlatform === 'youtube') {
         platformData.youtubeHandle = platformHandle;
         platformData.youtubeVerified = false;
-      } else if (claimPlatform === 'kick') {
+      } else {
         platformData.kickHandle = platformHandle;
         platformData.kickVerified = false;
       }
-      // Store verification code in kickVerificationCode field (reused for all manual verifications)
+      // Reuse the existing manual proof field for all manual verification paths.
       platformData.kickVerificationCode = effectiveManualCode ?? null;
     } else if (claimPlatform === 'twitter') {
       platformData.twitterId = platformId;

@@ -54,6 +54,14 @@ interface Campaign {
     status: string;
     verifiedAt?: string | null;
     completedAt?: string | null;
+    streamerHandle?: string | null;
+    targetWalletAddress?: string | null;
+    claimedBy?: string | null;
+    claimedAt?: string | null;
+    claimRequestWallet?: string | null;
+    claimRequestTag?: string | null;
+    claimRequestedAt?: string | null;
+    claimRequestStatus?: string | null;
   } | null;
   truth?: {
     sourceOfTruth: 'LINKED_DARE' | 'CAMPAIGN';
@@ -265,33 +273,49 @@ export default function BrandPortalPage() {
       return;
     }
 
-    const fetchData = async () => {
+    let cancelled = false;
+
+    const fetchData = async (isBackgroundRefresh = false) => {
       try {
-        // Fetch brand
+        if (!isBackgroundRefresh) {
+          setLoading(true);
+        }
+
         const brandRes = await fetch(`/api/brands?wallet=${address}`);
         const brandData = await brandRes.json();
 
-        if (brandData.success) {
+        if (!cancelled && brandData.success) {
           setBrand(brandData.data);
 
-          // Fetch campaigns
           const campaignsRes = await fetch(`/api/campaigns?brand=${address}`);
           const campaignsData = await campaignsRes.json();
 
-          if (campaignsData.success) {
+          if (!cancelled && campaignsData.success) {
             setCampaigns(campaignsData.data);
           }
-        } else if (brandData.code === 'NOT_FOUND') {
+        } else if (!cancelled && brandData.code === 'NOT_FOUND') {
           setShowRegister(true);
         }
       } catch (error) {
-        console.error('Failed to fetch brand data:', error);
+        if (!cancelled) {
+          console.error('Failed to fetch brand data:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && !isBackgroundRefresh) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchData();
+    void fetchData();
+    const interval = window.setInterval(() => {
+      void fetchData(true);
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [isConnected, address]);
 
   useEffect(() => {
@@ -605,6 +629,43 @@ export default function BrandPortalPage() {
   };
 
   const budget = calculateBudget();
+
+  const formatWallet = (value: string | null | undefined) =>
+    value ? `${value.slice(0, 6)}...${value.slice(-4)}` : null;
+
+  const getCampaignIntent = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    if (!dare) return null;
+
+    if (dare.claimRequestStatus === 'PENDING') {
+      return {
+        label: 'Pending claim',
+        tone: 'amber' as const,
+        actor: dare.claimRequestTag || formatWallet(dare.claimRequestWallet) || 'Creator',
+        detail: dare.claimRequestedAt
+          ? `requested ${new Date(dare.claimRequestedAt).toLocaleString()}`
+          : 'awaiting moderator review',
+      };
+    }
+
+    if (dare.claimedBy || dare.targetWalletAddress) {
+      return {
+        label: 'Claimed',
+        tone: 'emerald' as const,
+        actor:
+          (dare.streamerHandle && dare.streamerHandle !== '@open' ? dare.streamerHandle : null) ||
+          formatWallet(dare.claimedBy || dare.targetWalletAddress) ||
+          'Creator attached',
+        detail: dare.claimedAt
+          ? `claimed ${new Date(dare.claimedAt).toLocaleString()}`
+          : dare.status === 'VERIFIED'
+            ? 'verified and routed'
+            : 'creator is attached to this activation',
+      };
+    }
+
+    return null;
+  };
 
   // Determine current view state
   const showNotConnected = mounted && !isConnected;
@@ -1321,6 +1382,7 @@ export default function BrandPortalPage() {
                 const matchesState = matchesByCampaign[campaign.id];
                 const shortlistedCount = (shortlistedCreators[campaign.id] ?? []).length;
                 const isMatchesExpanded = expandedMatchesCampaignId === campaign.id;
+                const creatorIntent = getCampaignIntent(campaign);
                 return (
                   <div
                     key={campaign.id}
@@ -1398,6 +1460,28 @@ export default function BrandPortalPage() {
 
                     {/* Slot Progress Bar */}
                     <div className="mt-4">
+                      {creatorIntent ? (
+                        <div
+                          className={`mb-4 rounded-xl border px-4 py-3 ${
+                            creatorIntent.tone === 'amber'
+                              ? 'border-amber-300 bg-amber-50 text-amber-900'
+                              : 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                          }`}
+                        >
+                          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+                                Creator Intent
+                              </div>
+                              <div className="mt-1 text-sm font-semibold">
+                                {creatorIntent.label} • {creatorIntent.actor}
+                              </div>
+                            </div>
+                            <div className="text-xs opacity-80">{creatorIntent.detail}</div>
+                          </div>
+                        </div>
+                      ) : null}
+
                       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
@@ -1425,6 +1509,14 @@ export default function BrandPortalPage() {
                         </span>
                       </div>
                       <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {campaign.linkedDare?.shortId ? (
+                          <Link
+                            href={`/dare/${encodeURIComponent(campaign.linkedDare.shortId)}`}
+                            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                          >
+                            Open Brief
+                          </Link>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => toggleCampaignMatches(campaign.id)}
