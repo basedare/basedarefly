@@ -431,7 +431,7 @@ export default function CreatorProfilePage() {
                                 <Zap className="w-3.5 h-3.5" />
                                 Social Status
                             </div>
-                            <h2 className="mt-4 text-lg font-black text-white">Connected identity and distribution layer</h2>
+                            <h2 className="mt-4 text-lg font-black text-white">Primary identity and distribution layer</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
                                 Live now this page shows which verified public identity is anchored to the creator. Coming soon it becomes a richer routing and footprint surface.
                             </p>
@@ -458,7 +458,7 @@ export default function CreatorProfilePage() {
 
                     <div className="mt-5 grid gap-3 md:grid-cols-4">
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Identity State</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Primary Identity</p>
                             <p className="mt-2 text-2xl font-black text-white">{getIdentityStateLabel(profile?.identityStatus)}</p>
                             <p className="mt-1 text-[11px] text-white/46">
                                 {profile?.identityHandle

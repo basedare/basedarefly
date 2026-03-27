@@ -6,6 +6,13 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { alertTagClaimSubmission } from '@/lib/telegram';
 import { isAddress } from 'viem';
+import {
+  annotatePrimaryTags,
+  deriveIdentityHandle,
+  deriveIdentityPlatform,
+  deriveIdentityVerificationCode,
+  selectPrimaryTag,
+} from '@/lib/creator-identity';
 
 type WalletSession = {
   token?: string;
@@ -31,40 +38,6 @@ const MANUAL_IDENTITY_PLATFORMS = ['instagram', 'tiktok', 'youtube', 'twitter', 
 function formatPlatformLabel(platform: string) {
   if (platform === 'twitter') return 'X';
   return platform.charAt(0).toUpperCase() + platform.slice(1);
-}
-
-type StreamerTagIdentityShape = {
-  verificationMethod?: string | null;
-  twitterHandle?: string | null;
-  twitchHandle?: string | null;
-  youtubeHandle?: string | null;
-  kickHandle?: string | null;
-  kickVerificationCode?: string | null;
-};
-
-function deriveIdentityPlatform(tag: StreamerTagIdentityShape): string | null {
-  const method = tag.verificationMethod?.toLowerCase() ?? null;
-
-  if (method === 'twitter' || method === 'x') return 'twitter';
-  if (method === 'twitch') return 'twitch';
-  if (method === 'youtube' || method === 'google') return 'youtube';
-  if (method === 'instagram' || method === 'tiktok' || method === 'other' || method === 'kick') {
-    return method;
-  }
-
-  if (tag.twitterHandle) return 'twitter';
-  if (tag.twitchHandle) return 'twitch';
-  if (tag.youtubeHandle) return 'youtube';
-  if (tag.kickHandle) return 'other';
-  return null;
-}
-
-function deriveIdentityHandle(tag: StreamerTagIdentityShape): string | null {
-  return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
-}
-
-function deriveIdentityVerificationCode(tag: StreamerTagIdentityShape): string | null {
-  return tag.kickVerificationCode || null;
 }
 
 // ============================================================================
@@ -157,14 +130,21 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
       });
 
+      const annotatedTags = annotatePrimaryTags(tags);
+      const primaryTag = selectPrimaryTag(annotatedTags);
+
       return NextResponse.json({
         success: true,
-        tags: tags.map((tagRecord) => ({
-          ...tagRecord,
-          identityPlatform: deriveIdentityPlatform(tagRecord),
-          identityHandle: deriveIdentityHandle(tagRecord),
-          identityVerificationCode: deriveIdentityVerificationCode(tagRecord),
-        })),
+        primaryTag: primaryTag
+          ? {
+              id: primaryTag.id,
+              tag: primaryTag.tag,
+              status: primaryTag.status,
+              identityPlatform: primaryTag.identityPlatform,
+              identityHandle: primaryTag.identityHandle,
+            }
+          : null,
+        tags: annotatedTags,
       });
     }
 

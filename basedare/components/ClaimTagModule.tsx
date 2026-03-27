@@ -66,6 +66,7 @@ interface ExistingTag {
   tag: string;
   status: string;
   walletAddress: string;
+  isPrimary?: boolean;
   verificationMethod?: string | null;
   identityPlatform?: string | null;
 }
@@ -174,6 +175,11 @@ export function ClaimTagModule() {
     normalizedPlatformHandle &&
       existingTags.some((existingTag) => existingTag.tag.replace(/^@/, '').toLowerCase() === normalizedPlatformHandle)
   );
+  const orderedExistingTags = [...existingTags].sort((left, right) => {
+    if (left.isPrimary && !right.isPrimary) return -1;
+    if (!left.isPrimary && right.isPrimary) return 1;
+    return left.tag.localeCompare(right.tag);
+  });
   const primaryPlatform = PLATFORMS.find((platform) => platform.id === 'instagram') ?? PLATFORMS[0];
 
   useEffect(() => {
@@ -1211,13 +1217,18 @@ export function ClaimTagModule() {
             >
               <h3 className="text-sm font-bold text-white mb-3">Your Tags</h3>
               <div className="space-y-2">
-                {existingTags.map((t) => (
+                {orderedExistingTags.map((t) => (
                   <div
                     key={t.tag}
                     className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-lg"
                   >
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                       <span className="text-purple-400 font-mono text-sm font-bold truncate">{t.tag}</span>
+                      {t.isPrimary ? (
+                        <span className="text-[10px] sm:text-xs text-cyan-300 shrink-0">
+                          primary
+                        </span>
+                      ) : null}
                       {t.verificationMethod && (
                         <span className="text-[10px] sm:text-xs text-gray-500 shrink-0">
                           via {(t.verificationMethod || t.identityPlatform || 'manual').toLowerCase()}

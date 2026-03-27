@@ -40,6 +40,7 @@ interface UserTag {
   tag: string;
   status: string;
   verificationMethod: string;
+  isPrimary?: boolean;
   identityPlatform?: string | null;
   identityHandle?: string | null;
   identityVerificationCode?: string | null;
@@ -468,8 +469,9 @@ export default function Dashboard() {
 
         // Fetch user's verified tag
         const tagRes = await fetch(`/api/tags?wallet=${address}`);
-        const tagData = tagRes.ok ? await tagRes.json() : { tags: [] };
+        const tagData = tagRes.ok ? await tagRes.json() : { tags: [], primaryTag: null };
         const primaryTag =
+          tagData.tags?.find((t: UserTag) => t.isPrimary) ||
           tagData.tags?.find((t: UserTag) => t.status === 'ACTIVE' || t.status === 'VERIFIED') ||
           tagData.tags?.find((t: UserTag) => t.status === 'PENDING') ||
           tagData.tags?.[0] ||
@@ -719,7 +721,7 @@ export default function Dashboard() {
                       )}
                       {identityHandle && identityPlatform && (
                         <span className={`${pillClass} normal-case tracking-normal text-xs text-cyan-200 border-cyan-500/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(8,11,18,0.92)_100%)]`}>
-                          @{identityHandle} on {getProviderLabel(identityPlatform)}
+                          Primary • @{identityHandle} on {getProviderLabel(identityPlatform)}
                         </span>
                       )}
                       {userTag.completedDares > 0 && (
@@ -802,7 +804,7 @@ export default function Dashboard() {
                       </div>
                       <p className="mt-3 text-sm font-bold text-white">
                         {identityHandle && identityPlatform
-                          ? `Linked to ${getProviderLabel(identityPlatform)} as @${identityHandle}`
+                          ? `Primary handle: @${identityHandle} on ${getProviderLabel(identityPlatform)}`
                           : 'Link your main creator handle to your wallet'}
                       </p>
                       <p className="mt-2 text-xs leading-5 text-white/55 max-w-2xl">
@@ -840,7 +842,7 @@ export default function Dashboard() {
 
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Status</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Primary Identity</p>
                       <p className="mt-2 text-sm font-black text-white">
                         {getIdentityStatusLabel(identityStatus)}
                       </p>

@@ -1,33 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-function deriveIdentityPlatform(tag: {
-    verificationMethod?: string | null;
-    twitterHandle?: string | null;
-    twitchHandle?: string | null;
-    youtubeHandle?: string | null;
-    kickHandle?: string | null;
-}) {
-    const method = tag.verificationMethod?.toLowerCase() ?? null;
-    if (method === 'twitter' || method === 'x') return 'twitter';
-    if (method === 'twitch') return 'twitch';
-    if (method === 'youtube' || method === 'google') return 'youtube';
-    if (method === 'instagram' || method === 'tiktok' || method === 'other' || method === 'kick') return method;
-    if (tag.twitterHandle) return 'twitter';
-    if (tag.twitchHandle) return 'twitch';
-    if (tag.youtubeHandle) return 'youtube';
-    if (tag.kickHandle) return 'other';
-    return null;
-}
-
-function deriveIdentityHandle(tag: {
-    twitterHandle?: string | null;
-    twitchHandle?: string | null;
-    youtubeHandle?: string | null;
-    kickHandle?: string | null;
-}) {
-    return tag.twitterHandle || tag.twitchHandle || tag.youtubeHandle || tag.kickHandle || null;
-}
+import { deriveIdentityHandle, deriveIdentityPlatform, selectPrimaryTag } from '@/lib/creator-identity';
 
 /**
  * GET /api/creator/[tag]
@@ -43,7 +16,7 @@ export async function GET(
         const handlePlain = rawTag.replace(/^@/, '');
         const handle = `@${handlePlain}`;
 
-        const streamTag = await prisma.streamerTag.findFirst({
+        const matchingTags = await prisma.streamerTag.findMany({
             where: {
                 OR: [
                     { tag: { equals: handle, mode: 'insensitive' } },
@@ -72,8 +45,14 @@ export async function GET(
                 totalEarned: true,
                 completedDares: true,
                 tags: true,
+                verifiedAt: true,
+                updatedAt: true,
+                createdAt: true,
             },
-        }).catch(() => null);
+            orderBy: [{ verifiedAt: 'desc' }, { updatedAt: 'desc' }, { createdAt: 'desc' }],
+        }).catch(() => []);
+
+        const streamTag = selectPrimaryTag(matchingTags);
 
         const canonicalHandle = streamTag?.tag || handle;
         const canonicalPlain = canonicalHandle.replace(/^@/, '');

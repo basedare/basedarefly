@@ -54,6 +54,7 @@ This order matters because BaseDare should create real demand pull before adding
   - X
   - Other
 - Creator identity should reuse the existing tag + admin-review rails instead of introducing a second identity system.
+- The app should derive one clear primary creator identity from the existing tag rail and show that same primary handle consistently across dashboard, claim flow, profile, and creator APIs.
 - OAuth is optional future enrichment, not the core trust rail for creator onboarding right now.
 - Pending identity proofs should still let creators continue through the product; verification should strengthen trust, not block first use.
 - The same demand graph should power both sides:
