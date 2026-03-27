@@ -63,6 +63,12 @@ export default function SubmitEvidence({
   const getUnknownErrorMessage = (error: unknown, fallback: string): string =>
     error instanceof Error ? error.message : fallback;
 
+  const activationLabel = placeName || dareTitle || 'this activation';
+  const payoutLabel =
+    typeof bountyAmount === 'number' || typeof bountyAmount === 'string'
+      ? `$${bountyAmount}`
+      : null;
+
   const handleFileSelect = (selectedFile: File) => {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
     if (!validTypes.includes(selectedFile.type)) {
@@ -371,11 +377,11 @@ export default function SubmitEvidence({
             <ShieldCheck className="w-8 h-8 text-green-400" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-green-400 uppercase tracking-wider mb-1">Verified!</h3>
-            <p className="text-xs font-mono text-gray-400 max-w-[200px]">
+            <h3 className="text-xl font-black text-green-400 uppercase tracking-wider mb-1">Proof Approved</h3>
+            <p className="text-xs font-mono text-gray-300 max-w-[240px]">
               {verificationResult?.confidence
-                ? `Confidence: ${(verificationResult.confidence * 100).toFixed(1)}%`
-                : 'Your proof has been verified'}
+                ? `${activationLabel} cleared at ${(verificationResult.confidence * 100).toFixed(0)}% confidence.`
+                : `${activationLabel} has been verified.`}
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -386,6 +392,9 @@ export default function SubmitEvidence({
               Verified by Beta AI Referee
             </div>
           </div>
+          <p className="max-w-[240px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
+            Next: payout clears and this win locks into the place.
+          </p>
           <div className="pt-2">
             <ShareWinButton
               dare={dareTitle}
@@ -412,21 +421,26 @@ export default function SubmitEvidence({
             <h3 className="text-xl font-black text-yellow-400 uppercase tracking-wider mb-1">
               {isReview ? 'Under Review' : 'Payout Queued'}
             </h3>
-            <p className="text-xs font-mono text-gray-300 max-w-[240px]">
+            <p className="text-xs font-mono text-gray-300 max-w-[250px]">
               {verificationResult?.reason ||
                 (isReview
-                  ? 'Your proof is waiting for manual review.'
+                  ? `${activationLabel} is waiting for manual review.`
                   : 'Your payout is queued and will retry automatically.')}
             </p>
           </div>
           <div className="px-3 py-1 rounded bg-yellow-500/10 border border-yellow-500/30 text-[10px] font-bold text-yellow-400 uppercase tracking-widest">
             {isReview ? 'Manual Review' : 'Auto-Retry Active'}
           </div>
+          <p className="max-w-[240px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
+            {isReview
+              ? 'Next: referee checks it, then payout clears automatically.'
+              : 'Next: payout keeps retrying in the background. No action needed.'}
+          </p>
           <button
             onClick={handleRemove}
             className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-wider transition-colors"
           >
-            Upload Different Proof
+            Replace Proof
           </button>
         </div>
       </div>
@@ -442,10 +456,13 @@ export default function SubmitEvidence({
           </div>
           <div>
             <h3 className="text-lg font-black text-red-400 uppercase tracking-wider mb-1">Verification Failed</h3>
-            <p className="text-xs font-mono text-gray-400 max-w-[220px]">
-              {verificationResult?.reason || 'The AI could not verify dare completion'}
+            <p className="text-xs font-mono text-gray-300 max-w-[240px]">
+              {verificationResult?.reason || `We could not verify ${activationLabel} from this proof.`}
             </p>
           </div>
+          <p className="max-w-[220px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
+            Next: upload a clearer proof or send an appeal below.
+          </p>
 
           {verificationResult?.appealable && !appealSubmitted && (
             <div className="w-full max-w-[240px] space-y-2">
@@ -521,17 +538,17 @@ export default function SubmitEvidence({
             </div>
             <div>
               <h3 className="text-xl font-black text-purple-400 uppercase tracking-wider mb-1">
-                {status === 'uploading' ? 'Uploading...' : 'Verifying...'}
+                {status === 'uploading' ? 'Uploading Proof' : 'Checking Proof'}
               </h3>
-              <p className="text-xs font-mono text-gray-400 max-w-[200px]">
+              <p className="text-xs font-mono text-gray-300 max-w-[220px]">
                 {status === 'uploading'
-                  ? 'Uploading to secure storage'
-                  : 'AI Referee analyzing proof'}
+                  ? 'Step 1 of 2. Sending your file to secure storage.'
+                  : 'Step 2 of 2. Beta Referee is checking completion.'}
               </p>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="px-3 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
-                {status === 'uploading' ? 'IPFS Upload' : 'AI Analysis'}
+                {status === 'uploading' ? 'Step 1 / Upload' : 'Step 2 / Review'}
               </div>
               <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider">
                 Beta Referee
@@ -571,6 +588,18 @@ export default function SubmitEvidence({
                   Size: {(file ? file.size / (1024 * 1024) : 0).toFixed(2)} MB
                 </p>
               </div>
+              <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-left">
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-200">Ready To Submit</p>
+                <p className="mt-2 text-xs text-gray-300">
+                  Upload one clear photo or short video from {activationLabel}.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                  <span>Venue visible</span>
+                  <span>Challenge action visible</span>
+                  <span>Max 120MB</span>
+                  {payoutLabel ? <span>{payoutLabel} on clear approval</span> : null}
+                </div>
+              </div>
               {error && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
                   <AlertCircle className="w-4 h-4" />
@@ -586,7 +615,7 @@ export default function SubmitEvidence({
                 className="w-full px-6 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-black text-sm rounded-xl uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
                 <Upload className="w-4 h-4" />
-                Submit & Verify
+                Submit Proof
               </button>
             </div>
           </>
@@ -603,12 +632,12 @@ export default function SubmitEvidence({
             </div>
             <div>
               <h3 className="text-xl font-black text-white uppercase tracking-wider mb-1">
-                {isDragging ? 'Drop File Here' : 'Submit Evidence'}
+                {isDragging ? 'Drop File Here' : 'Submit Proof'}
               </h3>
-              <p className="text-xs font-mono text-gray-500 max-w-[200px]">
+              <p className="text-xs font-mono text-gray-400 max-w-[240px]">
                 {isDragging
                   ? 'Release to upload'
-                  : 'DRAG VIDEO FILE HERE OR CLICK TO BROWSE'}
+                  : `Upload one clear photo or short video from ${activationLabel}.`}
               </p>
             </div>
             {error && (
@@ -618,6 +647,11 @@ export default function SubmitEvidence({
               </div>
             )}
             <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                <span>Venue visible</span>
+                <span>Challenge visible</span>
+                <span>Max 120MB</span>
+              </div>
               <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                 Beta • Testnet

@@ -177,6 +177,16 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
     };
   }
 
+  if (isAssignedCreator && dare.status === 'PENDING_PAYOUT') {
+    return {
+      label: 'Payout Queued',
+      detail: 'Proof cleared. Payout will retry automatically.',
+      cta: 'Open Brief',
+      tone: 'green',
+      priority: 3,
+    };
+  }
+
   if (isAssignedCreator && dare.status === 'VERIFIED') {
     return {
       label: 'Paid',
@@ -193,7 +203,7 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
       detail: 'Proof was rejected. Open the brief and try again.',
       cta: 'Open Brief',
       tone: 'red',
-      priority: 3,
+      priority: 5,
     };
   }
 
@@ -620,6 +630,12 @@ export default function Dashboard() {
         return (
           <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30 flex items-center gap-1">
             <Loader2 className="w-3 h-3" /> In Review
+          </span>
+        );
+      case 'PENDING_PAYOUT':
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 rounded-full border border-cyan-500/30 flex items-center gap-1">
+            <Loader2 className="w-3 h-3" /> Payout Queued
           </span>
         );
       case 'FAILED':
@@ -1413,13 +1429,13 @@ export default function Dashboard() {
                   shortId={selectedDare.shortId}
                   placeName={selectedDare.locationLabel}
                   onVerificationComplete={(result: { status: string }) => {
-                    // Refresh dares lists on verification complete
-                    if (result.status === 'VERIFIED' || result.status === 'FAILED') {
-                      const updateDare = (d: Dare) =>
-                        d.id === selectedDare.id ? { ...d, status: result.status } : d;
-                      setFundedDares((prev) => prev.map(updateDare));
-                      setForMeDares((prev) => prev.map(updateDare));
-                    }
+                    const updateDare = (d: Dare) =>
+                      d.id === selectedDare.id ? { ...d, status: result.status } : d;
+                    setFundedDares((prev) => prev.map(updateDare));
+                    setForMeDares((prev) => prev.map(updateDare));
+                    setSelectedDare((current) =>
+                      current?.id === selectedDare.id ? { ...current, status: result.status } : current
+                    );
                   }}
                 />
               </div>
