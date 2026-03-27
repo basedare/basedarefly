@@ -17,10 +17,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useBountyMode } from '@/hooks/useBountyMode';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
-
-const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
 // Liquid Metal Contact Button Component
@@ -110,6 +109,7 @@ export default function CreateDare() {
   const sessionToken = (session as { token?: string } | null)?.token;
   const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
   const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
+  const { simulated: isSimulationMode } = useBountyMode();
   const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
   const onchainContractError = CONTRACT_VALIDATION.errors.join(' ');
 
@@ -123,7 +123,7 @@ export default function CreateDare() {
     abi: USDC_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !IS_SIMULATION_MODE && !!address && isOnchainContractsReady },
+    query: { enabled: !isSimulationMode && !!address && isOnchainContractsReady },
   });
 
   // Geolocation for nearby dares
@@ -195,7 +195,7 @@ export default function CreateDare() {
 
   // Balance check for FundButton (skip in simulation mode)
   const requiredAmount = watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
-  const hasInsufficientBalance = !IS_SIMULATION_MODE && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
+  const hasInsufficientBalance = !isSimulationMode && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
   const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   // Debug: log validation errors
@@ -239,6 +239,7 @@ export default function CreateDare() {
         },
         {
           sessionToken,
+          isSimulationMode,
           publicClient,
           writeContractAsync,
           onApprovalStatusChange: setApprovalStatus,
@@ -657,7 +658,7 @@ export default function CreateDare() {
               </div>
 
               {/* BALANCE & FUND BUTTON */}
-              {isConnected && !IS_SIMULATION_MODE && (
+              {isConnected && !isSimulationMode && (
                 <div className="pt-4 md:pt-6 space-y-3">
                   {!isOnchainContractsReady && (
                     <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
@@ -695,7 +696,7 @@ export default function CreateDare() {
               )}
 
               {/* SIMULATION MODE INDICATOR */}
-              {IS_SIMULATION_MODE && (
+              {isSimulationMode && (
                 <div className="pt-4 md:pt-6 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                   <p className="text-yellow-400 text-xs md:text-sm font-bold text-center">
                     🧪 SIMULATION MODE - No USDC required, database-only testing
@@ -704,7 +705,7 @@ export default function CreateDare() {
               )}
 
               {/* DEPLOY BUTTON - Liquid Metal Style */}
-              <div className={`${isConnected && !IS_SIMULATION_MODE ? "pt-3" : "pt-4 md:pt-6"}`}>
+              <div className={`${isConnected && !isSimulationMode ? "pt-3" : "pt-4 md:pt-6"}`}>
                 <div className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-[linear-gradient(155deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_22%,rgba(10,8,16,0.9)_62%,rgba(7,5,12,0.96)_100%)] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_32px_rgba(0,0,0,0.45),0_0_30px_rgba(250,204,21,0.05),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.35)] md:p-4">
                   <div
                     aria-hidden="true"
@@ -724,20 +725,20 @@ export default function CreateDare() {
                       <div>
                         <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">Launch Control</p>
                         <p className="mt-1 text-xs font-mono uppercase tracking-wider text-white/25">
-                          {IS_SIMULATION_MODE ? 'Database simulation active' : 'Onchain escrow deployment'}
+                          {isSimulationMode ? 'Database simulation active' : 'Onchain escrow deployment'}
                         </p>
                       </div>
                       <div className="h-2.5 w-2.5 rounded-full bg-[#FACC15] shadow-[0_0_12px_rgba(250,204,21,0.65)]" />
                     </div>
 
-                    {hasInsufficientBalance || (!IS_SIMULATION_MODE && !isOnchainContractsReady) ? (
+                    {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
                       /* Disabled state - no spinning border */
                       <button
                         type="button"
                         disabled
                         className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest rounded-xl flex items-center justify-center cursor-not-allowed border border-[#f5d977]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.45)_0%,rgba(250,204,21,0.34)_48%,rgba(150,111,9,0.55)_100%)] text-black/45 shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-8px_14px_rgba(126,82,0,0.18)_inset,0_10px_18px_rgba(0,0,0,0.28)]"
                       >
-                        {!IS_SIMULATION_MODE && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
+                        {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
                       </button>
                     ) : (
                       /* Active state - with static premium border */
@@ -780,7 +781,7 @@ export default function CreateDare() {
                     )}
 
                     <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
-                      {(!IS_SIMULATION_MODE && !isOnchainContractsReady)
+                      {(!isSimulationMode && !isOnchainContractsReady)
                         ? '* Configure contract env vars and redeploy.'
                         : hasInsufficientBalance
                         ? '* Fund your wallet with USDC to deploy'

@@ -5,13 +5,14 @@ import { isAddress, type Address } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { authOptions } from '@/lib/auth-options';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import {
     BountyPlaceResolutionError,
     resolveCanonicalBountyPlaceContext,
 } from '@/lib/bounty-place';
 
-const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
 const OPEN_BOUNTY_TAGS = ['@everyone', '@anyone', '@all'];
 const LEGACY_TAG_MAP: Record<string, Address> = {

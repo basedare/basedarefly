@@ -5,8 +5,7 @@ import {
   CONTRACT_VALIDATION,
   USDC_ADDRESS,
 } from '@/lib/contracts';
-
-const IS_SIMULATION_MODE = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
+import { getBountyModeSnapshot } from '@/lib/bounty-mode';
 
 export type BountyApprovalStatus = 'idle' | 'approving' | 'funding' | 'verifying';
 
@@ -52,11 +51,13 @@ export async function submitBountyCreation(
   input: BountyCreationInput,
   options: {
     sessionToken?: string | null;
+    isSimulationMode?: boolean;
     publicClient?: unknown;
     writeContractAsync?: unknown;
     onApprovalStatusChange?: (status: BountyApprovalStatus) => void;
   }
 ): Promise<BountyCreationResult> {
+  const isSimulationMode = options.isSimulationMode ?? getBountyModeSnapshot().simulated;
   const jsonHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options.sessionToken ? { Authorization: `Bearer ${options.sessionToken}` } : {}),
@@ -83,7 +84,7 @@ export async function submitBountyCreation(
     requestBody.discoveryRadiusKm = input.discoveryRadiusKm ?? 5;
   }
 
-  if (IS_SIMULATION_MODE) {
+  if (isSimulationMode) {
     const response = await fetch('/api/bounties', {
       method: 'POST',
       headers: jsonHeaders,

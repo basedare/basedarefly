@@ -20,6 +20,7 @@ import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { authOptions } from '@/lib/auth-options';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
@@ -64,7 +65,7 @@ const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
 // Force simulated mode for development (set SIMULATE_BOUNTIES=true in .env.local)
-const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
 
 type WalletSession = {

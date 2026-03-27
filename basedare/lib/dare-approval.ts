@@ -15,6 +15,7 @@ import { base, baseSepolia } from 'viem/chains';
 
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 
@@ -22,7 +23,7 @@ const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
 const activeChain = IS_MAINNET ? base : baseSepolia;
 const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
-const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const FORCE_SIMULATION = isBountySimulationMode();
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
 export const STREAMER_FEE_PERCENT = 89;

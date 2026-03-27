@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
 import {
@@ -18,6 +19,7 @@ import {
 
 const CREATOR_CAMPAIGNS_DORMANT_MESSAGE =
   'CREATOR campaigns stay visible in Control Mode, but new creator-routing launches are temporarily parked while we finish the real social-routing path.';
+const PLACE_CAMPAIGN_MODE = isBountySimulationMode();
 
 // Campaign tier configurations
 const TIER_CONFIG = {
@@ -384,7 +386,7 @@ export async function POST(request: NextRequest) {
               geohash: placeContext.geohash,
               locationLabel: placeContext.locationLabel,
               discoveryRadiusKm: placeContext.discoveryRadiusKm,
-              isSimulated: true,
+              isSimulated: PLACE_CAMPAIGN_MODE,
             });
 
             return tx.campaign.update({

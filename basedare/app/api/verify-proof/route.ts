@@ -9,6 +9,7 @@ import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { alertError, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
@@ -25,7 +26,7 @@ const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.o
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
-const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const FORCE_SIMULATION = isBountySimulationMode();
 
 // Fee distribution constants (matching contract)
 const STREAMER_FEE_PERCENT = 89;

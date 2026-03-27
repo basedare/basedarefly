@@ -11,6 +11,7 @@ import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // Network selection based on environment
@@ -20,7 +21,7 @@ const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.o
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
-const FORCE_SIMULATION = process.env.SIMULATE_BOUNTIES === 'true';
+const FORCE_SIMULATION = isBountySimulationMode();
 
 // Cron secret handled by verifyCronSecret (fail-closed)
 
