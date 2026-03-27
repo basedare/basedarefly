@@ -352,7 +352,7 @@ function OpportunityCard({
       >
         <button
           onClick={() => onOpen(href)}
-          className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+          className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] leading-tight text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
         >
           Open Brief
         </button>
@@ -360,7 +360,7 @@ function OpportunityCard({
         {opportunity.venue?.slug ? (
           <button
             onClick={() => onOpen(mapHref)}
-            className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-fuchsia-100 transition hover:border-fuchsia-300/50 hover:bg-fuchsia-500/16"
+            className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] leading-tight text-fuchsia-100 transition hover:border-fuchsia-300/50 hover:bg-fuchsia-500/16"
           >
             View on Map
           </button>
@@ -370,9 +370,9 @@ function OpportunityCard({
           <button
             onClick={() => onClaim(opportunity)}
             disabled={claimLoading}
-            className="rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f5d75f] transition hover:border-[#f5d75f]/50 hover:bg-[#f5c518]/16 disabled:opacity-50"
+            className="rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/10 px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] leading-tight text-[#f5d75f] transition hover:border-[#f5d75f]/50 hover:bg-[#f5c518]/16 disabled:opacity-50"
           >
-            {claimLoading ? 'Claiming...' : 'Claim This Activation'}
+            {claimLoading ? 'Claiming...' : 'Claim Now'}
           </button>
         ) : (
           <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">

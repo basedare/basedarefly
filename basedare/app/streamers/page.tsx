@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { DollarSign, Users, TrendingUp, Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
@@ -145,7 +146,7 @@ export default function CreatorsPage() {
                   ACTIVE CREATORS
                 </h2>
                 <Link href="/leaderboard" className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  View All <ArrowRight className="w-3 h-3" />
+                  Hall of Fame <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
 
@@ -166,62 +167,70 @@ export default function CreatorsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {creators.map((creator, index) => {
-                    const plainTag = creator.tag.replace("@", "").toLowerCase();
-                    const avatarImg = STREAMER_IMAGES[plainTag];
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-[#0a0913] to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-[#0a0913] to-transparent" />
+                  <div className="max-h-[38rem] overflow-y-auto pr-1 sm:pr-2">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                      {creators.map((creator, index) => {
+                        const plainTag = creator.tag.replace("@", "").toLowerCase();
+                        const avatarImg = STREAMER_IMAGES[plainTag];
 
-                    return (
-                      <motion.div
-                        key={creator.tag}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1 + index * 0.05 }}
-                      >
-                        <Link
-                          href={`/creator/${plainTag}`}
-                          className={`${softCardClass} group block p-5 text-center transition-all duration-300 hover:-translate-y-[2px] hover:border-purple-500/35`}
-                        >
-                          <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.10),transparent_42%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.12)_100%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        return (
+                          <motion.div
+                            key={creator.tag}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.1 + index * 0.05 }}
+                          >
+                            <Link
+                              href={`/creator/${plainTag}`}
+                              className={`${softCardClass} group block p-5 text-center transition-all duration-300 hover:-translate-y-[2px] hover:border-purple-500/35`}
+                            >
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.10),transparent_42%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.12)_100%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                          <div className="relative z-10">
-                            <div className="mb-4 mx-auto relative w-16 h-16">
-                              {avatarImg ? (
-                                <img
-                                  src={avatarImg}
-                                  alt={creator.tag}
-                                  className="w-full h-full rounded-full object-cover border-2 border-white/10 group-hover:border-purple-500/45 transition-colors shadow-[0_14px_26px_rgba(0,0,0,0.3)]"
-                                />
-                              ) : (
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex items-center justify-center text-xl font-black text-white shadow-[0_14px_26px_rgba(0,0,0,0.3)]">
-                                  {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                              <div className="relative z-10">
+                                <div className="mb-4 mx-auto relative w-16 h-16">
+                                  {avatarImg ? (
+                                    <Image
+                                      src={avatarImg}
+                                      alt={creator.tag}
+                                      fill
+                                      sizes="64px"
+                                      className="rounded-full object-cover border-2 border-white/10 group-hover:border-purple-500/45 transition-colors shadow-[0_14px_26px_rgba(0,0,0,0.3)]"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-600 to-yellow-500 flex items-center justify-center text-xl font-black text-white shadow-[0_14px_26px_rgba(0,0,0,0.3)]">
+                                      {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-[#0a0a0f] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.24)]">
+                                    <CheckCircle className="w-3 h-3 text-white" />
+                                  </div>
                                 </div>
-                              )}
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-[#0a0a0f] flex items-center justify-center shadow-[0_8px_16px_rgba(0,0,0,0.24)]">
-                                <CheckCircle className="w-3 h-3 text-white" />
-                              </div>
-                            </div>
 
-                            <h3 className="text-sm font-black text-white group-hover:text-purple-300 transition-colors truncate italic">
-                              {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
-                            </h3>
+                                <h3 className="text-sm font-black text-white group-hover:text-purple-300 transition-colors truncate italic">
+                                  {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
+                                </h3>
 
-                            <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
-                                <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Earned</span>
+                                <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
+                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Earned</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
+                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Dares</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
-                                <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Dares</span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
+                            </Link>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

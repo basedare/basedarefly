@@ -163,7 +163,7 @@ export default function LeaderboardPage() {
     async function fetchLeaderboard() {
       try {
         setLoading(true);
-        const res = await fetch("/api/leaderboard?type=CREATOR&limit=20");
+        const res = await fetch("/api/leaderboard?type=CREATOR&limit=50");
         if (!res.ok) throw new Error("Failed to fetch leaderboard");
         const json = await res.json();
 
@@ -185,7 +185,7 @@ export default function LeaderboardPage() {
   // Get top 3 for podium
   const top3 = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3);
-  const displayedRest = isExpanded ? rest : rest.slice(0, 4);
+  const displayedRest = isExpanded ? rest : rest.slice(0, 12);
 
   const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0 };
   const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0 };
@@ -543,6 +543,17 @@ export default function LeaderboardPage() {
               >
                 <div className={`${softCardClass} p-4 sm:p-5`}>
                   <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black italic tracking-tight text-white">Full Rankings</h2>
+                      <p className="mt-1 text-[11px] font-mono uppercase tracking-[0.18em] text-gray-500">
+                        beyond the podium
+                      </p>
+                    </div>
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+                      {leaderboard.length} creators ranked
+                    </div>
+                  </div>
                   <div className="space-y-2 sm:space-y-3">
                     <AnimatePresence mode="popLayout">
                       {displayedRest.map((entry, index) => (
@@ -595,7 +606,7 @@ export default function LeaderboardPage() {
                       ))}
                     </AnimatePresence>
 
-                    {rest.length > 4 && (
+                    {rest.length > 12 && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -611,7 +622,7 @@ export default function LeaderboardPage() {
                             </>
                           ) : (
                             <>
-                              View All ({rest.length} creators) <ChevronDown className="w-4 h-4" />
+                              Show All ({rest.length} more) <ChevronDown className="w-4 h-4" />
                             </>
                           )}
                         </button>
