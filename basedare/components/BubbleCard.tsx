@@ -59,19 +59,21 @@ export default function BubbleCard({
           className="bubble-card-button"
           style={{ '--bubble-color': color } as React.CSSProperties}
         >
-          <span className="bubble-card-content">
-            <span className="bubble-badge">{badge}</span>
-            <span className="bubble-title">
-              <GradientText
-                colors={gradientColors}
-                animationSpeed={6}
-                className="bubble-gradient-title"
-              >
-                {title}
-              </GradientText>
+          <span className="bubble-card-panel bd-dent-surface bd-dent-surface--soft">
+            <span className="bubble-card-content">
+              <span className="bubble-badge">{badge}</span>
+              <span className="bubble-title">
+                <GradientText
+                  colors={gradientColors}
+                  animationSpeed={6}
+                  className="bubble-gradient-title"
+                >
+                  {title}
+                </GradientText>
+              </span>
+              <span className="bubble-divider" />
+              <span className="bubble-description">{description}</span>
             </span>
-            <span className="bubble-divider" />
-            <span className="bubble-description">{description}</span>
           </span>
         </button>
 

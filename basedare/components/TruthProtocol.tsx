@@ -26,6 +26,13 @@ export default function TruthProtocol() {
       title: 'NETWORK',
       description: 'Immutable, low-fee execution powered by Base L2, secured by Ethereum mainnet.',
       color: '#3B82F6'
+    },
+    {
+      id: 'location',
+      badge: '04 // FORT',
+      title: 'LOCATION',
+      description: 'Venue anchors and nearby proof turn dares into place-bound missions with real-world context.',
+      color: '#22D3EE'
     }
   ];
 
@@ -57,7 +64,7 @@ export default function TruthProtocol() {
           <Shuffle
             text="Zero-Knowledge Verification • On-Chain Settlement • Base L2"
             tag="p"
-            className="text-gray-400 font-mono text-sm uppercase tracking-widest"
+            className="inline-flex max-w-fit items-center justify-center bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.08] px-5 py-3 text-gray-400 font-mono text-sm uppercase tracking-widest"
             duration={0.6}
             stagger={0.01}
             shuffleTimes={2}
@@ -65,7 +72,7 @@ export default function TruthProtocol() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {staticCards.map((card) => (
             <BubbleCard
               key={card.id}
@@ -73,7 +80,7 @@ export default function TruthProtocol() {
               badge={card.badge}
               title={card.title}
               description={card.description}
-              className="w-full max-w-[280px] mx-auto"
+              className="w-full max-w-[280px] xl:max-w-[300px] mx-auto"
             />
           ))}
         </div>
