@@ -1260,7 +1260,7 @@ export default function RealWorldMap() {
   }, [selectedPlace, selectedPulse, selectedVisualState]);
 
   const mapPanelShellClass =
-    'map-panel-shell relative overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.045)_8%,rgba(8,10,18,0.95)_28%,rgba(5,6,14,0.988)_100%)] shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_34px_rgba(34,211,238,0.08),0_0_70px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_24px_rgba(0,0,0,0.24)] md:h-full md:max-h-none md:rounded-[34px]';
+    'map-panel-shell relative overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.045)_8%,rgba(8,10,18,0.95)_28%,rgba(5,6,14,0.988)_100%)] shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_34px_rgba(34,211,238,0.08),0_0_70px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_24px_rgba(0,0,0,0.24)] md:max-h-[min(760px,calc(100dvh-8rem))] md:rounded-[34px]';
   const mapPanelMetricClass =
     'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
   const mapPanelSectionClass =
@@ -1642,12 +1642,12 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:bottom-4 md:left-auto md:right-4 md:w-[420px] md:translate-x-0 lg:w-[440px]">
+              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-24 md:bottom-auto md:left-auto md:right-4 md:w-[392px] md:translate-x-0 lg:w-[408px]">
                 <div className={mapPanelShellClass}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/6 md:rounded-[33px]" />
-                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:h-full md:max-h-none">
+                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:max-h-[min(760px,calc(100dvh-8rem))]">
                   <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.88)] px-4 pb-4 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-5 md:pb-5 md:pt-5">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
