@@ -4,7 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { DollarSign, Users, TrendingUp, Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight } from "lucide-react";
+import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
@@ -63,16 +63,9 @@ export default function CreatorsPage() {
     speed: "/assets/Ishowspeed.jpg",
   };
 
-  const features = [
-    { icon: DollarSign, title: "Earn Big", description: "Top creators bank $5k-$50k/month from dare bounties" },
-    { icon: Users, title: "Instant Audience", description: "100k+ dare watchers ready to fund your challenges" },
-    { icon: TrendingUp, title: "Grow Your Brand", description: "Viral moments = more followers, more sponsors" },
-    { icon: Trophy, title: "Leaderboard Fame", description: "Top creators get legendary status + perks" },
-  ];
-
   const verificationSteps = [
     { icon: Tag, title: "Claim Your Tag", description: "Choose a unique @tag linked to your wallet" },
-    { icon: Shield, title: "Verify Identity", description: "Connect Twitter, Twitch, YouTube, or Kick" },
+    { icon: Shield, title: "Verify Identity", description: "Link your handle and submit proof" },
     { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every bounty you complete" },
   ];
 
@@ -134,7 +127,7 @@ export default function CreatorsPage() {
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Your audience dares, you deliver, everyone wins. Get paid to do wild challenges.
+                Claim your tag, complete live dares, and build verified momentum on the grid.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
@@ -351,38 +344,6 @@ export default function CreatorsPage() {
                       <p className="text-xs text-gray-500 font-mono">{step.description}</p>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Features Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="max-w-4xl mx-auto mb-16"
-        >
-          <div className={`${softCardClass} p-5 sm:p-6`}>
-            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-            <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
-              Why Join?
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 + index * 0.05 }}
-                  className={`${insetCardClass} p-4`}
-                >
-                  <div className="w-10 h-10 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-center mb-3 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    <feature.icon className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
-                  <p className="text-[11px] text-gray-500 font-mono leading-relaxed">{feature.description}</p>
                 </motion.div>
               ))}
             </div>
