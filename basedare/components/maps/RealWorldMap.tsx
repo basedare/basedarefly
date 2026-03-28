@@ -508,14 +508,14 @@ function createPeebearMarkerIcon({
 function renderProofPreview(tag: PlaceTagItem) {
   if (tag.source === 'SEEDED_MEMORY') {
     return (
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] md:h-22 md:w-22">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
-        <div className="absolute inset-x-3 top-3 rounded-[14px] border border-[#f5c518]/20 bg-black/28 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-          <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-            Seeded memory
+        <div className="absolute inset-x-2.5 top-2.5 rounded-[12px] border border-[#f5c518]/20 bg-black/28 px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="text-[8.5px] font-semibold uppercase tracking-[0.2em] text-[#f8dd72]">
+            Seeded
           </div>
-          <div className="mt-1 text-[9px] uppercase tracking-[0.12em] text-white/58">
-            Bootstrap
+          <div className="mt-1 text-[8px] uppercase tracking-[0.16em] text-white/56">
+            Memory
           </div>
         </div>
       </div>
@@ -1272,7 +1272,7 @@ export default function RealWorldMap() {
       className={
         isImmersiveMobile
           ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
-          : 'relative z-20 px-4 pb-16 pt-8 sm:px-6 md:px-10'
+          : 'relative z-20 px-4 pb-20 pt-10 sm:px-6 sm:pb-24 sm:pt-12 md:px-10 md:pb-24 md:pt-12'
       }
     >
       <div className={isImmersiveMobile ? 'h-full w-full' : 'mx-auto max-w-7xl'}>
@@ -1344,9 +1344,9 @@ export default function RealWorldMap() {
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
-          <div className="relative z-20 flex flex-col gap-4 border-b border-white/8 px-4 py-4 sm:px-5">
+          <div className="relative z-20 flex flex-col gap-3 border-b border-white/8 px-4 py-3 sm:px-5 sm:py-3.5">
             <div className="relative w-full max-w-xl">
-              <div className="flex items-center gap-3 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-3 shadow-[0_16px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.09)]">
+              <div className="flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5 shadow-[0_16px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.09)]">
                 <Search className="h-4 w-4 text-cyan-200" />
                 <input
                   value={searchQuery}
@@ -1415,8 +1415,8 @@ export default function RealWorldMap() {
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-col gap-2.5">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -1437,7 +1437,7 @@ export default function RealWorldMap() {
                       type="button"
                       data-active={pulseFilter === option.value}
                       onClick={() => setPulseFilter(option.value)}
-                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
                     >
                       <span>{option.label}</span>
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
@@ -1448,7 +1448,7 @@ export default function RealWorldMap() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
                     View mode
                   </div>
                   {MAP_PRESET_OPTIONS.map((option) => (
@@ -1457,7 +1457,7 @@ export default function RealWorldMap() {
                       type="button"
                       data-active={mapPreset === option.value}
                       onClick={() => setMapPreset(option.value)}
-                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
                     >
                       <span className={`h-2 w-2 rounded-full ${
                         option.value === 'classic'
@@ -1550,7 +1550,7 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            <div className="absolute left-5 top-5 z-[9] hidden md:flex flex-col gap-2">
+            <div className="absolute left-5 top-6 z-[9] hidden md:flex flex-col gap-2">
               <button
                 type="button"
                 onClick={requestApproximateLocation}
@@ -1615,12 +1615,12 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-20 md:bottom-auto md:left-auto md:right-5 md:w-[360px] md:translate-x-0 lg:w-[372px]">
+              <div className="absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-24 md:bottom-6 md:left-auto md:right-6 md:w-[360px] md:translate-x-0 lg:w-[372px]">
                 <div className={mapPanelShellClass}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:max-h-[min(680px,calc(100dvh-10rem))]">
+                  <div className="flex max-h-[52dvh] flex-col overflow-hidden md:max-h-[min(640px,calc(100dvh-13rem))]">
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -1687,7 +1687,7 @@ export default function RealWorldMap() {
                   </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-5">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6">
 
                   {ceremonyState ? (
                     <div
@@ -2010,7 +2010,7 @@ export default function RealWorldMap() {
                         {selectedPlaceTags.slice(0, 3).map((tag) => (
                           <div
                             key={tag.id}
-                            className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-3 py-3 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-3 py-2.5 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
                           >
                             <div className="flex gap-3">
                               {renderProofPreview(tag)}
@@ -2030,15 +2030,15 @@ export default function RealWorldMap() {
                                     First spark
                                   </div>
                                 ) : null}
-                                <p className="mt-2 text-sm text-white/62">
+                                <p className="mt-1.5 text-sm text-white/62">
                                   {tag.caption || 'Verified mark submitted without a caption.'}
                                 </p>
                                 {tag.vibeTags.length > 0 ? (
-                                  <div className="mt-2 flex flex-wrap gap-2">
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
                                     {tag.vibeTags.map((vibeTag) => (
                                       <span
                                         key={vibeTag}
-                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45"
+                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/45"
                                       >
                                         {vibeTag}
                                       </span>
