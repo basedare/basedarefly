@@ -59,24 +59,28 @@ export default function HowItWorks() {
         </div>
 
         {/* Desktop Animated Text Strip */}
-        <div className="parallax hidden md:block">
-          <div className="scroller text-white">
-            <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-            <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-            <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-            <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+        <div className="hidden md:block">
+          <div className="parallax bd-dent-surface rounded-[2rem] border border-white/[0.08] px-4 py-4">
+            <div className="scroller text-white">
+              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+            </div>
           </div>
         </div>
 
         {/* Mobile Bounded Banner */}
         <div className="mt-4 text-center md:hidden">
-          <p className="px-2 text-[1.15rem] font-black italic leading-tight tracking-tight text-white">
-            Wherever You Are. Someone Will Pay You To Do It.
-          </p>
+          <div className="bd-dent-surface bd-dent-surface--soft rounded-[1.75rem] border border-white/[0.08] px-4 py-4">
+            <p className="px-2 text-[1.15rem] font-black italic leading-tight tracking-tight text-white">
+              Wherever You Are. Someone Will Pay You To Do It.
+            </p>
+          </div>
         </div>
 
         <div className="mt-8 md:mt-12 text-center px-2">
-          <div className="inline-flex max-w-full flex-wrap justify-center items-baseline gap-x-2 gap-y-1 rounded-full border border-purple-400/35 bg-white/[0.05] px-5 py-3 sm:px-8 sm:py-4 md:px-16 md:py-7 backdrop-blur-sm md:backdrop-blur-xl shadow-[0_10px_30px_rgba(14,10,36,0.35)] md:shadow-[0_16px_55px_rgba(14,10,36,0.5)]">
+          <div className="bd-dent-surface bd-dent-surface--soft inline-flex max-w-full flex-wrap justify-center items-baseline gap-x-2 gap-y-1 rounded-full border border-purple-400/35 px-5 py-3 sm:px-8 sm:py-4 md:px-16 md:py-7">
             <span className="font-black italic uppercase tracking-wide leading-none text-white text-2xl sm:text-3xl md:text-6xl">Real</span>
             <RotatingText
               texts={["Dares.", "Crypto.", "Chaos."]}
@@ -98,12 +102,6 @@ export default function HowItWorks() {
           position: relative;
           overflow: hidden;
           margin-top: 1rem;
-          padding: 0.75rem 0;
-          border-top: 1px solid rgba(168, 85, 247, 0.22);
-          border-bottom: 1px solid rgba(168, 85, 247, 0.22);
-          background: rgba(255, 255, 255, 0.02);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
         }
 
         .scroller {
