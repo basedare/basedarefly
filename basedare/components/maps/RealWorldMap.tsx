@@ -503,13 +503,17 @@ function createPeebearMarkerIcon({
   return icon;
 }
 
-function renderProofPreview(tag: PlaceTagItem) {
+function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) {
+  const compact = options?.compact ?? false;
+  const sizeClass = compact ? 'h-16 w-16 rounded-[14px]' : 'h-20 w-20 rounded-[16px] md:h-22 md:w-22';
+  const innerInsetClass = compact ? 'inset-x-2 top-2 rounded-[10px] px-1.5 py-1.5' : 'inset-x-2.5 top-2.5 rounded-[12px] px-2 py-2';
+
   if (tag.source === 'SEEDED_MEMORY') {
     return (
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] md:h-22 md:w-22">
+      <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
-        <div className="absolute inset-x-2.5 top-2.5 rounded-[12px] border border-[#f5c518]/20 bg-black/28 px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-          <div className="text-[8.5px] font-semibold uppercase tracking-[0.2em] text-[#f8dd72]">
+        <div className={`absolute border border-[#f5c518]/20 bg-black/28 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${innerInsetClass}`}>
+          <div className={`${compact ? 'text-[7px]' : 'text-[8.5px]'} font-semibold uppercase tracking-[0.2em] text-[#f8dd72]`}>
             Memory
           </div>
         </div>
@@ -519,7 +523,7 @@ function renderProofPreview(tag: PlaceTagItem) {
 
   if (tag.proofType === 'VIDEO') {
     return (
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/30">
+      <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-black/30 ${sizeClass}`}>
         <video
           src={tag.proofMediaUrl}
           className="h-full w-full object-cover"
@@ -536,10 +540,10 @@ function renderProofPreview(tag: PlaceTagItem) {
   }
 
   return (
-    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/30">
-      <Image
-        src={tag.proofMediaUrl}
-        alt={tag.caption || 'Place tag proof'}
+      <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-black/30 ${sizeClass}`}>
+        <Image
+          src={tag.proofMediaUrl}
+          alt={tag.caption || 'Place tag proof'}
         fill
         sizes="96px"
         className="object-cover"
@@ -1975,43 +1979,48 @@ export default function RealWorldMap() {
                     ) : selectedPlaceTagsError ? (
                       <p className="mt-3 text-sm text-rose-200/80">{selectedPlaceTagsError}</p>
                     ) : selectedPlaceTags.length > 0 ? (
-                      <div className="mt-3 space-y-3">
+                      <div className="mt-3 space-y-2.5">
                         {selectedPlaceTags.slice(0, 3).map((tag) => (
                           <div
                             key={tag.id}
-                            className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-3 py-2.5 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className="rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-2.5 py-2 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
                           >
-                            <div className="flex gap-3">
-                              {renderProofPreview(tag)}
+                            <div className="flex gap-2.5">
+                              {renderProofPreview(tag, { compact: true })}
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-3">
-                                  <p className="truncate text-sm font-semibold text-white">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="truncate text-[13px] font-semibold text-white">
                                     {tag.creatorTag
                                       ? `@${tag.creatorTag}`
                                       : `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
                                   </p>
-                                  <p className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-white/36">
+                                  <p className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-white/34">
                                     {getLastSparkLabel(tag.submittedAt)}
                                   </p>
                                 </div>
                                 {tag.firstMark ? (
-                                  <div className="mt-2 inline-flex rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                                  <div className="mt-1.5 inline-flex rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72]">
                                     First spark
                                   </div>
                                 ) : null}
-                                <p className="mt-1.5 text-sm text-white/62">
+                                <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-white/62">
                                   {tag.caption || 'Verified mark submitted without a caption.'}
                                 </p>
                                 {tag.vibeTags.length > 0 ? (
-                                  <div className="mt-2 flex flex-wrap gap-1.5">
-                                    {tag.vibeTags.map((vibeTag) => (
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {tag.vibeTags.slice(0, 2).map((vibeTag) => (
                                       <span
                                         key={vibeTag}
-                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/45"
+                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white/45"
                                       >
                                         {vibeTag}
                                       </span>
                                     ))}
+                                    {tag.vibeTags.length > 2 ? (
+                                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white/38">
+                                        +{tag.vibeTags.length - 2}
+                                      </span>
+                                    ) : null}
                                   </div>
                                 ) : null}
                               </div>
