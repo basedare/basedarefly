@@ -97,7 +97,7 @@ export default function LivePotLeaderboard() {
 
   if (loading) {
     return (
-      <div className="animate-pulse bg-zinc-900/50 rounded-2xl p-6 h-96">
+      <div className="animate-pulse rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.34),rgba(8,9,18,0.92))] p-6 h-96 shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="h-8 w-48 bg-zinc-800 rounded mb-4" />
         <div className="h-24 bg-zinc-800 rounded mb-4" />
         <div className="space-y-2">
@@ -110,9 +110,9 @@ export default function LivePotLeaderboard() {
   }
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800 rounded-2xl overflow-hidden">
+    <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.34),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
       {/* Live Pot Header */}
-      <div className="p-6 border-b border-zinc-800 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
+      <div className="p-6 border-b border-white/8 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -133,25 +133,25 @@ export default function LivePotLeaderboard() {
 
         {/* Pot Stats */}
         <div className="grid grid-cols-4 gap-4 text-center">
-          <div className="bg-black/30 rounded-lg p-3">
+          <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 p-3">
             <div className="text-lg font-bold text-green-400">
               +${(potData?.weekly?.deposited ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-zinc-500">This Week</div>
           </div>
-          <div className="bg-black/30 rounded-lg p-3">
+          <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 p-3">
             <div className="text-lg font-bold text-purple-400">
               ${(potData?.totalDeposited ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-zinc-500">All-Time In</div>
           </div>
-          <div className="bg-black/30 rounded-lg p-3">
+          <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 p-3">
             <div className="text-lg font-bold text-blue-400">
               ${(potData?.totalDistributed ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-zinc-500">Distributed</div>
           </div>
-          <div className="bg-black/30 rounded-lg p-3">
+          <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 p-3">
             <div className="text-lg font-bold text-red-400">
               ${(potData?.totalSlashed ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
@@ -161,12 +161,12 @@ export default function LivePotLeaderboard() {
       </div>
 
       {/* Leaderboard Tabs */}
-      <div className="flex border-b border-zinc-800">
+      <div className="flex border-b border-white/8">
         <button
           onClick={() => setActiveTab('creators')}
           className={`flex-1 py-3 text-sm font-semibold transition ${
             activeTab === 'creators'
-              ? 'text-purple-400 border-b-2 border-purple-400 bg-purple-500/5'
+              ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/5'
               : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
@@ -196,7 +196,7 @@ export default function LivePotLeaderboard() {
               className="space-y-2"
             >
               {creatorLeaderboard.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 text-center py-8 text-zinc-500">
                   No creator data yet this week. Complete dares to rank!
                 </div>
               ) : (
@@ -205,8 +205,8 @@ export default function LivePotLeaderboard() {
                     key={creator.handle}
                     className={`flex items-center justify-between p-3 rounded-lg transition ${
                       creator.rank <= 3
-                        ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20'
-                        : 'bg-zinc-800/30 hover:bg-zinc-800/50'
+                        ? 'bd-dent-surface bd-dent-surface--soft border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-orange-500/10'
+                        : 'bd-dent-surface bd-dent-surface--soft border border-white/6 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ export default function LivePotLeaderboard() {
               className="space-y-2"
             >
               {scoutLeaderboard.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 text-center py-8 text-zinc-500">
                   No scout data yet. Start recruiting creators to rank!
                 </div>
               ) : (
@@ -267,8 +267,8 @@ export default function LivePotLeaderboard() {
                     key={scout.walletAddress}
                     className={`flex items-center justify-between p-3 rounded-lg transition ${
                       scout.rank <= 3
-                        ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20'
-                        : 'bg-zinc-800/30 hover:bg-zinc-800/50'
+                        ? 'bd-dent-surface bd-dent-surface--soft border border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10'
+                        : 'bd-dent-surface bd-dent-surface--soft border border-white/6 hover:border-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -318,8 +318,8 @@ export default function LivePotLeaderboard() {
       </div>
 
       {/* Reward Info */}
-      <div className="p-4 border-t border-zinc-800 bg-black/20">
-        <div className="text-center text-sm text-zinc-500">
+      <div className="p-4 border-t border-white/8 bg-black/10">
+        <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 px-4 py-3 text-center text-sm text-zinc-500">
           <span className="text-yellow-400">🥇 50%</span> •{' '}
           <span className="text-zinc-400">🥈 30%</span> •{' '}
           <span className="text-amber-600">🥉 20%</span>
