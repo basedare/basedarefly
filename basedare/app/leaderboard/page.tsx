@@ -18,6 +18,9 @@ const softCardClass =
 const insetCardClass =
   "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
 
+const dentWellClass =
+  "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(7,8,14,0.9)_0%,rgba(14,13,24,0.86)_100%)]";
+
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
@@ -212,6 +215,10 @@ export default function LeaderboardPage() {
   const firstHref = getCreatorHref(FIRST.user);
   const secondHref = getCreatorHref(SECOND.user);
   const thirdHref = getCreatorHref(THIRD.user);
+  const totalVolume = leaderboard.reduce((sum, entry) => sum + entry.totalVolume, 0);
+  const totalCompletions = leaderboard.reduce((sum, entry) => sum + entry.completions, 0);
+  const totalB2B = leaderboard.reduce((sum, entry) => sum + entry.b2bVolume, 0);
+  const totalP2P = leaderboard.reduce((sum, entry) => sum + entry.p2pVolume, 0);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -264,9 +271,34 @@ export default function LeaderboardPage() {
                   Leaderboard
                 </span>
               </h1>
-              <p className="mt-4 text-gray-400 font-mono text-sm max-w-lg mx-auto">
-                The sharpest creators rise here. Volume, completions, and reputation all leave a trail.
-              </p>
+              <div className={`${dentWellClass} mt-5 max-w-2xl mx-auto px-5 py-4`}>
+                <p className="text-gray-300/85 font-mono text-sm leading-relaxed">
+                  The sharpest creators rise here. Verified completions, earned volume, and live momentum all leave a trail.
+                </p>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className={`${dentWellClass} px-4 py-4 text-left`}>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Ranked</div>
+                  <div className="mt-2 text-2xl font-black text-white">{leaderboard.length}</div>
+                  <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-white/35">creators</div>
+                </div>
+                <div className={`${dentWellClass} px-4 py-4 text-left`}>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Volume</div>
+                  <div className="mt-2 text-2xl font-black text-yellow-300">{formatVolume(totalVolume)}</div>
+                  <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-white/35">verified total</div>
+                </div>
+                <div className={`${dentWellClass} px-4 py-4 text-left`}>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Completions</div>
+                  <div className="mt-2 text-2xl font-black text-cyan-300">{totalCompletions}</div>
+                  <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-white/35">finished dares</div>
+                </div>
+                <div className={`${dentWellClass} px-4 py-4 text-left`}>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Mix</div>
+                  <div className="mt-2 text-lg font-black text-fuchsia-200">P2P {formatVolume(totalP2P)}</div>
+                  <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-white/35">B2B {formatVolume(totalB2B)}</div>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -343,7 +375,7 @@ export default function LeaderboardPage() {
                         1
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
                       <p className="text-white font-bold truncate">{FIRST.user}</p>
                       <p className="text-yellow-400 font-black text-lg">{FIRST.staked}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
@@ -381,7 +413,7 @@ export default function LeaderboardPage() {
                         2
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
                       <p className="text-white font-bold text-sm truncate">{SECOND.user}</p>
                       <p className="text-cyan-400 font-black">{SECOND.staked}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
@@ -419,7 +451,7 @@ export default function LeaderboardPage() {
                         3
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
                       <p className="text-white font-bold text-sm truncate">{THIRD.user}</p>
                       <p className="text-pink-400 font-black">{THIRD.staked}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
@@ -465,14 +497,16 @@ export default function LeaderboardPage() {
                         2
                       </div>
                     </div>
-                    <p className="text-white font-bold truncate mb-1">{SECOND.user}</p>
-                    <p className="text-cyan-400 font-black text-xl mb-3">{SECOND.staked}</p>
-                    <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
-                      <span>{SECOND.completions} completions</span>
-                      {SECOND.rewardTier ? <span className="text-cyan-100/70">{SECOND.rewardTier}</span> : null}
+                    <div className={`${dentWellClass} px-4 py-4`}>
+                      <p className="text-white font-bold truncate mb-1">{SECOND.user}</p>
+                      <p className="text-cyan-400 font-black text-xl mb-3">{SECOND.staked}</p>
+                      <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{SECOND.completions} completions</span>
+                        {SECOND.rewardTier ? <span className="text-cyan-100/70">{SECOND.rewardTier}</span> : null}
+                      </div>
+                      <LiquidProgressBar value={SECOND.level} color="cyan" />
+                      <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(SECOND.level / 10)}</p>
                     </div>
-                    <LiquidProgressBar value={SECOND.level} color="cyan" />
-                    <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(SECOND.level / 10)}</p>
                     </div>
                   </LeaderboardCardLink>
                 </motion.div>
@@ -509,14 +543,16 @@ export default function LeaderboardPage() {
                           <Crown className="w-5 h-5" />
                         </div>
                       </div>
-                      <p className="text-white font-bold text-lg truncate mb-1">{FIRST.user}</p>
-                      <p className="text-yellow-400 font-black text-2xl md:text-3xl mb-4">{FIRST.staked}</p>
-                      <div className="mb-4 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
-                        <span>{FIRST.completions} completions</span>
-                        {FIRST.rewardTier ? <span className="text-yellow-100/75">{FIRST.rewardTier}</span> : null}
+                      <div className={`${dentWellClass} px-4 py-4`}>
+                        <p className="text-white font-bold text-lg truncate mb-1">{FIRST.user}</p>
+                        <p className="text-yellow-400 font-black text-2xl md:text-3xl mb-4">{FIRST.staked}</p>
+                        <div className="mb-4 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                          <span>{FIRST.completions} completions</span>
+                          {FIRST.rewardTier ? <span className="text-yellow-100/75">{FIRST.rewardTier}</span> : null}
+                        </div>
+                        <LiquidProgressBar value={FIRST.level} color="yellow" />
+                        <p className="text-xs text-gray-500 font-mono mt-2">LVL {Math.floor(FIRST.level / 10)}</p>
                       </div>
-                      <LiquidProgressBar value={FIRST.level} color="yellow" />
-                      <p className="text-xs text-gray-500 font-mono mt-2">LVL {Math.floor(FIRST.level / 10)}</p>
                     </div>
                   </div>
                   </LeaderboardCardLink>
@@ -550,14 +586,16 @@ export default function LeaderboardPage() {
                         3
                       </div>
                     </div>
-                    <p className="text-white font-bold text-sm truncate mb-1">{THIRD.user}</p>
-                    <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
-                    <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
-                      <span>{THIRD.completions} completions</span>
-                      {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                    <div className={`${dentWellClass} px-4 py-4`}>
+                      <p className="text-white font-bold text-sm truncate mb-1">{THIRD.user}</p>
+                      <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
+                      <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                        <span>{THIRD.completions} completions</span>
+                        {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                      </div>
+                      <LiquidProgressBar value={THIRD.level} color="pink" />
+                      <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
                     </div>
-                    <LiquidProgressBar value={THIRD.level} color="pink" />
-                    <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
                     </div>
                   </LeaderboardCardLink>
                 </motion.div>
@@ -593,7 +631,7 @@ export default function LeaderboardPage() {
                         beyond the podium
                       </p>
                     </div>
-                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+                    <div className={`${dentWellClass} rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55`}>
                       {leaderboard.length} creators ranked
                     </div>
                   </div>
@@ -612,7 +650,7 @@ export default function LeaderboardPage() {
                             className={`${insetCardClass} p-3 sm:p-4 transition-all duration-300 hover:-translate-y-[1px] hover:border-purple-400/25`}
                           >
                           <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                            <div className={`${dentWellClass} w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0`}>
                               <span className="text-purple-400 font-black text-sm sm:text-base">{entry.rank}</span>
                             </div>
 
@@ -626,7 +664,7 @@ export default function LeaderboardPage() {
                               />
                             </div>
 
-                            <div className="flex-1 min-w-0">
+                            <div className={`${dentWellClass} flex-1 min-w-0 px-3 py-3`}>
                               <div className="flex items-center justify-between gap-2 mb-1.5">
                                 <p className="text-white font-bold text-sm truncate">{entry.user}</p>
                                 <p className="text-yellow-400 font-black text-sm shrink-0">{entry.staked}</p>
@@ -698,16 +736,16 @@ export default function LeaderboardPage() {
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-yellow-500/5 pointer-events-none" />
                 <div className="relative z-10">
-                  <div className="w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    <Flame className="w-6 h-6 text-purple-400" />
-                  </div>
+                          <div className={`${dentWellClass} w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                            <Flame className="w-6 h-6 text-purple-400" />
+                          </div>
                   <h3 className="text-lg font-bold text-white mb-2">Want to Climb?</h3>
                   <p className="text-xs sm:text-sm text-gray-400 font-mono mb-4">
                     Complete more dares to rise through the ranks
                   </p>
                   <Link
                     href="/#active-bounties"
-                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-all"
+                    className="inline-flex items-center gap-2 rounded-[16px] border border-purple-400/25 bg-[linear-gradient(145deg,rgba(50,24,84,0.92),rgba(20,12,36,0.98))] px-5 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-[0_14px_28px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_16px_rgba(0,0,0,0.24)] transition-all hover:border-purple-300/40 hover:bg-[linear-gradient(145deg,rgba(58,28,96,0.96),rgba(24,14,42,1))]"
                   >
                     Browse Dares
                   </Link>
