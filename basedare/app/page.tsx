@@ -207,7 +207,7 @@ export default function Home() {
               <div className="flex flex-col items-center justify-center -space-y-2 md:-space-y-4 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
                 <GlitchText glowColor="#FFD700" className="text-yellow-400 text-[12vw] leading-none md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
                 <h2 className="text-white text-[11vw] md:text-7xl lg:text-8xl font-black italic tracking-tighter uppercase">
-                  THE STREAM
+                  THE GRID
                 </h2>
               </div>
 
