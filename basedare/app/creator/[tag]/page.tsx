@@ -101,9 +101,6 @@ const softCardClass =
 const insetCardClass =
     'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
 
-const sectionLabelClass =
-    'inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]';
-
 const pillClass =
     'inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]';
 
@@ -314,10 +311,6 @@ export default function CreatorProfilePage() {
                                     <ArrowLeft className="w-3.5 h-3.5" />
                                     Back
                                 </button>
-                                <div className={sectionLabelClass}>
-                                    <Heart className="w-4 h-4 text-fuchsia-300" />
-                                    CREATOR SIGNAL
-                                </div>
                             </div>
                             <Link
                                 href="/streamers"
@@ -392,7 +385,7 @@ export default function CreatorProfilePage() {
                                     </div>
 
                                     <p className="mt-4 max-w-2xl text-sm md:text-base leading-relaxed text-white/68">
-                                        {profile?.bio || `${displayTag} is live on BaseDare. Browse the current signal, recent dares, and creator momentum from the protocol.`}
+                                        {profile?.bio || `${displayTag} on BaseDare. Browse recent dares, activity, and creator stats.`}
                                     </p>
 
                                     <div className="mt-4 flex flex-wrap gap-1.5">
