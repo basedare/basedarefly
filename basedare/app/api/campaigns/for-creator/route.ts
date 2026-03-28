@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
             id: true,
             shortId: true,
             status: true,
+            expiresAt: true,
             streamerHandle: true,
             targetWalletAddress: true,
             claimRequestWallet: true,
@@ -100,6 +101,12 @@ export async function GET(request: NextRequest) {
 
     const opportunities = campaigns
       .map((campaign) => {
+        const linkedDareExpiresAt = campaign.linkedDare?.expiresAt
+          ? new Date(campaign.linkedDare.expiresAt)
+          : null;
+        const linkedDareIsExpired = Boolean(
+          linkedDareExpiresAt && linkedDareExpiresAt.getTime() <= Date.now()
+        );
         const targeting = parseCampaignTargetingCriteria(campaign.targetingCriteria);
         const match = buildCampaignMatch(creator, targeting);
         const reasons = [...match.reasons];
@@ -110,7 +117,7 @@ export async function GET(request: NextRequest) {
           reasons.unshift(`paid activation at ${campaign.venue.name}`);
         }
 
-        if (campaign.linkedDare?.status === 'PENDING') {
+        if (campaign.linkedDare?.status === 'PENDING' && !linkedDareIsExpired) {
           score += 8;
           reasons.unshift('live now and ready to complete');
         }
@@ -131,13 +138,14 @@ export async function GET(request: NextRequest) {
             campaign.linkedDare &&
               !campaign.linkedDare.streamerHandle &&
               campaign.linkedDare.status === 'PENDING' &&
+              !linkedDareIsExpired &&
               !campaign.linkedDare.targetWalletAddress &&
               !campaign.linkedDare.claimRequestWallet
           ),
           shortlisted: false,
         };
       })
-      .filter((campaign) => campaign.matchScore > 0)
+      .filter((campaign) => campaign.matchScore > 0 && campaign.claimable)
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 8);
 
