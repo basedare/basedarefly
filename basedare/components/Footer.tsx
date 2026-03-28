@@ -59,8 +59,7 @@ export default function Footer() {
                   }}
                 />
                 <p className="text-[11px] sm:text-xs text-gray-500 font-mono leading-relaxed max-w-sm text-center md:text-left">
-                  The decentralized protocol for verifiable social chaos.
-                  Smart contract settlement on Base L2.
+                  Real venues. Online dares. On-chain proof.
                   <br />
                   <span className="text-purple-500/60">Code is Law. Dares are Forever.</span>
                 </p>

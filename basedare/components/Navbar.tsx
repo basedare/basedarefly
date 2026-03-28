@@ -15,11 +15,11 @@ import { GlobalSearch } from './ui/GlobalSearch';
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
   { name: "CREATE", href: "/create" },
-  { name: "VERIFY", href: "/verify" },
   { name: "Map", href: "/map" },
-  { name: "CREATORS", href: "/streamers" },
   { name: "DASHBOARD", href: "/dashboard" },
+  { name: "CREATORS", href: "/streamers" },
   { name: "FAQ", href: "/faq" },
+  { name: "VERIFY", href: "/verify" },
 ];
 
 export default function Navbar() {
