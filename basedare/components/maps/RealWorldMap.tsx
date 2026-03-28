@@ -1680,11 +1680,11 @@ export default function RealWorldMap() {
                   ) : null}
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className={`${mapPanelMetricClass} stat-card`}>
+                    <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
                     </div>
-                    <div className={`${mapPanelMetricClass} stat-card`}>
+                    <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
@@ -1780,7 +1780,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`crossed-paths-section mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`crossed-paths-section bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
@@ -1868,7 +1868,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`active-challenges-section mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`active-challenges-section bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
@@ -2225,17 +2225,6 @@ export default function RealWorldMap() {
           border: 1px solid rgba(255, 255, 255, 0.04);
           border-top: 1px solid rgba(255, 255, 255, 0.12);
           border-left: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .place-panel-popup :global(.stat-card),
-        .place-panel-popup :global(.crossed-paths-section),
-        .place-panel-popup :global(.active-challenges-section) {
-          background: rgba(0, 0, 0, 0.25);
-          border-radius: 12px;
-          box-shadow:
-            inset 3px 3px 8px rgba(0, 0, 0, 0.6),
-            inset -2px -2px 6px rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .map-panel-shell::before {

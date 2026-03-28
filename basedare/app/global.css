@@ -224,6 +224,36 @@
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* BASEDARE TACTILE SURFACES */
+.bd-dent-surface {
+  background:
+    linear-gradient(180deg, rgba(5, 7, 16, 0.94) 0%, rgba(14, 12, 30, 0.92) 100%);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  box-shadow:
+    inset 10px 10px 22px rgba(0, 0, 0, 0.52),
+    inset -6px -6px 14px rgba(255, 255, 255, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.bd-dent-surface--soft {
+  border-radius: 16px;
+  box-shadow:
+    inset 8px 8px 18px rgba(0, 0, 0, 0.46),
+    inset -5px -5px 12px rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.bd-dent-pill {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.34),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.03);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
