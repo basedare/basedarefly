@@ -14,12 +14,10 @@ import {
 import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
   ArrowLeft,
-  Expand,
   Flame,
   Loader2,
   LocateFixed,
   MapPin,
-  Minimize2,
   Minus,
   Plus,
   Search,
@@ -620,7 +618,7 @@ export default function RealWorldMap() {
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
-  const [isImmersiveMobile, setIsImmersiveMobile] = useState(false);
+  const isImmersiveMobile = false;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
@@ -714,19 +712,6 @@ export default function RealWorldMap() {
 
     return requestApproximateLocation();
   }, [bootstrappedDefaultPins, hasDeepLinkedPlace, requestApproximateLocation]);
-
-  useEffect(() => {
-    if (!isImmersiveMobile) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isImmersiveMobile]);
 
   useEffect(() => {
     if (!ceremonyState) return;
@@ -1418,19 +1403,6 @@ export default function RealWorldMap() {
             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-col gap-2.5">
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsImmersiveMobile((current) => !current)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white/75 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/20 hover:text-white md:hidden"
-                    aria-label={isImmersiveMobile ? 'Exit immersive map' : 'Open immersive map'}
-                    title={isImmersiveMobile ? 'Exit immersive map' : 'Open immersive map'}
-                  >
-                    {isImmersiveMobile ? (
-                      <Minimize2 className="h-4 w-4" />
-                    ) : (
-                      <Expand className="h-4 w-4" />
-                    )}
-                  </button>
                   {filterOptions.map((option) => (
                     <button
                       key={option.value}
