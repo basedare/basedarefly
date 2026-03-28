@@ -20,6 +20,9 @@ const raisedPanelClass =
 const softCardClass =
   "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
 
+const insetDentClass =
+  "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)]";
+
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
@@ -176,7 +179,7 @@ export default function FAQPage() {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="border-t border-white/10 pb-6 pt-4">
-                    <div className="rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]">
+                    <div className={`${insetDentClass} px-4 py-4`}>
                       <div className="flex items-start gap-2 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
                         <span className="text-yellow-500 font-bold">{">"}</span>
                         <span
@@ -206,15 +209,17 @@ export default function FAQPage() {
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
                 Still confused?
               </p>
-              <a
-                href="https://x.com/basedare_xyz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full border border-[#1DA1F2]/35 bg-[#1DA1F2]/10 px-8 py-4 text-sm font-black uppercase tracking-[0.14em] text-[#1DA1F2] transition-all hover:bg-[#1DA1F2] hover:text-white"
-              >
-                <MessageCircle className="h-5 w-5" />
-                DM @basedare_xyz
-              </a>
+              <div className={`${insetDentClass} px-4 py-4`}>
+                <a
+                  href="https://x.com/basedare_xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 rounded-full border border-[#1DA1F2]/35 bg-[#1DA1F2]/10 px-8 py-4 text-sm font-black uppercase tracking-[0.14em] text-[#1DA1F2] transition-all hover:bg-[#1DA1F2] hover:text-white"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  DM @basedare_xyz
+                </a>
+              </div>
             </div>
           </motion.div>
         </div>
