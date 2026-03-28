@@ -3,6 +3,33 @@
 import RotatingText from "@/components/RotatingText";
 
 export default function HowItWorks() {
+  const steps = [
+    {
+      step: "01",
+      title: "The Pledge",
+      desc: "You fund a bounty with USDC held in escrow. The money is real. The pressure is visible.",
+      icon: "💰",
+      accent: "from-[#F5C518]/30 via-[#F5C518]/12 to-transparent",
+      titleColor: "text-[#F5C518]"
+    },
+    {
+      step: "02",
+      title: "The Action",
+      desc: "The creator gets the challenge. The audience leans in. They either perform the dare or fold in public.",
+      icon: "🎥",
+      accent: "from-[#A855F7]/28 via-[#A855F7]/12 to-transparent",
+      titleColor: "text-white"
+    },
+    {
+      step: "03",
+      title: "The Payoff",
+      desc: "Proof lands. Verification closes. Settlement moves and the win gets written to the board.",
+      icon: "💸",
+      accent: "from-[#3BA7FF]/28 via-[#3BA7FF]/12 to-transparent",
+      titleColor: "text-[#3BA7FF]"
+    }
+  ];
+
   return (
     <section className="w-full py-24 bg-transparent relative overflow-hidden">
       {/* Background Tech Lines */}
@@ -12,47 +39,62 @@ export default function HowItWorks() {
         
         {/* HEADER */}
         <div className="text-center mb-14 md:mb-20">
-          <h2 className="text-sm font-mono text-purple-400 tracking-[0.5em] mb-4 uppercase drop-shadow-lg">System Protocol</h2>
+          <div className="mb-5 inline-flex items-center rounded-full border border-purple-400/25 bg-white/[0.03] px-3 py-2 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
+            <div className="bd-dent-surface bd-dent-surface--soft rounded-full border border-purple-400/20 px-4 py-2">
+              <h2 className="text-[0.7rem] font-mono text-purple-300 tracking-[0.45em] uppercase drop-shadow-lg">
+                System Protocol
+              </h2>
+            </div>
+          </div>
           <h3 className="text-5xl md:text-6xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
             How It Works
           </h3>
+          <div className="mx-auto mt-5 max-w-2xl rounded-[1.6rem] border border-white/[0.08] bg-white/[0.02] px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.26)]">
+            <div className="bd-dent-surface bd-dent-surface--soft rounded-[1.2rem] border border-white/[0.06] px-5 py-3">
+              <p className="text-sm uppercase tracking-[0.32em] text-white/55 md:text-[0.84rem]">
+                Fund it. Trigger it. Verify it.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* 3-STEP PROCESS */}
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-16 md:mb-24">
-          {[
-            {
-              step: "01",
-              title: "The Pledge",
-              desc: "You fund a bounty with USDC tokens held in escrow. The money is real. The pressure is visible.",
-              icon: "💰"
-            },
-            {
-              step: "02",
-              title: "The Action",
-              desc: "The influencer receives the challenge. The chat goes wild. They either perform the dare or lose face forever.",
-              icon: "🎥"
-            },
-            {
-              step: "03",
-              title: "The Payoff",
-              desc: "Proof submitted. Consensus reached. Smart contract releases funds instantly.",
-              icon: "💸"
-            }
-          ].map((item, idx) => (
+          {steps.map((item, idx) => (
             <div key={idx} className="relative group min-w-0">
               {/* Connector Line (Desktop only) */}
               {idx !== 2 && (
-                <div className="hidden md:block absolute top-12 left-full w-full h-[2px] bg-gradient-to-r from-purple-500 via-purple-400 to-transparent -translate-x-8 z-0 shadow-lg shadow-purple-500/50" />
+                <div className="hidden md:block absolute top-20 left-full w-full h-[2px] bg-gradient-to-r from-purple-500/70 via-purple-400/45 to-transparent -translate-x-7 z-0 shadow-[0_0_18px_rgba(168,85,247,0.28)]" />
               )}
               
-              <div className="p-6 md:p-8 relative z-10 overflow-hidden transition-all duration-300 hover:translate-y-[-5px] rounded-2xl bg-white/[0.03] backdrop-blur-[12px] md:backdrop-blur-[20px] border border-purple-500/20 hover:bg-white/[0.08] hover:border-purple-500/40 shadow-lg">
-                <span className="text-6xl font-black text-white/5 absolute top-4 right-4 drop-shadow-lg">{item.step}</span>
-                <div className="w-16 h-16 bg-purple-900/20 rounded-full flex items-center justify-center text-3xl mb-6 border border-purple-500/20 group-hover:border-purple-500 transition-colors shadow-[0_0_20px_rgba(168,85,247,0.2)]">
-                  {item.icon}
+              <div className="relative z-10 overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(10,8,20,0.88))] p-3 shadow-[0_28px_60px_rgba(0,0,0,0.34)] transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-400/30">
+                <div className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${item.accent} opacity-90`} />
+                <div className="relative flex min-h-[290px] flex-col rounded-[1.55rem] border border-white/[0.05] bg-[#090913]/90 px-6 py-6">
+                  <div className="mb-7 flex items-start justify-between gap-4">
+                    <div className="bd-dent-surface flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-purple-400/20 text-3xl shadow-[0_0_24px_rgba(168,85,247,0.12)]">
+                      {item.icon}
+                    </div>
+                    <div className="bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.06] px-4 py-2">
+                      <span className="text-sm font-mono font-black tracking-[0.28em] text-white/35">
+                        {item.step}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bd-dent-surface flex flex-1 flex-col rounded-[1.45rem] border border-white/[0.06] px-5 py-5">
+                    <div className="mb-4">
+                      <p className="mb-2 text-[0.72rem] font-mono uppercase tracking-[0.34em] text-white/42">
+                        Protocol Step
+                      </p>
+                      <h4 className={`text-[2rem] font-black uppercase italic leading-none drop-shadow-lg ${item.titleColor}`}>
+                        {item.title}
+                      </h4>
+                    </div>
+                    <p className="text-[1.05rem] leading-relaxed text-gray-300 break-words drop-shadow-md">
+                      {item.desc}
+                    </p>
+                  </div>
                 </div>
-                <h4 className="text-2xl font-bold text-white mb-3 uppercase italic drop-shadow-lg">{item.title}</h4>
-                <p className="text-gray-300 leading-relaxed break-words drop-shadow-md">{item.desc}</p>
               </div>
             </div>
           ))}
