@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -45,13 +45,12 @@ interface Dare {
   image_url?: string;
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { view, setView } = useView(); // Use global context
   const [dares, setDares] = useState<Dare[]>([]);
   // Chat removed for MVP
-  const [isClient, setIsClient] = useState(false);
   const [dareInput, setDareInput] = useState('');
   const [selectedStreamer, setSelectedStreamer] = useState('');
   const [showDossier, setShowDossier] = useState(false);
@@ -77,18 +76,21 @@ export default function Home() {
     const fromControl = searchParams.get('from');
 
     if (mode === 'control') {
-      setView('BUSINESS');
+      const timeoutId = window.setTimeout(() => setView('BUSINESS'), 0);
+      return () => window.clearTimeout(timeoutId);
     }
 
     // Trigger reality shift when returning from Control pages
     if (fromControl === 'control') {
-      setTriggerRealityShift(true);
-      // Clean up the URL param
-      const url = new URL(window.location.href);
-      url.searchParams.delete('from');
-      window.history.replaceState({}, '', url.toString());
+      const timeoutId = window.setTimeout(() => {
+        setTriggerRealityShift(true);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('from');
+        window.history.replaceState({}, '', url.toString());
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
-  }, [searchParams]);
+  }, [searchParams, setView]);
 
   // Parse dare input to extract streamer tag and dare title
   const parseDareInput = (input: string) => {
@@ -113,7 +115,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setIsClient(true);
     const fetchDares = async () => {
       try {
         const response = await fetch('/api/dares');
@@ -127,10 +128,6 @@ export default function Home() {
     };
     fetchDares();
   }, []);
-
-  if (!isClient) {
-    return <div className="min-h-screen bg-black" />;
-  }
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
@@ -474,5 +471,13 @@ export default function Home() {
 
       {/* Chat removed for MVP */}
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <HomeContent />
+    </Suspense>
   );
 }

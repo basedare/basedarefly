@@ -66,8 +66,28 @@ const alphaLyrae = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "BaseDare | Own the Grid",
-  description: "Fund dares. Watch chaos unfold.",
+  metadataBase: new URL("https://basedare.xyz"),
+  title: "BaseDare — Own the Grid",
+  description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+  openGraph: {
+    title: "BaseDare — Own the Grid",
+    description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+    url: "https://basedare.xyz",
+    siteName: "BaseDare",
+    images: [
+      {
+        url: "/assets/basedarenew.png",
+        alt: "BaseDare — Own the Grid",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BaseDare — Own the Grid",
+    description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+    images: ["/assets/basedarenew.png"],
+  },
 };
 
 export default function RootLayout({ 

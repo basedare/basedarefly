@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -359,7 +359,9 @@ export default function CreatorsPage() {
         >
           {/* subtle divider */}
           <div className="w-1/2 mx-auto h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent mb-16" />
-          <ClaimTagModule />
+          <Suspense fallback={null}>
+            <ClaimTagModule />
+          </Suspense>
         </motion.div>
 
       </div>

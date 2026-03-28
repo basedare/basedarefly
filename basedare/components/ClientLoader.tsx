@@ -12,7 +12,8 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     if (typeof window !== 'undefined') {
       const hasBeenLoaded = sessionStorage.getItem('protocol-loaded');
       if (hasBeenLoaded === 'true') {
-        setIsLoading(false);
+        const timeoutId = window.setTimeout(() => setIsLoading(false), 0);
+        return () => window.clearTimeout(timeoutId);
       }
     }
   }, []);
@@ -24,10 +25,10 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     setIsLoading(false);
   };
 
-  if (isLoading) {
-    return <ProtocolLoader onComplete={handleComplete} />;
-  }
-
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {isLoading ? <ProtocolLoader onComplete={handleComplete} variant="overlay" /> : null}
+    </>
+  );
 }
-

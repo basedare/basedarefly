@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -102,7 +102,7 @@ interface SuccessData {
   locationLabel?: string | null;
 }
 
-export default function CreateDare() {
+function CreateDareContent() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
@@ -803,5 +803,13 @@ export default function CreateDare() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function CreateDarePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <CreateDareContent />
+    </Suspense>
   );
 }

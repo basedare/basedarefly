@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Share2, Shield, MapPin } from 'lucide-react';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -81,7 +82,9 @@ export default function ClaimTagPage() {
           </div>
 
           <div className="mt-10">
-            <ClaimTagModule />
+            <Suspense fallback={null}>
+              <ClaimTagModule />
+            </Suspense>
           </div>
         </div>
       </div>
