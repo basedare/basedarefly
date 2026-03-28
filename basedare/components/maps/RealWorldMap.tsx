@@ -14,7 +14,6 @@ import {
 import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
   ArrowLeft,
-  Crosshair,
   Expand,
   Flame,
   Loader2,
@@ -1260,7 +1259,7 @@ export default function RealWorldMap() {
   }, [selectedPlace, selectedPulse, selectedVisualState]);
 
   const mapPanelShellClass =
-    'map-panel-shell relative overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.045)_8%,rgba(8,10,18,0.95)_28%,rgba(5,6,14,0.988)_100%)] shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_34px_rgba(34,211,238,0.08),0_0_70px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_24px_rgba(0,0,0,0.24)] md:max-h-[min(760px,calc(100dvh-8rem))] md:rounded-[34px]';
+    'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:max-h-[min(680px,calc(100dvh-10rem))] md:rounded-[36px]';
   const mapPanelMetricClass =
     'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
   const mapPanelSectionClass =
@@ -1587,32 +1586,6 @@ export default function RealWorldMap() {
                 </button>
               </div>
             </div>
-            <div className="absolute right-5 top-5 z-[8] hidden md:flex items-center gap-2 rounded-full border border-[rgba(107,33,255,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(11,10,22,0.9)_100%)] px-3 py-2 shadow-[0_16px_30px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <span
-                title="Tag mode"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b87fff]/26 bg-[#b87fff]/[0.08] text-[#f5c518]"
-              >
-                <Crosshair className="h-4 w-4" />
-              </span>
-              <span
-                title="Unmarked place"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70"
-              >
-                <MapPin className="h-4 w-4" />
-              </span>
-              <span
-                title="First spark"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.1] text-[#f8dd72]"
-              >
-                <Sparkles className="h-4 w-4" />
-              </span>
-              <span
-                title="Hot place"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/[0.1] text-rose-100"
-              >
-                <Flame className="h-4 w-4" />
-              </span>
-            </div>
             <div className={`spray-burst ${sprayBurst ? 'bang' : ''}`} />
             <button onClick={handleSpray} className="spray-can hidden md:flex" aria-label="Spray map easter egg">
               <Image
@@ -1642,13 +1615,13 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-24 md:bottom-auto md:left-auto md:right-4 md:w-[392px] md:translate-x-0 lg:w-[408px]">
+              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-20 md:bottom-auto md:left-auto md:right-5 md:w-[360px] md:translate-x-0 lg:w-[372px]">
                 <div className={mapPanelShellClass}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
-                  <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/6 md:rounded-[33px]" />
-                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:max-h-[min(760px,calc(100dvh-8rem))]">
-                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.88)] px-4 pb-4 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-5 md:pb-5 md:pt-5">
+                  <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
+                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:max-h-[min(680px,calc(100dvh-10rem))]">
+                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
                     <div className="min-w-0 flex-1">
@@ -1673,11 +1646,7 @@ export default function RealWorldMap() {
                           </Link>
                         </div>
                       ) : null}
-                      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,29,45,0.32)_100%)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.18)]">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {selectedPlace.placeId ? 'Place memory anchor' : 'Dropped pin'}
-                      </div>
-                      <h3 className="mt-3 max-w-[14rem] text-[1.8rem] font-black leading-[0.96] tracking-tight text-white md:max-w-[18rem] md:text-[2.2rem]">
+                      <h3 className="max-w-[14rem] text-[1.85rem] font-black leading-[0.94] tracking-tight text-white md:max-w-[16rem] md:text-[2.15rem]">
                         {selectedPlace.name}
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1702,7 +1671,7 @@ export default function RealWorldMap() {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2.5 max-w-[16rem] text-sm leading-relaxed text-white/58 md:max-w-[19rem]">
+                      <p className="mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/58 md:max-w-[17rem]">
                         {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                       </p>
                     </div>
@@ -2230,29 +2199,30 @@ export default function RealWorldMap() {
 
       <style jsx>{`
         .map-panel-shell {
-          transform-origin: 50% 100%;
-          animation: mapPanelRollout 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+          transform-origin: 88% 8%;
+          will-change: transform, opacity;
+          animation: mapPanelRollout 300ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .map-panel-shell::before {
           content: '';
           position: absolute;
-          inset: 12px 12px auto;
-          height: 72px;
-          border-radius: 22px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
-          opacity: 0.75;
+          inset: 10px 10px auto;
+          height: 56px;
+          border-radius: 20px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent);
+          opacity: 0.62;
           pointer-events: none;
         }
 
         .map-panel-section {
-          animation: mapPanelSectionIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+          animation: mapPanelSectionIn 340ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         @keyframes mapPanelRollout {
           0% {
             opacity: 0;
-            transform: translateY(10px) scale(0.97);
+            transform: translateY(12px) scale(0.965);
           }
           100% {
             opacity: 1;
@@ -2263,7 +2233,7 @@ export default function RealWorldMap() {
         @keyframes mapPanelSectionIn {
           0% {
             opacity: 0;
-            transform: translateY(8px);
+            transform: translateY(10px);
           }
           100% {
             opacity: 1;
