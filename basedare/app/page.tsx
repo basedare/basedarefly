@@ -27,7 +27,6 @@ import BusinessDossier from "@/components/BusinessDossier";
 // Chat removed for MVP - LiveChatOverlay was here
 import HowItWorks from "@/components/HowItWorks";
 import MintAnnouncement from "@/components/MintAnnouncement";
-import { FuelTheRocket } from "@/components/FuelTheRocket";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import RealityShift from "@/components/RealityShift";
 import MatrixRain from "@/components/MatrixRain";
@@ -252,9 +251,7 @@ export default function Home() {
 
                   <PremiumBentoGrid dares={dares} />
 
-                  {/* FUEL THE ROCKET - Donation link */}
-                  <FuelTheRocket />
-                </div>
+          </div>
               </div>
 
               {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
