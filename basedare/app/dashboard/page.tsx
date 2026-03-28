@@ -102,6 +102,18 @@ const softCardClass =
 const insetCardClass =
   "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
 
+const raisedTileClass =
+  "relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(160deg,rgba(34,32,56,0.92)_0%,rgba(18,18,30,0.98)_38%,rgba(10,10,18,1)_100%)] shadow-[0_20px_38px_rgba(0,0,0,0.32),0_0_22px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_20px_rgba(0,0,0,0.26)]";
+
+const metricTileClass =
+  `${raisedTileClass} before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/28 before:to-transparent`;
+
+const sectionBarClass =
+  "relative overflow-hidden rounded-[20px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(31,29,49,0.96),rgba(14,14,24,0.98))] px-4 py-3 shadow-[0_16px_32px_rgba(0,0,0,0.28),0_0_18px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)]";
+
+const insetWellClass =
+  "rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)] shadow-[inset_0_16px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05),0_10px_18px_rgba(0,0,0,0.18)]";
+
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
@@ -627,7 +639,7 @@ export default function Dashboard() {
               value: !isConnected ? '--' : loading ? '…' : `${stats.daresForMe}`,
             },
           ].map((item) => (
-            <div key={item.label} className={`${softCardClass} px-4 py-4`}>
+            <div key={item.label} className={`${metricTileClass} px-4 py-4`}>
               <div className="text-2xl font-black text-white sm:text-3xl">{item.value}</div>
               <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{item.label}</div>
             </div>
@@ -673,7 +685,7 @@ export default function Dashboard() {
                     ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}`
                     : '/map';
                 return (
-                  <div key={opportunity.id} className={`${insetCardClass} min-h-[220px] min-w-[280px] snap-start p-4 md:min-w-0`}>
+                  <div key={opportunity.id} className={`${raisedTileClass} min-h-[220px] min-w-[280px] snap-start p-4 md:min-w-0`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-base font-black text-white line-clamp-1">{opportunity.venue?.name || 'Venue activation'}</p>
@@ -719,7 +731,7 @@ export default function Dashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setActivationsOpen((current) => !current)}
-              className="flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left"
+              className={`${sectionBarClass} flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left`}
             >
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">My activations</h2>
               <div className="flex items-center gap-3">
@@ -734,11 +746,11 @@ export default function Dashboard() {
           </div>
 
           {!activationsOpen ? (
-            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
+            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
           ) : !isConnected ? (
-            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to track your activations.</div>
+            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to track your activations.</div>
           ) : creatorClaims.length === 0 ? (
-            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>No activations yet.</div>
+            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>No activations yet.</div>
           ) : (
             <div className="space-y-3">
               {creatorClaims.map((dare) => {
@@ -757,7 +769,7 @@ export default function Dashboard() {
                             ? 'border-red-400/20 bg-red-400/[0.08] text-red-100'
                             : 'border-white/10 bg-white/[0.03] text-white/70';
                 return (
-                  <div key={dare.id} className={`${insetCardClass} overflow-hidden`}>
+                  <div key={dare.id} className={`${raisedTileClass} overflow-hidden`}>
                     <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <button
                         onClick={() => setExpandedActivationId(isExpanded ? null : dare.id)}
@@ -798,7 +810,7 @@ export default function Dashboard() {
                     </div>
 
                     {isExpanded ? (
-                      <div className="border-t border-white/8 px-4 py-4">
+                      <div className={`${insetWellClass} m-3 border border-white/8 px-4 py-4`}>
                         <p className="text-sm text-white/60">{loopState.detail}</p>
                         {dare.status === 'PENDING' && loopState.label === 'Ready for Proof' ? (
                           <div className="mt-4">
@@ -856,7 +868,7 @@ export default function Dashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setFundedOpen((current) => !current)}
-              className="flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left"
+              className={`${sectionBarClass} flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left`}
             >
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Funded dares</h2>
               <div className="flex items-center gap-3">
@@ -878,16 +890,16 @@ export default function Dashboard() {
           </div>
 
           {!fundedOpen ? (
-            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
+            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
           ) : !isConnected ? (
-            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to manage funded dares.</div>
+            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to manage funded dares.</div>
           ) : loading ? (
-            <div className={`${insetCardClass} flex items-center justify-center px-4 py-6 text-sm text-white/55`}>
+            <div className={`${insetWellClass} flex items-center justify-center px-4 py-6 text-sm text-white/55`}>
               <Loader2 className="mr-3 h-5 w-5 animate-spin text-purple-300" />
               Loading funded dares
             </div>
           ) : fundedRows.length === 0 ? (
-            <div className={`${insetCardClass} flex flex-wrap items-center gap-3 px-4 py-4`}>
+            <div className={`${insetWellClass} flex flex-wrap items-center gap-3 px-4 py-4`}>
               <span className="text-sm text-white/55">No funded dares yet.</span>
               <InitProtocolButton onClick={() => router.push('/create')} />
             </div>
@@ -896,7 +908,7 @@ export default function Dashboard() {
               {fundedRows.map((dare) => {
                 const isExpanded = expandedFundedDare?.id === dare.id;
                 return (
-                  <div key={dare.id} className={`${insetCardClass} overflow-hidden`}>
+                  <div key={dare.id} className={`${raisedTileClass} overflow-hidden`}>
                     <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <button
                         onClick={() => setExpandedFundedId(isExpanded ? null : dare.id)}
@@ -919,7 +931,7 @@ export default function Dashboard() {
                     </div>
 
                     {isExpanded ? (
-                      <div className="border-t border-white/8 px-4 py-4">
+                      <div className={`${insetWellClass} m-3 border border-white/8 px-4 py-4`}>
                         <div className="grid gap-2 text-sm text-white/60 sm:grid-cols-3">
                           <div>
                             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">Target</p>
@@ -963,7 +975,7 @@ export default function Dashboard() {
         </div>
 
         <details className={`${softCardClass} group mt-10`}>
-          <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between px-5 py-4 sm:px-6">
+          <summary className={`${sectionBarClass} m-3 flex min-h-[56px] cursor-pointer list-none items-center justify-between sm:px-6`}>
             <span className="text-lg font-black uppercase tracking-[0.12em] text-white">Fund signal</span>
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 group-open:hidden">Expand</span>
             <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 group-open:block">Collapse</span>
