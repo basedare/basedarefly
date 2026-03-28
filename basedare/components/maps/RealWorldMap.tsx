@@ -26,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import MapCrosshair from '@/app/map/MapCrosshair';
+import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 
@@ -511,10 +512,18 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
   if (tag.source === 'SEEDED_MEMORY') {
     return (
       <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
+        <Image
+          src="/assets/peebear-head.png"
+          alt="PeeBear memory mark"
+          fill
+          sizes="96px"
+          className="object-cover p-1.5"
+          unoptimized
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.28)_100%)]" />
         <div className={`absolute border border-[#f5c518]/20 bg-black/28 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${innerInsetClass}`}>
           <div className={`${compact ? 'text-[7px]' : 'text-[8.5px]'} font-semibold uppercase tracking-[0.2em] text-[#f8dd72]`}>
-            Memory
+            Mark
           </div>
         </div>
       </div>
@@ -1722,14 +1731,23 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                         {focusedCreatorActivation.shortId ? (
-                          <Link
-                            href={`/dare/${focusedCreatorActivation.shortId}`}
-                            className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100"
-                          >
-                            {focusedCreatorActivation.claimedBy || focusedCreatorActivation.targetWalletAddress || focusedCreatorActivation.claimRequestStatus === 'PENDING'
-                              ? 'Open Brief'
-                              : 'Claim Now'}
-                          </Link>
+                          focusedCreatorActivation.claimedBy || focusedCreatorActivation.targetWalletAddress || focusedCreatorActivation.claimRequestStatus === 'PENDING' ? (
+                            <Link
+                              href={`/dare/${focusedCreatorActivation.shortId}`}
+                              className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100"
+                            >
+                              Open Brief
+                            </Link>
+                          ) : (
+                            <CosmicButton
+                              href={`/dare/${focusedCreatorActivation.shortId}`}
+                              variant="gold"
+                              size="sm"
+                              className="min-w-[120px]"
+                            >
+                              Claim Now
+                            </CosmicButton>
+                          )
                         ) : null}
                       </div>
                     </div>
@@ -1767,14 +1785,23 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                         {featuredPaidActivation.shortId ? (
-                          <Link
-                            href={`/dare/${featuredPaidActivation.shortId}`}
-                            className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100"
-                          >
-                            {featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING'
-                              ? 'Open Brief'
-                              : 'Claim Now'}
-                          </Link>
+                          featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING' ? (
+                            <Link
+                              href={`/dare/${featuredPaidActivation.shortId}`}
+                              className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100"
+                            >
+                              Open Brief
+                            </Link>
+                          ) : (
+                            <CosmicButton
+                              href={`/dare/${featuredPaidActivation.shortId}`}
+                              variant="gold"
+                              size="sm"
+                              className="min-w-[120px]"
+                            >
+                              Claim Now
+                            </CosmicButton>
+                          )
                         ) : null}
                       </div>
                     </div>
