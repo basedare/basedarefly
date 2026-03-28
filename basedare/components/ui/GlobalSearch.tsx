@@ -163,7 +163,7 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
             <div className={`searchbox-wrapper ${isOpen ? 'w-[300px] md:w-[400px]' : 'w-10'} transition-all duration-300`}>
 
                 {/* Search Input (Expands) */}
-                <div className={`relative flex items-center h-10 transition-all duration-400 ease-in-out ${isOpen ? 'w-full opacity-100 bg-black/50 backdrop-blur-xl border border-white/20 rounded-full px-4' : 'w-0 opacity-0 overflow-hidden'
+                <div className={`bd-dent-surface bd-dent-surface--soft relative flex items-center h-10 rounded-full border border-white/10 transition-all duration-400 ease-in-out ${isOpen ? 'w-full opacity-100 px-4' : 'w-0 opacity-0 overflow-hidden'
                     }`}>
                     <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <input
@@ -191,7 +191,7 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
                             setIsOpen(true);
                         }
                     }}
-                    className={`absolute right-0 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${isOpen ? 'bg-transparent hover:bg-white/10' : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                    className={`absolute right-0 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${isOpen ? 'bg-transparent hover:bg-white/10' : 'bd-dent-surface bd-dent-surface--soft border border-white/10 hover:bg-white/10'
                         }`}
                 >
                     {isOpen ? <X className="w-4 h-4 text-white" /> : <Search className="w-4 h-4 text-gray-400 hover:text-white" />}
@@ -200,7 +200,7 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
 
             {/* Dropdown Results (Appears below the search box) */}
             {isOpen && (
-                <div className="absolute top-[50px] right-0 w-[calc(100vw-32px)] md:w-[400px] max-w-full bg-[#121214]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh] z-[110]">
+                <div className="bd-dent-surface bd-dent-surface--soft absolute top-[50px] right-0 w-[calc(100vw-32px)] md:w-[400px] max-w-full border border-white/10 rounded-2xl overflow-hidden flex flex-col max-h-[70vh] z-[110]">
                     <div className="overflow-y-auto flex-1 p-2">
                         {renderResults()}
                     </div>
