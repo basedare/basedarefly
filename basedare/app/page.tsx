@@ -473,21 +473,41 @@ function HomeContent() {
 
       <style jsx>{`
         .active-bounties-underline {
-          box-shadow: 0 0 6px #7c3aed;
-          animation: active-bounties-pulse 2.5s ease-in-out infinite;
+          position: relative;
+          overflow: visible;
+        }
+
+        .active-bounties-underline::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to right, transparent, #7c3aed, transparent);
+          filter: blur(3px);
+          transform: scaleX(1);
+          transform-origin: center;
+          box-shadow:
+            0 0 8px rgba(124, 58, 237, 0.72),
+            0 0 18px rgba(124, 58, 237, 0.38);
+          animation: active-bounties-pulse 2.2s ease-in-out infinite;
         }
 
         @keyframes active-bounties-pulse {
           0%,
           100% {
-            opacity: 0.5;
-            box-shadow: 0 0 4px #7c3aed;
+            opacity: 0.4;
+            transform: scaleX(0.92);
+            filter: blur(2px);
+            box-shadow:
+              0 0 6px rgba(124, 58, 237, 0.55),
+              0 0 12px rgba(124, 58, 237, 0.22);
           }
           50% {
             opacity: 1;
+            transform: scaleX(1.08);
+            filter: blur(4px);
             box-shadow:
-              0 0 8px #7c3aed,
-              0 0 16px #7c3aed,
+              0 0 10px #7c3aed,
+              0 0 20px #7c3aed,
               0 0 24px rgba(124, 58, 237, 0.4);
           }
         }
