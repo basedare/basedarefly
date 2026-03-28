@@ -25,7 +25,7 @@ const softCardClass =
   "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
 
 const insetCardClass =
-  "rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]";
+  "bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)]";
 
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
@@ -180,7 +180,7 @@ export default function CreatorsPage() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search creator or tag"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none transition focus:border-fuchsia-400/30"
+                  className="bd-dent-surface bd-dent-surface--soft w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none transition focus:border-fuchsia-400/30"
                 />
                 <div className="flex flex-wrap gap-2">
                   {([
@@ -190,7 +190,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setFilterMode(option.value)}
-                      className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                         filterMode === option.value
                           ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
@@ -209,7 +209,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setSortMode(option.value)}
-                      className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                         sortMode === option.value
                           ? "border-purple-400/30 bg-purple-500/[0.12] text-purple-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"

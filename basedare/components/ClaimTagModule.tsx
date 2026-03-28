@@ -138,7 +138,7 @@ const raisedTileClass =
   "relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(160deg,rgba(34,32,56,0.92)_0%,rgba(18,18,30,0.98)_38%,rgba(10,10,18,1)_100%)] shadow-[0_18px_34px_rgba(0,0,0,0.3),0_0_20px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_18px_rgba(0,0,0,0.24)]";
 
 const insetWellClass =
-  "rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)] shadow-[inset_0_16px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05),0_10px_18px_rgba(0,0,0,0.18)]";
+  "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)]";
 
 const softBadgeClass =
   "inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-[linear-gradient(180deg,rgba(168,85,247,0.16)_0%,rgba(76,29,149,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-purple-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
