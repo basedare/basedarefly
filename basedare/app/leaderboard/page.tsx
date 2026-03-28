@@ -158,9 +158,11 @@ function LeaderboardAvatar({
 
   return (
     <div
-      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${getLeaderboardGradient(user)} ${shadowClassName}`}
+      className={`relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br ${getLeaderboardGradient(user)} ${shadowClassName}`}
       aria-label={user}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgba(255,255,255,0.3),transparent_38%),radial-gradient(circle_at_72%_76%,rgba(0,0,0,0.28),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-[10%] rounded-full border border-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]" />
       <span className={textClassName}>{getLeaderboardInitial(user)}</span>
     </div>
   );
@@ -212,6 +214,7 @@ export default function LeaderboardPage() {
   const FIRST = top3[0] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
   const SECOND = top3[1] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
   const THIRD = top3[2] || { user: "---", avatar: null, staked: "$0", level: 0, completions: 0, rewardTier: null };
+  const hasThird = Boolean(top3[2]);
   const firstHref = getCreatorHref(FIRST.user);
   const secondHref = getCreatorHref(SECOND.user);
   const thirdHref = getCreatorHref(THIRD.user);
@@ -272,8 +275,8 @@ export default function LeaderboardPage() {
                 </span>
               </h1>
               <div className={`${dentWellClass} mt-5 max-w-2xl mx-auto px-5 py-4`}>
-                <p className="text-gray-300/85 font-mono text-sm leading-relaxed">
-                  The sharpest creators rise here. Verified completions, earned volume, and live momentum all leave a trail.
+                <p className="text-gray-300/85 font-mono text-sm leading-relaxed uppercase tracking-[0.2em]">
+                  Only verified wins count.
                 </p>
               </div>
 
@@ -429,42 +432,62 @@ export default function LeaderboardPage() {
                 </LeaderboardCardLink>
 
                 {/* 3rd Place */}
-                <LeaderboardCardLink href={thirdHref}>
-                  <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[2px] group-hover:border-pink-400/45">
-                    {thirdHref ? (
-                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80">
-                        Profile <ArrowRight className="h-3 w-3" />
+                {hasThird ? (
+                  <LeaderboardCardLink href={thirdHref}>
+                    <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[2px] group-hover:border-pink-400/45">
+                      {thirdHref ? (
+                        <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80">
+                          Profile <ArrowRight className="h-3 w-3" />
+                        </div>
+                      ) : null}
+                      <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full border-2 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
+                          <LeaderboardAvatar
+                            user={THIRD.user}
+                            avatar={THIRD.avatar}
+                            sizes="48px"
+                            shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                            textClassName="text-lg font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
+                          />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-xs shadow-lg">
+                          3
+                        </div>
                       </div>
-                    ) : null}
+                      <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
+                        <p className="text-white font-bold text-sm truncate">{THIRD.user}</p>
+                        <p className="text-pink-400 font-black">{THIRD.staked}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                          <span>{THIRD.completions} completions</span>
+                          {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                        </div>
+                        <div className="mt-2">
+                          <LiquidProgressBar value={THIRD.level} color="pink" />
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  </LeaderboardCardLink>
+                ) : (
+                  <div className="relative overflow-hidden rounded-[24px] border border-amber-500/28 bg-[radial-gradient(circle_at_50%_0%,rgba(251,146,60,0.14),transparent_42%),linear-gradient(160deg,rgba(30,18,10,0.96)_0%,rgba(15,9,7,0.98)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)]">
                     <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full border-2 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
-                        <LeaderboardAvatar
-                          user={THIRD.user}
-                          avatar={THIRD.avatar}
-                          sizes="48px"
-                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                          textClassName="text-lg font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-                        />
+                      <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-amber-300/30 bg-[radial-gradient(circle_at_28%_24%,rgba(255,255,255,0.14),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(12,10,9,0.92))] shadow-[0_0_15px_rgba(251,146,60,0.2)]">
+                        <span className="text-lg font-black text-amber-200">3</span>
                       </div>
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-xs shadow-lg">
-                        3
-                      </div>
-                    </div>
-                    <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
-                      <p className="text-white font-bold text-sm truncate">{THIRD.user}</p>
-                      <p className="text-pink-400 font-black">{THIRD.staked}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
-                        <span>{THIRD.completions} completions</span>
-                        {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
-                      </div>
-                      <div className="mt-2">
-                        <LiquidProgressBar value={THIRD.level} color="pink" />
+                      <div className={`${dentWellClass} flex-1 min-w-0 px-4 py-3`}>
+                        <p className="text-amber-100 font-black text-sm uppercase tracking-[0.18em]">#3 Unclaimed</p>
+                        <p className="mt-1 text-sm text-white/70">Be the first to take this spot.</p>
+                        <Link
+                          href="/#active-bounties"
+                          className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-100"
+                        >
+                          Browse Dares <ArrowRight className="h-3 w-3" />
+                        </Link>
                       </div>
                     </div>
                   </div>
-                  </div>
-                </LeaderboardCardLink>
+                )}
               </div>
 
               {/* Desktop: Podium layout */}
@@ -474,7 +497,7 @@ export default function LeaderboardPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="w-[30%] transform translate-y-4"
+                  className="w-[30%] flex flex-col"
                 >
                   <LeaderboardCardLink href={secondHref}>
                     <div className="relative overflow-hidden rounded-[26px] border border-cyan-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.14),transparent_42%),linear-gradient(160deg,rgba(10,20,28,0.96)_0%,rgba(7,10,14,0.98)_100%)] p-5 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-cyan-400/45">
@@ -509,6 +532,13 @@ export default function LeaderboardPage() {
                     </div>
                     </div>
                   </LeaderboardCardLink>
+                  <div className="relative mt-3 h-28 rounded-[26px_26px_20px_20px] border border-cyan-400/22 bg-[linear-gradient(180deg,rgba(130,236,255,0.16)_0%,rgba(12,28,36,0.92)_18%,rgba(6,10,16,0.98)_100%)] px-4 pb-5 pt-4 shadow-[0_22px_36px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_22px_rgba(0,0,0,0.26)]">
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
+                    <div className={`${dentWellClass} h-full rounded-[18px] px-4 py-4 text-center`}>
+                      <p className="text-[10px] font-mono uppercase tracking-[0.26em] text-cyan-100/52">Second</p>
+                      <p className="mt-2 text-2xl font-black text-cyan-200">02</p>
+                    </div>
+                  </div>
                 </motion.div>
 
                 {/* 1st Place */}
@@ -516,7 +546,7 @@ export default function LeaderboardPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="w-[35%] z-10"
+                  className="w-[35%] z-10 flex flex-col"
                 >
                   <LeaderboardCardLink href={firstHref}>
                   <div className="relative overflow-hidden rounded-[28px] border border-yellow-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.16),transparent_42%),linear-gradient(160deg,rgba(28,22,10,0.96)_0%,rgba(13,11,8,0.98)_100%)] p-6 text-center shadow-[0_20px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-yellow-400/45">
@@ -556,6 +586,13 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
                   </LeaderboardCardLink>
+                  <div className="relative mt-3 h-40 rounded-[28px_28px_22px_22px] border border-yellow-400/22 bg-[linear-gradient(180deg,rgba(250,204,21,0.2)_0%,rgba(44,32,8,0.9)_18%,rgba(10,8,6,0.98)_100%)] px-4 pb-5 pt-4 shadow-[0_24px_40px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-18px_24px_rgba(0,0,0,0.26)]">
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-yellow-200/45 to-transparent" />
+                    <div className={`${dentWellClass} h-full rounded-[20px] px-4 py-4 text-center`}>
+                      <p className="text-[10px] font-mono uppercase tracking-[0.26em] text-yellow-100/58">Champion</p>
+                      <p className="mt-2 text-3xl font-black text-yellow-300">01</p>
+                    </div>
+                  </div>
                 </motion.div>
 
                 {/* 3rd Place */}
@@ -563,41 +600,68 @@ export default function LeaderboardPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
-                  className="w-[30%] transform translate-y-8"
+                  className="w-[30%] flex flex-col"
                 >
-                  <LeaderboardCardLink href={thirdHref}>
-                    <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-pink-400/45">
-                    {thirdHref ? (
-                      <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                        View <ArrowRight className="h-3 w-3" />
+                  {hasThird ? (
+                    <LeaderboardCardLink href={thirdHref}>
+                      <div className="relative overflow-hidden rounded-[24px] border border-pink-500/30 bg-[radial-gradient(circle_at_50%_0%,rgba(236,72,153,0.14),transparent_42%),linear-gradient(160deg,rgba(26,10,20,0.96)_0%,rgba(13,8,12,0.98)_100%)] p-4 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)] transition-all duration-300 group-hover:-translate-y-[3px] group-hover:border-pink-400/45">
+                      {thirdHref ? (
+                        <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-pink-100/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          View <ArrowRight className="h-3 w-3" />
+                        </div>
+                      ) : null}
+                      <div className="relative w-16 h-16 mx-auto mb-3">
+                        <div className="w-full h-full rounded-full border-3 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
+                          <LeaderboardAvatar
+                            user={THIRD.user}
+                            avatar={THIRD.avatar}
+                            sizes="64px"
+                            shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                            textClassName="text-2xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
+                          />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-sm shadow-lg">
+                          3
+                        </div>
                       </div>
-                    ) : null}
-                    <div className="relative w-16 h-16 mx-auto mb-3">
-                      <div className="w-full h-full rounded-full border-3 border-pink-400 overflow-hidden shadow-[0_0_15px_rgba(236,0,140,0.4)]">
-                        <LeaderboardAvatar
-                          user={THIRD.user}
-                          avatar={THIRD.avatar}
-                          sizes="64px"
-                          shadowClassName="shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                          textClassName="text-2xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-                        />
+                      <div className={`${dentWellClass} px-4 py-4`}>
+                        <p className="text-white font-bold text-sm truncate mb-1">{THIRD.user}</p>
+                        <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
+                        <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
+                          <span>{THIRD.completions} completions</span>
+                          {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
+                        </div>
+                        <LiquidProgressBar value={THIRD.level} color="pink" />
+                        <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
                       </div>
-                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-pink-400 rounded-full flex items-center justify-center text-black font-black text-sm shadow-lg">
-                        3
+                      </div>
+                    </LeaderboardCardLink>
+                  ) : (
+                    <div className="relative overflow-hidden rounded-[24px] border border-amber-500/28 bg-[radial-gradient(circle_at_50%_0%,rgba(251,146,60,0.14),transparent_42%),linear-gradient(160deg,rgba(30,18,10,0.96)_0%,rgba(15,9,7,0.98)_100%)] p-4 text-center shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)]">
+                      <div className="relative mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-amber-300/30 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.12),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(12,10,9,0.92))] shadow-[0_0_15px_rgba(251,146,60,0.24)]">
+                        <span className="text-2xl font-black text-amber-200">3</span>
+                      </div>
+                      <div className={`${dentWellClass} px-4 py-4`}>
+                        <p className="text-amber-100 font-black text-sm uppercase tracking-[0.18em] mb-2">#3 Unclaimed</p>
+                        <p className="text-white/72 text-sm leading-relaxed">Be the first to take this spot.</p>
+                        <Link
+                          href="/#active-bounties"
+                          className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-300/24 bg-amber-500/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-100 transition-colors hover:bg-amber-500/16"
+                        >
+                          Browse Dares <ArrowRight className="h-3 w-3" />
+                        </Link>
                       </div>
                     </div>
-                    <div className={`${dentWellClass} px-4 py-4`}>
-                      <p className="text-white font-bold text-sm truncate mb-1">{THIRD.user}</p>
-                      <p className="text-pink-400 font-black text-lg mb-3">{THIRD.staked}</p>
-                      <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
-                        <span>{THIRD.completions} completions</span>
-                        {THIRD.rewardTier ? <span className="text-pink-100/70">{THIRD.rewardTier}</span> : null}
-                      </div>
-                      <LiquidProgressBar value={THIRD.level} color="pink" />
-                      <p className="text-[10px] text-gray-500 font-mono mt-2">LVL {Math.floor(THIRD.level / 10)}</p>
+                  )}
+                  <div className="relative mt-3 h-20 rounded-[24px_24px_18px_18px] border border-pink-400/22 bg-[linear-gradient(180deg,rgba(236,72,153,0.18)_0%,rgba(38,10,26,0.92)_18%,rgba(14,6,10,0.98)_100%)] px-4 pb-4 pt-4 shadow-[0_20px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_22px_rgba(0,0,0,0.24)]">
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-pink-200/35 to-transparent" />
+                    <div className={`${dentWellClass} h-full rounded-[16px] px-4 py-3 text-center`}>
+                      <p className="text-[10px] font-mono uppercase tracking-[0.26em] text-pink-100/52">
+                        {hasThird ? 'Third' : 'Open'}
+                      </p>
+                      <p className="mt-1.5 text-2xl font-black text-pink-200">03</p>
                     </div>
-                    </div>
-                  </LeaderboardCardLink>
+                  </div>
                 </motion.div>
               </div>
             </motion.div>
