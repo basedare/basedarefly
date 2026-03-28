@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
+import { useAccount } from 'wagmi';
 import { Crosshair, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useToast } from '@/components/ui/use-toast';
@@ -89,6 +90,7 @@ export default function TagPlaceButton({
   const [authChecking, setAuthChecking] = useState(false);
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
+  const { address: connectedWallet, isConnected } = useAccount();
   const {
     coordinates,
     loading: geoLoading,
@@ -101,7 +103,16 @@ export default function TagPlaceButton({
   const backupSession = getSessionFields(fallbackSession);
   const sessionToken = primarySession.token ?? backupSession.token;
   const sessionWallet = primarySession.walletAddress ?? backupSession.walletAddress;
-  const canAuthenticate = Boolean(sessionToken && sessionWallet);
+  const normalizedConnectedWallet = connectedWallet?.toLowerCase() ?? null;
+  const hasVerifiedSession = Boolean(sessionToken && sessionWallet);
+  const hasWalletConnection = Boolean(isConnected && normalizedConnectedWallet);
+  const canAuthenticate = Boolean(hasVerifiedSession || hasWalletConnection);
+  const hasWalletMismatch = Boolean(
+    hasVerifiedSession &&
+      normalizedConnectedWallet &&
+      sessionWallet &&
+      sessionWallet !== normalizedConnectedWallet
+  );
   const effectivePlaceId = placeId ?? resolvedPlaceId;
 
   useEffect(() => {
@@ -131,7 +142,7 @@ export default function TagPlaceButton({
   }, [open, coordinates, geoLoading, geoError, geoSupported, requestLocation]);
 
   useEffect(() => {
-    if (!open || canAuthenticate) return;
+    if (!open || hasVerifiedSession) return;
 
     let cancelled = false;
 
@@ -159,7 +170,7 @@ export default function TagPlaceButton({
     return () => {
       cancelled = true;
     };
-  }, [open, canAuthenticate]);
+  }, [open, hasVerifiedSession]);
 
   const locationStatus = useMemo(() => {
     if (!geoSupported) return 'Location is not supported in this browser.';
@@ -178,6 +189,22 @@ export default function TagPlaceButton({
       };
     }
 
+    if (hasWalletMismatch) {
+      return {
+        title: 'Wallet mismatch',
+        description: 'Your connected wallet does not match the session we found. Reconnect the same wallet or refresh before tagging.',
+        cta: 'Reconnect wallet',
+      };
+    }
+
+    if (hasWalletConnection && !hasVerifiedSession) {
+      return {
+        title: 'Wallet connected',
+        description: 'Your wallet is live. For now we will use the connected wallet and its verified primary tag to submit this mark.',
+        cta: 'Wallet ready',
+      };
+    }
+
     if (sessionWallet && !sessionToken) {
       return {
         title: 'Reconnect required',
@@ -191,13 +218,22 @@ export default function TagPlaceButton({
       description: 'Place tagging needs your wallet-backed session. If you already claimed your tag, just reconnect your session here.',
       cta: 'Reconnect session',
     };
-  }, [authChecking, sessionStatus, sessionToken, sessionWallet]);
+  }, [authChecking, hasVerifiedSession, hasWalletConnection, hasWalletMismatch, sessionStatus, sessionToken, sessionWallet]);
 
   async function handleSubmit() {
+    if (hasWalletMismatch) {
+      toast({
+        title: 'Wallet mismatch',
+        description: 'Reconnect the same wallet you used for your current BaseDare session before leaving a mark.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!canAuthenticate) {
       toast({
-        title: 'Sign in required',
-        description: 'Connect your wallet-backed session before leaving a mark.',
+        title: 'Wallet required',
+        description: 'Connect the wallet that owns your creator tag before leaving a mark.',
         variant: 'destructive',
       });
       return;
@@ -275,12 +311,17 @@ export default function TagPlaceButton({
       formData.append('vibeTags', vibeTags.trim());
       formData.append('lat', String(coordinates.lat));
       formData.append('lng', String(coordinates.lng));
+      if (normalizedConnectedWallet) {
+        formData.append('walletAddress', normalizedConnectedWallet);
+      }
 
       const response = await fetch(`/api/places/${targetPlaceId}/tags`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-        },
+        headers: sessionToken
+          ? {
+              Authorization: `Bearer ${sessionToken}`,
+            }
+          : undefined,
         body: formData,
       });
 

@@ -45,6 +45,12 @@ function parseOptionalFloat(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeWallet(value: FormDataEntryValue | string | null | undefined) {
+  if (typeof value !== 'string') return null;
+  if (!isAddress(value)) return null;
+  return value.toLowerCase();
+}
+
 function parseVibeTags(value: FormDataEntryValue | null) {
   if (typeof value !== 'string') {
     return [];
@@ -170,22 +176,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const walletAddress = await getAuthenticatedWallet(request);
-    if (!walletAddress) {
-      return NextResponse.json(
-        { success: false, error: 'Sign in with a wallet-backed session to tag a place' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
     const formData = await request.formData();
+    const sessionWallet = await getAuthenticatedWallet(request);
+    const bodyWallet = normalizeWallet(formData.get('walletAddress'));
+    const walletAddress = sessionWallet ?? bodyWallet;
     const file = formData.get('file');
     const caption = parseOptionalString(formData.get('caption'));
     const linkedDareId = parseOptionalString(formData.get('linkedDareId'));
     const lat = parseOptionalFloat(formData.get('lat'));
     const lng = parseOptionalFloat(formData.get('lng'));
     const vibeTags = parseVibeTags(formData.get('vibeTags'));
+
+    if (!walletAddress) {
+      return NextResponse.json(
+        { success: false, error: 'Connect the wallet tied to your verified tag before tagging a place' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionWallet && bodyWallet && sessionWallet !== bodyWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Reconnect the same wallet used for your current session.' },
+        { status: 401 }
+      );
+    }
 
     if (!(file instanceof File)) {
       return NextResponse.json(
@@ -292,6 +307,12 @@ export async function POST(
     }
 
     const creatorProfile = await findPrimaryCreatorTagForWallet(walletAddress);
+    if (!creatorProfile) {
+      return NextResponse.json(
+        { success: false, error: 'Claim and verify your creator tag before tagging this place.' },
+        { status: 403 }
+      );
+    }
 
     const upload = await uploadPublicMediaFile({
       file,
