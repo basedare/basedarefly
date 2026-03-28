@@ -32,7 +32,7 @@ export default function Verify() {
           <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
           <div className="pointer-events-none absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-black/45 to-transparent" />
 
-          <div className="relative rounded-xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(12,11,19,0.97)_0%,rgba(16,15,24,0.96)_24%,rgba(28,25,40,0.88)_100%)] px-4 py-3 shadow-[inset_0_2px_3px_rgba(255,255,255,0.04),inset_0_-10px_18px_rgba(0,0,0,0.4),inset_8px_8px_18px_rgba(0,0,0,0.18),0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="bd-dent-surface relative rounded-xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(12,11,19,0.97)_0%,rgba(16,15,24,0.96)_24%,rgba(28,25,40,0.88)_100%)] px-4 py-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35">Review Protocol</p>
@@ -85,7 +85,7 @@ export default function Verify() {
           ].map((item) => (
             <div
               key={item.step}
-              className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_18%,rgba(9,8,15,0.92)_68%,rgba(8,7,12,0.96)_100%)] p-4 sm:p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_16px_24px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.26)] transition-all hover:-translate-y-[1px] hover:bg-white/[0.04]"
+              className="bd-dent-surface bd-dent-surface--soft relative overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_18%,rgba(9,8,15,0.92)_68%,rgba(8,7,12,0.96)_100%)] p-4 sm:p-5 transition-all hover:-translate-y-[1px] hover:bg-white/[0.04]"
             >
               {/* Top highlight */}
               <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -114,7 +114,7 @@ export default function Verify() {
         </div>
 
         {/* Points Info */}
-        <div className="mt-6 relative overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_18%,rgba(9,8,15,0.92)_68%,rgba(8,7,12,0.96)_100%)] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)]">
+        <div className="bd-dent-surface bd-dent-surface--soft mt-6 relative overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_18%,rgba(9,8,15,0.92)_68%,rgba(8,7,12,0.96)_100%)] p-4">
           <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4 text-yellow-400" />

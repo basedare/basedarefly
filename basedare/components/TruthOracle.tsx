@@ -33,6 +33,9 @@ const oracleShellClass =
 const oracleStatePanelClass =
   'relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_18%,rgba(9,8,15,0.92)_68%,rgba(8,7,12,0.97)_100%)] px-6 py-10 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.28)]';
 
+const oracleDentWellClass =
+  'bd-dent-surface bd-dent-surface--soft border-white/[0.08]';
+
 function getVoteButtonFrameClass(tone: 'approve' | 'reject') {
   const toneClass =
     tone === 'approve'
@@ -301,7 +304,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
 
           {/* LEFT: EVIDENCE VIEWER */}
           <div className="lg:col-span-2 lg:border-r border-b lg:border-b-0 border-white/10 bg-[linear-gradient(180deg,rgba(4,4,8,0.92)_0%,rgba(2,2,5,0.98)_100%)] p-3 sm:p-4 lg:p-5 relative min-h-[250px] sm:min-h-[350px] lg:min-h-[400px]">
-            <div className="relative h-full min-h-[250px] sm:min-h-[350px] lg:min-h-[400px] w-full overflow-hidden rounded-[24px] border border-white/[0.07] bg-[linear-gradient(160deg,rgba(15,15,22,0.98)_0%,rgba(7,7,11,0.98)_45%,rgba(2,2,3,1)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_24px_rgba(0,0,0,0.45),inset_10px_10px_24px_rgba(0,0,0,0.22),0_18px_28px_rgba(0,0,0,0.25)] flex items-center justify-center">
+            <div className={`${oracleDentWellClass} relative h-full min-h-[250px] sm:min-h-[350px] lg:min-h-[400px] w-full overflow-hidden rounded-[24px] bg-[linear-gradient(160deg,rgba(15,15,22,0.98)_0%,rgba(7,7,11,0.98)_45%,rgba(2,2,3,1)_100%)] flex items-center justify-center`}>
               <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
               {isVideo ? (
                 <video
@@ -326,7 +329,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
               </div>
             </div>
 
-            <div className="mt-3 rounded-[20px] border border-white/[0.06] bg-[linear-gradient(150deg,rgba(16,16,22,0.95)_0%,rgba(10,10,14,0.98)_100%)] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.3)]">
+            <div className={`${oracleDentWellClass} mt-3 rounded-[20px] bg-[linear-gradient(150deg,rgba(16,16,22,0.95)_0%,rgba(10,10,14,0.98)_100%)] p-4 sm:p-5`}>
               <h3 className="font-bold text-white text-base sm:text-xl mb-1 flex items-center gap-2 flex-wrap">
                 <span>&quot;{currentDare.title}&quot;</span>
               </h3>
@@ -340,7 +343,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
           <div className="p-4 sm:p-6 flex flex-col bg-[linear-gradient(180deg,rgba(7,7,11,0.94)_0%,rgba(4,4,7,0.99)_100%)]">
 
             {/* AI INSIGHT BOX */}
-            <div className="mb-4 sm:mb-6 relative overflow-hidden rounded-2xl border border-purple-500/20 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.14),transparent_42%),linear-gradient(160deg,rgba(18,12,29,0.96)_0%,rgba(11,10,18,0.98)_100%)] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_18px_rgba(0,0,0,0.34),0_14px_22px_rgba(0,0,0,0.2)]">
+            <div className={`mb-4 sm:mb-6 relative overflow-hidden rounded-2xl border border-purple-500/20 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.14),transparent_42%),linear-gradient(160deg,rgba(18,12,29,0.96)_0%,rgba(11,10,18,0.98)_100%)] p-3 sm:p-4 ${oracleDentWellClass}`}>
               <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="w-4 h-4 text-purple-400 flex-shrink-0" />
@@ -356,13 +359,13 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
             </div>
 
             {/* CONSENSUS & VOTE COUNT */}
-            <div className="mb-4 sm:mb-6 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_16%,rgba(11,10,17,0.96)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.3)]">
+            <div className={`mb-4 sm:mb-6 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(155deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_16%,rgba(11,10,17,0.96)_100%)] p-4 ${oracleDentWellClass}`}>
               <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
               <div className="mb-3 flex justify-between text-[9px] sm:text-[10px] font-bold uppercase text-gray-500">
                 <span>Community Consensus</span>
                 <span className="text-white">{consensusPercent}% Pass</span>
               </div>
-              <div className="rounded-full border border-white/[0.06] bg-[linear-gradient(180deg,rgba(0,0,0,0.38)_0%,rgba(0,0,0,0.18)_100%)] p-1 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),inset_0_-2px_3px_rgba(255,255,255,0.03)]">
+              <div className="bd-dent-pill rounded-full border border-white/[0.06] bg-[linear-gradient(180deg,rgba(0,0,0,0.38)_0%,rgba(0,0,0,0.18)_100%)] p-1">
                 <div className="relative h-3 overflow-hidden rounded-full bg-[linear-gradient(180deg,rgba(9,9,13,0.98)_0%,rgba(18,18,24,0.95)_100%)]">
                   <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-white/10" />
                   <motion.div
