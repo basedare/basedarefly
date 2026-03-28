@@ -22,6 +22,12 @@ import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
+const dentInputClass =
+  "bd-dent-surface bd-dent-surface--soft border-white/[0.06] backdrop-blur-2xl bg-white/[0.03]";
+
+const dentGroupClass =
+  "bd-dent-surface bd-dent-surface--soft border-white/[0.06] backdrop-blur-2xl bg-white/[0.03]";
+
 // Liquid Metal Contact Button Component
 function ContactButton() {
   const { trigger } = useFeedback();
@@ -453,7 +459,7 @@ export default function CreateDare() {
                 <input
                   {...register('streamerTag')}
                   placeholder="@username or @everyone for open dare"
-                  className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  className={`${dentInputClass} w-full h-14 md:h-16 text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                 />
                 <p className="text-[10px] md:text-xs text-gray-500 font-mono">Use @everyone for open dares anyone can complete</p>
                 {errors.streamerTag && (
@@ -480,7 +486,7 @@ export default function CreateDare() {
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] border border-white/[0.09] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none transition-all resize-none font-mono shadow-[inset_0_2px_3px_rgba(255,255,255,0.05),inset_0_-12px_20px_rgba(0,0,0,0.45),inset_8px_8px_18px_rgba(0,0,0,0.24),inset_-5px_-5px_12px_rgba(255,255,255,0.02),0_1px_0_rgba(255,255,255,0.04)]"
+                  className="bd-dent-surface border-white/[0.09] w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none transition-all resize-none font-mono"
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
@@ -490,7 +496,7 @@ export default function CreateDare() {
               {/* 2.5. NEARBY DARE - Location-based discovery */}
               <div className="space-y-4">
                 {/* Toggle */}
-                <div className="flex items-center justify-between p-4 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                <div className={`${dentGroupClass} flex items-center justify-between rounded-xl p-4`}>
                   <div className="flex items-center gap-3">
                     <MapPin className={`w-5 h-5 ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-gray-500'} transition-colors`} />
                     <div>
@@ -530,7 +536,7 @@ export default function CreateDare() {
                 {watchIsNearbyDare && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Location Status */}
-                    <div className={`p-4 rounded-xl border ${coordinates
+                    <div className={`bd-dent-surface bd-dent-surface--soft rounded-xl p-4 border ${coordinates
                       ? 'bg-green-500/10 border-green-500/20'
                       : geoError
                         ? 'bg-red-500/10 border-red-500/20'
@@ -584,7 +590,7 @@ export default function CreateDare() {
                       <input
                         {...register('locationLabel')}
                         placeholder="e.g., SM MOA, Poblacion, BGC"
-                        className="w-full h-12 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-base text-white placeholder:text-white/20 rounded-xl pl-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                        className={`${dentInputClass} w-full h-12 text-base text-white placeholder:text-white/20 rounded-xl pl-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                       />
                     </div>
 
@@ -595,7 +601,7 @@ export default function CreateDare() {
                       </label>
                       <select
                         {...register('discoveryRadiusKm', { valueAsNumber: true })}
-                        className="w-full h-12 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-white rounded-xl px-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none font-bold cursor-pointer transition-all text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                        className={`${dentInputClass} w-full h-12 text-white rounded-xl px-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none font-bold cursor-pointer transition-all text-sm`}
                       >
                         <option value={1}>1 km - Very local</option>
                         <option value={2}>2 km - Walking distance</option>
@@ -620,7 +626,7 @@ export default function CreateDare() {
                       type="number"
                       {...register('amount', { valueAsNumber: true })}
                       placeholder="100"
-                      className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-xl md:text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-5 md:pl-6 pr-20 md:pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                      className={`${dentInputClass} w-full h-14 md:h-16 text-xl md:text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-5 md:pl-6 pr-20 md:pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                     />
                     <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-xs md:text-sm font-bold text-gray-400">
                       USDC
@@ -640,11 +646,11 @@ export default function CreateDare() {
                       type="number"
                       {...register('timeValue', { valueAsNumber: true })}
                       placeholder="24"
-                      className="w-full h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-lg md:text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                      className={`${dentInputClass} w-full h-14 md:h-16 text-lg md:text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                     />
                     <select
                       {...register('timeUnit')}
-                      className="h-14 md:h-16 backdrop-blur-2xl bg-white/[0.03] border border-white/[0.06] text-white rounded-xl px-3 md:px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all text-sm md:text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                      className={`${dentInputClass} h-14 md:h-16 text-white rounded-xl px-3 md:px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all text-sm md:text-base`}
                     >
                       <option value="Hours">Hours</option>
                       <option value="Days">Days</option>
