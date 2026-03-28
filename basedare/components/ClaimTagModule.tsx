@@ -665,34 +665,25 @@ export function ClaimTagModule() {
                   <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity</span>
                 </div>
                 <p className="mt-3 text-sm font-semibold text-white">
-                  {isPlatformConnected ? `Anchored as @${platformHandle}` : 'Connect your real handle'}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-white/55">
-                  Keeps payouts and review tied to one creator.
+                  {isPlatformConnected ? `@${platformHandle}` : 'Connect your handle'}
                 </p>
               </div>
 
               <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center gap-2 text-[#f5c518]">
                   <Share2 className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Distribution</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Proof</span>
                 </div>
-                <p className="mt-3 text-sm font-semibold text-white">Verified wins share cleaner</p>
-                <p className="mt-2 text-xs leading-5 text-white/55">
-                  One handle keeps proof and links consistent.
-                </p>
+                <p className="mt-3 text-sm font-semibold text-white">One handle keeps wins clean</p>
               </div>
 
               <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center gap-2 text-purple-200">
                   <MapPin className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Your Map</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Map</span>
                 </div>
                 <p className="mt-3 text-sm font-semibold text-white">
-                  {inviteData ? 'Claim first, then wake the place up' : 'This becomes your place layer'}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-white/55">
-                  Routing now. Footprint later.
+                  {inviteData ? 'Claim first, then wake the place up' : 'Place layer later'}
                 </p>
               </div>
             </div>
@@ -922,73 +913,27 @@ export function ClaimTagModule() {
                   </div>
                 ) : null}
               </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {!hasMatchingVerifiedTag && platformHandle ? (
-                  <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
-                    <div className="flex items-center gap-2 text-cyan-200">
-                      <Shield className="h-4 w-4" />
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Claim Match</span>
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-white">Lock in @{platformHandle}</p>
-                    <p className="mt-2 text-xs leading-5 text-white/55">
-                      Keep your tag and handle aligned.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setTag(platformHandle)}
-                      className="mt-4 inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                    >
-                      Use @{platformHandle}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
-                    <div className="flex items-center gap-2 text-green-300">
-                      <CheckCircle className="h-4 w-4" />
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity Ready</span>
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-white">
-                      {hasMatchingVerifiedTag ? 'Your handle is already anchored' : 'Connected identity detected'}
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-white/55">
-                      Ready for payouts, routing, and proofs.
-                    </p>
-                  </div>
-                )}
-
-                <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-[#f5c518]">
-                    <Share2 className="h-4 w-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Distribution Rail</span>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-white">Verified wins route cleaner</p>
-                  <p className="mt-2 text-xs leading-5 text-white/55">
-                    One handle keeps wins and briefs pointed back to you.
-                  </p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-purple-200">
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Map Next</span>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-white">
-                    {inviteData ? 'Claim, then wake the place up' : 'Open your place layer'}
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-white/55">
-                    {inviteData
-                      ? 'Once this clears, the venue can light up.'
-                      : 'See challenge-live state and your next layer on the map.'}
-                  </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {platformHandle && !hasMatchingVerifiedTag ? (
                   <button
                     type="button"
-                    onClick={() => router.push('/map')}
-                    className="mt-4 inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                    onClick={() => setTag(platformHandle)}
+                    className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
                   >
-                    Open Map
+                    Use @{platformHandle}
                   </button>
-                </div>
+                ) : (
+                  <div className="rounded-full border border-green-400/25 bg-green-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-green-200">
+                    {hasMatchingVerifiedTag ? 'Handle anchored' : 'Identity ready'}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => router.push('/map')}
+                  className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
+                >
+                  Open map
+                </button>
               </div>
 
               {platformHandle ? (

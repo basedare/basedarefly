@@ -508,6 +508,13 @@ export async function POST(request: NextRequest) {
         tag: normalizedTag,
         ...platformData,
       } as Prisma.StreamerTagCreateInput,
+      select: {
+        id: true,
+        tag: true,
+        walletAddress: true,
+        status: true,
+        verifiedAt: true,
+      },
     });
 
     console.log(
