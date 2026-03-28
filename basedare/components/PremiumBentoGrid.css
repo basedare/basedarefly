@@ -8,6 +8,48 @@
   margin: 0 auto;
 }
 
+.premium-bounties-controls {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(155deg, rgba(24, 19, 42, 0.7), rgba(8, 9, 18, 0.88));
+  box-shadow:
+    10px 14px 36px rgba(0, 0, 0, 0.35),
+    -6px -6px 18px rgba(255, 255, 255, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.premium-filter-shell {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(155deg, rgba(14, 14, 24, 0.78), rgba(9, 10, 18, 0.92));
+  box-shadow:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.55),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.04),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.premium-filter-chip {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.04),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.premium-filter-chip:not(.bg-\[\#FACC15\]\/90):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.premium-bento-stage {
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(18, 16, 32, 0.58), rgba(6, 7, 15, 0.78));
+  box-shadow:
+    inset 6px 6px 14px rgba(0, 0, 0, 0.38),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.025),
+    0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
 @media (min-width: 640px) {
   .premium-bento-grid {
     grid-template-columns: repeat(2, 1fr);

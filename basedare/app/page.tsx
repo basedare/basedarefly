@@ -243,16 +243,18 @@ export default function Home() {
               <HowItWorks />
               <MintAnnouncement />
 
-              <div id="active-bounties" className="w-full flex flex-col items-center py-20 z-30">
-                <div className="mb-12 flex flex-col items-center">
-                  <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
-                  <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />
+              <div id="active-bounties" className="w-full flex justify-center py-20 z-30 px-4 md:px-6">
+                <div className="w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
+                  <div className="mb-12 flex flex-col items-center">
+                    <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
+                    <div className="h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-2" />
+                  </div>
+
+                  <PremiumBentoGrid dares={dares} />
+
+                  {/* FUEL THE ROCKET - Donation link */}
+                  <FuelTheRocket />
                 </div>
-
-                <PremiumBentoGrid dares={dares} />
-
-                {/* FUEL THE ROCKET - Donation link */}
-                <FuelTheRocket />
               </div>
 
               {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}

@@ -421,10 +421,10 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="premium-filter-row flex flex-col md:flex-row items-stretch md:items-center justify-between w-full max-w-[1400px] mb-12 px-6 gap-4">
+      <div className="premium-filter-row premium-bounties-controls flex flex-col md:flex-row items-stretch md:items-center justify-between w-full max-w-[1400px] mb-10 px-3 md:px-4 py-3 gap-4">
         {/* Horizontally scrollable filter buttons on mobile */}
         <div className="overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-          <div className="flex gap-1.5 p-1.5 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl glass-highlight w-max md:w-auto">
+          <div className="premium-filter-shell flex gap-1.5 p-1.5 w-max md:w-auto">
             {FILTERS.map((cat) => (
               <button
                 key={cat}
@@ -433,10 +433,10 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                   triggerLoading();
                   setFilter(cat);
                 }}
-                className={`px-4 md:px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.15em] md:tracking-[0.2em] uppercase transition-all duration-300 whitespace-nowrap ${
+                className={`premium-filter-chip px-4 md:px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.15em] md:tracking-[0.2em] uppercase transition-all duration-300 whitespace-nowrap ${
                   filter === cat
                     ? 'bg-[#FACC15]/90 text-black font-black shadow-[0_0_20px_rgba(250,204,21,0.3)]'
-                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.05]'
+                    : 'text-white/40 hover:text-white/70'
                 }`}
               >
                 {cat}
@@ -445,7 +445,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
           </div>
         </div>
 
-        <div className="premium-search relative group w-full md:w-auto md:min-w-[300px]">
+        <div className="premium-search bd-dent-surface bd-dent-surface--soft relative group w-full md:w-auto md:min-w-[320px] rounded-[1.15rem] border border-white/6 px-2 py-2">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#FACC15] transition-colors" />
           <input
             type="text"
@@ -455,7 +455,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
               triggerLoading();
               setSearchQuery(e.target.value);
             }}
-            className="premium-search-input w-full bg-white/[0.03] border border-white/[0.08] rounded-xl py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-[#FACC15]/40 focus:bg-white/[0.05] transition-all backdrop-blur-2xl"
+            className="premium-search-input w-full bg-transparent border border-white/[0.06] rounded-[0.95rem] py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-[#FACC15]/35 transition-all"
           />
         </div>
       </div>
@@ -463,7 +463,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       {/* NEARBY filter special states */}
       {filter === 'NEARBY' && (geoLoading || nearbyLoading) && (
         <div className="w-full max-w-[1400px] px-6 mb-8">
-          <div className="flex items-center justify-center gap-3 p-6 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
+          <div className="bd-dent-surface bd-dent-surface--soft flex items-center justify-center gap-3 p-6 border border-white/[0.06] rounded-2xl">
             <Loader2 className="w-5 h-5 text-[#FACC15] animate-spin" />
             <span className="text-sm text-gray-400 font-mono">
               {geoLoading ? 'Getting your location...' : 'Finding nearby dares...'}
@@ -474,7 +474,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
       {filter === 'NEARBY' && geoError && (
         <div className="w-full max-w-[1400px] px-6 mb-8">
-          <div className="flex flex-col items-center gap-3 p-6 bg-red-500/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl">
+          <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 p-6 border border-red-500/20 rounded-2xl">
             <MapPin className="w-8 h-8 text-red-400" />
             <p className="text-sm text-red-400 text-center">{geoError}</p>
             <button
@@ -489,7 +489,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
       {filter === 'NEARBY' && nearbyError && !geoError && (
         <div className="w-full max-w-[1400px] px-6 mb-8">
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+          <div className="bd-dent-surface bd-dent-surface--soft p-4 border border-red-500/20 rounded-xl text-center">
             <p className="text-sm text-red-400">{nearbyError}</p>
           </div>
         </div>
@@ -497,7 +497,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
       {filter === 'NEARBY' && coordinates && !nearbyLoading && nearbyDares.length === 0 && !nearbyError && (
         <div className="w-full max-w-[1400px] px-6 mb-8">
-          <div className="flex flex-col items-center gap-3 p-8 bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl">
+          <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 p-8 border border-white/[0.06] rounded-2xl">
             <MapPin className="w-10 h-10 text-gray-500" />
             <p className="text-lg font-bold text-white">No nearby dares found</p>
             <p className="text-sm text-gray-400 text-center">
@@ -507,7 +507,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         </div>
       )}
 
-      <div className="premium-bento-grid">
+      <div className="premium-bento-grid premium-bento-stage">
         {isLoading || (filter === 'NEARBY' && (geoLoading || nearbyLoading))
           ? Array.from({ length: 6 }).map((_, i) => <SentinelSkeleton key={i} />)
           : filteredCards.map((card) => (
