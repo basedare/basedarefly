@@ -289,7 +289,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
           <p
             className={`mx-auto mt-5 max-w-[500px] text-xs leading-7 text-white/45 sm:text-sm ${monoClass}`}
           >
-            Real venues. Crypto stakes. On-chain proof. Every pin is a legend permanently
+            Real venues. Crypto stakes. On-chain proof. Every pin is a legend.
             written to the map.
           </p>
           <div className="mx-auto mt-9 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-4">

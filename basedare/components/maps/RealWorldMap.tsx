@@ -1286,7 +1286,7 @@ export default function RealWorldMap() {
               </h1>
 
               <p className="mt-5 max-w-3xl text-base text-white/62 sm:text-lg">
-                Real venues. Crypto stakes. On-chain proof. Every pin is a legend permanently written to the map.
+                Real venues. Crypto stakes. On-chain proof. Every pin is a legend.
               </p>
 
               <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-center lg:hidden">
