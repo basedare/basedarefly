@@ -111,15 +111,17 @@ export default function WaitlistPage() {
               
               <button
                 type="submit"
-                className="w-full rounded-[1.15rem] border border-white/25 bg-white/90 py-4 text-lg font-black italic uppercase tracking-tighter text-black shadow-[0_12px_35px_rgba(255,255,255,0.15)] transition-all hover:bg-purple-300 active:scale-[0.98]"
+                className="vault-glass-button relative w-full overflow-hidden rounded-[1.15rem] py-4 text-lg font-black italic uppercase tracking-tighter text-white transition-all active:scale-[0.98]"
               >
-                Enter the Vault
+                <span className="vault-glass-button__surface">
+                  <span className="vault-glass-button__label">Enter the Vault</span>
+                </span>
               </button>
             </form>
           </div>
         ) : (
           <div className={`animate-in fade-in zoom-in p-8 duration-500 ${dentWellClass}`}>
-            <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">Identity Verified</h3>
+            <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">✨ Success</h3>
             <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">You are on the list.</p>
           </div>
         )}
@@ -131,6 +133,94 @@ export default function WaitlistPage() {
           </p>
         </div>
       </div>
+
+      <style jsx>{`
+        .vault-glass-button {
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: linear-gradient(180deg, rgba(10, 12, 18, 0.96) 0%, rgba(8, 8, 14, 0.98) 100%);
+          box-shadow:
+            0 18px 38px rgba(0, 0, 0, 0.36),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 0 1px rgba(255, 255, 255, 0.02);
+        }
+
+        .vault-glass-button::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          margin: -2px;
+          padding: 2px;
+          background-image: conic-gradient(
+            from 180deg,
+            rgba(255, 255, 255, 0.92) 0deg,
+            rgba(255, 255, 255, 0.3) 42deg,
+            rgba(210, 210, 210, 0.42) 78deg 102deg,
+            rgba(255, 255, 255, 0.85) 150deg,
+            rgba(195, 195, 195, 0.28) 248deg 278deg,
+            rgba(255, 255, 255, 0.92) 330deg
+          );
+          mask:
+            linear-gradient(#fff, #fff) content-box,
+            linear-gradient(#fff, #fff);
+          mask-composite: exclude;
+          -webkit-mask:
+            linear-gradient(#fff, #fff) content-box,
+            linear-gradient(#fff, #fff);
+          -webkit-mask-composite: xor;
+          pointer-events: none;
+          opacity: 0.92;
+        }
+
+        .vault-glass-button__surface {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          min-height: 100%;
+          width: 100%;
+          align-items: center;
+          justify-content: center;
+          border-radius: calc(1.15rem - 2px);
+          background:
+            radial-gradient(60% 140% at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 58%),
+            radial-gradient(90% 100% at 50% 100%, rgba(168, 85, 247, 0.15) 0%, transparent 72%),
+            rgba(255, 255, 255, 0.04);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -14px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        .vault-glass-button__label {
+          color: rgba(255, 255, 255, 0.92);
+          text-shadow:
+            0 0 18px rgba(168, 85, 247, 0.2),
+            0 1px 0 rgba(0, 0, 0, 0.28);
+        }
+
+        .vault-glass-button:hover {
+          transform: translateY(-1px);
+          box-shadow:
+            0 22px 44px rgba(0, 0, 0, 0.42),
+            0 0 26px rgba(168, 85, 247, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            0 0 0 1px rgba(255, 255, 255, 0.03);
+        }
+
+        .vault-glass-button:hover .vault-glass-button__surface {
+          background:
+            radial-gradient(60% 140% at 50% 0%, rgba(255, 255, 255, 0.14) 0%, transparent 58%),
+            radial-gradient(90% 100% at 50% 100%, rgba(168, 85, 247, 0.2) 0%, transparent 72%),
+            rgba(255, 255, 255, 0.05);
+        }
+
+        .vault-glass-button:active {
+          transform: translateY(1px) scale(0.985);
+          box-shadow:
+            inset 0 4px 12px rgba(0, 0, 0, 0.28),
+            inset 0 -3px 8px rgba(255, 255, 255, 0.04),
+            0 10px 22px rgba(0, 0, 0, 0.28);
+        }
+      `}</style>
     </main>
   );
 }
