@@ -66,7 +66,7 @@ const alphaLyrae = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "BaseDare | Force Streamers",
+  title: "BaseDare | Own the Grid",
   description: "Fund dares. Watch chaos unfold.",
 };
 
