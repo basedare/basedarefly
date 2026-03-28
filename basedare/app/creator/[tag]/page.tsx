@@ -313,7 +313,7 @@ export default function CreatorProfilePage() {
                                 </button>
                             </div>
                             <Link
-                                href="/streamers"
+                                href="/creators"
                                 className={`${pillClass} transition-all duration-300 hover:border-cyan-400/30 hover:text-white`}
                             >
                                 All Creators
@@ -595,7 +595,7 @@ export default function CreatorProfilePage() {
                 </div>
 
                 <div className="pt-2 text-center">
-                    <Link href="/streamers" className="text-xs text-white/30 hover:text-white/60 transition-colors font-mono">
+                    <Link href="/creators" className="text-xs text-white/30 hover:text-white/60 transition-colors font-mono">
                         ← Back to creators
                     </Link>
                 </div>

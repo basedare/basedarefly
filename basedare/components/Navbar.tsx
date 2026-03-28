@@ -17,7 +17,7 @@ const NAV_LINKS = [
   { name: "CREATE", href: "/create" },
   { name: "Map", href: "/map" },
   { name: "DASHBOARD", href: "/dashboard" },
-  { name: "CREATORS", href: "/streamers" },
+  { name: "CREATORS", href: "/creators" },
   { name: "FAQ", href: "/faq" },
   { name: "VERIFY", href: "/verify" },
 ];

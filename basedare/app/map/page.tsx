@@ -1,8 +1,32 @@
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import RealWorldMap from "@/components/maps/RealWorldMap";
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'BaseDare Map — Find Live Dares Near You',
+  description:
+    'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+  openGraph: {
+    title: 'BaseDare Map — Find Live Dares Near You',
+    description:
+      'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+    url: 'https://basedare.xyz/map',
+    siteName: 'BaseDare',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BaseDare Map — Find Live Dares Near You',
+    description:
+      'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+  },
+  alternates: {
+    canonical: '/map',
+  },
+};
 
 export default function MapPage() {
   return (

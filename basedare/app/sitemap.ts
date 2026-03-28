@@ -30,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: 'https://basedare.xyz/streamers',
+      url: 'https://basedare.xyz/creators',
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,

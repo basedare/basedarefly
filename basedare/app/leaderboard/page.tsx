@@ -244,7 +244,7 @@ export default function LeaderboardPage() {
             <div className="relative">
               <div className="mb-5 flex justify-start">
                 <Link
-                  href="/streamers"
+                  href="/creators"
                   className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 transition-all duration-300 hover:-translate-x-[2px] hover:border-fuchsia-400/30 hover:text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-0.5" />

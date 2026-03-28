@@ -8,7 +8,10 @@ import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut, User, HelpCircle } fr
 interface MobileNavProps {
   isOpen: boolean;
   onClose: () => void;
-  user?: any;
+  user?: {
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
 }
 
 export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
@@ -153,7 +156,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
             {/* CTA - Premium Gold */}
             <div className="pt-5 mt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
               <Link
-                href="/streamers"
+                href="/creators"
                 onClick={onClose}
                 className="relative block rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
               >
@@ -174,7 +177,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
                 {/* Content */}
                 <div className="relative flex items-center justify-center gap-2 px-4 py-3.5">
                   <Zap className="w-4 h-4 text-black" />
-                  <span className="font-bold text-sm text-black">Streamers: Earn $$$</span>
+                  <span className="font-bold text-sm text-black">Creators: Earn $$$</span>
                 </div>
               </Link>
             </div>

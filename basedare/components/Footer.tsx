@@ -67,13 +67,13 @@ export default function Footer() {
 
               {/* WAITLIST BUTTON - Touch optimized */}
               <Link
-                href="/waitlist"
+                href="/map"
                 className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-black font-black italic uppercase rounded-xl hover:bg-purple-400 active:bg-purple-500 transition-all transform hover:scale-105 active:scale-[0.98] tracking-tighter text-xs sm:text-sm touch-manipulation"
                 style={{
                   boxShadow: '0 0 20px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.3)',
                 }}
               >
-                <span>Enter the Vault</span>
+                <span>Enter the Grid</span>
                 <span className="text-purple-600">→</span>
               </Link>
             </div>

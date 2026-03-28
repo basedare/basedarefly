@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   turbopack: {},
   outputFileTracingRoot: process.cwd(),
+  async redirects() {
+    return [
+      {
+        source: '/streamers',
+        destination: '/creators',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
