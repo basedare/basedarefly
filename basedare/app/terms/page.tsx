@@ -6,6 +6,12 @@ import { ArrowLeft, AlertTriangle, ShieldAlert, Gavel } from 'lucide-react';
 import LiquidBackground from '@/components/LiquidBackground';
 
 export default function TermsOfChaos() {
+    const raisedPanelClass =
+        'rounded-[2rem] border border-white/10 bg-[linear-gradient(155deg,rgba(28,25,48,0.76),rgba(8,9,18,0.95))] shadow-[10px_10px_28px_rgba(0,0,0,0.5),-6px_-6px_18px_rgba(255,255,255,0.04)] backdrop-blur-xl';
+    const dentWellClass =
+        'bd-dent-surface bd-dent-surface--soft rounded-[1.6rem] border border-white/6 bg-white/[0.02]';
+    const sectionClass = `${raisedPanelClass} p-6 md:p-8`;
+
     return (
         <main className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30 font-sans relative overflow-hidden">
             <LiquidBackground />
@@ -18,64 +24,77 @@ export default function TermsOfChaos() {
                 </Link>
 
                 {/* HEADER */}
-                <div className="mb-16 border-b border-white/10 pb-8">
+                <div className={`${raisedPanelClass} mb-12 p-8 md:p-10`}>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-orange-600">
                         TERMS OF CHAOS
                     </h1>
-                    <p className="font-mono text-purple-400 uppercase tracking-widest text-xs">
-                // LEGAL PROTOCOL V1.0 // READ BEFORE INTERACTING
-                    </p>
+                    <div className={`${dentWellClass} px-5 py-4`}>
+                        <p className="font-mono text-purple-300 uppercase tracking-widest text-xs mb-2">
+                            {'// LEGAL PROTOCOL V1.0 // READ BEFORE INTERACTING'}
+                        </p>
+                        <p className="text-sm md:text-base text-white/70 leading-relaxed">
+                            BaseDare runs on public rails, signed actions are final, and unsafe or illegal behavior is not welcome here.
+                        </p>
+                    </div>
                 </div>
 
                 {/* CONTENT */}
-                <div className="space-y-12 text-gray-300 leading-relaxed">
+                <div className="space-y-8 text-gray-300 leading-relaxed">
 
-                    <section className="bg-white/5 p-8 rounded-3xl border border-white/10">
+                    <section className={sectionClass}>
                         <div className="flex items-center gap-3 mb-4 text-[#FFD700]">
                             <AlertTriangle className="w-6 h-6" />
                             <h2 className="text-xl font-black italic uppercase">1. The Protocol is Experimental</h2>
                         </div>
-                        <p className="font-mono text-sm opacity-80">
-                            BaseDare is a decentralized bounty platform running on the Base L2 network. By interacting with the smart contracts, you acknowledge that the protocol is experimental code. Use at your own risk. Funds contributed to bounties are held in escrow until completion conditions are verified.
-                        </p>
+                        <div className={`${dentWellClass} px-5 py-4`}>
+                            <p className="font-mono text-sm opacity-80">
+                                BaseDare is experimental code running on Base. If you fund, claim, or verify through the protocol, you accept that the system is still early-stage software and should be used carefully. Bounty funds stay in escrow until completion conditions are verified.
+                            </p>
+                        </div>
                     </section>
 
-                    <section>
+                    <section className={sectionClass}>
                         <h2 className="text-2xl font-black italic uppercase mb-4 text-white">2. Immutable Actions</h2>
-                        <p className="font-mono text-sm opacity-80 mb-4">
-                            Blockchain transactions are irreversible. Once you fund a bounty, you cannot "undo" the transaction. The blockchain does not care about your regret.
-                        </p>
+                        <div className={`${dentWellClass} px-5 py-4`}>
+                            <p className="font-mono text-sm opacity-80">
+                                Blockchain transactions are final. Once you fund a bounty or interact with the contract, there is no platform-side undo button. Double-check before you sign.
+                            </p>
+                        </div>
                     </section>
 
-                    <section>
+                    <section className={sectionClass}>
                         <h2 className="text-2xl font-black italic uppercase mb-4 text-white">3. Physical Safety & Liability</h2>
-                        <p className="font-mono text-sm opacity-80 mb-4">
-                            BaseDare is a platform for digital dares. We strictly prohibit challenges that encourage self-harm, illegal acts, or physical danger. However, BaseDare (the developers) holds <strong>ZERO LIABILITY</strong> for the actions taken by streamers or users. If you dare someone to do a backflip and they fail, that is gravity's fault, not ours.
-                        </p>
+                        <div className={`${dentWellClass} px-5 py-4`}>
+                            <p className="font-mono text-sm opacity-80">
+                                BaseDare does not allow dares involving self-harm, illegal activity, or reckless physical danger. Users remain responsible for their own choices and conduct. If someone ignores common sense, that liability does not jump back onto the protocol.
+                            </p>
+                        </div>
                     </section>
 
-                    <section>
+                    <section className={sectionClass}>
                         <h2 className="text-2xl font-black italic uppercase mb-4 text-white">4. Token Volatility</h2>
-                        <p className="font-mono text-sm opacity-80 mb-4">
-                            The value of crypto assets may fluctuate. 1 USDC = 1 USDC, but market conditions may vary. Only fund bounties with amounts you can afford.
-                        </p>
+                        <div className={`${dentWellClass} px-5 py-4`}>
+                            <p className="font-mono text-sm opacity-80">
+                                Crypto markets move. Even when a bounty is denominated in USDC, the broader environment around gas, wallets, and asset access can change. Only commit amounts you can afford to lock up.
+                            </p>
+                        </div>
                     </section>
 
-                    <section className="bg-red-500/10 p-8 rounded-3xl border border-red-500/20">
+                    <section className={`${sectionClass} border-red-500/20 bg-[linear-gradient(155deg,rgba(58,16,20,0.55),rgba(14,9,18,0.94))]`}>
                         <div className="flex items-center gap-3 mb-4 text-red-400">
                             <ShieldAlert className="w-6 h-6" />
                             <h2 className="text-xl font-black italic uppercase">5. Critical Legal Distinctions</h2>
                         </div>
-                        <div className="font-mono text-sm opacity-90 space-y-4">
+                        <div className={`${dentWellClass} font-mono text-sm opacity-90 space-y-4 px-5 py-5`}>
                             <p><strong>NON-GAMBLING PLATFORM:</strong> SummitGrants (operating BaseDare) is NOT a gambling platform. Dares are conditional bounties/grants. There are no wagers, odds, or chance mechanisms.</p>
-                            <p><strong>NON-CUSTODIAL NATURE:</strong> We do NOT custody user USDC. All funds are held in immutable smart contracts on the Base network. You retain ultimate control through the contract's fixed parameters.</p>
-                            <p><strong>REFEREE WALLET LIMITATIONS:</strong> The platform's 'Referee wallet' solely executes contract state changes to abstract gas costs. It holds NO user funds and cannot arbitrarily redirect bounties.</p>
+                            <p><strong>NON-CUSTODIAL NATURE:</strong> We do NOT custody user USDC. All funds are held in immutable smart contracts on the Base network. You retain ultimate control through the contract&apos;s fixed parameters.</p>
+                            <p><strong>REFEREE WALLET LIMITATIONS:</strong> The platform&apos;s &apos;Referee wallet&apos; solely executes contract state changes to abstract gas costs. It holds NO user funds and cannot arbitrarily redirect bounties.</p>
                             <p><strong>REFUND POLICY:</strong> Refunds are strictly bound by the smart contract expiration logic. We cannot mathematically or manually refund or override the contract if conditions are not met. What happens on-chain, stays on-chain.</p>
                         </div>
                     </section>
 
-                    <div className="pt-12 border-t border-white/10 mt-12 flex items-center justify-between">
-                        <span className="font-mono text-xs text-gray-600 uppercase">Last Updated: BLOCK 9827341</span>
+                    <div className={`${dentWellClass} mt-10 px-5 py-4 flex items-center justify-between`}>
+                        <span className="font-mono text-xs text-gray-500 uppercase">Last Updated: BLOCK 9827341</span>
                         <Gavel className="w-6 h-6 text-gray-700" />
                     </div>
 
