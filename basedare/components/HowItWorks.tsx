@@ -7,7 +7,7 @@ export default function HowItWorks() {
     {
       step: "01",
       title: "The Pledge",
-      desc: "You fund a bounty with USDC held in escrow. The money is real. The pressure is visible.",
+      desc: "Lock real money in escrow. The dare is live. The place is tagged. Anyone nearby can claim it.",
       icon: "💰",
       accent: "from-[#F5C518]/30 via-[#F5C518]/12 to-transparent",
       titleColor: "text-[#F5C518]"
@@ -15,7 +15,7 @@ export default function HowItWorks() {
     {
       step: "02",
       title: "The Action",
-      desc: "The creator gets the challenge. The audience leans in. They either perform the dare or fold in public.",
+      desc: "Show up. Do it. Film the proof. No audience needed. Just you, the place, and what you're willing to do.",
       icon: "🎥",
       accent: "from-[#A855F7]/28 via-[#A855F7]/12 to-transparent",
       titleColor: "text-white"
@@ -23,7 +23,7 @@ export default function HowItWorks() {
     {
       step: "03",
       title: "The Payoff",
-      desc: "Proof lands. Verification closes. Settlement moves and the win gets written to the board.",
+      desc: "Proof verified. Settlement instant. The win gets written to the place forever.",
       icon: "💸",
       accent: "from-[#3BA7FF]/28 via-[#3BA7FF]/12 to-transparent",
       titleColor: "text-[#3BA7FF]"
@@ -64,7 +64,16 @@ export default function HowItWorks() {
             <div key={idx} className="relative group min-w-0">
               {/* Connector Line (Desktop only) */}
               {idx !== 2 && (
-                <div className="hidden md:block absolute top-20 left-full w-full h-[2px] bg-gradient-to-r from-purple-500/70 via-purple-400/45 to-transparent -translate-x-7 z-0 shadow-[0_0_18px_rgba(168,85,247,0.28)]" />
+                <div
+                  aria-hidden="true"
+                  className="hidden md:flex absolute top-20 left-full w-[calc(100%-1.5rem)] -translate-x-6 items-center z-0"
+                >
+                  <div className="relative h-[2px] flex-1 overflow-visible">
+                    <div className="absolute inset-0 border-t-2 border-dashed border-[#F5C518]/45" />
+                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#F5C518]/25 via-[#F5C518]/10 to-transparent blur-[2px]" />
+                  </div>
+                  <div className="ml-2 h-2.5 w-2.5 rounded-full bg-[#F5C518]/75 shadow-[0_0_14px_rgba(245,197,24,0.45)]" />
+                </div>
               )}
               
               <div className="relative z-10 overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(10,8,20,0.88))] p-3 shadow-[0_28px_60px_rgba(0,0,0,0.34)] transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-400/30">
@@ -104,10 +113,10 @@ export default function HowItWorks() {
         <div className="hidden md:block">
           <div className="parallax bd-dent-surface rounded-[2rem] border border-white/[0.08] px-4 py-4">
             <div className="scroller text-white">
-              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Are. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
             </div>
           </div>
         </div>
@@ -116,7 +125,7 @@ export default function HowItWorks() {
         <div className="mt-4 text-center md:hidden">
           <div className="bd-dent-surface bd-dent-surface--soft rounded-[1.75rem] border border-white/[0.08] px-4 py-4">
             <p className="px-2 text-[1.15rem] font-black italic leading-tight tracking-tight text-white">
-              Wherever You Are. Someone Will Pay You To Do It.
+              Wherever You Go. Someone Will Pay You To Do It.
             </p>
           </div>
         </div>

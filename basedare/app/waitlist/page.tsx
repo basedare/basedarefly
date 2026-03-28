@@ -62,29 +62,29 @@ export default function WaitlistPage() {
           <img 
             src="/assets/peebear-head.png" 
             alt="BaseDare Sentinel" 
-            className="relative z-10 mx-auto h-40 w-40 object-contain animate-float-slow md:h-52 md:w-52"
+            className="vault-peebear relative z-10 mx-auto h-44 w-44 object-contain md:h-60 md:w-60"
           />
         </div>
 
         {/* HEADLINE SECTION */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <ChromeText text="THE VAULT" className="text-6xl md:text-7xl tracking-tighter" />
-          <div className={`${dentWellClass} px-4 py-3`}>
-            <p className="text-gray-300/90 font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase">
-              On-Chain Accountability • Verification Imminent
+          <div className={`${dentWellClass} px-4 py-3.5`}>
+            <p className="text-gray-200/90 font-mono text-[10px] md:text-xs tracking-[0.28em] uppercase">
+              Early Access • BaseDare
             </p>
           </div>
         </div>
 
         {/* FORM STATE */}
         {!submitted ? (
-          <div className="w-full space-y-6">
-            <div className={`${dentWellClass} mx-auto max-w-[320px] px-5 py-4`}>
-              <p className="text-sm leading-relaxed text-gray-300/85">
-                Enter your email to secure early access to the Truth Protocol.
+          <div className="w-full space-y-5">
+            <div className={`${dentWellClass} mx-auto max-w-[340px] px-5 py-4.5`}>
+              <p className="text-sm leading-relaxed text-gray-200/88">
+                Join the waitlist for early access to BaseDare.
               </p>
-              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gray-400/80">
-                Questions or suggestions? Drop them below.
+              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gray-400/85">
+                Leave a note if you have questions, ideas, or a partnership angle.
               </p>
             </div>
             
@@ -102,7 +102,7 @@ export default function WaitlistPage() {
 
               <div className={`${dentWellClass} px-2 py-2`}>
                 <textarea
-                  placeholder="QUESTIONS_OR_SUGGESTIONS (OPTIONAL)"
+                  placeholder="OPTIONAL_NOTE"
                   className="min-h-[108px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -122,19 +122,41 @@ export default function WaitlistPage() {
         ) : (
           <div className={`animate-in fade-in zoom-in p-8 duration-500 ${dentWellClass}`}>
             <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">✨ Success</h3>
-            <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">You are on the list.</p>
+            <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">You&apos;re on the list.</p>
+            <p className="mt-3 text-sm text-white/62">We&apos;ll let you know when the vault opens.</p>
           </div>
         )}
 
         {/* FOOTER CAPTION */}
         <div className={`${dentWellClass} px-4 py-3`}>
           <p className="text-[10px] text-gray-400/80 font-mono uppercase tracking-[0.4em]">
-            Base Mainnet • L2 Protocol
+            Base Mainnet • Early Access Queue
           </p>
         </div>
       </div>
 
       <style jsx>{`
+        .vault-peebear {
+          animation: vault-breathe 5.8s ease-in-out infinite;
+          filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.34))
+            drop-shadow(0 0 28px rgba(168, 85, 247, 0.18));
+          transform-origin: center;
+        }
+
+        @keyframes vault-breathe {
+          0%,
+          100% {
+            transform: translateY(0) scale(1);
+            filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.34))
+              drop-shadow(0 0 24px rgba(168, 85, 247, 0.16));
+          }
+          50% {
+            transform: translateY(-4px) scale(1.035);
+            filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.38))
+              drop-shadow(0 0 34px rgba(168, 85, 247, 0.22));
+          }
+        }
+
         .vault-glass-button {
           border: 1px solid rgba(255, 255, 255, 0.12);
           background: linear-gradient(180deg, rgba(10, 12, 18, 0.96) 0%, rgba(8, 8, 14, 0.98) 100%);
