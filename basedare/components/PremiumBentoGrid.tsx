@@ -7,7 +7,7 @@ import ProofViewer from './ProofViewer';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import './PremiumBentoGrid.css';
 
-const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'LOCKED', 'EXPIRED'] as const;
+const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'EXPIRED'] as const;
 type Filter = (typeof FILTERS)[number];
 
 interface NearbyDare {
@@ -329,37 +329,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       },
     ];
 
-    // Locked/Restricted bounties - require Genesis Pass
-    const locked: Card[] = [
-      {
-        id: 'locked-1',
-        shortId: 'locked-1',
-        dare: 'SHAVE HEAD LIVE',
-        bounty: 0,
-        streamer: '???',
-        streamerImage: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800',
-        emoji: '🔒',
-        status: 'restricted' as const,
-        timeRemaining: 'LOCKED',
-        isOpenBounty: false,
-        proofUrl: undefined,
-      },
-      {
-        id: 'locked-2',
-        shortId: 'locked-2',
-        dare: 'TATTOO LOGO ON FACE',
-        bounty: 0,
-        streamer: '???',
-        streamerImage: 'https://images.unsplash.com/photo-1562962230-16bc46364924?auto=format&fit=crop&w=800',
-        emoji: '🔒',
-        status: 'restricted' as const,
-        timeRemaining: 'LOCKED',
-        isOpenBounty: false,
-        proofUrl: undefined,
-      },
-    ];
-
-    return [...liveTargetCards, ...mapped, ...openDefaults, ...locked];
+    return [...liveTargetCards, ...mapped, ...openDefaults];
   }, [dares]);
 
   // Convert nearby dares to Card format
@@ -411,10 +381,12 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       // All other filters: EXCLUDE expired cards by default
       if (isExpired) return false;
 
+      // Genesis / restricted inventory is hidden from the home-page rail for now.
+      if (card.status === 'restricted') return false;
+
       if (filter === 'ALL') return true;
       if (filter === 'STREAMERS') return Boolean(card.streamer && card.streamer.trim().length > 0);
       if (filter === 'OPEN BOUNTIES') return card.status === 'open';
-      if (filter === 'LOCKED') return card.status === 'restricted';
       return true;
     });
   }, [cards, nearbyCards, filter, searchQuery]);
