@@ -1259,6 +1259,15 @@ export default function RealWorldMap() {
     });
   }, [selectedPlace, selectedPulse, selectedVisualState]);
 
+  const mapPanelShellClass =
+    'map-panel-shell relative overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.045)_8%,rgba(8,10,18,0.95)_28%,rgba(5,6,14,0.988)_100%)] shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_34px_rgba(34,211,238,0.08),0_0_70px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_24px_rgba(0,0,0,0.24)] md:h-full md:max-h-none md:rounded-[34px]';
+  const mapPanelMetricClass =
+    'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
+  const mapPanelSectionClass =
+    'map-panel-section rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(9,11,18,0.93)_18%,rgba(5,6,12,0.985)_100%)] px-4 py-4 shadow-[0_18px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]';
+  const mapPanelInsetChipClass =
+    'rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.14)]';
+
   return (
     <section
       className={
@@ -1633,13 +1642,14 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute inset-x-4 bottom-4 z-30 md:inset-x-auto md:right-4 md:top-28 md:bottom-4 md:w-[440px] lg:w-[456px]">
-                <div className="relative overflow-hidden rounded-[34px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.03)_9%,rgba(7,9,18,0.95)_34%,rgba(5,6,14,0.985)_100%)] shadow-[0_38px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),0_0_84px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-20px_30px_rgba(0,0,0,0.28)] md:h-full md:max-h-none">
+              <div className="absolute bottom-3 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:bottom-4 md:left-auto md:right-4 md:w-[420px] md:translate-x-0 lg:w-[440px]">
+                <div className={mapPanelShellClass}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.12),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.11),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.18)_100%)]" />
-                  <div className="flex max-h-[58dvh] flex-col overflow-hidden md:h-full md:max-h-none">
-                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-5 pb-5 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-6 md:pb-6 md:pt-6">
-                    <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 md:hidden" />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
+                  <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/6 md:rounded-[33px]" />
+                  <div className="flex max-h-[54dvh] flex-col overflow-hidden md:h-full md:max-h-none">
+                  <div className="sticky top-0 z-10 border-b border-white/8 bg-[rgba(7,9,18,0.88)] px-4 pb-4 pt-3 backdrop-blur-xl md:border-b-0 md:bg-transparent md:px-5 md:pb-5 md:pt-5">
+                    <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
                     <div className="min-w-0 flex-1">
                       {showBackToControl ? (
@@ -1667,12 +1677,12 @@ export default function RealWorldMap() {
                         <Sparkles className="h-3.5 w-3.5" />
                         {selectedPlace.placeId ? 'Place memory anchor' : 'Dropped pin'}
                       </div>
-                      <h3 className="mt-4 max-w-[15rem] text-[2rem] font-black leading-[0.96] tracking-tight text-white md:max-w-[19rem] md:text-[2.35rem]">
+                      <h3 className="mt-3 max-w-[14rem] text-[1.8rem] font-black leading-[0.96] tracking-tight text-white md:max-w-[18rem] md:text-[2.2rem]">
                         {selectedPlace.name}
                       </h3>
-                      <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-full border px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
+                          className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
                             selectedVisualState === 'hot'
                               ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
                               : selectedVisualState === 'active'
@@ -1687,19 +1697,19 @@ export default function RealWorldMap() {
                           {selectedVisualCopy.label}
                         </span>
                         {selectedPlaceTags.some((tag) => tag.firstMark) ? (
-                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                             First mark captured
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-white/58 md:max-w-[20rem]">
+                      <p className="mt-2.5 max-w-[16rem] text-sm leading-relaxed text-white/58 md:max-w-[19rem]">
                         {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedPlace(null)}
-                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
                       aria-label="Close place panel"
                       title="Close place panel"
                     >
@@ -1708,11 +1718,11 @@ export default function RealWorldMap() {
                   </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-6 md:pb-6">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-5">
 
                   {ceremonyState ? (
                     <div
-                      className={`mt-1 rounded-[24px] border px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)] ${
+                      className={`map-panel-section mt-1 rounded-[22px] border px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)] ${
                         ceremonyState.kind === 'pending'
                           ? 'border-amber-300/18 bg-amber-500/[0.08]'
                           : ceremonyState.kind === 'first-spark'
@@ -1727,19 +1737,19 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-5 grid grid-cols-2 gap-3.5">
-                    <div className="rounded-[24px] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.045)_0%,rgba(8,10,16,0.92)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_20px_rgba(0,0,0,0.24)]">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className={mapPanelMetricClass}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
                     </div>
-                    <div className="rounded-[24px] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.045)_0%,rgba(8,10,16,0.92)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_20px_rgba(0,0,0,0.24)]">
+                    <div className={mapPanelMetricClass}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
                   </div>
 
                   {isCreatorSource && focusedCreatorActivation ? (
-                    <div className="mt-5 rounded-[26px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                    <div className="map-panel-section mt-4 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
                           <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
@@ -1784,7 +1794,7 @@ export default function RealWorldMap() {
                   ) : null}
 
                   {featuredPaidActivation ? (
-                    <div className="mt-5 rounded-[26px] border border-rose-300/18 bg-[linear-gradient(180deg,rgba(251,113,133,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                    <div className="map-panel-section mt-4 rounded-[24px] border border-rose-300/18 bg-[linear-gradient(180deg,rgba(251,113,133,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-rose-100/80">
                           <Flame className="h-3.5 w-3.5 text-rose-300" />
@@ -1828,30 +1838,30 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                  <div className={`mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-white/80">{selectedVisualCopy.description}</p>
                     <div className="mt-4 flex flex-wrap gap-2.5">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span className={mapPanelInsetChipClass}>
                         {selectedLastSpark}
                       </span>
                       <span
-                        className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        className={`inline-flex items-center ${mapPanelInsetChipClass}`}
                         aria-label={`Pulse level ${selectedPulse}`}
                       >
                         {renderPulseLegend(selectedPulse, { compact: true })}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span className={mapPanelInsetChipClass}>
                         {selectedPlace.approvedCount ?? 0} sparks on record
                       </span>
                     </div>
                   </div>
 
                   {selectedPendingPlaceTags.length > 0 ? (
-                    <div className="mt-5 rounded-[26px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.08)_0%,rgba(10,10,18,0.94)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <div className="map-panel-section mt-4 rounded-[24px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.08)_0%,rgba(10,10,18,0.94)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-amber-200/80">
                         <Loader2 className="h-3.5 w-3.5" />
                         Pending Marks
@@ -1916,7 +1926,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                  <div className={`mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
@@ -2014,7 +2024,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-5 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,16,0.92)_18%,rgba(5,6,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                  <div className={`mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
                       Recent Marks
@@ -2078,7 +2088,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -2219,6 +2229,48 @@ export default function RealWorldMap() {
       </div>
 
       <style jsx>{`
+        .map-panel-shell {
+          transform-origin: 50% 100%;
+          animation: mapPanelRollout 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .map-panel-shell::before {
+          content: '';
+          position: absolute;
+          inset: 12px 12px auto;
+          height: 72px;
+          border-radius: 22px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
+          opacity: 0.75;
+          pointer-events: none;
+        }
+
+        .map-panel-section {
+          animation: mapPanelSectionIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes mapPanelRollout {
+          0% {
+            opacity: 0;
+            transform: translateY(10px) scale(0.97);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes mapPanelSectionIn {
+          0% {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
         .basedare-leaflet-map {
           --tile-filter: brightness(0.34) saturate(0.72) contrast(1.22) hue-rotate(14deg) sepia(0.16);
           --preset-atmosphere:
