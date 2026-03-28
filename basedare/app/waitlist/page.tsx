@@ -9,6 +9,10 @@ export default function WaitlistPage() {
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const raisedShellClass =
+    'rounded-[28px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_18%,rgba(8,9,16,0.9)_62%,rgba(6,7,12,0.95)_100%)] shadow-[10px_14px_48px_rgba(3,8,26,0.55),-8px_-8px_24px_rgba(255,255,255,0.04),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-18px_24px_rgba(0,0,0,0.24)] backdrop-blur-2xl';
+  const dentWellClass =
+    'bd-dent-surface bd-dent-surface--soft rounded-[1.35rem] border border-white/6 bg-white/[0.02]';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +54,7 @@ export default function WaitlistPage() {
       {/* RADIANT AURA: Matches the Hero Bear feel */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px]" />
 
-      <div className="relative z-20 w-full max-w-md space-y-10 rounded-[28px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_18%,rgba(8,9,16,0.9)_62%,rgba(6,7,12,0.95)_100%)] p-6 text-center shadow-[0_35px_100px_rgba(3,8,26,0.55),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-18px_24px_rgba(0,0,0,0.24)] backdrop-blur-2xl md:p-8">
+      <div className={`relative z-20 w-full max-w-md space-y-8 p-6 text-center md:p-8 ${raisedShellClass}`}>
         
         {/* THE SENTINEL: Floating head */}
         <div className="relative group mx-auto w-fit">
@@ -65,55 +69,63 @@ export default function WaitlistPage() {
         {/* HEADLINE SECTION */}
         <div className="space-y-3">
           <ChromeText text="THE VAULT" className="text-6xl md:text-7xl tracking-tighter" />
-          <p className="text-gray-300/90 font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase">
-            On-Chain Accountability • Verification Imminent
-          </p>
+          <div className={`${dentWellClass} px-4 py-3`}>
+            <p className="text-gray-300/90 font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase">
+              On-Chain Accountability • Verification Imminent
+            </p>
+          </div>
         </div>
 
         {/* FORM STATE */}
         {!submitted ? (
           <div className="w-full space-y-6">
-            <p className="mx-auto max-w-[280px] text-sm leading-relaxed text-gray-300/85">
-              Enter your email to secure early access to the Truth Protocol.
-            </p>
-            <p className="mx-auto max-w-[320px] text-[11px] uppercase tracking-[0.18em] text-gray-400/80">
-              Questions or suggestions? Drop them below.
-            </p>
+            <div className={`${dentWellClass} mx-auto max-w-[320px] px-5 py-4`}>
+              <p className="text-sm leading-relaxed text-gray-300/85">
+                Enter your email to secure early access to the Truth Protocol.
+              </p>
+              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gray-400/80">
+                Questions or suggestions? Drop them below.
+              </p>
+            </div>
             
             <form onSubmit={handleSubmit} className="w-full space-y-3">
-              <input
-                type="email"
-                required
-                placeholder="EMAIL_ADDRESS"
-                className="w-full rounded-xl border border-white/20 bg-white/[0.08] px-6 py-4 text-center font-mono tracking-widest text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/60 focus:bg-white/[0.12]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <div className={`${dentWellClass} px-2 py-2`}>
+                <input
+                  type="email"
+                  required
+                  placeholder="EMAIL_ADDRESS"
+                  className="w-full rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 text-center font-mono tracking-widest text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
 
-              <textarea
-                placeholder="QUESTIONS_OR_SUGGESTIONS (OPTIONAL)"
-                className="min-h-[108px] w-full resize-none rounded-xl border border-white/20 bg-white/[0.08] px-5 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/60 focus:bg-white/[0.12]"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
+              <div className={`${dentWellClass} px-2 py-2`}>
+                <textarea
+                  placeholder="QUESTIONS_OR_SUGGESTIONS (OPTIONAL)"
+                  className="min-h-[108px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
               
               <button
                 type="submit"
-                className="w-full rounded-xl border border-white/25 bg-white/90 py-4 text-lg font-black italic uppercase tracking-tighter text-black shadow-[0_12px_35px_rgba(255,255,255,0.15)] transition-all hover:bg-purple-300 active:scale-[0.98]"
+                className="w-full rounded-[1.15rem] border border-white/25 bg-white/90 py-4 text-lg font-black italic uppercase tracking-tighter text-black shadow-[0_12px_35px_rgba(255,255,255,0.15)] transition-all hover:bg-purple-300 active:scale-[0.98]"
               >
                 Enter the Vault
               </button>
             </form>
           </div>
         ) : (
-          <div className="animate-in fade-in zoom-in rounded-2xl border border-purple-400/35 bg-white/[0.08] p-10 backdrop-blur-xl duration-500">
+          <div className={`animate-in fade-in zoom-in p-8 duration-500 ${dentWellClass}`}>
             <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">Identity Verified</h3>
             <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">You are on the list.</p>
           </div>
         )}
 
         {/* FOOTER CAPTION */}
-        <div className="pt-6">
+        <div className={`${dentWellClass} px-4 py-3`}>
           <p className="text-[10px] text-gray-400/80 font-mono uppercase tracking-[0.4em]">
             Base Mainnet • L2 Protocol
           </p>
