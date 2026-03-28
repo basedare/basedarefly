@@ -1450,7 +1450,7 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
-            className={`basedare-leaflet-map basedare-leaflet-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
+            className={`map-container-wrapper basedare-leaflet-map basedare-leaflet-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
           >
             <MapContainer
               center={DEFAULT_CENTER}
@@ -1585,7 +1585,7 @@ export default function RealWorldMap() {
 
             {selectedPlace ? (
               <div className="selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0">
-                <div className={mapPanelShellClass}>
+                <div className={`${mapPanelShellClass} place-panel-popup`}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
@@ -1676,11 +1676,11 @@ export default function RealWorldMap() {
                   ) : null}
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className={mapPanelMetricClass}>
+                    <div className={`${mapPanelMetricClass} stat-card`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
                     </div>
-                    <div className={mapPanelMetricClass}>
+                    <div className={`${mapPanelMetricClass} stat-card`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
@@ -1776,7 +1776,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`crossed-paths-section mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
@@ -1864,7 +1864,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`active-challenges-section mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Zap className="h-3.5 w-3.5 text-[#f8dd72]" />
@@ -2167,6 +2167,12 @@ export default function RealWorldMap() {
       </div>
 
       <style jsx>{`
+        :root {
+          --neu-dark: rgba(0, 0, 0, 0.75);
+          --neu-light: rgba(255, 255, 255, 0.07);
+          --neu-surface: #0e0e1a;
+        }
+
         .selected-place-panel-wrap {
           max-height: calc(100% - 16px);
         }
@@ -2186,6 +2192,41 @@ export default function RealWorldMap() {
           transform-origin: 88% 8%;
           will-change: transform, opacity;
           animation: mapPanelRollout 300ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .map-container-wrapper {
+          border-radius: 20px;
+          background: var(--neu-surface);
+          box-shadow:
+            inset 6px 6px 14px rgba(0, 0, 0, 0.8),
+            inset -4px -4px 10px rgba(255, 255, 255, 0.05),
+            0 2px 4px rgba(255, 255, 255, 0.06),
+            0 -2px 4px rgba(0, 0, 0, 0.6);
+          outline: 3px solid rgba(255, 255, 255, 0.04);
+          outline-offset: -3px;
+        }
+
+        .place-panel-popup {
+          background: linear-gradient(145deg, #1c1c2e 0%, #14142a 100%);
+          box-shadow:
+            8px 8px 20px rgba(0, 0, 0, 0.85),
+            -4px -4px 12px rgba(255, 255, 255, 0.06),
+            12px 12px 30px rgba(0, 0, 0, 0.5),
+            -6px -6px 20px rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+          border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .place-panel-popup :global(.stat-card),
+        .place-panel-popup :global(.crossed-paths-section),
+        .place-panel-popup :global(.active-challenges-section) {
+          background: rgba(0, 0, 0, 0.25);
+          border-radius: 12px;
+          box-shadow:
+            inset 3px 3px 8px rgba(0, 0, 0, 0.6),
+            inset -2px -2px 6px rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .map-panel-shell::before {
@@ -2487,6 +2528,7 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.leaflet-container) {
           height: 100%;
           width: 100%;
+          border-radius: 17px;
           background:
             radial-gradient(circle at 30% 20%, rgba(17, 30, 49, 0.9) 0%, rgba(5, 8, 18, 1) 70%);
           cursor: crosshair;
@@ -2629,6 +2671,42 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
           animation: peebearHover 3.2s ease-in-out infinite;
           transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .basedare-leaflet-map :global(.map-pin-marker) {
+          background:
+            radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18) 0%, transparent 55%),
+            radial-gradient(circle at 70% 75%, rgba(0, 0, 0, 0.6) 0%, transparent 50%),
+            #1a1428;
+          box-shadow:
+            5px 5px 12px rgba(0, 0, 0, 0.85),
+            -3px -3px 8px rgba(255, 255, 255, 0.07),
+            0 0 0 3px rgba(255, 255, 255, 0.06);
+          border-radius: 50%;
+        }
+
+        .basedare-leaflet-map :global(.map-pin-marker--active) {
+          box-shadow:
+            5px 5px 12px rgba(0, 0, 0, 0.85),
+            -3px -3px 8px rgba(255, 255, 255, 0.07),
+            0 0 0 3px rgba(245, 197, 24, 0.7),
+            0 0 20px rgba(245, 197, 24, 0.3);
+        }
+
+        .basedare-leaflet-map :global(.map-pin-marker--unmarked) {
+          box-shadow:
+            5px 5px 12px rgba(0, 0, 0, 0.85),
+            -3px -3px 8px rgba(255, 255, 255, 0.07),
+            0 0 0 3px rgba(34, 211, 238, 0.4);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-active .map-pin-marker) {
+          transform: scale(1.1) translateY(-3px);
+          box-shadow:
+            8px 10px 20px rgba(0, 0, 0, 0.9),
+            -3px -3px 8px rgba(255, 255, 255, 0.08),
+            0 0 0 3px rgba(245, 197, 24, 0.9),
+            0 0 30px rgba(245, 197, 24, 0.45);
         }
 
         .basedare-leaflet-map :global(.peebear-core--blazing) {
