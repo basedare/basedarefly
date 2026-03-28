@@ -165,12 +165,12 @@ export default function FAQPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Accordion type="single" collapsible className="space-y-4">
+            <Accordion type="single" collapsible className="faq-accordion space-y-4">
               {FAQ_ITEMS.map((item, index) => (
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className={`${softCardClass} overflow-hidden px-6 transition-all data-[state=open]:border-yellow-500/35 data-[state=open]:shadow-[0_20px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]`}
+                  className={`faq-accordion-item ${softCardClass} overflow-hidden px-6 transition-all data-[state=open]:border-yellow-500/35 data-[state=open]:shadow-[0_20px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]`}
                 >
                   <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                   <AccordionTrigger className="text-left py-6 hover:no-underline group">
@@ -179,7 +179,7 @@ export default function FAQPage() {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="border-t border-white/10 pb-6 pt-4">
-                    <div className={`${insetDentClass} px-4 py-4`}>
+                    <div className={`faq-answer-well ${insetDentClass} px-4 py-4`}>
                       <div className="flex items-start gap-2 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
                         <span className="text-yellow-500 font-bold">{">"}</span>
                         <span
@@ -224,6 +224,61 @@ export default function FAQPage() {
           </motion.div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes faq-accordion-down {
+          from {
+            height: 0;
+          }
+          to {
+            height: var(--radix-accordion-content-height);
+          }
+        }
+
+        @keyframes faq-accordion-up {
+          from {
+            height: var(--radix-accordion-content-height);
+          }
+          to {
+            height: 0;
+          }
+        }
+
+        .faq-accordion .faq-accordion-item {
+          transition:
+            transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 360ms cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 280ms ease;
+          will-change: transform;
+        }
+
+        .faq-accordion .faq-accordion-item[data-state='open'] {
+          transform: translateY(-4px);
+        }
+
+        .faq-accordion .faq-accordion-item[data-state='open'] .faq-answer-well {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -14px 18px rgba(0, 0, 0, 0.28),
+            0 18px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .faq-accordion .faq-accordion-item[data-state='open'] [data-state='open'] > svg {
+          filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.22));
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .faq-accordion .faq-accordion-item,
+          .faq-accordion .faq-answer-well,
+          .faq-accordion [data-state] {
+            animation: none !important;
+            transition-duration: 0.01ms !important;
+            transition-delay: 0ms !important;
+            transform: none !important;
+            filter: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
