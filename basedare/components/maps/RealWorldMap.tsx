@@ -490,7 +490,7 @@ function createPeebearMarkerIcon({
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${hasChallengeLive ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-        <div class="peebear-core peebear-core--${pulse} peebear-core--${visualState}">
+        <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
         </div>
         <span class="peebear-state peebear-state--${visualState}">${visualState === 'first-mark' ? 'FIRST' : visualState === 'pending' ? 'PENDING' : visualState === 'hot' ? 'HOT' : visualState === 'active' ? 'ALIVE' : 'UNMARKED'}</span>
@@ -510,9 +510,6 @@ function renderProofPreview(tag: PlaceTagItem) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.04)_48%,transparent_100%)]" />
         <div className="absolute inset-x-2.5 top-2.5 rounded-[12px] border border-[#f5c518]/20 bg-black/28 px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <div className="text-[8.5px] font-semibold uppercase tracking-[0.2em] text-[#f8dd72]">
-            Seeded
-          </div>
-          <div className="mt-1 text-[8px] uppercase tracking-[0.16em] text-white/56">
             Memory
           </div>
         </div>
@@ -1244,7 +1241,7 @@ export default function RealWorldMap() {
   }, [selectedPlace, selectedPulse, selectedVisualState]);
 
   const mapPanelShellClass =
-    'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:max-h-[min(680px,calc(100dvh-10rem))] md:rounded-[36px]';
+    'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[36px]';
   const mapPanelMetricClass =
     'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
   const mapPanelSectionClass =
@@ -1587,12 +1584,12 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:top-24 md:bottom-6 md:left-auto md:right-6 md:w-[360px] md:translate-x-0 lg:w-[372px]">
+              <div className="selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0">
                 <div className={mapPanelShellClass}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className="flex max-h-[52dvh] flex-col overflow-hidden md:max-h-[min(640px,calc(100dvh-13rem))]">
+                  <div className="flex max-h-[52dvh] flex-col overflow-hidden md:h-full md:max-h-none">
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -2170,6 +2167,21 @@ export default function RealWorldMap() {
       </div>
 
       <style jsx>{`
+        .selected-place-panel-wrap {
+          max-height: calc(100% - 16px);
+        }
+
+        @media (min-width: 768px) {
+          .selected-place-panel-wrap {
+            top: 16px;
+            right: 16px;
+            bottom: 16px;
+            left: auto;
+            width: min(340px, calc(100% - 88px));
+            max-height: calc(100% - 32px);
+          }
+        }
+
         .map-panel-shell {
           transform-origin: 88% 8%;
           will-change: transform, opacity;
@@ -2189,6 +2201,18 @@ export default function RealWorldMap() {
 
         .map-panel-section {
           animation: mapPanelSectionIn 340ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .map-panel-shell :global(*)::-webkit-scrollbar,
+        .map-panel-shell::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+        }
+
+        .map-panel-shell,
+        .map-panel-shell > div,
+        .map-panel-shell [class*='overflow-y-auto'] {
+          scrollbar-width: none;
         }
 
         @keyframes mapPanelRollout {
@@ -2595,13 +2619,16 @@ export default function RealWorldMap() {
           border-radius: 9999px;
           border: 2px solid rgba(255, 255, 255, 0.18);
           background:
-            radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.14), transparent 46%),
-            linear-gradient(180deg, rgba(16, 18, 34, 0.96), rgba(8, 10, 20, 0.98));
+            radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.16) 0%, transparent 58%),
+            linear-gradient(180deg, rgba(28, 22, 42, 0.96), rgba(14, 12, 24, 0.98));
           box-shadow:
-            0 12px 24px rgba(0, 0, 0, 0.42),
+            4px 6px 14px rgba(0, 0, 0, 0.78),
+            -2px -2px 6px rgba(255, 255, 255, 0.06),
+            0 0 0 2px rgba(255, 255, 255, 0.08),
             inset 0 1px 0 rgba(255, 255, 255, 0.1),
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
           animation: peebearHover 3.2s ease-in-out infinite;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .basedare-leaflet-map :global(.peebear-core--blazing) {
@@ -2671,8 +2698,10 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-core--active) {
           box-shadow:
-            0 0 0 3px rgba(34, 211, 238, 0.16),
-            0 0 24px rgba(34, 211, 238, 0.26),
+            4px 6px 14px rgba(0, 0, 0, 0.78),
+            -2px -2px 6px rgba(255, 255, 255, 0.06),
+            0 0 0 2px rgba(34, 211, 238, 0.52),
+            0 0 18px rgba(34, 211, 238, 0.24),
             0 14px 26px rgba(0, 0, 0, 0.44),
             inset 0 1px 0 rgba(255, 255, 255, 0.1),
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
@@ -2689,11 +2718,14 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-marker.is-active .peebear-core) {
           box-shadow:
-            0 0 0 4px rgba(245, 197, 24, 0.42),
-            0 0 34px rgba(245, 197, 24, 0.32),
+            6px 8px 16px rgba(0, 0, 0, 0.9),
+            -2px -2px 6px rgba(255, 255, 255, 0.08),
+            0 0 0 2px rgba(245, 197, 24, 0.8),
+            0 0 24px rgba(245, 197, 24, 0.4),
             0 18px 30px rgba(0, 0, 0, 0.5),
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+          transform: scale(1.08) translateY(-2px);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-ring) {
