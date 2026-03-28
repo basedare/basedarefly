@@ -235,6 +235,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedFundedId, setExpandedFundedId] = useState<string | null>(null);
   const [expandedActivationId, setExpandedActivationId] = useState<string | null>(null);
+  const [activationsOpen, setActivationsOpen] = useState(true);
+  const [fundedOpen, setFundedOpen] = useState(true);
   const [userTag, setUserTag] = useState<UserTag | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
@@ -546,9 +548,10 @@ export default function Dashboard() {
                   ) : null}
                 </div>
 
-                <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
-                  Command base
-                </h1>
+                <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
+                  <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Command</span>
+                  <span className="text-[#A855F7] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">Base</span>
+                </div>
                 <p className="mt-2 text-sm text-white/55">
                   {isConnected
                     ? identityHandle && identityPlatform
@@ -702,11 +705,25 @@ export default function Dashboard() {
 
         <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">My activations</h2>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">{creatorClaims.length}</span>
+            <button
+              onClick={() => setActivationsOpen((current) => !current)}
+              className="flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left"
+            >
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">My activations</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">{creatorClaims.length}</span>
+                {activationsOpen ? (
+                  <ChevronDown className="h-4 w-4 text-white/45" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-white/45" />
+                )}
+              </div>
+            </button>
           </div>
 
-          {!isConnected ? (
+          {!activationsOpen ? (
+            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
+          ) : !isConnected ? (
             <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to track your activations.</div>
           ) : creatorClaims.length === 0 ? (
             <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>No activations yet.</div>
@@ -821,7 +838,20 @@ export default function Dashboard() {
 
         <div id="mission-control" className={`${softCardClass} mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Funded dares</h2>
+            <button
+              onClick={() => setFundedOpen((current) => !current)}
+              className="flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left"
+            >
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Funded dares</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">{fundedRows.length}</span>
+                {fundedOpen ? (
+                  <ChevronDown className="h-4 w-4 text-white/45" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-white/45" />
+                )}
+              </div>
+            </button>
             <Link
               href="/create"
               className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
@@ -831,7 +861,9 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {!isConnected ? (
+          {!fundedOpen ? (
+            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
+          ) : !isConnected ? (
             <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to manage funded dares.</div>
           ) : loading ? (
             <div className={`${insetCardClass} flex items-center justify-center px-4 py-6 text-sm text-white/55`}>
