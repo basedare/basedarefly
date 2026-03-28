@@ -108,6 +108,18 @@ const sectionLabelClass =
 const pillClass =
   "inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]";
 
+const volumetricButtonBase =
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color,background,color] duration-150 ease-out hover:translate-y-[1px] active:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_14px_28px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_16px_rgba(0,0,0,0.24)] hover:shadow-[inset_0_12px_18px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.06)]";
+
+const volumetricButtonPurple =
+  `${volumetricButtonBase} border-purple-400/25 bg-[linear-gradient(145deg,rgba(50,24,84,0.92),rgba(20,12,36,0.98))] text-purple-100 hover:border-purple-300/40 hover:bg-[linear-gradient(145deg,rgba(58,28,96,0.96),rgba(24,14,42,1))] hover:shadow-[inset_0_12px_18px_rgba(10,5,22,0.5),inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(168,85,247,0.18)]`;
+
+const volumetricButtonGold =
+  `${volumetricButtonBase} border-yellow-400/25 bg-[linear-gradient(145deg,rgba(58,44,12,0.94),rgba(24,18,6,0.98))] text-yellow-200 hover:border-yellow-300/40 hover:bg-[linear-gradient(145deg,rgba(66,50,14,0.98),rgba(28,21,7,1))] hover:shadow-[inset_0_12px_18px_rgba(18,12,2,0.52),inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_rgba(245,197,24,0.18)]`;
+
+const volumetricButtonNeutral =
+  `${volumetricButtonBase} border-white/10 bg-[linear-gradient(145deg,rgba(28,28,44,0.92),rgba(12,12,20,0.98))] text-white/85 hover:border-white/20 hover:bg-[linear-gradient(145deg,rgba(32,32,50,0.96),rgba(15,15,24,1))]`;
+
 function getProviderLabel(provider: string | null | undefined): string {
   if (provider === 'twitter') return 'X';
   if (provider === 'twitch') return 'Twitch';
@@ -566,7 +578,7 @@ export default function Dashboard() {
                   <>
                     <button
                       onClick={() => router.push(claimTagHref)}
-                      className="min-h-[44px] rounded-xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                      className={volumetricButtonPurple}
                     >
                       <span className="inline-flex items-center gap-2">
                         <Settings2 className="h-4 w-4" />
@@ -575,7 +587,7 @@ export default function Dashboard() {
                     </button>
                     <Link
                       href="/create"
-                      className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white transition hover:-translate-y-[1px] hover:border-white/30 hover:bg-white/10"
+                      className={volumetricButtonNeutral}
                     >
                       <Plus className="h-4 w-4" />
                       Create dare
@@ -585,7 +597,7 @@ export default function Dashboard() {
                   <button
                     onClick={handleConnect}
                     disabled={isConnecting}
-                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-yellow-500/40 bg-[linear-gradient(180deg,rgba(250,204,21,0.18)_0%,rgba(161,98,7,0.12)_100%)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-yellow-200 transition hover:-translate-y-[1px] disabled:opacity-50"
+                    className={volumetricButtonGold}
                   >
                     {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
                     Connect wallet
@@ -627,7 +639,7 @@ export default function Dashboard() {
             <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Opportunities</h2>
             <button
               onClick={() => router.push('/map')}
-              className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+              className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
             >
               Open map
             </button>
@@ -647,7 +659,7 @@ export default function Dashboard() {
               </span>
               <button
                 onClick={() => router.push(claimTagHref)}
-                className="min-h-[44px] rounded-xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                className={volumetricButtonPurple}
               >
                 Manage identity
               </button>
@@ -683,14 +695,14 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleClaimOpportunity(opportunity)}
                           disabled={claimingOpportunityId === opportunity.id}
-                          className="min-h-[44px] w-full rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f5d75f] transition hover:border-[#f5d75f]/50 hover:bg-[#f5c518]/16 disabled:opacity-50"
+                          className={`${volumetricButtonGold} w-full`}
                         >
                           {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
                         </button>
                       ) : (
                         <button
                           onClick={() => router.push(href)}
-                          className="min-h-[44px] w-full rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+                          className={`${volumetricButtonPurple} w-full`}
                         >
                           Open
                         </button>
@@ -774,7 +786,11 @@ export default function Dashboard() {
                             }
                             router.push(`/dare/${dare.shortId || dare.id}`);
                           }}
-                          className="min-h-[44px] rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+                          className={`${
+                            loopState.label === 'Ready for Proof'
+                              ? volumetricButtonGold
+                              : volumetricButtonPurple
+                          }`}
                         >
                           {loopState.label === 'Ready for Proof' ? 'Submit proof' : 'Open'}
                         </button>
@@ -811,7 +827,7 @@ export default function Dashboard() {
                           <div className="mt-4 flex flex-wrap gap-2">
                             <button
                               onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
-                              className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:bg-white/[0.06]"
+                              className={volumetricButtonNeutral}
                             >
                               Open brief
                             </button>
@@ -854,7 +870,7 @@ export default function Dashboard() {
             </button>
             <Link
               href="/create"
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+              className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
             >
               <Plus className="h-4 w-4" />
               Create
@@ -922,7 +938,7 @@ export default function Dashboard() {
                         <div className="mt-4 flex flex-wrap gap-2">
                           <button
                             onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
-                            className="min-h-[44px] rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-400/16"
+                            className={volumetricButtonPurple}
                           >
                             Open brief
                           </button>
