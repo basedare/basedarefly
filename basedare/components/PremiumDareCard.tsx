@@ -153,7 +153,7 @@ export default function PremiumDareCard({
 
   return (
     <motion.div
-      className={`dare-card ${isExpired ? 'dare-card--expired' : ''}`}
+      className={`dare-card group select-none ${isExpired ? 'dare-card--expired' : ''}`}
       onClick={handleCardClick}
       whileHover={isRealDare ? { scale: 1.01 } : undefined}
       transition={{ duration: 0.18 }}
@@ -188,7 +188,7 @@ export default function PremiumDareCard({
               placeName={locationLabel}
               status="live"
               compact
-              className="opacity-0 group-hover:opacity-100"
+              className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
             />
           </div>
         </div>
