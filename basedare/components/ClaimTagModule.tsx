@@ -131,6 +131,18 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+const raisedPanelClass =
+  "relative overflow-hidden rounded-[28px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.38),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+
+const raisedTileClass =
+  "relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[linear-gradient(160deg,rgba(34,32,56,0.92)_0%,rgba(18,18,30,0.98)_38%,rgba(10,10,18,1)_100%)] shadow-[0_18px_34px_rgba(0,0,0,0.3),0_0_20px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_18px_rgba(0,0,0,0.24)]";
+
+const insetWellClass =
+  "rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)] shadow-[inset_0_16px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05),0_10px_18px_rgba(0,0,0,0.18)]";
+
+const softBadgeClass =
+  "inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-[linear-gradient(180deg,rgba(168,85,247,0.16)_0%,rgba(76,29,149,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-purple-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
 function isPlatform(value: string | null | undefined): value is Platform {
   return Boolean(value && PLATFORMS.some((platform) => platform.id === value));
 }
@@ -465,7 +477,7 @@ export function ClaimTagModule() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8 sm:mb-12"
         >
-          <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2 mb-4">
+          <div className={`${softBadgeClass} mb-4`}>
             <Zap className="w-4 h-4 text-purple-400" />
             <span className="text-sm text-purple-400 font-medium tracking-wide">CLAIM TAG</span>
           </div>
@@ -500,7 +512,7 @@ export function ClaimTagModule() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="backdrop-blur-xl bg-yellow-500/5 border border-yellow-500/30 rounded-2xl p-4"
+              className={`${raisedTileClass} border-yellow-500/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.10)_0%,rgba(14,10,5,0.96)_100%)] p-4`}
             >
               <div className="flex items-center gap-3">
                 <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
@@ -513,7 +525,7 @@ export function ClaimTagModule() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="backdrop-blur-xl bg-red-500/5 border border-red-500/30 rounded-2xl p-4"
+              className={`${raisedTileClass} border-red-500/30 bg-[linear-gradient(180deg,rgba(239,68,68,0.08)_0%,rgba(20,8,8,0.96)_100%)] p-4`}
             >
               <div className="flex items-center gap-3">
                 <XCircle className="w-5 h-5 text-red-400" />
@@ -526,7 +538,7 @@ export function ClaimTagModule() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="backdrop-blur-xl bg-gradient-to-br from-yellow-500/10 to-green-500/10 border border-yellow-500/40 rounded-2xl p-5 sm:p-6"
+              className={`${raisedPanelClass} border-yellow-500/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.12)_0%,rgba(34,197,94,0.08)_24%,rgba(10,9,18,0.92)_62%,rgba(7,6,14,0.98)_100%)] p-5 sm:p-6`}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-yellow-500/20 border border-yellow-500/40 rounded-xl flex items-center justify-center">
@@ -541,7 +553,7 @@ export function ClaimTagModule() {
               </div>
 
               {/* Total Bounty */}
-              <div className="bg-black/30 rounded-xl p-4 mb-4">
+              <div className={`${insetWellClass} mb-4 p-4`}>
                 <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Total Available</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-yellow-400">
@@ -554,10 +566,7 @@ export function ClaimTagModule() {
               {/* Pending Dares List */}
               <div className="space-y-2 mb-4">
                 {inviteData.pendingDares.slice(0, 3).map((dare) => (
-                  <div
-                    key={dare.id}
-                    className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5"
-                  >
+                  <div key={dare.id} className={`flex items-center justify-between border border-white/8 p-3 ${insetWellClass}`}>
                     <span className="text-sm text-white truncate flex-1 mr-2">{dare.title}</span>
                     <span className="text-sm font-bold text-yellow-400 shrink-0">
                       ${dare.bounty.toLocaleString()}
@@ -593,9 +602,9 @@ export function ClaimTagModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${isConnected
-              ? 'bg-green-500/5 border-green-500/30'
-              : 'bg-black/20 border-white/10'
+            className={`${raisedTileClass} p-4 transition-all ${isConnected
+              ? 'border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.08)_0%,rgba(10,18,11,0.96)_100%)]'
+              : ''
               }`}
           >
             <div className="flex items-center justify-between">
@@ -625,10 +634,10 @@ export function ClaimTagModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.125 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${
+            className={`${raisedPanelClass} p-4 transition-all ${
               isPlatformConnected
-                ? 'bg-cyan-500/5 border-cyan-400/30'
-                : 'bg-[linear-gradient(180deg,rgba(34,211,238,0.06)_0%,rgba(7,9,18,0.92)_100%)] border-cyan-400/18'
+                ? 'border-cyan-400/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.10)_0%,rgba(8,11,22,0.94)_100%)]'
+                : 'border-cyan-400/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.06)_0%,rgba(7,9,18,0.92)_100%)]'
             } ${!isConnected ? 'opacity-50' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -658,8 +667,8 @@ export function ClaimTagModule() {
               )}
             </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className={`${raisedTileClass} p-4`}>
                 <div className="flex items-center gap-2 text-cyan-200">
                   <Shield className="h-4 w-4" />
                   <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity</span>
@@ -669,7 +678,7 @@ export function ClaimTagModule() {
                 </p>
               </div>
 
-              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+              <div className={`${raisedTileClass} p-4`}>
                 <div className="flex items-center gap-2 text-[#f5c518]">
                   <Share2 className="h-4 w-4" />
                   <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Proof</span>
@@ -677,7 +686,7 @@ export function ClaimTagModule() {
                 <p className="mt-3 text-sm font-semibold text-white">One handle keeps wins clean</p>
               </div>
 
-              <div className="rounded-[18px] border border-white/10 bg-black/20 p-4">
+              <div className={`${raisedTileClass} p-4`}>
                 <div className="flex items-center gap-2 text-purple-200">
                   <MapPin className="h-4 w-4" />
                   <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Map</span>
@@ -689,7 +698,7 @@ export function ClaimTagModule() {
             </div>
 
             {!isPlatformConnected && !isManualMode && (
-              <div className="mt-4 rounded-[20px] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className={`mt-4 p-4 ${insetWellClass}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Choose Platform</p>
@@ -715,7 +724,7 @@ export function ClaimTagModule() {
                   ))}
                 </div>
 
-                <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
+                <div className={`mt-4 p-3 ${insetWellClass}`}>
                   <p className="text-xs text-gray-400 mb-2">We verify it with a proof code.</p>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -732,7 +741,7 @@ export function ClaimTagModule() {
             )}
 
             {(isPlatformConnected && connectedPlatform && !isManualMode) ? (
-              <div className="mt-4 rounded-[20px] border border-cyan-400/18 bg-cyan-400/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <div className={`mt-4 border-cyan-400/18 bg-cyan-400/[0.06] p-4 ${raisedTileClass}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -784,7 +793,7 @@ export function ClaimTagModule() {
             ) : null}
 
             {isManualMode && manualCode && selectedPlatform && (
-              <div className="mt-4 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className={`mt-4 p-4 ${insetWellClass}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Manual Verification</p>
@@ -894,7 +903,7 @@ export function ClaimTagModule() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.18 }}
-              className="backdrop-blur-xl border border-cyan-400/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.08)_0%,rgba(8,11,22,0.92)_100%)] rounded-2xl p-4 shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.05)]"
+              className={`${raisedPanelClass} border-cyan-400/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.08)_0%,rgba(8,11,22,0.92)_100%)] p-4`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -923,9 +932,9 @@ export function ClaimTagModule() {
                     Use @{platformHandle}
                   </button>
                 ) : (
-                  <div className="rounded-full border border-green-400/25 bg-green-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-green-200">
-                    {hasMatchingVerifiedTag ? 'Handle anchored' : 'Identity ready'}
-                  </div>
+                <div className="rounded-full border border-green-400/25 bg-green-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-green-200 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  {hasMatchingVerifiedTag ? 'Handle anchored' : 'Identity ready'}
+                </div>
                 )}
                 <button
                   type="button"
@@ -937,7 +946,7 @@ export function ClaimTagModule() {
               </div>
 
               {platformHandle ? (
-                <div className="mt-4 rounded-[18px] border border-white/10 bg-black/20 p-4">
+                <div className={`mt-4 p-4 ${insetWellClass}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 text-cyan-200">
@@ -962,19 +971,19 @@ export function ClaimTagModule() {
                   ) : footprintData ? (
                     <>
                       <div className="mt-4 grid gap-2 sm:grid-cols-4">
-                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <div className={`${raisedTileClass} px-3 py-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Live</p>
                           <p className="mt-2 text-lg font-black text-white">{footprintData.stats.live}</p>
                         </div>
-                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <div className={`${raisedTileClass} px-3 py-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Completed</p>
                           <p className="mt-2 text-lg font-black text-white">{footprintData.stats.completed}</p>
                         </div>
-                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <div className={`${raisedTileClass} px-3 py-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Earned</p>
                           <p className="mt-2 text-lg font-black text-white">${footprintData.stats.totalEarned.toLocaleString()}</p>
                         </div>
-                        <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <div className={`${raisedTileClass} px-3 py-2`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Tags</p>
                           <p className="mt-2 text-lg font-black text-white">{footprintData.tags.length}</p>
                         </div>
@@ -1043,9 +1052,9 @@ export function ClaimTagModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={`backdrop-blur-xl border rounded-2xl p-4 transition-all ${(isConnected && isPlatformConnected) || (isConnected && isManualMode)
-              ? 'bg-purple-500/5 border-purple-500/30'
-              : 'bg-black/20 border-white/10 opacity-50'
+            className={`${raisedPanelClass} p-4 transition-all ${(isConnected && isPlatformConnected) || (isConnected && isManualMode)
+              ? 'border-purple-500/30 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(11,9,20,0.96)_100%)]'
+              : 'opacity-50'
               }`}
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-4">
@@ -1071,7 +1080,7 @@ export function ClaimTagModule() {
                   disabled={
                     !isConnected || (!isPlatformConnected && !isManualMode)
                   }
-                  className="w-full pl-7 sm:pl-8 pr-10 sm:pr-12 py-2.5 sm:py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono disabled:opacity-50"
+                  className="w-full pl-7 sm:pl-8 pr-10 sm:pr-12 py-2.5 sm:py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono disabled:opacity-50 shadow-[inset_0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]"
                   maxLength={20}
                 />
                 <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
@@ -1158,14 +1167,14 @@ export function ClaimTagModule() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
+              className={`${raisedTileClass} p-4`}
             >
               <h3 className="text-sm font-bold text-white mb-3">Your Tags</h3>
               <div className="space-y-2">
                 {orderedExistingTags.map((t) => (
                   <div
                     key={t.tag}
-                    className="flex items-center justify-between p-2.5 sm:p-3 bg-white/5 rounded-lg"
+                    className={`flex items-center justify-between p-2.5 sm:p-3 ${insetWellClass}`}
                   >
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                       <span className="text-purple-400 font-mono text-sm font-bold truncate">{t.tag}</span>
