@@ -15,6 +15,7 @@ import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
 import DareVisual from '@/components/DareVisual';
+import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
@@ -669,14 +670,16 @@ export default function DareDetailPage() {
             <h3 className="text-sm font-black text-purple-300 mb-2">Open Bounty — Claim It</h3>
             <p className="text-xs text-white/50 mb-3">You can request to accept this dare and earn the full bounty.</p>
             {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
-            <button
+            <CosmicButton
               onClick={handleClaimRequest}
               disabled={claimLoading || claimSuccess}
-              className="w-full py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-black font-black text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              variant="gold"
+              size="md"
+              fullWidth
             >
               {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               {claimSuccess ? '✓ Request Sent' : 'Request to Claim'}
-            </button>
+            </CosmicButton>
           </div>
         )}
 

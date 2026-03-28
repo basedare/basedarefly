@@ -13,6 +13,7 @@ import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import ShareComposerButton from "@/components/ShareComposerButton";
+import CosmicButton from "@/components/ui/CosmicButton";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
@@ -758,15 +759,14 @@ function CreateDareContent() {
                           aria-hidden="true"
                         />
 
-                        <button
+                        <CosmicButton
                           type="submit"
                           disabled={isSubmitting}
-                          className="relative w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest rounded-[10px] flex items-center justify-center gap-2 md:gap-3 text-black transition-all duration-200 bg-[linear-gradient(180deg,#fef1a4_0%,#facc15_42%,#e6b90f_62%,#ba8704_100%)] border border-[#f8dd6b]/80 shadow-[0_1px_0_rgba(255,255,255,0.42)_inset,0_-10px_16px_rgba(136,84,0,0.22)_inset,0_18px_26px_rgba(250,204,21,0.16),0_8px_16px_rgba(0,0,0,0.34)] hover:-translate-y-[1px] hover:shadow-[0_1px_0_rgba(255,255,255,0.48)_inset,0_-10px_16px_rgba(136,84,0,0.24)_inset,0_22px_32px_rgba(250,204,21,0.22),0_10px_18px_rgba(0,0,0,0.34)] active:translate-y-[1px] active:shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_8px_rgba(0,0,0,0.28)_inset,0_-3px_8px_rgba(136,84,0,0.18)_inset,0_8px_16px_rgba(0,0,0,0.28)] disabled:opacity-70 disabled:cursor-not-allowed"
+                          variant="gold"
+                          size="xl"
+                          fullWidth
+                          className="h-16 md:h-20"
                         >
-                          {/* Inner glow */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/25 pointer-events-none rounded-[10px]" />
-                          <div className="absolute left-[10%] right-[10%] top-1 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none rounded-full" />
-
                           {isSubmitting ? (
                             <>
                               <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
@@ -782,7 +782,7 @@ function CreateDareContent() {
                               <ChevronRight className="w-6 h-6 md:w-8 md:h-8 relative" />
                             </>
                           )}
-                        </button>
+                        </CosmicButton>
                       </div>
                     )}
 

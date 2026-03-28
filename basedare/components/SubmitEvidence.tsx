@@ -5,6 +5,7 @@ import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ui/use-toast';
 import ShareWinButton from '@/components/ShareWinButton';
+import CosmicButton from '@/components/ui/CosmicButton';
 
 type VerificationStatus =
   | 'idle'
@@ -606,17 +607,19 @@ export default function SubmitEvidence({
                   {error}
                 </div>
               )}
-              <button
+              <CosmicButton
                 onClick={(e) => {
                   e.stopPropagation();
                   handleUploadAndVerify();
                 }}
                 disabled={!!error}
-                className="w-full px-6 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-black text-sm rounded-xl uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                variant="gold"
+                size="md"
+                fullWidth
               >
                 <Upload className="w-4 h-4" />
                 Submit Proof
-              </button>
+              </CosmicButton>
             </div>
           </>
         ) : (

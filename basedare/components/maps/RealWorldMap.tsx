@@ -507,7 +507,6 @@ function createPeebearMarkerIcon({
 function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) {
   const compact = options?.compact ?? false;
   const sizeClass = compact ? 'h-16 w-16 rounded-[14px]' : 'h-20 w-20 rounded-[16px] md:h-22 md:w-22';
-  const innerInsetClass = compact ? 'inset-x-2 top-2 rounded-[10px] px-1.5 py-1.5' : 'inset-x-2.5 top-2.5 rounded-[12px] px-2 py-2';
 
   if (tag.source === 'SEEDED_MEMORY') {
     return (
@@ -517,15 +516,10 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
           alt="PeeBear memory mark"
           fill
           sizes="96px"
-          className="object-cover p-1.5"
+          className="object-contain p-1.5"
           unoptimized
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_48%,rgba(0,0,0,0.28)_100%)]" />
-        <div className={`absolute border border-[#f5c518]/20 bg-black/28 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${innerInsetClass}`}>
-          <div className={`${compact ? 'text-[7px]' : 'text-[8.5px]'} font-semibold uppercase tracking-[0.2em] text-[#f8dd72]`}>
-            Mark
-          </div>
-        </div>
       </div>
     );
   }

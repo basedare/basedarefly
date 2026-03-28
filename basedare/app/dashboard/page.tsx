@@ -8,6 +8,7 @@ import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
+import CosmicButton from "@/components/ui/CosmicButton";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import { useAccount, useConnect } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
@@ -597,13 +598,10 @@ export default function Dashboard() {
                         {identityHandle ? 'Manage identity' : 'Connect identity'}
                       </span>
                     </button>
-                    <Link
-                      href="/create"
-                      className={volumetricButtonNeutral}
-                    >
+                    <CosmicButton href="/create" variant="gold" size="md" className="min-w-[176px]">
                       <Plus className="h-4 w-4" />
                       Create dare
-                    </Link>
+                    </CosmicButton>
                   </>
                 ) : (
                   <button
@@ -704,13 +702,15 @@ export default function Dashboard() {
                     ) : null}
                     <div className="mt-6">
                       {opportunity.claimable ? (
-                        <button
+                        <CosmicButton
                           onClick={() => handleClaimOpportunity(opportunity)}
                           disabled={claimingOpportunityId === opportunity.id}
-                          className={`${volumetricButtonGold} w-full`}
+                          variant="gold"
+                          size="md"
+                          fullWidth
                         >
                           {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
-                        </button>
+                        </CosmicButton>
                       ) : (
                         <button
                           onClick={() => router.push(href)}
@@ -790,7 +790,7 @@ export default function Dashboard() {
                         <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
                           {loopState.label}
                         </span>
-                        <button
+                        <CosmicButton
                           onClick={() => {
                             if (loopState.label === 'Ready for Proof') {
                               setExpandedActivationId(dare.id);
@@ -798,14 +798,12 @@ export default function Dashboard() {
                             }
                             router.push(`/dare/${dare.shortId || dare.id}`);
                           }}
-                          className={`${
-                            loopState.label === 'Ready for Proof'
-                              ? volumetricButtonGold
-                              : volumetricButtonPurple
-                          }`}
+                          variant={loopState.label === 'Ready for Proof' ? 'gold' : 'blue'}
+                          size="sm"
+                          className="min-w-[128px]"
                         >
                           {loopState.label === 'Ready for Proof' ? 'Submit proof' : 'Open'}
-                        </button>
+                        </CosmicButton>
                       </div>
                     </div>
 

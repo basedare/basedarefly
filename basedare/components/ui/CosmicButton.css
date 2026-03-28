@@ -1,0 +1,268 @@
+.cosmic-button {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: stretch;
+  min-width: 160px;
+  border: none;
+  padding: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 220ms ease, box-shadow 280ms ease, opacity 180ms ease;
+  isolation: isolate;
+}
+
+.cosmic-button--full {
+  width: 100%;
+}
+
+.cosmic-button--sm {
+  min-height: 44px;
+}
+
+.cosmic-button--md {
+  min-height: 52px;
+}
+
+.cosmic-button--lg {
+  min-height: 64px;
+}
+
+.cosmic-button--xl {
+  min-height: 76px;
+}
+
+.cosmic-button--gold {
+  background: linear-gradient(145deg, #2d2208, #130e06);
+  box-shadow:
+    4px 4px 12px rgba(0, 0, 0, 0.8),
+    -2px -2px 6px rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(245, 197, 24, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cosmic-button--blue {
+  background: linear-gradient(145deg, #112744, #09131f);
+  box-shadow:
+    4px 4px 12px rgba(0, 0, 0, 0.78),
+    -2px -2px 6px rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(59, 167, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cosmic-button:hover {
+  transform: translateY(-1px) scale(1.015);
+}
+
+.cosmic-button--gold:hover {
+  box-shadow:
+    6px 8px 20px rgba(0, 0, 0, 0.88),
+    -2px -2px 6px rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(245, 197, 24, 0.38),
+    0 0 26px rgba(245, 197, 24, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.cosmic-button--blue:hover {
+  box-shadow:
+    6px 8px 20px rgba(0, 0, 0, 0.88),
+    -2px -2px 6px rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(59, 167, 255, 0.34),
+    0 0 24px rgba(59, 167, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.cosmic-button:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.cosmic-button--gold:active {
+  box-shadow:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.82),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.04),
+    0 0 18px rgba(245, 197, 24, 0.12);
+}
+
+.cosmic-button--blue:active {
+  box-shadow:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.82),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.04),
+    0 0 18px rgba(59, 167, 255, 0.12);
+}
+
+.cosmic-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    0 0 0 5px rgba(168, 85, 247, 0.25),
+    0 16px 28px rgba(0, 0, 0, 0.45);
+}
+
+.cosmic-button[aria-disabled='true'],
+.cosmic-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+.cosmic-canvas {
+  position: absolute;
+  inset: 2px;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.cosmic-holo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-size: 280% 280%;
+  background-position: 0% 0%;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.35s ease, background-position 0.65s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cosmic-button--gold .cosmic-holo {
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(245, 197, 24, 0.16) 22%,
+    transparent 45%,
+    rgba(168, 85, 247, 0.12) 68%,
+    rgba(59, 167, 255, 0.1) 82%,
+    transparent 100%
+  );
+}
+
+.cosmic-button--blue .cosmic-holo {
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(59, 167, 255, 0.18) 22%,
+    transparent 45%,
+    rgba(168, 85, 247, 0.14) 68%,
+    rgba(245, 197, 24, 0.08) 84%,
+    transparent 100%
+  );
+}
+
+.cosmic-button:hover .cosmic-holo {
+  opacity: 0.95;
+  background-position: 100% 100%;
+  animation: cosmic-holo-sweep 1.6s ease-in-out infinite;
+}
+
+.cosmic-shell {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: inherit;
+  gap: 0.65rem;
+  padding-inline: 1.3rem;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(8, 8, 18, 0.18) 0%, rgba(4, 4, 10, 0.26) 100%);
+}
+
+.cosmic-button--sm .cosmic-shell {
+  padding-inline: 1rem;
+}
+
+.cosmic-button--lg .cosmic-shell {
+  padding-inline: 1.6rem;
+}
+
+.cosmic-button--xl .cosmic-shell {
+  padding-inline: 1.9rem;
+}
+
+.cosmic-shell::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.cosmic-shell::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.cosmic-label {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.cosmic-button--gold .cosmic-label {
+  color: #f5c518;
+  text-shadow: 0 0 12px rgba(245, 197, 24, 0.32);
+}
+
+.cosmic-button--blue .cosmic-label {
+  color: #3ba7ff;
+  text-shadow: 0 0 12px rgba(59, 167, 255, 0.28);
+}
+
+.cosmic-button--sm .cosmic-label {
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.cosmic-button--md .cosmic-label {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.cosmic-button--lg .cosmic-label {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.cosmic-button--xl .cosmic-label {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+@keyframes cosmic-holo-sweep {
+  0%,
+  100% {
+    background-position: 8% 12%;
+    opacity: 0.55;
+  }
+  50% {
+    background-position: 100% 100%;
+    opacity: 1;
+  }
+}
