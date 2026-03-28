@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { buildCampaignMatch, parseCampaignTargetingCriteria } from '@/lib/campaign-matching';
+import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 
 type WalletSession = {
   token?: string;
@@ -53,31 +54,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const creator = await prisma.streamerTag.findFirst({
-      where: {
-        walletAddress: actingWallet,
-        status: { in: ['ACTIVE', 'VERIFIED'] },
-      },
-      select: {
-        id: true,
-        tag: true,
-        bio: true,
-        followerCount: true,
-        tags: true,
-        status: true,
-        twitterHandle: true,
-        twitterVerified: true,
-        twitchHandle: true,
-        twitchVerified: true,
-        youtubeHandle: true,
-        youtubeVerified: true,
-        kickHandle: true,
-        kickVerified: true,
-        totalEarned: true,
-        completedDares: true,
-      },
-      orderBy: [{ completedDares: 'desc' }, { updatedAt: 'desc' }],
-    });
+    const creator = await findPrimaryCreatorTagForWallet(actingWallet);
 
     if (!creator) {
       return NextResponse.json({

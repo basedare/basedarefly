@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
+import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import {
   uploadPublicMediaFile,
   validateSupportedMediaFile,
@@ -290,16 +291,7 @@ export async function POST(
       );
     }
 
-    const creatorProfile = await prisma.streamerTag.findFirst({
-      where: {
-        walletAddress,
-        status: { in: ['ACTIVE', 'VERIFIED'] },
-      },
-      select: {
-        tag: true,
-      },
-      orderBy: { verifiedAt: 'desc' },
-    });
+    const creatorProfile = await findPrimaryCreatorTagForWallet(walletAddress);
 
     const upload = await uploadPublicMediaFile({
       file,

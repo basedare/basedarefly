@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
 import { alertClaimRequestSubmission } from '@/lib/telegram';
+import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -79,12 +80,7 @@ export async function POST(
     }
 
     // Check if user has a verified tag
-    const userTag = await prisma.streamerTag.findFirst({
-      where: {
-        walletAddress: lowerWallet,
-        status: 'ACTIVE',
-      },
-    });
+    const userTag = await findPrimaryCreatorTagForWallet(lowerWallet);
 
     if (!userTag) {
       return NextResponse.json(
