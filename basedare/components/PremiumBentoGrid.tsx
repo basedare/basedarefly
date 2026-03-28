@@ -7,8 +7,15 @@ import ProofViewer from './ProofViewer';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import './PremiumBentoGrid.css';
 
-const FILTERS = ['ALL', 'STREAMERS', 'OPEN BOUNTIES', 'NEARBY', 'EXPIRED'] as const;
-type Filter = (typeof FILTERS)[number];
+const FILTERS = [
+  { key: 'ALL', label: 'ALL' },
+  { key: 'OPEN BOUNTIES', label: 'IRL' },
+  { key: 'STREAMERS', label: 'ONLINE' },
+  { key: 'NEARBY', label: 'NEARBY' },
+  { key: 'LOCKED', label: 'LOCKED' },
+  { key: 'EXPIRED', label: 'EXPIRED' },
+] as const;
+type Filter = (typeof FILTERS)[number]['key'];
 
 interface NearbyDare {
   id: string;
@@ -381,6 +388,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       // All other filters: EXCLUDE expired cards by default
       if (isExpired) return false;
 
+      if (filter === 'LOCKED') return card.status === 'restricted';
+
       // Genesis / restricted inventory is hidden from the home-page rail for now.
       if (card.status === 'restricted') return false;
 
@@ -396,39 +405,48 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       <div className="premium-filter-row premium-bounties-controls flex flex-col md:flex-row items-stretch md:items-center justify-between w-full max-w-[1400px] mb-10 px-3 md:px-4 py-3 gap-4">
         {/* Horizontally scrollable filter buttons on mobile */}
         <div className="overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-          <div className="premium-filter-shell flex gap-1.5 p-1.5 w-max md:w-auto">
-            {FILTERS.map((cat) => (
+          <div className="premium-filter-shell flex gap-2 p-1.5 w-max md:w-auto">
+            {FILTERS.map((tab) => (
               <button
-                key={cat}
+                key={tab.key}
                 type="button"
                 onClick={() => {
                   triggerLoading();
-                  setFilter(cat);
+                  setFilter(tab.key);
                 }}
-                className={`premium-filter-chip px-4 md:px-5 py-2.5 rounded-xl font-mono text-[9px] tracking-[0.15em] md:tracking-[0.2em] uppercase transition-all duration-300 whitespace-nowrap ${
-                  filter === cat
-                    ? 'bg-[#FACC15]/90 text-black font-black shadow-[0_0_20px_rgba(250,204,21,0.3)]'
-                    : 'text-white/40 hover:text-white/70'
-                }`}
+                className={`premium-filter-chip ${
+                  tab.key === 'ALL' ? 'premium-filter-chip--all' : ''
+                } ${
+                  filter === tab.key ? 'premium-filter-chip--active' : ''
+                } px-4 md:px-5 py-2.5 rounded-[2.25rem] font-mono text-[9px] tracking-[0.15em] md:tracking-[0.2em] uppercase transition-all duration-300 whitespace-nowrap`}
+                aria-pressed={filter === tab.key}
               >
-                {cat}
+                <span
+                  className={`premium-filter-chip__label ${
+                    filter === tab.key ? 'premium-filter-chip__label--active' : ''
+                  }`}
+                >
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="premium-search bd-dent-surface bd-dent-surface--soft relative group w-full md:w-auto md:min-w-[320px] rounded-[1.15rem] border border-white/6 px-2 py-2">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#FACC15] transition-colors" />
-          <input
-            type="text"
-            placeholder="SEARCH TARGET OR DARE..."
-            value={searchQuery}
-            onChange={(e) => {
-              triggerLoading();
-              setSearchQuery(e.target.value);
-            }}
-            className="premium-search-input w-full bg-transparent border border-white/[0.06] rounded-[0.95rem] py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-[#FACC15]/35 transition-all"
-          />
+        <div className="premium-search premium-search-shell bd-dent-surface bd-dent-surface--soft relative group w-full md:w-auto md:min-w-[320px] rounded-[1.35rem] px-2 py-2">
+          <div className="premium-search-shell__inner relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#FACC15] transition-colors" />
+            <input
+              type="text"
+              placeholder="SEARCH TARGET OR DARE..."
+              value={searchQuery}
+              onChange={(e) => {
+                triggerLoading();
+                setSearchQuery(e.target.value);
+              }}
+              className="premium-search-input w-full bg-transparent rounded-[1.05rem] py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none transition-all"
+            />
+          </div>
         </div>
       </div>
 
