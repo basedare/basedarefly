@@ -1290,11 +1290,11 @@ export default function RealWorldMap() {
               </p>
 
               <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-center lg:hidden">
-                <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Visible Places</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
                 </div>
-                <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Sparks</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
                 </div>
@@ -1303,11 +1303,11 @@ export default function RealWorldMap() {
 
             <div className="hidden lg:flex lg:absolute lg:right-0 lg:top-0">
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Visible Places</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
                 </div>
-                <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Sparks</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
                 </div>
@@ -1332,7 +1332,7 @@ export default function RealWorldMap() {
 
           <div className="relative z-20 flex flex-col gap-3 border-b border-white/8 px-4 py-3 sm:px-5 sm:py-3.5">
             <div className="relative w-full max-w-xl">
-              <div className="flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5 shadow-[0_16px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.09)]">
+              <div className="bd-dent-surface bd-dent-surface--soft flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5">
                 <Search className="h-4 w-4 text-cyan-200" />
                 <input
                   value={searchQuery}
