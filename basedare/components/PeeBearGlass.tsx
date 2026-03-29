@@ -98,48 +98,19 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     );
 
     const photoGeo = new THREE.PlaneGeometry(1, 1);
-    const photoRig = new THREE.Group();
-    group.add(photoRig);
-
-    const createPhotoMaterial = (opacity = 1) =>
-      new THREE.MeshStandardMaterial({
-        side: THREE.DoubleSide,
-        color: 0xffffff,
-        roughness: 0.18,
-        metalness: 0.12,
-        transparent: true,
-        opacity,
-        alphaTest: 0.02,
-        depthWrite: false,
-      });
-
-    const centerPhotoMat = createPhotoMaterial(1);
-    const leftPhotoMat = createPhotoMaterial(0.85);
-    const rightPhotoMat = createPhotoMaterial(0.85);
-    const rearPhotoMat = createPhotoMaterial(0.65);
-
-    const centerPhotoMesh = new THREE.Mesh(photoGeo, centerPhotoMat);
-    centerPhotoMesh.position.set(0, 0, 0.16);
-    centerPhotoMesh.renderOrder = 0;
-    photoRig.add(centerPhotoMesh);
-
-    const leftPhotoMesh = new THREE.Mesh(photoGeo, leftPhotoMat);
-    leftPhotoMesh.position.set(-0.22, 0, -0.02);
-    leftPhotoMesh.rotation.y = 0.72;
-    leftPhotoMesh.renderOrder = 0;
-    photoRig.add(leftPhotoMesh);
-
-    const rightPhotoMesh = new THREE.Mesh(photoGeo, rightPhotoMat);
-    rightPhotoMesh.position.set(0.22, 0, -0.02);
-    rightPhotoMesh.rotation.y = -0.72;
-    rightPhotoMesh.renderOrder = 0;
-    photoRig.add(rightPhotoMesh);
-
-    const rearPhotoMesh = new THREE.Mesh(photoGeo, rearPhotoMat);
-    rearPhotoMesh.position.set(0, 0, -0.22);
-    rearPhotoMesh.rotation.y = Math.PI;
-    rearPhotoMesh.renderOrder = 0;
-    photoRig.add(rearPhotoMesh);
+    const photoMat = new THREE.MeshStandardMaterial({
+      side: THREE.DoubleSide,
+      color: 0xffffff,
+      roughness: 0.18,
+      metalness: 0.12,
+      transparent: true,
+      alphaTest: 0.02,
+      depthWrite: false,
+    });
+    const photoMesh = new THREE.Mesh(photoGeo, photoMat);
+    photoMesh.position.set(0, 0, 0.12);
+    photoMesh.renderOrder = 0;
+    group.add(photoMesh);
 
     let currentAspectRatio = 1.0;
     const photoScale = 2.0;
@@ -151,10 +122,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       const scaleY =
         currentAspectRatio > 1 ? finalScale / currentAspectRatio : finalScale;
 
-      centerPhotoMesh.scale.set(scaleX, scaleY, 1);
-      leftPhotoMesh.scale.set(scaleX * 0.98, scaleY * 0.98, 1);
-      rightPhotoMesh.scale.set(scaleX * 0.98, scaleY * 0.98, 1);
-      rearPhotoMesh.scale.set(scaleX * 0.92, scaleY * 0.92, 1);
+      photoMesh.scale.set(scaleX, scaleY, 1);
     };
 
     const textureLoader = new THREE.TextureLoader();
@@ -163,14 +131,8 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       photoTexture = texture;
-      centerPhotoMat.map = texture;
-      leftPhotoMat.map = texture;
-      rightPhotoMat.map = texture;
-      rearPhotoMat.map = texture;
-      centerPhotoMat.needsUpdate = true;
-      leftPhotoMat.needsUpdate = true;
-      rightPhotoMat.needsUpdate = true;
-      rearPhotoMat.needsUpdate = true;
+      photoMat.map = texture;
+      photoMat.needsUpdate = true;
       if (texture.image && 'width' in texture.image && 'height' in texture.image) {
         currentAspectRatio = texture.image.width / texture.image.height;
         updatePhotoScale();
@@ -325,10 +287,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       envTexture?.dispose();
       photoTexture?.dispose();
       photoGeo.dispose();
-      centerPhotoMat.dispose();
-      leftPhotoMat.dispose();
-      rightPhotoMat.dispose();
-      rearPhotoMat.dispose();
+      photoMat.dispose();
       glassGeo.dispose();
       glassMat.dispose();
       renderer.dispose();
