@@ -124,13 +124,13 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="relative mx-auto mb-6 h-48 w-48 md:h-64 md:w-64" style={{ clipPath: octagonClipPath }}>
+            <div className="relative mx-auto mb-6 h-52 w-52 overflow-hidden md:h-72 md:w-72" style={{ clipPath: octagonClipPath }}>
               <div className="absolute inset-0 blur-2xl bg-yellow-500/20" style={{ clipPath: octagonClipPath }} />
               <div
                 className="absolute inset-0 border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]"
                 style={{ clipPath: octagonClipPath }}
               />
-              <div className="relative z-10 h-full w-full p-2 md:p-3">
+              <div className="relative z-10 h-full w-full p-1 md:p-2">
                 <PeeBearGlass className="mx-auto h-full w-full" />
               </div>
 

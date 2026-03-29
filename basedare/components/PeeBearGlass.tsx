@@ -30,6 +30,7 @@ function createPolygonShape(sides: number, radius: number) {
 
 export default function PeeBearGlass({ className }: PeeBearGlassProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const baseSpinVelocity = 0.42;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -38,7 +39,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 8.6);
+    camera.position.set(0, 0, 7.25);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -52,6 +53,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
     mount.appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
@@ -71,7 +75,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     const group = new THREE.Group();
     group.position.y = 0;
-    group.scale.setScalar(0.78);
+    group.scale.setScalar(1.12);
     scene.add(group);
     group.rotation.order = 'YXZ';
 
@@ -190,7 +194,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     let isVisible = true;
     const clock = new THREE.Clock();
     let currentRotationY = 0;
-    let spinVelocity = 0.42;
+    let spinVelocity = baseSpinVelocity;
     let isDragging = false;
     let lastPointerX = 0;
 
@@ -202,9 +206,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
       const delta = clock.getDelta();
       currentRotationY += spinVelocity * delta;
-      spinVelocity *= isDragging ? 0.985 : 0.996;
-      if (Math.abs(spinVelocity) < 0.42) {
-        spinVelocity += (0.42 - spinVelocity) * 0.05;
+      spinVelocity *= isDragging ? 0.972 : 0.998;
+      if (Math.abs(spinVelocity) < baseSpinVelocity) {
+        spinVelocity += (baseSpinVelocity - spinVelocity) * 0.02;
       }
 
       group.rotation.x = 0;
@@ -225,7 +229,8 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       if (!isDragging) return;
       const deltaX = event.clientX - lastPointerX;
       lastPointerX = event.clientX;
-      spinVelocity += deltaX * 0.008;
+      spinVelocity += deltaX * 0.0055;
+      spinVelocity = THREE.MathUtils.clamp(spinVelocity, -1.35, 1.35);
     };
 
     const endDrag = (event?: PointerEvent) => {
