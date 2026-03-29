@@ -159,17 +159,17 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     glassGeo.center();
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: '#A855F7',
+      color: '#6d28d9',
       transmission: 1.0,
       opacity: 1.0,
       metalness: 0.0,
       roughness: 0.0,
       ior: 2.33,
       thickness: 1.2,
-      attenuationColor: new THREE.Color('#ddd6fe'),
-      attenuationDistance: 5.5,
+      attenuationColor: new THREE.Color('#c4b5fd'),
+      attenuationDistance: 3.9,
       specularIntensity: 0.72,
-      envMapIntensity: 0.72,
+      envMapIntensity: 0.58,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
       sheen: 0.12,
@@ -294,9 +294,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           gradY,
           Math.max(sparkleWidth, sparkleHeight) * 0.8
         );
-        holoGrad.addColorStop(0, 'rgba(245, 197, 24, 0.024)');
-        holoGrad.addColorStop(0.32, 'rgba(168, 85, 247, 0.02)');
-        holoGrad.addColorStop(0.6, 'rgba(34, 211, 238, 0.014)');
+        holoGrad.addColorStop(0, 'rgba(168, 85, 247, 0.03)');
+        holoGrad.addColorStop(0.36, 'rgba(96, 165, 250, 0.018)');
+        holoGrad.addColorStop(0.62, 'rgba(34, 211, 238, 0.012)');
         holoGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = holoGrad;
         ctx.fillRect(0, 0, sparkleWidth, sparkleHeight);
