@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import ChromeText from '@/components/ChromeText';
+import CosmicButton from '@/components/ui/CosmicButton';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 
@@ -52,36 +53,61 @@ export default function WaitlistPage() {
 
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px]" />
 
-      <div className={`relative z-20 w-full max-w-md space-y-8 p-6 text-center md:p-8 ${raisedShellClass}`}>
+      <div className={`relative z-20 w-full max-w-md space-y-6 p-5 text-center md:space-y-7 md:p-8 ${raisedShellClass}`}>
         
-        {/* THE SENTINEL: Floating head */}
         <div className="relative group mx-auto w-fit">
           <div className="absolute -inset-4 bg-purple-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <img
             src="/assets/peebear-head.png" 
             alt="BaseDare Signal Bear"
-            className="vault-peebear relative z-10 mx-auto h-44 w-44 object-contain md:h-60 md:w-60"
+            className="vault-peebear relative z-10 mx-auto h-28 w-28 object-contain sm:h-32 sm:w-32 md:h-44 md:w-44"
           />
         </div>
 
-        <div className="space-y-4">
-          <ChromeText text="SIGNAL THE GRID" className="text-5xl md:text-6xl tracking-tighter" />
+        <div className="space-y-3">
           <div className={`${dentWellClass} px-4 py-3.5`}>
             <p className="text-gray-200/90 font-mono text-[10px] md:text-xs tracking-[0.28em] uppercase">
               Contact • Feedback • Partnerships
+            </p>
+          </div>
+          <div className="mx-auto max-w-[300px] space-y-2 md:max-w-[380px]">
+            <ChromeText
+              text="SIGNAL THE GRID"
+              className="text-3xl sm:text-4xl md:text-5xl leading-[0.92] tracking-[-0.04em]"
+            />
+            <p className="text-sm leading-relaxed text-white/72 md:text-[15px]">
+              Suggest a venue, pitch a partnership, or send us a bug, idea, or question.
             </p>
           </div>
         </div>
 
         {!submitted ? (
           <div className="w-full space-y-5">
-            <div className={`${dentWellClass} mx-auto max-w-[340px] px-5 py-4.5`}>
-              <p className="text-sm leading-relaxed text-gray-200/88">
-                Suggest a venue, pitch a partnership, or send us a bug, idea, or question.
-              </p>
-              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gray-400/85">
-                Venue Signal • Brand / Venue Partnership • General Signal
-              </p>
+            <div className="grid gap-3 text-left sm:grid-cols-3">
+              <div className={`${dentWellClass} px-4 py-4`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-purple-300/90">
+                  Suggest A Venue
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-white/76">
+                  Know a place that should be on the map? Drop us the location.
+                </p>
+              </div>
+              <div className={`${dentWellClass} px-4 py-4`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-yellow-300/90">
+                  Partnership
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-white/76">
+                  Venues and brands can reach us directly about paid activations.
+                </p>
+              </div>
+              <div className={`${dentWellClass} px-4 py-4`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/90">
+                  General Signal
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-white/76">
+                  Bugs, feedback, creator questions, or anything else on your mind.
+                </p>
+              </div>
             </div>
             
             <form onSubmit={handleSubmit} className="w-full space-y-3">
@@ -89,8 +115,8 @@ export default function WaitlistPage() {
                 <input
                   type="email"
                   required
-                  placeholder="EMAIL_ADDRESS"
-                  className="w-full rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 text-center font-mono tracking-widest text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                  placeholder="EMAIL ADDRESS"
+                  className="w-full rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 text-center font-mono text-sm tracking-[0.22em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -98,21 +124,16 @@ export default function WaitlistPage() {
 
               <div className={`${dentWellClass} px-2 py-2`}>
                 <textarea
-                  placeholder="DROP_YOUR_SIGNAL"
-                  className="min-h-[108px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                  placeholder="DROP YOUR SIGNAL"
+                  className="min-h-[120px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm leading-relaxed tracking-[0.08em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
-              
-              <button
-                type="submit"
-                className="vault-glass-button relative w-full overflow-hidden rounded-[1.15rem] py-4 text-lg font-black italic uppercase tracking-tighter text-white transition-all active:scale-[0.98]"
-              >
-                <span className="vault-glass-button__surface">
-                  <span className="vault-glass-button__label">Send Signal</span>
-                </span>
-              </button>
+
+              <CosmicButton type="submit" fullWidth size="lg" className="w-full">
+                Send Signal
+              </CosmicButton>
             </form>
           </div>
         ) : (
@@ -150,92 +171,6 @@ export default function WaitlistPage() {
             filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.38))
               drop-shadow(0 0 34px rgba(168, 85, 247, 0.22));
           }
-        }
-
-        .vault-glass-button {
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: linear-gradient(180deg, rgba(10, 12, 18, 0.96) 0%, rgba(8, 8, 14, 0.98) 100%);
-          box-shadow:
-            0 18px 38px rgba(0, 0, 0, 0.36),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 0 0 1px rgba(255, 255, 255, 0.02);
-        }
-
-        .vault-glass-button::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          margin: -2px;
-          padding: 2px;
-          background-image: conic-gradient(
-            from 180deg,
-            rgba(255, 255, 255, 0.92) 0deg,
-            rgba(255, 255, 255, 0.3) 42deg,
-            rgba(210, 210, 210, 0.42) 78deg 102deg,
-            rgba(255, 255, 255, 0.85) 150deg,
-            rgba(195, 195, 195, 0.28) 248deg 278deg,
-            rgba(255, 255, 255, 0.92) 330deg
-          );
-          mask:
-            linear-gradient(#fff, #fff) content-box,
-            linear-gradient(#fff, #fff);
-          mask-composite: exclude;
-          -webkit-mask:
-            linear-gradient(#fff, #fff) content-box,
-            linear-gradient(#fff, #fff);
-          -webkit-mask-composite: xor;
-          pointer-events: none;
-          opacity: 0.92;
-        }
-
-        .vault-glass-button__surface {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          min-height: 100%;
-          width: 100%;
-          align-items: center;
-          justify-content: center;
-          border-radius: calc(1.15rem - 2px);
-          background:
-            radial-gradient(60% 140% at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 58%),
-            radial-gradient(90% 100% at 50% 100%, rgba(168, 85, 247, 0.15) 0%, transparent 72%),
-            rgba(255, 255, 255, 0.04);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.1),
-            inset 0 -14px 18px rgba(0, 0, 0, 0.18);
-        }
-
-        .vault-glass-button__label {
-          color: rgba(255, 255, 255, 0.92);
-          text-shadow:
-            0 0 18px rgba(168, 85, 247, 0.2),
-            0 1px 0 rgba(0, 0, 0, 0.28);
-        }
-
-        .vault-glass-button:hover {
-          transform: translateY(-1px);
-          box-shadow:
-            0 22px 44px rgba(0, 0, 0, 0.42),
-            0 0 26px rgba(168, 85, 247, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1),
-            0 0 0 1px rgba(255, 255, 255, 0.03);
-        }
-
-        .vault-glass-button:hover .vault-glass-button__surface {
-          background:
-            radial-gradient(60% 140% at 50% 0%, rgba(255, 255, 255, 0.14) 0%, transparent 58%),
-            radial-gradient(90% 100% at 50% 100%, rgba(168, 85, 247, 0.2) 0%, transparent 72%),
-            rgba(255, 255, 255, 0.05);
-        }
-
-        .vault-glass-button:active {
-          transform: translateY(1px) scale(0.985);
-          box-shadow:
-            inset 0 4px 12px rgba(0, 0, 0, 0.28),
-            inset 0 -3px 8px rgba(255, 255, 255, 0.04),
-            0 10px 22px rgba(0, 0, 0, 0.28);
         }
       `}</style>
     </main>
