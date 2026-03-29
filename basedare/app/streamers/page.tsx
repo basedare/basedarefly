@@ -358,7 +358,7 @@ export default function CreatorsPage() {
           className="w-full relative mt-24 mb-12"
         >
           {/* subtle divider */}
-          <div className="w-1/2 mx-auto h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent mb-16" />
+          <div className="bd-purple-pulse-line mb-16 mx-auto h-px w-1/2" />
           <Suspense fallback={null}>
             <ClaimTagModule />
           </Suspense>

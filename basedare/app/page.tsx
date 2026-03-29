@@ -240,7 +240,7 @@ function HomeContent() {
                 <div className="w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
                   <div className="mb-12 flex flex-col items-center">
                     <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
-                    <div className="active-bounties-underline mt-2 h-px w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent" />
+                    <div className="bd-purple-pulse-line mt-2 h-px w-24" />
                   </div>
 
                   <PremiumBentoGrid dares={dares} />
@@ -470,54 +470,6 @@ function HomeContent() {
       </AnimatePresence>
 
       {/* Chat removed for MVP */}
-
-      <style jsx>{`
-        .active-bounties-underline {
-          position: relative;
-          overflow: visible;
-        }
-
-        .active-bounties-underline::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to right, transparent, #7c3aed, transparent);
-          filter: blur(3px);
-          transform: scaleX(1);
-          transform-origin: center;
-          box-shadow:
-            0 0 8px rgba(124, 58, 237, 0.72),
-            0 0 18px rgba(124, 58, 237, 0.38);
-          animation: active-bounties-pulse 2.2s ease-in-out infinite;
-        }
-
-        @keyframes active-bounties-pulse {
-          0%,
-          100% {
-            opacity: 0.4;
-            transform: scaleX(0.92);
-            filter: blur(2px);
-            box-shadow:
-              0 0 6px rgba(124, 58, 237, 0.55),
-              0 0 12px rgba(124, 58, 237, 0.22);
-          }
-          50% {
-            opacity: 1;
-            transform: scaleX(1.08);
-            filter: blur(4px);
-            box-shadow:
-              0 0 10px #7c3aed,
-              0 0 20px #7c3aed,
-              0 0 24px rgba(124, 58, 237, 0.4);
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .active-bounties-underline {
-            animation: none;
-          }
-        }
-      `}</style>
     </main>
   );
 }

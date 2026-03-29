@@ -82,6 +82,9 @@ export default function ClaimTagPage() {
           </div>
 
           <div className="mt-10">
+            <div className="mb-10 flex justify-center">
+              <div className="bd-purple-pulse-line h-px w-24 sm:w-28" />
+            </div>
             <Suspense fallback={null}>
               <ClaimTagModule />
             </Suspense>

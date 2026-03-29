@@ -674,7 +674,7 @@ export default function LeaderboardPage() {
                 transition={{ delay: 0.3 }}
                 className="flex justify-center mb-6 sm:mb-8"
               >
-                <div className="w-full max-w-xl h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
+                <div className="bd-purple-pulse-line h-px w-full max-w-xl" />
               </motion.div>
             )}
 
