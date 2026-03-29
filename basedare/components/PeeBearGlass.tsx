@@ -20,12 +20,8 @@ function createPolygonShape(sides: number, radius: number) {
   for (let i = 0; i < sides; i += 1) {
     const x = Math.cos(i * angleStep + offset) * radius;
     const y = Math.sin(i * angleStep + offset) * radius;
-
-    if (i === 0) {
-      shape.moveTo(x, y);
-    } else {
-      shape.lineTo(x, y);
-    }
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
   }
 
   shape.closePath();
@@ -40,8 +36,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     if (!mount) return undefined;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-    camera.position.set(0, 0, 5.4);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 7);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -51,22 +48,88 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.05);
-    const topLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    topLight.position.set(0, 3, 4);
-    const rimLight = new THREE.DirectionalLight(0xc084fc, 1.2);
-    rimLight.position.set(-4, 1.5, 2.5);
-    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.8);
-    fillLight.position.set(3, -2, 2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
 
-    scene.add(ambientLight, topLight, rimLight, fillLight);
+    const backLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    backLight.position.set(-5, 2, -10);
+    scene.add(backLight);
 
-    const glassGroup = new THREE.Group();
-    scene.add(glassGroup);
+    const topLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    topLight.position.set(0, 10, 0);
+    scene.add(topLight);
+
+    const frontLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    frontLight.position.set(0, 2, 10);
+    scene.add(frontLight);
+
+    const group = new THREE.Group();
+    group.position.y = -0.1;
+    scene.add(group);
+
+    let envTexture: THREE.DataTexture | null = null;
+    const rgbeLoader = new RGBELoader();
+    rgbeLoader.load(
+      HDRI_URL,
+      (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        envTexture = texture;
+        scene.environment = texture;
+      },
+      undefined,
+      () => {
+        // Keep the effect running with lights only if the HDRI fails.
+      }
+    );
+
+    const photoGeo = new THREE.PlaneGeometry(1, 1);
+    const photoMat = new THREE.MeshStandardMaterial({
+      side: THREE.DoubleSide,
+      color: 0xffffff,
+      roughness: 0.2,
+      metalness: 0.1,
+      transparent: true,
+      alphaTest: 0.02,
+      depthWrite: true,
+    });
+    const photoMesh = new THREE.Mesh(photoGeo, photoMat);
+    photoMesh.position.set(0, 0, 0);
+    photoMesh.renderOrder = 0;
+    group.add(photoMesh);
+
+    let currentAspectRatio = 1.0;
+    const photoScale = 2.0;
+
+    const updatePhotoScale = () => {
+      const finalScale = photoScale;
+      if (currentAspectRatio > 1) {
+        photoMesh.scale.set(finalScale, finalScale / currentAspectRatio, 1);
+      } else {
+        photoMesh.scale.set(finalScale * currentAspectRatio, finalScale, 1);
+      }
+    };
+
+    const textureLoader = new THREE.TextureLoader();
+    let photoTexture: THREE.Texture | null = null;
+    textureLoader.load(PEEBEAR_TEXTURE_URL, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      photoTexture = texture;
+      photoMat.map = texture;
+      photoMat.needsUpdate = true;
+      if (texture.image && 'width' in texture.image && 'height' in texture.image) {
+        currentAspectRatio = texture.image.width / texture.image.height;
+        updatePhotoScale();
+      }
+    });
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
       depth: 1.0,
@@ -78,85 +141,31 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       curveSegments: 64,
     };
 
-    const geo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.2), extrudeSettings);
-    geo.center();
+    const glassGeo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.2), extrudeSettings);
+    glassGeo.center();
 
-    const glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color('#9333ea'),
-      transparent: true,
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: '#ff00dd',
       transmission: 1.0,
-      ior: 1.6,
-      thickness: 1.2,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.08,
-      roughness: 0.04,
+      opacity: 1.0,
       metalness: 0.0,
-      envMapIntensity: 1.5,
-      attenuationColor: new THREE.Color('#9333ea'),
-      attenuationDistance: 1.5,
-      sheen: 0.2,
-      sheenColor: new THREE.Color('#f5d0fe'),
+      roughness: 0.0,
+      ior: 2.05,
+      thickness: 1.2,
+      attenuationColor: new THREE.Color('#ffffff'),
+      attenuationDistance: 9999.0,
       specularIntensity: 1.0,
-      side: THREE.DoubleSide,
-    });
-
-    const octagonMesh = new THREE.Mesh(geo, glassMaterial);
-    glassGroup.add(octagonMesh);
-
-    const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geo, 18),
-      new THREE.LineBasicMaterial({
-        color: new THREE.Color('#d8b4fe'),
-        transparent: true,
-        opacity: 0.45,
-      })
-    );
-    glassGroup.add(edges);
-
-    const imageTexture = new THREE.TextureLoader().load(PEEBEAR_TEXTURE_URL);
-    imageTexture.colorSpace = THREE.SRGBColorSpace;
-
-    const peebearMaterial = new THREE.MeshBasicMaterial({
-      map: imageTexture,
+      envMapIntensity: 1.45,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
-      alphaTest: 0.03,
     });
-    const peebearPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.85, 1.85), peebearMaterial);
-    peebearPlane.position.z = 0.08;
-    peebearPlane.renderOrder = 2;
-    glassGroup.add(peebearPlane);
 
-    const glowPlane = new THREE.Mesh(
-      new THREE.CircleGeometry(1.25, 64),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#a855f7'),
-        transparent: true,
-        opacity: 0.09,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      })
-    );
-    glowPlane.position.z = -0.12;
-    glassGroup.add(glowPlane);
-
-    const rgbeLoader = new RGBELoader();
-    let environmentTexture: THREE.DataTexture | null = null;
-    rgbeLoader.load(
-      HDRI_URL,
-      (texture) => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        environmentTexture = texture;
-        scene.environment = texture;
-      },
-      undefined,
-      () => {
-        // The lights are enough to keep the glass legible if the HDRI fails.
-      }
-    );
+    const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+    glassMesh.renderOrder = 1;
+    group.add(glassMesh);
 
     const resizeRenderer = () => {
       const width = mount.clientWidth || 400;
@@ -174,10 +183,10 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     resizeObserver.observe(mount);
 
     let frameId = 0;
-    let isVisible = true;
     let isUnmounted = false;
-
-    const startTime = performance.now();
+    let isVisible = true;
+    const clock = new THREE.Clock();
+    let time = 0;
 
     const animate = () => {
       if (isUnmounted || !isVisible) {
@@ -185,14 +194,12 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
         return;
       }
 
-      const elapsed = (performance.now() - startTime) / 1000;
+      const delta = clock.getDelta();
+      time += delta;
 
-      glassGroup.rotation.y = Math.sin(elapsed * 0.3) * 0.5;
-      glassGroup.rotation.x = Math.sin(elapsed * 0.2) * 0.15;
-      glassGroup.rotation.z = Math.sin(elapsed * 0.15) * 0.08;
-
-      peebearPlane.rotation.y = Math.sin(elapsed * 0.14) * 0.04;
-      glowPlane.material.opacity = 0.08 + ((Math.sin(elapsed * 0.9) + 1) * 0.5) * 0.05;
+      group.rotation.y = Math.sin(time * 0.3) * 0.5;
+      group.rotation.x = Math.cos(time * 0.2) * 0.15;
+      group.rotation.z = Math.sin(time * 0.15 * 0.7) * 0.08;
 
       renderer.render(scene, camera);
       frameId = window.requestAnimationFrame(animate);
@@ -229,16 +236,12 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       }
 
       scene.environment = null;
-      environmentTexture?.dispose();
-      imageTexture.dispose();
-      geo.dispose();
-      glassMaterial.dispose();
-      peebearMaterial.dispose();
-      glowPlane.geometry.dispose();
-      (glowPlane.material as THREE.Material).dispose();
-      edges.geometry.dispose();
-      (edges.material as THREE.Material).dispose();
-      peebearPlane.geometry.dispose();
+      envTexture?.dispose();
+      photoTexture?.dispose();
+      photoGeo.dispose();
+      photoMat.dispose();
+      glassGeo.dispose();
+      glassMat.dispose();
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
