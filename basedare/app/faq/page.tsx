@@ -137,7 +137,7 @@ export default function FAQPage() {
                 className="pointer-events-none absolute inset-[6%] border border-white/[0.04] bg-[linear-gradient(180deg,rgba(5,7,16,0.66)_0%,rgba(13,11,28,0.82)_100%)] shadow-[inset_10px_10px_20px_rgba(0,0,0,0.5),inset_-4px_-4px_12px_rgba(255,255,255,0.025)]"
                 style={{ clipPath: octagonClipPath }}
               />
-              <div className="relative z-10 h-full w-full p-1 md:p-2">
+              <div className="relative z-10 h-full w-full p-0.5 md:p-1">
                 <PeeBearGlass className="mx-auto h-full w-full" />
               </div>
 

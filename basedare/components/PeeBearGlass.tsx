@@ -39,7 +39,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 6.3);
+    camera.position.set(0, 0, 5.85);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -75,7 +75,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     const group = new THREE.Group();
     group.position.y = 0;
-    group.scale.setScalar(1.42);
+    group.scale.setScalar(1.62);
     scene.add(group);
     group.rotation.order = 'YXZ';
 
