@@ -13,14 +13,14 @@ export async function GET() {
       success: true,
       data: config,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch contract config';
     console.error('Error fetching protocol config:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch protocol config' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
 }
-
 
 
