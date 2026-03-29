@@ -13,7 +13,7 @@ export default function TermsOfChaos() {
     const sectionClass = `${raisedPanelClass} p-6 md:p-8`;
 
     return (
-        <main className="min-h-screen bg-[#050505] text-white selection:bg-purple-500/30 font-sans relative overflow-hidden">
+        <main className="min-h-screen bg-transparent text-white selection:bg-purple-500/30 font-sans relative overflow-hidden">
             <LiquidBackground />
 
             <div className="relative z-10 max-w-4xl mx-auto px-6 py-24">
