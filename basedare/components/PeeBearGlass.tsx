@@ -58,18 +58,18 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     renderer.domElement.style.display = 'block';
     mount.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
     scene.add(ambientLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    const backLight = new THREE.DirectionalLight(0xffffff, 1.65);
     backLight.position.set(-5, 2, -10);
     scene.add(backLight);
 
-    const topLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    const topLight = new THREE.DirectionalLight(0xffffff, 0.9);
     topLight.position.set(0, 10, 0);
     scene.add(topLight);
 
-    const frontLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    const frontLight = new THREE.DirectionalLight(0xffffff, 0.7);
     frontLight.position.set(0, 2, 10);
     scene.add(frontLight);
 
@@ -80,6 +80,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     group.rotation.order = 'YXZ';
 
     let envTexture: THREE.DataTexture | null = null;
+    let envRenderTarget: THREE.WebGLRenderTarget | null = null;
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
     const rgbeLoader = new RGBELoader();
     rgbeLoader.load(
       HDRI_URL,
@@ -88,8 +91,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         envTexture = texture;
-        scene.environment = texture;
-        scene.environmentIntensity = 0.3;
+        envRenderTarget = pmremGenerator.fromEquirectangular(texture);
+        scene.environment = envRenderTarget.texture;
+        scene.environmentIntensity = 0.11;
       },
       undefined,
       () => {
@@ -160,13 +164,13 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       roughness: 0.0,
       ior: 2.33,
       thickness: 1.2,
-      attenuationColor: new THREE.Color('#ffffff'),
-      attenuationDistance: 9999.0,
-      specularIntensity: 1.0,
-      envMapIntensity: 1.9,
+      attenuationColor: new THREE.Color('#ddd6fe'),
+      attenuationDistance: 5.5,
+      specularIntensity: 0.82,
+      envMapIntensity: 1.05,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
-      sheen: 0.35,
+      sheen: 0.16,
       sheenColor: new THREE.Color('#ede9fe'),
       transparent: true,
       side: THREE.DoubleSide,
@@ -194,7 +198,6 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     let frameId = 0;
     let isUnmounted = false;
-    let isVisible = true;
     const clock = new THREE.Clock();
     let currentRotationY = 0;
     let spinVelocity = baseSpinVelocity;
@@ -202,7 +205,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     let lastPointerX = 0;
 
     const animate = () => {
-      if (isUnmounted || !isVisible) {
+      if (isUnmounted) {
         frameId = 0;
         return;
       }
@@ -244,24 +247,11 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     };
 
     const ensureAnimation = () => {
-      if (!frameId && isVisible && !isUnmounted) {
+      if (!frameId && !isUnmounted) {
         frameId = window.requestAnimationFrame(animate);
       }
     };
 
-    const intersectionObserver = new IntersectionObserver(
-      ([entry]) => {
-        isVisible = entry?.isIntersecting ?? true;
-        if (isVisible) {
-          ensureAnimation();
-        } else if (frameId) {
-          window.cancelAnimationFrame(frameId);
-          frameId = 0;
-        }
-      },
-      { threshold: 0.12 }
-    );
-    intersectionObserver.observe(mount);
     mount.addEventListener('pointerdown', onPointerDown);
     mount.addEventListener('pointermove', onPointerMove);
     mount.addEventListener('pointerup', endDrag);
@@ -272,7 +262,6 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     return () => {
       isUnmounted = true;
-      intersectionObserver.disconnect();
       resizeObserver.disconnect();
       if (frameId) {
         window.cancelAnimationFrame(frameId);
@@ -284,7 +273,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       mount.removeEventListener('pointerleave', endDrag);
 
       scene.environment = null;
+      envRenderTarget?.dispose();
       envTexture?.dispose();
+      pmremGenerator.dispose();
       photoTexture?.dispose();
       photoGeo.dispose();
       photoMat.dispose();
