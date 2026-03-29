@@ -33,7 +33,7 @@ export default function About() {
             </h1>
             <div className={`${insetDentClass} mx-auto max-w-3xl px-5 py-5`}>
               <p className="text-xl text-gray-300 font-mono leading-relaxed">
-                BaseDare is the first decentralized attention marketplace. We turn viral moments into funded challenges. Back the creators. Own the moment.
+                BaseDare is the first decentralized dare economy. Fund wild challenges, IRL or online. Real places. Real creators. Real payouts. The chaos is on-chain. The proof is permanent.
               </p>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function About() {
             <h3 className="text-2xl font-black text-white mb-2 uppercase italic">Atomic Settlement</h3>
             <div className={`${insetDentClass} px-4 py-4`}>
               <p className="text-sm text-gray-400 font-mono">
-                Every dare is a smart contract. When the stream ends, liquidity settles instantly on Base L2. No middlemen. No delays.
+                Every dare is a smart contract. Complete it IRL or online and funds settle instantly on Base L2. No middlemen. No delays.
               </p>
             </div>
           </div>
