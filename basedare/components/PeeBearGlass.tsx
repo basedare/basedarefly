@@ -39,7 +39,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 7.25);
+    camera.position.set(0, 0, 6.3);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -75,7 +75,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     const group = new THREE.Group();
     group.position.y = 0;
-    group.scale.setScalar(1.12);
+    group.scale.setScalar(1.42);
     scene.add(group);
     group.rotation.order = 'YXZ';
 
@@ -89,7 +89,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
         texture.magFilter = THREE.LinearFilter;
         envTexture = texture;
         scene.environment = texture;
-        scene.environmentIntensity = 0.17;
+        scene.environmentIntensity = 0.3;
       },
       undefined,
       () => {
@@ -162,9 +162,11 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       attenuationColor: new THREE.Color('#ffffff'),
       attenuationDistance: 9999.0,
       specularIntensity: 1.0,
-      envMapIntensity: 1.45,
+      envMapIntensity: 1.9,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
+      sheen: 0.35,
+      sheenColor: new THREE.Color('#ede9fe'),
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
