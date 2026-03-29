@@ -31,6 +31,9 @@ const insetDentClass =
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
+const octagonClipPath =
+  "polygon(29.29% 0%,70.71% 0%,100% 29.29%,100% 70.71%,70.71% 100%,29.29% 100%,0% 70.71%,0% 29.29%)";
+
 const FAQ_ITEMS = [
   {
     q: "Who are you and why are you yelling?",
@@ -121,9 +124,12 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="relative mx-auto mb-6 h-48 w-48 overflow-hidden rounded-full md:h-64 md:w-64">
-              <div className="absolute inset-0 rounded-full bg-yellow-500/20 blur-2xl" />
-              <div className="absolute inset-0 rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]" />
+            <div className="relative mx-auto mb-6 h-48 w-48 md:h-64 md:w-64" style={{ clipPath: octagonClipPath }}>
+              <div className="absolute inset-0 blur-2xl bg-yellow-500/20" style={{ clipPath: octagonClipPath }} />
+              <div
+                className="absolute inset-0 border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]"
+                style={{ clipPath: octagonClipPath }}
+              />
               <div className="relative z-10 h-full w-full p-2 md:p-3">
                 <PeeBearGlass className="mx-auto h-full w-full" />
               </div>

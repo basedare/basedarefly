@@ -73,6 +73,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     group.position.y = 0;
     group.scale.setScalar(0.78);
     scene.add(group);
+    group.rotation.order = 'YXZ';
 
     let envTexture: THREE.DataTexture | null = null;
     const rgbeLoader = new RGBELoader();
@@ -188,7 +189,10 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     let isUnmounted = false;
     let isVisible = true;
     const clock = new THREE.Clock();
-    let time = 0;
+    let currentRotationY = 0;
+    let spinVelocity = 0.42;
+    let isDragging = false;
+    let lastPointerX = 0;
 
     const animate = () => {
       if (isUnmounted || !isVisible) {
@@ -197,14 +201,38 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       }
 
       const delta = clock.getDelta();
-      time += delta;
+      currentRotationY += spinVelocity * delta;
+      spinVelocity *= isDragging ? 0.985 : 0.996;
+      if (Math.abs(spinVelocity) < 0.42) {
+        spinVelocity += (0.42 - spinVelocity) * 0.05;
+      }
 
-      group.rotation.y += delta * 0.42;
-      group.rotation.x = Math.cos(time * 0.22) * 0.12;
-      group.rotation.z = Math.sin(time * 0.18) * 0.06;
+      group.rotation.x = 0;
+      group.rotation.y = currentRotationY;
+      group.rotation.z = 0;
 
       renderer.render(scene, camera);
       frameId = window.requestAnimationFrame(animate);
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      isDragging = true;
+      lastPointerX = event.clientX;
+      mount.setPointerCapture?.(event.pointerId);
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!isDragging) return;
+      const deltaX = event.clientX - lastPointerX;
+      lastPointerX = event.clientX;
+      spinVelocity += deltaX * 0.008;
+    };
+
+    const endDrag = (event?: PointerEvent) => {
+      isDragging = false;
+      if (event) {
+        mount.releasePointerCapture?.(event.pointerId);
+      }
     };
 
     const ensureAnimation = () => {
@@ -226,6 +254,11 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       { threshold: 0.12 }
     );
     intersectionObserver.observe(mount);
+    mount.addEventListener('pointerdown', onPointerDown);
+    mount.addEventListener('pointermove', onPointerMove);
+    mount.addEventListener('pointerup', endDrag);
+    mount.addEventListener('pointercancel', endDrag);
+    mount.addEventListener('pointerleave', endDrag);
 
     ensureAnimation();
 
@@ -236,6 +269,11 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       if (frameId) {
         window.cancelAnimationFrame(frameId);
       }
+      mount.removeEventListener('pointerdown', onPointerDown);
+      mount.removeEventListener('pointermove', onPointerMove);
+      mount.removeEventListener('pointerup', endDrag);
+      mount.removeEventListener('pointercancel', endDrag);
+      mount.removeEventListener('pointerleave', endDrag);
 
       scene.environment = null;
       envTexture?.dispose();
@@ -250,7 +288,10 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
   }, []);
 
   return (
-    <div className={className ?? 'mx-auto h-[280px] w-[280px] md:h-[400px] md:w-[400px]'}>
+    <div
+      className={className ?? 'mx-auto h-[280px] w-[280px] md:h-[400px] md:w-[400px]'}
+      style={{ touchAction: 'none', cursor: 'grab' }}
+    >
       <div ref={mountRef} className="h-full w-full" />
     </div>
   );
