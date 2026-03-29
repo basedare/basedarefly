@@ -125,9 +125,16 @@ export default function FAQPage() {
             </div>
 
             <div className="relative mx-auto mb-6 h-52 w-52 overflow-hidden md:h-72 md:w-72" style={{ clipPath: octagonClipPath }}>
-              <div className="absolute inset-0 blur-2xl bg-yellow-500/20" style={{ clipPath: octagonClipPath }} />
               <div
-                className="absolute inset-0 border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]"
+                className="absolute inset-0 blur-2xl bg-yellow-500/20"
+                style={{ clipPath: octagonClipPath }}
+              />
+              <div
+                className="bd-dent-surface absolute inset-0 border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.02)_14%,rgba(9,7,18,0.9)_54%,rgba(6,5,14,0.96)_100%)] backdrop-blur-xl shadow-[inset_12px_12px_24px_rgba(0,0,0,0.56),inset_-6px_-6px_16px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06),0_1px_0_rgba(255,255,255,0.03),0_18px_30px_rgba(0,0,0,0.22)]"
+                style={{ clipPath: octagonClipPath }}
+              />
+              <div
+                className="pointer-events-none absolute inset-[6%] border border-white/[0.04] bg-[linear-gradient(180deg,rgba(5,7,16,0.66)_0%,rgba(13,11,28,0.82)_100%)] shadow-[inset_10px_10px_20px_rgba(0,0,0,0.5),inset_-4px_-4px_12px_rgba(255,255,255,0.025)]"
                 style={{ clipPath: octagonClipPath }}
               />
               <div className="relative z-10 h-full w-full p-1 md:p-2">
