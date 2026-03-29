@@ -145,7 +145,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     glassGeo.center();
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: '#ff00dd',
+      color: '#A855F7',
       transmission: 1.0,
       opacity: 1.0,
       metalness: 0.0,
@@ -197,9 +197,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       const delta = clock.getDelta();
       time += delta;
 
-      group.rotation.y = Math.sin(time * 0.3) * 0.5;
-      group.rotation.x = Math.cos(time * 0.2) * 0.15;
-      group.rotation.z = Math.sin(time * 0.15 * 0.7) * 0.08;
+      group.rotation.y += delta * 0.42;
+      group.rotation.x = Math.cos(time * 0.22) * 0.12;
+      group.rotation.z = Math.sin(time * 0.18) * 0.06;
 
       renderer.render(scene, camera);
       frameId = window.requestAnimationFrame(animate);

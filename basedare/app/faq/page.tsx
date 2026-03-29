@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import {
   Accordion,
   AccordionContent,
@@ -14,6 +14,10 @@ import TextPressure from "@/components/TextPressure";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import CosmicButton from '@/components/ui/CosmicButton';
+
+const PeeBearGlass = dynamic(() => import('@/components/PeeBearGlass'), {
+  ssr: false,
+});
 
 const raisedPanelClass =
   "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
@@ -117,22 +121,12 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="relative mx-auto mb-6 h-44 w-44 md:h-56 md:w-56">
+            <div className="relative mx-auto mb-6 h-48 w-48 md:h-64 md:w-64">
               <div className="absolute inset-0 rounded-full bg-yellow-500/20 blur-2xl" />
               <div className="absolute inset-0 rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_22%,rgba(12,10,18,0.94)_100%)] backdrop-blur-xl shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]" />
-              <motion.div
-                className="relative z-10 h-full w-full"
-                animate={{ rotate: [0, 4, -4, 0], scale: [1, 1.04, 1] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image
-                  src="/assets/peebear-head.png"
-                  alt="BaseDare Bear"
-                  fill
-                  className="object-contain p-4"
-                  sizes="(max-width: 768px) 176px, 224px"
-                />
-              </motion.div>
+              <div className="relative z-10 h-full w-full">
+                <PeeBearGlass className="mx-auto h-full w-full scale-[1.04] md:scale-[1.08]" />
+              </div>
 
               <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
                 <div className="whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(168,85,247,0.94)_0%,rgba(107,33,168,0.92)_100%)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),0_0_15px_rgba(168,85,247,0.32)]">

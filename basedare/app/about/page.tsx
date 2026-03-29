@@ -1,13 +1,8 @@
 'use client';
-import dynamic from 'next/dynamic';
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { Zap, Shield, Users } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import LiquidBackground from "@/components/LiquidBackground";
-
-const PeeBearGlass = dynamic(() => import('@/components/PeeBearGlass'), {
-  ssr: false,
-});
 
 const raisedPanelClass =
   "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
@@ -40,14 +35,6 @@ export default function About() {
               <p className="text-xl text-gray-300 font-mono leading-relaxed">
                 BaseDare is the first decentralized attention marketplace. We turn viral moments into funded challenges. Back the creators. Own the moment.
               </p>
-            </div>
-            <div className="mt-10 flex justify-center">
-              <div className={`${softCardClass} relative p-4 md:p-5`}>
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(168,85,247,0.18),transparent_40%),radial-gradient(circle_at_50%_88%,rgba(34,211,238,0.12),transparent_45%)]" />
-                <div className="relative">
-                  <PeeBearGlass className="mx-auto h-[280px] w-[280px] md:h-[400px] md:w-[400px]" />
-                </div>
-              </div>
             </div>
           </div>
         </div>
