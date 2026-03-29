@@ -125,40 +125,35 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="relative mx-auto mb-6 h-52 w-52 overflow-hidden md:hidden" style={{ clipPath: octagonClipPath }}>
+            <div className="relative mx-auto mb-6 h-56 w-56 overflow-hidden md:hidden" style={{ clipPath: octagonClipPath }}>
               <div
-                className="absolute inset-0 blur-2xl bg-purple-500/18"
+                className="absolute inset-0 blur-2xl bg-purple-500/22"
                 style={{ clipPath: octagonClipPath }}
               />
               <div
-                className="bd-dent-surface absolute inset-0 border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.02)_14%,rgba(9,7,18,0.9)_54%,rgba(6,5,14,0.96)_100%)] backdrop-blur-xl shadow-[inset_12px_12px_24px_rgba(0,0,0,0.56),inset_-6px_-6px_16px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06),0_1px_0_rgba(255,255,255,0.03),0_18px_30px_rgba(0,0,0,0.22)]"
+                className="bd-dent-surface absolute inset-0 border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.02)_14%,rgba(9,7,18,0.9)_54%,rgba(6,5,14,0.96)_100%)] backdrop-blur-xl shadow-[inset_14px_14px_28px_rgba(0,0,0,0.6),inset_-8px_-8px_18px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.06),0_1px_0_rgba(255,255,255,0.03),0_18px_30px_rgba(0,0,0,0.22)]"
                 style={{ clipPath: octagonClipPath }}
               />
               <div
-                className="pointer-events-none absolute inset-[6%] border border-white/[0.04] bg-[linear-gradient(180deg,rgba(5,7,16,0.66)_0%,rgba(13,11,28,0.82)_100%)] shadow-[inset_10px_10px_20px_rgba(0,0,0,0.5),inset_-4px_-4px_12px_rgba(255,255,255,0.025)]"
+                className="pointer-events-none absolute inset-[5.5%] border border-white/[0.05] bg-[linear-gradient(180deg,rgba(6,8,18,0.72)_0%,rgba(14,11,30,0.88)_100%)] shadow-[inset_14px_14px_24px_rgba(0,0,0,0.54),inset_-6px_-6px_16px_rgba(255,255,255,0.03)]"
                 style={{ clipPath: octagonClipPath }}
               />
               <div className="relative z-10 h-full w-full p-0.5">
                 <div className="relative h-full w-full" style={{ clipPath: octagonClipPath }}>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(109,40,217,0.98)_0%,rgba(91,33,182,0.96)_38%,rgba(49,16,111,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-18px_20px_rgba(0,0,0,0.25),0_0_18px_rgba(109,40,217,0.22)]" />
-                  <div className="pointer-events-none absolute inset-[7%] opacity-70" style={{ clipPath: octagonClipPath }}>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_26%,rgba(255,255,255,0.16)_0%,transparent_20%),radial-gradient(circle_at_76%_72%,rgba(168,85,247,0.15)_0%,transparent_28%),radial-gradient(circle_at_58%_20%,rgba(34,211,238,0.08)_0%,transparent_22%)] mix-blend-screen" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(147,51,234,0.98)_0%,rgba(126,34,206,0.97)_34%,rgba(91,33,182,0.98)_66%,rgba(59,7,100,0.99)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-18px_20px_rgba(0,0,0,0.28),0_0_22px_rgba(147,51,234,0.26)]" />
+                  <div className="pointer-events-none absolute inset-[6%] opacity-95" style={{ clipPath: octagonClipPath }}>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_26%,rgba(255,255,255,0.18)_0%,transparent_18%),radial-gradient(circle_at_76%_72%,rgba(192,132,252,0.18)_0%,transparent_26%),radial-gradient(circle_at_58%_20%,rgba(245,197,24,0.08)_0%,transparent_18%)] mix-blend-screen" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,rgba(245,197,24,0.16)_0%,transparent_5%),radial-gradient(circle_at_68%_34%,rgba(255,255,255,0.14)_0%,transparent_4%),radial-gradient(circle_at_72%_66%,rgba(245,197,24,0.14)_0%,transparent_4%),radial-gradient(circle_at_34%_72%,rgba(192,132,252,0.12)_0%,transparent_5%)] mix-blend-screen opacity-90" />
                   </div>
-                  <div className="absolute inset-[22%]">
+                  <div className="absolute inset-[16%]">
                     <Image
                       src="/assets/peebear-head.png"
                       alt="BaseDare Bear"
                       fill
                       className="object-contain"
-                      sizes="208px"
+                      sizes="224px"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
-                <div className="whitespace-nowrap rounded-full border border-white/20 bg-[linear-gradient(180deg,rgba(168,85,247,0.94)_0%,rgba(107,33,168,0.92)_100%)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),0_0_15px_rgba(168,85,247,0.32)]">
-                  AI AGENT
                 </div>
               </div>
             </div>

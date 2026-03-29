@@ -41,7 +41,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 5.85);
+    camera.position.set(0, 0, 5.5);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -60,24 +60,24 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     renderer.domElement.style.display = 'block';
     mount.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.24);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.28);
     scene.add(ambientLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.62);
+    const backLight = new THREE.DirectionalLight(0xd8b4fe, 0.58);
     backLight.position.set(-5, 2, -10);
     scene.add(backLight);
 
-    const topLight = new THREE.DirectionalLight(0xffffff, 0.34);
+    const topLight = new THREE.DirectionalLight(0xf5d0fe, 0.26);
     topLight.position.set(0, 10, 0);
     scene.add(topLight);
 
-    const frontLight = new THREE.DirectionalLight(0xffffff, 0.24);
+    const frontLight = new THREE.DirectionalLight(0xc084fc, 0.2);
     frontLight.position.set(0, 2, 10);
     scene.add(frontLight);
 
     const group = new THREE.Group();
     group.position.y = 0;
-    group.scale.setScalar(1.62);
+    group.scale.setScalar(1.72);
     scene.add(group);
     group.rotation.order = 'YXZ';
 
@@ -95,7 +95,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
         envTexture = texture;
         envRenderTarget = pmremGenerator.fromEquirectangular(texture);
         scene.environment = envRenderTarget.texture;
-        scene.environmentIntensity = 0.04;
+        scene.environmentIntensity = 0.08;
       },
       undefined,
       () => {
@@ -119,7 +119,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     group.add(photoMesh);
 
     let currentAspectRatio = 1.0;
-    const photoScale = 2.0;
+    const photoScale = 2.14;
 
     const updatePhotoScale = () => {
       const finalScale = photoScale;
@@ -159,21 +159,21 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     glassGeo.center();
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: '#6d28d9',
+      color: '#9333ea',
       transmission: 1.0,
       opacity: 1.0,
       metalness: 0.0,
       roughness: 0.0,
       ior: 2.33,
       thickness: 1.2,
-      attenuationColor: new THREE.Color('#c4b5fd'),
-      attenuationDistance: 3.9,
-      specularIntensity: 0.72,
-      envMapIntensity: 0.58,
+      attenuationColor: new THREE.Color('#ddd6fe'),
+      attenuationDistance: 3.4,
+      specularIntensity: 0.8,
+      envMapIntensity: 0.62,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
-      sheen: 0.12,
-      sheenColor: new THREE.Color('#ede9fe'),
+      sheen: 0.16,
+      sheenColor: new THREE.Color('#f5d0fe'),
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -186,12 +186,12 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     let sparkleContext: CanvasRenderingContext2D | null = null;
     let sparkleWidth = 0;
     let sparkleHeight = 0;
-    const sparkleStars = Array.from({ length: 28 }, () => ({
+    const sparkleStars = Array.from({ length: 46 }, () => ({
       x: Math.random(),
       y: Math.random(),
       size: Math.random() * 1.2 + 0.35,
-      opacity: Math.random() * 0.22 + 0.04,
-      speed: Math.random() * 0.045 + 0.015,
+      opacity: Math.random() * 0.28 + 0.06,
+      speed: Math.random() * 0.05 + 0.018,
       twinkle: Math.random() * Math.PI * 2,
     }));
     let sparkleBursts: Array<{
@@ -294,9 +294,9 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           gradY,
           Math.max(sparkleWidth, sparkleHeight) * 0.8
         );
-        holoGrad.addColorStop(0, 'rgba(168, 85, 247, 0.03)');
-        holoGrad.addColorStop(0.36, 'rgba(96, 165, 250, 0.018)');
-        holoGrad.addColorStop(0.62, 'rgba(34, 211, 238, 0.012)');
+        holoGrad.addColorStop(0, 'rgba(168, 85, 247, 0.08)');
+        holoGrad.addColorStop(0.34, 'rgba(192, 132, 252, 0.05)');
+        holoGrad.addColorStop(0.62, 'rgba(245, 197, 24, 0.025)');
         holoGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = holoGrad;
         ctx.fillRect(0, 0, sparkleWidth, sparkleHeight);
@@ -311,7 +311,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           const twinkleOpacity = star.opacity * (0.42 + 0.58 * Math.sin(star.twinkle));
           const glow = ctx.createRadialGradient(x, y, 0, x, y, star.size * 4.5);
           glow.addColorStop(0, `rgba(245, 197, 24, ${twinkleOpacity})`);
-          glow.addColorStop(0.48, `rgba(168, 85, 247, ${twinkleOpacity * 0.22})`);
+          glow.addColorStop(0.42, `rgba(192, 132, 252, ${twinkleOpacity * 0.42})`);
           glow.addColorStop(1, 'transparent');
 
           ctx.beginPath();
@@ -325,13 +325,13 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           ctx.fill();
         });
 
-        if (Math.random() < 0.012) {
+        if (Math.random() < 0.024) {
           sparkleBursts.push({
             x: sparkleWidth * (0.18 + Math.random() * 0.64),
             y: sparkleHeight * (0.18 + Math.random() * 0.64),
             life: 0,
             maxLife: 24,
-            size: Math.random() * 4 + 2.5,
+            size: Math.random() * 4.8 + 3.2,
           });
         }
 
@@ -340,7 +340,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           sparkle.life += 1;
           const progress = sparkle.life / sparkle.maxLife;
           const size = Math.sin(progress * Math.PI) * sparkle.size;
-          const opacity = Math.sin(progress * Math.PI) * 0.52;
+          const opacity = Math.sin(progress * Math.PI) * 0.7;
 
           ctx.save();
           ctx.translate(sparkle.x, sparkle.y);
@@ -355,9 +355,17 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           }
           ctx.closePath();
           ctx.fillStyle = `rgba(255, 220, 100, ${opacity})`;
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 12;
           ctx.shadowColor = `rgba(245, 197, 24, ${opacity})`;
           ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(-size * 0.18, 0);
+          ctx.lineTo(size * 0.18, 0);
+          ctx.moveTo(0, -size * 0.18);
+          ctx.lineTo(0, size * 0.18);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.78})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
           ctx.restore();
         });
 
@@ -437,7 +445,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       <canvas
         ref={sparkleRef}
         className="pointer-events-none absolute inset-0 h-full w-full"
-        style={{ mixBlendMode: 'color-dodge', opacity: 0.85 }}
+        style={{ mixBlendMode: 'color-dodge', opacity: 0.98 }}
       />
     </div>
   );
