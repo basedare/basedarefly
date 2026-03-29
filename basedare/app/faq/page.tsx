@@ -140,12 +140,12 @@ export default function FAQPage() {
               />
               <div className="relative z-10 h-full w-full p-0.5">
                 <div className="relative h-full w-full" style={{ clipPath: octagonClipPath }}>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(147,51,234,0.98)_0%,rgba(126,34,206,0.97)_34%,rgba(91,33,182,0.98)_66%,rgba(59,7,100,0.99)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-18px_20px_rgba(0,0,0,0.28),0_0_22px_rgba(147,51,234,0.26)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(168,85,247,0.99)_0%,rgba(147,51,234,0.98)_32%,rgba(126,34,206,0.98)_64%,rgba(76,29,149,0.99)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-18px_20px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.3)]" />
                   <div className="pointer-events-none absolute inset-[6%] opacity-95" style={{ clipPath: octagonClipPath }}>
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_26%,rgba(255,255,255,0.18)_0%,transparent_18%),radial-gradient(circle_at_76%_72%,rgba(192,132,252,0.18)_0%,transparent_26%),radial-gradient(circle_at_58%_20%,rgba(245,197,24,0.08)_0%,transparent_18%)] mix-blend-screen" />
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,rgba(245,197,24,0.16)_0%,transparent_5%),radial-gradient(circle_at_68%_34%,rgba(255,255,255,0.14)_0%,transparent_4%),radial-gradient(circle_at_72%_66%,rgba(245,197,24,0.14)_0%,transparent_4%),radial-gradient(circle_at_34%_72%,rgba(192,132,252,0.12)_0%,transparent_5%)] mix-blend-screen opacity-90" />
                   </div>
-                  <div className="absolute inset-[16%]">
+                  <div className="absolute inset-[16%] faq-mobile-peebear">
                     <Image
                       src="/assets/peebear-head.png"
                       alt="BaseDare Bear"
@@ -270,6 +270,30 @@ export default function FAQPage() {
       </div>
 
       <style jsx global>{`
+        @keyframes faq-mobile-peebear-breathe {
+          0%,
+          100% {
+            transform: translateY(0) rotate(0deg) scale(1);
+            filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.28))
+              drop-shadow(0 0 12px rgba(168, 85, 247, 0.14));
+          }
+          50% {
+            transform: translateY(-3px) rotate(-2.2deg) scale(1.04);
+            filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.34))
+              drop-shadow(0 0 18px rgba(168, 85, 247, 0.2));
+          }
+        }
+
+        .faq-mobile-peebear {
+          transform-origin: center;
+        }
+
+        @media (max-width: 767px) {
+          .faq-mobile-peebear {
+            animation: faq-mobile-peebear-breathe 5.2s ease-in-out infinite;
+          }
+        }
+
         @keyframes faq-accordion-down {
           from {
             height: 0;

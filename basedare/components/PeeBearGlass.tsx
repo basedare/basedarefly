@@ -63,15 +63,15 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.28);
     scene.add(ambientLight);
 
-    const backLight = new THREE.DirectionalLight(0xd8b4fe, 0.58);
+    const backLight = new THREE.DirectionalLight(0xe879f9, 0.6);
     backLight.position.set(-5, 2, -10);
     scene.add(backLight);
 
-    const topLight = new THREE.DirectionalLight(0xf5d0fe, 0.26);
+    const topLight = new THREE.DirectionalLight(0xf0abfc, 0.24);
     topLight.position.set(0, 10, 0);
     scene.add(topLight);
 
-    const frontLight = new THREE.DirectionalLight(0xc084fc, 0.2);
+    const frontLight = new THREE.DirectionalLight(0xd946ef, 0.22);
     frontLight.position.set(0, 2, 10);
     scene.add(frontLight);
 
@@ -159,21 +159,23 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     glassGeo.center();
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: '#9333ea',
+      color: '#a855f7',
       transmission: 1.0,
       opacity: 1.0,
       metalness: 0.0,
       roughness: 0.0,
       ior: 2.33,
       thickness: 1.2,
-      attenuationColor: new THREE.Color('#ddd6fe'),
-      attenuationDistance: 3.4,
+      attenuationColor: new THREE.Color('#f3e8ff'),
+      attenuationDistance: 3.1,
+      emissive: new THREE.Color('#581c87'),
+      emissiveIntensity: 0.28,
       specularIntensity: 0.8,
-      envMapIntensity: 0.62,
+      envMapIntensity: 0.52,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
       sheen: 0.16,
-      sheenColor: new THREE.Color('#f5d0fe'),
+      sheenColor: new THREE.Color('#f0abfc'),
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
