@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, HelpCircle, Info } from 'lucide-react';
+import { Twitter, Shield, FileText, HelpCircle, Info, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
 
@@ -132,6 +132,12 @@ export default function Footer() {
                     Privacy Policy
                   </Link>
                 </li>
+                <li>
+                  <Link href="/contact" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-purple-300 active:text-purple-300 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-purple-300" />
+                    Contact
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -150,6 +156,10 @@ export default function Footer() {
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/privacy" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
                 Privacy
+              </Link>
+              <span className="text-white/20 hidden sm:inline">•</span>
+              <Link href="/contact" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+                Contact
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
               <a

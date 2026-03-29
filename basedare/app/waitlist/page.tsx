@@ -27,15 +27,14 @@ export default function WaitlistPage() {
       body: JSON.stringify({ 
         email: email,
         notes: notes,
-        source: 'BaseDare Waitlist' // Optional: helps you track where signups come from
+        source: 'BaseDare Contact Signal'
       }),
     });
 
     if (response.ok) {
       setSubmitted(true);
     } else {
-      // If something goes wrong, give a "God-Tier" error message
-      alert("The Vault is temporarily locked. Identity could not be verified.");
+      alert('Signal failed to route. Try again in a moment.');
     }
   };
 
@@ -51,7 +50,6 @@ export default function WaitlistPage() {
         <div className="absolute inset-0 backdrop-blur-[1.5px]" />
       </div>
 
-      {/* RADIANT AURA: Matches the Hero Bear feel */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px]" />
 
       <div className={`relative z-20 w-full max-w-md space-y-8 p-6 text-center md:p-8 ${raisedShellClass}`}>
@@ -59,32 +57,30 @@ export default function WaitlistPage() {
         {/* THE SENTINEL: Floating head */}
         <div className="relative group mx-auto w-fit">
           <div className="absolute -inset-4 bg-purple-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <img 
+          <img
             src="/assets/peebear-head.png" 
-            alt="BaseDare Sentinel" 
+            alt="BaseDare Signal Bear"
             className="vault-peebear relative z-10 mx-auto h-44 w-44 object-contain md:h-60 md:w-60"
           />
         </div>
 
-        {/* HEADLINE SECTION */}
         <div className="space-y-4">
-          <ChromeText text="THE VAULT" className="text-6xl md:text-7xl tracking-tighter" />
+          <ChromeText text="SIGNAL THE GRID" className="text-5xl md:text-6xl tracking-tighter" />
           <div className={`${dentWellClass} px-4 py-3.5`}>
             <p className="text-gray-200/90 font-mono text-[10px] md:text-xs tracking-[0.28em] uppercase">
-              Early Access • BaseDare
+              Contact • Feedback • Partnerships
             </p>
           </div>
         </div>
 
-        {/* FORM STATE */}
         {!submitted ? (
           <div className="w-full space-y-5">
             <div className={`${dentWellClass} mx-auto max-w-[340px] px-5 py-4.5`}>
               <p className="text-sm leading-relaxed text-gray-200/88">
-                Join the waitlist for early access to BaseDare.
+                Suggest a venue, pitch a partnership, or send us a bug, idea, or question.
               </p>
               <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gray-400/85">
-                Leave a note if you have questions, ideas, or a partnership angle.
+                Venue Signal • Brand / Venue Partnership • General Signal
               </p>
             </div>
             
@@ -102,7 +98,7 @@ export default function WaitlistPage() {
 
               <div className={`${dentWellClass} px-2 py-2`}>
                 <textarea
-                  placeholder="OPTIONAL_NOTE"
+                  placeholder="DROP_YOUR_SIGNAL"
                   className="min-h-[108px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm tracking-[0.14em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -114,23 +110,22 @@ export default function WaitlistPage() {
                 className="vault-glass-button relative w-full overflow-hidden rounded-[1.15rem] py-4 text-lg font-black italic uppercase tracking-tighter text-white transition-all active:scale-[0.98]"
               >
                 <span className="vault-glass-button__surface">
-                  <span className="vault-glass-button__label">Enter the Vault</span>
+                  <span className="vault-glass-button__label">Send Signal</span>
                 </span>
               </button>
             </form>
           </div>
         ) : (
           <div className={`animate-in fade-in zoom-in p-8 duration-500 ${dentWellClass}`}>
-            <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">✨ Success</h3>
-            <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">You&apos;re on the list.</p>
-            <p className="mt-3 text-sm text-white/62">We&apos;ll let you know when the vault opens.</p>
+            <h3 className="text-white font-black italic text-2xl uppercase mb-2 tracking-tighter">Signal Received</h3>
+            <p className="text-purple-400 font-mono text-xs uppercase tracking-widest">We&apos;ll read it.</p>
+            <p className="mt-3 text-sm text-white/62">Thanks for helping shape the grid.</p>
           </div>
         )}
 
-        {/* FOOTER CAPTION */}
         <div className={`${dentWellClass} px-4 py-3`}>
           <p className="text-[10px] text-gray-400/80 font-mono uppercase tracking-[0.4em]">
-            Base Mainnet • Early Access Queue
+            Base Mainnet • Open Signal Line
           </p>
         </div>
       </div>
