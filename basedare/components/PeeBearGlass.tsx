@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 const HDRI_URL =
-  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/royal_esplanade_2k.hdr';
+  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/studio_small_03_2k.hdr';
 const PEEBEAR_TEXTURE_URL = '/assets/peebear-head.png';
 
 type PeeBearGlassProps = {
@@ -38,7 +38,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 7);
+    camera.position.set(0, 0, 8.6);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -70,7 +70,8 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     scene.add(frontLight);
 
     const group = new THREE.Group();
-    group.position.y = -0.1;
+    group.position.y = 0;
+    group.scale.setScalar(0.78);
     scene.add(group);
 
     let envTexture: THREE.DataTexture | null = null;
@@ -83,6 +84,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
         texture.magFilter = THREE.LinearFilter;
         envTexture = texture;
         scene.environment = texture;
+        scene.environmentIntensity = 0.17;
       },
       undefined,
       () => {
@@ -138,7 +140,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       steps: 2,
       bevelSize: 0.08,
       bevelThickness: 0.1,
-      curveSegments: 64,
+      curveSegments: 512,
     };
 
     const glassGeo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.2), extrudeSettings);
@@ -150,7 +152,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       opacity: 1.0,
       metalness: 0.0,
       roughness: 0.0,
-      ior: 2.05,
+      ior: 2.33,
       thickness: 1.2,
       attenuationColor: new THREE.Color('#ffffff'),
       attenuationDistance: 9999.0,
