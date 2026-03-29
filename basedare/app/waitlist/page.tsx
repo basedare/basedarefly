@@ -71,10 +71,19 @@ export default function WaitlistPage() {
             </p>
           </div>
           <div className="mx-auto max-w-[300px] space-y-2 md:max-w-[380px]">
-            <ChromeText
-              text="SIGNAL THE GRID"
-              className="text-3xl sm:text-4xl md:text-5xl leading-[0.92] tracking-[-0.04em]"
-            />
+            <div className="md:hidden">
+              <h1 className="font-display text-[22vw] font-black italic leading-[0.86] tracking-[-0.08em] text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">
+                <span className="block">SIGNAL</span>
+                <span className="block">THE</span>
+                <span className="block">GRID</span>
+              </h1>
+            </div>
+            <div className="hidden md:block">
+              <ChromeText
+                text="SIGNAL THE GRID"
+                className="text-5xl leading-[0.92] tracking-[-0.04em]"
+              />
+            </div>
             <p className="text-sm leading-relaxed text-white/72 md:text-[15px]">
               Suggest a venue, pitch a partnership, or send us a bug, idea, or question.
             </p>
