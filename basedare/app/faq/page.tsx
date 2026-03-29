@@ -95,6 +95,18 @@ const FAQ_ITEMS = [
 ];
 
 export default function FAQPage() {
+  const [isDesktop, setIsDesktop] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const syncDesktop = () => setIsDesktop(media.matches);
+
+    syncDesktop();
+    media.addEventListener?.("change", syncDesktop);
+
+    return () => media.removeEventListener?.("change", syncDesktop);
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-transparent">
       <LiquidBackground />
@@ -172,7 +184,7 @@ export default function FAQPage() {
                 style={{ clipPath: octagonClipPath }}
               />
               <div className="relative z-10 h-full w-full p-1">
-                <PeeBearGlass className="mx-auto h-full w-full" />
+                {isDesktop ? <PeeBearGlass className="mx-auto h-full w-full" /> : null}
               </div>
 
               <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
@@ -183,17 +195,24 @@ export default function FAQPage() {
             </div>
 
             <div className="relative mx-auto mb-2 h-24 w-full max-w-3xl cursor-default md:h-28">
-              <TextPressure
-                text="WTF IS THIS?"
-                flex={true}
-                alpha={false}
-                stroke={false}
-                width={true}
-                weight={true}
-                italic={true}
-                textColor="#FFD700" // Brand Gold
-                minFontSize={36}
-              />
+              <div className="flex h-full items-center justify-center md:hidden">
+                <h2 className="text-center font-display text-[18vw] font-black italic uppercase leading-none tracking-[0.14em] text-[#FFD700]">
+                  WTF IS THIS?
+                </h2>
+              </div>
+              <div className="hidden h-full w-full md:block">
+                <TextPressure
+                  text="WTF IS THIS?"
+                  flex={true}
+                  alpha={false}
+                  stroke={false}
+                  width={true}
+                  weight={true}
+                  italic={true}
+                  textColor="#FFD700"
+                  minFontSize={36}
+                />
+              </div>
             </div>
 
             <p className="mt-4 flex items-center justify-center gap-2 font-mono text-sm uppercase tracking-[0.2em] text-gray-300 md:text-base">
