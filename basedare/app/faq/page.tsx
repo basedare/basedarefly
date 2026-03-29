@@ -125,7 +125,7 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="relative mx-auto mb-6 h-56 w-56 overflow-hidden md:hidden" style={{ clipPath: octagonClipPath }}>
+            <div className="relative mx-auto mb-6 h-56 w-56 md:hidden">
               <div
                 className="absolute inset-0 blur-2xl bg-purple-500/22"
                 style={{ clipPath: octagonClipPath }}
@@ -135,10 +135,10 @@ export default function FAQPage() {
                 style={{ clipPath: octagonClipPath }}
               />
               <div
-                className="pointer-events-none absolute inset-[5.5%] border border-white/[0.05] bg-[linear-gradient(180deg,rgba(6,8,18,0.72)_0%,rgba(14,11,30,0.88)_100%)] shadow-[inset_14px_14px_24px_rgba(0,0,0,0.54),inset_-6px_-6px_16px_rgba(255,255,255,0.03)]"
+                className="pointer-events-none absolute inset-[4.25%] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,8,18,0.72)_0%,rgba(14,11,30,0.88)_100%)] shadow-[inset_16px_16px_26px_rgba(0,0,0,0.58),inset_-7px_-7px_18px_rgba(255,255,255,0.035)]"
                 style={{ clipPath: octagonClipPath }}
               />
-              <div className="relative z-10 h-full w-full p-0.5">
+              <div className="relative z-10 h-full w-full p-[8.5%]">
                 <div className="relative h-full w-full" style={{ clipPath: octagonClipPath }}>
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(168,85,247,0.99)_0%,rgba(147,51,234,0.98)_32%,rgba(126,34,206,0.98)_64%,rgba(76,29,149,0.99)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-18px_20px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.3)]" />
                   <div className="pointer-events-none absolute inset-[6%] opacity-95" style={{ clipPath: octagonClipPath }}>
@@ -278,9 +278,9 @@ export default function FAQPage() {
               drop-shadow(0 0 12px rgba(168, 85, 247, 0.14));
           }
           50% {
-            transform: translateY(-3px) rotate(-2.2deg) scale(1.04);
-            filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.34))
-              drop-shadow(0 0 18px rgba(168, 85, 247, 0.2));
+            transform: translateY(-5px) rotate(-3.4deg) scale(1.065);
+            filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.36))
+              drop-shadow(0 0 22px rgba(168, 85, 247, 0.24));
           }
         }
 
