@@ -68,19 +68,31 @@ export async function GET(request: NextRequest) {
       `[NEARBY] Query: lat=${lat}, lng=${lng}, radius=${radius}km, geohash=${queryGeohash}`
     );
 
-    // Query dares with matching geohashes that are nearby dares
+    // Query both explicit nearby dares and venue-anchored active dares so
+    // the discovery layer doesn't miss missions that are attached to a place.
     const dares = await prisma.dare.findMany({
       where: {
-        isNearbyDare: true,
         NOT: {
           OR: [
             { status: 'EXPIRED' },
             { expiresAt: { lt: now } },
           ],
         },
-        geohash: { in: neighborHashes },
-        latitude: { not: null },
-        longitude: { not: null },
+        OR: [
+          {
+            isNearbyDare: true,
+            geohash: { in: neighborHashes },
+            latitude: { not: null },
+            longitude: { not: null },
+          },
+          {
+            venueId: { not: null },
+            venue: {
+              status: 'ACTIVE',
+              geohash: { in: neighborHashes },
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -95,17 +107,27 @@ export async function GET(request: NextRequest) {
         expiresAt: true,
         createdAt: true,
         streamerHandle: true,
+        venue: {
+          select: {
+            slug: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      take: limit * 2, // Fetch more to filter by actual distance
+      take: limit * 4, // Fetch more to filter by actual distance
     });
 
     // Filter by actual distance and calculate display values
     const nearbyDares = dares
       .map((dare) => {
-        if (dare.latitude === null || dare.longitude === null) return null;
+        const sourceLatitude = dare.latitude ?? dare.venue?.latitude ?? null;
+        const sourceLongitude = dare.longitude ?? dare.venue?.longitude ?? null;
+        if (sourceLatitude === null || sourceLongitude === null) return null;
 
-        const distanceKm = calculateDistance(lat, lng, dare.latitude, dare.longitude);
+        const distanceKm = calculateDistance(lat, lng, sourceLatitude, sourceLongitude);
 
         // Check if within query radius AND within the dare's discovery radius
         const dareRadius = dare.discoveryRadiusKm ?? 5;
@@ -119,13 +141,14 @@ export async function GET(request: NextRequest) {
           title: dare.title,
           bounty: dare.bounty,
           status: dare.status,
-          locationLabel: dare.locationLabel,
+          locationLabel: dare.locationLabel ?? dare.venue?.name ?? null,
           distanceKm: Math.round(distanceKm * 100) / 100,
           distanceDisplay: formatDistance(distanceKm),
           expiresAt: dare.expiresAt?.toISOString() || null,
           createdAt: dare.createdAt.toISOString(),
           streamerHandle: dare.streamerHandle,
           isOpenBounty: !dare.streamerHandle,
+          venueSlug: dare.venue?.slug ?? null,
         };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
