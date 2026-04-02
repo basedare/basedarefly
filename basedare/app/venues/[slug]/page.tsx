@@ -40,6 +40,46 @@ function getVenueActivationState(dare: {
   };
 }
 
+function formatVenueLogbookDate(value: string) {
+  const date = new Date(value);
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (sameDay) {
+    return `today · ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const wasYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+
+  if (wasYesterday) {
+    return 'yesterday';
+  }
+
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getLogbookSourceLabel(source?: string | null) {
+  switch (source) {
+    case 'DARE_COMPLETION':
+      return 'verified dare';
+    case 'DIRECT_TAG':
+      return 'place mark';
+    default:
+      return 'venue memory';
+  }
+}
+
 export default async function VenueDetailPage(
   {
     params,
@@ -396,58 +436,91 @@ export default async function VenueDetailPage(
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Creator Marks</p>
-                    <h2 className="mt-2 text-2xl font-bold">Recent tags at this place</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Logbook</p>
+                    <h2 className="mt-2 text-2xl font-bold">Verified history at this place</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/58">
+                      Every approved mark becomes part of this venue&apos;s public memory trail. The best places should
+                      feel inhabited before you even arrive.
+                    </p>
                   </div>
-                  <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    Heat {venue.tagSummary.heatScore}
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      {venue.tagSummary.approvedCount} verified mark{venue.tagSummary.approvedCount === 1 ? '' : 's'}
+                    </div>
+                    <div className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-4 py-2 text-sm text-fuchsia-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      Pulse {venue.tagSummary.heatScore}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-5 space-y-3">
+                  {venue.tagSummary.approvedCount === 0 ? (
+                    <div className="rounded-[18px] border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-4 py-3 text-sm text-[#f8dd72] shadow-[0_14px_28px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      First mark open. The first approved memory here becomes the venue&apos;s opening legend.
+                    </div>
+                  ) : null}
                   {venue.recentTags.length > 0 ? (
-                    venue.recentTags.map((tag) => (
-                      <div
-                        key={tag.id}
-                        className={`${insetCardClass} flex items-start justify-between gap-4 px-4 py-4`}
-                      >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-semibold text-white">
-                              {tag.creatorTag ?? `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
-                            </p>
-                            {tag.firstMark ? (
-                              <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
-                                first mark
-                              </span>
+                    <div className="max-h-[34rem] space-y-3 overflow-y-auto pr-1">
+                      {venue.recentTags.map((tag) => (
+                        <div
+                          key={tag.id}
+                          className={`${insetCardClass} flex items-start gap-4 px-4 py-4`}
+                        >
+                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,18,0.96)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                            {tag.proofType === 'IMAGE' ? (
+                              <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{ backgroundImage: `url(${tag.proofMediaUrl})` }}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(6,7,14,0.96)_100%)]" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                            <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/70 backdrop-blur-sm">
+                              {tag.proofType === 'VIDEO' ? 'video proof' : 'image proof'}
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="truncate font-semibold text-white">
+                                    {tag.creatorTag ?? `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
+                                  </p>
+                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
+                                    {getLogbookSourceLabel(tag.source)}
+                                  </span>
+                                  {tag.firstMark ? (
+                                    <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
+                                      first mark
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-2 text-sm leading-relaxed text-white/64">
+                                  {tag.caption ?? 'Verified place mark submitted through BaseDare.'}
+                                </p>
+                              </div>
+                              <div className="text-left sm:text-right">
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-white/36">
+                                  {formatVenueLogbookDate(tag.submittedAt)}
+                                </p>
+                              </div>
+                            </div>
+                            {tag.vibeTags.length > 0 ? (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {tag.vibeTags.slice(0, 4).map((vibeTag) => (
+                                  <span
+                                    key={vibeTag}
+                                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48"
+                                  >
+                                    #{vibeTag}
+                                  </span>
+                                ))}
+                              </div>
                             ) : null}
                           </div>
-                          <p className="mt-2 text-sm text-white/60">
-                            {tag.caption ?? 'Verified place mark submitted through BaseDare.'}
-                          </p>
-                          {tag.vibeTags.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {tag.vibeTags.slice(0, 4).map((vibeTag) => (
-                                <span
-                                  key={vibeTag}
-                                  className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48"
-                                >
-                                  #{vibeTag}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs uppercase tracking-[0.22em] text-white/35">{tag.proofType}</p>
-                          <p className="mt-2 text-sm text-white/55">
-                            {new Date(tag.submittedAt).toLocaleDateString([], {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>
                       <p className="text-sm text-white/58">

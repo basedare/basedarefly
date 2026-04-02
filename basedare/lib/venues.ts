@@ -668,7 +668,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
         scannedAt: true,
       },
     }),
-    getRecentApprovedPlaceTagsByVenueId(venue.id, 5),
+    getRecentApprovedPlaceTagsByVenueId(venue.id, 12),
   ]);
 
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
