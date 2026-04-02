@@ -265,6 +265,8 @@ const MAP_PRESET_OPTIONS: Array<{
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
+const PROXIMITY_REVEAL_METERS = 100;
+const PROXIMITY_GHOST_METERS = 500;
 
 function getRadiusMetersForZoom(zoom: number) {
   if (zoom >= 15) return 2000;
@@ -326,6 +328,39 @@ function getLastSparkLabel(lastTaggedAt: string | null) {
 
 function formatCoordinateLabel(latitude: number, longitude: number) {
   return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
+
+function calculateDistanceMeters(
+  startLatitude: number,
+  startLongitude: number,
+  endLatitude: number,
+  endLongitude: number
+) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusMeters = 6371000;
+  const latDelta = toRadians(endLatitude - startLatitude);
+  const lngDelta = toRadians(endLongitude - startLongitude);
+  const startLat = toRadians(startLatitude);
+  const endLat = toRadians(endLatitude);
+
+  const haversine =
+    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
+    Math.sin(lngDelta / 2) *
+      Math.sin(lngDelta / 2) *
+      Math.cos(startLat) *
+      Math.cos(endLat);
+
+  return Math.round(
+    earthRadiusMeters * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  );
+}
+
+function formatDistanceMeters(distanceMeters: number) {
+  if (distanceMeters < 1000) {
+    return `${distanceMeters}m away`;
+  }
+
+  return `${(distanceMeters / 1000).toFixed(1)}km away`;
 }
 
 function getExpiryLabel(expiresAt: string | null) {
@@ -610,6 +645,7 @@ export default function RealWorldMap() {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [locating, setLocating] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
@@ -689,6 +725,10 @@ export default function RealWorldMap() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (cancelled) return;
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
         setTargetCenter([position.coords.latitude, position.coords.longitude]);
         setTargetZoom(14);
         setLocating(false);
@@ -1118,6 +1158,108 @@ export default function RealWorldMap() {
     () => getPlaceVisualCopy(selectedVisualState),
     [selectedVisualState]
   );
+
+  const selectedPlaceDistanceMeters = useMemo(() => {
+    if (!selectedPlace || !userLocation) {
+      return null;
+    }
+
+    return calculateDistanceMeters(
+      userLocation.latitude,
+      userLocation.longitude,
+      selectedPlace.latitude,
+      selectedPlace.longitude
+    );
+  }, [selectedPlace, userLocation]);
+
+  const firstMarkState = useMemo(() => {
+    const approvedCount = selectedPlace?.approvedCount ?? 0;
+    const pendingCount = selectedPendingPlaceTags.length;
+
+    if (approvedCount <= 0 && pendingCount > 0) {
+      return {
+        label: 'First mark contested',
+        className:
+          'border-amber-300/35 bg-amber-500/[0.12] text-amber-100',
+      };
+    }
+
+    if (approvedCount <= 0) {
+      return {
+        label: 'First mark open',
+        className:
+          'border-[#f5c518]/38 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(168,85,247,0.12)_100%)] text-[#f8dd72]',
+      };
+    }
+
+    if (approvedCount === 1) {
+      return {
+        label: 'First verified here',
+        className:
+          'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]',
+      };
+    }
+
+    return null;
+  }, [selectedPendingPlaceTags.length, selectedPlace?.approvedCount]);
+
+  const proximityAccess = useMemo(() => {
+    if (isCreatorSource || showBackToControl) {
+      return {
+        mode: 'unlocked' as const,
+        canReveal: true,
+        label: null as string | null,
+      };
+    }
+
+    if (!selectedPlaceActiveDares.length) {
+      return {
+        mode: 'none' as const,
+        canReveal: true,
+        label: null as string | null,
+      };
+    }
+
+    if (!userLocation) {
+      return {
+        mode: 'needs-location' as const,
+        canReveal: false,
+        label: 'Locate to start the hunt',
+      };
+    }
+
+    if (selectedPlaceDistanceMeters !== null && selectedPlaceDistanceMeters <= PROXIMITY_REVEAL_METERS) {
+      return {
+        mode: 'unlocked' as const,
+        canReveal: true,
+        label: `Within ${PROXIMITY_REVEAL_METERS}m unlock radius`,
+      };
+    }
+
+    if (
+      selectedPlaceDistanceMeters !== null &&
+      selectedPlaceDistanceMeters <= PROXIMITY_GHOST_METERS
+    ) {
+      return {
+        mode: 'travel' as const,
+        canReveal: false,
+        label: `${formatDistanceMeters(selectedPlaceDistanceMeters)} · travel to unlock`,
+      };
+    }
+
+    return {
+      mode: 'preview' as const,
+      canReveal: true,
+      label:
+        selectedPlaceDistanceMeters !== null ? formatDistanceMeters(selectedPlaceDistanceMeters) : null,
+    };
+  }, [
+    isCreatorSource,
+    selectedPlaceActiveDares.length,
+    selectedPlaceDistanceMeters,
+    showBackToControl,
+    userLocation,
+  ]);
 
   useEffect(() => {
     const placeId = selectedPlace?.placeId;
@@ -1626,6 +1768,13 @@ export default function RealWorldMap() {
                         {selectedPlace.name}
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {firstMarkState ? (
+                          <span
+                            className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${firstMarkState.className}`}
+                          >
+                            {firstMarkState.label}
+                          </span>
+                        ) : null}
                         <span
                           className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
                             selectedVisualState === 'hot'
@@ -1641,9 +1790,9 @@ export default function RealWorldMap() {
                         >
                           {selectedVisualCopy.label}
                         </span>
-                        {selectedPlaceTags.some((tag) => tag.firstMark) ? (
-                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                            First mark captured
+                        {proximityAccess.label ? (
+                          <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                            {proximityAccess.label}
                           </span>
                         ) : null}
                       </div>
@@ -1706,7 +1855,13 @@ export default function RealWorldMap() {
                       </div>
                       <div className="mt-3 flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-lg font-bold text-white">{focusedCreatorActivation.title}</p>
+                          <p
+                            className={`text-lg font-bold text-white transition ${
+                              proximityAccess.canReveal ? '' : 'select-none blur-[6px]'
+                            }`}
+                          >
+                            {focusedCreatorActivation.title}
+                          </p>
                           <p className="mt-2 text-sm text-white/65">
                             This is the live paid activation your dashboard pointed you to here.
                           </p>
@@ -1725,7 +1880,11 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                         {focusedCreatorActivation.shortId ? (
-                          focusedCreatorActivation.claimedBy || focusedCreatorActivation.targetWalletAddress || focusedCreatorActivation.claimRequestStatus === 'PENDING' ? (
+                          !proximityAccess.canReveal ? (
+                            <span className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                              Travel to unlock
+                            </span>
+                          ) : focusedCreatorActivation.claimedBy || focusedCreatorActivation.targetWalletAddress || focusedCreatorActivation.claimRequestStatus === 'PENDING' ? (
                             <Link
                               href={`/dare/${focusedCreatorActivation.shortId}`}
                               className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100"
@@ -1760,7 +1919,13 @@ export default function RealWorldMap() {
                       </div>
                       <div className="mt-3 flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-lg font-bold text-white">{featuredPaidActivation.title}</p>
+                          <p
+                            className={`text-lg font-bold text-white transition ${
+                              proximityAccess.canReveal ? '' : 'select-none blur-[6px]'
+                            }`}
+                          >
+                            {featuredPaidActivation.title}
+                          </p>
                           <p className="mt-2 text-sm text-white/65">
                             {featuredPaidActivation.brandName ?? 'Brand-backed'} activation live at this place.
                           </p>
@@ -1779,7 +1944,11 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                         {featuredPaidActivation.shortId ? (
-                          featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING' ? (
+                          !proximityAccess.canReveal ? (
+                            <span className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                              Travel to unlock
+                            </span>
+                          ) : featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING' ? (
                             <Link
                               href={`/dare/${featuredPaidActivation.shortId}`}
                               className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100"
@@ -1910,6 +2079,47 @@ export default function RealWorldMap() {
                         </div>
                       ) : null}
                     </div>
+                    {selectedPlaceActiveDares.length > 0 && proximityAccess.mode === 'needs-location' ? (
+                      <div className="mt-3 rounded-[20px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(6,14,24,0.92)_100%)] px-4 py-3.5 shadow-[0_16px_30px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100/82">
+                              Unlock the hunt
+                            </p>
+                            <p className="mt-2 text-sm text-white/72">
+                              We can show the bounty here, but you need location on to know when a live activation is close enough to unlock.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={requestApproximateLocation}
+                            className="inline-flex shrink-0 items-center justify-center rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,12,20,0.92)_100%)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-200/38 hover:bg-cyan-500/[0.16]"
+                          >
+                            Locate me
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {selectedPlaceActiveDares.length > 0 && proximityAccess.mode === 'travel' ? (
+                      <div className="mt-3 rounded-[20px] border border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(29,20,8,0.92)_100%)] px-4 py-3.5 shadow-[0_16px_30px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#f8dd72]">
+                          Travel to unlock
+                        </p>
+                        <p className="mt-2 text-sm text-white/76">
+                          You&apos;re close enough to know the money is live here. Move within {PROXIMITY_REVEAL_METERS}m and the full activation brief unlocks.
+                        </p>
+                      </div>
+                    ) : null}
+                    {selectedPlaceActiveDares.length > 0 && proximityAccess.mode === 'unlocked' && !isCreatorSource && !showBackToControl ? (
+                      <div className="mt-3 rounded-[20px] border border-emerald-300/20 bg-[linear-gradient(180deg,rgba(16,185,129,0.12)_0%,rgba(6,20,15,0.92)_100%)] px-4 py-3.5 shadow-[0_16px_30px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-100/82">
+                          Activation unlocked
+                        </p>
+                        <p className="mt-2 text-sm text-white/72">
+                          You&apos;re inside the live radius. Full place challenge details are now visible.
+                        </p>
+                      </div>
+                    ) : null}
                     {selectedPlaceActiveDaresLoading ? (
                       <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
                         <Loader2 className="h-4 w-4 animate-spin text-[#f8dd72]" />
@@ -1932,7 +2142,13 @@ export default function RealWorldMap() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-white">{dare.title}</p>
+                                <p
+                                  className={`text-sm font-semibold text-white transition ${
+                                    proximityAccess.canReveal ? '' : 'select-none blur-[5px]'
+                                  }`}
+                                >
+                                  {dare.title}
+                                </p>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
                                     ${dare.bounty} USDC
@@ -1968,12 +2184,18 @@ export default function RealWorldMap() {
                                 ) : null}
                               </div>
                               {dare.shortId ? (
-                                <Link
-                                  href={`/dare/${dare.shortId}`}
-                                  className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72"
-                                >
-                                  Open
-                                </Link>
+                                proximityAccess.canReveal ? (
+                                  <Link
+                                    href={`/dare/${dare.shortId}`}
+                                    className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72"
+                                  >
+                                    Open
+                                  </Link>
+                                ) : (
+                                  <span className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                                    Travel to unlock
+                                  </span>
+                                )
                               ) : null}
                             </div>
                           </div>
