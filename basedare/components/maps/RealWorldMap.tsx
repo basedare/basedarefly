@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  CircleMarker,
   MapContainer,
   Marker,
+  Polyline,
   TileLayer,
   useMap,
   useMapEvents,
@@ -25,6 +27,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
@@ -96,6 +99,31 @@ type SearchResponse = {
   success: boolean;
   data?: {
     results: SearchResult[];
+  };
+};
+
+type FootprintMark = {
+  id: string;
+  creatorTag: string | null;
+  firstMark: boolean;
+  submittedAt: string;
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    latitude: number;
+    longitude: number;
+    categories: string[];
+  };
+};
+
+type FootprintResponse = {
+  success: boolean;
+  data?: {
+    marks: FootprintMark[];
   };
 };
 
@@ -635,6 +663,7 @@ function MapController({
 }
 
 export default function RealWorldMap() {
+  const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
@@ -646,6 +675,7 @@ export default function RealWorldMap() {
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [footprintMarks, setFootprintMarks] = useState<FootprintMark[]>([]);
   const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
@@ -707,6 +737,41 @@ export default function RealWorldMap() {
   }, [focusedCreatorActivation, selectedPlaceActiveDares]);
 
   const featuredPaidActivation = showFeaturedPaidActivation ? selectedPlaceFeaturedPaidActivation : null;
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setFootprintMarks([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadFootprint = async () => {
+      try {
+        const response = await fetch(`/api/places/footprint?wallet=${encodeURIComponent(address)}`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as FootprintResponse;
+
+        if (!response.ok || !payload.success || !payload.data?.marks) {
+          throw new Error('Failed to load creator footprint');
+        }
+
+        setFootprintMarks(payload.data.marks);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error('[REAL_WORLD_MAP] Creator footprint failed:', error);
+        setFootprintMarks([]);
+      }
+    };
+
+    void loadFootprint();
+
+    return () => controller.abort();
+  }, [address, isConnected]);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -1335,6 +1400,12 @@ export default function RealWorldMap() {
     return counts;
   }, [nearbyPlaces]);
 
+  const footprintTrail = useMemo(
+    () =>
+      footprintMarks.map((mark) => [mark.venue.latitude, mark.venue.longitude] as [number, number]),
+    [footprintMarks]
+  );
+
   const filterOptions: Array<{
     value: PulseFilter;
     label: string;
@@ -1647,6 +1718,57 @@ export default function RealWorldMap() {
                 );
               })}
 
+              {footprintTrail.length > 1 ? (
+                <Polyline
+                  positions={footprintTrail}
+                  pathOptions={{
+                    color: '#b87fff',
+                    weight: 3,
+                    opacity: 0.28,
+                    dashArray: '8 12',
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              ) : null}
+
+              {footprintMarks.map((mark, index) => (
+                <CircleMarker
+                  key={mark.id}
+                  center={[mark.venue.latitude, mark.venue.longitude]}
+                  radius={mark.firstMark ? 6 : 4}
+                  pathOptions={{
+                    color: mark.firstMark ? '#f5c518' : '#b87fff',
+                    weight: mark.firstMark ? 2 : 1.5,
+                    opacity: 0.85,
+                    fillColor: mark.firstMark ? '#f5c518' : '#d8b4fe',
+                    fillOpacity: index === footprintMarks.length - 1 ? 0.65 : 0.35,
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      focusExistingPlace({
+                        id: mark.venue.id,
+                        slug: mark.venue.slug,
+                        name: mark.venue.name,
+                        description: mark.venue.address,
+                        city: mark.venue.city,
+                        country: mark.venue.country,
+                        latitude: mark.venue.latitude,
+                        longitude: mark.venue.longitude,
+                        categories: mark.venue.categories,
+                        distanceDisplay: '',
+                        tagSummary: {
+                          approvedCount: 0,
+                          heatScore: 0,
+                          lastTaggedAt: mark.submittedAt,
+                        },
+                        activeDareCount: 0,
+                      });
+                    },
+                  }}
+                />
+              ))}
+
               {selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerIcon ? (
                 <Marker
                   position={[selectedPlace.latitude, selectedPlace.longitude]}
@@ -1668,6 +1790,11 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
+            {footprintMarks.length > 0 ? (
+              <div className="pointer-events-none absolute bottom-3 left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:text-[10px]">
+                Your trace · {footprintMarks.length} verified marks
+              </div>
+            ) : null}
             <div className="absolute left-5 top-6 z-[9] hidden md:flex flex-col gap-2">
               <button
                 type="button"
