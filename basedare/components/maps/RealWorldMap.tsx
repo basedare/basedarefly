@@ -521,12 +521,14 @@ function renderPulseLegend(
 function createPeebearMarkerIcon({
   pulse,
   approvedCount,
+  heatScore,
   active,
   visualState,
   challengeLiveCount,
 }: {
   pulse: PulseState;
   approvedCount: number;
+  heatScore: number;
   active: boolean;
   visualState: PlaceVisualState;
   challengeLiveCount: number;
@@ -534,10 +536,11 @@ function createPeebearMarkerIcon({
   const badge = getSparkBadge(approvedCount);
   const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
   const showCount = approvedCount > 0;
+  const showPulseChip = heatScore > 0;
   const hasChallengeLive = challengeLiveCount > 0;
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -554,6 +557,7 @@ function createPeebearMarkerIcon({
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${hasChallengeLive ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
         </div>
@@ -1454,6 +1458,7 @@ export default function RealWorldMap() {
     return createPeebearMarkerIcon({
       pulse: selectedPulse,
       approvedCount: selectedPlace.approvedCount ?? 0,
+      heatScore: selectedPlace.heatScore ?? 0,
       active: true,
       visualState: selectedVisualState,
       challengeLiveCount: selectedPlace.activeDareCount ?? 0,
@@ -1706,6 +1711,7 @@ export default function RealWorldMap() {
                     icon={createPeebearMarkerIcon({
                       pulse,
                       approvedCount: place.tagSummary.approvedCount,
+                      heatScore: place.tagSummary.heatScore,
                       active: isActive,
                       visualState,
                       challengeLiveCount: place.activeDareCount,
@@ -2980,6 +2986,60 @@ export default function RealWorldMap() {
             0 0 18px rgba(245, 197, 24, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           white-space: nowrap;
+        }
+
+        .basedare-leaflet-map :global(.peebear-pulse-pill) {
+          position: absolute;
+          right: -10px;
+          bottom: 22px;
+          z-index: 4;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+            linear-gradient(180deg, rgba(12, 14, 24, 0.96), rgba(6, 8, 16, 0.98));
+          padding: 4px 8px;
+          font-size: 7px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          color: rgba(255, 255, 255, 0.92);
+          white-space: nowrap;
+          box-shadow:
+            0 12px 18px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-leaflet-map :global(.peebear-pulse-pill--blazing) {
+          border-color: rgba(255, 95, 130, 0.44);
+          color: #fff1f4;
+          box-shadow:
+            0 0 0 2px rgba(255, 45, 85, 0.12),
+            0 12px 18px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-leaflet-map :global(.peebear-pulse-pill--igniting) {
+          border-color: rgba(34, 211, 238, 0.42);
+          color: #d8fbff;
+          box-shadow:
+            0 0 0 2px rgba(34, 211, 238, 0.11),
+            0 12px 18px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-leaflet-map :global(.peebear-pulse-pill--simmering) {
+          border-color: rgba(245, 197, 24, 0.46);
+          color: #fff2b7;
+          box-shadow:
+            0 0 0 2px rgba(245, 197, 24, 0.11),
+            0 12px 18px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-leaflet-map :global(.peebear-pulse-pill--cold) {
+          border-color: rgba(255, 255, 255, 0.16);
+          color: rgba(255, 255, 255, 0.78);
         }
 
         .basedare-leaflet-map :global(.peebear-state) {
