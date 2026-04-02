@@ -216,6 +216,11 @@ export default async function VenueDetailPage(
                     <div className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-4 py-2 text-sm text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       ${totalActiveChallengeFunding.toFixed(0)} funded
                     </div>
+                    {venue.activeDares.length === 0 ? (
+                      <div className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-4 py-2 text-sm text-fuchsia-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        first activation open
+                      </div>
+                    ) : null}
                     {paidActivationCount > 0 ? (
                       <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-4 py-2 text-sm text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                         {paidActivationCount} paid activations
@@ -393,8 +398,21 @@ export default async function VenueDetailPage(
                     })
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>
-                      <p className="text-sm text-white/58">
-                        No live challenges here yet. Open this place on the map to fund the first mission and turn it into a stronger participation surface.
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f8dd72]">
+                          First activation open
+                        </span>
+                        {venue.tagSummary.approvedCount > 0 ? (
+                          <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
+                            {venue.tagSummary.approvedCount} verified mark{venue.tagSummary.approvedCount === 1 ? '' : 's'} already here
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-3 text-sm text-white/78">
+                        This place already has map presence. It just needs the first funded mission.
+                      </p>
+                      <p className="mt-2 text-sm text-white/58">
+                        Open this place on the map to fund the first challenge and turn passive venue memory into a live participation surface.
                       </p>
                     </div>
                   )}

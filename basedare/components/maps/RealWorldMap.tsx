@@ -2348,9 +2348,24 @@ export default function RealWorldMap() {
                         })}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-white/55">
-                        No live challenges here yet. Fund the first one from this place panel.
-                      </p>
+                      <div className="mt-3 rounded-[20px] border border-[#f5c518]/16 bg-[linear-gradient(180deg,rgba(245,197,24,0.1)_0%,rgba(18,14,6,0.84)_22%,rgba(6,7,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_30px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f8dd72]">
+                            First activation open
+                          </span>
+                          {selectedPlace.approvedCount && selectedPlace.approvedCount > 0 ? (
+                            <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
+                              venue memory already live
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-white">
+                          This place has presence, but no live mission to chase yet.
+                        </p>
+                        <p className="mt-1.5 text-sm leading-relaxed text-white/62">
+                          Fund the first challenge here and turn this venue from a memory node into an active hunting ground.
+                        </p>
+                      </div>
                     )}
                   </div>
 
