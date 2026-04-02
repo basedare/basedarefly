@@ -17,6 +17,18 @@ const NearbyQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
 });
 
+function getBoundingBox(lat: number, lng: number, radiusKm: number) {
+  const latDelta = radiusKm / 111;
+  const lngDelta = radiusKm / Math.max(0.1, 111 * Math.cos((lat * Math.PI) / 180));
+
+  return {
+    minLat: lat - latDelta,
+    maxLat: lat + latDelta,
+    minLng: lng - lngDelta,
+    maxLng: lng + lngDelta,
+  };
+}
+
 /**
  * GET /api/dares/nearby?lat=14.5995&lng=120.9842&radius=10
  *
@@ -63,6 +75,7 @@ export async function GET(request: NextRequest) {
     // Get geohash for the query location
     const queryGeohash = encodeGeohash(lat, lng, 6);
     const neighborHashes = getNeighborGeohashes(queryGeohash);
+    const bounds = getBoundingBox(lat, lng, radius);
 
     console.log(
       `[NEARBY] Query: lat=${lat}, lng=${lng}, radius=${radius}km, geohash=${queryGeohash}`
@@ -89,7 +102,14 @@ export async function GET(request: NextRequest) {
             venueId: { not: null },
             venue: {
               status: 'ACTIVE',
-              geohash: { in: neighborHashes },
+              latitude: {
+                gte: bounds.minLat,
+                lte: bounds.maxLat,
+              },
+              longitude: {
+                gte: bounds.minLng,
+                lte: bounds.maxLng,
+              },
             },
           },
         ],

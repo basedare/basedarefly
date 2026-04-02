@@ -500,9 +500,21 @@ export async function getNearbyVenues(input: {
         orderBy: { updatedAt: 'desc' },
         take: 1,
       },
+      dares: {
+        where: {
+          NOT: {
+            OR: [
+              { status: { in: [...TERMINAL_DARE_STATUSES] } },
+              { expiresAt: { lt: new Date() } },
+            ],
+          },
+        },
+        select: {
+          id: true,
+        },
+      },
       _count: {
         select: {
-          dares: true,
           checkIns: true,
         },
       },
@@ -543,7 +555,7 @@ export async function getNearbyVenues(input: {
         memorySummary: mapMemorySummary(venue.memories[0] ?? null),
         tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
         liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
-        activeDareCount: venue._count.dares,
+        activeDareCount: venue.dares.length,
         checkInCount: venue._count.checkIns,
       };
     })
