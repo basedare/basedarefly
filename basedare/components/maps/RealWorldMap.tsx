@@ -538,6 +538,16 @@ function createPeebearMarkerIcon({
   const showCount = approvedCount > 0;
   const showPulseChip = heatScore > 0;
   const hasChallengeLive = challengeLiveCount > 0;
+  const stateLabel =
+    visualState === 'first-mark'
+      ? 'FIRST'
+      : visualState === 'pending'
+        ? 'PENDING'
+        : visualState === 'hot'
+          ? 'HOT'
+          : visualState === 'active'
+            ? 'ALIVE'
+            : 'OPEN';
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
   const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
@@ -549,19 +559,21 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: [82, 96],
-    iconAnchor: [41, 62],
-    popupAnchor: [0, -48],
+    iconSize: [88, 114],
+    iconAnchor: [44, 68],
+    popupAnchor: [0, -54],
     html: `
       <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${hasChallengeLive ? 'has-challenge-live' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${hasChallengeLive ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
         </div>
-        <span class="peebear-state peebear-state--${visualState}">${visualState === 'first-mark' ? 'FIRST' : visualState === 'pending' ? 'PENDING' : visualState === 'hot' ? 'HOT' : visualState === 'active' ? 'ALIVE' : 'UNMARKED'}</span>
+        <div class="peebear-meta">
+          ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
+          <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
+        </div>
         <div class="peebear-shadow"></div>
       </div>
     `,
@@ -2921,8 +2933,8 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-marker) {
           position: relative;
-          width: 82px;
-          height: 96px;
+          width: 88px;
+          height: 114px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -2934,8 +2946,8 @@ export default function RealWorldMap() {
           top: 2px;
           left: 50%;
           z-index: 0;
-          width: 82px;
-          height: 82px;
+          width: 84px;
+          height: 84px;
           transform: translateX(-50%);
           border-radius: 9999px;
           background:
@@ -2950,8 +2962,8 @@ export default function RealWorldMap() {
           top: 7px;
           left: 50%;
           z-index: 0;
-          width: 74px;
-          height: 74px;
+          width: 76px;
+          height: 76px;
           transform: translateX(-50%);
           border-radius: 9999px;
           border: 2px solid rgba(245, 197, 24, 0.74);
@@ -2967,7 +2979,7 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-challenge-pill) {
           position: absolute;
-          right: -6px;
+          right: -4px;
           top: 10px;
           z-index: 4;
           border-radius: 9999px;
@@ -2988,18 +3000,24 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
+        .basedare-leaflet-map :global(.peebear-meta) {
+          margin-top: 6px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
         .basedare-leaflet-map :global(.peebear-pulse-pill) {
-          position: absolute;
-          right: -10px;
-          bottom: 22px;
+          position: relative;
           z-index: 4;
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.14);
           background:
             linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
             linear-gradient(180deg, rgba(12, 14, 24, 0.96), rgba(6, 8, 16, 0.98));
-          padding: 4px 8px;
-          font-size: 7px;
+          padding: 3px 8px;
+          font-size: 6.5px;
           font-weight: 900;
           line-height: 1;
           letter-spacing: 0.18em;
@@ -3043,12 +3061,11 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.peebear-state) {
-          margin-top: 6px;
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(7, 10, 18, 0.82);
-          padding: 3px 9px;
-          font-size: 8.5px;
+          padding: 3px 10px;
+          font-size: 8px;
           font-weight: 800;
           line-height: 1;
           letter-spacing: 0.18em;
@@ -3076,6 +3093,11 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.peebear-state--hot) {
           border-color: rgba(251, 113, 133, 0.34);
           color: rgba(255, 228, 230, 0.92);
+        }
+
+        .basedare-leaflet-map :global(.peebear-state--unmarked) {
+          border-color: rgba(245, 197, 24, 0.24);
+          color: rgba(248, 221, 114, 0.9);
         }
 
         .basedare-leaflet-map :global(.peebear-core) {
@@ -3174,12 +3196,14 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-core--unmarked) {
           border-style: dashed;
-          border-color: rgba(255, 255, 255, 0.18);
+          border-color: rgba(245, 197, 24, 0.36);
           box-shadow:
+            0 0 0 2px rgba(245, 197, 24, 0.08),
+            0 0 18px rgba(245, 197, 24, 0.12),
             0 10px 22px rgba(0, 0, 0, 0.38),
             inset 0 1px 0 rgba(255, 255, 255, 0.08),
             inset 0 -12px 16px rgba(0, 0, 0, 0.22);
-          filter: saturate(0.72) brightness(0.94);
+          filter: saturate(0.78) brightness(0.97);
         }
 
         .basedare-leaflet-map :global(.peebear-core--pending) {
