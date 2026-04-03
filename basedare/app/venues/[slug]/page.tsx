@@ -114,7 +114,7 @@ export default async function VenueDetailPage(
     Boolean(venue.featuredPaidActivation) && venue.featuredPaidActivation?.shortId !== focusedActivation?.shortId;
   const featuredPaidActivation = showFeaturedPaidActivation ? venue.featuredPaidActivation : null;
   const mapHref = `/map?place=${encodeURIComponent(venue.slug)}${
-    isCreatorContext ? `&source=creator${focusedDareShortId ? `&dare=${encodeURIComponent(focusedDareShortId)}` : ''}` : ''
+    isCreatorContext ? `&source=creator&matches=1${focusedDareShortId ? `&dare=${encodeURIComponent(focusedDareShortId)}` : ''}` : ''
   }`;
 
   return (

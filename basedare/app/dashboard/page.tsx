@@ -728,7 +728,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <button
-                      onClick={() => router.push(`/map?place=${encodeURIComponent(footprintStats.topVenue?.slug ?? '')}`)}
+                      onClick={() => router.push(`/map?place=${encodeURIComponent(footprintStats.topVenue?.slug ?? '')}&trace=1`)}
                       className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
                     >
                       Open on map
@@ -838,7 +838,7 @@ export default function Dashboard() {
                             {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
                           </CosmicButton>
                           <button
-                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map')}
+                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator&matches=1${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map?matches=1')}
                             className={`${volumetricButtonNeutral} w-full`}
                           >
                             View on map
@@ -853,7 +853,7 @@ export default function Dashboard() {
                             Open
                           </button>
                           <button
-                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map')}
+                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator&matches=1${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map?matches=1')}
                             className={`${volumetricButtonNeutral} w-full`}
                           >
                             View on map

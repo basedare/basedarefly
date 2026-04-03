@@ -129,6 +129,7 @@ Each creator routing surface should be able to answer:
 - which venue they have the strongest history with
 - whether they have won a first mark before
 - why a current opportunity matches this creator spatially
+- which creator lens layers should be enabled by default when the user lands on the map
 
 Preferred creator contribution fields:
 - `totalMarks`

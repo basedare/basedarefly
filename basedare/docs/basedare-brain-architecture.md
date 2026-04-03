@@ -60,6 +60,7 @@ This order matters because BaseDare should create real demand pull before adding
 - Creator opportunity context should carry through dashboard, map, and venue surfaces so a matched activation stays in focus instead of becoming a generic place view.
 - Creator history should carry through dashboard, map, profile, and venue surfaces so the same verified footprint powers both discovery and identity:
   - personal trace on the map
+  - explicit `My Footprint` and `Matched For You` map layers
   - strongest venue history
   - contribution to place memory
   - opportunity affinity at specific venues
@@ -195,6 +196,7 @@ Outputs:
 - creator contribution summaries
 - venue-affinity highlights
 - creator-map handoff cues
+- creator spatial control defaults and deep-link state
 - footprint-driven opportunity context
 
 ### 7. Knowledge & Memory Layer

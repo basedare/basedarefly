@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CircleMarker,
   MapContainer,
   Marker,
   Polyline,
@@ -120,10 +119,68 @@ type FootprintMark = {
   };
 };
 
+type FootprintStats = {
+  totalMarks: number;
+  firstMarks: number;
+  uniqueVenues: number;
+  lastMarkedAt: string | null;
+  topVenue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+    count: number;
+  } | null;
+};
+
 type FootprintResponse = {
   success: boolean;
   data?: {
     marks: FootprintMark[];
+    stats?: FootprintStats;
+  };
+};
+
+type MapCreatorOpportunity = {
+  id: string;
+  shortId: string;
+  title: string;
+  description: string | null;
+  payoutAmount: number;
+  payoutCurrency: 'USDC';
+  matchScore: number;
+  matchReasons: string[];
+  status: string;
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  } | null;
+  linkedDare: {
+    id: string;
+    shortId: string | null;
+    status: string;
+    streamerHandle?: string | null;
+    targetWalletAddress?: string | null;
+    claimRequestWallet?: string | null;
+    claimRequestStatus?: string | null;
+  } | null;
+  affinity?: {
+    venueMarks: number;
+    firstMarksAtVenue: number;
+    cityMarks: number;
+  };
+  claimable?: boolean;
+  shortlisted: boolean;
+};
+
+type CreatorCampaignsResponse = {
+  success: boolean;
+  data?: {
+    campaigns: MapCreatorOpportunity[];
   };
 };
 
@@ -253,6 +310,7 @@ type CeremonyState =
   | null;
 
 const markerIconCache = new Map<string, ReturnType<typeof divIcon>>();
+const footprintMarkerIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
 const MAP_PRESET_OPTIONS: Array<{
   value: MapPreset;
@@ -525,6 +583,7 @@ function createPeebearMarkerIcon({
   active,
   visualState,
   challengeLiveCount,
+  matched = false,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -532,6 +591,7 @@ function createPeebearMarkerIcon({
   active: boolean;
   visualState: PlaceVisualState;
   challengeLiveCount: number;
+  matched?: boolean;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
@@ -550,7 +610,7 @@ function createPeebearMarkerIcon({
             : 'OPEN';
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -559,13 +619,14 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: [88, 114],
+    iconSize: [92, 132],
     iconAnchor: [44, 68],
     popupAnchor: [0, -54],
     html: `
-      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${hasChallengeLive ? 'has-challenge-live' : ''}">
+      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${hasChallengeLive ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${hasChallengeLive ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
+        ${matched ? `<span class="peebear-match-badge">MATCH</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
@@ -580,6 +641,36 @@ function createPeebearMarkerIcon({
   });
 
   markerIconCache.set(cacheKey, icon);
+  return icon;
+}
+
+function createFootprintMarkerIcon({
+  firstMark,
+  latest,
+}: {
+  firstMark: boolean;
+  latest: boolean;
+}) {
+  const cacheKey = `${firstMark ? 'first' : 'mark'}:${latest ? 'latest' : 'history'}`;
+  const cachedIcon = footprintMarkerIconCache.get(cacheKey);
+  if (cachedIcon) {
+    return cachedIcon;
+  }
+
+  const icon = divIcon({
+    className: 'peebear-footprint-icon',
+    iconSize: [108, 44],
+    iconAnchor: [54, 22],
+    popupAnchor: [0, -18],
+    html: `
+      <div class="peebear-footprint ${firstMark ? 'is-first' : ''} ${latest ? 'is-latest' : ''}">
+        <span class="peebear-footprint-dot"></span>
+        <span class="peebear-footprint-label">${firstMark ? 'YOUR WIN' : 'YOUR MARK'}</span>
+      </div>
+    `,
+  });
+
+  footprintMarkerIconCache.set(cacheKey, icon);
   return icon;
 }
 
@@ -692,6 +783,10 @@ export default function RealWorldMap() {
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [footprintMarks, setFootprintMarks] = useState<FootprintMark[]>([]);
+  const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
+  const [creatorOpportunities, setCreatorOpportunities] = useState<MapCreatorOpportunity[]>([]);
+  const [showFootprintLayer, setShowFootprintLayer] = useState(false);
+  const [showMatchedLayer, setShowMatchedLayer] = useState(false);
   const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [sprayBurst, setSprayBurst] = useState(false);
@@ -711,6 +806,8 @@ export default function RealWorldMap() {
   const controlSource = searchParams.get('source');
   const deepLinkedCampaignId = searchParams.get('campaignId');
   const deepLinkedDareShortId = searchParams.get('dare');
+  const showTraceParam = searchParams.get('trace') === '1';
+  const showMatchesParam = searchParams.get('matches') === '1';
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
@@ -757,6 +854,7 @@ export default function RealWorldMap() {
   useEffect(() => {
     if (!isConnected || !address) {
       setFootprintMarks([]);
+      setFootprintStats(null);
       return;
     }
 
@@ -774,6 +872,7 @@ export default function RealWorldMap() {
         }
 
         setFootprintMarks(payload.data.marks);
+        setFootprintStats(payload.data.stats ?? null);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -781,6 +880,7 @@ export default function RealWorldMap() {
 
         console.error('[REAL_WORLD_MAP] Creator footprint failed:', error);
         setFootprintMarks([]);
+        setFootprintStats(null);
       }
     };
 
@@ -788,6 +888,52 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [address, isConnected]);
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setCreatorOpportunities([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadCreatorOpportunities = async () => {
+      try {
+        const response = await fetch(`/api/campaigns/for-creator?wallet=${encodeURIComponent(address)}`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as CreatorCampaignsResponse;
+
+        if (!response.ok || !payload.success || !payload.data?.campaigns) {
+          throw new Error('Failed to load creator opportunity routing');
+        }
+
+        setCreatorOpportunities(payload.data.campaigns);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error('[REAL_WORLD_MAP] Creator opportunity routing failed:', error);
+        setCreatorOpportunities([]);
+      }
+    };
+
+    void loadCreatorOpportunities();
+
+    return () => controller.abort();
+  }, [address, isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      setShowFootprintLayer(false);
+      setShowMatchedLayer(false);
+      return;
+    }
+
+    setShowFootprintLayer(showTraceParam);
+    setShowMatchedLayer(showMatchesParam || isCreatorSource || Boolean(deepLinkedDareShortId));
+  }, [deepLinkedDareShortId, isConnected, isCreatorSource, showMatchesParam, showTraceParam]);
 
   useEffect(() => {
     pendingPlaceTagsRef.current = pendingPlaceTags;
@@ -1422,6 +1568,48 @@ export default function RealWorldMap() {
     [footprintMarks]
   );
 
+  const matchedVenueIndex = useMemo(() => {
+    const index = new Map<
+      string,
+      {
+        venueId: string;
+        venueSlug: string;
+        venueName: string;
+        bestScore: number;
+        reasons: string[];
+        campaignCount: number;
+        dareShortId: string | null;
+      }
+    >();
+
+    creatorOpportunities.forEach((opportunity) => {
+      if (!opportunity.venue?.slug) return;
+
+      const current = index.get(opportunity.venue.slug);
+      if (!current) {
+        index.set(opportunity.venue.slug, {
+          venueId: opportunity.venue.id,
+          venueSlug: opportunity.venue.slug,
+          venueName: opportunity.venue.name,
+          bestScore: opportunity.matchScore,
+          reasons: opportunity.matchReasons.slice(0, 3),
+          campaignCount: 1,
+          dareShortId: opportunity.linkedDare?.shortId ?? null,
+        });
+        return;
+      }
+
+      current.campaignCount += 1;
+      if (opportunity.matchScore > current.bestScore) {
+        current.bestScore = opportunity.matchScore;
+        current.reasons = opportunity.matchReasons.slice(0, 3);
+        current.dareShortId = opportunity.linkedDare?.shortId ?? current.dareShortId;
+      }
+    });
+
+    return index;
+  }, [creatorOpportunities]);
+
   const selectedPlaceFootprintStats = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -1448,6 +1636,14 @@ export default function RealWorldMap() {
       lastMarkedAt: matchingMarks[matchingMarks.length - 1]?.submittedAt ?? null,
     };
   }, [footprintMarks, selectedPlace]);
+
+  const selectedPlaceMatch = useMemo(() => {
+    if (!selectedPlace?.slug) {
+      return null;
+    }
+
+    return matchedVenueIndex.get(selectedPlace.slug) ?? null;
+  }, [matchedVenueIndex, selectedPlace?.slug]);
 
   const filterOptions: Array<{
     value: PulseFilter;
@@ -1501,8 +1697,9 @@ export default function RealWorldMap() {
       active: true,
       visualState: selectedVisualState,
       challengeLiveCount: selectedPlace.activeDareCount ?? 0,
+      matched: Boolean(showMatchedLayer && selectedPlaceMatch),
     });
-  }, [selectedPlace, selectedPulse, selectedVisualState]);
+  }, [selectedPlace, selectedPlaceMatch, selectedPulse, selectedVisualState, showMatchedLayer]);
 
   const mapPanelShellClass =
     'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[36px]';
@@ -1707,6 +1904,38 @@ export default function RealWorldMap() {
                     </button>
                   ))}
                 </div>
+
+                {isConnected ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
+                      Creator lens
+                    </div>
+                    <button
+                      type="button"
+                      data-active={showFootprintLayer}
+                      onClick={() => setShowFootprintLayer((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
+                      <span>My Footprint</span>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                        {footprintStats?.totalMarks ?? footprintMarks.length}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      data-active={showMatchedLayer}
+                      onClick={() => setShowMatchedLayer((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-cyan-300" />
+                      <span>Matched For You</span>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                        {matchedVenueIndex.size}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1743,6 +1972,7 @@ export default function RealWorldMap() {
                   lastTaggedAt: place.tagSummary.lastTaggedAt,
                 });
                 const isActive = selectedPlace?.placeId === place.id;
+                const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
                 return (
                   <Marker
                     key={place.id}
@@ -1754,6 +1984,7 @@ export default function RealWorldMap() {
                       active: isActive,
                       visualState,
                       challengeLiveCount: place.activeDareCount,
+                      matched: isMatchedVenue,
                     })}
                     zIndexOffset={isActive ? 600 : 240}
                     eventHandlers={{
@@ -1763,7 +1994,7 @@ export default function RealWorldMap() {
                 );
               })}
 
-              {footprintTrail.length > 1 ? (
+              {showFootprintLayer && footprintTrail.length > 1 ? (
                 <Polyline
                   positions={footprintTrail}
                   pathOptions={{
@@ -1777,18 +2008,15 @@ export default function RealWorldMap() {
                 />
               ) : null}
 
-              {footprintMarks.map((mark, index) => (
-                <CircleMarker
+              {showFootprintLayer && footprintMarks.map((mark, index) => (
+                <Marker
                   key={mark.id}
-                  center={[mark.venue.latitude, mark.venue.longitude]}
-                  radius={mark.firstMark ? 6 : 4}
-                  pathOptions={{
-                    color: mark.firstMark ? '#f5c518' : '#b87fff',
-                    weight: mark.firstMark ? 2 : 1.5,
-                    opacity: 0.85,
-                    fillColor: mark.firstMark ? '#f5c518' : '#d8b4fe',
-                    fillOpacity: index === footprintMarks.length - 1 ? 0.65 : 0.35,
-                  }}
+                  position={[mark.venue.latitude, mark.venue.longitude]}
+                  icon={createFootprintMarkerIcon({
+                    firstMark: mark.firstMark,
+                    latest: index === footprintMarks.length - 1,
+                  })}
+                  zIndexOffset={index === footprintMarks.length - 1 ? 380 : 260}
                   eventHandlers={{
                     click: () => {
                       focusExistingPlace({
@@ -1835,7 +2063,7 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {footprintMarks.length > 0 ? (
+            {showFootprintLayer && footprintMarks.length > 0 ? (
               <div className="pointer-events-none absolute bottom-3 left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:text-[10px]">
                 Your trace · {footprintMarks.length} verified marks
               </div>
@@ -2036,6 +2264,35 @@ export default function RealWorldMap() {
                         <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/42">
                           Last moved {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last spark ', '')}
                         </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {selectedPlaceMatch && showMatchedLayer ? (
+                    <div className="map-panel-section mt-4 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
+                          <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+                          Matched For You
+                        </div>
+                        <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                          {selectedPlaceMatch.campaignCount} live
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-white/76">
+                        This venue already fits your creator footprint. The grid is routing you toward a place where your history gives you an edge.
+                      </p>
+                      {selectedPlaceMatch.reasons.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {selectedPlaceMatch.reasons.map((reason) => (
+                            <span
+                              key={`${selectedPlaceMatch.venueSlug}-${reason}`}
+                              className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/48"
+                            >
+                              {reason}
+                            </span>
+                          ))}
+                        </div>
                       ) : null}
                     </div>
                   ) : null}
@@ -2328,6 +2585,7 @@ export default function RealWorldMap() {
                         {visibleActiveDares.map((dare) => {
                           const activationState = getActivationStateCopy(dare);
                           const isFocusedCreatorActivation = dare.shortId === deepLinkedDareShortId;
+                          const isMatchedActivation = selectedPlaceMatch?.dareShortId === dare.shortId;
 
                           return (
                           <div
@@ -2364,6 +2622,11 @@ export default function RealWorldMap() {
                                   {isFocusedCreatorActivation ? (
                                     <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
                                       your match
+                                    </span>
+                                  ) : null}
+                                  {!isFocusedCreatorActivation && isMatchedActivation ? (
+                                    <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                                      best fit here
                                     </span>
                                   ) : null}
                                   <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>
@@ -3161,12 +3424,36 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-marker) {
           position: relative;
-          width: 88px;
-          height: 114px;
+          width: 92px;
+          height: 132px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
+        }
+
+        .basedare-leaflet-map :global(.peebear-match-badge) {
+          position: absolute;
+          left: 50%;
+          top: -1px;
+          z-index: 4;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          border: 1px solid rgba(34, 211, 238, 0.34);
+          background:
+            linear-gradient(180deg, rgba(190, 249, 255, 0.16), rgba(34, 211, 238, 0.08)),
+            linear-gradient(180deg, rgba(12, 20, 31, 0.96), rgba(5, 12, 22, 0.98));
+          padding: 3px 8px;
+          font-size: 6.5px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          color: #d8fbff;
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.28),
+            0 0 20px rgba(34, 211, 238, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          white-space: nowrap;
         }
 
         .basedare-leaflet-map :global(.peebear-challenge-aura) {
@@ -3486,6 +3773,20 @@ export default function RealWorldMap() {
           transform: scale(1.08) translateY(-2px);
         }
 
+        .basedare-leaflet-map :global(.peebear-marker.is-matched .peebear-core) {
+          box-shadow:
+            0 0 0 3px rgba(34, 211, 238, 0.16),
+            0 0 22px rgba(34, 211, 238, 0.22),
+            0 12px 24px rgba(0, 0, 0, 0.44),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-matched .peebear-state) {
+          border-color: rgba(34, 211, 238, 0.2);
+          color: rgba(202, 248, 255, 0.92);
+        }
+
         .basedare-leaflet-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-ring) {
           border-color: rgba(248, 221, 114, 0.92);
           box-shadow:
@@ -3511,6 +3812,64 @@ export default function RealWorldMap() {
           filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.24));
           user-select: none;
           -webkit-user-drag: none;
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint) {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.38rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(184, 127, 255, 0.24);
+          background:
+            linear-gradient(180deg, rgba(184, 127, 255, 0.18), rgba(10, 8, 24, 0.92)),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+          padding: 4px 10px;
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(184, 127, 255, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          white-space: nowrap;
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint.is-first) {
+          border-color: rgba(245, 197, 24, 0.28);
+          background:
+            linear-gradient(180deg, rgba(245, 197, 24, 0.18), rgba(27, 18, 6, 0.92)),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(245, 197, 24, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint.is-latest) {
+          transform: scale(1.04);
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint-dot) {
+          display: inline-flex;
+          height: 9px;
+          width: 9px;
+          border-radius: 9999px;
+          background: #d8b4fe;
+          box-shadow: 0 0 0 3px rgba(184, 127, 255, 0.12), 0 0 12px rgba(184, 127, 255, 0.26);
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint.is-first .peebear-footprint-dot) {
+          background: #f5c518;
+          box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.12), 0 0 12px rgba(245, 197, 24, 0.26);
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint-label) {
+          font-size: 7px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.17em;
+          color: rgba(237, 216, 255, 0.96);
+        }
+
+        .basedare-leaflet-map :global(.peebear-footprint.is-first .peebear-footprint-label) {
+          color: rgba(255, 240, 188, 0.96);
         }
 
         @keyframes peebearChallengeAura {
