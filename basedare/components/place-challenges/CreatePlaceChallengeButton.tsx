@@ -402,8 +402,8 @@ export default function CreatePlaceChallengeButton({
           'inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/26 bg-[#f5c518]/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f8dd72]'
         }
       >
-        <Zap className="h-4 w-4" />
-        <span className="max-w-[6.5rem] text-balance leading-[1.08] sm:max-w-none">
+        <Zap className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+        <span className="max-w-[7.35rem] text-balance leading-[1.03] sm:max-w-none">
           Create challenge
         </span>
       </button>

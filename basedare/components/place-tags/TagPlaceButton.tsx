@@ -391,8 +391,8 @@ export default function TagPlaceButton({
         }}
         className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200'}
       >
-        <Sparkles className="h-4 w-4" />
-        <span className="max-w-[6.5rem] text-balance leading-[1.08] sm:max-w-none">
+        <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+        <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
           Tag this place
         </span>
       </button>

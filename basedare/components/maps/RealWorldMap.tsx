@@ -2544,7 +2544,7 @@ export default function RealWorldMap() {
                             : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex min-h-[110px] w-full flex-col items-center justify-center gap-2.5 rounded-[32px] border border-cyan-300/26 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(52,230,255,0.2)_0%,rgba(7,39,58,0.9)_48%,rgba(4,18,30,0.96)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-50 shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_26px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-cyan-200/46 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_28px_rgba(34,211,238,0.16),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:gap-2 sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px]"
+                      buttonClassName="map-action-button map-action-button--cyan"
                     />
 
                     <CreatePlaceChallengeButton
@@ -2604,7 +2604,7 @@ export default function RealWorldMap() {
                             : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex min-h-[110px] w-full flex-col items-center justify-center gap-2.5 rounded-[32px] border border-[#f5c518]/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(245,197,24,0.2)_0%,rgba(92,56,10,0.9)_48%,rgba(35,20,4,0.98)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-[#fff1bd] shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_28px_rgba(245,197,24,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/58 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_30px_rgba(245,197,24,0.18),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:gap-2 sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px]"
+                      buttonClassName="map-action-button map-action-button--gold"
                     />
 
                     {selectedPlace.slug ? (
@@ -2614,9 +2614,9 @@ export default function RealWorldMap() {
                             ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
                             : ''
                         }`}
-                        className="inline-flex min-h-[110px] w-full flex-col items-center justify-center rounded-[32px] border border-fuchsia-300/28 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(217,70,239,0.24)_0%,rgba(107,33,168,0.78)_52%,rgba(52,16,87,0.96)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-fuchsia-50 shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_28px_rgba(217,70,239,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-fuchsia-200/46 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_30px_rgba(217,70,239,0.16),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px] xl:tracking-[0.18em]"
+                        className="map-action-button map-action-button--violet"
                       >
-                        <span className="max-w-[6.6rem] text-balance leading-[1.08] sm:max-w-none">
+                        <span className="max-w-[7.2rem] text-balance leading-[1.02] sm:max-w-none">
                           Open place page
                         </span>
                       </Link>
@@ -2681,6 +2681,166 @@ export default function RealWorldMap() {
           border: 1px solid rgba(255, 255, 255, 0.04);
           border-top: 1px solid rgba(255, 255, 255, 0.12);
           border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        :global(.map-action-button) {
+          position: relative;
+          display: inline-flex;
+          min-height: 112px;
+          width: 100%;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.68rem;
+          overflow: hidden;
+          border-radius: 32px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          padding: 0.95rem 0.9rem 0.86rem;
+          text-align: center;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease,
+            filter 180ms ease;
+        }
+
+        :global(.map-action-button::before) {
+          content: '';
+          position: absolute;
+          inset: 1px;
+          border-radius: inherit;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.18) 100%),
+            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.16), transparent 44%);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -18px 24px rgba(0, 0, 0, 0.3),
+            inset 16px 16px 24px rgba(255, 255, 255, 0.02),
+            inset -16px -16px 24px rgba(0, 0, 0, 0.1);
+          pointer-events: none;
+        }
+
+        :global(.map-action-button::after) {
+          content: '';
+          position: absolute;
+          inset: auto 14% 10px;
+          height: 18px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+          opacity: 0.6;
+          filter: blur(10px);
+          pointer-events: none;
+        }
+
+        :global(.map-action-button > *) {
+          position: relative;
+          z-index: 1;
+        }
+
+        :global(.map-action-button:hover) {
+          transform: translateY(-1px);
+          filter: saturate(1.05);
+        }
+
+        :global(.map-action-button:active) {
+          transform: translateY(1px);
+          box-shadow:
+            inset 0 10px 18px rgba(0, 0, 0, 0.22),
+            inset 0 -4px 10px rgba(255, 255, 255, 0.03);
+        }
+
+        :global(.map-action-button span) {
+          max-width: 7.35rem;
+          text-wrap: balance;
+          line-height: 1.02;
+        }
+
+        :global(.map-action-button--cyan) {
+          color: #defcff;
+          border-color: rgba(34, 211, 238, 0.34);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(180, 247, 255, 0.16), transparent 36%),
+            linear-gradient(180deg, rgba(27, 198, 225, 0.24) 0%, rgba(7, 43, 62, 0.88) 48%, rgba(5, 20, 34, 0.98) 100%);
+          box-shadow:
+            0 20px 36px rgba(0, 0, 0, 0.3),
+            0 0 24px rgba(34, 211, 238, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -22px 30px rgba(0, 0, 0, 0.32);
+        }
+
+        :global(.map-action-button--cyan:hover) {
+          border-color: rgba(186, 252, 255, 0.54);
+          box-shadow:
+            0 24px 42px rgba(0, 0, 0, 0.32),
+            0 0 28px rgba(34, 211, 238, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -22px 30px rgba(0, 0, 0, 0.34);
+        }
+
+        :global(.map-action-button--gold) {
+          color: #fff0bc;
+          border-color: rgba(245, 197, 24, 0.34);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 240, 182, 0.16), transparent 36%),
+            linear-gradient(180deg, rgba(245, 197, 24, 0.22) 0%, rgba(93, 55, 10, 0.88) 50%, rgba(39, 23, 5, 0.98) 100%);
+          box-shadow:
+            0 20px 36px rgba(0, 0, 0, 0.3),
+            0 0 24px rgba(245, 197, 24, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -22px 30px rgba(0, 0, 0, 0.32);
+        }
+
+        :global(.map-action-button--gold:hover) {
+          border-color: rgba(248, 221, 114, 0.56);
+          box-shadow:
+            0 24px 42px rgba(0, 0, 0, 0.32),
+            0 0 30px rgba(245, 197, 24, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -22px 30px rgba(0, 0, 0, 0.34);
+        }
+
+        :global(.map-action-button--violet) {
+          color: #fdeaff;
+          border-color: rgba(217, 70, 239, 0.36);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(247, 193, 255, 0.16), transparent 36%),
+            linear-gradient(180deg, rgba(217, 70, 239, 0.26) 0%, rgba(120, 36, 184, 0.82) 50%, rgba(63, 21, 104, 0.98) 100%);
+          box-shadow:
+            0 20px 36px rgba(0, 0, 0, 0.3),
+            0 0 28px rgba(217, 70, 239, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -22px 30px rgba(29, 8, 52, 0.38);
+        }
+
+        :global(.map-action-button--violet:hover) {
+          border-color: rgba(245, 208, 254, 0.58);
+          box-shadow:
+            0 24px 42px rgba(0, 0, 0, 0.34),
+            0 0 34px rgba(217, 70, 239, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -24px 32px rgba(29, 8, 52, 0.42);
+        }
+
+        @media (min-width: 640px) {
+          :global(.map-action-button) {
+            min-height: 64px;
+            flex-direction: row;
+            gap: 0.55rem;
+            border-radius: 999px;
+            padding: 0.95rem 1.1rem 0.9rem;
+            font-size: 11px;
+          }
+
+          :global(.map-action-button span) {
+            max-width: none;
+            line-height: 1;
+          }
         }
 
         .map-panel-shell::before {
