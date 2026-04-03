@@ -48,6 +48,12 @@ const TIER_COLORS = {
   ARCHON: 'from-purple-500 to-pink-500',
 };
 
+const creatorFundInsetClass =
+  'bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(6,8,16,0.96)_0%,rgba(13,12,25,0.92)_42%,rgba(18,14,32,0.86)_100%)]';
+
+const creatorFundTightInsetClass =
+  'bd-dent-surface bd-dent-surface--soft rounded-[18px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(5,7,14,0.98)_0%,rgba(12,11,22,0.94)_100%)]';
+
 export default function LivePotLeaderboard() {
   const [potData, setPotData] = useState<PotData | null>(null);
   const [creatorLeaderboard, setCreatorLeaderboard] = useState<CreatorEntry[]>([]);
@@ -113,26 +119,42 @@ export default function LivePotLeaderboard() {
     <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.34),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
       {/* Live Pot Header */}
       <div className="p-6 border-b border-white/8 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <span className="text-2xl">🏆</span>
-              Creator Fund
-            </h2>
-            <p className="text-sm text-zinc-500 mt-1">
-              Community Rewards • Top 3 share 5% weekly
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-              ${potData?.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+        <div className={`${creatorFundInsetClass} relative overflow-hidden p-4 sm:p-5`}>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.16),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(250,204,21,0.10),transparent_38%)]"
+          />
+
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-purple-400/18 bg-purple-500/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-purple-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <span className="text-sm">🏆</span>
+                Creator Fund
+              </div>
+              <h2 className="mt-3 text-xl font-black tracking-tight text-white sm:text-2xl">
+                Weekly reward pool with actual weight
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Community rewards with a tight escrow-style cavity. Top 3 split 5% weekly.
+              </p>
             </div>
-            <div className="text-xs text-zinc-500">Current Balance</div>
+
+            <div className={`${creatorFundTightInsetClass} min-w-[220px] px-4 py-4 text-right sm:px-5`}>
+              <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/38">Current Balance</div>
+              <div className="mt-2 text-3xl font-black bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent sm:text-[2.15rem]">
+                ${potData?.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+              </div>
+              <div className="mt-2 text-xs text-zinc-500">Live protocol treasury pressure</div>
+            </div>
           </div>
         </div>
 
         {/* Pot Stats */}
-        <div className="grid grid-cols-4 gap-4 text-center">
+        <div className="mt-4 grid grid-cols-2 gap-3 text-center lg:grid-cols-4 lg:gap-4">
           <div className="bd-dent-surface bd-dent-surface--soft rounded-2xl border border-white/6 p-3">
             <div className="text-lg font-bold text-green-400">
               +${(potData?.weekly?.deposited ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
