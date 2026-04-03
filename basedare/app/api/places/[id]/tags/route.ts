@@ -64,6 +64,22 @@ function parseVibeTags(value: FormDataEntryValue | null) {
   return Array.from(new Set(normalized)).slice(0, MAX_VIBE_TAGS);
 }
 
+function getReadablePlaceTagError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return 'Failed to submit place tag';
+  }
+
+  if (error.message === 'Server misconfigured') {
+    return 'Place-tag uploads are not configured yet. Please try again later.';
+  }
+
+  if (error.message.toLowerCase().includes('pinata')) {
+    return 'Proof upload failed. Please retry in a minute.';
+  }
+
+  return error.message || 'Failed to submit place tag';
+}
+
 async function getAuthenticatedWallet(request: NextRequest) {
   const session = (await getServerSession(authOptions)) as WalletSession | null;
   if (!session) return null;
@@ -314,17 +330,29 @@ export async function POST(
       );
     }
 
-    const upload = await uploadPublicMediaFile({
-      file,
-      name: `BaseDare_PlaceTag_${place.slug}_${Date.now()}`,
-      keyvalues: {
-        app: 'basedare',
-        type: 'place-tag',
-        venueId: place.id,
-        venueSlug: place.slug,
-        walletAddress,
-      },
-    });
+    let upload: Awaited<ReturnType<typeof uploadPublicMediaFile>>;
+
+    try {
+      upload = await uploadPublicMediaFile({
+        file,
+        name: `BaseDare_PlaceTag_${place.slug}_${Date.now()}`,
+        keyvalues: {
+          app: 'basedare',
+          type: 'place-tag',
+          venueId: place.id,
+          venueSlug: place.slug,
+          walletAddress,
+        },
+      });
+    } catch (error) {
+      const message = getReadablePlaceTagError(error);
+      console.error('[PLACE_TAGS_POST] Upload failed:', message);
+
+      return NextResponse.json(
+        { success: false, error: message },
+        { status: message.includes('not configured') ? 503 : 502 }
+      );
+    }
 
     const approvedTagCount = await prisma.placeTag.count({
       where: {
@@ -389,10 +417,10 @@ export async function POST(
       );
     }
 
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = getReadablePlaceTagError(error);
     console.error('[PLACE_TAGS_POST] Failed:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to submit place tag' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
