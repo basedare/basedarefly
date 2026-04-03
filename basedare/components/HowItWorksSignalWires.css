@@ -90,7 +90,8 @@
 
 .how-it-works-side-socket {
   position: absolute;
-  top: 43%;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 12;
   width: 28px;
   height: 13px;
@@ -196,6 +197,14 @@
     inset 0 -16px 20px rgba(0,0,0,0.52),
     inset 9px 9px 14px rgba(0,0,0,0.18),
     inset -8px -8px 12px rgba(255,255,255,0.012);
+}
+
+.how-it-works-icon-glyph {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .how-it-works-step-pill {

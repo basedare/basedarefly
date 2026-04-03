@@ -74,16 +74,16 @@ export default function HowItWorks() {
           {steps.map((item, idx) => (
             <div key={idx} data-cable-node className="relative group min-w-0">
               <div className="how-it-works-card-shell relative z-10 overflow-hidden rounded-[2rem] border border-white/[0.08] p-3 transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-400/30">
-                <div className="how-it-works-side-socket how-it-works-side-socket--left hidden md:block" />
-                <div className="how-it-works-side-socket how-it-works-side-socket--right hidden md:block" />
+                <div data-cable-anchor="left" className="how-it-works-side-socket how-it-works-side-socket--left hidden md:block" />
+                <div data-cable-anchor="right" className="how-it-works-side-socket how-it-works-side-socket--right hidden md:block" />
                 <div className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${item.accent} opacity-90`} />
                 <div className="how-it-works-card-glass relative flex min-h-[290px] flex-col rounded-[1.55rem] border border-white/[0.05] px-6 py-6">
                   <div className="how-it-works-card-fog pointer-events-none absolute inset-0 rounded-[1.55rem]" />
                   <div className="how-it-works-card-noise pointer-events-none absolute inset-0 rounded-[1.55rem]" />
                   <div className="mb-7 flex items-start justify-between gap-4">
                     <div className="how-it-works-icon-bay bd-dent-surface relative flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-purple-400/20 shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-                      <div className="how-it-works-icon-core flex h-[calc(100%-10px)] w-[calc(100%-10px)] items-center justify-center rounded-[1.05rem] text-3xl">
-                        {item.icon}
+                      <div className="how-it-works-icon-core flex h-[calc(100%-10px)] w-[calc(100%-10px)] items-center justify-center rounded-[1.05rem]">
+                        <span className="how-it-works-icon-glyph">{item.icon}</span>
                       </div>
                     </div>
                     <div className="how-it-works-step-pill bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.06] px-4 py-2">

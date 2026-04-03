@@ -86,14 +86,30 @@ export default function HowItWorksSignalWires({
         nodes.slice(0, -1).map((node, index) => {
           const left = node.getBoundingClientRect();
           const right = nodes[index + 1].getBoundingClientRect();
+          const leftSocket = node.querySelector<HTMLElement>('[data-cable-anchor="right"]');
+          const rightSocket = nodes[index + 1].querySelector<HTMLElement>('[data-cable-anchor="left"]');
+          const leftSocketRect = leftSocket?.getBoundingClientRect();
+          const rightSocketRect = rightSocket?.getBoundingClientRect();
+
+          const startY = leftSocketRect
+            ? leftSocketRect.top - rect.top + leftSocketRect.height / 2
+            : left.top - rect.top + left.height * foundationRatio;
+          const endY = rightSocketRect
+            ? rightSocketRect.top - rect.top + rightSocketRect.height / 2
+            : right.top - rect.top + right.height * foundationRatio;
+
           return {
             start: {
-              x: left.right - rect.left + 8,
-              y: left.top - rect.top + left.height * foundationRatio,
+              x: leftSocketRect
+                ? leftSocketRect.left - rect.left + leftSocketRect.width / 2
+                : left.right - rect.left + 8,
+              y: startY,
             },
             end: {
-              x: right.left - rect.left - 8,
-              y: right.top - rect.top + right.height * foundationRatio,
+              x: rightSocketRect
+                ? rightSocketRect.left - rect.left + rightSocketRect.width / 2
+                : right.left - rect.left - 8,
+              y: endY,
             },
           };
         })
