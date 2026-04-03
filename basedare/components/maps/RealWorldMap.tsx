@@ -2491,7 +2491,7 @@ export default function RealWorldMap() {
                             : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(4,28,42,0.72)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-300/45 hover:bg-cyan-500/[0.13] sm:text-[11px]"
+                      buttonClassName="inline-flex min-h-[110px] w-full flex-col items-center justify-center gap-2.5 rounded-[32px] border border-cyan-300/26 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(52,230,255,0.2)_0%,rgba(7,39,58,0.9)_48%,rgba(4,18,30,0.96)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-50 shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_26px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-cyan-200/46 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_28px_rgba(34,211,238,0.16),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:gap-2 sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px]"
                     />
 
                     <CreatePlaceChallengeButton
@@ -2551,7 +2551,7 @@ export default function RealWorldMap() {
                             : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
                         });
                       }}
-                      buttonClassName="inline-flex min-h-[58px] w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(59,35,5,0.78)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#fff0b1] shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.18] sm:text-[11px]"
+                      buttonClassName="inline-flex min-h-[110px] w-full flex-col items-center justify-center gap-2.5 rounded-[32px] border border-[#f5c518]/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(245,197,24,0.2)_0%,rgba(92,56,10,0.9)_48%,rgba(35,20,4,0.98)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-[#fff1bd] shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_28px_rgba(245,197,24,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/58 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_30px_rgba(245,197,24,0.18),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:gap-2 sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px]"
                     />
 
                     {selectedPlace.slug ? (
@@ -2561,9 +2561,9 @@ export default function RealWorldMap() {
                             ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
                             : ''
                         }`}
-                        className="inline-flex min-h-[58px] w-full items-center justify-center rounded-full border border-fuchsia-400/26 bg-[linear-gradient(180deg,rgba(217,70,239,0.22)_0%,rgba(91,33,182,0.12)_100%)] px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100 shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/45 hover:bg-fuchsia-500/18 sm:text-[11px] xl:tracking-[0.18em]"
+                        className="inline-flex min-h-[110px] w-full flex-col items-center justify-center rounded-[32px] border border-fuchsia-300/28 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_42%),linear-gradient(180deg,rgba(217,70,239,0.24)_0%,rgba(107,33,168,0.78)_52%,rgba(52,16,87,0.96)_100%)] px-3 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-fuchsia-50 shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_28px_rgba(217,70,239,0.12),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_22px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-fuchsia-200/46 hover:shadow-[0_20px_40px_rgba(0,0,0,0.3),0_0_30px_rgba(217,70,239,0.16),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_24px_rgba(0,0,0,0.3)] sm:min-h-[62px] sm:flex-row sm:rounded-full sm:px-4 sm:py-3 sm:text-[11px] xl:tracking-[0.18em]"
                       >
-                        <span className="max-w-[8rem] leading-[1.15] sm:max-w-none">
+                        <span className="max-w-[6.6rem] text-balance leading-[1.08] sm:max-w-none">
                           Open place page
                         </span>
                       </Link>

@@ -98,6 +98,16 @@ export default function CreatePlaceChallengeButton({
   const backupSession = getSessionFields(fallbackSession);
   const sessionToken = primarySession.token ?? backupSession.token;
   const sessionWallet = primarySession.walletAddress ?? backupSession.walletAddress;
+  const normalizedConnectedWallet = walletAddress?.toLowerCase() ?? null;
+  const hasVerifiedSession = Boolean(sessionToken && sessionWallet);
+  const hasWalletConnection = Boolean(isConnected && normalizedConnectedWallet);
+  const canAuthenticate = Boolean(hasVerifiedSession || hasWalletConnection);
+  const hasWalletMismatch = Boolean(
+    hasVerifiedSession &&
+      normalizedConnectedWallet &&
+      sessionWallet &&
+      sessionWallet !== normalizedConnectedWallet
+  );
   const effectivePlaceId = placeId ?? resolvedPlaceId;
 
   useEffect(() => {
@@ -119,7 +129,7 @@ export default function CreatePlaceChallengeButton({
   }, [open]);
 
   useEffect(() => {
-    if (!open || (sessionToken && sessionWallet)) return;
+    if (!open || hasVerifiedSession) return;
 
     let cancelled = false;
     const hydrateSession = async () => {
@@ -146,7 +156,7 @@ export default function CreatePlaceChallengeButton({
     return () => {
       cancelled = true;
     };
-  }, [open, sessionToken, sessionWallet]);
+  }, [hasVerifiedSession, open]);
 
   const authMessage = useMemo(() => {
     if (authChecking || sessionStatus === 'loading') {
@@ -154,6 +164,22 @@ export default function CreatePlaceChallengeButton({
         title: 'Checking session',
         description: 'Verifying your wallet-backed session before this challenge can hit the grid.',
         cta: 'Checking...',
+      };
+    }
+
+    if (hasWalletMismatch) {
+      return {
+        title: 'Wallet mismatch',
+        description: 'Your connected wallet does not match the session we found. Reconnect the same wallet before funding this challenge.',
+        cta: 'Reconnect wallet',
+      };
+    }
+
+    if (hasWalletConnection && !hasVerifiedSession) {
+      return {
+        title: 'Wallet connected',
+        description: 'Your wallet is live. We can use the connected wallet for funding even if the old session token has gone stale.',
+        cta: 'Wallet ready',
       };
     }
 
@@ -170,7 +196,7 @@ export default function CreatePlaceChallengeButton({
       description: 'Place-native challenges need your wallet-backed session so the funding flow stays tied to a real operator.',
       cta: 'Reconnect session',
     };
-  }, [authChecking, sessionStatus, sessionToken, sessionWallet]);
+  }, [authChecking, hasVerifiedSession, hasWalletConnection, hasWalletMismatch, sessionStatus, sessionToken, sessionWallet]);
 
   const statusCopy = useMemo(() => {
     switch (approvalStatus) {
@@ -253,28 +279,19 @@ export default function CreatePlaceChallengeButton({
   }
 
   async function handleSubmit() {
-    if (!walletAddress || !isConnected) {
+    if (hasWalletMismatch) {
+      toast({
+        title: 'Wallet mismatch',
+        description: 'Reconnect the same wallet you used for your current BaseDare session before funding this challenge.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!canAuthenticate || !normalizedConnectedWallet) {
       toast({
         title: 'Wallet required',
         description: 'Connect your wallet before launching a place challenge.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!sessionToken || !sessionWallet) {
-      toast({
-        title: 'Sign in required',
-        description: 'Reconnect your wallet-backed session before funding this challenge.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (sessionWallet !== walletAddress.toLowerCase()) {
-      toast({
-        title: 'Wallet mismatch',
-        description: 'Reconnect the same wallet you used to sign the current session.',
         variant: 'destructive',
       });
       return;
@@ -329,7 +346,7 @@ export default function CreatePlaceChallengeButton({
           discoveryRadiusKm: Number(discoveryRadiusKm) || 0.5,
           venueId: targetPlaceId,
           creationContext: 'MAP',
-          stakerAddress: walletAddress.toLowerCase(),
+          stakerAddress: normalizedConnectedWallet,
         },
         {
           sessionToken,
@@ -386,7 +403,9 @@ export default function CreatePlaceChallengeButton({
         }
       >
         <Zap className="h-4 w-4" />
-        Create challenge
+        <span className="max-w-[6.5rem] text-balance leading-[1.08] sm:max-w-none">
+          Create challenge
+        </span>
       </button>
 
       {open && mounted
@@ -615,16 +634,36 @@ export default function CreatePlaceChallengeButton({
                             </div>
                           </div>
 
-                          {!sessionToken || !sessionWallet ? (
-                            <div className="rounded-[22px] border border-amber-400/20 bg-amber-500/[0.06] px-4 py-4 text-sm text-amber-100">
+                          {!hasVerifiedSession ? (
+                            <div
+                              className={`rounded-[22px] px-4 py-4 text-sm ${
+                                hasWalletConnection && !hasWalletMismatch
+                                  ? 'border border-emerald-400/18 bg-emerald-500/[0.06] text-emerald-100'
+                                  : 'border border-amber-400/20 bg-amber-500/[0.06] text-amber-100'
+                              }`}
+                            >
                               <p className="font-semibold">{authMessage.title}</p>
-                              <p className="mt-2 text-amber-100/70">{authMessage.description}</p>
-                              <Link
-                                href="/claim-tag"
-                                className="mt-4 inline-flex rounded-full border border-amber-300/24 bg-amber-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100"
+                              <p
+                                className={`mt-2 ${
+                                  hasWalletConnection && !hasWalletMismatch
+                                    ? 'text-emerald-100/72'
+                                    : 'text-amber-100/70'
+                                }`}
                               >
-                                {authMessage.cta}
-                              </Link>
+                                {authMessage.description}
+                              </p>
+                              {hasWalletConnection && !hasWalletMismatch ? (
+                                <div className="mt-4 inline-flex rounded-full border border-emerald-300/20 bg-emerald-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                                  {authMessage.cta}
+                                </div>
+                              ) : (
+                                <Link
+                                  href="/claim-tag"
+                                  className="mt-4 inline-flex rounded-full border border-amber-300/24 bg-amber-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100"
+                                >
+                                  {authMessage.cta}
+                                </Link>
+                              )}
                             </div>
                           ) : null}
                         </div>
@@ -645,10 +684,12 @@ export default function CreatePlaceChallengeButton({
                             type="button"
                             onClick={handleSubmit}
                             disabled={submitting}
-                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/32 bg-[linear-gradient(180deg,rgba(245,197,24,0.22)_0%,rgba(59,35,5,0.72)_100%)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#fff3be] shadow-[0_14px_26px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/55 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/36 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.09),transparent_42%),linear-gradient(180deg,rgba(245,197,24,0.24)_0%,rgba(102,63,11,0.88)_48%,rgba(38,22,4,0.98)_100%)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#fff3be] shadow-[0_18px_34px_rgba(0,0,0,0.26),0_0_28px_rgba(245,197,24,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_20px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/62 hover:shadow-[0_22px_42px_rgba(0,0,0,0.3),0_0_32px_rgba(245,197,24,0.2),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-20px_22px_rgba(0,0,0,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                            {approvalStatus === 'idle' ? 'Fund & launch challenge' : statusCopy}
+                            <span className="text-balance leading-[1.1]">
+                              {approvalStatus === 'idle' ? 'Fund & launch challenge' : statusCopy}
+                            </span>
                           </button>
                         </div>
                       </div>
