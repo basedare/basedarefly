@@ -9,10 +9,13 @@ type CampaignTargetingCriteria = {
 type StreamerTagCandidate = {
     id: string;
     tag: string;
+    walletAddress: string;
     bio: string | null;
     followerCount: number | null;
     tags: string[];
     status: string;
+    identityPlatform: string | null;
+    identityHandle: string | null;
     twitterHandle: string | null;
     twitterVerified: boolean;
     twitchHandle: string | null;
@@ -23,6 +26,17 @@ type StreamerTagCandidate = {
     kickVerified: boolean;
     totalEarned: number;
     completedDares: number;
+};
+
+type VenueAffinitySignal = {
+    exactVenueMarks?: number;
+    exactVenueCheckIns?: number;
+    exactVenueWins?: number;
+    sameCityMarks?: number;
+};
+
+type CampaignMatchContext = {
+    venueAffinity?: VenueAffinitySignal;
 };
 
 export function parseCampaignTargetingCriteria(raw: string | null | undefined): CampaignTargetingCriteria {
@@ -56,12 +70,17 @@ function candidatePlatforms(candidate: StreamerTagCandidate) {
     ].filter(Boolean) as string[];
 }
 
-export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: CampaignTargetingCriteria) {
+export function buildCampaignMatch(
+    candidate: StreamerTagCandidate,
+    targeting: CampaignTargetingCriteria,
+    context: CampaignMatchContext = {}
+) {
     const requiredPlatforms = normalizePlatforms(targeting.platforms);
     const creatorPlatforms = candidatePlatforms(candidate);
     const requestedNiches = splitNicheValues(targeting.niche);
     const reasons: string[] = [];
     let score = 0;
+    const venueAffinity = context.venueAffinity ?? {};
 
     if ((candidate.status === 'ACTIVE' || candidate.status === 'VERIFIED')) {
         score += 20;
@@ -113,7 +132,7 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
     }
 
     if (targeting.location === 'near-venue') {
-        reasons.push('location relevance requested once creator footprint is live');
+        reasons.push('location relevance requested for this activation');
     }
 
     if (candidate.completedDares > 0) {
@@ -126,9 +145,39 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
         reasons.push(`earned $${Math.round(candidate.totalEarned)} on BaseDare`);
     }
 
+    if ((venueAffinity.exactVenueMarks ?? 0) > 0) {
+        const count = venueAffinity.exactVenueMarks ?? 0;
+        score += Math.min(42, count * 18);
+        reasons.unshift(`${count} approved mark${count === 1 ? '' : 's'} at this venue`);
+    }
+
+    if ((venueAffinity.exactVenueCheckIns ?? 0) > 0) {
+        const count = venueAffinity.exactVenueCheckIns ?? 0;
+        score += Math.min(24, count * 8);
+        reasons.push(`${count} verified check-in${count === 1 ? '' : 's'} here`);
+    }
+
+    if ((venueAffinity.exactVenueWins ?? 0) > 0) {
+        const count = venueAffinity.exactVenueWins ?? 0;
+        score += Math.min(32, count * 14);
+        reasons.unshift(`${count} verified win${count === 1 ? '' : 's'} at this venue`);
+    }
+
+    if ((venueAffinity.sameCityMarks ?? 0) > 0) {
+        const count = venueAffinity.sameCityMarks ?? 0;
+        score += Math.min(18, count * 4);
+        reasons.push(`active around this city (${count} nearby marks)`);
+    }
+
     return {
         score,
         reasons,
+        venueAffinity: {
+            exactVenueMarks: venueAffinity.exactVenueMarks ?? 0,
+            exactVenueCheckIns: venueAffinity.exactVenueCheckIns ?? 0,
+            exactVenueWins: venueAffinity.exactVenueWins ?? 0,
+            sameCityMarks: venueAffinity.sameCityMarks ?? 0,
+        },
         creator: {
             id: candidate.id,
             tag: candidate.tag,
@@ -136,6 +185,8 @@ export function buildCampaignMatch(candidate: StreamerTagCandidate, targeting: C
             followerCount: candidate.followerCount,
             tags: candidate.tags,
             status: candidate.status,
+            identityPlatform: candidate.identityPlatform,
+            identityHandle: candidate.identityHandle,
             totalEarned: candidate.totalEarned,
             completedDares: candidate.completedDares,
             platforms: {

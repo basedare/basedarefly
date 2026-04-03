@@ -139,6 +139,12 @@ interface CampaignFormData {
 interface CampaignMatch {
   score: number;
   reasons: string[];
+  venueAffinity: {
+    exactVenueMarks: number;
+    exactVenueCheckIns: number;
+    exactVenueWins: number;
+    sameCityMarks: number;
+  };
   creator: {
     id: string;
     tag: string;
@@ -146,6 +152,8 @@ interface CampaignMatch {
     followerCount: number | null;
     tags: string[];
     status: string;
+    identityPlatform: string | null;
+    identityHandle: string | null;
     totalEarned: number;
     completedDares: number;
     platforms: {
@@ -1929,9 +1937,9 @@ export default function BrandPortalPage() {
                         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-semibold text-zinc-900">Matches</div>
+                              <div className="text-sm font-semibold text-zinc-900">Venue-affinity matches</div>
                               <div className="mt-1 text-xs text-zinc-500">
-                                Ranked softly so brands can see emerging fits even before the creator graph is dense.
+                                Ranked with venue history first so Control can surface creators who already belong in this place.
                               </div>
                             </div>
                             {matchesState?.loading ? (
@@ -1985,9 +1993,36 @@ export default function BrandPortalPage() {
                                           {platformLabels.join(' • ')}
                                         </div>
                                       ) : null}
+                                      {match.creator.identityHandle ? (
+                                        <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                                          primary {match.creator.identityPlatform ?? 'identity'} • @{match.creator.identityHandle.replace(/^@/, '')}
+                                        </div>
+                                      ) : null}
                                       {match.creator.bio ? (
                                         <div className="mt-2 text-sm text-zinc-600 line-clamp-2">{match.creator.bio}</div>
                                       ) : null}
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        {match.venueAffinity.exactVenueWins > 0 ? (
+                                          <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-emerald-800">
+                                            {match.venueAffinity.exactVenueWins} win{match.venueAffinity.exactVenueWins === 1 ? '' : 's'} here
+                                          </span>
+                                        ) : null}
+                                        {match.venueAffinity.exactVenueMarks > 0 ? (
+                                          <span className="rounded-full border border-purple-300 bg-purple-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-800">
+                                            {match.venueAffinity.exactVenueMarks} mark{match.venueAffinity.exactVenueMarks === 1 ? '' : 's'} here
+                                          </span>
+                                        ) : null}
+                                        {match.venueAffinity.exactVenueCheckIns > 0 ? (
+                                          <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-sky-800">
+                                            {match.venueAffinity.exactVenueCheckIns} check-in{match.venueAffinity.exactVenueCheckIns === 1 ? '' : 's'} here
+                                          </span>
+                                        ) : null}
+                                        {match.venueAffinity.sameCityMarks > 0 ? (
+                                          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-amber-800">
+                                            {match.venueAffinity.sameCityMarks} city mark{match.venueAffinity.sameCityMarks === 1 ? '' : 's'}
+                                          </span>
+                                        ) : null}
+                                      </div>
                                       <div className="mt-2 flex flex-wrap gap-2">
                                         {match.reasons.slice(0, 3).map((reason) => (
                                           <span
