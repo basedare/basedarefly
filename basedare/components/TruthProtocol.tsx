@@ -2,7 +2,9 @@
 
 import React from 'react';
 import BubbleCard from '@/components/BubbleCard';
+import HowItWorksSignalWires from '@/components/HowItWorksSignalWires';
 import Shuffle from '@/components/Shuffle';
+import './HowItWorksSignalWires.css';
 
 export default function TruthProtocol() {
   const staticCards = [
@@ -72,17 +74,21 @@ export default function TruthProtocol() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        <div className="truth-protocol-wire-shell relative max-w-6xl mx-auto">
+          <HowItWorksSignalWires foundationRatio={0.58} />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {staticCards.map((card) => (
-            <BubbleCard
-              key={card.id}
-              color={card.color}
-              badge={card.badge}
-              title={card.title}
-              description={card.description}
-              className="w-full max-w-[280px] xl:max-w-[300px] mx-auto"
-            />
+            <div key={card.id} data-cable-node className="relative">
+              <BubbleCard
+                color={card.color}
+                badge={card.badge}
+                title={card.title}
+                description={card.description}
+                className="w-full max-w-[280px] xl:max-w-[300px] mx-auto"
+              />
+            </div>
           ))}
+          </div>
         </div>
       </div>
     </section>

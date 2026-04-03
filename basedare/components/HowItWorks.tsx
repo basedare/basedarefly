@@ -1,6 +1,8 @@
 'use client';
 
 import RotatingText from "@/components/RotatingText";
+import HowItWorksSignalWires from "@/components/HowItWorksSignalWires";
+import './HowItWorksSignalWires.css';
 
 export default function HowItWorks() {
   const steps = [
@@ -46,7 +48,14 @@ export default function HowItWorks() {
               </h2>
             </div>
           </div>
-          <h3 className="text-5xl md:text-6xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+          <div className="hidden md:flex justify-center">
+            <div className="how-it-works-neon-shell">
+              <div className="how-it-works-neon-sign">
+                <h3 className="how-it-works-neon-title">How It Works</h3>
+              </div>
+            </div>
+          </div>
+          <h3 className="text-5xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] md:hidden">
             How It Works
           </h3>
           <div className="mx-auto mt-5 max-w-2xl rounded-[1.6rem] border border-white/[0.08] bg-white/[0.02] px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.26)]">
@@ -59,45 +68,41 @@ export default function HowItWorks() {
         </div>
 
         {/* 3-STEP PROCESS */}
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8 mb-16 md:mb-24">
+        <div className="how-it-works-wire-shell relative mb-16 md:mb-24">
+          <HowItWorksSignalWires foundationRatio={0.53} />
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {steps.map((item, idx) => (
-            <div key={idx} className="relative group min-w-0">
-              {/* Connector Line (Desktop only) */}
-              {idx !== 2 && (
-                <div
-                  aria-hidden="true"
-                  className="hidden md:flex absolute top-20 left-full w-[calc(100%-1.5rem)] -translate-x-6 items-center z-0"
-                >
-                  <div className="relative h-[2px] flex-1 overflow-visible">
-                    <div className="absolute inset-0 border-t-2 border-dashed border-[#F5C518]/45" />
-                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#F5C518]/25 via-[#F5C518]/10 to-transparent blur-[2px]" />
-                  </div>
-                  <div className="ml-2 h-2.5 w-2.5 rounded-full bg-[#F5C518]/75 shadow-[0_0_14px_rgba(245,197,24,0.45)]" />
-                </div>
-              )}
-              
-              <div className="relative z-10 overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(10,8,20,0.88))] p-3 shadow-[0_28px_60px_rgba(0,0,0,0.34)] transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-400/30">
+            <div key={idx} data-cable-node className="relative group min-w-0">
+              <div className="how-it-works-card-shell relative z-10 overflow-hidden rounded-[2rem] border border-white/[0.08] p-3 transition-all duration-300 hover:-translate-y-1.5 hover:border-purple-400/30">
+                <div className="how-it-works-side-socket how-it-works-side-socket--left hidden md:block" />
+                <div className="how-it-works-side-socket how-it-works-side-socket--right hidden md:block" />
                 <div className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${item.accent} opacity-90`} />
-                <div className="relative flex min-h-[290px] flex-col rounded-[1.55rem] border border-white/[0.05] bg-[#090913]/90 px-6 py-6">
+                <div className="how-it-works-card-glass relative flex min-h-[290px] flex-col rounded-[1.55rem] border border-white/[0.05] px-6 py-6">
+                  <div className="how-it-works-card-fog pointer-events-none absolute inset-0 rounded-[1.55rem]" />
+                  <div className="how-it-works-card-noise pointer-events-none absolute inset-0 rounded-[1.55rem]" />
                   <div className="mb-7 flex items-start justify-between gap-4">
-                    <div className="bd-dent-surface flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-purple-400/20 text-3xl shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-                      {item.icon}
+                    <div className="how-it-works-icon-bay bd-dent-surface relative flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-purple-400/20 shadow-[0_0_24px_rgba(168,85,247,0.12)]">
+                      <div className="how-it-works-icon-core flex h-[calc(100%-10px)] w-[calc(100%-10px)] items-center justify-center rounded-[1.05rem] text-3xl">
+                        {item.icon}
+                      </div>
                     </div>
-                    <div className="bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.06] px-4 py-2">
+                    <div className="how-it-works-step-pill bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.06] px-4 py-2">
                       <span className="text-sm font-mono font-black tracking-[0.28em] text-white/35">
                         {item.step}
                       </span>
                     </div>
                   </div>
 
-                  <div className="bd-dent-surface flex flex-1 flex-col rounded-[1.45rem] border border-white/[0.06] px-5 py-5">
+                  <div className="how-it-works-content-bay bd-dent-surface flex flex-1 flex-col rounded-[1.45rem] border border-white/[0.06] px-5 py-5">
                     <div className="mb-4">
                       <p className="mb-2 text-[0.72rem] font-mono uppercase tracking-[0.34em] text-white/42">
                         Protocol Step
                       </p>
-                      <h4 className={`text-[2rem] font-black uppercase italic leading-none drop-shadow-lg ${item.titleColor}`}>
-                        {item.title}
-                      </h4>
+                      <div className="how-it-works-title-well rounded-[1.1rem] px-4 py-3">
+                        <h4 className={`text-[2rem] font-black uppercase italic leading-none drop-shadow-lg ${item.titleColor}`}>
+                          {item.title}
+                        </h4>
+                      </div>
                     </div>
                     <p className="text-[1.05rem] leading-relaxed text-gray-300 break-words drop-shadow-md">
                       {item.desc}
@@ -107,6 +112,7 @@ export default function HowItWorks() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         {/* Desktop Animated Text Strip */}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Clock, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ElectricBorder from './ElectricBorder';
 import DareVisual from './DareVisual';
 import ShareComposerButton from '@/components/ShareComposerButton';
 import './PremiumDareCard.css';
@@ -83,6 +84,8 @@ export default function PremiumDareCard({
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('locked-');
   const isExpired = status === 'expired';
@@ -97,6 +100,14 @@ export default function PremiumDareCard({
     }, 1000);
     return () => window.clearInterval(id);
   }, [expiresAt, status, isExpired, isRestricted]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const apply = () => setIsDesktop(mediaQuery.matches);
+    apply();
+    mediaQuery.addEventListener('change', apply);
+    return () => mediaQuery.removeEventListener('change', apply);
+  }, []);
 
   const liveTimeRemaining = useMemo(() => {
     if (!expiresAt || isExpired || status === 'completed' || isRestricted) {
@@ -152,11 +163,21 @@ export default function PremiumDareCard({
     : null;
 
   return (
+    <ElectricBorder
+      active={Boolean(isDesktop && isHovered && !isExpired)}
+      color="#a855f7"
+      speed={0.72}
+      chaos={0.045}
+      borderRadius={20}
+      className="premium-dare-electric-wrap"
+    >
     <motion.div
       className={`dare-card group select-none ${isExpired ? 'dare-card--expired' : ''}`}
       onClick={handleCardClick}
       whileHover={isRealDare ? { scale: 1.01 } : undefined}
       transition={{ duration: 0.18 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Background image */}
       <div className="dare-card-bg" aria-hidden="true">
@@ -261,5 +282,6 @@ export default function PremiumDareCard({
       {/* Hover shimmer */}
       <div className="dare-card-shimmer group-hover:opacity-100 opacity-0 transition-opacity" aria-hidden="true" />
     </motion.div>
+    </ElectricBorder>
   );
 }

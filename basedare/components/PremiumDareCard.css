@@ -1,3 +1,8 @@
+.premium-dare-electric-wrap {
+  display: block;
+  width: 100%;
+}
+
 /* ===========================================
    PREMIUM DARE CARD - Redesigned
    =========================================== */
@@ -40,10 +45,33 @@
 .dare-card:hover {
   border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 0 40px rgba(255, 215, 0, 0.1),
+    0 0 34px rgba(168, 85, 247, 0.16),
+    0 0 52px rgba(255, 215, 0, 0.08),
     0 22px 52px rgba(0, 0, 0, 0.48),
     -6px -6px 16px rgba(255, 255, 255, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 768px) {
+  .dare-card:hover {
+    border-color: rgba(168, 85, 247, 0.26);
+    box-shadow:
+      0 0 30px rgba(168, 85, 247, 0.18),
+      0 0 62px rgba(168, 85, 247, 0.08),
+      0 22px 52px rgba(0, 0, 0, 0.5),
+      -6px -6px 16px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 0 24px rgba(168, 85, 247, 0.08);
+  }
+
+  .dare-card:hover .dare-card-footer {
+    border-color: rgba(168, 85, 247, 0.14);
+    box-shadow:
+      inset 4px 4px 10px rgba(0, 0, 0, 0.52),
+      inset -2px -2px 6px rgba(255, 255, 255, 0.03),
+      0 0 20px rgba(168, 85, 247, 0.06);
+  }
+
 }
 
 /* === EXPIRED STATE === */

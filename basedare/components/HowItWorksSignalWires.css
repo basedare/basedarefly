@@ -1,0 +1,282 @@
+.how-it-works-wire-shell::before {
+  content: '';
+  position: absolute;
+  inset: 26% -2% -8%;
+  z-index: 0;
+  border-radius: 52px;
+  background:
+    radial-gradient(circle at 16% 46%, rgba(245, 197, 24, 0.24), transparent 28%),
+    radial-gradient(circle at 44% 64%, rgba(168, 85, 247, 0.3), transparent 34%),
+    radial-gradient(circle at 84% 54%, rgba(245, 197, 24, 0.2), transparent 26%);
+  filter: blur(52px);
+  pointer-events: none;
+}
+
+.how-it-works-neon-shell {
+  display: inline-block;
+  padding: 14px;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(16, 14, 26, 0.96), rgba(8, 8, 14, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 38px 42px -18px rgba(0, 0, 0, 0.5),
+    0 14px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -20px 30px rgba(0, 0, 0, 0.45);
+}
+
+.how-it-works-neon-sign {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 420px;
+  padding: 20px 44px;
+  border-radius: 22px;
+  background: rgba(5, 5, 10, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.58),
+    0 0 0 3px rgba(168, 85, 247, 0.95),
+    0 0 42px rgba(168, 85, 247, 0.42),
+    inset 0 0 34px rgba(168, 85, 247, 0.08);
+}
+
+.how-it-works-neon-title {
+  position: relative;
+  margin: 0;
+  font-size: clamp(3rem, 4vw, 4.2rem);
+  line-height: 1;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: rgba(18, 18, 22, 0.95);
+  -webkit-text-stroke: 3px #2f223e;
+  text-shadow: 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+
+.how-it-works-neon-title::before,
+.how-it-works-neon-title::after {
+  content: 'How It Works';
+  position: absolute;
+  inset: 0;
+}
+
+.how-it-works-neon-title::before {
+  color: rgba(250, 234, 255, 0.18);
+  -webkit-text-stroke: 3px rgba(192, 132, 252, 0.96);
+  text-shadow:
+    0 0 20px rgba(168, 85, 247, 0.55),
+    0 0 44px rgba(168, 85, 247, 0.38);
+  animation: how-it-works-flicker 18s linear infinite;
+}
+
+.how-it-works-neon-title::after {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.85);
+  animation: how-it-works-flicker 18s linear infinite;
+}
+
+.how-it-works-card-shell {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 12%, rgba(10,8,20,0.9) 100%);
+  box-shadow:
+    0 34px 70px rgba(0,0,0,0.42),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -24px 28px rgba(0,0,0,0.28),
+    0 0 24px rgba(168,85,247,0.06);
+}
+
+.how-it-works-side-socket {
+  position: absolute;
+  top: 43%;
+  z-index: 12;
+  width: 28px;
+  height: 13px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(20,16,32,0.96), rgba(8,8,14,0.98));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 0 2px rgba(13, 11, 20, 0.85),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -8px 12px rgba(0,0,0,0.35),
+    0 0 18px rgba(168,85,247,0.12);
+}
+
+.how-it-works-side-socket::before {
+  content: '';
+  position: absolute;
+  inset: 2px 4px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(245,197,24,0.85), rgba(168,85,247,0.82));
+  opacity: 0.9;
+  filter: blur(0.2px);
+}
+
+.how-it-works-side-socket::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: rgba(10, 8, 16, 0.96);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.how-it-works-side-socket--left {
+  left: -10px;
+}
+
+.how-it-works-side-socket--left::after {
+  right: -7px;
+}
+
+.how-it-works-side-socket--right {
+  right: -10px;
+}
+
+.how-it-works-side-socket--right::after {
+  left: -7px;
+}
+
+.how-it-works-card-glass {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 8%, rgba(15,15,24,0.84) 34%, rgba(9,9,18,0.94) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -20px 34px rgba(0,0,0,0.28),
+    inset 12px 12px 18px rgba(255,255,255,0.02),
+    0 16px 30px rgba(0,0,0,0.24);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.how-it-works-card-fog {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,0.12), transparent 28%),
+    radial-gradient(circle at 86% 26%, rgba(168,85,247,0.1), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,0.05), transparent 38%, rgba(0,0,0,0.12));
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+.how-it-works-card-noise {
+  opacity: 0.12;
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(255,255,255,0.45) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 75% 60%, rgba(255,255,255,0.32) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 48% 34%, rgba(0,0,0,0.55) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 62% 72%, rgba(255,255,255,0.28) 0 1px, transparent 1.2px);
+  background-size: 120px 120px, 140px 140px, 110px 110px, 130px 130px;
+}
+
+.how-it-works-icon-bay {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(9,8,16,0.96));
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,0.05),
+    inset 0 14px 18px rgba(255,255,255,0.015),
+    inset 0 -18px 24px rgba(0,0,0,0.46),
+    inset 12px 12px 18px rgba(0,0,0,0.22),
+    inset -10px -10px 16px rgba(255,255,255,0.015),
+    0 0 24px rgba(168,85,247,0.12);
+}
+
+.how-it-works-icon-core {
+  background:
+    linear-gradient(180deg, rgba(7, 7, 13, 0.94), rgba(17, 14, 28, 0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 18px 18px rgba(255,255,255,0.01),
+    inset 0 -16px 20px rgba(0,0,0,0.52),
+    inset 9px 9px 14px rgba(0,0,0,0.18),
+    inset -8px -8px 12px rgba(255,255,255,0.012);
+}
+
+.how-it-works-step-pill {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -8px 12px rgba(0,0,0,0.24),
+    0 0 16px rgba(168,85,247,0.08);
+}
+
+.how-it-works-content-bay {
+  background:
+    linear-gradient(180deg, rgba(8,8,16,0.68), rgba(10,10,18,0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 18px 18px rgba(255,255,255,0.012),
+    inset 0 -18px 28px rgba(0,0,0,0.38),
+    inset 12px 12px 18px rgba(0,0,0,0.18),
+    inset -10px -10px 16px rgba(255,255,255,0.01);
+}
+
+.how-it-works-title-well {
+  background:
+    linear-gradient(180deg, rgba(7,7,13,0.96), rgba(15,12,24,0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 18px 16px rgba(255,255,255,0.01),
+    inset 0 -20px 24px rgba(0,0,0,0.54),
+    inset 10px 10px 16px rgba(0,0,0,0.18),
+    inset -8px -8px 12px rgba(255,255,255,0.01),
+    0 0 0 1px rgba(255,255,255,0.02);
+}
+
+.truth-protocol-wire-shell::before {
+  content: '';
+  position: absolute;
+  inset: 28% -2% -8%;
+  z-index: 0;
+  border-radius: 54px;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(245, 197, 24, 0.22), transparent 30%),
+    radial-gradient(circle at 50% 66%, rgba(168, 85, 247, 0.32), transparent 36%),
+    radial-gradient(circle at 80% 48%, rgba(245, 197, 24, 0.18), transparent 26%);
+  filter: blur(54px);
+  pointer-events: none;
+}
+
+.how-it-works-wire-shell::after,
+.truth-protocol-wire-shell::after {
+  content: '';
+  position: absolute;
+  inset: 34% 0% 26%;
+  z-index: 1;
+  border-radius: 44px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(8, 8, 16, 0.16)),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 34%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -20px 30px rgba(0,0,0,0.24),
+    0 18px 42px rgba(0,0,0,0.18);
+  pointer-events: none;
+}
+
+@keyframes how-it-works-flicker {
+  0%, 100% { opacity: 1; }
+  6% { opacity: 0.86; }
+  7% { opacity: 1; }
+  22% { opacity: 0.94; }
+  23% { opacity: 0.78; }
+  24% { opacity: 1; }
+  60% { opacity: 1; }
+  61% { opacity: 0.9; }
+  63% { opacity: 1; }
+  78% { opacity: 0.95; }
+  79% { opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .how-it-works-wire-shell::before,
+  .truth-protocol-wire-shell::before {
+    display: none;
+  }
+}

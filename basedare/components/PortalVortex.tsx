@@ -2,8 +2,15 @@
 
 import React, { useMemo } from 'react';
 
-// Generate random number in range
-const random = (min: number, max: number) => Math.random() * (max - min) + min;
+const seeded = (seed: number) => {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+const seededRange = (seed: number, min: number, max: number) =>
+  min + seeded(seed) * (max - min);
+
+const rounded = (value: number, digits = 3) => Number(value.toFixed(digits));
 
 // Color palettes for light streams
 const COLOR_PALETTES = [
@@ -16,16 +23,17 @@ export default function PortalVortex() {
   // Generate light streams for accretion disc
   const streams = useMemo(() =>
     Array.from({ length: 80 }, (_, i) => {
-      const colorPalette = COLOR_PALETTES[Math.floor(random(0, COLOR_PALETTES.length))];
+      const colorPalette =
+        COLOR_PALETTES[Math.floor(seededRange(i + 1.1, 0, COLOR_PALETTES.length)) % COLOR_PALETTES.length];
       return {
         id: i,
-        angle: random(0, 360),
-        startRadius: random(320, 480),
-        duration: random(2, 4.5),
-        delay: random(0, 3),
+        angle: rounded(seededRange(i + 2.3, 0, 360)),
+        startRadius: rounded(seededRange(i + 3.7, 320, 480)),
+        duration: rounded(seededRange(i + 4.9, 2, 4.5)),
+        delay: rounded(seededRange(i + 5.7, 0, 3)),
         gradient: `linear-gradient(90deg, ${colorPalette.join(', ')})`,
-        width: random(60, 150),
-        height: random(2, 3),
+        width: rounded(seededRange(i + 6.1, 60, 150)),
+        height: rounded(seededRange(i + 7.3, 2, 3)),
       };
     }),
     []
