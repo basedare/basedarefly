@@ -69,6 +69,7 @@ export default function SubmitEvidence({
     typeof bountyAmount === 'number' || typeof bountyAmount === 'string'
       ? `$${bountyAmount}`
       : null;
+  const fileTypeLabel = file?.type.startsWith('video/') ? 'video' : file?.type.startsWith('image/') ? 'photo' : 'file';
 
   const handleFileSelect = (selectedFile: File) => {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
@@ -263,7 +264,7 @@ export default function SubmitEvidence({
 
         toast({
           title: 'Proof Submitted',
-          description: 'Your proof is under manual review. We will notify you once reviewed.',
+          description: 'Your proof is safely in review. Expect an answer within about 24 hours.',
           duration: 9000,
         });
       } else if (result.status === 'PENDING_PAYOUT') {
@@ -279,7 +280,7 @@ export default function SubmitEvidence({
 
         toast({
           title: 'Payout Queued',
-          description: 'Proof verified. Payout is temporarily queued and will retry automatically.',
+          description: 'Proof cleared. Payout retry is active and will keep running automatically.',
           duration: 9000,
         });
       } else {
@@ -382,7 +383,7 @@ export default function SubmitEvidence({
             <p className="text-xs font-mono text-gray-300 max-w-[240px]">
               {verificationResult?.confidence
                 ? `${activationLabel} cleared at ${(verificationResult.confidence * 100).toFixed(0)}% confidence.`
-                : `${activationLabel} has been verified.`}
+                : `${activationLabel} has been verified and locked in.`}
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -393,9 +394,12 @@ export default function SubmitEvidence({
               Verified by Beta AI Referee
             </div>
           </div>
-          <p className="max-w-[240px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
-            Next: payout clears and this win locks into the place.
-          </p>
+          <div className="rounded-2xl border border-green-400/16 bg-green-500/[0.06] px-4 py-3 text-left">
+            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-green-200">What Happens Now</p>
+            <p className="mt-2 text-xs text-gray-200">
+              Your payout is processing now. Once settlement clears, this win strengthens the venue memory layer automatically.
+            </p>
+          </div>
           <div className="pt-2">
             <ShareWinButton
               dare={dareTitle}
@@ -420,7 +424,7 @@ export default function SubmitEvidence({
           </div>
           <div>
             <h3 className="text-xl font-black text-yellow-400 uppercase tracking-wider mb-1">
-              {isReview ? 'Under Review' : 'Payout Queued'}
+              {isReview ? 'Proof Submitted' : 'Payout Queued'}
             </h3>
             <p className="text-xs font-mono text-gray-300 max-w-[250px]">
               {verificationResult?.reason ||
@@ -429,14 +433,16 @@ export default function SubmitEvidence({
                   : 'Your payout is queued and will retry automatically.')}
             </p>
           </div>
-          <div className="px-3 py-1 rounded bg-yellow-500/10 border border-yellow-500/30 text-[10px] font-bold text-yellow-400 uppercase tracking-widest">
-            {isReview ? 'Manual Review' : 'Auto-Retry Active'}
+          <div className="rounded-2xl border border-yellow-400/16 bg-yellow-500/[0.06] px-4 py-3 text-left">
+            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-yellow-100">
+              {isReview ? 'Review Rail Active' : 'Retry Rail Active'}
+            </p>
+            <p className="mt-2 text-xs text-gray-200">
+              {isReview
+                ? 'Your proof is safely attached. Expect a decision within about 24 hours. We will notify you as soon as it clears.'
+                : 'Your proof already cleared. The payout rail will keep retrying automatically until settlement lands.'}
+            </p>
           </div>
-          <p className="max-w-[240px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
-            {isReview
-              ? 'Next: referee checks it, then payout clears automatically.'
-              : 'Next: payout keeps retrying in the background. No action needed.'}
-          </p>
           <button
             onClick={handleRemove}
             className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-wider transition-colors"
@@ -461,25 +467,30 @@ export default function SubmitEvidence({
               {verificationResult?.reason || `We could not verify ${activationLabel} from this proof.`}
             </p>
           </div>
-          <p className="max-w-[220px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
-            Next: upload a clearer proof or send an appeal below.
-          </p>
+          <div className="w-full max-w-[260px] rounded-2xl border border-red-400/14 bg-red-500/[0.06] px-4 py-3 text-left">
+            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-red-200">Best Retry</p>
+            <p className="mt-2 text-xs text-gray-200">
+              Retake the proof with the venue and the completed challenge action clearly visible in one shot. Shorter, cleaner clips usually verify faster.
+            </p>
+          </div>
 
           {verificationResult?.appealable && !appealSubmitted && (
             <div className="w-full max-w-[240px] space-y-2">
               <textarea
                 value={appealText}
                 onChange={(e) => setAppealText(e.target.value)}
-                placeholder="Why should this be reconsidered?"
+                placeholder="Explain why this proof should be reconsidered, or what the referee missed."
                 className="w-full p-2 bg-black/40 border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 resize-none h-16"
                 maxLength={500}
               />
-              <button
+              <CosmicButton
                 onClick={handleAppeal}
-                className="w-full px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-400 font-bold text-xs rounded-lg uppercase tracking-wider transition-colors"
+                variant="gold"
+                size="sm"
+                fullWidth
               >
                 Submit Appeal
-              </button>
+              </CosmicButton>
               {error && (
                 <p className="text-[10px] text-red-400">{error}</p>
               )}
@@ -544,7 +555,7 @@ export default function SubmitEvidence({
               <p className="text-xs font-mono text-gray-300 max-w-[220px]">
                 {status === 'uploading'
                   ? 'Step 1 of 2. Sending your file to secure storage.'
-                  : 'Step 2 of 2. Beta Referee is checking completion.'}
+                  : 'Step 2 of 2. Referee is checking completion and routing the next state.'}
               </p>
             </div>
             <div className="flex flex-col items-center gap-2">
@@ -555,6 +566,9 @@ export default function SubmitEvidence({
                 Beta Referee
               </div>
             </div>
+            <p className="max-w-[240px] text-[10px] font-mono uppercase tracking-[0.2em] text-white/45">
+              Keep this tab open. You will land in review, payout, or retry next.
+            </p>
           </>
         ) : preview ? (
           <>
@@ -592,14 +606,21 @@ export default function SubmitEvidence({
               <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-left">
                 <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-200">Ready To Submit</p>
                 <p className="mt-2 text-xs text-gray-300">
-                  Upload one clear photo or short video from {activationLabel}.
+                  Your {fileTypeLabel} is attached. Make sure it clearly shows {activationLabel} and the completed challenge moment.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
                   <span>Venue visible</span>
                   <span>Challenge action visible</span>
+                  <span>No heavy edits</span>
                   <span>Max 120MB</span>
                   {payoutLabel ? <span>{payoutLabel} on clear approval</span> : null}
                 </div>
+              </div>
+              <div className="rounded-2xl border border-purple-300/12 bg-purple-500/[0.05] px-4 py-3 text-left">
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-purple-100">After Submit</p>
+                <p className="mt-2 text-xs text-gray-300">
+                  Lower-value clears can verify fast. Bigger payouts may pause in review first, but you will keep your place in the rail either way.
+                </p>
               </div>
               {error && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
@@ -652,12 +673,15 @@ export default function SubmitEvidence({
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
                 <span>Venue visible</span>
-                <span>Challenge visible</span>
+                <span>Challenge action visible</span>
+                <span>Short & clear wins</span>
                 <span>Max 120MB</span>
               </div>
-              <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[8px] font-mono text-yellow-400/80 uppercase tracking-wider flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
-                Beta • Testnet
+              <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-left max-w-[280px]">
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-200">Best Proof</p>
+                <p className="mt-2 text-xs text-gray-300">
+                  Show the venue, the action, and one clean moment that proves the dare happened. If the clip is messy, dark, or overcut, it is more likely to go to retry.
+                </p>
               </div>
             </div>
           </>

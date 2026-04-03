@@ -38,6 +38,7 @@ interface Dare {
   awaitingClaim?: boolean;
   claimDeadline?: string | null;
   locationLabel?: string | null;
+  moderatorNote?: string | null;
 }
 
 interface UserTag {
@@ -218,9 +219,11 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'PENDING_REVIEW') {
     return {
       label: 'In Review',
-      detail: dare.updatedAt
-        ? `Proof submitted ${formatStatusTimestamp(dare.updatedAt)}. Waiting on referee review.`
-        : 'Proof submitted. Waiting on referee review.',
+      detail: dare.moderatorNote
+        ? dare.moderatorNote
+        : dare.updatedAt
+          ? `Proof submitted ${formatStatusTimestamp(dare.updatedAt)}. Referee review is live now. Expect an answer within 24 hours.`
+          : 'Proof submitted. Referee review is live now. Expect an answer within 24 hours.',
       cta: 'Open Brief',
       tone: 'amber',
       priority: 2,
@@ -254,7 +257,7 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   if (isAssignedCreator && dare.status === 'FAILED') {
     return {
       label: 'Needs Retry',
-      detail: 'Proof was rejected. Open the brief and try again.',
+      detail: dare.moderatorNote || 'Proof needs a clearer retry. Open the brief, check the note, and submit a stronger proof.',
       cta: 'Open Brief',
       tone: 'red',
       priority: 5,
@@ -951,6 +954,12 @@ export default function Dashboard() {
                     {isExpanded ? (
                       <div className={`${insetWellClass} m-3 border border-white/8 px-4 py-4`}>
                         <p className="text-sm text-white/60">{loopState.detail}</p>
+                        {dare.moderatorNote && (dare.status === 'FAILED' || dare.status === 'PENDING_REVIEW') ? (
+                          <div className="mt-3 rounded-[18px] border border-amber-300/16 bg-amber-500/[0.06] px-3 py-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">Review Note</p>
+                            <p className="mt-1 text-sm text-white/74">{dare.moderatorNote}</p>
+                          </div>
+                        ) : null}
                         {dare.status === 'PENDING' && loopState.label === 'Ready for Proof' ? (
                           <div className="mt-4">
                             <SubmitEvidence

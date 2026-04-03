@@ -24,6 +24,7 @@ function toPublicDare(dare: {
   claimRequestedAt: Date | null;
   claimRequestStatus: string | null;
   locationLabel: string | null;
+  moderatorNote: string | null;
 }): {
   id: string;
   title: string;
@@ -47,6 +48,7 @@ function toPublicDare(dare: {
   claimRequestedAt: string | null;
   claimRequestStatus: string | null;
   locationLabel: string | null;
+  moderatorNote: string | null;
 } {
   return {
     id: dare.id,
@@ -71,6 +73,7 @@ function toPublicDare(dare: {
     claimRequestedAt: dare.claimRequestedAt?.toISOString() || null,
     claimRequestStatus: dare.claimRequestStatus,
     locationLabel: dare.locationLabel,
+    moderatorNote: dare.moderatorNote,
   };
 }
 
