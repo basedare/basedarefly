@@ -198,6 +198,12 @@ Outputs:
 - creator-map handoff cues
 - creator spatial control defaults and deep-link state
 - footprint-driven opportunity context
+- venue-page legacy summaries for the currently signed-in creator:
+  - marks here
+  - verified wins here
+  - first-mark authorship
+  - pulse contributed to this place
+  - strongest local signal cues
 
 ### 7. Knowledge & Memory Layer
 

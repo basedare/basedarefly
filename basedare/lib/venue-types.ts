@@ -28,6 +28,19 @@ export type VenueRecentTag = {
   source?: string | null;
   submittedAt: string;
   firstMark: boolean;
+  isOwn?: boolean;
+};
+
+export type VenueCreatorContribution = {
+  walletAddress: string;
+  creatorTag: string | null;
+  totalMarksHere: number;
+  totalWinsHere: number;
+  firstMarksHere: number;
+  pulseContribution: number;
+  shareOfVenuePulse: number;
+  lastMarkedAt: string | null;
+  isTopLocalSignal: boolean;
 };
 
 export type VenueSessionSummary = {
@@ -102,6 +115,7 @@ export type VenueDetail = {
     scannedAt: string;
   }>;
   recentTags: VenueRecentTag[];
+  creatorContribution: VenueCreatorContribution | null;
   activeDares: Array<{
     id: string;
     shortId: string;

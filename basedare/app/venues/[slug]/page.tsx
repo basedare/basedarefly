@@ -1,6 +1,9 @@
+import type { Session } from 'next-auth';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
 import { Activity, ArrowRight, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
+import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import VenuePageShell from '../VenuePageShell';
 
@@ -80,6 +83,19 @@ function getLogbookSourceLabel(source?: string | null) {
   }
 }
 
+function getPulseState(heatScore: number) {
+  if (heatScore >= 45) {
+    return { label: 'Hot', className: 'text-rose-200', accentClassName: 'border-rose-400/18 bg-rose-500/[0.08] text-rose-100' };
+  }
+  if (heatScore >= 20) {
+    return { label: 'Alive', className: 'text-emerald-200', accentClassName: 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-100' };
+  }
+  if (heatScore > 0) {
+    return { label: 'Simmering', className: 'text-amber-200', accentClassName: 'border-amber-400/18 bg-amber-500/[0.08] text-amber-100' };
+  }
+  return { label: 'Dormant', className: 'text-white/62', accentClassName: 'border-white/10 bg-white/[0.04] text-white/62' };
+}
+
 export default async function VenueDetailPage(
   {
     params,
@@ -91,7 +107,15 @@ export default async function VenueDetailPage(
 ) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
-  const venue = await getVenueDetailBySlug(slug);
+  const session = (await getServerSession(authOptions)) as (Session & {
+    walletAddress?: string;
+    user?: Session['user'] & { walletAddress?: string };
+  }) | null;
+  const creatorWalletAddress =
+    session?.walletAddress?.trim().toLowerCase() ??
+    session?.user?.walletAddress?.trim().toLowerCase() ??
+    null;
+  const venue = await getVenueDetailBySlug(slug, creatorWalletAddress);
 
   if (!venue) {
     notFound();
@@ -116,6 +140,11 @@ export default async function VenueDetailPage(
   const mapHref = `/map?place=${encodeURIComponent(venue.slug)}${
     isCreatorContext ? `&source=creator&matches=1${focusedDareShortId ? `&dare=${encodeURIComponent(focusedDareShortId)}` : ''}` : ''
   }`;
+  const creatorContribution = venue.creatorContribution;
+  const currentPulseState = getPulseState(venue.tagSummary.heatScore);
+  const previousPulseState = getPulseState(Math.max(0, venue.tagSummary.heatScore - (creatorContribution?.pulseContribution ?? 0)));
+  const creatorShiftedPulseState =
+    Boolean(creatorContribution?.pulseContribution) && previousPulseState.label !== currentPulseState.label;
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -292,6 +321,72 @@ export default async function VenueDetailPage(
                           View on map
                         </Link>
                       </div>
+                    </div>
+                  </div>
+                ) : null}
+                {creatorContribution ? (
+                  <div className={`${insetCardClass} mt-5 px-4 py-5`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-fuchsia-100/82">
+                        <Flame className="h-3.5 w-3.5 text-fuchsia-200" />
+                        Your Legacy At This Place
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${currentPulseState.accentClassName}`}>
+                        {currentPulseState.label} now
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className={`${softCardClass} p-4`}>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">Verified Marks</p>
+                        <p className="mt-2 text-2xl font-black text-white">{creatorContribution.totalMarksHere}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/52">
+                          You&apos;ve left {creatorContribution.totalMarksHere} verified mark{creatorContribution.totalMarksHere === 1 ? '' : 's'} here.
+                        </p>
+                      </div>
+                      <div className={`${softCardClass} p-4`}>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">Verified Wins</p>
+                        <p className="mt-2 text-2xl font-black text-[#f8dd72]">{creatorContribution.totalWinsHere}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/52">
+                          Your challenge completions are part of this venue&apos;s permanent proof trail.
+                        </p>
+                      </div>
+                      <div className={`${softCardClass} p-4`}>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">Pulse Added</p>
+                        <p className="mt-2 text-2xl font-black text-fuchsia-100">+{creatorContribution.pulseContribution}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/52">
+                          {creatorShiftedPulseState
+                            ? `Your wins helped move this venue from ${previousPulseState.label} to ${currentPulseState.label}.`
+                            : `Your marks account for ${Math.round(creatorContribution.shareOfVenuePulse * 100)}% of the venue's current pulse.`}
+                        </p>
+                      </div>
+                      <div className={`${softCardClass} p-4`}>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">Local Signal</p>
+                        <p className="mt-2 text-lg font-black text-white">
+                          {creatorContribution.firstMarksHere > 0 ? 'First mark won' : creatorContribution.isTopLocalSignal ? 'Top local signal' : 'Repeat presence'}
+                        </p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/52">
+                          {creatorContribution.firstMarksHere > 0
+                            ? `You created ${creatorContribution.firstMarksHere} first mark${creatorContribution.firstMarksHere === 1 ? '' : 's'} here.`
+                            : creatorContribution.isTopLocalSignal
+                              ? 'You currently have the strongest visible footprint at this venue.'
+                              : `Last active ${creatorContribution.lastMarkedAt ? formatVenueLogbookDate(creatorContribution.lastMarkedAt) : 'recently'}.`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-fuchsia-100">
+                        {creatorContribution.creatorTag ?? 'your identity'} wrote part of this venue
+                      </span>
+                      {creatorContribution.firstMarksHere > 0 ? (
+                        <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-200">
+                          first mark legacy
+                        </span>
+                      ) : null}
+                      {creatorContribution.isTopLocalSignal ? (
+                        <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-cyan-100">
+                          strongest footprint here
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -481,7 +576,11 @@ export default async function VenueDetailPage(
                       {venue.recentTags.map((tag) => (
                         <div
                           key={tag.id}
-                          className={`${insetCardClass} flex items-start gap-4 px-4 py-4`}
+                          className={`${insetCardClass} flex items-start gap-4 px-4 py-4 ${
+                            tag.isOwn
+                              ? 'border-fuchsia-400/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(88,28,135,0.18)]'
+                              : ''
+                          }`}
                         >
                           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,18,0.96)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
                             {tag.proofType === 'IMAGE' ? (
@@ -507,6 +606,11 @@ export default async function VenueDetailPage(
                                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
                                     {getLogbookSourceLabel(tag.source)}
                                   </span>
+                                  {tag.isOwn ? (
+                                    <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-fuchsia-100">
+                                      your mark
+                                    </span>
+                                  ) : null}
                                   {tag.firstMark ? (
                                     <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
                                       first mark

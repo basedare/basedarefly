@@ -13,9 +13,11 @@ import {
   getRecentApprovedPlaceTagsByVenueId,
   getVenueTagSummary,
 } from '@/lib/place-tags';
+import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
   NearbyVenueItem,
   VenueDetail,
+  VenueCreatorContribution,
   VenueMemorySummary,
   VenueQrPayload,
   VenueSessionSummary,
@@ -44,6 +46,10 @@ function getBoundingBox(lat: number, lng: number, radiusKm: number) {
     minLng: lng - lngDelta,
     maxLng: lng + lngDelta,
   };
+}
+
+function normalizeWalletAddress(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? null;
 }
 
 function mapMemorySummary(memory: {
@@ -569,8 +575,12 @@ export async function getNearbyVenues(input: {
   };
 }
 
-export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | null> {
+export async function getVenueDetailBySlug(
+  slug: string,
+  creatorWalletAddress?: string | null
+): Promise<VenueDetail | null> {
   const now = new Date();
+  const normalizedCreatorWallet = normalizeWalletAddress(creatorWalletAddress);
   const venue = await prisma.venue.findUnique({
     where: { slug },
     select: {
@@ -684,7 +694,68 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
   ]);
 
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
+  const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
   const activeDares = venue.dares.map(mapActiveDare);
+  const creatorContribution: VenueCreatorContribution | null = normalizedCreatorWallet
+    ? await (async () => {
+        const [creatorTags, tagLeaderboard, primaryCreatorTag] = await Promise.all([
+          prisma.placeTag.findMany({
+            where: {
+              venueId: venue.id,
+              walletAddress: normalizedCreatorWallet,
+              status: 'APPROVED',
+            },
+            orderBy: { submittedAt: 'asc' },
+            select: {
+              source: true,
+              firstMark: true,
+              heatContribution: true,
+              submittedAt: true,
+            },
+          }),
+          prisma.placeTag.groupBy({
+            by: ['walletAddress'],
+            where: {
+              venueId: venue.id,
+              status: 'APPROVED',
+            },
+            _count: { _all: true },
+          }),
+          findPrimaryCreatorTagForWallet(normalizedCreatorWallet),
+        ]);
+
+        if (creatorTags.length === 0) {
+          return null;
+        }
+
+        const totalMarksHere = creatorTags.length;
+        const totalWinsHere = creatorTags.filter((tag) => tag.source === 'DARE_COMPLETION').length;
+        const firstMarksHere = creatorTags.filter((tag) => tag.firstMark).length;
+        const pulseContribution = creatorTags.reduce((sum, tag) => sum + (tag.heatContribution ?? 0), 0);
+        const topLocalCount = tagLeaderboard.reduce(
+          (max, row) => Math.max(max, row._count._all),
+          0
+        );
+
+        return {
+          walletAddress: normalizedCreatorWallet,
+          creatorTag: primaryCreatorTag?.tag ?? null,
+          totalMarksHere,
+          totalWinsHere,
+          firstMarksHere,
+          pulseContribution,
+          shareOfVenuePulse: tagSummary.heatScore
+            ? pulseContribution / Math.max(1, tagSummary.heatScore)
+            : 0,
+          lastMarkedAt: creatorTags.at(-1)?.submittedAt.toISOString() ?? null,
+          isTopLocalSignal: totalMarksHere > 0 && totalMarksHere === topLocalCount,
+        };
+      })()
+    : null;
+  const recentTagsWithOwnership = recentTags.map((tag) => ({
+    ...tag,
+    isOwn: normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false,
+  }));
 
   return {
     id: venue.id,
@@ -706,7 +777,7 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
     checkInRadiusMeters: venue.checkInRadiusMeters,
     memorySummary: mapMemorySummary(venue.memories[0] ?? null),
     memoryHistory: venue.memories.map((memory) => mapMemorySummary(memory)).filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null),
-    tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
+    tagSummary,
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
     liveStats: {
       scansLastHour,
@@ -719,7 +790,8 @@ export async function getVenueDetailBySlug(slug: string): Promise<VenueDetail | 
       proofLevel: checkIn.proofLevel,
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
-    recentTags,
+    recentTags: recentTagsWithOwnership,
+    creatorContribution,
     activeDares,
     paidActivationCount: venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length,
     featuredPaidActivation: getFeaturedPaidActivation(activeDares),

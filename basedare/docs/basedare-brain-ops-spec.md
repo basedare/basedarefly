@@ -138,6 +138,12 @@ Preferred creator contribution fields:
 - `topVenue`
 - `lastMarkedAt`
 - `venueAffinityReasons`
+- `totalMarksHere`
+- `totalWinsHere`
+- `firstMarksHere`
+- `pulseContribution`
+- `shareOfVenuePulse`
+- `isTopLocalSignal`
 
 ## Permission Model
 
