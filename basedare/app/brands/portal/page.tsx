@@ -73,6 +73,7 @@ interface Campaign {
     claimRequestTag?: string | null;
     claimRequestedAt?: string | null;
     claimRequestStatus?: string | null;
+    moderatorNote?: string | null;
   } | null;
   truth?: {
     sourceOfTruth: 'LINKED_DARE' | 'CAMPAIGN';
@@ -170,6 +171,8 @@ interface CampaignMatchesState {
   data: CampaignMatch[];
   error: string | null;
 }
+
+type ResponseRailTab = 'shortlisted' | 'claimed' | 'proof' | 'review' | 'verified';
 
 const PLATFORM_OPTIONS = [
   { value: 'twitter', label: 'X' },
@@ -277,6 +280,7 @@ export default function BrandPortalPage() {
   const [placeLoading, setPlaceLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(null);
   const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
+  const [responsesTabByCampaign, setResponsesTabByCampaign] = useState<Record<string, ResponseRailTab>>({});
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
   const [shortlistedCreators, setShortlistedCreators] = useState<Record<string, string[]>>({});
   const campaignSummary = brand?.campaignSummary;
@@ -616,9 +620,25 @@ export default function BrandPortalPage() {
     }
   };
 
-  const toggleCampaignMatches = async (campaignId: string) => {
+  const getDefaultResponseTab = (campaign: Campaign): ResponseRailTab => {
+    const dare = campaign.linkedDare;
+    if (dare?.status === 'VERIFIED' || dare?.status === 'PENDING_PAYOUT') return 'verified';
+    if (dare?.status === 'PENDING_REVIEW') return 'review';
+    if (dare?.videoUrl) return 'proof';
+    if (dare?.claimRequestStatus === 'PENDING' || dare?.claimedBy || dare?.targetWalletAddress) return 'claimed';
+    return 'shortlisted';
+  };
+
+  const toggleCampaignMatches = async (campaign: Campaign) => {
+    const campaignId = campaign.id;
     const willExpand = expandedMatchesCampaignId !== campaignId;
     setExpandedMatchesCampaignId(willExpand ? campaignId : null);
+    if (willExpand) {
+      setResponsesTabByCampaign((current) => ({
+        ...current,
+        [campaignId]: current[campaignId] ?? getDefaultResponseTab(campaign),
+      }));
+    }
 
     if (!willExpand) return;
     if (matchesByCampaign[campaignId]?.data?.length || matchesByCampaign[campaignId]?.loading) return;
@@ -944,6 +964,27 @@ export default function BrandPortalPage() {
     return entries
       .sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime())
       .slice(0, 4);
+  };
+
+  const getLinkedCreatorHandle = (campaign: Campaign) => {
+    const dare = campaign.linkedDare;
+    return (
+      (dare?.streamerHandle && dare.streamerHandle !== '@open' ? dare.streamerHandle : null) ||
+      dare?.claimRequestTag ||
+      formatWallet(dare?.claimRequestWallet || dare?.claimedBy || dare?.targetWalletAddress) ||
+      'Creator'
+    );
+  };
+
+  const getResponseTabCounts = (campaign: Campaign, matchesState?: CampaignMatchesState, shortlistedCount = 0) => {
+    const dare = campaign.linkedDare;
+    const shortlisted = shortlistedCount || (matchesState?.data?.length ?? 0);
+    const claimed = dare?.claimRequestStatus === 'PENDING' || dare?.claimedBy || dare?.targetWalletAddress ? 1 : 0;
+    const proof = dare?.videoUrl ? 1 : 0;
+    const review = dare?.status === 'PENDING_REVIEW' ? 1 : 0;
+    const verified = dare?.status === 'VERIFIED' || dare?.status === 'PENDING_PAYOUT' ? 1 : 0;
+
+    return { shortlisted, claimed, proof, review, verified };
   };
 
   // Determine current view state
@@ -1682,10 +1723,12 @@ export default function BrandPortalPage() {
                 const matchesState = matchesByCampaign[campaign.id];
                 const shortlistedCount = (shortlistedCreators[campaign.id] ?? []).length;
                 const isMatchesExpanded = expandedMatchesCampaignId === campaign.id;
+                const activeResponsesTab = responsesTabByCampaign[campaign.id] ?? getDefaultResponseTab(campaign);
                 const creatorIntent = getCampaignIntent(campaign);
                 const outcomeSteps = getCampaignOutcomeSteps(campaign);
                 const outcomeSummary = getCampaignOutcomeSummary(campaign);
                 const completionHistory = getCampaignCompletionHistory(campaign);
+                const responseTabCounts = getResponseTabCounts(campaign, matchesState, shortlistedCount);
                 return (
                   <div
                     key={campaign.id}
@@ -1916,11 +1959,11 @@ export default function BrandPortalPage() {
                         ) : null}
                         <button
                           type="button"
-                          onClick={() => toggleCampaignMatches(campaign.id)}
+                          onClick={() => toggleCampaignMatches(campaign)}
                           className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
                         >
                           <Users className="h-3.5 w-3.5" />
-                          {isMatchesExpanded ? 'Hide Matches' : shortlistedCount > 0 ? `Matches • ${shortlistedCount} shortlisted` : 'Matches'}
+                          {isMatchesExpanded ? 'Hide Responses' : responseTabCounts.shortlisted > 0 ? `Responses • ${responseTabCounts.shortlisted} shortlisted` : 'Responses'}
                         </button>
                         {campaign.venue?.slug ? (
                           <Link
@@ -1937,14 +1980,42 @@ export default function BrandPortalPage() {
                         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-semibold text-zinc-900">Venue-affinity matches</div>
+                              <div className="text-sm font-semibold text-zinc-900">Creator responses</div>
                               <div className="mt-1 text-xs text-zinc-500">
-                                Ranked with venue history first so Control can surface creators who already belong in this place.
+                                Watch the activation move from shortlist to proof to paid outcome without leaving Control.
                               </div>
                             </div>
                             {matchesState?.loading ? (
                               <div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Loading</div>
                             ) : null}
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {([
+                              ['shortlisted', 'Shortlisted', responseTabCounts.shortlisted],
+                              ['claimed', 'Claimed', responseTabCounts.claimed],
+                              ['proof', 'Proof Submitted', responseTabCounts.proof],
+                              ['review', 'In Review', responseTabCounts.review],
+                              ['verified', 'Verified / Paid', responseTabCounts.verified],
+                            ] as Array<[ResponseRailTab, string, number]>).map(([tabKey, label, count]) => (
+                              <button
+                                key={`${campaign.id}-${tabKey}`}
+                                type="button"
+                                onClick={() =>
+                                  setResponsesTabByCampaign((current) => ({
+                                    ...current,
+                                    [campaign.id]: tabKey,
+                                  }))
+                                }
+                                className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+                                  activeResponsesTab === tabKey
+                                    ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
+                                    : 'border-white/10 bg-white/5 text-zinc-600 hover:border-white/20 hover:bg-white/10 hover:text-zinc-900'
+                                }`}
+                              >
+                                {label} {count > 0 ? `• ${count}` : ''}
+                              </button>
+                            ))}
                           </div>
 
                           {matchesState?.error ? (
@@ -1953,104 +2024,316 @@ export default function BrandPortalPage() {
                             </div>
                           ) : null}
 
-                          {!matchesState?.loading && (matchesState?.data?.length ?? 0) === 0 ? (
-                            <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
-                              No creator matches yet. That is expected while onboarding is still at zero. Social connect and tag claims will start feeding this list.
-                            </div>
+                          {activeResponsesTab === 'shortlisted' ? (
+                            <>
+                              {!matchesState?.loading && (matchesState?.data?.length ?? 0) === 0 ? (
+                                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                                  No creator matches yet. That is expected while onboarding is still at zero. Social connect and tag claims will start feeding this list.
+                                </div>
+                              ) : null}
+
+                              <div className="mt-3 space-y-3">
+                                {(matchesState?.data ?? []).slice(0, 5).map((match) => {
+                                  const shortlist = (shortlistedCreators[campaign.id] ?? []).includes(match.creator.id);
+                                  const platformLabels = Object.entries(match.creator.platforms)
+                                    .filter(([, value]) => value?.handle)
+                                    .map(([platform]) => platform.toUpperCase());
+
+                                  return (
+                                    <div
+                                      key={match.creator.id}
+                                      className="rounded-xl border border-white/10 bg-white/5 p-3"
+                                    >
+                                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                        <div>
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <div className="font-semibold text-zinc-900">{match.creator.tag}</div>
+                                            <div className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                                              score {match.score}
+                                            </div>
+                                          </div>
+                                          <div className="mt-1 text-sm text-zinc-600">
+                                            {match.creator.followerCount
+                                              ? `${match.creator.followerCount.toLocaleString()} followers`
+                                              : 'audience signal pending'}
+                                            {' • '}
+                                            {match.creator.completedDares} wins
+                                            {' • '}
+                                            ${Math.round(match.creator.totalEarned)} earned
+                                          </div>
+                                          {platformLabels.length > 0 ? (
+                                            <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                                              {platformLabels.join(' • ')}
+                                            </div>
+                                          ) : null}
+                                          {match.creator.identityHandle ? (
+                                            <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                                              primary {match.creator.identityPlatform ?? 'identity'} • @{match.creator.identityHandle.replace(/^@/, '')}
+                                            </div>
+                                          ) : null}
+                                          {match.creator.bio ? (
+                                            <div className="mt-2 text-sm text-zinc-600 line-clamp-2">{match.creator.bio}</div>
+                                          ) : null}
+                                          <div className="mt-3 flex flex-wrap gap-2">
+                                            {match.venueAffinity.exactVenueWins > 0 ? (
+                                              <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-emerald-800">
+                                                {match.venueAffinity.exactVenueWins} win{match.venueAffinity.exactVenueWins === 1 ? '' : 's'} here
+                                              </span>
+                                            ) : null}
+                                            {match.venueAffinity.exactVenueMarks > 0 ? (
+                                              <span className="rounded-full border border-purple-300 bg-purple-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-800">
+                                                {match.venueAffinity.exactVenueMarks} mark{match.venueAffinity.exactVenueMarks === 1 ? '' : 's'} here
+                                              </span>
+                                            ) : null}
+                                            {match.venueAffinity.exactVenueCheckIns > 0 ? (
+                                              <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-sky-800">
+                                                {match.venueAffinity.exactVenueCheckIns} check-in{match.venueAffinity.exactVenueCheckIns === 1 ? '' : 's'} here
+                                              </span>
+                                            ) : null}
+                                            {match.venueAffinity.sameCityMarks > 0 ? (
+                                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-amber-800">
+                                                {match.venueAffinity.sameCityMarks} city mark{match.venueAffinity.sameCityMarks === 1 ? '' : 's'}
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                          <div className="mt-2 flex flex-wrap gap-2">
+                                            {match.reasons.slice(0, 3).map((reason) => (
+                                              <span
+                                                key={`${match.creator.id}-${reason}`}
+                                                className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600"
+                                              >
+                                                {reason}
+                                              </span>
+                                            ))}
+                                          </div>
+                                          <div className="mt-3 flex flex-wrap gap-2">
+                                            <Link
+                                              href={`/creator/${encodeURIComponent(match.creator.tag)}`}
+                                              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                                            >
+                                              View Creator
+                                            </Link>
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleShortlistCreator(campaign.id, match.creator.id)}
+                                          className={`rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                                            shortlist
+                                              ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
+                                              : 'border-white/10 bg-white/5 text-zinc-700 hover:border-white/20 hover:bg-white/10 hover:text-zinc-900'
+                                          }`}
+                                        >
+                                          {shortlist ? 'Shortlisted' : 'Shortlist'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </>
                           ) : null}
 
-                          <div className="mt-3 space-y-3">
-                            {(matchesState?.data ?? []).slice(0, 5).map((match) => {
-                              const shortlist = (shortlistedCreators[campaign.id] ?? []).includes(match.creator.id);
-                              const platformLabels = Object.entries(match.creator.platforms)
-                                .filter(([, value]) => value?.handle)
-                                .map(([platform]) => platform.toUpperCase());
-
-                              return (
-                                <div
-                                  key={match.creator.id}
-                                  className="rounded-xl border border-white/10 bg-white/5 p-3"
-                                >
+                          {activeResponsesTab === 'claimed' ? (
+                            responseTabCounts.claimed > 0 ? (
+                              <div className="mt-3 space-y-3">
+                                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
                                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                     <div>
                                       <div className="flex flex-wrap items-center gap-2">
-                                        <div className="font-semibold text-zinc-900">{match.creator.tag}</div>
-                                        <div className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                                          score {match.score}
+                                        <div className="font-semibold text-zinc-900">{getLinkedCreatorHandle(campaign)}</div>
+                                        <div className="rounded-full border border-blue-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-800">
+                                          {campaign.linkedDare?.claimRequestStatus === 'PENDING' ? 'pending claim' : 'creator attached'}
                                         </div>
                                       </div>
                                       <div className="mt-1 text-sm text-zinc-600">
-                                        {match.creator.followerCount
-                                          ? `${match.creator.followerCount.toLocaleString()} followers`
-                                          : 'audience signal pending'}
-                                        {' • '}
-                                        {match.creator.completedDares} wins
-                                        {' • '}
-                                        ${Math.round(match.creator.totalEarned)} earned
+                                        {campaign.linkedDare?.claimRequestedAt
+                                          ? `claimed ${new Date(campaign.linkedDare.claimRequestedAt).toLocaleString()}`
+                                          : campaign.linkedDare?.claimedAt
+                                            ? `attached ${new Date(campaign.linkedDare.claimedAt).toLocaleString()}`
+                                            : 'creator is moving on this activation'}
                                       </div>
-                                      {platformLabels.length > 0 ? (
-                                        <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
-                                          {platformLabels.join(' • ')}
-                                        </div>
-                                      ) : null}
-                                      {match.creator.identityHandle ? (
-                                        <div className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-500">
-                                          primary {match.creator.identityPlatform ?? 'identity'} • @{match.creator.identityHandle.replace(/^@/, '')}
-                                        </div>
-                                      ) : null}
-                                      {match.creator.bio ? (
-                                        <div className="mt-2 text-sm text-zinc-600 line-clamp-2">{match.creator.bio}</div>
-                                      ) : null}
-                                      <div className="mt-3 flex flex-wrap gap-2">
-                                        {match.venueAffinity.exactVenueWins > 0 ? (
-                                          <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-emerald-800">
-                                            {match.venueAffinity.exactVenueWins} win{match.venueAffinity.exactVenueWins === 1 ? '' : 's'} here
-                                          </span>
-                                        ) : null}
-                                        {match.venueAffinity.exactVenueMarks > 0 ? (
-                                          <span className="rounded-full border border-purple-300 bg-purple-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-800">
-                                            {match.venueAffinity.exactVenueMarks} mark{match.venueAffinity.exactVenueMarks === 1 ? '' : 's'} here
-                                          </span>
-                                        ) : null}
-                                        {match.venueAffinity.exactVenueCheckIns > 0 ? (
-                                          <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-sky-800">
-                                            {match.venueAffinity.exactVenueCheckIns} check-in{match.venueAffinity.exactVenueCheckIns === 1 ? '' : 's'} here
-                                          </span>
-                                        ) : null}
-                                        {match.venueAffinity.sameCityMarks > 0 ? (
-                                          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-amber-800">
-                                            {match.venueAffinity.sameCityMarks} city mark{match.venueAffinity.sameCityMarks === 1 ? '' : 's'}
-                                          </span>
-                                        ) : null}
-                                      </div>
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        {match.reasons.slice(0, 3).map((reason) => (
-                                          <span
-                                            key={`${match.creator.id}-${reason}`}
-                                            className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600"
-                                          >
-                                            {reason}
-                                          </span>
-                                        ))}
+                                      <div className="mt-2 text-xs text-zinc-500">
+                                        {campaign.linkedDare?.claimRequestStatus === 'PENDING'
+                                          ? 'Waiting for moderation before the creator can lock the spot.'
+                                          : 'Creator is attached and can submit proof now.'}
                                       </div>
                                     </div>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleShortlistCreator(campaign.id, match.creator.id)}
-                                      className={`rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-                                        shortlist
-                                          ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
-                                          : 'border-white/10 bg-white/5 text-zinc-700 hover:border-white/20 hover:bg-white/10 hover:text-zinc-900'
-                                      }`}
-                                    >
-                                      {shortlist ? 'Shortlisted' : 'Shortlist'}
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+                                      {campaign.linkedDare?.shortId ? (
+                                        <Link
+                                          href={`/dare/${encodeURIComponent(campaign.linkedDare.shortId)}`}
+                                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800 transition hover:border-white/20 hover:bg-white/80"
+                                        >
+                                          Open Brief
+                                        </Link>
+                                      ) : null}
+                                      {(campaign.linkedDare?.streamerHandle || campaign.linkedDare?.claimRequestTag) ? (
+                                        <Link
+                                          href={`/creator/${encodeURIComponent((campaign.linkedDare?.streamerHandle || campaign.linkedDare?.claimRequestTag || '').replace(/^@?/, '@'))}`}
+                                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800 transition hover:border-white/20 hover:bg-white/80"
+                                        >
+                                          View Creator
+                                        </Link>
+                                      ) : null}
+                                    </div>
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                                No creator has claimed this activation yet. Warm matches live in the Shortlisted rail.
+                              </div>
+                            )
+                          ) : null}
+
+                          {activeResponsesTab === 'proof' ? (
+                            responseTabCounts.proof > 0 ? (
+                              <div className="mt-3 space-y-3">
+                                <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="font-semibold text-zinc-900">{getLinkedCreatorHandle(campaign)}</div>
+                                        <div className="rounded-full border border-violet-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-800">
+                                          proof submitted
+                                        </div>
+                                      </div>
+                                      <div className="mt-1 text-sm text-zinc-600">
+                                        {campaign.linkedDare?.updatedAt
+                                          ? `submitted ${new Date(campaign.linkedDare.updatedAt).toLocaleString()}`
+                                          : 'proof media landed for review'}
+                                      </div>
+                                      <div className="mt-2 text-xs text-zinc-500">
+                                        Media is attached to the linked activation and ready for operator review.
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {campaign.linkedDare?.videoUrl ? (
+                                        <a
+                                          href={campaign.linkedDare.videoUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-2 rounded-lg border border-violet-300 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-900 transition hover:bg-white"
+                                        >
+                                          View Proof
+                                        </a>
+                                      ) : null}
+                                      {campaign.linkedDare?.shortId ? (
+                                        <Link
+                                          href={`/dare/${encodeURIComponent(campaign.linkedDare.shortId)}`}
+                                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800 transition hover:border-white/20 hover:bg-white/80"
+                                        >
+                                          Open Brief
+                                        </Link>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                                No proof has landed yet. This rail wakes up as soon as media is attached.
+                              </div>
+                            )
+                          ) : null}
+
+                          {activeResponsesTab === 'review' ? (
+                            responseTabCounts.review > 0 ? (
+                              <div className="mt-3 space-y-3">
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="font-semibold text-zinc-900">{getLinkedCreatorHandle(campaign)}</div>
+                                        <div className="rounded-full border border-amber-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                                          in review
+                                        </div>
+                                      </div>
+                                      <div className="mt-1 text-sm text-zinc-600">
+                                        {campaign.linkedDare?.moderatedAt
+                                          ? `review touched ${new Date(campaign.linkedDare.moderatedAt).toLocaleString()}`
+                                          : 'referee review is in flight'}
+                                      </div>
+                                      <div className="mt-2 text-xs text-zinc-500">
+                                        {campaign.linkedDare?.moderatorNote || 'Review is live. The operator rail is deciding whether proof clears payout.'}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {campaign.linkedDare?.videoUrl ? (
+                                        <a
+                                          href={campaign.linkedDare.videoUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900 transition hover:bg-white"
+                                        >
+                                          View Proof
+                                        </a>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                                Nothing is waiting on moderation right now.
+                              </div>
+                            )
+                          ) : null}
+
+                          {activeResponsesTab === 'verified' ? (
+                            responseTabCounts.verified > 0 ? (
+                              <div className="mt-3 space-y-3">
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="font-semibold text-zinc-900">{getLinkedCreatorHandle(campaign)}</div>
+                                        <div className="rounded-full border border-emerald-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                                          {campaign.linkedDare?.status === 'PENDING_PAYOUT' ? 'payout queued' : 'paid and verified'}
+                                        </div>
+                                      </div>
+                                      <div className="mt-1 text-sm text-zinc-600">
+                                        {campaign.linkedDare?.verifiedAt
+                                          ? `verified ${new Date(campaign.linkedDare.verifiedAt).toLocaleString()}`
+                                          : 'proof cleared and settlement is underway'}
+                                      </div>
+                                      <div className="mt-2 text-xs text-zinc-500">
+                                        {campaign.venue
+                                          ? `This completion now sits in ${campaign.venue.name}'s place memory and strengthens the venue pulse.`
+                                          : 'This completion now counts as a verified cultural outcome for the campaign.'}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {campaign.linkedDare?.videoUrl ? (
+                                        <a
+                                          href={campaign.linkedDare.videoUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-900 transition hover:bg-white"
+                                        >
+                                          Watch Proof
+                                        </a>
+                                      ) : null}
+                                      {campaign.venue?.slug ? (
+                                        <Link
+                                          href={`/venues/${encodeURIComponent(campaign.venue.slug)}`}
+                                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800 transition hover:border-white/20 hover:bg-white/80"
+                                        >
+                                          Open Venue
+                                        </Link>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
+                                No verified outcome yet. Once this clears, payout and place-memory impact will show up here.
+                              </div>
+                            )
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
