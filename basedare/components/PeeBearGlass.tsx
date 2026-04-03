@@ -146,12 +146,12 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     });
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
-      depth: 1.0,
+      depth: 0.3,
       bevelEnabled: true,
       bevelSegments: 8,
       steps: 2,
       bevelSize: 0.08,
-      bevelThickness: 0.1,
+      bevelThickness: 0.03,
       curveSegments: 512,
     };
 
@@ -165,7 +165,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       metalness: 0.0,
       roughness: 0.0,
       ior: 2.33,
-      thickness: 1.2,
+      thickness: 0.36,
       attenuationColor: new THREE.Color('#f3e8ff'),
       attenuationDistance: 3.1,
       emissive: new THREE.Color('#581c87'),
