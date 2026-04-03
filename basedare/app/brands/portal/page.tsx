@@ -54,6 +54,19 @@ interface Campaign {
     name: string;
     city: string | null;
     country: string | null;
+    impact?: {
+      pulseNow: number;
+      memoriesNow: number;
+      lastMarkedAt: string | null;
+      recentProofCount: number;
+      recentCompletedCount: number;
+      recentCheckInCount: number;
+      memoryBucketStartedAt: string | null;
+      campaignVerifiedMemory: boolean;
+      firstMarkWon: boolean;
+      pulseContribution: number;
+      linkedMemoryAt: string | null;
+    };
   } | null;
   linkedDare?: {
     id: string;
@@ -987,6 +1000,35 @@ export default function BrandPortalPage() {
     return { shortlisted, claimed, proof, review, verified };
   };
 
+  const getCampaignImpactSummary = (campaign: Campaign) => {
+    const impact = campaign.venue?.impact;
+    if (!campaign.venue || !impact) {
+      return {
+        label: 'Venue impact pending',
+        detail: 'Attach this campaign to a venue to measure memory and pulse movement.',
+      };
+    }
+
+    if (impact.campaignVerifiedMemory) {
+      return {
+        label: impact.firstMarkWon ? 'First mark won' : 'Verified memory added',
+        detail: `${campaign.venue.name} now sits at ${impact.memoriesNow} memories and pulse ${impact.pulseNow}.`,
+      };
+    }
+
+    if (campaign.linkedDare?.status === 'PENDING_REVIEW' || campaign.linkedDare?.videoUrl) {
+      return {
+        label: 'Outcome forming',
+        detail: 'Proof is in motion. Once it clears, pulse and memory impact will lock here.',
+      };
+    }
+
+    return {
+      label: 'Venue pulse live',
+      detail: `${campaign.venue.name} currently holds ${impact.memoriesNow} memories and pulse ${impact.pulseNow}.`,
+    };
+  };
+
   // Determine current view state
   const showNotConnected = mounted && !isConnected;
   const showLoading = mounted && isConnected && loading;
@@ -1727,6 +1769,7 @@ export default function BrandPortalPage() {
                 const creatorIntent = getCampaignIntent(campaign);
                 const outcomeSteps = getCampaignOutcomeSteps(campaign);
                 const outcomeSummary = getCampaignOutcomeSummary(campaign);
+                const impactSummary = getCampaignImpactSummary(campaign);
                 const completionHistory = getCampaignCompletionHistory(campaign);
                 const responseTabCounts = getResponseTabCounts(campaign, matchesState, shortlistedCount);
                 return (
@@ -1880,6 +1923,66 @@ export default function BrandPortalPage() {
                           </div>
                         </div>
                       </div>
+
+                      {campaign.venue?.impact ? (
+                        <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                                Pulse Outcome
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-zinc-900">{impactSummary.label}</div>
+                              <div className="mt-1 text-xs text-zinc-500">{impactSummary.detail}</div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Pulse now</div>
+                                <div className="mt-1 text-sm font-bold text-zinc-900">{campaign.venue.impact.pulseNow}</div>
+                              </div>
+                              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Memories</div>
+                                <div className="mt-1 text-sm font-bold text-zinc-900">{campaign.venue.impact.memoriesNow}</div>
+                              </div>
+                              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">This activation</div>
+                                <div className="mt-1 text-sm font-bold text-zinc-900">
+                                  {campaign.venue.impact.campaignVerifiedMemory
+                                    ? `+${campaign.venue.impact.pulseContribution}`
+                                    : 'pending'}
+                                </div>
+                              </div>
+                              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center">
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">First mark</div>
+                                <div className="mt-1 text-sm font-bold text-zinc-900">
+                                  {campaign.venue.impact.firstMarkWon ? 'won' : 'open'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {campaign.venue.impact.campaignVerifiedMemory ? (
+                              <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-emerald-800">
+                                memory added {campaign.venue.impact.linkedMemoryAt ? new Date(campaign.venue.impact.linkedMemoryAt).toLocaleDateString() : ''}
+                              </span>
+                            ) : null}
+                            {campaign.venue.impact.firstMarkWon ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-amber-800">
+                                first mark won
+                              </span>
+                            ) : null}
+                            {campaign.venue.impact.recentCompletedCount > 0 ? (
+                              <span className="rounded-full border border-purple-300 bg-purple-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-800">
+                                {campaign.venue.impact.recentCompletedCount} completions in latest bucket
+                              </span>
+                            ) : null}
+                            {campaign.venue.impact.lastMarkedAt ? (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600">
+                                last marked {new Date(campaign.venue.impact.lastMarkedAt).toLocaleDateString()}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
 
                       {completionHistory.length > 0 ? (
                         <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">

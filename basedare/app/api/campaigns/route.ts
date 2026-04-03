@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
+import { getApprovedTagSummaryMap } from '@/lib/place-tags';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
@@ -207,7 +208,23 @@ export async function GET(request: NextRequest) {
           select: { name: true, logo: true },
         },
         venue: {
-          select: { id: true, slug: true, name: true, city: true, country: true },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            city: true,
+            country: true,
+            memories: {
+              orderBy: { bucketStartAt: 'desc' },
+              take: 1,
+              select: {
+                proofCount: true,
+                completedDareCount: true,
+                checkInCount: true,
+                bucketStartAt: true,
+              },
+            },
+          },
         },
         linkedDare: {
           select: {
@@ -239,8 +256,72 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    const venueIds = Array.from(
+      new Set(campaigns.map((campaign) => campaign.venue?.id).filter((venueId): venueId is string => Boolean(venueId)))
+    );
+    const linkedDareIds = Array.from(
+      new Set(
+        campaigns
+          .map((campaign) => campaign.linkedDare?.id)
+          .filter((linkedDareId): linkedDareId is string => Boolean(linkedDareId))
+      )
+    );
+
+    const [tagSummaryMap, linkedTagOutcomes] = await Promise.all([
+      getApprovedTagSummaryMap(venueIds),
+      linkedDareIds.length > 0
+        ? prisma.placeTag.findMany({
+            where: {
+              linkedDareId: { in: linkedDareIds },
+              status: 'APPROVED',
+            },
+            select: {
+              linkedDareId: true,
+              firstMark: true,
+              heatContribution: true,
+              submittedAt: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const linkedOutcomeByDareId = new Map(
+      linkedTagOutcomes.map((outcome) => [outcome.linkedDareId, outcome])
+    );
+
     // Add slot counts
-    const campaignsWithCounts = campaigns.map(mapCampaignWithCounts);
+    const campaignsWithCounts = campaigns.map((campaign) => {
+      const mappedCampaign = mapCampaignWithCounts(campaign) as ReturnType<typeof mapCampaignWithCounts>;
+      const venueTagSummary = campaign.venue ? tagSummaryMap.get(campaign.venue.id) : null;
+      const latestMemory = campaign.venue?.memories?.[0] ?? null;
+      const linkedOutcome = campaign.linkedDare?.id ? linkedOutcomeByDareId.get(campaign.linkedDare.id) ?? null : null;
+
+      return {
+        ...mappedCampaign,
+        venue: campaign.venue
+          ? {
+              id: campaign.venue.id,
+              slug: campaign.venue.slug,
+              name: campaign.venue.name,
+              city: campaign.venue.city,
+              country: campaign.venue.country,
+              impact: {
+                pulseNow: venueTagSummary?.heatScore ?? 0,
+                memoriesNow: venueTagSummary?.approvedCount ?? 0,
+                lastMarkedAt: venueTagSummary?.lastTaggedAt ?? null,
+                recentProofCount: latestMemory?.proofCount ?? 0,
+                recentCompletedCount: latestMemory?.completedDareCount ?? 0,
+                recentCheckInCount: latestMemory?.checkInCount ?? 0,
+                memoryBucketStartedAt: latestMemory?.bucketStartAt?.toISOString() ?? null,
+                campaignVerifiedMemory: Boolean(linkedOutcome),
+                firstMarkWon: linkedOutcome?.firstMark ?? false,
+                pulseContribution: linkedOutcome?.heatContribution ?? 0,
+                linkedMemoryAt: linkedOutcome?.submittedAt?.toISOString() ?? null,
+              },
+            }
+          : null,
+      };
+    });
 
     return NextResponse.json({
       success: true,
