@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { deriveIdentityHandle, deriveIdentityPlatform, selectPrimaryTag } from '@/lib/creator-identity';
+import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 
 /**
  * GET /api/creator/[tag]
@@ -102,6 +103,80 @@ export async function GET(
             createdAt: d.createdAt.toISOString(),
         }));
 
+        let contribution = {
+            totalMarks: 0,
+            firstMarks: 0,
+            uniqueVenues: 0,
+            lastMarkedAt: null as string | null,
+            topVenue: null as {
+                id: string;
+                slug: string;
+                name: string;
+                city: string | null;
+                country: string | null;
+                count: number;
+            } | null,
+        };
+
+        try {
+            const approvedMarks = await prisma.placeTag.findMany({
+                where: {
+                    status: 'APPROVED',
+                    creatorTag: { in: handleVariants },
+                },
+                orderBy: { submittedAt: 'asc' },
+                select: {
+                    firstMark: true,
+                    submittedAt: true,
+                    venueId: true,
+                    venue: {
+                        select: {
+                            id: true,
+                            slug: true,
+                            name: true,
+                            city: true,
+                            country: true,
+                        },
+                    },
+                },
+            });
+
+            const uniqueVenueIds = new Set(approvedMarks.map((mark) => mark.venueId));
+            const topVenue = Array.from(
+                approvedMarks.reduce((accumulator, mark) => {
+                    const current = accumulator.get(mark.venueId);
+                    if (current) {
+                        current.count += 1;
+                    } else {
+                        accumulator.set(mark.venueId, {
+                            id: mark.venue.id,
+                            slug: mark.venue.slug,
+                            name: mark.venue.name,
+                            city: mark.venue.city,
+                            country: mark.venue.country,
+                            count: 1,
+                        });
+                    }
+
+                    return accumulator;
+                }, new Map<string, { id: string; slug: string; name: string; city: string | null; country: string | null; count: number }>())
+            )
+                .map(([, value]) => value)
+                .sort((left, right) => right.count - left.count)[0] ?? null;
+
+            contribution = {
+                totalMarks: approvedMarks.length,
+                firstMarks: approvedMarks.filter((mark) => mark.firstMark).length,
+                uniqueVenues: uniqueVenueIds.size,
+                lastMarkedAt: approvedMarks.at(-1)?.submittedAt.toISOString() ?? null,
+                topVenue,
+            };
+        } catch (error) {
+            if (!isPlaceTagTableMissingError(error)) {
+                throw error;
+            }
+        }
+
         return NextResponse.json({
             success: true,
             data: {
@@ -119,6 +194,7 @@ export async function GET(
                 followerCount: streamTag?.followerCount ?? null,
                 tags: streamTag?.tags || [],
                 stats: { total, completed: completedCount, live, acceptRate, totalPool, totalEarned, minBounty },
+                contribution,
                 recent,
             },
         });

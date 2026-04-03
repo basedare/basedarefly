@@ -15,18 +15,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tags = await prisma.placeTag.findMany({
+    const allTags = await prisma.placeTag.findMany({
       where: {
         walletAddress: wallet,
         status: 'APPROVED',
       },
       orderBy: { submittedAt: 'asc' },
-      take: 24,
       select: {
         id: true,
         creatorTag: true,
         firstMark: true,
         submittedAt: true,
+        venueId: true,
         venue: {
           select: {
             id: true,
@@ -42,6 +42,30 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+
+    const tags = allTags.slice(-24);
+    const firstMarks = allTags.filter((tag) => tag.firstMark).length;
+    const uniqueVenueIds = new Set(allTags.map((tag) => tag.venueId));
+    const topVenueEntry = Array.from(
+      allTags.reduce((accumulator, tag) => {
+        const current = accumulator.get(tag.venueId);
+        if (current) {
+          current.count += 1;
+        } else {
+          accumulator.set(tag.venueId, {
+            id: tag.venue.id,
+            slug: tag.venue.slug,
+            name: tag.venue.name,
+            city: tag.venue.city,
+            country: tag.venue.country,
+            count: 1,
+          });
+        }
+        return accumulator;
+      }, new Map<string, { id: string; slug: string; name: string; city: string | null; country: string | null; count: number }>())
+    )
+      .map(([, value]) => value)
+      .sort((left, right) => right.count - left.count)[0] ?? null;
 
     return NextResponse.json({
       success: true,
@@ -63,6 +87,13 @@ export async function GET(request: NextRequest) {
             categories: tag.venue.categories,
           },
         })),
+        stats: {
+          totalMarks: allTags.length,
+          firstMarks,
+          uniqueVenues: uniqueVenueIds.size,
+          lastMarkedAt: allTags.at(-1)?.submittedAt.toISOString() ?? null,
+          topVenue: topVenueEntry,
+        },
       },
     });
   } catch (error) {

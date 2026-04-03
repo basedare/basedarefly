@@ -106,15 +106,37 @@ Purpose:
 - connect GTM learnings to product signals
 - identify friction and drop-offs
 - inform experiments
+- connect creator footprint to campaign and venue routing
+- quantify what creators are doing to the grid
 
 Recommended tools:
 - product analytics
 - dashboard snapshots
 - database summaries
 - campaign performance logs
+- creator footprint summaries
+- venue-memory contribution summaries
 
 Allowed to auto-use:
 - yes, read-only by default
+
+## Creator Grid Intelligence Contracts
+
+When Brain reasons about creators, it should prefer place-native signals over generic influencer abstractions.
+
+Each creator routing surface should be able to answer:
+- where this creator has already left verified memory
+- which venue they have the strongest history with
+- whether they have won a first mark before
+- why a current opportunity matches this creator spatially
+
+Preferred creator contribution fields:
+- `totalMarks`
+- `firstMarks`
+- `uniqueVenues`
+- `topVenue`
+- `lastMarkedAt`
+- `venueAffinityReasons`
 
 ## Permission Model
 

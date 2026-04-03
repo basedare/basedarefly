@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { buildCampaignMatch, parseCampaignTargetingCriteria } from '@/lib/campaign-matching';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 
 type WalletSession = {
   token?: string;
@@ -99,6 +100,51 @@ export async function GET(request: NextRequest) {
       take: 30,
     });
 
+    let venueMarkCounts = new Map<string, { total: number; firstMarks: number }>();
+    let cityMarkCounts = new Map<string, number>();
+
+    try {
+      const creatorMarks = await prisma.placeTag.findMany({
+        where: {
+          status: 'APPROVED',
+          creatorTag: creator.tag,
+        },
+        select: {
+          firstMark: true,
+          venueId: true,
+          venue: {
+            select: {
+              city: true,
+              country: true,
+            },
+          },
+        },
+      });
+
+      venueMarkCounts = creatorMarks.reduce((accumulator, mark) => {
+        const current = accumulator.get(mark.venueId) ?? { total: 0, firstMarks: 0 };
+        current.total += 1;
+        if (mark.firstMark) {
+          current.firstMarks += 1;
+        }
+        accumulator.set(mark.venueId, current);
+        return accumulator;
+      }, new Map<string, { total: number; firstMarks: number }>());
+
+      cityMarkCounts = creatorMarks.reduce((accumulator, mark) => {
+        const cityKey = [mark.venue.city ?? '', mark.venue.country ?? ''].join('|').toLowerCase();
+        if (!cityKey || cityKey === '|') {
+          return accumulator;
+        }
+        accumulator.set(cityKey, (accumulator.get(cityKey) ?? 0) + 1);
+        return accumulator;
+      }, new Map<string, number>());
+    } catch (error) {
+      if (!isPlaceTagTableMissingError(error)) {
+        throw error;
+      }
+    }
+
     const opportunities = campaigns
       .map((campaign) => {
         const linkedDareExpiresAt = campaign.linkedDare?.expiresAt
@@ -122,6 +168,12 @@ export async function GET(request: NextRequest) {
           reasons.unshift('live now and ready to complete');
         }
 
+        const venueAffinity = campaign.venue ? venueMarkCounts.get(campaign.venue.id) : undefined;
+        const cityKey = campaign.venue
+          ? [campaign.venue.city ?? '', campaign.venue.country ?? ''].join('|').toLowerCase()
+          : '';
+        const cityMarks = cityKey && cityKey !== '|' ? cityMarkCounts.get(cityKey) ?? 0 : 0;
+
         return {
           id: campaign.id,
           shortId: campaign.shortId,
@@ -134,6 +186,11 @@ export async function GET(request: NextRequest) {
           status: campaign.status,
           venue: campaign.venue,
           linkedDare: campaign.linkedDare,
+          affinity: {
+            venueMarks: venueAffinity?.total ?? 0,
+            firstMarksAtVenue: venueAffinity?.firstMarks ?? 0,
+            cityMarks,
+          },
           claimable: Boolean(
             campaign.linkedDare &&
               !campaign.linkedDare.streamerHandle &&

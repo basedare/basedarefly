@@ -58,6 +58,20 @@ interface CreatorProfile {
     followerCount: number | null;
     tags: string[];
     stats: CreatorStats;
+    contribution: {
+        totalMarks: number;
+        firstMarks: number;
+        uniqueVenues: number;
+        lastMarkedAt: string | null;
+        topVenue: {
+            id: string;
+            slug: string;
+            name: string;
+            city: string | null;
+            country: string | null;
+            count: number;
+        } | null;
+    };
     recent: RecentDare[];
 }
 
@@ -208,6 +222,7 @@ export default function CreatorProfilePage() {
                         followerCount: null,
                         tags: [],
                         stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
+                        contribution: { totalMarks: 0, firstMarks: 0, uniqueVenues: 0, lastMarkedAt: null, topVenue: null },
                         recent: [],
                     });
                 } else {
@@ -520,6 +535,75 @@ export default function CreatorProfilePage() {
                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/42`}>
                                 No linked social identity exposed on this creator yet
                             </span>
+                        )}
+                    </div>
+                </div>
+
+                <div className={`${softCardClass} p-5 sm:p-6`}>
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f9e27a] shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                <Award className="w-3.5 h-3.5" />
+                                Grid Impact
+                            </div>
+                            <h2 className="mt-4 text-lg font-black text-white">What {displayTag} has done to the grid</h2>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
+                                Verified place memory, first sparks, and the venues this creator helped wake up.
+                            </p>
+                        </div>
+                        {profile?.contribution?.topVenue ? (
+                            <Link
+                                href={`/map?place=${encodeURIComponent(profile.contribution.topVenue.slug)}`}
+                                className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                            >
+                                View strongest venue
+                            </Link>
+                        ) : null}
+                    </div>
+
+                    <div className="mt-5 grid gap-3 md:grid-cols-4">
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Memory Added</p>
+                            <p className="mt-2 text-2xl font-black text-cyan-200">{profile?.contribution?.totalMarks ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">Approved place marks this creator has anchored.</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">First Sparks</p>
+                            <p className="mt-2 text-2xl font-black text-[#f9e27a]">{profile?.contribution?.firstMarks ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">How many venues they helped mark first.</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Venues Touched</p>
+                            <p className="mt-2 text-2xl font-black text-fuchsia-200">{profile?.contribution?.uniqueVenues ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">Distinct places this creator has left proof at.</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Last Movement</p>
+                            <p className="mt-2 text-2xl font-black text-white">
+                                {profile?.contribution?.lastMarkedAt
+                                    ? formatDistanceToNow(new Date(profile.contribution.lastMarkedAt), { addSuffix: true })
+                                    : '--'}
+                            </p>
+                            <p className="mt-1 text-[11px] text-white/46">Latest verified place memory on the map.</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-5">
+                        {profile?.contribution?.topVenue ? (
+                            <div className={`${insetCardClass} px-4 py-4`}>
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Strongest Venue History</p>
+                                <p className="mt-2 text-lg font-black text-white">{profile.contribution.topVenue.name}</p>
+                                <p className="mt-1 text-[11px] text-white/46">
+                                    {profile.contribution.topVenue.count} verified {profile.contribution.topVenue.count === 1 ? 'mark' : 'marks'}
+                                    {profile.contribution.topVenue.city ? ` • ${profile.contribution.topVenue.city}` : ''}
+                                    {profile.contribution.topVenue.country ? `, ${profile.contribution.topVenue.country}` : ''}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/45`}>
+                                No place memory yet. Once this creator starts completing venue challenges, their footprint becomes visible here.
+                            </div>
                         )}
                     </div>
                 </div>

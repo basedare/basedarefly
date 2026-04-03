@@ -90,8 +90,28 @@ interface Opportunity {
     claimRequestWallet?: string | null;
     claimRequestStatus?: string | null;
   } | null;
+  affinity?: {
+    venueMarks: number;
+    firstMarksAtVenue: number;
+    cityMarks: number;
+  };
   claimable?: boolean;
   shortlisted: boolean;
+}
+
+interface FootprintStats {
+  totalMarks: number;
+  firstMarks: number;
+  uniqueVenues: number;
+  lastMarkedAt: string | null;
+  topVenue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+    count: number;
+  } | null;
 }
 
 const raisedPanelClass =
@@ -268,6 +288,7 @@ export default function Dashboard() {
   const [opportunitiesReason, setOpportunitiesReason] = useState<string | null>(null);
   const [claimingOpportunityId, setClaimingOpportunityId] = useState<string | null>(null);
   const [claimFeedback, setClaimFeedback] = useState<Record<string, string>>({});
+  const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -316,6 +337,7 @@ export default function Dashboard() {
         setFundedDares([]);
         setForMeDares([]);
         setUserTag(null);
+        setFootprintStats(null);
         setLoading(false);
         return;
       }
@@ -367,8 +389,17 @@ export default function Dashboard() {
           daresForMe: forMeData.length,
         });
 
+        const footprintRes = await fetch(`/api/places/footprint?wallet=${encodeURIComponent(address)}`);
+        if (footprintRes.ok) {
+          const footprintPayload = await footprintRes.json();
+          setFootprintStats(footprintPayload.data?.stats ?? null);
+        } else {
+          setFootprintStats(null);
+        }
+
       } catch (error) {
         console.error('Failed to fetch dares:', error);
+        setFootprintStats(null);
       } finally {
         setLoading(false);
       }
@@ -646,6 +677,75 @@ export default function Dashboard() {
 
         <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">What You&apos;ve Done To The Grid</h2>
+              <p className="mt-1 text-sm text-white/52">
+                Your verified place memory, first sparks, and venue footprint all in one surface.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/map')}
+              className={`${volumetricButtonPurple} px-3 py-2 text-[11px]`}
+            >
+              View your trace
+            </button>
+          </div>
+
+          {!isConnected ? (
+            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/55`}>
+              Connect wallet to see what you&apos;ve already written onto the grid.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {[
+                  { label: 'Memory Added', value: footprintStats?.totalMarks ?? 0, tone: 'text-cyan-200' },
+                  { label: 'First Sparks', value: footprintStats?.firstMarks ?? 0, tone: 'text-[#f8dd72]' },
+                  { label: 'Venues Marked', value: footprintStats?.uniqueVenues ?? 0, tone: 'text-fuchsia-200' },
+                  {
+                    label: 'Last Movement',
+                    value: footprintStats?.lastMarkedAt ? formatStatusTimestamp(footprintStats.lastMarkedAt, '--') : '--',
+                    tone: 'text-white',
+                  },
+                ].map((item) => (
+                  <div key={item.label} className={`${metricTileClass} px-4 py-4`}>
+                    <div className={`text-2xl font-black sm:text-3xl ${item.tone}`}>{item.value}</div>
+                    <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={`${insetCardClass} mt-4 px-4 py-4`}>
+                {footprintStats?.topVenue ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Strongest Venue History</p>
+                      <p className="mt-2 text-lg font-black text-white">{footprintStats.topVenue.name}</p>
+                      <p className="mt-1 text-sm text-white/52">
+                        You&apos;ve left {footprintStats.topVenue.count} verified {footprintStats.topVenue.count === 1 ? 'mark' : 'marks'} here.
+                        {footprintStats.topVenue.city ? ` ${footprintStats.topVenue.city}` : ''}
+                        {footprintStats.topVenue.country ? `, ${footprintStats.topVenue.country}` : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/map?place=${encodeURIComponent(footprintStats.topVenue?.slug ?? '')}`)}
+                      className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
+                    >
+                      Open on map
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/55">
+                    No verified place memory yet. Tag a place or finish a venue activation and your footprint starts drawing itself.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+          <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Opportunities</h2>
             <button
               onClick={() => router.push('/map')}
@@ -697,27 +797,68 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <p className="mt-4 text-sm font-bold text-white line-clamp-2">{opportunity.title}</p>
+                    {opportunity.matchReasons.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                          You match this
+                        </span>
+                        {opportunity.matchReasons.slice(0, 2).map((reason) => (
+                          <span
+                            key={`${opportunity.id}-${reason}`}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/48"
+                          >
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {opportunity.affinity && (opportunity.affinity.venueMarks > 0 || opportunity.affinity.cityMarks > 0) ? (
+                      <p className="mt-3 text-xs text-white/58">
+                        {opportunity.affinity.venueMarks > 0
+                          ? `You've left ${opportunity.affinity.venueMarks} verified ${opportunity.affinity.venueMarks === 1 ? 'mark' : 'marks'} here`
+                          : `You've already left ${opportunity.affinity.cityMarks} verified ${opportunity.affinity.cityMarks === 1 ? 'mark' : 'marks'} in this city`}
+                        {opportunity.affinity.firstMarksAtVenue > 0
+                          ? ` • ${opportunity.affinity.firstMarksAtVenue} first ${opportunity.affinity.firstMarksAtVenue === 1 ? 'spark' : 'sparks'} here`
+                          : ''}
+                      </p>
+                    ) : null}
                     {claimFeedback[opportunity.id] ? (
                       <p className="mt-3 text-xs text-green-300">{claimFeedback[opportunity.id]}</p>
                     ) : null}
-                    <div className="mt-6">
+                    <div className="mt-6 space-y-2">
                       {opportunity.claimable ? (
-                        <CosmicButton
-                          onClick={() => handleClaimOpportunity(opportunity)}
-                          disabled={claimingOpportunityId === opportunity.id}
-                          variant="gold"
-                          size="md"
-                          fullWidth
-                        >
-                          {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
-                        </CosmicButton>
+                        <>
+                          <CosmicButton
+                            onClick={() => handleClaimOpportunity(opportunity)}
+                            disabled={claimingOpportunityId === opportunity.id}
+                            variant="gold"
+                            size="md"
+                            fullWidth
+                          >
+                            {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
+                          </CosmicButton>
+                          <button
+                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map')}
+                            className={`${volumetricButtonNeutral} w-full`}
+                          >
+                            View on map
+                          </button>
+                        </>
                       ) : (
-                        <button
-                          onClick={() => router.push(href)}
-                          className={`${volumetricButtonPurple} w-full`}
-                        >
-                          Open
-                        </button>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => router.push(href)}
+                            className={`${volumetricButtonPurple} w-full`}
+                          >
+                            Open
+                          </button>
+                          <button
+                            onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map')}
+                            className={`${volumetricButtonNeutral} w-full`}
+                          >
+                            View on map
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

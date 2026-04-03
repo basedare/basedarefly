@@ -58,6 +58,11 @@ This order matters because BaseDare should create real demand pull before adding
 - OAuth is optional future enrichment, not the core trust rail for creator onboarding right now.
 - Pending identity proofs should still let creators continue through the product; verification should strengthen trust, not block first use.
 - Creator opportunity context should carry through dashboard, map, and venue surfaces so a matched activation stays in focus instead of becoming a generic place view.
+- Creator history should carry through dashboard, map, profile, and venue surfaces so the same verified footprint powers both discovery and identity:
+  - personal trace on the map
+  - strongest venue history
+  - contribution to place memory
+  - opportunity affinity at specific venues
 - Control should show operator-visible activation outcomes per campaign, including creator movement, proof progression, and payout state, not just campaign status labels.
 - The public `/verify` queue is a community-signal lane only. Once proof escalates into `PENDING_REVIEW`, it should leave public voting and sit in referee/admin review instead of living in both states at once.
 - Admin review should show campaign and venue context alongside proof freshness so operators can resolve activations quickly without jumping across disconnected surfaces.
@@ -177,7 +182,22 @@ Outputs:
 - experiment recommendations
 - bottleneck summaries
 
-### 6. Knowledge & Memory Layer
+### 6. Creator Grid Intelligence
+
+Responsibilities:
+- connect creator identity to verified place memory
+- surface strongest venue affinity and city affinity
+- keep creator dashboard, map, and profile in sync
+- explain why an opportunity is relevant in spatial terms
+- summarize what a creator has already done to the grid
+
+Outputs:
+- creator contribution summaries
+- venue-affinity highlights
+- creator-map handoff cues
+- footprint-driven opportunity context
+
+### 7. Knowledge & Memory Layer
 
 Responsibilities:
 - store contact histories

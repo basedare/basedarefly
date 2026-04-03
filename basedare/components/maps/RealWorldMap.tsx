@@ -1422,6 +1422,33 @@ export default function RealWorldMap() {
     [footprintMarks]
   );
 
+  const selectedPlaceFootprintStats = useMemo(() => {
+    if (!selectedPlace) {
+      return null;
+    }
+
+    const matchingMarks = footprintMarks.filter((mark) => {
+      if (selectedPlace.placeId) {
+        return mark.venue.id === selectedPlace.placeId;
+      }
+
+      return (
+        Math.abs(mark.venue.latitude - selectedPlace.latitude) < 0.000001 &&
+        Math.abs(mark.venue.longitude - selectedPlace.longitude) < 0.000001
+      );
+    });
+
+    if (matchingMarks.length === 0) {
+      return null;
+    }
+
+    return {
+      totalMarks: matchingMarks.length,
+      firstMarks: matchingMarks.filter((mark) => mark.firstMark).length,
+      lastMarkedAt: matchingMarks[matchingMarks.length - 1]?.submittedAt ?? null,
+    };
+  }, [footprintMarks, selectedPlace]);
+
   const filterOptions: Array<{
     value: PulseFilter;
     label: string;
@@ -1986,6 +2013,32 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                     </div>
                   </div>
+
+                  {selectedPlaceFootprintStats ? (
+                    <div className="map-panel-section mt-4 rounded-[24px] border border-fuchsia-300/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.14)_0%,rgba(10,10,18,0.82)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-fuchsia-100/82">
+                          <Sparkles className="h-3.5 w-3.5 text-fuchsia-200" />
+                          Your History Here
+                        </div>
+                        <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
+                          personal trace
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-white/72">
+                        You&apos;ve left {selectedPlaceFootprintStats.totalMarks} verified {selectedPlaceFootprintStats.totalMarks === 1 ? 'mark' : 'marks'} here
+                        {selectedPlaceFootprintStats.firstMarks > 0
+                          ? ` and ignited ${selectedPlaceFootprintStats.firstMarks} ${selectedPlaceFootprintStats.firstMarks === 1 ? 'first spark' : 'first sparks'}`
+                          : ''}
+                        .
+                      </p>
+                      {selectedPlaceFootprintStats.lastMarkedAt ? (
+                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/42">
+                          Last moved {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last spark ', '')}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {isCreatorSource && focusedCreatorActivation ? (
                     <div className="map-panel-section mt-4 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,10,18,0.82)_20%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
