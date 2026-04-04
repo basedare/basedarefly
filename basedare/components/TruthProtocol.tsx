@@ -74,17 +74,19 @@ export default function TruthProtocol() {
           />
         </div>
 
-        <div className="truth-protocol-wire-shell relative max-w-6xl mx-auto">
-          <HowItWorksSignalWires foundationRatio={0.58} />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="truth-protocol-wire-shell relative max-w-[1280px] mx-auto px-2 md:px-4 xl:px-0">
+          <div className="hidden xl:block">
+            <HowItWorksSignalWires foundationRatio={0.58} />
+          </div>
+          <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-8">
           {staticCards.map((card) => (
-            <div key={card.id} data-cable-node className="relative">
+            <div key={card.id} data-cable-node className="relative z-10 w-full max-w-[300px]">
               <BubbleCard
                 color={card.color}
                 badge={card.badge}
                 title={card.title}
                 description={card.description}
-                className="w-full max-w-[280px] xl:max-w-[300px] mx-auto"
+                className="w-full max-w-[300px] mx-auto"
               />
             </div>
           ))}

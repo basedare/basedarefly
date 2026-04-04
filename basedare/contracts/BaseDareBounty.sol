@@ -2,11 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Contract deployed on Base L2 (assuming USDC address is known)
 contract BaseDareBounty is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     // --- STATE VARIABLES ---
     IERC20 public immutable USDC;
     address public immutable PLATFORM_WALLET;
@@ -53,12 +56,15 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
 
     // --- CONSTRUCTOR ---
     constructor(address _usdc, address _platformWallet) Ownable(msg.sender) {
+        require(_usdc != address(0), "Bounty: USDC is zero address");
+        require(_platformWallet != address(0), "Bounty: Platform wallet is zero address");
         USDC = IERC20(_usdc);
         PLATFORM_WALLET = _platformWallet;
     }
 
     // --- OWNER/ADMIN FUNCTIONS ---
     function setAIRefereeAddress(address _newReferee) public onlyOwner {
+        require(_newReferee != address(0), "Bounty: Referee is zero address");
         AI_REFEREE_ADDRESS = _newReferee;
     }
 
@@ -72,9 +78,11 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
         // 1. Basic checks
         require(_amount > 0, "Bounty: Amount must be greater than zero");
         require(bounties[_dareId].amount == 0, "Bounty: Already exists");
+        require(_streamer != address(0), "Bounty: Streamer is zero address");
+        require(_referrer != address(0), "Bounty: Referrer is zero address");
 
         // 2. Lock the USDC (requires pre-approval from backer)
-        require(USDC.transferFrom(msg.sender, address(this), _amount), "Bounty: USDC transfer failed");
+        USDC.safeTransferFrom(msg.sender, address(this), _amount);
 
         // 3. Store the bounty data
         bounties[_dareId] = Bounty({
@@ -104,13 +112,13 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
         // --- TRANSFERS ---
 
         // 1. Referral Payment
-        require(USDC.transfer(bounty.referrer, referrerFee), "Payout: Referrer transfer failed");
+        USDC.safeTransfer(bounty.referrer, referrerFee);
 
         // 2. Platform Service Fee
-        require(USDC.transfer(PLATFORM_WALLET, platformFee), "Payout: Platform transfer failed");
+        USDC.safeTransfer(PLATFORM_WALLET, platformFee);
 
         // 3. Creator Reward
-        require(USDC.transfer(bounty.streamer, streamerAmount), "Payout: Streamer transfer failed");
+        USDC.safeTransfer(bounty.streamer, streamerAmount);
 
         emit BountyPayout(_dareId, streamerAmount, platformFee, referrerFee);
 
@@ -130,7 +138,7 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
 
         // SECURITY: Refund to STORED backer address, not caller-provided
         require(originalBacker != address(0), "Refund: Invalid backer address");
-        require(USDC.transfer(originalBacker, totalAmount), "Refund: Backer transfer failed");
+        USDC.safeTransfer(originalBacker, totalAmount);
 
         emit BountyRefund(_dareId, originalBacker, totalAmount);
         delete bounties[_dareId];
@@ -139,6 +147,6 @@ contract BaseDareBounty is Ownable, ReentrancyGuard {
     // Emergency function to recover misplaced ERC20 tokens
     function rescueERC20(address _token, uint256 _amount) public onlyOwner {
         require(_token != address(USDC), "Cannot rescue USDC");
-        IERC20(_token).transfer(owner(), _amount);
+        IERC20(_token).safeTransfer(owner(), _amount);
     }
 }

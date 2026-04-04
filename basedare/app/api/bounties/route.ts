@@ -68,6 +68,10 @@ const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
 
+function getPlatformWalletFallback(): Address | null {
+  return isAddress(PLATFORM_WALLET_ADDRESS) ? PLATFORM_WALLET_ADDRESS : null;
+}
+
 type WalletSession = {
   token?: string;
   walletAddress?: string;
@@ -309,6 +313,9 @@ async function checkAllowance(
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  let precreatedDareId: string | null = null;
+  let precreatedOnChainDareId: string | null = null;
+  let pendingTxHash: string | null = null;
   try {
     // -------------------------------------------------------------------------
     // 1. PARSE & VALIDATE INPUT (Zod Schema)
@@ -490,9 +497,9 @@ export async function POST(request: NextRequest) {
       // WRITE TO PRISMA DATABASE (Simulated Mode)
       // -----------------------------------------------------------------------
 
-      // Resolve referrer tag to address
-      let resolvedReferrerAddress: string | null = null;
-      if (referrerTag) {
+      // Resolve referrer metadata for off-chain tracking
+      let resolvedReferrerAddress: string | null = referrerAddress || null;
+      if (!resolvedReferrerAddress && referrerTag) {
         const referrerResolution = await resolveTagToAddress(referrerTag);
         resolvedReferrerAddress = referrerResolution.address;
         console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
@@ -588,7 +595,7 @@ export async function POST(request: NextRequest) {
           tagSimulated,
           tagVerified,
           isOpenBounty,
-          referrerAddress: referrerAddress || null,
+          referrerAddress: resolvedReferrerAddress,
           streamId,
           streamVerification: {
             name: streamVerification.streamName,
@@ -646,12 +653,25 @@ export async function POST(request: NextRequest) {
     // 8. CREATE DB RECORD FIRST to get stable CUID for on-chain ID
     // -------------------------------------------------------------------------
 
-    // Resolve referrer tag to address
-    let resolvedReferrerAddress: string | null = null;
-    if (referrerTag) {
+    // Resolve the actual on-chain referrer recipient we will fund with.
+    let resolvedReferrerAddress: Address | null = (referrerAddress as Address | undefined) || null;
+    if (!resolvedReferrerAddress && referrerTag) {
       const referrerResolution = await resolveTagToAddress(referrerTag);
       resolvedReferrerAddress = referrerResolution.address;
       console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
+    }
+    if (!resolvedReferrerAddress) {
+      resolvedReferrerAddress = getPlatformWalletFallback();
+    }
+    if (!resolvedReferrerAddress) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Platform wallet fallback is not configured for live funding',
+          code: 'PLATFORM_WALLET_NOT_CONFIGURED',
+        },
+        { status: 500 }
+      );
     }
 
     const expiresAtOnChain = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -690,8 +710,10 @@ export async function POST(request: NextRequest) {
         discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
       },
     });
+    precreatedDareId = dbDarePreCreate.id;
 
     const finalDareId = generateOnChainDareId(dbDarePreCreate.id);
+    precreatedOnChainDareId = finalDareId.toString();
 
     // -------------------------------------------------------------------------
     // 9. EXECUTE stakeBounty ON-CHAIN (CEI Pattern in contract)
@@ -706,10 +728,11 @@ export async function POST(request: NextRequest) {
       args: [
         finalDareId,
         targetAddress,
-        (referrerAddress || PLATFORM_WALLET_ADDRESS) as Address,
+        resolvedReferrerAddress,
         amountInUnits,
       ],
     });
+    pendingTxHash = txHash;
 
     // -------------------------------------------------------------------------
     // 10. WAIT FOR CONFIRMATION
@@ -789,7 +812,7 @@ export async function POST(request: NextRequest) {
         tagSimulated,
         tagVerified,
         isOpenBounty,
-        referrerAddress: referrerAddress || null,
+        referrerAddress: resolvedReferrerAddress,
         streamId,
         streamVerification: {
           name: streamVerification.streamName,
@@ -822,8 +845,23 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Bounty stake failed:', message);
 
+    if (precreatedDareId) {
+      try {
+        await prisma.dare.update({
+          where: { id: precreatedDareId },
+          data: {
+            status: 'FAILED',
+            txHash: pendingTxHash,
+            onChainDareId: precreatedOnChainDareId,
+          },
+        });
+      } catch (cleanupError) {
+        console.error('[ERROR] Failed to mark precreated dare as FAILED:', cleanupError);
+      }
+    }
+
     // Handle specific error cases
-    if (message.includes('insufficient funds')) {
+    if (message.includes('insufficient funds') || message.includes('transfer amount exceeds balance')) {
       return NextResponse.json(
         { success: false, error: 'Insufficient USDC balance', code: 'INSUFFICIENT_FUNDS' },
         { status: 400 }

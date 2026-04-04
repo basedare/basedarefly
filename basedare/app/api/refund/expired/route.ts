@@ -9,6 +9,7 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
@@ -141,8 +142,12 @@ export async function POST(request: NextRequest) {
           args: [bountyId],
         });
 
-        // Wait for confirmation
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        // Wait for confirmation and fail closed on reverted receipts
+        await waitForSuccessfulReceipt({
+          publicClient,
+          hash: txHash,
+          context: `refundBacker:${dare.id}`,
+        });
 
         // Update database
         await prisma.dare.update({
@@ -166,6 +171,41 @@ export async function POST(request: NextRequest) {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error(`[REFUND] Failed to refund dare ${dare.id}:`, message);
+
+        if (dare.onChainDareId && isContractDeployed && !FORCE_SIMULATION && !dare.isSimulated) {
+          try {
+            const { publicClient } = getServerClients();
+            const settlement = await findBountySettlementEvent({
+              publicClient,
+              contractAddress: BOUNTY_CONTRACT_ADDRESS,
+              dareId: BigInt(dare.onChainDareId),
+              fundingTxHash: dare.txHash,
+            });
+
+            if (settlement.type === 'REFUND') {
+              await prisma.dare.update({
+                where: { id: dare.id },
+                data: { status: 'REFUNDED' },
+              });
+              await syncLinkedCampaignForDareState({
+                dareId: dare.id,
+                status: 'REFUNDED',
+              });
+
+              results.push({
+                dareId: dare.id,
+                status: 'refunded',
+                txHash: settlement.txHash,
+              });
+              console.log(`[REFUND] Reconciled refunded dare ${dare.id} from on-chain event ${settlement.txHash}`);
+              continue;
+            }
+          } catch (reconciliationError: unknown) {
+            const reconcileMessage =
+              reconciliationError instanceof Error ? reconciliationError.message : 'Unknown reconciliation error';
+            console.error(`[REFUND] Settlement reconciliation failed for dare ${dare.id}:`, reconcileMessage);
+          }
+        }
 
         results.push({
           dareId: dare.id,

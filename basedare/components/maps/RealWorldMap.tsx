@@ -299,7 +299,7 @@ type SelectedPlaceActiveDare = {
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
 type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'unmarked';
-type MapPreset = 'classic' | 'crt' | 'heat' | 'noir' | 'night';
+type MapPreset = 'classic' | 'noir';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type CeremonyState =
   | {
@@ -324,28 +324,10 @@ const MAP_PRESET_OPTIONS: Array<{
       'data-[active=true]:border-[#f5c518]/38 data-[active=true]:bg-[#f5c518]/[0.12] data-[active=true]:text-[#f8dd72]',
   },
   {
-    value: 'crt',
-    label: 'CRT',
-    accentClass:
-      'data-[active=true]:border-[#b87fff]/40 data-[active=true]:bg-[#b87fff]/[0.12] data-[active=true]:text-[#e5c7ff]',
-  },
-  {
-    value: 'heat',
-    label: 'Heat',
-    accentClass:
-      'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
-  },
-  {
     value: 'noir',
     label: 'Noir',
     accentClass:
       'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.08] data-[active=true]:text-white',
-  },
-  {
-    value: 'night',
-    label: 'Night',
-    accentClass:
-      'data-[active=true]:border-cyan-300/38 data-[active=true]:bg-cyan-500/[0.12] data-[active=true]:text-cyan-100',
   },
 ];
 
@@ -376,7 +358,7 @@ function getPulse(approvedCount: number, lastTaggedAt: string | null): PulseStat
 function getActivationStateCopy(dare: SelectedPlaceActiveDare) {
   if (dare.claimRequestStatus === 'PENDING') {
     return {
-      label: dare.claimRequestTag ? `pending ${dare.claimRequestTag}` : 'creator pending',
+      label: dare.claimRequestTag ? `claim pending · ${dare.claimRequestTag}` : 'claim pending',
       className:
         'border-amber-300/18 bg-amber-500/[0.08] text-amber-100',
     };
@@ -384,14 +366,14 @@ function getActivationStateCopy(dare: SelectedPlaceActiveDare) {
 
   if (dare.claimedBy || dare.targetWalletAddress) {
     return {
-      label: dare.streamerHandle ? `claimed by ${dare.streamerHandle}` : 'creator attached',
+      label: dare.streamerHandle ? `creator locked · ${dare.streamerHandle}` : 'creator locked',
       className:
         'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100',
     };
   }
 
   return {
-    label: dare.streamerHandle ? `target ${dare.streamerHandle}` : 'open',
+    label: dare.streamerHandle ? `target live · ${dare.streamerHandle}` : 'open target',
     className:
       'border-white/10 bg-white/[0.04] text-white/45',
   };
@@ -493,31 +475,103 @@ function getPlaceVisualCopy(state: PlaceVisualState) {
   switch (state) {
     case 'pending':
       return {
-        label: 'Pending',
-        description: 'A fresh mark is waiting in the Chaos Inbox.',
+        label: 'Contested',
+        description: 'A fresh mark is waiting for referee review before this venue can wake up.',
       };
     case 'first-mark':
       return {
         label: 'First Spark',
-        description: 'This place just got its first verified memory.',
+        description: 'This place just crossed from empty pin to real venue memory.',
       };
     case 'active':
       return {
-        label: 'Alive',
-        description: 'Verified marks are stacking and the place is warming up.',
+        label: 'Memory Building',
+        description: 'Verified marks are stacking and the venue is starting to feel owned.',
       };
     case 'hot':
       return {
-        label: 'Hot',
-        description: 'This place is pulsing with recent verified activity.',
+        label: 'Legendary',
+        description: 'Recent verified activity is dense enough that the venue story is now obvious.',
       };
     case 'unmarked':
     default:
       return {
-        label: 'Unmarked',
-        description: 'No approved marks yet. This place is waiting for its first spark.',
+        label: 'Dormant',
+        description: 'No approved marks yet. The venue exists, but its memory layer is still empty.',
       };
   }
+}
+
+function getVenueTransformationState({
+  approvedCount,
+  heatScore,
+  pendingCount,
+  lastTaggedAt,
+}: {
+  approvedCount: number;
+  heatScore: number;
+  pendingCount: number;
+  lastTaggedAt: string | null;
+}) {
+  const pulse = getPulse(approvedCount, lastTaggedAt);
+
+  if (approvedCount <= 0 && pendingCount > 0) {
+    return {
+      label: 'Contested',
+      description: 'A first mark is in review. One approval turns this from a dormant coordinate into a real BaseDare venue.',
+      level: 1,
+      className: 'border-amber-300/28 bg-amber-500/[0.10] text-amber-100',
+      activeBarClass: 'from-amber-300 to-[#f5c518] shadow-[0_0_16px_rgba(251,191,36,0.18)]',
+    };
+  }
+
+  if (approvedCount <= 0) {
+    return {
+      label: 'Dormant',
+      description: 'The map knows this place exists, but nobody has anchored a verified memory here yet.',
+      level: 1,
+      className: 'border-white/12 bg-white/[0.04] text-white/62',
+      activeBarClass: 'from-white/70 to-white/35',
+    };
+  }
+
+  if (approvedCount === 1) {
+    return {
+      label: 'Awakening',
+      description: 'One verified spark is enough to make the venue real. Now it needs repetition to feel alive.',
+      level: 2,
+      className: 'border-[#f5c518]/30 bg-[#f5c518]/[0.10] text-[#f8dd72]',
+      activeBarClass: 'from-[#f5c518] to-[#f8dd72] shadow-[0_0_16px_rgba(245,197,24,0.18)]',
+    };
+  }
+
+  if (approvedCount >= 8 || heatScore >= 60 || pulse === 'blazing') {
+    return {
+      label: 'Legendary',
+      description: 'This place has enough verified activity and heat to read like a true local legend node.',
+      level: 5,
+      className: 'border-rose-300/30 bg-rose-500/[0.10] text-rose-100',
+      activeBarClass: 'from-rose-300 via-[#f5c518] to-cyan-200 shadow-[0_0_18px_rgba(251,113,133,0.24)]',
+    };
+  }
+
+  if (approvedCount >= 4 || heatScore >= 24 || pulse === 'igniting') {
+    return {
+      label: 'Established',
+      description: 'The venue has enough recurring proof that its memory layer now changes how the place feels.',
+      level: 4,
+      className: 'border-cyan-300/30 bg-cyan-500/[0.10] text-cyan-100',
+      activeBarClass: 'from-cyan-300 to-sky-200 shadow-[0_0_16px_rgba(34,211,238,0.22)]',
+    };
+  }
+
+  return {
+    label: 'Building Memory',
+    description: 'The place is warming up. More verified marks will push it from interesting to undeniable.',
+    level: 3,
+    className: 'border-[#b87fff]/30 bg-[#b87fff]/[0.10] text-[#edd8ff]',
+    activeBarClass: 'from-[#b87fff] to-fuchsia-200 shadow-[0_0_16px_rgba(184,127,255,0.18)]',
+  };
 }
 
 function getPulseLegendPalette(pulse: PulseState) {
@@ -1385,6 +1439,16 @@ export default function RealWorldMap() {
     () => getPlaceVisualCopy(selectedVisualState),
     [selectedVisualState]
   );
+  const selectedVenueTransformation = useMemo(
+    () =>
+      getVenueTransformationState({
+        approvedCount: selectedPlace?.approvedCount ?? 0,
+        heatScore: selectedPlace?.heatScore ?? 0,
+        pendingCount: selectedPendingPlaceTags.length,
+        lastTaggedAt: selectedPlace?.lastTaggedAt ?? null,
+      }),
+    [selectedPendingPlaceTags.length, selectedPlace]
+  );
 
   const selectedPlaceDistanceMeters = useMemo(() => {
     if (!selectedPlace || !userLocation) {
@@ -1878,8 +1942,9 @@ export default function RealWorldMap() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
-                    View mode
+                  <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f8dd72]/78">
+                    <span className="h-px w-4 rounded-full bg-[#f5c518]/70" />
+                    <span>View mode</span>
                   </div>
                   {MAP_PRESET_OPTIONS.map((option) => (
                     <button
@@ -1892,13 +1957,7 @@ export default function RealWorldMap() {
                       <span className={`h-2 w-2 rounded-full ${
                         option.value === 'classic'
                           ? 'bg-[#f5c518]'
-                          : option.value === 'crt'
-                            ? 'bg-[#b87fff]'
-                            : option.value === 'heat'
-                              ? 'bg-rose-400'
-                              : option.value === 'noir'
-                                ? 'bg-white/70'
-                                : 'bg-cyan-300'
+                          : 'bg-white/70'
                       }`} />
                       <span>{option.label}</span>
                     </button>
@@ -1907,8 +1966,9 @@ export default function RealWorldMap() {
 
                 {isConnected ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">
-                      Creator lens
+                    <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e3c8ff]/78">
+                      <span className="h-px w-4 rounded-full bg-[#b87fff]/75" />
+                      <span>Creator lens</span>
                     </div>
                     <button
                       type="button"
@@ -2239,6 +2299,39 @@ export default function RealWorldMap() {
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
+                    </div>
+                  </div>
+
+                  <div className="map-panel-section mt-4 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,11,20,0.92)_16%,rgba(6,7,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-14px_18px_rgba(0,0,0,0.18)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
+                        Venue State
+                      </div>
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${selectedVenueTransformation.className}`}
+                      >
+                        {selectedVenueTransformation.label}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-white/74">
+                      {selectedVenueTransformation.description}
+                    </p>
+                    <div className="mt-4 grid grid-cols-5 gap-1.5">
+                      {Array.from({ length: 5 }).map((_, index) => {
+                        const active = index < selectedVenueTransformation.level;
+                        return (
+                          <span
+                            key={`venue-stage-${index}`}
+                            className={`h-2.5 rounded-full border border-white/10 transition ${
+                              active
+                                ? `bg-gradient-to-r ${selectedVenueTransformation.activeBarClass}`
+                                : 'bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+                            }`}
+                            aria-hidden="true"
+                          />
+                        );
+                      })}
                     </div>
                   </div>
 

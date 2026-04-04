@@ -269,6 +269,13 @@
   pointer-events: none;
 }
 
+@media (max-width: 1279px) {
+  .truth-protocol-wire-shell::before,
+  .truth-protocol-wire-shell::after {
+    display: none;
+  }
+}
+
 @keyframes how-it-works-flicker {
   0%, 100% { opacity: 1; }
   6% { opacity: 0.86; }
@@ -286,6 +293,10 @@
 @media (max-width: 767px) {
   .how-it-works-wire-shell::before,
   .truth-protocol-wire-shell::before {
+    display: none;
+  }
+
+  .truth-protocol-wire-shell::after {
     display: none;
   }
 }

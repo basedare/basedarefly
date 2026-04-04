@@ -14,6 +14,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
@@ -239,7 +240,7 @@ function calculatePayouts(dare: Dare) {
   const totalBounty = dare.bounty;
   const streamer = (totalBounty * STREAMER_FEE_PERCENT) / 100;
   const house = (totalBounty * HOUSE_FEE_PERCENT) / 100;
-  const referrer = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
+  const referrer = dare.referrerAddress ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
 
   return { totalBounty, streamer, house, referrer };
 }
@@ -599,7 +600,11 @@ export async function approveDareWithPayout(
         args: [BigInt(dare.onChainDareId)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash });
+      await waitForSuccessfulReceipt({
+        publicClient,
+        hash,
+        context: `verifyAndPayout:${dare.id}`,
+      });
 
       const finalized = await finalizeVerifiedDare({
         ...input,

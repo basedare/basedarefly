@@ -12,6 +12,7 @@ import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { alertError, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
+import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
 // Network selection based on environment
@@ -43,6 +44,14 @@ type RefereeBalanceClient = {
   getBalance: (args: { address: Address }) => Promise<bigint>;
 };
 
+type VerifySession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
 // ============================================================================
 // ZOD VALIDATION
 // ============================================================================
@@ -57,6 +66,21 @@ const VerifyProofSchema = z.object({
     timestamp: z.number().optional(),
   }).optional(),
 });
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as VerifySession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // SERVER-SIDE WALLET CLIENT (Referee)
@@ -347,15 +371,10 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 0a. AUTHENTICATION - Internal key OR authenticated session token
   // -------------------------------------------------------------------------
-  const authHeader = req.headers.get('Authorization');
-  const bearerToken = authHeader?.replace('Bearer ', '').trim();
-
-  const session = await getServerSession(authOptions);
-  const sessionToken = (session as { token?: string } | null)?.token;
-
   const internalAuthError = verifyInternalApiKey(req);
   const isInternalAuthorized = !internalAuthError;
-  const isSessionAuthorized = Boolean(sessionToken && bearerToken && sessionToken === bearerToken);
+  const sessionWallet = await getVerifiedSessionWallet(req);
+  const isSessionAuthorized = Boolean(sessionWallet);
 
   if (!isInternalAuthorized && !isSessionAuthorized) {
     return NextResponse.json(
@@ -417,6 +436,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Dare not found', code: 'NOT_FOUND' },
         { status: 404 }
+      );
+    }
+
+    if (
+      !isInternalAuthorized &&
+      sessionWallet &&
+      dare.stakerAddress?.toLowerCase() !== sessionWallet &&
+      dare.targetWalletAddress?.toLowerCase() !== sessionWallet &&
+      dare.claimedBy?.toLowerCase() !== sessionWallet
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden', code: 'FORBIDDEN' },
+        { status: 403 }
       );
     }
 
@@ -544,7 +576,7 @@ export async function POST(req: NextRequest) {
       const totalBounty = dare.bounty;
       const streamerPayout = (totalBounty * STREAMER_FEE_PERCENT) / 100;
       const houseFee = (totalBounty * HOUSE_FEE_PERCENT) / 100;
-      const referrerFee = dare.referrerTag ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
+      const referrerFee = dare.referrerAddress ? (totalBounty * REFERRER_FEE_PERCENT) / 100 : 0;
 
       console.log(`[PAYOUT] Fee split - Streamer: $${streamerPayout}, House: $${houseFee}, Referrer: $${referrerFee}`);
 
@@ -596,7 +628,11 @@ export async function POST(req: NextRequest) {
             args: [onChainDareId],
           });
 
-          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          const receipt = await waitForSuccessfulReceipt({
+            publicClient,
+            hash,
+            context: `verifyAndPayout:${dareId}`,
+          });
           txHash = hash;
           blockNumber = receipt.blockNumber.toString();
 
@@ -632,8 +668,8 @@ export async function POST(req: NextRequest) {
       }
 
       // Log referrer payout for tracking
-      if (dare.referrerTag) {
-        console.log(`[REFERRAL] Referrer ${dare.referrerTag} (${dare.referrerAddress}) earns $${referrerFee} (1% of $${totalBounty})`);
+      if (dare.referrerAddress) {
+        console.log(`[REFERRAL] Referrer ${dare.referrerTag || 'direct-address'} (${dare.referrerAddress}) earns $${referrerFee} (1% of $${totalBounty})`);
       }
 
       await finalizeVerifiedDare({
@@ -669,6 +705,7 @@ export async function POST(req: NextRequest) {
               house: houseFee,
               referrer: referrerFee,
               referrerTag: dare.referrerTag,
+              referrerAddress: dare.referrerAddress,
             },
           },
         },

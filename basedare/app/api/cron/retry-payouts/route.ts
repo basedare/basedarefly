@@ -5,6 +5,7 @@ import { base, baseSepolia } from 'viem/chains';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { verifyCronSecret } from '@/lib/api-auth';
+import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { alertError } from '@/lib/telegram';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     const results: Array<{
       dareId: string;
-      status: 'paid' | 'failed' | 'skipped';
+      status: 'paid' | 'failed' | 'skipped' | 'refunded';
       txHash?: string;
       error?: string;
     }> = [];
@@ -201,7 +202,44 @@ export async function POST(req: NextRequest) {
         const [amount, , , , isVerified] = bountyData;
 
         if (amount === BigInt(0)) {
-          console.log(`[CRON] Dare ${dare.id} — bounty not found on-chain (already paid or never funded)`);
+          const settlement = await findBountySettlementEvent({
+            publicClient,
+            contractAddress: BOUNTY_CONTRACT_ADDRESS,
+            dareId: onChainDareId,
+            fundingTxHash: dare.txHash,
+          });
+
+          if (settlement.type === 'PAYOUT') {
+            console.log(`[CRON] Dare ${dare.id} — payout already happened on-chain, repairing DB state`);
+            await finalizeVerifiedDare({
+              dareId: dare.id,
+              sourceContext: 'CRON_RETRY_PAYOUT_REPAIR',
+              verifiedAt: new Date(),
+              verifyTxHash: settlement.txHash,
+              verifyConfidence: dare.verifyConfidence,
+              proofHash: dare.proofHash,
+              proofMedia: dare.videoUrl,
+              appealStatus: null,
+            });
+            results.push({ dareId: dare.id, status: 'paid', txHash: settlement.txHash });
+            continue;
+          }
+
+          if (settlement.type === 'REFUND') {
+            console.log(`[CRON] Dare ${dare.id} — refund already happened on-chain, repairing DB state`);
+            await prisma.dare.update({
+              where: { id: dare.id },
+              data: { status: 'REFUNDED', appealStatus: 'NONE', appealReason: null },
+            });
+            await syncLinkedCampaignForDareState({
+              dareId: dare.id,
+              status: 'REFUNDED',
+            });
+            results.push({ dareId: dare.id, status: 'refunded', txHash: settlement.txHash });
+            continue;
+          }
+
+          console.log(`[CRON] Dare ${dare.id} — bounty not found on-chain and no settlement logs found`);
           await prisma.dare.update({
             where: { id: dare.id },
             data: { status: 'FAILED', appealStatus: 'NONE', appealReason: 'Bounty not found on-chain during retry' },
@@ -236,7 +274,11 @@ export async function POST(req: NextRequest) {
           args: [onChainDareId],
         });
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await waitForSuccessfulReceipt({
+          publicClient,
+          hash,
+          context: `retry-payout:${dare.id}`,
+        });
 
         await finalizeVerifiedDare({
           dareId: dare.id,

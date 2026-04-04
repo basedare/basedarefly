@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { createPublicClient, http, decodeEventLog } from 'viem';
+import { createPublicClient, http, decodeEventLog, isAddress, type Address } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 
@@ -13,6 +13,8 @@ const RegisterBountySchema = z.object({
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
 const activeChain = IS_MAINNET ? base : baseSepolia;
 const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
+const hasValidContractAddress = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
 const publicClient = createPublicClient({
     chain: activeChain,
@@ -76,6 +78,13 @@ export async function POST(request: NextRequest) {
 
         for (const log of receipt.logs) {
             try {
+                if (
+                    hasValidContractAddress &&
+                    log.address.toLowerCase() !== BOUNTY_CONTRACT_ADDRESS.toLowerCase()
+                ) {
+                    continue;
+                }
+
                 const decoded = decodeEventLog({
                     abi: BOUNTY_ABI,
                     data: log.data,

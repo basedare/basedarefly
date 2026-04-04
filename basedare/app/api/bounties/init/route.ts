@@ -113,6 +113,11 @@ async function resolveTagToAddress(
     };
 }
 
+function getPlatformWalletFallback(): Address | null {
+    const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS;
+    return platformWallet && isAddress(platformWallet) ? (platformWallet as Address) : null;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -169,7 +174,7 @@ export async function POST(request: NextRequest) {
                     { status: 401 }
                 );
             }
-        } else if (!isInternalAuthorized && sessionWallet && normalizedStakerAddress !== sessionWallet) {
+        } else if (!isInternalAuthorized && (!sessionWallet || normalizedStakerAddress !== sessionWallet)) {
             return NextResponse.json(
                 { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
                 { status: 401 }
@@ -222,7 +227,17 @@ export async function POST(request: NextRequest) {
         }
 
         const targetAddress = tagResolution.address;
-        const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS || '0x0000000000000000000000000000000000000000';
+        const platformWalletAddress = getPlatformWalletFallback();
+        if (!platformWalletAddress) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Platform wallet fallback is not configured for live funding',
+                    code: 'PLATFORM_WALLET_NOT_CONFIGURED',
+                },
+                { status: 500 }
+            );
+        }
 
         // Create DB record in FUNDING state
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -241,6 +256,7 @@ export async function POST(request: NextRequest) {
                 expiresAt,
                 shortId,
                 stakerAddress: normalizedStakerAddress || null,
+                referrerAddress: platformWalletAddress,
                 targetWalletAddress: targetAddress,
                 venueId: canonicalVenueId,
                 isNearbyDare,
@@ -260,7 +276,7 @@ export async function POST(request: NextRequest) {
                 dareId: dbDare.id,
                 onChainDareId,
                 targetAddress,
-                referrerAddress: PLATFORM_WALLET_ADDRESS,
+                referrerAddress: platformWalletAddress,
                 shortId,
                 venueId: canonicalVenueId,
                 isNearbyDare,
