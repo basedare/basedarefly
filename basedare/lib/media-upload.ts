@@ -16,20 +16,67 @@ export const ALLOWED_MEDIA_MIME_TYPES = new Set([
   'image/gif',
 ]);
 
+const ALLOWED_MEDIA_EXTENSIONS = new Set([
+  '.mp4',
+  '.mov',
+  '.webm',
+  '.mkv',
+  '.3gp',
+  '.3g2',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+]);
+
+const DEFAULT_PINATA_GATEWAY = 'purple-void-gateway.pinata.cloud';
+
+export class MediaUploadError extends Error {
+  statusCode: number;
+  code: string;
+
+  constructor(message: string, statusCode = 500, code = 'MEDIA_UPLOAD_ERROR') {
+    super(message);
+    this.name = 'MediaUploadError';
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
+
+function getNormalizedExtension(fileName: string): string | null {
+  const lastDot = fileName.lastIndexOf('.');
+  if (lastDot === -1) return null;
+  const extension = fileName.slice(lastDot).trim().toLowerCase();
+  return extension.length > 1 ? extension : null;
+}
+
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT!,
-  pinataGateway: process.env.PINATA_GATEWAY || 'purple-void-gateway.pinata.cloud',
+  pinataGateway: process.env.PINATA_GATEWAY || DEFAULT_PINATA_GATEWAY,
 });
 
 export function validateSupportedMediaFile(file: File): string | null {
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    return 'No file provided.';
+  }
+
+  if (file.size <= 0) {
+    return 'Media file is empty. Please choose a valid video or image.';
+  }
+
+  if (file.size > MAX_MEDIA_SIZE_BYTES) {
+    return 'Media file is too large. Max size is 120MB.';
+  }
+
   const normalizedMimeType = file.type.toLowerCase();
+  const normalizedExtension = getNormalizedExtension(file.name);
 
   if (!ALLOWED_MEDIA_MIME_TYPES.has(normalizedMimeType)) {
     return 'Unsupported media type. Upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).';
   }
 
-  if (file.size <= 0 || file.size > MAX_MEDIA_SIZE_BYTES) {
-    return 'Media file is too large. Max size is 120MB.';
+  if (!normalizedExtension || !ALLOWED_MEDIA_EXTENSIONS.has(normalizedExtension)) {
+    return 'Unsupported file extension. Upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).';
   }
 
   return null;
@@ -45,20 +92,29 @@ export async function uploadPublicMediaFile(input: {
   keyvalues?: Record<string, string>;
 }) {
   if (!process.env.PINATA_JWT) {
-    throw new Error('Server misconfigured');
+    throw new MediaUploadError('Proof uploads are not configured yet. Please try again later.', 503, 'PINATA_MISSING_JWT');
   }
 
-  const upload = await pinata.upload.public
-    .file(input.file)
-    .name(input.name)
-    .keyvalues(input.keyvalues ?? {});
+  try {
+    const upload = await pinata.upload.public
+      .file(input.file)
+      .name(input.name)
+      .keyvalues(input.keyvalues ?? {});
 
-  const gateway = process.env.PINATA_GATEWAY || 'gateway.pinata.cloud';
-  const url = `https://${gateway}/ipfs/${upload.cid}`;
+    const gateway = process.env.PINATA_GATEWAY || DEFAULT_PINATA_GATEWAY;
+    const url = `https://${gateway}/ipfs/${upload.cid}`;
 
-  return {
-    cid: upload.cid,
-    url,
-    proofType: getProofTypeFromMimeType(input.file.type),
-  };
+    return {
+      cid: upload.cid,
+      url,
+      proofType: getProofTypeFromMimeType(input.file.type),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown upload error';
+    throw new MediaUploadError(
+      `Proof upload failed upstream. ${message}`,
+      502,
+      'PINATA_UPLOAD_FAILED'
+    );
+  }
 }

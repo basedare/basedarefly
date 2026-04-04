@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import {
+  MediaUploadError,
   uploadPublicMediaFile,
   validateSupportedMediaFile,
 } from '@/lib/media-upload';
@@ -38,6 +39,8 @@ export const config = {
   },
 };
 
+const PROOF_UPLOADABLE_STATUSES = new Set(['PENDING']);
+
 export async function POST(request: NextRequest) {
   try {
     const sessionWallet = await getVerifiedSessionWallet(request);
@@ -62,9 +65,17 @@ export async function POST(request: NextRequest) {
 
     const mediaValidationError = validateSupportedMediaFile(file);
     if (mediaValidationError) {
+      const status =
+        mediaValidationError.startsWith('Unsupported media type') ||
+        mediaValidationError.startsWith('Unsupported file extension')
+          ? 415
+          : mediaValidationError.startsWith('Media file is too large')
+            ? 413
+            : 400;
+
       return NextResponse.json(
         { error: mediaValidationError },
-        { status: mediaValidationError.startsWith('Unsupported media type') ? 415 : 413 }
+        { status }
       );
     }
 
@@ -80,6 +91,9 @@ export async function POST(request: NextRequest) {
       where: { id: dareId },
       select: {
         id: true,
+        status: true,
+        videoUrl: true,
+        proofCid: true,
         stakerAddress: true,
         targetWalletAddress: true,
         claimedBy: true,
@@ -100,6 +114,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (!PROOF_UPLOADABLE_STATUSES.has(dare.status)) {
+      return NextResponse.json(
+        { error: `Proof upload is only allowed while a dare is pending. Current status: ${dare.status}.` },
+        { status: 409 }
+      );
+    }
+
+    if (dare.videoUrl || dare.proofCid) {
+      return NextResponse.json(
+        { error: 'Proof already uploaded for this dare. Review or verification is already in progress.' },
+        { status: 409 }
+      );
+    }
+
     // Upload to Pinata IPFS
     const upload = await uploadPublicMediaFile({
       file,
@@ -107,23 +135,49 @@ export async function POST(request: NextRequest) {
       keyvalues: { dareId, app: 'basedare' },
     });
 
-    // Update the database with the IPFS CID and video URL, and change status to PENDING_REVIEW
+    const duplicateProof = await prisma.dare.findFirst({
+      where: {
+        id: { not: dareId },
+        OR: [
+          { proofCid: upload.cid },
+          { videoUrl: upload.url },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (duplicateProof) {
+      return NextResponse.json(
+        { error: 'This proof has already been attached to another dare. Submit unique evidence.' },
+        { status: 409 }
+      );
+    }
+
+    // Attach proof media but keep the dare in the community-signal lane until
+    // verify-proof or moderator flow escalates it.
     await prisma.dare.update({
       where: { id: dareId },
       data: {
         proofCid: upload.cid,
         videoUrl: upload.url,
-        status: 'PENDING_REVIEW', // Ready for TruthOracle voting
+        status: 'PENDING',
       },
     });
 
-    return NextResponse.json({ success: true, cid: upload.cid, url: upload.url, status: 'PENDING_REVIEW' }, { status: 200 });
+    return NextResponse.json({ success: true, cid: upload.cid, url: upload.url, status: 'PENDING' }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to upload file';
+    const status =
+      error instanceof MediaUploadError
+        ? error.statusCode
+        : message.includes('Dare not found')
+          ? 404
+          : 500;
+
     console.error('Pinata upload error:', message);
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status }
     );
   }
 }
