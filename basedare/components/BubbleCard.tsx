@@ -35,6 +35,23 @@ export default function BubbleCard({
 
   const gradientColors = useMemo(() => generateGradientColors(color), [color]);
 
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    event.currentTarget.style.setProperty('--x', `${x}px`);
+    event.currentTarget.style.setProperty('--y', `${y}px`);
+    event.currentTarget.style.setProperty('--width', `${rect.width}px`);
+    event.currentTarget.style.setProperty('--height', `${rect.height}px`);
+  };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty('--x', `${rect.width / 2}px`);
+    event.currentTarget.style.setProperty('--y', `${rect.height / 2}px`);
+  };
+
   return (
     <div className={`bubble-card-wrapper ${className}`}>
       {/* SVG Goo Filter */}
@@ -58,7 +75,11 @@ export default function BubbleCard({
         <button
           className="bubble-card-button"
           style={{ '--bubble-color': color } as React.CSSProperties}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={handlePointerLeave}
         >
+          <span className="bubble-card-reactive-glow" aria-hidden="true" />
+          <span className="bubble-card-reactive-sheen" aria-hidden="true" />
           <span className="bubble-card-panel bd-dent-surface bd-dent-surface--soft">
             <span className="bubble-card-content">
               <span className="bubble-badge">{badge}</span>
