@@ -74,11 +74,11 @@ export default function TruthProtocol() {
           />
         </div>
 
-        <div className="truth-protocol-wire-shell relative max-w-[1280px] mx-auto px-2 md:px-4 xl:px-0">
-          <div className="hidden xl:block">
+        <div className="truth-protocol-wire-shell relative max-w-[1400px] mx-auto overflow-hidden px-0 sm:px-2 md:px-4 2xl:px-0">
+          <div className="hidden 2xl:block">
             <HowItWorksSignalWires foundationRatio={0.58} />
           </div>
-          <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 xl:grid-cols-4 xl:gap-8">
+          <div className="grid grid-cols-1 justify-items-center gap-6 md:grid-cols-2 2xl:grid-cols-4 2xl:gap-8">
           {staticCards.map((card) => (
             <div key={card.id} data-cable-node className="relative z-10 w-full max-w-[300px]">
               <BubbleCard

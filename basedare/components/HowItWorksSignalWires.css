@@ -269,7 +269,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 1279px) {
+@media (max-width: 1535px) {
   .truth-protocol-wire-shell::before,
   .truth-protocol-wire-shell::after {
     display: none;
