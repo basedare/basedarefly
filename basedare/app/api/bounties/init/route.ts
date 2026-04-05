@@ -50,7 +50,7 @@ const InitBountySchema = z.object({
     missionTag: z.string().max(50).optional(),
     title: z.string().min(3),
     description: z.string().optional(),
-    amount: z.number().min(5),
+    amount: z.number().min(1),
     streamId: z.string().min(1),
     streamerTag: z
         .string()
@@ -204,6 +204,19 @@ export async function POST(request: NextRequest) {
             discoveryRadiusKm,
             geohash,
         } = placeContext;
+
+        const isMainnet = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+        const activeMinDare = isMainnet ? 5 : 1;
+        if (amount < activeMinDare) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: `Live onchain funding requires a minimum dare of $${activeMinDare}.`,
+                    code: 'AMOUNT_TOO_SMALL',
+                },
+                { status: 400 }
+            );
+        }
 
         if (isOpenBounty) {
             return NextResponse.json(
