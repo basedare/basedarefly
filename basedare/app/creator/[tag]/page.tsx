@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useAccount, useSignMessage } from 'wagmi';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
     Heart, TrendingUp, Target, Award, AlertCircle,
@@ -11,6 +13,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import { buildCreatorProfileEditMessage } from '@/lib/creator-profile-auth';
 
 // Streamer images from existing assets
 const STREAMER_IMAGES: Record<string, string> = {
@@ -73,6 +76,14 @@ interface CreatorProfile {
         } | null;
     };
     recent: RecentDare[];
+}
+
+interface OwnedTag {
+    id: string;
+    tag: string;
+    status: string;
+    bio?: string | null;
+    pfpUrl?: string | null;
 }
 
 function formatCompactCount(value: number | null | undefined): string | null {
@@ -188,20 +199,39 @@ function ProfileSkeleton() {
 export default function CreatorProfilePage() {
     const params = useParams();
     const router = useRouter();
-    const tag = params.tag as string;
+    const rawTag = params.tag as string;
+    const decodedTag = (() => {
+        try {
+            return decodeURIComponent(rawTag);
+        } catch {
+            return rawTag;
+        }
+    })();
+    const { address, isConnected } = useAccount();
+    const { signMessageAsync } = useSignMessage();
+    const { data: session } = useSession();
+    const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
     const [profile, setProfile] = useState<CreatorProfile | null>(null);
+    const [ownedTag, setOwnedTag] = useState<OwnedTag | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showProfileEditor, setShowProfileEditor] = useState(false);
+    const [profileBioDraft, setProfileBioDraft] = useState('');
+    const [profileEditorSaving, setProfileEditorSaving] = useState(false);
+    const [profileEditorError, setProfileEditorError] = useState<string | null>(null);
+    const [profileEditorNotice, setProfileEditorNotice] = useState<string | null>(null);
+    const [profileAvatarUploading, setProfileAvatarUploading] = useState(false);
 
-    const displayTag = tag.startsWith('@') ? tag : `@${tag}`;
-    const plainTag = tag.replace('@', '').toLowerCase();
+    const displayTag = decodedTag.startsWith('@') ? decodedTag : `@${decodedTag}`;
+    const plainTag = decodedTag.replace('@', '').toLowerCase();
     const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
+    const normalizedConnectedWallet = address?.toLowerCase() ?? null;
 
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await fetch(`/api/creator/${encodeURIComponent(tag)}`);
+                const res = await fetch(`/api/creator/${encodeURIComponent(decodedTag)}`);
                 const data = await res.json();
                 if (res.ok && data.success) {
                     setProfile(data.data);
@@ -236,7 +266,52 @@ export default function CreatorProfilePage() {
             }
         };
         load();
-    }, [tag, displayTag]);
+    }, [decodedTag, displayTag]);
+
+    useEffect(() => {
+        if (!normalizedConnectedWallet || !isConnected) {
+            setOwnedTag(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadOwnedTags = async () => {
+            try {
+                const response = await fetch(`/api/tags?wallet=${encodeURIComponent(normalizedConnectedWallet)}`, {
+                    cache: 'no-store',
+                });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || 'Failed to load owned tags');
+                }
+
+                const matchingTag =
+                    (payload.tags || []).find(
+                        (entry: OwnedTag) => entry.tag?.toLowerCase() === displayTag.toLowerCase()
+                    ) ?? null;
+
+                if (!cancelled) {
+                    setOwnedTag(matchingTag);
+                }
+            } catch {
+                if (!cancelled) {
+                    setOwnedTag(null);
+                }
+            }
+        };
+
+        void loadOwnedTags();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [displayTag, isConnected, normalizedConnectedWallet]);
+
+    useEffect(() => {
+        setProfileBioDraft(profile?.bio || '');
+    }, [profile?.bio]);
 
     if (loading) return (
         <main className="min-h-screen bg-transparent text-white">
@@ -305,6 +380,154 @@ export default function CreatorProfilePage() {
         const query = params.toString();
         return query ? `/claim-tag?${query}` : '/claim-tag';
     })();
+    const isOwner = Boolean(ownedTag?.tag && ownedTag.tag.toLowerCase() === displayTag.toLowerCase());
+    const needsIdentityAttention =
+        !profile?.verified ||
+        profile?.identityStatus === 'PENDING' ||
+        profile?.identityStatus === 'REJECTED' ||
+        profile?.identityStatus === 'REVOKED' ||
+        profile?.identityStatus === 'SUSPENDED';
+    const profileEditAuthMessage = normalizedConnectedWallet
+        ? 'You will confirm a wallet signature before updating your bio or profile photo.'
+        : 'Connect the wallet that owns this verified creator tag to edit your bio or photo.';
+
+    const getProfileEditHeaders = async (tagId: string): Promise<Record<string, string>> => {
+        if (sessionToken) {
+            return { Authorization: `Bearer ${sessionToken}` };
+        }
+
+        if (!normalizedConnectedWallet) {
+            throw new Error('Connect the wallet that owns this verified creator tag to edit your profile.');
+        }
+
+        const issuedAt = new Date().toISOString();
+        const message = buildCreatorProfileEditMessage({
+            walletAddress: normalizedConnectedWallet,
+            tagId,
+            issuedAt,
+        });
+        const signature = await signMessageAsync({ message });
+
+        return {
+            'x-basedare-profile-wallet': normalizedConnectedWallet,
+            'x-basedare-profile-issued-at': issuedAt,
+            'x-basedare-profile-signature': String(signature),
+        };
+    };
+
+    const handleSaveProfile = async () => {
+        if (!ownedTag?.id) {
+            setProfileEditorError('Claim a verified handle before editing this creator profile.');
+            return;
+        }
+
+        const normalizedDraft = profileBioDraft.trim();
+        const normalizedCurrent = (profile?.bio || '').trim();
+        if (normalizedDraft === normalizedCurrent) {
+            setProfileEditorError(null);
+            setProfileEditorNotice('Nothing new to save yet.');
+            return;
+        }
+
+        try {
+            setProfileEditorSaving(true);
+            setProfileEditorError(null);
+            setProfileEditorNotice(null);
+            const authHeaders = await getProfileEditHeaders(ownedTag.id);
+
+            const response = await fetch('/api/tags/profile', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders,
+                },
+                body: JSON.stringify({
+                    tagId: ownedTag.id,
+                    bio: profileBioDraft,
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || 'Failed to save creator profile');
+            }
+
+            setProfile((current) =>
+                current
+                    ? {
+                        ...current,
+                        bio: payload.data?.bio ?? null,
+                        pfpUrl: payload.data?.pfpUrl ?? current.pfpUrl ?? null,
+                    }
+                    : current
+            );
+            setOwnedTag((current) =>
+                current
+                    ? {
+                        ...current,
+                        bio: payload.data?.bio ?? null,
+                        pfpUrl: payload.data?.pfpUrl ?? current.pfpUrl ?? null,
+                    }
+                    : current
+            );
+            setProfileEditorNotice('Profile saved.');
+        } catch (saveError) {
+            setProfileEditorError(saveError instanceof Error ? saveError.message : 'Failed to save creator profile');
+        } finally {
+            setProfileEditorSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (!file || !ownedTag?.id) return;
+
+        try {
+            setProfileAvatarUploading(true);
+            setProfileEditorError(null);
+            setProfileEditorNotice(null);
+            const authHeaders = await getProfileEditHeaders(ownedTag.id);
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('tagId', ownedTag.id);
+
+            const response = await fetch('/api/tags/avatar', {
+                method: 'POST',
+                headers: authHeaders,
+                body: formData,
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || 'Failed to upload profile photo');
+            }
+
+            setProfile((current) =>
+                current
+                    ? {
+                        ...current,
+                        pfpUrl: payload.data?.pfpUrl ?? null,
+                    }
+                    : current
+            );
+            setOwnedTag((current) =>
+                current
+                    ? {
+                        ...current,
+                        pfpUrl: payload.data?.pfpUrl ?? null,
+                    }
+                    : current
+            );
+            setProfileEditorNotice('Profile photo updated.');
+        } catch (uploadError) {
+            setProfileEditorError(uploadError instanceof Error ? uploadError.message : 'Failed to upload profile photo');
+        } finally {
+            setProfileAvatarUploading(false);
+        }
+    };
 
     return (
         <main className="min-h-screen bg-transparent text-white pb-24">
@@ -399,7 +622,7 @@ export default function CreatorProfilePage() {
                                     </div>
 
                                     <p className="mt-4 max-w-2xl text-sm md:text-base leading-relaxed text-white/68">
-                                        {profile?.bio || `${displayTag} on BaseDare. Browse recent dares, activity, and creator stats.`}
+                                        {profile?.bio || `${displayTag} on BaseDare.`}
                                     </p>
 
                                     <div className="mt-4 flex flex-wrap gap-1.5">
@@ -409,6 +632,41 @@ export default function CreatorProfilePage() {
                                             </span>
                                         ))}
                                     </div>
+
+                                    {isOwner ? (
+                                        <div className="mt-5 flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProfileEditorError(null);
+                                                    setProfileEditorNotice(null);
+                                                    setShowProfileEditor(true);
+                                                }}
+                                                className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                                            >
+                                                Edit profile
+                                            </button>
+                                            {needsIdentityAttention ? (
+                                                <Link
+                                                    href={identityCtaHref}
+                                                    className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                                                >
+                                                    {profile?.identityStatus === 'PENDING'
+                                                        ? 'Update proof'
+                                                        : profile?.identityStatus === 'REJECTED' || profile?.identityStatus === 'REVOKED' || profile?.identityStatus === 'SUSPENDED'
+                                                            ? 'Re-verify handle'
+                                                            : 'Claim handle'}
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    href={identityCtaHref}
+                                                    className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 transition hover:border-white/20 hover:text-white"
+                                                >
+                                                    Manage handle
+                                                </Link>
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
 
@@ -438,9 +696,9 @@ export default function CreatorProfilePage() {
                                 <Zap className="w-3.5 h-3.5" />
                                 Social Status
                             </div>
-                            <h2 className="mt-4 text-lg font-black text-white">Primary identity and distribution layer</h2>
+                            <h2 className="mt-4 text-lg font-black text-white">Verified profile</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-                                Live now this page shows which verified public identity is anchored to the creator. Coming soon it becomes a richer routing and footprint surface.
+                                The basics that shape this creator profile.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -450,22 +708,12 @@ export default function CreatorProfilePage() {
                             >
                                 Dare {displayTag}
                             </Link>
-                            <Link
-                                href={identityCtaHref}
-                                className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                            >
-                                {profile?.identityStatus === 'PENDING'
-                                    ? 'Update Proof'
-                                    : profile?.identityStatus === 'REJECTED' || profile?.identityStatus === 'REVOKED' || profile?.identityStatus === 'SUSPENDED'
-                                        ? 'Re-verify'
-                                        : 'Connect Identity'}
-                            </Link>
                         </div>
                     </div>
 
                     <div className="mt-5 grid gap-3 md:grid-cols-4">
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Primary Identity</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Verified Handle</p>
                             <p className="mt-2 text-2xl font-black text-white">{getIdentityStateLabel(profile?.identityStatus)}</p>
                             <p className="mt-1 text-[11px] text-white/46">
                                 {profile?.identityHandle
@@ -475,34 +723,34 @@ export default function CreatorProfilePage() {
                         </div>
 
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Distribution</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Linked Socials</p>
                             <p className="mt-2 text-2xl font-black text-white">{connectedPlatforms.length > 0 ? 'Ready' : 'Thin'}</p>
                             <p className="mt-1 text-[11px] text-white/46">
-                                {connectedPlatforms.length > 0 ? 'Shared wins can point back to a real creator surface.' : 'BaseDare signal exists, but distribution rails are still weak.'}
+                                {connectedPlatforms.length > 0 ? 'Linked socials point back to this profile.' : 'No extra social links yet.'}
                             </p>
                         </div>
 
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Audience</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Followers</p>
                             <p className="mt-2 text-2xl font-black text-white">{audienceLabel || '--'}</p>
                             <p className="mt-1 text-[11px] text-white/46">
-                                {audienceLabel ? 'Current stored audience signal.' : 'No audience count stored on this profile yet.'}
+                                {audienceLabel ? 'Stored follower count.' : 'No follower count yet.'}
                             </p>
                         </div>
 
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Footprint State</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">BaseDare Status</p>
                             <p className="mt-2 text-2xl font-black text-white">
                                 {profile?.verified ? 'Anchored' : profile?.identityStatus === 'PENDING' ? 'Pending' : connectedPlatforms.length > 0 ? 'Emerging' : 'Unanchored'}
                             </p>
                             <p className="mt-1 text-[11px] text-white/46">
                                 {profile?.verified
-                                    ? 'Claimed identity and BaseDare activity are already tied together.'
+                                    ? 'Identity and activity are linked.'
                                     : profile?.identityStatus === 'PENDING'
-                                        ? 'A proof is under review now. Once cleared, the footprint locks in.'
+                                        ? 'Verification is under review.'
                                     : connectedPlatforms.length > 0
-                                        ? 'Social signal exists, but the strongest trust still comes from claimed BaseDare proof.'
-                                        : 'This creator needs claim + activity before the footprint feels real.'}
+                                        ? 'Social signal is live, but activity is still building.'
+                                        : 'Verify and start completing dares to build this out.'}
                             </p>
                         </div>
                     </div>
@@ -532,7 +780,7 @@ export default function CreatorProfilePage() {
                             ))
                         ) : (
                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/42`}>
-                                No linked social identity exposed on this creator yet
+                                No linked socials yet
                             </span>
                         )}
                     </div>
@@ -625,6 +873,126 @@ export default function CreatorProfilePage() {
                         </span>
                     </button>
                 </motion.div>
+
+                {showProfileEditor ? (
+                    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
+                        <div className={`${raisedPanelClass} w-full max-w-xl px-5 py-5 sm:px-6`}>
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-lg font-black uppercase tracking-[0.12em] text-white">Edit creator profile</div>
+                                    <div className="mt-1 text-sm text-white/52">
+                                        Update the public profile brands and other creators actually see.
+                                    </div>
+                                    <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-cyan-100/65">
+                                        We only ask for a wallet signature when you save changes or upload a new photo.
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProfileEditorError(null);
+                                        setProfileEditorNotice(null);
+                                        setShowProfileEditor(false);
+                                    }}
+                                    className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 transition hover:border-white/20 hover:text-white"
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            <div className="mt-5 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
+                                <div className={`${insetCardClass} flex flex-col items-center gap-3 px-4 py-4`}>
+                                    <div className="h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_14px_28px_rgba(0,0,0,0.24)]">
+                                        {avatarImg ? (
+                                            <img
+                                                src={avatarImg}
+                                                alt={displayTag}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
+                                                {plainTag.slice(0, 1).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-sm font-semibold text-white">{displayTag}</div>
+                                        <div className="mt-1 text-xs text-white/45">
+                                            {profileAvatarUploading ? 'Uploading photo...' : 'JPG, PNG, or GIF up to 5MB'}
+                                        </div>
+                                    </div>
+                                    <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16">
+                                        {profileAvatarUploading ? 'Uploading...' : 'Upload photo'}
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/gif"
+                                            className="hidden"
+                                            onChange={handleAvatarUpload}
+                                            disabled={!ownedTag?.id || profileAvatarUploading}
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className={`${insetCardClass} px-4 py-4`}>
+                                    <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                                        Bio
+                                    </label>
+                                    <textarea
+                                        value={profileBioDraft}
+                                        onChange={(event) => setProfileBioDraft(event.target.value)}
+                                        maxLength={280}
+                                        rows={5}
+                                        placeholder="Say what you make, where you show up strongest, and what brands can expect from you."
+                                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-fuchsia-400/40 focus:outline-none"
+                                    />
+                                    <div className="mt-2 flex items-center justify-between text-[11px] text-white/40">
+                                        <span>Keep it short and concrete.</span>
+                                        <span>{profileBioDraft.length}/280</span>
+                                    </div>
+
+                                    <div className="mt-3 rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100/85">
+                                        {profileEditAuthMessage}
+                                    </div>
+
+                                    {profileEditorNotice ? (
+                                        <div className="mt-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                                            {profileEditorNotice}
+                                        </div>
+                                    ) : null}
+
+                                    {profileEditorError ? (
+                                        <div className="mt-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                                            {profileEditorError}
+                                        </div>
+                                    ) : null}
+
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveProfile}
+                                            disabled={!ownedTag?.id || profileEditorSaving}
+                                            className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16 disabled:opacity-50"
+                                        >
+                                            {profileEditorSaving ? 'Saving...' : 'Save profile'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setProfileBioDraft(profile?.bio || '');
+                                                setProfileEditorError(null);
+                                                setProfileEditorNotice(null);
+                                                setShowProfileEditor(false);
+                                            }}
+                                            className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 transition hover:border-white/20 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[

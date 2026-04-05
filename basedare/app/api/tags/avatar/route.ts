@@ -1,36 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-options';
 import {
   MediaUploadError,
   uploadPublicMediaFile,
   validateSupportedImageFile,
 } from '@/lib/media-upload';
-
-type WalletSession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as WalletSession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-  return wallet.toLowerCase();
-}
+import { getAuthorizedCreatorProfileWallet } from '@/lib/creator-profile-auth-server';
 
 export const config = {
   api: {
@@ -40,11 +15,6 @@ export const config = {
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const tagId = formData.get('tagId') as string | null;
@@ -65,6 +35,11 @@ export async function POST(request: NextRequest) {
 
     if (!tagId) {
       return NextResponse.json({ success: false, error: 'Tag ID is required.' }, { status: 400 });
+    }
+
+    const sessionWallet = await getAuthorizedCreatorProfileWallet(request, tagId);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const tag = await prisma.streamerTag.findUnique({

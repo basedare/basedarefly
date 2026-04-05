@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { z } from 'zod';
-import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-options';
-
-type WalletSession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
+import { getAuthorizedCreatorProfileWallet } from '@/lib/creator-profile-auth-server';
 
 const UpdateTagProfileSchema = z.object({
   tagId: z.string().cuid(),
@@ -23,28 +13,8 @@ const UpdateTagProfileSchema = z.object({
     .optional(),
 });
 
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as WalletSession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-  return wallet.toLowerCase();
-}
-
 export async function PATCH(request: NextRequest) {
   try {
-    const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const validation = UpdateTagProfileSchema.safeParse(body);
 
@@ -56,6 +26,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { tagId, bio } = validation.data;
+    const sessionWallet = await getAuthorizedCreatorProfileWallet(request, tagId);
+    if (!sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const tag = await prisma.streamerTag.findUnique({
       where: { id: tagId },
       select: {
