@@ -21,9 +21,10 @@ import {
 
 const CREATOR_CAMPAIGNS_DORMANT_MESSAGE =
   'CREATOR campaigns stay visible in Control Mode, but new creator-routing launches are temporarily parked while we finish the real social-routing path.';
-// PLACE campaigns stay DB-backed for now. We can assign a specific creator at launch,
-// but the linked dare is still not funded through the real on-chain bounty path yet.
-const PLACE_CAMPAIGN_MODE = true;
+// PLACE campaigns can now attach a pre-funded linked dare from the shared bounty flow.
+// We keep the older DB-backed dare path as a fallback until the UI always launches via
+// wallet funding first.
+const PLACE_CAMPAIGN_DB_FALLBACK = true;
 
 // Campaign tier configurations
 const TIER_CONFIG = {
@@ -137,6 +138,7 @@ const CreateCampaignSchema = z.object({
   payoutPerCreator: z.number().min(50),
   venueId: z.string().min(1).optional(),
   selectedCreatorId: z.string().cuid().optional(),
+  linkedDareId: z.string().cuid().optional(),
   syncTime: z.string().datetime().optional(),
   targetingCriteria: TargetingCriteriaSchema.optional(),
   verificationCriteria: VerificationCriteriaSchema,
@@ -366,6 +368,7 @@ export async function POST(request: NextRequest) {
       payoutPerCreator,
       venueId,
       selectedCreatorId,
+      linkedDareId,
       syncTime,
       targetingCriteria,
       verificationCriteria,
@@ -462,6 +465,81 @@ export async function POST(request: NextRequest) {
 
         campaign = await prisma.$transaction(
           async (tx) => {
+            if (linkedDareId) {
+              const existingCampaign = await tx.campaign.findUnique({
+                where: { linkedDareId },
+                include: {
+                  brand: {
+                    select: { name: true, logo: true },
+                  },
+                  venue: {
+                    select: { id: true, slug: true, name: true, city: true, country: true },
+                  },
+                  linkedDare: {
+                    select: {
+                      id: true,
+                      shortId: true,
+                      status: true,
+                      verifiedAt: true,
+                      completed_at: true,
+                      createdAt: true,
+                      venueId: true,
+                      streamerHandle: true,
+                      targetWalletAddress: true,
+                    },
+                  },
+                  slots: true,
+                },
+              });
+
+              if (existingCampaign) {
+                return existingCampaign;
+              }
+            }
+
+            const linkedLiveDare = linkedDareId
+              ? await tx.dare.findUnique({
+                  where: { id: linkedDareId },
+                  select: {
+                    id: true,
+                    shortId: true,
+                    status: true,
+                    verifiedAt: true,
+                    completed_at: true,
+                    createdAt: true,
+                    venueId: true,
+                    streamerHandle: true,
+                    targetWalletAddress: true,
+                    stakerAddress: true,
+                  },
+                })
+              : null;
+
+            if (linkedDareId) {
+              if (!linkedLiveDare) {
+                throw new Error('Linked funded dare not found');
+              }
+
+              if (!linkedLiveDare.stakerAddress || linkedLiveDare.stakerAddress.toLowerCase() !== brand.walletAddress.toLowerCase()) {
+                throw new Error('Linked funded dare does not belong to this brand wallet');
+              }
+
+              if (linkedLiveDare.venueId !== placeContext.venueId) {
+                throw new Error('Linked funded dare venue does not match this campaign venue');
+              }
+
+              if (linkedLiveDare.streamerHandle?.toLowerCase() !== chosenCreator.creator.tag.toLowerCase()) {
+                throw new Error('Linked funded dare target tag does not match the selected creator');
+              }
+
+              if (
+                linkedLiveDare.targetWalletAddress?.toLowerCase() !==
+                chosenCreator.creator.walletAddress.toLowerCase()
+              ) {
+                throw new Error('Linked funded dare wallet does not match the selected creator');
+              }
+            }
+
             const createdCampaign = await tx.campaign.create({
               data: {
                 brandId: brand.id,
@@ -484,6 +562,7 @@ export async function POST(request: NextRequest) {
                 status: 'LIVE',
                 fundedAt: new Date(),
                 liveAt: new Date(),
+                linkedDareId: linkedLiveDare?.id,
                 slots: {
                   create: [
                     {
@@ -498,6 +577,34 @@ export async function POST(request: NextRequest) {
                 },
               },
             });
+
+            if (linkedLiveDare) {
+              return tx.campaign.findUniqueOrThrow({
+                where: { id: createdCampaign.id },
+                include: {
+                  brand: {
+                    select: { name: true, logo: true },
+                  },
+                  venue: {
+                    select: { id: true, slug: true, name: true, city: true, country: true },
+                  },
+                  linkedDare: {
+                    select: {
+                      id: true,
+                      shortId: true,
+                      status: true,
+                      verifiedAt: true,
+                      completed_at: true,
+                      createdAt: true,
+                      venueId: true,
+                      streamerHandle: true,
+                      targetWalletAddress: true,
+                    },
+                  },
+                  slots: true,
+                },
+              });
+            }
 
             const bounty = await createDatabaseBackedBounty({
               db: tx,
@@ -517,7 +624,7 @@ export async function POST(request: NextRequest) {
               geohash: placeContext.geohash,
               locationLabel: placeContext.locationLabel,
               discoveryRadiusKm: placeContext.discoveryRadiusKm,
-              isSimulated: PLACE_CAMPAIGN_MODE,
+              isSimulated: PLACE_CAMPAIGN_DB_FALLBACK,
             });
 
             return tx.campaign.update({

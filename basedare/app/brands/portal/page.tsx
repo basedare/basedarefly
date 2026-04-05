@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, PlayCircle, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
+import { useBountyMode } from '@/hooks/useBountyMode';
+import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -292,8 +294,11 @@ function getCreatorStrengthLabel(match: CampaignMatch) {
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
   const { data: session } = useSession();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const { simulated: isSimulationMode } = useBountyMode();
 
   // Hydration guard to prevent SSR/client mismatch flickering
   const [mounted, setMounted] = useState(false);
@@ -333,6 +338,8 @@ export default function BrandPortalPage() {
   const [recommendedCreatorsLoading, setRecommendedCreatorsLoading] = useState(false);
   const [recommendedCreatorsError, setRecommendedCreatorsError] = useState<string | null>(null);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<BountyApprovalStatus>('idle');
   const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
   const [responsesTabByCampaign, setResponsesTabByCampaign] = useState<Record<string, ResponseRailTab>>({});
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
@@ -581,6 +588,8 @@ export default function BrandPortalPage() {
     if (!address) return;
 
     try {
+      setCreatingCampaign(true);
+      setApprovalStatus('idle');
       const tierConfig = TIER_INFO[formData.tier];
       if (formData.payoutPerCreator < tierConfig.minPayout) {
         alert(`Minimum payout for ${tierConfig.name} is $${tierConfig.minPayout}`);
@@ -641,6 +650,51 @@ export default function BrandPortalPage() {
         return;
       }
 
+      const chosenCreator =
+        formData.type === 'PLACE'
+          ? recommendedCreators.find((match) => match.creator.id === selectedCreatorId) ?? null
+          : null;
+
+      if (formData.type === 'PLACE' && !chosenCreator) {
+        alert('The selected creator recommendation is no longer available. Refresh and try again.');
+        return;
+      }
+
+      let linkedDareId: string | undefined;
+
+      if (formData.type === 'PLACE' && chosenCreator && resolvedVenueId) {
+        const connectedWallet = address.toLowerCase();
+
+        const fundedDare = await submitBountyCreation(
+          {
+            title: formData.title.trim(),
+            description: formData.description.trim() || undefined,
+            amount: formData.payoutPerCreator,
+            streamerTag: chosenCreator.creator.tag,
+            streamId: `brand:${Date.now()}`,
+            missionMode: 'IRL',
+            missionTag: 'brand-campaign',
+            isNearbyDare: true,
+            latitude: selectedPlace?.latitude,
+            longitude: selectedPlace?.longitude,
+            locationLabel: selectedPlace?.name || selectedPlace?.displayName || undefined,
+            discoveryRadiusKm: 0.5,
+            venueId: resolvedVenueId,
+            creationContext: 'MAP',
+            stakerAddress: connectedWallet,
+          },
+          {
+            sessionToken,
+            isSimulationMode,
+            publicClient,
+            writeContractAsync,
+            onApprovalStatusChange: setApprovalStatus,
+          }
+        );
+
+        linkedDareId = fundedDare.dareId;
+      }
+
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
@@ -653,6 +707,7 @@ export default function BrandPortalPage() {
           creatorCountTarget: formData.type === 'PLACE' ? 1 : formData.creatorCountTarget,
           venueId: formData.type === 'PLACE' ? resolvedVenueId : undefined,
           selectedCreatorId: formData.type === 'PLACE' ? selectedCreatorId : undefined,
+          linkedDareId,
           syncTime: formData.syncTime || undefined,
         }),
       });
@@ -683,10 +738,19 @@ export default function BrandPortalPage() {
       } else if (data.code === 'CREATOR_CAMPAIGNS_DORMANT') {
         alert(data.error);
       } else {
-        alert(data.error);
+        if (linkedDareId) {
+          alert(`${data.error}\n\nEscrowed dare: ${linkedDareId}`);
+        } else {
+          alert(data.error);
+        }
       }
     } catch (error) {
       console.error('Failed to create campaign:', error);
+      const message = error instanceof Error ? error.message : 'Failed to create campaign';
+      alert(message);
+    } finally {
+      setCreatingCampaign(false);
+      setApprovalStatus('idle');
     }
   };
 
@@ -1937,13 +2001,22 @@ export default function BrandPortalPage() {
               <button
                 onClick={handleCreateCampaign}
                 disabled={
+                  creatingCampaign ||
                   !formData.title.trim() ||
                   formData.type === 'CREATOR' ||
                   (formData.type === 'PLACE' && (!selectedPlace || recommendedCreatorsLoading || !selectedCreatorId))
                 }
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                {formData.type === 'PLACE'
+                {creatingCampaign
+                  ? approvalStatus === 'approving'
+                    ? 'Approve USDC in wallet...'
+                    : approvalStatus === 'funding'
+                      ? 'Funding activation...'
+                      : approvalStatus === 'verifying'
+                        ? 'Registering activation...'
+                        : 'Launching campaign...'
+                  : formData.type === 'PLACE'
                   ? `Launch Venue Campaign ($${budget.total.toLocaleString()} USDC)`
                   : 'Creator Matching Coming Soon'}
               </button>
