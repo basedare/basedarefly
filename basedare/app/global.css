@@ -193,6 +193,29 @@
   .bd-purple-pulse-line::after {
     animation: none;
   }
+  .active-bounties-neon {
+    animation: none;
+  }
+}
+
+/* ACTIVE BOUNTIES NEON GLOW PULSE */
+@keyframes neon-text-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 8px rgba(168,85,247,0.5),
+      0 0 24px rgba(168,85,247,0.25),
+      0 0 48px rgba(168,85,247,0.1);
+  }
+  50% {
+    text-shadow:
+      0 0 14px rgba(168,85,247,0.7),
+      0 0 36px rgba(168,85,247,0.4),
+      0 0 72px rgba(168,85,247,0.2);
+  }
+}
+
+.active-bounties-neon {
+  animation: neon-text-pulse 3s ease-in-out infinite;
 }
 
 /* THE MISSING GLASS EFFECTS */

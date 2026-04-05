@@ -248,8 +248,16 @@ function HomeContent() {
                     />
                   </div>
                   <div className="mb-12 flex flex-col items-center">
-                    <h3 className="text-white/40 font-mono text-sm tracking-[0.3em] uppercase">Active Bounties</h3>
-                    <div className="bd-purple-pulse-line mt-2 h-px w-24" />
+                    <h3
+                      className="active-bounties-neon font-black italic text-lg md:text-xl tracking-[0.2em] uppercase"
+                      style={{
+                        color: '#c084fc',
+                        textShadow: '0 0 10px rgba(168,85,247,0.6), 0 0 30px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.15)',
+                      }}
+                    >
+                      Active Bounties
+                    </h3>
+                    <div className="bd-purple-pulse-line mt-3 h-px w-32" />
                   </div>
 
                   <PremiumBentoGrid dares={dares} />
