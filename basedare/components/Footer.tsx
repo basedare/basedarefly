@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, HelpCircle, Info, MessageSquare } from 'lucide-react';
+import { Twitter, Shield, FileText, HelpCircle, Info, MessageSquare, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
 
@@ -115,6 +115,12 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/how-it-works" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-amber-400 active:text-amber-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                    <Lightbulb className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-amber-400" />
+                    How It Works
+                  </Link>
+                </li>
+                <li>
                   <Link href="/about" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-emerald-400 active:text-emerald-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
                     <Info className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-emerald-400" />
                     About
@@ -156,6 +162,10 @@ export default function Footer() {
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/privacy" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
                 Privacy
+              </Link>
+              <span className="text-white/20 hidden sm:inline">•</span>
+              <Link href="/how-it-works" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+                How It Works
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/contact" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
