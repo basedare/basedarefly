@@ -131,7 +131,7 @@ export default function ShareComposerButton({
 
   const compactPreview = (
     <div
-      className="absolute inset-x-0 top-0 z-30 flex h-full flex-col overflow-hidden rounded-[22px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(12,14,24,0.98)_0%,rgba(8,10,16,0.98)_100%)] shadow-[0_16px_38px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      className="absolute -inset-[14px] z-30 flex flex-col overflow-hidden rounded-[20px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(12,14,24,0.98)_0%,rgba(8,10,16,0.98)_100%)] shadow-[0_16px_38px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]"
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -211,7 +211,7 @@ export default function ShareComposerButton({
   return (
     <div
       ref={compact ? compactWrapperRef : null}
-      className={compact ? "relative inline-flex shrink-0" : "inline-flex"}
+      className={compact ? "inline-flex shrink-0 static" : "inline-flex"}
       onClick={(event) => event.stopPropagation()}
     >
       <button
