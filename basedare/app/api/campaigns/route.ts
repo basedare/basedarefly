@@ -135,7 +135,7 @@ const CreateCampaignSchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().max(1000).optional(),
   creatorCountTarget: z.number().min(1).max(1000),
-  payoutPerCreator: z.number().min(50),
+  payoutPerCreator: z.number().min(1),
   venueId: z.string().min(1).optional(),
   selectedCreatorId: z.string().cuid().optional(),
   linkedDareId: z.string().cuid().optional(),
@@ -402,13 +402,15 @@ export async function POST(request: NextRequest) {
 
     // Get tier configuration
     const tierConfig = TIER_CONFIG[tier];
+    const isMainnet = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
+    const activeMinPayout = isMainnet ? tierConfig.minPayout : 1;
 
     // Validate payout meets tier minimum
-    if (payoutPerCreator < tierConfig.minPayout) {
+    if (payoutPerCreator < activeMinPayout) {
       return NextResponse.json(
         {
           success: false,
-          error: `Minimum payout for ${tier} tier is $${tierConfig.minPayout}`,
+          error: `Minimum payout for ${tier} tier is $${activeMinPayout}`,
         },
         { status: 400 }
       );

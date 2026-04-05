@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, PlayCircle, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
+import { NETWORK_CONFIG } from '@/lib/contracts';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -591,8 +592,10 @@ export default function BrandPortalPage() {
       setCreatingCampaign(true);
       setApprovalStatus('idle');
       const tierConfig = TIER_INFO[formData.tier];
-      if (formData.payoutPerCreator < tierConfig.minPayout) {
-        alert(`Minimum payout for ${tierConfig.name} is $${tierConfig.minPayout}`);
+      const activeMinPayout = NETWORK_CONFIG.isMainnet ? tierConfig.minPayout : 1;
+      
+      if (formData.payoutPerCreator < activeMinPayout) {
+        alert(`Minimum payout for ${tierConfig.name} is $${activeMinPayout}`);
         return;
       }
 
@@ -1468,13 +1471,14 @@ export default function BrandPortalPage() {
                   return (
                     <button
                       key={tier}
-                      onClick={() =>
+                      onClick={() => {
+                        const activeMinPayout = NETWORK_CONFIG.isMainnet ? info.minPayout : 1;
                         setFormData({
                           ...formData,
                           tier,
-                          payoutPerCreator: Math.max(formData.payoutPerCreator, info.minPayout),
-                        })
-                      }
+                          payoutPerCreator: Math.max(formData.payoutPerCreator, activeMinPayout),
+                        });
+                      }}
                       className={`p-4 rounded-xl border transition-all ${
                         isSelected
                           ? `bg-gradient-to-br ${info.color} border-transparent text-white`
@@ -1486,7 +1490,7 @@ export default function BrandPortalPage() {
                       <div className="mt-3 text-xs space-y-1 text-left">
                         <div className="flex justify-between">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>From:</span>
-                          <span>${info.minPayout}</span>
+                          <span>${NETWORK_CONFIG.isMainnet ? info.minPayout : 1}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Timing:</span>
@@ -1661,10 +1665,10 @@ export default function BrandPortalPage() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          payoutPerCreator: parseInt(e.target.value) || 50,
+                          payoutPerCreator: parseInt(e.target.value) || 0,
                         })
                       }
-                      min={TIER_INFO[formData.tier].minPayout}
+                      min={NETWORK_CONFIG.isMainnet ? TIER_INFO[formData.tier].minPayout : 1}
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                     />
                   </div>
