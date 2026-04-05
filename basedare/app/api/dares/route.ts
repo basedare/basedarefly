@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 
 function toPublicDare(dare: {
   id: string;
@@ -9,6 +10,7 @@ function toPublicDare(dare: {
   streamerHandle: string | null;
   status: string;
   videoUrl: string | null;
+  imageUrl: string | null;
   expiresAt: Date | null;
   shortId: string | null;
   createdAt: Date;
@@ -32,6 +34,7 @@ function toPublicDare(dare: {
   streamerHandle: string | null;
   status: string;
   videoUrl: string | null;
+  imageUrl: string | null;
   expiresAt: string | null;
   shortId: string;
   createdAt: string;
@@ -57,6 +60,7 @@ function toPublicDare(dare: {
     streamerHandle: dare.streamerHandle,
     status: dare.status,
     videoUrl: dare.videoUrl,
+    imageUrl: dare.imageUrl,
     expiresAt: dare.expiresAt?.toISOString() || null,
     shortId: dare.shortId || dare.id.slice(0, 8),
     createdAt: dare.createdAt.toISOString(),
@@ -152,10 +156,16 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
       take: 100, // Limit results for performance
     });
+    const stakerAvatarMap = await getStakerAvatarMap(dares.map((dare) => dare.stakerAddress));
 
     // If includeAll (Dashboard mode), return public-safe dare objects
     if (includeAll) {
-      return NextResponse.json(dares.map(toPublicDare));
+      return NextResponse.json(
+        dares.map((dare) => ({
+          ...toPublicDare(dare),
+          imageUrl: resolveDareImageUrl(dare, stakerAvatarMap),
+        }))
+      );
     }
 
     // Otherwise, format for the public feed (legacy format)
@@ -173,7 +183,7 @@ export async function GET(request: NextRequest) {
         video_url: dare.videoUrl,
         expires_at: dare.expiresAt?.toISOString() || null,
         short_id: dare.shortId || dare.id.slice(0, 8),
-        image_url: "",
+        image_url: resolveDareImageUrl(dare, stakerAvatarMap) ?? "",
       };
     });
 

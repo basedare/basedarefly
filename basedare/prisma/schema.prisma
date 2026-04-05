@@ -31,8 +31,10 @@ model Dare {
   streamerHandle      String?
   status              String    @default("PENDING")
   videoUrl            String?
+  imageUrl            String?
   proofHash           String?
   proofCid            String? // Store the IPFS CID from Pinata
+  imageCid            String?
   creatorId           String?
   streamId            String?
   txHash              String?

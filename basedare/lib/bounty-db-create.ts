@@ -29,6 +29,8 @@ type CreateDatabaseBackedBountyInput = {
   referrerTag?: string | null;
   referrerAddress?: string | null;
   targetWalletAddress?: string | null;
+  imageUrl?: string | null;
+  imageCid?: string | null;
   venueId?: string | null;
   isNearbyDare?: boolean;
   latitude?: number | null;
@@ -65,6 +67,8 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
       referrerTag: input.referrerTag || null,
       referrerAddress: input.referrerAddress || null,
       stakerAddress: input.stakerAddress || null,
+      imageUrl: input.imageUrl || null,
+      imageCid: input.imageCid || null,
       inviteToken,
       claimDeadline,
       targetWalletAddress: input.tagVerified ? input.targetWalletAddress || null : null,

@@ -268,7 +268,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       const normalizedStatus = normalizeStatus(d.status);
 
       const streamerName = d.streamer_name || '';
-      const streamerImage = getStreamerImage(streamerName) || d.image_url;
+      const streamerImage = d.image_url || getStreamerImage(streamerName);
       const proof = d.video_url;
 
       // Calculate real time remaining from expiresAt

@@ -179,6 +179,9 @@ const StakeBountySchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  imageUrl: z.string().url().max(2048).optional(),
+  imageCid: z.string().max(255).optional(),
+
   referrerAddress: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid referrer address')
@@ -343,6 +346,8 @@ export async function POST(request: NextRequest) {
       missionTag,
       streamId,
       streamerTag,
+      imageUrl,
+      imageCid,
       referrerAddress,
       referrerTag,
       stakerAddress,
@@ -526,6 +531,8 @@ export async function POST(request: NextRequest) {
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
         targetWalletAddress: streamerAddress,
+        imageUrl: imageUrl || null,
+        imageCid: imageCid || null,
         venueId: canonicalVenueId,
         isNearbyDare,
         latitude,
@@ -698,6 +705,8 @@ export async function POST(request: NextRequest) {
         referrerTag: referrerTag || null,
         referrerAddress: resolvedReferrerAddress,
         stakerAddress: normalizedStakerAddress || null,
+        imageUrl: imageUrl || null,
+        imageCid: imageCid || null,
         inviteToken: inviteTokenOnChain,
         claimDeadline: claimDeadlineOnChain,
         targetWalletAddress: targetWalletAddressOnChain,

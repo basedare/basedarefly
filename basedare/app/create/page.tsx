@@ -1,12 +1,12 @@
 'use client';
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useRef, useState, useEffect } from "react";
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation } from "lucide-react";
-import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X } from "lucide-react";
+import { useAccount, useReadContract, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
 import DareGenerator from "@/components/DareGenerator";
@@ -21,6 +21,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
+import { buildDareImageUploadMessage } from '@/lib/dare-image-auth';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
 const dentInputClass =
@@ -103,6 +104,11 @@ interface SuccessData {
   locationLabel?: string | null;
 }
 
+type DareImageUploadState = {
+  url: string;
+  cid: string;
+};
+
 function CreateDareContent() {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +118,7 @@ function CreateDareContent() {
   const { toast } = useToast();
   const { trigger } = useFeedback();
   const { data: session } = useSession();
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const sessionToken = (session as { token?: string } | null)?.token;
   const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
@@ -122,6 +129,10 @@ function CreateDareContent() {
 
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
+  const { signMessageAsync } = useSignMessage();
+  const [dareImage, setDareImage] = useState<DareImageUploadState | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   // Wallet & Balance Check
   const { address, isConnected } = useAccount();
@@ -242,6 +253,8 @@ function CreateDareContent() {
           locationLabel: data.locationLabel || undefined,
           discoveryRadiusKm: data.discoveryRadiusKm ?? 5,
           creationContext: 'CREATE',
+          imageUrl: dareImage?.url,
+          imageCid: dareImage?.cid,
           stakerAddress: connectedWallet,
         },
         {
@@ -264,6 +277,8 @@ function CreateDareContent() {
         duration: 6000,
       });
       reset();
+      setDareImage(null);
+      setImageError(null);
 
     } catch (error: unknown) {
       trigger('error');
@@ -276,6 +291,88 @@ function CreateDareContent() {
     } finally {
       setIsSubmitting(false);
       setApprovalStatus('idle');
+    }
+  };
+
+  const handleDareImageSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const connectedWallet = address?.toLowerCase();
+    if (!connectedWallet) {
+      setImageError('Connect your wallet before uploading a cover image.');
+      event.target.value = '';
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please choose a JPG, PNG, or GIF image.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('Image file is too large. Max size is 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setImageError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('walletAddress', connectedWallet);
+
+      const headers: Record<string, string> = {};
+      if (sessionToken) {
+        headers.Authorization = `Bearer ${sessionToken}`;
+      } else {
+        const issuedAt = new Date().toISOString();
+        const message = buildDareImageUploadMessage({
+          walletAddress: connectedWallet,
+          issuedAt,
+        });
+        const signature = await signMessageAsync({ message });
+        headers['x-basedare-dare-image-wallet'] = connectedWallet;
+        headers['x-basedare-dare-image-signature'] = String(signature);
+        headers['x-basedare-dare-image-issued-at'] = issuedAt;
+      }
+
+      const response = await fetch('/api/upload/dare-image', {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      const payload = await response.json().catch(() => null) as {
+        success?: boolean;
+        error?: string;
+        data?: DareImageUploadState;
+      } | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Failed to upload dare image');
+      }
+
+      setDareImage(payload.data);
+      setImageError(null);
+    } catch (error: unknown) {
+      setImageError(error instanceof Error ? error.message : 'Failed to upload dare image');
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = '';
+    }
+  };
+
+  const clearDareImage = () => {
+    setDareImage(null);
+    setImageError(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
     }
   };
 
@@ -491,6 +588,71 @@ function CreateDareContent() {
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
+                )}
+              </div>
+
+              {/* 2.25. COVER IMAGE */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
+                  <ImagePlus className="w-3.5 h-3.5 md:w-4 md:h-4" /> Cover Image <span className="text-gray-500 text-[9px] md:text-[10px] font-normal lowercase">(optional)</span>
+                </label>
+                <div className={`${dentGroupClass} rounded-xl p-4 md:p-5`}>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white">
+                        {dareImage ? 'Custom cover uploaded' : 'Use your own image for this dare'}
+                      </p>
+                      <p className="text-[10px] md:text-xs text-gray-500 font-mono">
+                        {dareImage
+                          ? 'If you remove it, the dare will fall back to your profile image when available.'
+                          : 'JPG, PNG, or GIF up to 5MB. If left empty, we fall back to your profile image.'}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/gif"
+                        className="hidden"
+                        onChange={handleDareImageSelected}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-200 transition hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isUploadingImage ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ImagePlus className="h-3.5 w-3.5" />
+                        )}
+                        {dareImage ? 'Replace' : 'Upload'}
+                      </button>
+                      {dareImage && (
+                        <button
+                          type="button"
+                          onClick={clearDareImage}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-white/70 transition hover:bg-white/[0.06]"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {dareImage && (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                      <img
+                        src={dareImage.url}
+                        alt="Dare cover preview"
+                        className="h-40 w-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+                {imageError && (
+                  <p className="text-red-400 text-xs md:text-sm">{imageError}</p>
                 )}
               </div>
 

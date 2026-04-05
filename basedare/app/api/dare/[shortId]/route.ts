@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 
 export async function GET(
   request: NextRequest,
@@ -26,6 +27,8 @@ export async function GET(
         { status: 404 }
       );
     }
+    const stakerAvatarMap = await getStakerAvatarMap([dare.stakerAddress]);
+    const imageUrl = resolveDareImageUrl(dare, stakerAvatarMap);
 
     return NextResponse.json({
       id: dare.id,
@@ -37,6 +40,7 @@ export async function GET(
       status: dare.status,
       expiresAt: dare.expiresAt?.toISOString() || null,
       videoUrl: dare.videoUrl,
+      imageUrl,
       inviteToken: dare.inviteToken,
       createdAt: dare.createdAt.toISOString(),
       claimDeadline: dare.claimDeadline?.toISOString() || null,

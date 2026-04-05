@@ -39,7 +39,7 @@ const BASEDARE_ABI = [
 interface DareDetail {
   id: string; shortId: string; title: string; bounty: number; upvoteCount: number;
   streamerHandle: string | null; status: string; expiresAt: string | null;
-  videoUrl: string | null; inviteToken: string | null; claimDeadline: string | null;
+  videoUrl: string | null; imageUrl?: string | null; inviteToken: string | null; claimDeadline: string | null;
   targetWalletAddress: string | null; awaitingClaim: boolean;
   claimRequestWallet: string | null; claimRequestTag: string | null;
   claimRequestedAt: string | null; claimRequestStatus: string | null;
@@ -485,7 +485,7 @@ export default function DareDetailPage() {
         <div className="relative max-w-3xl mx-auto min-h-[300px] md:min-h-[400px] overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] backdrop-blur-2xl shadow-[0_12px_45px_rgba(5,8,24,0.45)]">
           <div className="absolute inset-0">
             <DareVisual
-              imageUrl={undefined}
+              imageUrl={dare.imageUrl}
               streamerName={dare.streamerHandle || ''}
               type={dare.streamerHandle ? 'streamer' : 'open'}
             />

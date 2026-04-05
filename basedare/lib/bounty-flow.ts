@@ -24,6 +24,8 @@ export type BountyCreationInput = {
   discoveryRadiusKm?: number;
   venueId?: string;
   creationContext?: 'MAP' | 'CREATE';
+  imageUrl?: string;
+  imageCid?: string;
   stakerAddress: string;
 };
 
@@ -75,6 +77,8 @@ export async function submitBountyCreation(
     stakerAddress: input.stakerAddress,
     venueId: input.venueId,
     creationContext: input.creationContext ?? 'CREATE',
+    imageUrl: input.imageUrl || undefined,
+    imageCid: input.imageCid || undefined,
   };
 
   if (requestBody.isNearbyDare) {

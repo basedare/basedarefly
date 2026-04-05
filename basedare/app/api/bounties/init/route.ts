@@ -58,6 +58,8 @@ const InitBountySchema = z.object({
         .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
         .optional()
         .or(z.literal('')),
+    imageUrl: z.string().url().max(2048).optional(),
+    imageCid: z.string().max(255).optional(),
     stakerAddress: z.string().optional(),
     isNearbyDare: z.boolean().default(false),
     latitude: z.number().min(-90).max(90).optional(),
@@ -137,6 +139,8 @@ export async function POST(request: NextRequest) {
             amount,
             streamId,
             streamerTag,
+            imageUrl,
+            imageCid,
             stakerAddress,
             isNearbyDare: rawIsNearbyDare,
             latitude: rawLatitude,
@@ -258,6 +262,8 @@ export async function POST(request: NextRequest) {
                 stakerAddress: normalizedStakerAddress || null,
                 referrerAddress: platformWalletAddress,
                 targetWalletAddress: targetAddress,
+                imageUrl: imageUrl || null,
+                imageCid: imageCid || null,
                 venueId: canonicalVenueId,
                 isNearbyDare,
                 latitude: isNearbyDare ? latitude : null,
