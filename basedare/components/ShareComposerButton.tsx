@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, ExternalLink, MapPin, Share2, X, CheckCircle2, Zap, Send } from "lucide-react";
 import { buildXSharePayload } from "@/lib/social-share";
 import { useToast } from "@/components/ui/use-toast";
@@ -64,6 +64,7 @@ export default function ShareComposerButton({
   const [open, setOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const compactWrapperRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   const meta = getShareMeta(status);
@@ -112,11 +113,107 @@ export default function ShareComposerButton({
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    setOpen(true);
+    setOpen((current) => !current);
   };
 
+  useEffect(() => {
+    if (!compact || !open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!compactWrapperRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [compact, open]);
+
+  const compactPreview = (
+    <div
+      className="absolute inset-x-0 top-0 z-30 flex h-full flex-col overflow-hidden rounded-[22px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(12,14,24,0.98)_0%,rgba(8,10,16,0.98)_100%)] shadow-[0_16px_38px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-white/8 px-4 py-3">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+            {status === "verified" ? <CheckCircle2 className="h-3 w-3" /> : status === "invite" ? <Send className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+            {meta.stateLabel}
+          </div>
+          <p className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-white/88">
+            {payload.text}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(false);
+          }}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 transition hover:border-white/20 hover:text-white"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between px-4 py-3">
+        <div className="space-y-2">
+          {placeName ? (
+            <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] text-white/58">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{placeName}</span>
+            </span>
+          ) : null}
+
+          <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+            <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-5 text-white/76">
+              {payload.text}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              await handleCopyText();
+            }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/78 transition hover:border-white/18 hover:text-white"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copiedText ? "Copied" : "Caption"}
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleShareToX();
+            }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <>
+    <div
+      ref={compact ? compactWrapperRef : null}
+      className={compact ? "relative inline-flex shrink-0" : "inline-flex"}
+      onClick={(event) => event.stopPropagation()}
+    >
       <button
         type="button"
         onClick={handleOpen}
@@ -130,7 +227,9 @@ export default function ShareComposerButton({
         {buttonLabel || (status === "verified" ? "Share Your Win" : "Share To X")}
       </button>
 
-      {open ? (
+      {compact && open ? compactPreview : null}
+
+      {!compact && open ? (
         <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md">
           <div className="relative w-full max-w-xl overflow-hidden rounded-[30px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_10%,rgba(8,11,22,0.96)_100%)] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.52),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-16px_22px_rgba(0,0,0,0.24)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(250,204,21,0.09),transparent_30%)]" />
@@ -210,6 +309,6 @@ export default function ShareComposerButton({
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
