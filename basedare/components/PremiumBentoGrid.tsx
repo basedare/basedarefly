@@ -403,15 +403,6 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   return (
     <div className="w-full flex flex-col items-center">
       <div className="premium-bounties-controls-wrap relative w-full max-w-[1400px] mb-10">
-        <div className="pointer-events-none absolute right-[-15px] top-[-60px] z-30 hidden lg:block xl:right-[-25px] xl:top-[-70px]">
-          <img
-            src="/assets/honey-drip.png"
-            alt=""
-            width={380}
-            height={201}
-            className="premium-bounties-honey-drip h-auto w-[280px] xl:w-[340px] 2xl:w-[380px] select-none"
-          />
-        </div>
         <div className="premium-filter-row premium-bounties-controls flex flex-col md:flex-row items-stretch md:items-center justify-between w-full px-3 md:px-4 py-3 gap-4">
           {/* Horizontally scrollable filter buttons on mobile */}
           <div className="overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
