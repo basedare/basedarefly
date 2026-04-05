@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
-import { createPublicClient, createWalletClient, http, parseUnits, type Address } from 'viem';
+import { createPublicClient, createWalletClient, http, isAddress, parseUnits, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
@@ -18,6 +18,10 @@ const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS 
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as Address;
 const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
 const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
+
+function getPlatformWalletFallback(): Address | null {
+  return isAddress(PLATFORM_WALLET_ADDRESS) ? PLATFORM_WALLET_ADDRESS : null;
+}
 
 // Zod schema for request validation
 const CreateBountySchema = z.object({
@@ -163,6 +167,18 @@ export async function POST(request: NextRequest) {
       amountInUnits
     );
 
+    const resolvedReferrerAddress = (referrerAddress as Address | undefined) || getPlatformWalletFallback();
+    if (!resolvedReferrerAddress) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS is not configured for live funding fallback',
+          code: 'PLATFORM_WALLET_NOT_CONFIGURED',
+        },
+        { status: 500 }
+      );
+    }
+
     // 6. Create DB record first, then derive deterministic on-chain ID
     const dbDare = await prisma.dare.create({
       data: {
@@ -184,7 +200,7 @@ export async function POST(request: NextRequest) {
       args: [
         dareId,
         streamerAddress as Address,
-        (referrerAddress || PLATFORM_WALLET_ADDRESS) as Address,
+        resolvedReferrerAddress,
         amountInUnits,
       ],
     });
