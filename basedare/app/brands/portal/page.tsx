@@ -211,8 +211,8 @@ interface PlaceSearchResult {
 
 const TIER_INFO = {
   SIP_MENTION: {
-    name: 'Sip & Mention',
-    description: 'Show product, tag brand',
+    name: 'Visit & Post',
+    description: 'Creator visits and posts about your venue',
     minPayout: 50,
     window: '7 days',
     bonus: 'None',
@@ -221,8 +221,8 @@ const TIER_INFO = {
     borderColor: 'border-zinc-500/30',
   },
   SIP_SHILL: {
-    name: 'Sip & Shill',
-    description: 'Demo product, include CTA',
+    name: 'Product Experience',
+    description: 'Creator tries your product and shows it',
     minPayout: 100,
     window: '24 hours',
     bonus: 'None',
@@ -231,8 +231,8 @@ const TIER_INFO = {
     borderColor: 'border-blue-500/30',
   },
   CHALLENGE: {
-    name: 'Challenge Integration',
-    description: 'Product in dare, hashtag campaign',
+    name: 'Branded Challenge',
+    description: 'Creator runs a challenge at your venue',
     minPayout: 250,
     window: '2 hours',
     bonus: '1.3x Strike',
@@ -241,8 +241,8 @@ const TIER_INFO = {
     borderColor: 'border-purple-500/30',
   },
   APEX: {
-    name: 'Apex Stunt',
-    description: 'Full branded content, custom brief',
+    name: 'Headline Stunt',
+    description: 'Custom high-impact activation with your brief',
     minPayout: 1000,
     window: '1 hour',
     bonus: '1.5x Strike',
@@ -726,7 +726,7 @@ export default function BrandPortalPage() {
         actor,
         detail: dare.verifiedAt
           ? `verified ${new Date(dare.verifiedAt).toLocaleString()}`
-          : 'activation verified and payout cleared',
+          : 'campaign verified and payout completed',
       };
     }
 
@@ -735,7 +735,7 @@ export default function BrandPortalPage() {
         label: 'Payout queued',
         tone: 'cyan' as const,
         actor,
-        detail: 'proof cleared, payout retry is running automatically',
+        detail: 'proof is approved and payout is being processed automatically',
       };
     }
 
@@ -750,12 +750,12 @@ export default function BrandPortalPage() {
 
     if (dare.claimRequestStatus === 'PENDING') {
       return {
-        label: 'Pending claim',
+        label: 'Claim request pending',
         tone: 'amber' as const,
         actor,
         detail: dare.claimRequestedAt
           ? `requested ${new Date(dare.claimRequestedAt).toLocaleString()}`
-          : 'awaiting moderator review',
+          : 'waiting for review',
       };
     }
 
@@ -768,7 +768,7 @@ export default function BrandPortalPage() {
           ? `claimed ${new Date(dare.claimedAt).toLocaleString()}`
           : dare.status === 'PENDING'
             ? 'creator is attached and can submit proof now'
-            : 'creator is attached to this activation',
+            : 'creator is attached to this campaign',
       };
     }
 
@@ -777,7 +777,7 @@ export default function BrandPortalPage() {
         label: 'Open',
         tone: 'zinc' as const,
         actor: 'No creator yet',
-        detail: 'live on the map and waiting for creator pull',
+        detail: 'live on the map and waiting for a creator to pick it up',
       };
     }
 
@@ -818,7 +818,7 @@ export default function BrandPortalPage() {
     if (!dare) {
       return {
         label: 'No linked activation yet',
-        detail: 'This campaign has not produced a live proof rail yet.',
+        detail: 'This campaign has not produced a live creator result yet.',
       };
     }
 
@@ -855,13 +855,13 @@ export default function BrandPortalPage() {
     if (dare.claimedBy || dare.targetWalletAddress) {
       return {
         label: 'Creator attached',
-        detail: 'The activation is claimed and waiting for proof.',
+        detail: 'A creator is attached and the campaign is waiting for proof.',
       };
     }
 
     return {
       label: 'Open activation',
-      detail: 'Live on the map and waiting for creator movement.',
+      detail: 'Live on the map and waiting for a creator to engage.',
     };
   };
 
@@ -870,7 +870,7 @@ export default function BrandPortalPage() {
     if (!dare) {
       return {
         label: 'No movement yet',
-        detail: 'The activation is live but no creator has touched it yet.',
+        detail: 'The campaign is live but no creator has engaged with it yet.',
       };
     }
 
@@ -894,10 +894,10 @@ export default function BrandPortalPage() {
 
     if (dare.status === 'PENDING_REVIEW') {
       return {
-        label: 'Proof landed',
+        label: 'Proof submitted',
         detail: dare.updatedAt
           ? `submitted ${new Date(dare.updatedAt).toLocaleString()}`
-          : 'proof is in referee review now',
+          : 'proof is in review now',
       };
     }
 
@@ -920,10 +920,10 @@ export default function BrandPortalPage() {
     }
 
     return {
-      label: 'Open on the grid',
-      detail: dare.createdAt
-        ? `linked ${new Date(dare.createdAt).toLocaleString()}`
-        : 'activation is waiting for creator pull',
+        label: 'Live on the map',
+        detail: dare.createdAt
+          ? `linked ${new Date(dare.createdAt).toLocaleString()}`
+          : 'campaign is waiting for creator activity',
     };
   };
 
@@ -952,7 +952,7 @@ export default function BrandPortalPage() {
         ? {
             key: 'proof-submitted',
             label: 'Proof submitted',
-            detail: 'Media landed in the activation rail',
+            detail: 'Proof was submitted for review',
             at: dare.updatedAt,
           }
         : null,
@@ -960,7 +960,7 @@ export default function BrandPortalPage() {
         ? {
             key: 'moderated',
             label: dare.status === 'FAILED' ? 'Rejected' : 'Approved',
-            detail: dare.status === 'FAILED' ? 'Review closed this activation' : 'Review cleared the proof',
+            detail: dare.status === 'FAILED' ? 'Review closed this campaign' : 'Review cleared the proof',
             at: dare.moderatedAt,
           }
         : null,
@@ -1005,7 +1005,7 @@ export default function BrandPortalPage() {
     if (!campaign.venue || !impact) {
       return {
         label: 'Venue impact pending',
-        detail: 'Attach this campaign to a venue to measure memory and pulse movement.',
+        detail: 'Attach this campaign to a venue to track venue memory and momentum.',
       };
     }
 
@@ -1019,13 +1019,13 @@ export default function BrandPortalPage() {
     if (campaign.linkedDare?.status === 'PENDING_REVIEW' || campaign.linkedDare?.videoUrl) {
       return {
         label: 'Outcome forming',
-        detail: 'Proof is in motion. Once it clears, pulse and memory impact will lock here.',
+        detail: 'Proof is in review. Once it clears, the venue impact will appear here.',
       };
     }
 
     return {
       label: 'Venue pulse live',
-      detail: `${campaign.venue.name} currently holds ${impact.memoriesNow} memories and pulse ${impact.pulseNow}.`,
+      detail: `${campaign.venue.name} currently has ${impact.memoriesNow} memories and pulse ${impact.pulseNow}.`,
     };
   };
 
@@ -1089,8 +1089,8 @@ export default function BrandPortalPage() {
               CONTROL MODE
             </h1>
             <p className="text-zinc-600 max-w-md">
-              The B2B portal for programmatic attention marketing.
-              Connect your wallet to access the brand dashboard.
+              Launch venue campaigns, manage creator activity, and track results.
+              Connect your wallet to open the brand portal.
             </p>
             <button
               onClick={() => connectors[0] && connect({ connector: connectors[0] })}
@@ -1129,7 +1129,7 @@ export default function BrandPortalPage() {
               <div className="text-5xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🏢</div>
               <h1 className="text-2xl font-bold text-zinc-900">Register Your Brand</h1>
               <p className="text-zinc-600 mt-2">
-                Enter Control Mode and start creating campaigns
+                Set up your brand profile to launch venue campaigns
               </p>
             </div>
 
@@ -1219,7 +1219,7 @@ export default function BrandPortalPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Total Spend</div>
+            <div className="text-zinc-500 text-xs md:text-sm">Campaign Spend</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
               {campaignSummary?.total ?? campaigns.length} campaigns launched
@@ -1229,20 +1229,20 @@ export default function BrandPortalPage() {
             <div className="text-zinc-500 text-xs md:text-sm">Live Campaigns</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">{liveCampaignCount}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
-              {(campaignSummary?.place ?? campaigns.filter((campaign) => campaign.type === 'PLACE').length)} place
+              {(campaignSummary?.place ?? campaigns.filter((campaign) => campaign.type === 'PLACE').length)} venue
               {' • '}
               {(campaignSummary?.creator ?? campaigns.filter((campaign) => campaign.type === 'CREATOR').length)} creator
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Creator Movement</div>
+            <div className="text-zinc-500 text-xs md:text-sm">Creator Activity</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">{creatorMovementCount}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
-              {proofsSubmittedCount} proofs landed
+              {proofsSubmittedCount} proofs submitted
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Paid Outcomes</div>
+            <div className="text-zinc-500 text-xs md:text-sm">Paid Completions</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">{paidOutCount}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
               {inReviewCount} in review {' • '} {payoutQueuedCount} queued
@@ -1265,7 +1265,7 @@ export default function BrandPortalPage() {
 
             {/* Tier Selection - Value Menu Style */}
             <div className="mb-6">
-              <label className="block text-sm text-zinc-600 mb-3">Select Tier</label>
+              <label className="block text-sm text-zinc-600 mb-3">Pick an activation</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
                 {(Object.keys(TIER_INFO) as Array<keyof typeof TIER_INFO>).map((tier) => {
                   const info = TIER_INFO[tier];
@@ -1290,15 +1290,15 @@ export default function BrandPortalPage() {
                       <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>{info.description}</div>
                       <div className="mt-3 text-xs space-y-1 text-left">
                         <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Min:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>From:</span>
                           <span>${info.minPayout}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Window:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Timing:</span>
                           <span>{info.window}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Bonus:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Boost:</span>
                           <span>{info.bonus}</span>
                         </div>
                       </div>
@@ -1310,18 +1310,18 @@ export default function BrandPortalPage() {
 
             {/* Campaign Details */}
             <div className="mb-6">
-              <label className="block text-sm text-zinc-600 mb-2">Campaign Type</label>
+              <label className="block text-sm text-zinc-600 mb-2">Activation format</label>
               <div className="grid grid-cols-2 gap-3">
                 {([
                   {
                     value: 'PLACE',
-                    title: 'Place Activation',
-                    body: 'One campaign creates one real venue-linked challenge on the map.',
+                    title: 'Venue Activation',
+                    body: 'Launch one venue-linked campaign that appears on the map.',
                   },
                   {
                     value: 'CREATOR',
-                    title: 'Creator Routing',
-                    body: 'Kept visible in Control Mode, but new creator-routing launches are currently parked while we finish real social routing.',
+                    title: 'Creator Matching',
+                    body: 'Not live yet. Venue activations are the supported launch path right now.',
                   },
                 ] as const).map((option) => {
                   const isSelected = formData.type === option.value;
@@ -1352,7 +1352,7 @@ export default function BrandPortalPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Campaign Title</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Campaign name</label>
                   <input
                     type="text"
                     value={formData.title}
@@ -1363,11 +1363,11 @@ export default function BrandPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Description</label>
+                  <label className="block text-sm text-zinc-600 mb-2">What should the creator do?</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Brief description of the campaign..."
+                    placeholder="Describe the visit, product moment, or challenge you want filmed..."
                     rows={3}
                     className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400 resize-none"
                   />
@@ -1375,7 +1375,7 @@ export default function BrandPortalPage() {
 
                 {formData.type === 'PLACE' ? (
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Target Place</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Target venue</label>
                     <input
                       type="text"
                       value={selectedPlace ? selectedPlace.displayName : placeQuery}
@@ -1383,11 +1383,11 @@ export default function BrandPortalPage() {
                         setSelectedPlace(null);
                         setPlaceQuery(e.target.value);
                       }}
-                      placeholder="Search for a BaseDare venue..."
+                      placeholder="Search for a venue, landmark, or district..."
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
                     <div className="mt-2 text-xs text-zinc-500">
-                      PLACE campaigns use the same venue-linked challenge rail as map-funded missions. You can select a seeded venue or create a new canonical place from search.
+                      Choose where you want the activation to happen. We will attach the campaign to that venue on the map.
                     </div>
                     {placeLoading ? (
                       <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
@@ -1408,7 +1408,7 @@ export default function BrandPortalPage() {
                             <div className="font-medium text-zinc-900">{place.name}</div>
                             <div className="text-xs text-zinc-500">{place.displayName}</div>
                             <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-                              {place.placeId ? 'Seeded place' : 'New place from search'}
+                              {place.placeId ? 'Existing venue' : 'New venue from search'}
                             </div>
                           </button>
                         ))}
@@ -1423,7 +1423,7 @@ export default function BrandPortalPage() {
                         <div className="text-sm font-semibold text-emerald-800">{selectedPlace.name}</div>
                         <div className="text-xs text-emerald-700">{selectedPlace.displayName}</div>
                         <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-emerald-700">
-                          {selectedPlace.placeId ? 'Canonical venue ready' : 'Will create canonical venue on launch'}
+                          {selectedPlace.placeId ? 'Venue ready' : 'Venue will be created on launch'}
                         </div>
                       </div>
                     ) : null}
@@ -1433,7 +1433,7 @@ export default function BrandPortalPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {formData.type === 'CREATOR' ? (
                     <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Creator Count</label>
+                      <label className="block text-sm text-zinc-600 mb-2">Number of creators</label>
                       <input
                         type="number"
                         value={formData.creatorCountTarget}
@@ -1450,15 +1450,15 @@ export default function BrandPortalPage() {
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Challenge Count</label>
+                      <label className="block text-sm text-zinc-600 mb-2">Activation count</label>
                       <div className="w-full rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-3 text-zinc-700">
-                        1 live place challenge
+                        1 live venue activation
                       </div>
                     </div>
                   )}
                   <div>
                     <label className="block text-sm text-zinc-600 mb-2">
-                      {formData.type === 'PLACE' ? 'Payout for This Challenge ($)' : 'Payout Per Creator ($)'}
+                      {formData.type === 'PLACE' ? 'Creator payout for this activation ($)' : 'Payout per creator ($)'}
                     </label>
                     <input
                       type="number"
@@ -1479,30 +1479,30 @@ export default function BrandPortalPage() {
               <div className="space-y-4">
                 {formData.type === 'CREATOR' ? (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                    <div className="text-sm font-semibold text-amber-800">Creator routing is parked</div>
+                    <div className="text-sm font-semibold text-amber-800">Creator matching is coming soon</div>
                     <div className="mt-2 text-sm text-amber-700">
-                      Existing scout workflows stay intact, but new CREATOR campaigns are temporarily paused until the linked social-routing path is fully wired.
+                      New creator-matching launches are not available yet. Venue activations are the live option today.
                     </div>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className="text-sm font-semibold text-zinc-900">Place campaign wiring</div>
+                    <div className="text-sm font-semibold text-zinc-900">How venue activations work</div>
                     <div className="mt-2 text-sm text-zinc-600">
-                      This campaign creates one real venue-linked challenge, appears on the map and place page, and settles back into place memory on completion.
+                      This creates one real challenge at the selected venue, shows it on the map, and records the result back into venue memory.
                     </div>
                   </div>
                 )}
 
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
                   <div>
-                    <div className="text-sm font-semibold text-zinc-900">Creator fit</div>
+                    <div className="text-sm font-semibold text-zinc-900">Optional targeting</div>
                     <div className="mt-1 text-sm text-zinc-600">
-                      Keep these soft while we onboard creators. They steer ranking instead of blocking participation.
+                      Use these if you want to guide creator fit. Most brands can leave them broad.
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Target Niche</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Creator niche</label>
                     <input
                       type="text"
                       value={formData.targetingCriteria.niche}
@@ -1518,7 +1518,7 @@ export default function BrandPortalPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Min Followers</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Minimum audience size</label>
                     <input
                       type="number"
                       value={formData.targetingCriteria.minFollowers}
@@ -1537,7 +1537,7 @@ export default function BrandPortalPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Preferred Platforms</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Preferred platforms</label>
                     <div className="flex flex-wrap gap-2">
                       {PLATFORM_OPTIONS.map((platform) => {
                         const active = formData.targetingCriteria.platforms.includes(platform.value);
@@ -1560,7 +1560,7 @@ export default function BrandPortalPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Location Relevance</label>
+                    <label className="block text-sm text-zinc-600 mb-2">Location preference</label>
                     <select
                       value={formData.targetingCriteria.location}
                       onChange={(e) =>
@@ -1574,14 +1574,14 @@ export default function BrandPortalPage() {
                       }
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
                     >
-                      <option value="anywhere">Anywhere for now</option>
+                      <option value="anywhere">Open to creators anywhere</option>
                       <option value="near-venue">Prefer creators already around this venue</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Required Hashtags</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Required hashtags</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1630,7 +1630,7 @@ export default function BrandPortalPage() {
                 {(formData.tier === 'CHALLENGE' || formData.tier === 'APEX') && (
                   <div>
                     <label className="block text-sm text-zinc-600 mb-2">
-                      Sync Time (for Strike Bonus)
+                      Preferred posting window
                     </label>
                     <input
                       type="datetime-local"
@@ -1645,32 +1645,32 @@ export default function BrandPortalPage() {
 
             {/* Budget Summary */}
             <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 md:p-4 mb-6">
-              <div className="text-sm text-zinc-600 mb-2">Budget Summary</div>
+              <div className="text-sm text-zinc-600 mb-2">Budget summary</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center">
                 <div>
                   <div className="text-lg md:text-2xl font-bold text-zinc-900">${budget.gross.toLocaleString()}</div>
-                  <div className="text-xs text-zinc-500">Creator Payouts</div>
+                  <div className="text-xs text-zinc-500">Creator payouts</div>
                 </div>
                 <div>
                   <div className="text-lg md:text-2xl font-bold text-purple-600">
                     ${budget.rake.toLocaleString()}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    Fee ({TIER_INFO[formData.tier].rake})
+                    Platform fee ({TIER_INFO[formData.tier].rake})
                   </div>
                 </div>
                 <div>
                   <div className="text-lg md:text-2xl font-bold text-green-600">
                     ${budget.total.toLocaleString()}
                   </div>
-                  <div className="text-xs text-zinc-500">Total Budget</div>
+                  <div className="text-xs text-zinc-500">Total budget</div>
                 </div>
                 <div>
                   <div className="text-lg md:text-2xl font-bold text-zinc-900">
                     {budget.effectiveSlotCount} × ${formData.payoutPerCreator}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    {formData.type === 'PLACE' ? 'Live challenge × payout' : 'Slots × Payout'}
+                    {formData.type === 'PLACE' ? '1 activation × payout' : 'Slots × payout'}
                   </div>
                 </div>
               </div>
@@ -1682,10 +1682,10 @@ export default function BrandPortalPage() {
                 <span className="text-2xl" style={{ filter: 'grayscale(1)' }}>⚡</span>
                 <div>
                   <div className="font-semibold text-green-700">
-                    All Deliverables Auto-Verified by AI Vision
+                    Deliverables are checked before payout
                   </div>
                   <div className="text-sm text-zinc-600">
-                    USDC Payment on Completion. No Bots. No Waste.
+                    USDC pays out only after the creator completes the activation.
                   </div>
                 </div>
               </div>
@@ -1703,8 +1703,8 @@ export default function BrandPortalPage() {
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >
                 {formData.type === 'PLACE'
-                  ? `LAUNCH PLACE CAMPAIGN ($${budget.total.toLocaleString()} USDC)`
-                  : 'CREATOR ROUTING PARKED'}
+                  ? `Launch Venue Campaign ($${budget.total.toLocaleString()} USDC)`
+                  : 'Creator Matching Coming Soon'}
               </button>
               <button
                 onClick={() => setShowCreateCampaign(false)}
@@ -1732,22 +1732,22 @@ export default function BrandPortalPage() {
 
           <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Portfolio Pulse</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Claim Requests</div>
               <div className="mt-1 text-lg font-bold text-zinc-900">{claimRequestsPendingCount}</div>
-              <div className="text-xs text-zinc-500">claim requests waiting</div>
+              <div className="text-xs text-zinc-500">waiting for review</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Creators Attached</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Creators Assigned</div>
               <div className="mt-1 text-lg font-bold text-zinc-900">{creatorsAttachedCount}</div>
-              <div className="text-xs text-zinc-500">live activations with an owner</div>
+              <div className="text-xs text-zinc-500">campaigns with a creator attached</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Proofs Landed</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Proofs Submitted</div>
               <div className="mt-1 text-lg font-bold text-zinc-900">{proofsSubmittedCount}</div>
               <div className="text-xs text-zinc-500">{inReviewCount} in review now</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Paid Outcomes</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Paid Completions</div>
               <div className="mt-1 text-lg font-bold text-zinc-900">{paidOutCount}</div>
               <div className="text-xs text-zinc-500">{payoutQueuedCount} queued for payout</div>
             </div>
@@ -1755,7 +1755,7 @@ export default function BrandPortalPage() {
 
           {campaigns.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
-              No campaigns yet. Create your first campaign to start the Shadow Army hunt.
+              No campaigns yet. Launch your first campaign to start creator activity.
             </div>
           ) : (
             <div className="space-y-4">
