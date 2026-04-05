@@ -404,12 +404,11 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
     <div className="w-full flex flex-col items-center">
       <div className="premium-bounties-controls-wrap relative w-full max-w-[1400px] mb-10">
         <div className="pointer-events-none absolute right-[-15px] top-[-60px] z-30 hidden lg:block xl:right-[-25px] xl:top-[-70px]">
-          <Image
+          <img
             src="/assets/honey-drip.png"
             alt=""
             width={380}
             height={201}
-            priority={true}
             className="premium-bounties-honey-drip h-auto w-[280px] xl:w-[340px] 2xl:w-[380px] select-none"
           />
         </div>
