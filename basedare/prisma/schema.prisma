@@ -278,6 +278,7 @@ model StreamerTag {
   tag                  String    @unique
   walletAddress        String
   bio                  String?
+  pfpUrl               String?
   followerCount        Int?
   tags                 String[]  @default([])
   verificationMethod   String

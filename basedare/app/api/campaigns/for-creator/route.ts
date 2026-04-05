@@ -157,10 +157,20 @@ export async function GET(request: NextRequest) {
         const match = buildCampaignMatch(creator, targeting);
         const reasons = [...match.reasons];
         let score = match.score;
+        const assignedToCreator = Boolean(
+          campaign.linkedDare &&
+            (campaign.linkedDare.targetWalletAddress?.toLowerCase() === actingWallet ||
+              campaign.linkedDare.streamerHandle?.toLowerCase() === creator.tag.toLowerCase())
+        );
 
         if (campaign.venue) {
           score += 6;
           reasons.unshift(`paid activation at ${campaign.venue.name}`);
+        }
+
+        if (assignedToCreator) {
+          score += 120;
+          reasons.unshift('you were selected for this activation');
         }
 
         if (campaign.linkedDare?.status === 'PENDING' && !linkedDareIsExpired) {
@@ -191,6 +201,7 @@ export async function GET(request: NextRequest) {
             firstMarksAtVenue: venueAffinity?.firstMarks ?? 0,
             cityMarks,
           },
+          assignedToCreator,
           claimable: Boolean(
             campaign.linkedDare &&
               !campaign.linkedDare.streamerHandle &&
@@ -202,7 +213,7 @@ export async function GET(request: NextRequest) {
           shortlisted: false,
         };
       })
-      .filter((campaign) => campaign.matchScore > 0 && campaign.claimable)
+      .filter((campaign) => campaign.matchScore > 0 && (campaign.claimable || campaign.assignedToCreator))
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 8);
 

@@ -9,6 +9,7 @@ export const PRIMARY_CREATOR_TAG_SELECT = {
   tag: true,
   walletAddress: true,
   bio: true,
+  pfpUrl: true,
   followerCount: true,
   tags: true,
   verificationMethod: true,

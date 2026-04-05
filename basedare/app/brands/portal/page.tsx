@@ -162,7 +162,9 @@ interface CampaignMatch {
   creator: {
     id: string;
     tag: string;
+    walletAddress: string;
     bio: string | null;
+    pfpUrl: string | null;
     followerCount: number | null;
     tags: string[];
     status: string;
@@ -252,6 +254,41 @@ const TIER_INFO = {
   },
 };
 
+function formatCompactAudience(value: number | null) {
+  if (typeof value !== 'number' || value <= 0) return 'Building';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
+  if (value >= 10_000) return `${Math.round(value / 1_000)}K+`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K+`;
+  return `${value}+`;
+}
+
+function getCreatorInitial(tag: string) {
+  return tag.replace(/^@/, '').charAt(0).toUpperCase() || 'C';
+}
+
+function getCreatorVenueFitLabel(match: CampaignMatch) {
+  if (match.venueAffinity.exactVenueWins > 0) return 'Proven here';
+  if (match.venueAffinity.exactVenueMarks > 0 || match.venueAffinity.exactVenueCheckIns > 0) return 'Knows this venue';
+  if (match.venueAffinity.sameCityMarks > 0) return 'Active nearby';
+  return 'Fresh eyes';
+}
+
+function getCreatorReliabilityLabel(match: CampaignMatch) {
+  if (match.creator.completedDares >= 10) return 'Elite closer';
+  if (match.creator.completedDares >= 5) return 'Reliable closer';
+  if (match.creator.completedDares >= 1) return 'Getting reps';
+  return 'New to BaseDare';
+}
+
+function getCreatorStrengthLabel(match: CampaignMatch) {
+  if (match.creator.platforms.youtube) return 'Strong on YouTube';
+  if (match.creator.platforms.twitter) return 'Strong on X';
+  if (match.creator.platforms.twitch) return 'Strong on Twitch';
+  if (match.creator.platforms.kick) return 'Strong on Kick';
+  if ((match.creator.followerCount ?? 0) >= 10000) return 'Audience signal';
+  return 'Ready to activate';
+}
+
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
@@ -292,6 +329,10 @@ export default function BrandPortalPage() {
   const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
   const [placeLoading, setPlaceLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(null);
+  const [recommendedCreators, setRecommendedCreators] = useState<CampaignMatch[]>([]);
+  const [recommendedCreatorsLoading, setRecommendedCreatorsLoading] = useState(false);
+  const [recommendedCreatorsError, setRecommendedCreatorsError] = useState<string | null>(null);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
   const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
   const [responsesTabByCampaign, setResponsesTabByCampaign] = useState<Record<string, ResponseRailTab>>({});
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
@@ -427,6 +468,86 @@ export default function BrandPortalPage() {
     };
   }, [formData.type, placeQuery]);
 
+  useEffect(() => {
+    if (!showCreateCampaign || formData.type !== 'PLACE' || !address || !selectedPlace) {
+      setRecommendedCreators([]);
+      setRecommendedCreatorsLoading(false);
+      setRecommendedCreatorsError(null);
+      setSelectedCreatorId(null);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const targetingSignature = JSON.stringify(formData.targetingCriteria);
+
+    const run = async () => {
+      try {
+        setRecommendedCreatorsLoading(true);
+        setRecommendedCreatorsError(null);
+
+        const response = await fetch('/api/campaigns/recommendations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            brandWallet: address,
+            venueId: selectedPlace.placeId,
+            venueCity: selectedPlace.city ?? undefined,
+            venueCountry: selectedPlace.country ?? undefined,
+            targetingCriteria: JSON.parse(targetingSignature),
+            limit: 4,
+          }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || 'Failed to load recommended creators');
+        }
+
+        if (cancelled) return;
+
+        const matches = payload.data?.matches ?? [];
+        setRecommendedCreators(matches);
+        setSelectedCreatorId((current) =>
+          current && matches.some((match: CampaignMatch) => match.creator.id === current)
+            ? current
+            : matches[0]?.creator.id ?? null
+        );
+      } catch (error) {
+        if (cancelled || controller.signal.aborted) return;
+        setRecommendedCreators([]);
+        setSelectedCreatorId(null);
+        setRecommendedCreatorsError(
+          error instanceof Error ? error.message : 'Failed to load recommended creators'
+        );
+      } finally {
+        if (!cancelled) {
+          setRecommendedCreatorsLoading(false);
+        }
+      }
+    };
+
+    const timer = window.setTimeout(run, 220);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [
+    showCreateCampaign,
+    formData.type,
+    address,
+    sessionToken,
+    selectedPlace,
+    formData.targetingCriteria,
+  ]);
+
   const handleRegister = async () => {
     if (!address || !registerName.trim()) return;
 
@@ -515,6 +636,11 @@ export default function BrandPortalPage() {
         );
       }
 
+      if (formData.type === 'PLACE' && !selectedCreatorId) {
+        alert('Pick a recommended creator before launching this campaign.');
+        return;
+      }
+
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
@@ -526,6 +652,7 @@ export default function BrandPortalPage() {
           ...formData,
           creatorCountTarget: formData.type === 'PLACE' ? 1 : formData.creatorCountTarget,
           venueId: formData.type === 'PLACE' ? resolvedVenueId : undefined,
+          selectedCreatorId: formData.type === 'PLACE' ? selectedCreatorId : undefined,
           syncTime: formData.syncTime || undefined,
         }),
       });
@@ -549,6 +676,10 @@ export default function BrandPortalPage() {
         setPlaceQuery('');
         setPlaceResults([]);
         setSelectedPlace(null);
+        setRecommendedCreators([]);
+        setRecommendedCreatorsError(null);
+        setRecommendedCreatorsLoading(false);
+        setSelectedCreatorId(null);
       } else if (data.code === 'CREATOR_CAMPAIGNS_DORMANT') {
         alert(data.error);
       } else {
@@ -1488,10 +1619,120 @@ export default function BrandPortalPage() {
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                     <div className="text-sm font-semibold text-zinc-900">How venue activations work</div>
                     <div className="mt-2 text-sm text-zinc-600">
-                      This creates one real challenge at the selected venue, shows it on the map, and records the result back into venue memory.
+                      This assigns one recommended creator to the venue activation, shows it on the map, and records the result back into venue memory.
                     </div>
                   </div>
                 )}
+
+                {formData.type === 'PLACE' ? (
+                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
+                    <div>
+                      <div className="text-sm font-semibold text-zinc-900">Recommended creators</div>
+                      <div className="mt-1 text-sm text-zinc-600">
+                        We rank creators by venue fit, proof history, and audience signal. Launching will assign the creator you pick here.
+                      </div>
+                    </div>
+
+                    {!selectedPlace ? (
+                      <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-4 text-sm text-zinc-500">
+                        Choose a target venue first to see the best-fit creators.
+                      </div>
+                    ) : recommendedCreatorsLoading ? (
+                      <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-500">
+                        Ranking creators for this venue...
+                      </div>
+                    ) : recommendedCreatorsError ? (
+                      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                        {recommendedCreatorsError}
+                      </div>
+                    ) : recommendedCreators.length === 0 ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+                        No strong creator match is ready yet. Broaden the targeting or try another venue.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {recommendedCreators.slice(0, 3).map((match) => {
+                          const isSelected = selectedCreatorId === match.creator.id;
+                          return (
+                            <div
+                              key={match.creator.id}
+                              className={`rounded-xl border p-3 transition ${
+                                isSelected
+                                  ? 'border-purple-500 bg-purple-500/[0.06]'
+                                  : 'border-zinc-200 bg-white'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-amber-300">
+                                  {match.creator.pfpUrl ? (
+                                    <img
+                                      src={match.creator.pfpUrl}
+                                      alt={match.creator.tag}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                                      {getCreatorInitial(match.creator.tag)}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <div className="font-semibold text-zinc-900">{match.creator.tag}</div>
+                                    <div className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                                      {getCreatorStrengthLabel(match)}
+                                    </div>
+                                  </div>
+                                  <div className="mt-1 text-sm text-zinc-500">
+                                    {match.creator.bio || 'No bio yet. Identity and performance stats still make this creator selectable.'}
+                                  </div>
+                                  <div className="mt-3 grid grid-cols-3 gap-2">
+                                    {[
+                                      { label: 'Venue fit', value: getCreatorVenueFitLabel(match) },
+                                      { label: 'Reliability', value: getCreatorReliabilityLabel(match) },
+                                      { label: 'Audience', value: formatCompactAudience(match.creator.followerCount) },
+                                    ].map((item) => (
+                                      <div
+                                        key={`${match.creator.id}-${item.label}`}
+                                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2"
+                                      >
+                                        <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{item.label}</div>
+                                        <div className="mt-1 text-xs font-semibold text-zinc-900">{item.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {match.reasons.slice(0, 2).map((reason) => (
+                                      <span
+                                        key={`${match.creator.id}-${reason}`}
+                                        className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600"
+                                      >
+                                        {reason}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCreatorId(match.creator.id)}
+                                  className={`shrink-0 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+                                    isSelected
+                                      ? 'border-purple-500 bg-purple-500/[0.12] text-zinc-950'
+                                      : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
+                                  }`}
+                                >
+                                  {isSelected ? 'Selected' : 'Use creator'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
 
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
                   <div>
@@ -1698,7 +1939,7 @@ export default function BrandPortalPage() {
                 disabled={
                   !formData.title.trim() ||
                   formData.type === 'CREATOR' ||
-                  (formData.type === 'PLACE' && !selectedPlace)
+                  (formData.type === 'PLACE' && (!selectedPlace || recommendedCreatorsLoading || !selectedCreatorId))
                 }
                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
               >

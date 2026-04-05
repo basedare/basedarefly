@@ -32,6 +32,7 @@ export async function GET(
             select: {
                 tag: true,
                 bio: true,
+                pfpUrl: true,
                 followerCount: true,
                 verificationMethod: true,
                 twitterHandle: true,
@@ -191,6 +192,7 @@ export async function GET(
                 youtubeHandle: streamTag?.youtubeHandle || null,
                 kickHandle: streamTag?.kickHandle || null,
                 bio: streamTag?.bio || null,
+                pfpUrl: streamTag?.pfpUrl || null,
                 followerCount: streamTag?.followerCount ?? null,
                 tags: streamTag?.tags || [],
                 stats: { total, completed: completedCount, live, acceptRate, totalPool, totalEarned, minBounty },

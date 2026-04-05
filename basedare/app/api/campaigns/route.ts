@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
+import { getRankedCampaignMatches } from '@/lib/campaign-matching';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
 import { getApprovedTagSummaryMap } from '@/lib/place-tags';
 import {
@@ -20,8 +21,8 @@ import {
 
 const CREATOR_CAMPAIGNS_DORMANT_MESSAGE =
   'CREATOR campaigns stay visible in Control Mode, but new creator-routing launches are temporarily parked while we finish the real social-routing path.';
-// PLACE campaigns stay DB-backed for now. Their linked dares are open-claim, while the current
-// on-chain bounty contract requires a fixed creator wallet at funding time.
+// PLACE campaigns stay DB-backed for now. We can assign a specific creator at launch,
+// but the linked dare is still not funded through the real on-chain bounty path yet.
 const PLACE_CAMPAIGN_MODE = true;
 
 // Campaign tier configurations
@@ -135,6 +136,7 @@ const CreateCampaignSchema = z.object({
   creatorCountTarget: z.number().min(1).max(1000),
   payoutPerCreator: z.number().min(50),
   venueId: z.string().min(1).optional(),
+  selectedCreatorId: z.string().cuid().optional(),
   syncTime: z.string().datetime().optional(),
   targetingCriteria: TargetingCriteriaSchema.optional(),
   verificationCriteria: VerificationCriteriaSchema,
@@ -363,6 +365,7 @@ export async function POST(request: NextRequest) {
       creatorCountTarget,
       payoutPerCreator,
       venueId,
+      selectedCreatorId,
       syncTime,
       targetingCriteria,
       verificationCriteria,
@@ -434,6 +437,29 @@ export async function POST(request: NextRequest) {
           discoveryRadiusKm: 0.5,
         });
 
+        const rankedMatches = await getRankedCampaignMatches(prisma, {
+          targeting: targetingCriteria || {},
+          venueId: placeContext.venueId,
+          limit: 25,
+        });
+
+        const chosenCreator =
+          (selectedCreatorId
+            ? rankedMatches.find((match) => match.creator.id === selectedCreatorId) ?? null
+            : rankedMatches[0] ?? null);
+
+        if (!chosenCreator) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'No suitable creator match is ready for this venue yet. Broaden your targeting or try another venue.',
+              code: 'NO_CREATOR_MATCH',
+            },
+            { status: 409 }
+          );
+        }
+
         campaign = await prisma.$transaction(
           async (tx) => {
             const createdCampaign = await tx.campaign.create({
@@ -459,7 +485,16 @@ export async function POST(request: NextRequest) {
                 fundedAt: new Date(),
                 liveAt: new Date(),
                 slots: {
-                  create: [{ status: 'OPEN' }],
+                  create: [
+                    {
+                      status: 'ASSIGNED',
+                      creatorAddress: chosenCreator.creator.walletAddress.toLowerCase(),
+                      creatorHandle: chosenCreator.creator.tag,
+                      creatorFollowers: chosenCreator.creator.followerCount ?? null,
+                      claimedAt: new Date(),
+                      claimRationale: chosenCreator.reasons.slice(0, 3).join(' • '),
+                    },
+                  ],
                 },
               },
             });
@@ -470,11 +505,11 @@ export async function POST(request: NextRequest) {
               missionMode: 'IRL',
               missionTag: 'brand-campaign',
               amount: payoutPerCreator,
-              streamerTag: null,
+              streamerTag: chosenCreator.creator.tag,
               streamId: `campaign:${createdCampaign.id}`,
-              tagVerified: false,
+              tagVerified: true,
               stakerAddress: brand.walletAddress,
-              targetWalletAddress: null,
+              targetWalletAddress: chosenCreator.creator.walletAddress,
               venueId: placeContext.venueId,
               isNearbyDare: placeContext.isNearbyDare,
               latitude: placeContext.latitude,
@@ -506,6 +541,8 @@ export async function POST(request: NextRequest) {
                     completed_at: true,
                     createdAt: true,
                     venueId: true,
+                    streamerHandle: true,
+                    targetWalletAddress: true,
                   },
                 },
                 slots: true,

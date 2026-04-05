@@ -53,6 +53,7 @@ interface UserTag {
   totalEarned: number;
   completedDares: number;
   bio?: string | null;
+  pfpUrl?: string | null;
   followerCount?: number | null;
   tags?: string[];
 }
@@ -96,6 +97,7 @@ interface Opportunity {
     firstMarksAtVenue: number;
     cityMarks: number;
   };
+  assignedToCreator?: boolean;
   claimable?: boolean;
   shortlisted: boolean;
 }
@@ -292,6 +294,11 @@ export default function Dashboard() {
   const [claimingOpportunityId, setClaimingOpportunityId] = useState<string | null>(null);
   const [claimFeedback, setClaimFeedback] = useState<Record<string, string>>({});
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [profileBioDraft, setProfileBioDraft] = useState('');
+  const [profileEditorSaving, setProfileEditorSaving] = useState(false);
+  const [profileEditorError, setProfileEditorError] = useState<string | null>(null);
+  const [profileAvatarUploading, setProfileAvatarUploading] = useState(false);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -322,6 +329,16 @@ export default function Dashboard() {
     const query = params.toString();
     return query ? `/claim-tag?${query}` : '/claim-tag';
   })();
+  const dashboardAvatarUrl = userTag?.pfpUrl || null;
+  const dashboardIdentityInitial = (
+    userTag?.tag ||
+    (identityHandle ? `@${identityHandle}` : '') ||
+    address ||
+    'C'
+  )
+    .replace(/^@/, '')
+    .charAt(0)
+    .toUpperCase();
 
   // Format wallet address for display
   const formatAddress = (addr: string) => {
@@ -444,6 +461,10 @@ export default function Dashboard() {
     fetchOpportunities();
   }, [address, sessionToken]);
 
+  useEffect(() => {
+    setProfileBioDraft(userTag?.bio || '');
+  }, [userTag?.bio]);
+
   const handleClaimOpportunity = async (opportunity: Opportunity) => {
     if (!address || !opportunity.linkedDare?.id) return;
 
@@ -495,6 +516,92 @@ export default function Dashboard() {
       }));
     } finally {
       setClaimingOpportunityId(null);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!userTag?.id) {
+      setProfileEditorError('Claim a verified identity before editing your creator profile.');
+      return;
+    }
+
+    try {
+      setProfileEditorSaving(true);
+      setProfileEditorError(null);
+
+      const response = await fetch('/api/tags/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({
+          tagId: userTag.id,
+          bio: profileBioDraft,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to save creator profile');
+      }
+
+      setUserTag((current) =>
+        current
+          ? {
+              ...current,
+              bio: payload.data?.bio ?? null,
+              pfpUrl: payload.data?.pfpUrl ?? current.pfpUrl ?? null,
+            }
+          : current
+      );
+      setShowProfileEditor(false);
+    } catch (error) {
+      setProfileEditorError(error instanceof Error ? error.message : 'Failed to save creator profile');
+    } finally {
+      setProfileEditorSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file || !userTag?.id) {
+      return;
+    }
+
+    try {
+      setProfileAvatarUploading(true);
+      setProfileEditorError(null);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('tagId', userTag.id);
+
+      const response = await fetch('/api/tags/avatar', {
+        method: 'POST',
+        headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+        body: formData,
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to upload profile photo');
+      }
+
+      setUserTag((current) =>
+        current
+          ? {
+              ...current,
+              pfpUrl: payload.data?.pfpUrl ?? null,
+            }
+          : current
+      );
+    } catch (error) {
+      setProfileEditorError(error instanceof Error ? error.message : 'Failed to upload profile photo');
+    } finally {
+      setProfileAvatarUploading(false);
     }
   };
 
@@ -618,6 +725,40 @@ export default function Dashboard() {
                       : 'Connect identity to tighten payouts and matching.'
                     : 'Connect your wallet to enter the creator loop.'}
                 </p>
+
+                {isConnected && userTag ? (
+                  <div className={`${insetCardClass} mt-4 flex items-center gap-3 px-4 py-3`}>
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_12px_24px_rgba(0,0,0,0.24)]">
+                      {dashboardAvatarUrl ? (
+                        <img
+                          src={dashboardAvatarUrl}
+                          alt={userTag.tag}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">
+                          {dashboardIdentityInitial}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-white">{userTag.tag}</div>
+                      <div className="mt-1 text-xs text-white/55">
+                        {userTag.bio || 'Add a short bio and profile photo so brands know who they are picking.'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileEditorError(null);
+                        setShowProfileEditor(true);
+                      }}
+                      className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
+                    >
+                      Edit profile
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -802,6 +943,11 @@ export default function Dashboard() {
                     <p className="mt-4 text-sm font-bold text-white line-clamp-2">{opportunity.title}</p>
                     {opportunity.matchReasons.length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-2">
+                        {opportunity.assignedToCreator ? (
+                          <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
+                            Picked for this activation
+                          </span>
+                        ) : null}
                         <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
                           You match this
                         </span>
@@ -1132,6 +1278,108 @@ export default function Dashboard() {
             <LivePotLeaderboard />
           </div>
         </details>
+
+        {showProfileEditor ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
+            <div className={`${raisedPanelClass} w-full max-w-xl px-5 py-5 sm:px-6`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-lg font-black uppercase tracking-[0.12em] text-white">Edit creator profile</div>
+                  <div className="mt-1 text-sm text-white/52">
+                    Add a photo and a short bio so brands know who they are picking.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileEditor(false)}
+                  className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
+                <div className={`${insetCardClass} flex flex-col items-center gap-3 px-4 py-4`}>
+                  <div className="h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_14px_28px_rgba(0,0,0,0.24)]">
+                    {dashboardAvatarUrl ? (
+                      <img
+                        src={dashboardAvatarUrl}
+                        alt={userTag?.tag || 'Creator avatar'}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
+                        {dashboardIdentityInitial}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-semibold text-white">{userTag?.tag || 'No tag yet'}</div>
+                    <div className="mt-1 text-xs text-white/45">
+                      {profileAvatarUploading ? 'Uploading photo...' : 'JPG, PNG, or GIF up to 5MB'}
+                    </div>
+                  </div>
+                  <label className={`${volumetricButtonPurple} w-full cursor-pointer px-3 py-2 text-[11px]`}>
+                    {profileAvatarUploading ? 'Uploading...' : 'Upload photo'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      disabled={!userTag?.id || profileAvatarUploading}
+                    />
+                  </label>
+                </div>
+
+                <div className={`${insetCardClass} px-4 py-4`}>
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                    Bio
+                  </label>
+                  <textarea
+                    value={profileBioDraft}
+                    onChange={(event) => setProfileBioDraft(event.target.value)}
+                    maxLength={280}
+                    rows={5}
+                    placeholder="Say what you make, where you show up strongest, and what brands can expect from you."
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-fuchsia-400/40 focus:outline-none"
+                  />
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/40">
+                    <span>Keep it short and concrete.</span>
+                    <span>{profileBioDraft.length}/280</span>
+                  </div>
+
+                  {profileEditorError ? (
+                    <div className="mt-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                      {profileEditorError}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveProfile}
+                      disabled={!userTag?.id || profileEditorSaving}
+                      className={volumetricButtonPurple}
+                    >
+                      {profileEditorSaving ? 'Saving...' : 'Save profile'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileBioDraft(userTag?.bio || '');
+                        setProfileEditorError(null);
+                        setShowProfileEditor(false);
+                      }}
+                      className={volumetricButtonNeutral}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

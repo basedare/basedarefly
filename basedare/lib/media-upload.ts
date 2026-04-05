@@ -3,6 +3,7 @@ import 'server-only';
 import { PinataSDK } from 'pinata';
 
 export const MAX_MEDIA_SIZE_BYTES = 120 * 1024 * 1024; // 120MB
+export const MAX_PROFILE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export const ALLOWED_MEDIA_MIME_TYPES = new Set([
   'video/mp4',
@@ -23,6 +24,19 @@ const ALLOWED_MEDIA_EXTENSIONS = new Set([
   '.mkv',
   '.3gp',
   '.3g2',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+]);
+
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+]);
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set([
   '.jpg',
   '.jpeg',
   '.png',
@@ -82,6 +96,33 @@ export function validateSupportedMediaFile(file: File): string | null {
   return null;
 }
 
+export function validateSupportedImageFile(file: File): string | null {
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    return 'No file provided.';
+  }
+
+  if (file.size <= 0) {
+    return 'Image file is empty. Please choose a valid JPG, PNG, or GIF.';
+  }
+
+  if (file.size > MAX_PROFILE_IMAGE_SIZE_BYTES) {
+    return 'Image file is too large. Max size is 5MB.';
+  }
+
+  const normalizedMimeType = file.type.toLowerCase();
+  const normalizedExtension = getNormalizedExtension(file.name);
+
+  if (!ALLOWED_IMAGE_MIME_TYPES.has(normalizedMimeType)) {
+    return 'Unsupported image type. Upload a JPG, PNG, or GIF.';
+  }
+
+  if (!normalizedExtension || !ALLOWED_IMAGE_EXTENSIONS.has(normalizedExtension)) {
+    return 'Unsupported image extension. Upload a JPG, PNG, or GIF.';
+  }
+
+  return null;
+}
+
 export function getProofTypeFromMimeType(mimeType: string): 'IMAGE' | 'VIDEO' {
   return mimeType.toLowerCase().startsWith('image/') ? 'IMAGE' : 'VIDEO';
 }
@@ -92,7 +133,7 @@ export async function uploadPublicMediaFile(input: {
   keyvalues?: Record<string, string>;
 }) {
   if (!process.env.PINATA_JWT) {
-    throw new MediaUploadError('Proof uploads are not configured yet. Please try again later.', 503, 'PINATA_MISSING_JWT');
+    throw new MediaUploadError('Media uploads are not configured yet. Please try again later.', 503, 'PINATA_MISSING_JWT');
   }
 
   try {
@@ -112,7 +153,7 @@ export async function uploadPublicMediaFile(input: {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown upload error';
     throw new MediaUploadError(
-      `Proof upload failed upstream. ${message}`,
+      `Media upload failed upstream. ${message}`,
       502,
       'PINATA_UPLOAD_FAILED'
     );

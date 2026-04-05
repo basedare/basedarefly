@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
@@ -55,6 +54,7 @@ interface CreatorProfile {
     youtubeHandle: string | null;
     kickHandle: string | null;
     bio: string | null;
+    pfpUrl: string | null;
     followerCount: number | null;
     tags: string[];
     stats: CreatorStats;
@@ -196,7 +196,7 @@ export default function CreatorProfilePage() {
 
     const displayTag = tag.startsWith('@') ? tag : `@${tag}`;
     const plainTag = tag.replace('@', '').toLowerCase();
-    const avatarImg = STREAMER_IMAGES[plainTag] || null;
+    const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
 
     useEffect(() => {
         const load = async () => {
@@ -219,6 +219,7 @@ export default function CreatorProfilePage() {
                         youtubeHandle: null,
                         kickHandle: null,
                         bio: null,
+                        pfpUrl: null,
                         followerCount: null,
                         tags: [],
                         stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
@@ -340,12 +341,10 @@ export default function CreatorProfilePage() {
                                 <div className="relative flex-shrink-0">
                                     {avatarImg ? (
                                         <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border border-white/15 shadow-[0_18px_28px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.08)]">
-                                            <Image
+                                            <img
                                                 src={avatarImg}
                                                 alt={displayTag}
-                                                fill
-                                                sizes="112px"
-                                                style={{ objectFit: 'cover' }}
+                                                className="h-full w-full object-cover"
                                             />
                                         </div>
                                     ) : (
