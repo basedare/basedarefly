@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
-import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
 import { getApprovedTagSummaryMap } from '@/lib/place-tags';
@@ -20,7 +20,9 @@ import {
 
 const CREATOR_CAMPAIGNS_DORMANT_MESSAGE =
   'CREATOR campaigns stay visible in Control Mode, but new creator-routing launches are temporarily parked while we finish the real social-routing path.';
-const PLACE_CAMPAIGN_MODE = isBountySimulationMode();
+// PLACE campaigns stay DB-backed for now. Their linked dares are open-claim, while the current
+// on-chain bounty contract requires a fixed creator wallet at funding time.
+const PLACE_CAMPAIGN_MODE = true;
 
 // Campaign tier configurations
 const TIER_CONFIG = {
@@ -367,7 +369,8 @@ export async function POST(request: NextRequest) {
     } = validation.data;
 
     const sessionWallet = await getVerifiedSessionWallet(request);
-    const actingWallet = sessionWallet ?? normalizeWalletForControl(brandWallet);
+    const isInternalAuthorized = isInternalApiAuthorized(request);
+    const actingWallet = sessionWallet ?? (isInternalAuthorized ? normalizeWalletForControl(brandWallet) : null);
     if (!actingWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }

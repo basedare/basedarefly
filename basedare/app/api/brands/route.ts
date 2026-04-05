@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 
 // ============================================================================
 // BRANDS API
@@ -13,6 +17,31 @@ const RegisterBrandSchema = z.object({
   logo: z.string().url().optional(),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'),
 });
+
+type WalletSession = {
+  token?: string;
+  walletAddress?: string;
+  user?: {
+    walletAddress?: string | null;
+  } | null;
+};
+
+async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
+  const session = (await getServerSession(authOptions)) as WalletSession | null;
+  if (!session) return null;
+
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
+
+  if (session.token && (!bearerToken || bearerToken !== session.token)) {
+    return null;
+  }
+
+  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
+  if (!wallet || !isAddress(wallet)) return null;
+
+  return wallet.toLowerCase();
+}
 
 // ============================================================================
 // GET /api/brands - Get brand by wallet address
@@ -127,10 +156,24 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, logo, walletAddress } = validation.data;
+    const normalizedWallet = walletAddress.toLowerCase();
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    const isInternalAuthorized = isInternalApiAuthorized(request);
+
+    if (!isInternalAuthorized && !sessionWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (sessionWallet && sessionWallet !== normalizedWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet mismatch. Use the connected brand wallet.' },
+        { status: 401 }
+      );
+    }
 
     // Check if brand already exists
     const existing = await prisma.brand.findUnique({
-      where: { walletAddress: walletAddress.toLowerCase() },
+      where: { walletAddress: normalizedWallet },
     });
 
     if (existing) {
@@ -144,7 +187,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         logo,
-        walletAddress: walletAddress.toLowerCase(),
+        walletAddress: normalizedWallet,
       },
     });
 

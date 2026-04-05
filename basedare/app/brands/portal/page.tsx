@@ -1682,10 +1682,10 @@ export default function BrandPortalPage() {
                 <span className="text-2xl" style={{ filter: 'grayscale(1)' }}>⚡</span>
                 <div>
                   <div className="font-semibold text-green-700">
-                    Deliverables are checked before payout
+                    Deliverables are reviewed before completion
                   </div>
                   <div className="text-sm text-zinc-600">
-                    USDC pays out only after the creator completes the activation.
+                    Proof is checked before the activation is marked complete.
                   </div>
                 </div>
               </div>

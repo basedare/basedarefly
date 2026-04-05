@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
+import { isInternalApiAuthorized } from '@/lib/api-auth';
 import {
   buildCampaignPayoutTotals,
   buildCampaignSlotCounts,
@@ -163,7 +164,8 @@ export async function PUT(
     const { brandWallet, action } = validation.data;
     const sessionWallet = await getVerifiedSessionWallet(request);
     const normalizedBodyWallet = normalizeWalletForControl(brandWallet);
-    const actingWallet = sessionWallet ?? normalizedBodyWallet;
+    const isInternalAuthorized = isInternalApiAuthorized(request);
+    const actingWallet = sessionWallet ?? (isInternalAuthorized ? normalizedBodyWallet : null);
 
     if (!actingWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
