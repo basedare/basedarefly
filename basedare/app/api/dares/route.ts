@@ -27,6 +27,8 @@ function toPublicDare(dare: {
   claimRequestStatus: string | null;
   locationLabel: string | null;
   moderatorNote: string | null;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
 }): {
   id: string;
   title: string;
@@ -52,6 +54,8 @@ function toPublicDare(dare: {
   claimRequestStatus: string | null;
   locationLabel: string | null;
   moderatorNote: string | null;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
 } {
   return {
     id: dare.id,
@@ -78,6 +82,8 @@ function toPublicDare(dare: {
     claimRequestStatus: dare.claimRequestStatus,
     locationLabel: dare.locationLabel,
     moderatorNote: dare.moderatorNote,
+    requireSentinel: dare.requireSentinel,
+    sentinelVerified: dare.sentinelVerified,
   };
 }
 
@@ -184,6 +190,8 @@ export async function GET(request: NextRequest) {
         expires_at: dare.expiresAt?.toISOString() || null,
         short_id: dare.shortId || dare.id.slice(0, 8),
         image_url: resolveDareImageUrl(dare, stakerAvatarMap) ?? "",
+        require_sentinel: dare.requireSentinel,
+        sentinel_verified: dare.sentinelVerified,
       };
     });
 

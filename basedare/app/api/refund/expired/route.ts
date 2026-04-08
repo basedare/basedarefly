@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { alertError } from '@/lib/telegram';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -221,6 +222,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`[REFUND] Complete - Refunded: ${refunded}, Failed: ${failed}`);
 
+    if (failed > 0) {
+      const failedSummary = results
+        .filter((result) => result.status === 'failed')
+        .slice(0, 3)
+        .map((result) => `${result.dareId}: ${result.error ?? 'Unknown error'}`)
+        .join(' | ');
+
+      await alertError({
+        type: 'REFUND_FAILED',
+        error: `${failed} expired refund item(s) failed`,
+        context: `refund-expired cron completed with failures${failedSummary ? ` — ${failedSummary}` : ''}`,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: `Processed ${expiredDares.length} expired dares`,
@@ -232,6 +247,11 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[REFUND] Error processing expired dares:', message);
+    await alertError({
+      type: 'REFUND_FAILED',
+      error: message,
+      context: 'refund-expired cron fatal error',
+    });
     return NextResponse.json({ success: false, error: 'Failed to process expired dares' }, { status: 500 });
   }
 }

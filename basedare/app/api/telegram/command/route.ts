@@ -7,6 +7,8 @@ import {
   reviewTelegramPlaceTag,
   searchTelegramPlaces,
 } from '@/lib/telegram-place-memory';
+import { trackServerEvent } from '@/lib/server-analytics';
+import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -77,6 +79,7 @@ export async function PUT(req: NextRequest) {
  * GET /api/telegram/command?cmd=pending
  * GET /api/telegram/command?cmd=approve&id=xxx
  * GET /api/telegram/command?cmd=reject&id=xxx&reason=xxx
+ * GET /api/telegram/command?cmd=sentinelpending
  * GET /api/telegram/command?cmd=stats
  * GET /api/telegram/command?cmd=place&q=hideaway
  * GET /api/telegram/command?cmd=placepending
@@ -103,6 +106,7 @@ export async function GET(req: NextRequest) {
         pending: '/api/telegram/command?cmd=pending',
         approve: '/api/telegram/command?cmd=approve&id=xxx',
         reject: '/api/telegram/command?cmd=reject&id=xxx&reason=xxx',
+        sentinelpending: '/api/telegram/command?cmd=sentinelpending',
         stats: '/api/telegram/command?cmd=stats',
         place: '/api/telegram/command?cmd=place&q=hideaway',
         placepending: '/api/telegram/command?cmd=placepending',
@@ -213,10 +217,29 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Dare not found' }, { status: 404 });
       }
 
+      if (dare.requireSentinel) {
+        const recommendation = getSentinelRecommendation({
+          amount: dare.bounty,
+          missionTag: dare.tag,
+          venueId: dare.venueId,
+        });
+
+        trackServerEvent('sentinel_review_rejected', {
+          recommended: recommendation.recommended,
+          selected: true,
+          reason: getSentinelReasonForSelection({
+            recommendedReason: recommendation.reason,
+            selected: true,
+          }),
+          source: 'admin_review',
+        });
+      }
+
       await prisma.dare.update({
         where: { id: dare.id },
         data: {
           status: 'FAILED',
+          manualReviewNeeded: false,
           appealStatus: 'REJECTED',
           appealReason: reason || 'Rejected by admin',
         },
@@ -226,6 +249,48 @@ export async function GET(req: NextRequest) {
       await sendMessage(message);
 
       return NextResponse.json({ success: true, rejected: dare.id });
+    }
+
+    case 'sentinelpending': {
+      const pendingDares = await prisma.dare.findMany({
+        where: {
+          manualReviewNeeded: true,
+          sentinelVerified: false,
+        },
+        orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }],
+        take: 10,
+        select: {
+          id: true,
+          shortId: true,
+          title: true,
+          bounty: true,
+          streamerHandle: true,
+          updatedAt: true,
+        },
+      });
+
+      if (pendingDares.length === 0) {
+        await sendMessage('✅ <b>No Sentinel reviews pending</b>\n\nThe trust queue is clear.');
+        return NextResponse.json({ success: true, pending: 0, dares: [] });
+      }
+
+      const lines = pendingDares.map((dare, index) => (
+        `${index + 1}. <code>${dare.shortId || dare.id.slice(0, 8)}</code>\n   ${dare.title.slice(0, 36)}${dare.title.length > 36 ? '...' : ''}\n   💰 $${dare.bounty} • ${dare.streamerHandle || 'Open'}\n   🕒 ${new Date(dare.updatedAt).toLocaleString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' })}\n   🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">Open review</a>`
+      ));
+
+      await sendMessage(`🔍 <b>SENTINEL REVIEW QUEUE</b> (${pendingDares.length})\n\n${lines.join('\n\n')}`);
+
+      return NextResponse.json({
+        success: true,
+        pending: pendingDares.length,
+        dares: pendingDares.map((dare) => ({
+          id: dare.shortId || dare.id,
+          title: dare.title,
+          bounty: dare.bounty,
+          streamerHandle: dare.streamerHandle,
+          updatedAt: dare.updatedAt,
+        })),
+      });
     }
 
     case 'stats': {

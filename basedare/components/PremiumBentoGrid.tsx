@@ -29,6 +29,8 @@ interface NearbyDare {
   expiresAt: string | null;
   streamerHandle: string | null;
   isOpenBounty: boolean;
+  requireSentinel?: boolean;
+  sentinelVerified?: boolean;
 }
 
 type Dare = {
@@ -41,6 +43,8 @@ type Dare = {
   video_url?: string;
   expires_at?: string | null;
   short_id?: string;
+  require_sentinel?: boolean;
+  sentinel_verified?: boolean;
 };
 
 type PremiumBentoGridProps = {
@@ -245,6 +249,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       distanceKm?: number;
       distanceDisplay?: string;
       locationLabel?: string | null;
+      requireSentinel?: boolean;
+      sentinelVerified?: boolean;
   };
 
   const cards = useMemo<Card[]>(() => {
@@ -303,6 +309,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         expiresAt: d.expires_at,
         isOpenBounty: isOpenTarget || status === 'open',
         proofUrl: proof,
+        requireSentinel: d.require_sentinel ?? false,
+        sentinelVerified: d.sentinel_verified ?? false,
       };
     });
 
@@ -356,6 +364,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       distanceKm: d.distanceKm,
       distanceDisplay: d.distanceDisplay,
       locationLabel: d.locationLabel,
+      requireSentinel: d.requireSentinel ?? false,
+      sentinelVerified: d.sentinelVerified ?? false,
     }));
   }, [nearbyDares]);
 
@@ -521,6 +531,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                 isNearby={card.isNearby}
                 distanceDisplay={card.distanceDisplay}
                 locationLabel={card.locationLabel}
+                requireSentinel={card.requireSentinel}
+                sentinelVerified={card.sentinelVerified}
               />
             ))}
       </div>

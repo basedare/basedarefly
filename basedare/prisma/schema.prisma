@@ -35,6 +35,9 @@ model Dare {
   proofHash           String?
   proofCid            String? // Store the IPFS CID from Pinata
   imageCid            String?
+  requireSentinel     Boolean   @default(false)
+  sentinelVerified    Boolean   @default(false)
+  manualReviewNeeded  Boolean   @default(false)
   creatorId           String?
   streamId            String?
   txHash              String?
@@ -250,6 +253,16 @@ model VenueQrSession {
 
   @@index([venueId, status])
   @@index([startedAt])
+}
+
+model AppSettings {
+  id                          String    @id @default("singleton")
+  sentinelEnabled             Boolean   @default(true)
+  sentinelPausedReason        String?
+  sentinelPendingAlertThreshold Int     @default(5)
+  lastSentinelQueueAlertSent  DateTime?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 }
 
 model Comment {

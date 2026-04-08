@@ -43,6 +43,8 @@ interface Dare {
   video_url?: string;
   expiry_timer?: string;
   image_url?: string;
+  require_sentinel?: boolean;
+  sentinel_verified?: boolean;
 }
 
 function HomeContent() {

@@ -131,13 +131,13 @@ export default function ShareComposerButton({
 
   const compactPreview = (
     <div
-      className="absolute -inset-[14px] z-30 flex flex-col overflow-hidden rounded-[20px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(12,14,24,0.98)_0%,rgba(8,10,16,0.98)_100%)] shadow-[0_16px_38px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      className="absolute inset-2 z-30 flex max-h-[calc(100%-1rem)] flex-col overflow-hidden rounded-[20px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(12,14,24,0.98)_0%,rgba(8,10,16,0.98)_100%)] shadow-[0_16px_38px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]"
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
       }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-white/8 px-4 py-3">
+      <div className="flex items-start justify-between gap-3 border-b border-white/8 px-3 py-3">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
             {status === "verified" ? <CheckCircle2 className="h-3 w-3" /> : status === "invite" ? <Send className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
@@ -161,8 +161,8 @@ export default function ShareComposerButton({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col justify-between px-4 py-3">
-        <div className="space-y-2">
+      <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {placeName ? (
             <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.16em] text-white/58">
               <MapPin className="h-3 w-3 shrink-0" />
@@ -177,7 +177,7 @@ export default function ShareComposerButton({
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2">
           <button
             type="button"
             onClick={async (event) => {

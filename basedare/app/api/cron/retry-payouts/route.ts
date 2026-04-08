@@ -103,7 +103,7 @@ async function enforceRefereeBalanceCap(
 // Recommended schedule: every 5-10 minutes.
 // ============================================================================
 
-export async function POST(req: NextRequest) {
+async function handleRetryPayouts(req: NextRequest) {
   const authError = verifyCronSecret(req);
   if (authError) return authError;
 
@@ -307,6 +307,20 @@ export async function POST(req: NextRequest) {
 
     console.log(`[CRON] Retry complete — paid: ${paid}, failed: ${failed}, skipped: ${skipped}`);
 
+    if (failed > 0) {
+      const failedSummary = results
+        .filter((result) => result.status === 'failed')
+        .slice(0, 3)
+        .map((result) => `${result.dareId}: ${result.error ?? 'Unknown error'}`)
+        .join(' | ');
+
+      await alertError({
+        type: 'PAYOUT_FAILED',
+        error: `${failed} retry payout item(s) failed`,
+        context: `retry-payouts cron completed with failures${failedSummary ? ` — ${failedSummary}` : ''}`,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -320,6 +334,11 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[CRON] Retry payouts fatal error:', message);
+    await alertError({
+      type: 'CONTRACT_ERROR',
+      error: message,
+      context: 'retry-payouts cron fatal error',
+    });
     return NextResponse.json(
       {
         success: false,
@@ -329,4 +348,12 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  return handleRetryPayouts(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handleRetryPayouts(req);
 }

@@ -31,6 +31,7 @@ import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
+import SentinelBadge from '@/components/SentinelBadge';
 
 type SearchResult = {
   id: string;
@@ -236,6 +237,8 @@ type VenueDetailResponse = {
         createdAt: string;
         campaignTitle: string | null;
         brandName: string | null;
+        requireSentinel: boolean;
+        sentinelVerified: boolean;
         targetWalletAddress: string | null;
         claimedBy: string | null;
         claimRequestTag: string | null;
@@ -255,6 +258,8 @@ type VenueDetailResponse = {
         createdAt: string;
         campaignTitle: string | null;
         brandName: string | null;
+        requireSentinel: boolean;
+        sentinelVerified: boolean;
         targetWalletAddress: string | null;
         claimedBy: string | null;
         claimRequestTag: string | null;
@@ -290,6 +295,8 @@ type SelectedPlaceActiveDare = {
   createdAt: string;
   campaignTitle: string | null;
   brandName: string | null;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
   targetWalletAddress: string | null;
   claimedBy: string | null;
   claimRequestTag: string | null;
@@ -2477,6 +2484,11 @@ export default function RealWorldMap() {
                           <p className="mt-2 text-sm text-white/65">
                             {featuredPaidActivation.brandName ?? 'Brand-backed'} activation live at this place.
                           </p>
+                          <SentinelBadge
+                            requireSentinel={featuredPaidActivation.requireSentinel}
+                            sentinelVerified={featuredPaidActivation.sentinelVerified}
+                            className="mt-3"
+                          />
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
                               ${featuredPaidActivation.bounty} USDC
@@ -2699,6 +2711,10 @@ export default function RealWorldMap() {
                                   {dare.title}
                                 </p>
                                 <div className="mt-2 flex flex-wrap gap-2">
+                                  <SentinelBadge
+                                    requireSentinel={dare.requireSentinel}
+                                    sentinelVerified={dare.sentinelVerified}
+                                  />
                                   <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
                                     ${dare.bounty} USDC
                                   </span>

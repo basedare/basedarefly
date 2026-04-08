@@ -10,10 +10,11 @@ import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } fro
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
-import { alertError, alertVerification } from '@/lib/telegram';
+import { alertError, alertSentinelReviewRequired, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -247,6 +248,7 @@ async function validateProof(
     id: string;
     title: string;
     bounty: number;
+    requireSentinel?: boolean;
     videoUrl?: string | null;
     streamId?: string | null;
   },
@@ -327,16 +329,23 @@ async function validateProof(
   // -------------------------------------------------------------------------
   // DECISION: Auto-approve or require manual review based on value
   // -------------------------------------------------------------------------
-  const requiresManualReview = dare.bounty >= AUTO_APPROVE_THRESHOLD;
+  const requiresManualReview = Boolean(dare.requireSentinel) || dare.bounty >= AUTO_APPROVE_THRESHOLD;
 
   if (requiresManualReview) {
-    // HIGH VALUE: Queue for manual admin review
-    console.log(`[VERIFY] High-value dare ($${dare.bounty}) - queuing for manual review`);
+    const reviewReason = dare.requireSentinel
+      ? 'Valid proof submitted. Sentinel verification was requested and now needs referee review.'
+      : `Valid proof submitted. Bounties ≥$${AUTO_APPROVE_THRESHOLD} require manual review for security.`;
+
+    console.log(
+      dare.requireSentinel
+        ? `[VERIFY] Sentinel-requested dare ($${dare.bounty}) - queuing for manual review`
+        : `[VERIFY] High-value dare ($${dare.bounty}) - queuing for manual review`
+    );
 
     return {
       success: false, // Not auto-approved
       confidence: 0.75, // Proof looks valid but needs human review
-      reason: `Valid proof submitted. Bounties ≥$${AUTO_APPROVE_THRESHOLD} require manual review for security.`,
+      reason: reviewReason,
       proofHash,
       requiresManualReview: true,
     };
@@ -492,6 +501,7 @@ export async function POST(req: NextRequest) {
         id: dare.id,
         title: dare.title,
         bounty: dare.bounty,
+        requireSentinel: dare.requireSentinel,
         videoUrl: dare.videoUrl,
         streamId: streamId,
       },
@@ -509,15 +519,22 @@ export async function POST(req: NextRequest) {
     // -------------------------------------------------------------------------
     // Handle manual review flow for high-value dares
     if (verification.requiresManualReview) {
+      const sentinelReviewRequested = Boolean(dare.requireSentinel);
+      const reviewReason = sentinelReviewRequested
+        ? 'Sentinel verification requested. Proof requires referee review.'
+        : 'High-value bounty requires manual verification';
+
       // Update dare with proof info, set to PENDING_REVIEW status
       await prisma.dare.update({
         where: { id: dareId },
         data: {
+          status: 'PENDING_REVIEW',
           videoUrl: proofData?.videoUrl || dare.videoUrl,
           proofHash: verification.proofHash,
           verifyConfidence: verification.confidence,
+          manualReviewNeeded: sentinelReviewRequested,
           appealStatus: 'PENDING', // Use appeal system for manual review
-          appealReason: 'High-value bounty requires manual verification',
+          appealReason: reviewReason,
           appealedAt: new Date(),
         },
       });
@@ -529,23 +546,39 @@ export async function POST(req: NextRequest) {
             wallet: dare.targetWalletAddress.toLowerCase(),
             type: 'DARE_REVIEW',
             title: 'Dare Under Review',
-            message: `Your proof for "${dare.title}" is under manual administrative review.`,
+            message: sentinelReviewRequested
+              ? `Your proof for "${dare.title}" entered Sentinel review and is waiting on referee approval.`
+              : `Your proof for "${dare.title}" is under manual administrative review.`,
             link: '/dashboard',
           }
         });
       }
 
-      console.log(`[AUDIT] Dare ${dareId} queued for manual review - bounty: $${dare.bounty} USDC`);
+      console.log(
+        `[AUDIT] Dare ${dareId} queued for manual review - bounty: $${dare.bounty} USDC${sentinelReviewRequested ? ' (sentinel)' : ''}`
+      );
 
-      // Send Telegram alert for manual review needed (fire and forget)
-      alertVerification({
-        dareId,
-        shortId: dare.shortId || dareId,
-        title: dare.title,
-        streamerTag: dare.streamerHandle,
-        result: 'PENDING_REVIEW',
-        confidence: Math.round(verification.confidence * 100),
-      }).catch(err => console.error('[TELEGRAM] Manual review alert failed:', err));
+      if (sentinelReviewRequested) {
+        await alertSentinelReviewRequired({
+          dareId,
+          shortId: dare.shortId || dareId,
+          title: dare.title,
+          qrCheckLabel: 'PENDING',
+        }).catch((err) => console.error('[TELEGRAM] Sentinel review alert failed:', err));
+
+        await checkAndSendSentinelQueueAlert().catch((err) =>
+          console.error('[SENTINEL_QUEUE] Threshold alert failed:', err)
+        );
+      } else {
+        alertVerification({
+          dareId,
+          shortId: dare.shortId || dareId,
+          title: dare.title,
+          streamerTag: dare.streamerHandle,
+          result: 'PENDING_REVIEW',
+          confidence: Math.round(verification.confidence * 100),
+        }).catch(err => console.error('[TELEGRAM] Manual review alert failed:', err));
+      }
 
       return NextResponse.json({
         success: true,
@@ -557,7 +590,9 @@ export async function POST(req: NextRequest) {
             reason: verification.reason,
             proofHash: verification.proofHash,
           },
-          message: `Proof submitted successfully. Bounties ≥$${AUTO_APPROVE_THRESHOLD} require manual review for security. An admin will review within 24-48 hours.`,
+          message: sentinelReviewRequested
+            ? 'Proof submitted successfully. Sentinel review is now active and a referee has been pinged.'
+            : `Proof submitted successfully. Bounties ≥$${AUTO_APPROVE_THRESHOLD} require manual review for security. An admin will review within 24-48 hours.`,
         },
       });
     }
@@ -597,6 +632,8 @@ export async function POST(req: NextRequest) {
               status: 'PENDING_PAYOUT',
               verifyConfidence: verification.confidence,
               proofHash: verification.proofHash,
+              manualReviewNeeded: false,
+              sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified,
             },
           });
 
@@ -647,6 +684,8 @@ export async function POST(req: NextRequest) {
               status: 'PENDING_PAYOUT',
               verifyConfidence: verification.confidence,
               proofHash: verification.proofHash,
+              manualReviewNeeded: false,
+              sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified,
             },
           });
 
@@ -725,6 +764,7 @@ export async function POST(req: NextRequest) {
           verifiedAt: new Date(),
           verifyConfidence: verification.confidence,
           proofHash: verification.proofHash,
+          manualReviewNeeded: false,
         },
       });
       await syncLinkedCampaignForDareState({

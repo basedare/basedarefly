@@ -15,6 +15,7 @@ import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
 import DareVisual from '@/components/DareVisual';
+import SentinelBadge from '@/components/SentinelBadge';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 
@@ -43,6 +44,8 @@ interface DareDetail {
   targetWalletAddress: string | null; awaitingClaim: boolean;
   claimRequestWallet: string | null; claimRequestTag: string | null;
   claimRequestedAt: string | null; claimRequestStatus: string | null;
+  requireSentinel?: boolean | null;
+  sentinelVerified?: boolean | null;
   stakerAddress?: string | null;
 }
 
@@ -516,6 +519,12 @@ export default function DareDetailPage() {
             <h1 className="text-3xl md:text-5xl font-black italic uppercase leading-tight text-white tracking-tight mb-4 text-shadow-lg">
               {dare.title}
             </h1>
+
+            <SentinelBadge
+              requireSentinel={dare.requireSentinel}
+              sentinelVerified={dare.sentinelVerified}
+              className="mb-4 w-fit"
+            />
 
             {/* Dared by row */}
             {dare.streamerHandle && (

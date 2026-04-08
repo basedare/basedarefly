@@ -18,6 +18,8 @@ import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
+import { trackServerEvent } from '@/lib/server-analytics';
+import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReasonForSelection } from '@/lib/sentinel';
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -412,6 +414,14 @@ async function markDarePendingPayout(
     appealStatus?: string | null;
   }
 ) {
+  const existingDare = await prisma.dare.findUnique({
+    where: { id: dareId },
+    select: {
+      requireSentinel: true,
+      sentinelVerified: true,
+    },
+  });
+
   await prisma.dare.update({
     where: { id: dareId },
     data: {
@@ -419,6 +429,8 @@ async function markDarePendingPayout(
       appealStatus: input.appealStatus ?? 'APPROVED',
       verifyConfidence: input.verifyConfidence ?? undefined,
       proofHash: input.proofHash ?? undefined,
+      manualReviewNeeded: false,
+      sentinelVerified: existingDare?.requireSentinel ? true : existingDare?.sentinelVerified,
     },
   });
 }
@@ -459,6 +471,8 @@ export async function finalizeVerifiedDare(
       completed_at: verifiedAt,
       reaction_count: existingDare.reaction_count ?? 0,
       geo_bucket: toGeoBucket(existingDare.geohash),
+      manualReviewNeeded: false,
+      sentinelVerified: existingDare.requireSentinel ? true : existingDare.sentinelVerified,
     };
 
     if (input.verifyTxHash !== undefined) updateData.verifyTxHash = input.verifyTxHash;
@@ -527,6 +541,24 @@ export async function finalizeVerifiedDare(
       referrerPayout: payout.referrer > 0 ? payout.referrer : undefined,
       txHash: input.verifyTxHash,
     }).catch((err) => console.error('[TELEGRAM] Payout alert failed:', err));
+  }
+
+  if (updatedDare.requireSentinel) {
+    const recommendation = getSentinelRecommendation({
+      amount: updatedDare.bounty,
+      missionTag: updatedDare.tag,
+      venueId: updatedDare.venueId,
+    });
+
+    trackServerEvent('sentinel_review_approved', {
+      recommended: recommendation.recommended,
+      selected: true,
+      reason: getSentinelReasonForSelection({
+        recommendedReason: recommendation.reason,
+        selected: true,
+      }),
+      source: getSentinelAnalyticsSource(input.sourceContext),
+    });
   }
 
   return { dare: updatedDare, payout };

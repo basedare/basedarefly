@@ -31,6 +31,7 @@ type CreateDatabaseBackedBountyInput = {
   targetWalletAddress?: string | null;
   imageUrl?: string | null;
   imageCid?: string | null;
+  requireSentinel?: boolean;
   venueId?: string | null;
   isNearbyDare?: boolean;
   latitude?: number | null;
@@ -69,6 +70,7 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
       stakerAddress: input.stakerAddress || null,
       imageUrl: input.imageUrl || null,
       imageCid: input.imageCid || null,
+      requireSentinel: Boolean(input.requireSentinel),
       inviteToken,
       claimDeadline,
       targetWalletAddress: input.tagVerified ? input.targetWalletAddress || null : null,

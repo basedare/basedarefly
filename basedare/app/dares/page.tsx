@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Loader2, Clock, CheckCircle } from "lucide-react";
 import ShareComposerButton from '@/components/ShareComposerButton';
+import SentinelBadge from '@/components/SentinelBadge';
 
 interface Dare {
     id: string;
@@ -14,6 +15,8 @@ interface Dare {
     status: string;
     expires_at: string | null;
     short_id: string;
+    require_sentinel?: boolean;
+    sentinel_verified?: boolean;
 }
 
 function formatTimeLeft(expiresAt: string | null): string {
@@ -101,6 +104,10 @@ function LiveDareFeed({ dares, loading, error }: { dares: Dare[]; loading: boole
                         <h3 className="text-xl font-black text-white group-hover:text-yellow-400 transition-colors line-clamp-2">
                             {dare.description}
                         </h3>
+                        <SentinelBadge
+                            requireSentinel={dare.require_sentinel}
+                            sentinelVerified={dare.sentinel_verified}
+                        />
                         <p className="text-sm text-gray-400">
                             Target: <span className="text-purple-400">@{dare.streamer_name}</span>
                         </p>

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { approveDareWithPayout, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { trackServerEvent } from '@/lib/server-analytics';
+import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
 
 // ============================================================================
 // ADMIN MODERATE API
@@ -139,6 +141,9 @@ export async function GET(request: NextRequest) {
         shortId: dare.shortId,
         title: dare.title,
         bounty: dare.bounty,
+        requireSentinel: dare.requireSentinel,
+        sentinelVerified: dare.sentinelVerified,
+        manualReviewNeeded: dare.manualReviewNeeded,
         streamerHandle: dare.streamerHandle,
         status: dare.status,
         videoUrl: dare.videoUrl,
@@ -284,10 +289,29 @@ export async function POST(request: NextRequest) {
       pendingReason = result.status === 'PENDING_PAYOUT' ? result.pendingReason : null;
     } else {
       newStatus = 'FAILED';
+      if (dare.requireSentinel) {
+        const recommendation = getSentinelRecommendation({
+          amount: dare.bounty,
+          missionTag: dare.tag,
+          venueId: dare.venueId,
+        });
+
+        trackServerEvent('sentinel_review_rejected', {
+          recommended: recommendation.recommended,
+          selected: true,
+          reason: getSentinelReasonForSelection({
+            recommendedReason: recommendation.reason,
+            selected: true,
+          }),
+          source: 'admin_review',
+        });
+      }
+
       updatedDare = await prisma.dare.update({
         where: { id: dareId },
         data: {
           status: newStatus,
+          manualReviewNeeded: false,
           moderatorDecision: decision,
           moderatorAddress: auth.moderatorAddress,
           moderatedAt,

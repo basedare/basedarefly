@@ -26,6 +26,7 @@ export type BountyCreationInput = {
   creationContext?: 'MAP' | 'CREATE';
   imageUrl?: string;
   imageCid?: string;
+  requireSentinel?: boolean;
   stakerAddress: string;
 };
 
@@ -80,6 +81,10 @@ export async function submitBountyCreation(
     imageUrl: input.imageUrl || undefined,
     imageCid: input.imageCid || undefined,
   };
+
+  if (typeof input.requireSentinel === 'boolean') {
+    requestBody.requireSentinel = input.requireSentinel;
+  }
 
   if (requestBody.isNearbyDare) {
     requestBody.latitude = input.latitude;

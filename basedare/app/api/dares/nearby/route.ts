@@ -127,6 +127,8 @@ export async function GET(request: NextRequest) {
         expiresAt: true,
         createdAt: true,
         streamerHandle: true,
+        requireSentinel: true,
+        sentinelVerified: true,
         venue: {
           select: {
             slug: true,
@@ -168,6 +170,8 @@ export async function GET(request: NextRequest) {
           createdAt: dare.createdAt.toISOString(),
           streamerHandle: dare.streamerHandle,
           isOpenBounty: !dare.streamerHandle,
+          requireSentinel: dare.requireSentinel,
+          sentinelVerified: dare.sentinelVerified,
           venueSlug: dare.venue?.slug ?? null,
         };
       })

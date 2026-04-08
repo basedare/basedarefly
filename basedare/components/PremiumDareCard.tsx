@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import ElectricBorder from './ElectricBorder';
 import DareVisual from './DareVisual';
 import ShareComposerButton from '@/components/ShareComposerButton';
+import SentinelBadge from '@/components/SentinelBadge';
 import './PremiumDareCard.css';
 
 function formatTimeRemaining(ms: number): string {
@@ -45,6 +46,8 @@ export type PremiumDareCardProps = {
   isNearby?: boolean;
   distanceDisplay?: string;
   locationLabel?: string | null;
+  requireSentinel?: boolean;
+  sentinelVerified?: boolean;
 };
 
 export function SentinelSkeleton() {
@@ -79,6 +82,8 @@ export default function PremiumDareCard({
   isNearby = false,
   distanceDisplay,
   locationLabel,
+  requireSentinel = false,
+  sentinelVerified = false,
 }: PremiumDareCardProps) {
   const router = useRouter();
   const [likeCount, setLikeCount] = useState(0);
@@ -217,6 +222,12 @@ export default function PremiumDareCard({
         {/* Dare title */}
         <div className="dare-card-body">
           <h3 className="dare-title">{dare.toUpperCase()}</h3>
+          <div className="mt-2">
+            <SentinelBadge
+              requireSentinel={requireSentinel}
+              sentinelVerified={sentinelVerified}
+            />
+          </div>
         </div>
 
         {/* Bottom section */}

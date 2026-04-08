@@ -237,6 +237,65 @@ export async function alertDareNeedsReview(data: {
   });
 }
 
+export async function alertSentinelReviewRequired(data: {
+  dareId: string;
+  shortId: string;
+  title: string;
+  qrCheckLabel: string;
+}): Promise<void> {
+  const message = `
+🔍 <b>SENTINEL REVIEW REQUIRED</b>
+
+<b>${data.title}</b>
+ID: <code>${data.dareId}</code>
+QR Check: ${data.qrCheckLabel}
+
+🔗 <a href="${BASE_URL}/dare/${data.shortId || data.dareId}">Review link</a>
+`.trim();
+
+  await sendMessage(message);
+}
+
+export async function alertSentinelQueueThreshold(data: {
+  pendingCount: number;
+  threshold: number;
+}): Promise<boolean> {
+  const message = `
+⚠️ <b>SENTINEL QUEUE ALERT</b>
+
+${data.pendingCount} pending reviews (threshold: ${data.threshold})
+
+Use <code>/sentinelpending</code> to review the queue.
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertSentinelHardPauseToggled(data: {
+  enabled: boolean;
+  reason?: string | null;
+  pendingCount: number;
+  threshold: number;
+}): Promise<boolean> {
+  const message = data.enabled
+    ? `
+✅ <b>SENTINEL RESUMED</b>
+
+New Sentinel opt-ins are live again.
+Pending queue: ${data.pendingCount}
+Alert threshold: ${data.threshold}
+`.trim()
+    : `
+⛔ <b>SENTINEL PAUSED</b>
+
+Reason: ${data.reason || 'No reason provided'}
+Pending queue: ${data.pendingCount}
+Alert threshold: ${data.threshold}
+`.trim();
+
+  return sendMessage(message);
+}
+
 /**
  * Alert: Creator submitted a claim request for an open activation
  */

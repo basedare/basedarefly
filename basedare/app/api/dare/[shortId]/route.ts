@@ -50,6 +50,8 @@ export async function GET(
       claimRequestedAt: dare.claimRequestedAt?.toISOString() || null,
       claimRequestStatus: dare.claimRequestStatus,
       stakerAddress: dare.stakerAddress,
+      requireSentinel: dare.requireSentinel,
+      sentinelVerified: dare.sentinelVerified,
       awaitingClaim:
         dare.status === 'AWAITING_CLAIM' ||
         (!dare.streamerHandle && dare.status === 'PENDING' && !dare.targetWalletAddress),

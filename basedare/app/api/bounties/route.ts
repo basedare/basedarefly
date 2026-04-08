@@ -19,12 +19,14 @@ import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegra
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { authOptions } from '@/lib/auth-options';
+import { getAppSettings } from '@/lib/app-settings';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
 } from '@/lib/bounty-place';
+import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/sentinel';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -181,6 +183,7 @@ const StakeBountySchema = z.object({
 
   imageUrl: z.string().url().max(2048).optional(),
   imageCid: z.string().max(255).optional(),
+  requireSentinel: z.boolean().optional(),
 
   referrerAddress: z
     .string()
@@ -348,6 +351,7 @@ export async function POST(request: NextRequest) {
       streamerTag,
       imageUrl,
       imageCid,
+      requireSentinel,
       referrerAddress,
       referrerTag,
       stakerAddress,
@@ -405,6 +409,28 @@ export async function POST(request: NextRequest) {
 
     if (geohash) {
       console.log(`[NEARBY] Encoded geohash: ${geohash} for coords (${latitude}, ${longitude})`);
+    }
+
+    const appSettings = await getAppSettings();
+    const sentinelRecommendation = getSentinelRecommendation({
+      amount,
+      missionTag: normalizedMissionTag,
+      venueId: canonicalVenueId,
+    });
+    const requestedRequireSentinel = requireSentinel === true;
+    const effectiveRequireSentinel =
+      appSettings.sentinelEnabled &&
+      (requestedRequireSentinel || (requireSentinel === undefined && sentinelRecommendation.recommended));
+
+    if (!appSettings.sentinelEnabled && requestedRequireSentinel) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: formatSentinelPausedMessage(appSettings.sentinelPausedReason),
+          code: 'SENTINEL_PAUSED',
+        },
+        { status: 409 }
+      );
     }
 
     // -------------------------------------------------------------------------
@@ -533,6 +559,7 @@ export async function POST(request: NextRequest) {
         targetWalletAddress: streamerAddress,
         imageUrl: imageUrl || null,
         imageCid: imageCid || null,
+        requireSentinel: effectiveRequireSentinel,
         venueId: canonicalVenueId,
         isNearbyDare,
         latitude,
@@ -707,6 +734,7 @@ export async function POST(request: NextRequest) {
         stakerAddress: normalizedStakerAddress || null,
         imageUrl: imageUrl || null,
         imageCid: imageCid || null,
+        requireSentinel: effectiveRequireSentinel,
         inviteToken: inviteTokenOnChain,
         claimDeadline: claimDeadlineOnChain,
         targetWalletAddress: targetWalletAddressOnChain,

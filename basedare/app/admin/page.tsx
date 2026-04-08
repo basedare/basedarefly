@@ -23,12 +23,17 @@ import {
 } from 'lucide-react';
 import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
+import SentinelBadge from '@/components/SentinelBadge';
+import { formatSentinelPausedMessage } from '@/lib/sentinel';
 
 interface DareForModeration {
   id: string;
   shortId: string | null;
   title: string;
   bounty: number;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
+  manualReviewNeeded: boolean;
   streamerHandle: string | null;
   status: string;
   videoUrl: string | null;
@@ -65,6 +70,13 @@ interface QueueSummary {
   readyNow: number;
   oldestProofHours: number;
   campaignBackedReady: number;
+}
+
+interface AdminSettingsState {
+  sentinelEnabled: boolean;
+  sentinelPausedReason: string | null;
+  sentinelPendingAlertThreshold: number;
+  lastSentinelQueueAlertSent: string | null;
 }
 
 function deriveQueueSummary(dares: DareForModeration[]): QueueSummary {
@@ -241,6 +253,16 @@ export default function AdminPage() {
     oldestProofHours: 0,
     campaignBackedReady: 0,
   });
+  const [adminSettings, setAdminSettings] = useState<AdminSettingsState>({
+    sentinelEnabled: true,
+    sentinelPausedReason: null,
+    sentinelPendingAlertThreshold: 5,
+    lastSentinelQueueAlertSent: null,
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [sentinelThresholdDraft, setSentinelThresholdDraft] = useState('5');
+  const [sentinelPauseReasonDraft, setSentinelPauseReasonDraft] = useState('');
 
   // Tags management state
   const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
@@ -272,6 +294,9 @@ export default function AdminPage() {
   const [processingClaim, setProcessingClaim] = useState<string | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClaimRequest | null>(null);
   const [claimRejectReason, setClaimRejectReason] = useState('');
+  const sentinelQueueCount = dares.filter(
+    (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
+  ).length;
 
   const selectRelativeDare = useCallback(
     (direction: 1 | -1) => {
@@ -333,13 +358,140 @@ export default function AdminPage() {
     }
   }, [address]);
 
+  const fetchAdminSettings = useCallback(async () => {
+    if (!address) return;
+
+    try {
+      setSettingsLoading(true);
+      const res = await fetch('/api/admin/settings', {
+        headers: {
+          'x-moderator-wallet': address,
+        },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setAdminSettings({
+          sentinelEnabled: data.data.sentinelEnabled !== false,
+          sentinelPausedReason: data.data.sentinelPausedReason ?? null,
+          sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? 5,
+          lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? null,
+        });
+        setSentinelThresholdDraft(String(data.data.sentinelPendingAlertThreshold ?? 5));
+        setSentinelPauseReasonDraft(data.data.sentinelPausedReason ?? '');
+      }
+    } catch {
+      // Keep the existing UI state if settings fail to load.
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, [address]);
+
   useEffect(() => {
     if (isConnected && address) {
       fetchQueue();
+      fetchAdminSettings();
     } else {
       setLoading(false);
     }
-  }, [isConnected, address, fetchQueue]);
+  }, [isConnected, address, fetchAdminSettings, fetchQueue]);
+
+  const handleSentinelToggle = useCallback(async () => {
+    if (!address) return;
+
+    try {
+      setSettingsSaving(true);
+      const nextEnabled = !adminSettings.sentinelEnabled;
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-moderator-wallet': address,
+        },
+        body: JSON.stringify({
+          sentinelEnabled: nextEnabled,
+          sentinelPausedReason: nextEnabled
+            ? null
+            : sentinelPauseReasonDraft || adminSettings.sentinelPausedReason,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setAdminSettings({
+          sentinelEnabled: data.data.sentinelEnabled !== false,
+          sentinelPausedReason: data.data.sentinelPausedReason ?? null,
+          sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold,
+          lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? adminSettings.lastSentinelQueueAlertSent,
+        });
+        setSentinelThresholdDraft(
+          String(data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold)
+        );
+        setSentinelPauseReasonDraft(data.data.sentinelPausedReason ?? sentinelPauseReasonDraft);
+      } else {
+        setError(data.error || 'Failed to update Sentinel settings');
+      }
+    } catch {
+      setError('Failed to update Sentinel settings');
+    } finally {
+      setSettingsSaving(false);
+    }
+  }, [
+    address,
+    adminSettings.lastSentinelQueueAlertSent,
+    adminSettings.sentinelPausedReason,
+    adminSettings.sentinelEnabled,
+    adminSettings.sentinelPendingAlertThreshold,
+    sentinelPauseReasonDraft,
+  ]);
+
+  const handleSentinelThresholdSave = useCallback(async () => {
+    if (!address) return;
+
+    const nextThreshold = Number.parseInt(sentinelThresholdDraft, 10);
+    if (!Number.isFinite(nextThreshold) || nextThreshold < 1) {
+      setError('Sentinel queue alert threshold must be at least 1');
+      return;
+    }
+
+    try {
+      setSettingsSaving(true);
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-moderator-wallet': address,
+        },
+        body: JSON.stringify({
+          sentinelEnabled: adminSettings.sentinelEnabled,
+          sentinelPausedReason: adminSettings.sentinelEnabled ? null : adminSettings.sentinelPausedReason,
+          sentinelPendingAlertThreshold: nextThreshold,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setAdminSettings({
+          sentinelEnabled: data.data.sentinelEnabled !== false,
+          sentinelPausedReason: data.data.sentinelPausedReason ?? null,
+          sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? nextThreshold,
+          lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? null,
+        });
+        setSentinelThresholdDraft(String(data.data.sentinelPendingAlertThreshold ?? nextThreshold));
+      } else {
+        setError(data.error || 'Failed to update Sentinel queue alert threshold');
+      }
+    } catch {
+      setError('Failed to update Sentinel queue alert threshold');
+    } finally {
+      setSettingsSaving(false);
+    }
+  }, [
+    address,
+    adminSettings.sentinelEnabled,
+    adminSettings.sentinelPausedReason,
+    sentinelThresholdDraft,
+  ]);
 
   // Fetch pending tags
   const fetchPendingTags = useCallback(async () => {
@@ -1007,6 +1159,91 @@ export default function AdminPage() {
         {/* Authorized Content - Moderation Tab */}
         {isConnected && isAuthorized && !loading && activeTab === 'moderation' && (
           <div className="space-y-6">
+            <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Sentinel Queue</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                      adminSettings.sentinelEnabled
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                        : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                    }`}>
+                      {adminSettings.sentinelEnabled ? 'Sentinel live' : 'Sentinel paused'}
+                    </span>
+                    {settingsLoading ? (
+                      <span className="text-xs text-gray-500">Loading settings...</span>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-sm text-gray-400">
+                    {adminSettings.sentinelEnabled
+                      ? 'Creators can still request Sentinel verification.'
+                      : formatSentinelPausedMessage(adminSettings.sentinelPausedReason)}
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Current Sentinel queue: {sentinelQueueCount} pending review{sentinelQueueCount === 1 ? '' : 's'}.
+                  </p>
+                  <div className="mt-4 max-w-md space-y-2">
+                    <label className="flex flex-col gap-2 text-xs text-gray-400">
+                      Pause reason
+                      <input
+                        type="text"
+                        maxLength={160}
+                        value={sentinelPauseReasonDraft}
+                        onChange={(event) => setSentinelPauseReasonDraft(event.target.value)}
+                        placeholder="Queue too hot, maintenance window, referee offline..."
+                        className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-amber-400/60"
+                      />
+                    </label>
+                    <p className="text-[11px] text-gray-500">
+                      This reason is shown in the create flow and included in the Telegram pause alert.
+                    </p>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <label className="flex max-w-[220px] flex-col gap-2 text-xs text-gray-400">
+                      Queue alert threshold
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={sentinelThresholdDraft}
+                        onChange={(event) => setSentinelThresholdDraft(event.target.value)}
+                        className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-cyan-400/60"
+                      />
+                    </label>
+                    <button
+                      onClick={() => void handleSentinelThresholdSave()}
+                      disabled={settingsSaving || settingsLoading}
+                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-60"
+                    >
+                      Save threshold
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Telegram sends one queue alert when pending Sentinel reviews reach this number, then cools
+                    down for 45 minutes before sending another.
+                  </p>
+                  {adminSettings.lastSentinelQueueAlertSent ? (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Last queue alert: {formatRelativeTime(adminSettings.lastSentinelQueueAlertSent)}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  onClick={() => void handleSentinelToggle()}
+                  disabled={settingsSaving || settingsLoading}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold transition-all disabled:opacity-60 ${
+                    adminSettings.sentinelEnabled
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                      : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                  }`}
+                >
+                  {settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                  {adminSettings.sentinelEnabled ? 'Pause Sentinel' : 'Resume Sentinel'}
+                </button>
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Proof Queue</p>
@@ -1069,6 +1306,12 @@ export default function AdminPage() {
                           {dare.status}
                         </span>
                       </div>
+
+                      <SentinelBadge
+                        requireSentinel={dare.requireSentinel}
+                        sentinelVerified={dare.sentinelVerified}
+                        className="mb-2"
+                      />
 
                       <div className="mb-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em]">
                         <span
@@ -1162,6 +1405,11 @@ export default function AdminPage() {
                     <div className="p-3 bg-white/5 rounded-lg">
                       <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Mission</p>
                       <p className="text-white font-bold">{selectedDare.title}</p>
+                      <SentinelBadge
+                        requireSentinel={selectedDare.requireSentinel}
+                        sentinelVerified={selectedDare.sentinelVerified}
+                        className="mt-2"
+                      />
                     </div>
 
                     {selectedDare.linkedCampaign || selectedDare.venue ? (
@@ -1242,6 +1490,11 @@ export default function AdminPage() {
                         {selectedDare.linkedCampaign ? (
                           <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
                             campaign-backed
+                          </span>
+                        ) : null}
+                        {selectedDare.manualReviewNeeded ? (
+                          <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+                            sentinel queue
                           </span>
                         ) : null}
                       </div>

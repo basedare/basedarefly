@@ -120,6 +120,8 @@ function mapActiveDare(dare: {
   streamerHandle: string | null;
   expiresAt: Date | null;
   createdAt: Date;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
   targetWalletAddress: string | null;
   claimedBy: string | null;
   claimRequestTag: string | null;
@@ -142,6 +144,8 @@ function mapActiveDare(dare: {
     streamerHandle: dare.streamerHandle,
     expiresAt: dare.expiresAt?.toISOString() ?? null,
     createdAt: dare.createdAt.toISOString(),
+    requireSentinel: dare.requireSentinel,
+    sentinelVerified: dare.sentinelVerified,
     campaignTitle: dare.linkedCampaign?.title ?? null,
     brandName: dare.linkedCampaign?.brand.name ?? null,
     targetWalletAddress: dare.targetWalletAddress,
@@ -633,6 +637,8 @@ export async function getVenueDetailBySlug(
           streamerHandle: true,
           expiresAt: true,
           createdAt: true,
+          requireSentinel: true,
+          sentinelVerified: true,
           targetWalletAddress: true,
           claimedBy: true,
           claimRequestTag: true,

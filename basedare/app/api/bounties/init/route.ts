@@ -7,10 +7,12 @@ import { generateOnChainDareId } from '@/lib/dare-id';
 import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import { getAppSettings } from '@/lib/app-settings';
 import {
     BountyPlaceResolutionError,
     resolveCanonicalBountyPlaceContext,
 } from '@/lib/bounty-place';
+import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/sentinel';
 
 const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
@@ -60,6 +62,7 @@ const InitBountySchema = z.object({
         .or(z.literal('')),
     imageUrl: z.string().url().max(2048).optional(),
     imageCid: z.string().max(255).optional(),
+    requireSentinel: z.boolean().optional(),
     stakerAddress: z.string().optional(),
     isNearbyDare: z.boolean().default(false),
     latitude: z.number().min(-90).max(90).optional(),
@@ -141,6 +144,7 @@ export async function POST(request: NextRequest) {
             streamerTag,
             imageUrl,
             imageCid,
+            requireSentinel,
             stakerAddress,
             isNearbyDare: rawIsNearbyDare,
             latitude: rawLatitude,
@@ -204,6 +208,28 @@ export async function POST(request: NextRequest) {
             discoveryRadiusKm,
             geohash,
         } = placeContext;
+
+        const appSettings = await getAppSettings();
+        const sentinelRecommendation = getSentinelRecommendation({
+            amount,
+            missionTag: normalizedMissionTag,
+            venueId: canonicalVenueId,
+        });
+        const requestedRequireSentinel = requireSentinel === true;
+        const effectiveRequireSentinel =
+            appSettings.sentinelEnabled &&
+            (requestedRequireSentinel || (requireSentinel === undefined && sentinelRecommendation.recommended));
+
+        if (!appSettings.sentinelEnabled && requestedRequireSentinel) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: formatSentinelPausedMessage(appSettings.sentinelPausedReason),
+                    code: 'SENTINEL_PAUSED',
+                },
+                { status: 409 }
+            );
+        }
 
         const isMainnet = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
         const activeMinDare = isMainnet ? 5 : 1;
@@ -277,6 +303,7 @@ export async function POST(request: NextRequest) {
                 targetWalletAddress: targetAddress,
                 imageUrl: imageUrl || null,
                 imageCid: imageCid || null,
+                requireSentinel: effectiveRequireSentinel,
                 venueId: canonicalVenueId,
                 isNearbyDare,
                 latitude: isNearbyDare ? latitude : null,

@@ -1,11 +1,11 @@
 'use client';
-import React, { Suspense, useRef, useState, useEffect } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X } from "lucide-react";
+import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
@@ -13,7 +13,7 @@ import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import ShareComposerButton from "@/components/ShareComposerButton";
-import CosmicButton from "@/components/ui/CosmicButton";
+import InitProtocolButton from "@/components/InitProtocolButton";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
@@ -22,6 +22,13 @@ import { useBountyMode } from '@/hooks/useBountyMode';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
 import { buildDareImageUploadMessage } from '@/lib/dare-image-auth';
+import { trackClientEvent } from '@/lib/analytics';
+import {
+  formatSentinelPausedMessage,
+  getSentinelRecommendation,
+  getSentinelReasonForSelection,
+  type SentinelRecommendationReason,
+} from '@/lib/sentinel';
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
 const dentInputClass =
@@ -87,6 +94,7 @@ const CreateBountySchema = z.object({
   isNearbyDare: z.boolean().default(true),
   locationLabel: z.string().max(100).optional(),
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
+  requireSentinel: z.boolean().default(false),
 });
 
 type FormData = z.input<typeof CreateBountySchema>;
@@ -107,6 +115,11 @@ interface SuccessData {
 type DareImageUploadState = {
   url: string;
   cid: string;
+};
+
+type PublicAppSettings = {
+  sentinelEnabled: boolean;
+  sentinelPausedReason: string | null;
 };
 
 function CreateDareContent() {
@@ -133,6 +146,11 @@ function CreateDareContent() {
   const [dareImage, setDareImage] = useState<DareImageUploadState | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [appSettings, setAppSettings] = useState<PublicAppSettings>({
+    sentinelEnabled: true,
+    sentinelPausedReason: null,
+  });
+  const recommendationTrackedRef = useRef<SentinelRecommendationReason | null>(null);
 
   // Wallet & Balance Check
   const { address, isConnected } = useAccount();
@@ -157,10 +175,11 @@ function CreateDareContent() {
   const {
     register,
     handleSubmit,
+    getValues,
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm<FormData>({
     resolver: zodResolver(CreateBountySchema),
     defaultValues: {
@@ -175,12 +194,40 @@ function CreateDareContent() {
       isNearbyDare: true,
       locationLabel: '',
       discoveryRadiusKm: 5,
+      requireSentinel: false,
     },
   });
 
   // Watch nearby dare toggle to auto-request location
   const watchIsNearbyDare = watch('isNearbyDare');
   const watchTitle = watch('title');
+  const watchMissionTag = watch('missionTag');
+  const watchRequireSentinel = watch('requireSentinel');
+  const watchAmount = watch('amount');
+  const handleGeneratorContextChange = useCallback(
+    ({ mode, tag }: { mode: 'IRL' | 'STREAM'; tag: string }) => {
+      if (getValues('missionMode') !== mode) {
+        setValue('missionMode', mode);
+      }
+
+      if (getValues('missionTag') !== tag) {
+        setValue('missionTag', tag);
+      }
+    },
+    [getValues, setValue]
+  );
+  const sentinelRecommendation = useMemo(
+    () =>
+      getSentinelRecommendation({
+        amount: watchAmount,
+        missionTag: watchMissionTag,
+      }),
+    [watchAmount, watchMissionTag]
+  );
+  const isSentinelRecommended = appSettings.sentinelEnabled && sentinelRecommendation.recommended;
+  const sentinelRecommendationReason = appSettings.sentinelEnabled
+    ? sentinelRecommendation.reason
+    : 'none';
 
   // Pre-fill form from URL params (coming from home page)
   useEffect(() => {
@@ -209,7 +256,72 @@ function CreateDareContent() {
     requestLocation();
   }, [watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
 
-  const watchAmount = watch('amount');
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        const payload = await response.json();
+
+        if (!response.ok || !payload?.success || cancelled) {
+          return;
+        }
+
+        setAppSettings({
+          sentinelEnabled: payload.data?.sentinelEnabled !== false,
+          sentinelPausedReason: payload.data?.sentinelPausedReason ?? null,
+        });
+      } catch (error) {
+        console.error('[CREATE] Failed to load public settings:', error);
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!appSettings.sentinelEnabled && watchRequireSentinel) {
+      setValue('requireSentinel', false, { shouldDirty: false, shouldTouch: false });
+      return;
+    }
+
+    if (dirtyFields.requireSentinel) {
+      return;
+    }
+
+    if (watchRequireSentinel !== isSentinelRecommended) {
+      setValue('requireSentinel', isSentinelRecommended, { shouldDirty: false, shouldTouch: false });
+    }
+  }, [
+    appSettings.sentinelEnabled,
+    dirtyFields.requireSentinel,
+    isSentinelRecommended,
+    setValue,
+    watchRequireSentinel,
+  ]);
+
+  useEffect(() => {
+    if (!isSentinelRecommended) {
+      return;
+    }
+
+    if (recommendationTrackedRef.current === sentinelRecommendationReason) {
+      return;
+    }
+
+    recommendationTrackedRef.current = sentinelRecommendationReason;
+    trackClientEvent('sentinel_recommended_shown', {
+      recommended: true,
+      selected: watchRequireSentinel,
+      reason: sentinelRecommendationReason,
+      source: 'create_form',
+    });
+  }, [isSentinelRecommended, sentinelRecommendationReason, watchRequireSentinel]);
 
   // Balance check for FundButton (skip in simulation mode)
   const requiredAmount = watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
@@ -221,6 +333,21 @@ function CreateDareContent() {
     console.log('[CREATE] Validation errors:', errors);
   };
 
+  const requireSentinelField = register('requireSentinel', {
+    onChange: (event) => {
+      const selected = Boolean((event.target as HTMLInputElement).checked);
+      trackClientEvent('sentinel_opt_in_toggled', {
+        recommended: sentinelRecommendationReason !== 'none',
+        selected,
+        reason: getSentinelReasonForSelection({
+          recommendedReason: sentinelRecommendationReason,
+          selected,
+        }),
+        source: 'create_form',
+      });
+    },
+  });
+
   const onSubmit = async (data: FormData) => {
     trigger('fund');
     console.log('[CREATE] Form submitted with data:', data);
@@ -230,6 +357,7 @@ function CreateDareContent() {
 
     try {
       const connectedWallet = address?.toLowerCase();
+      const selectedSentinel = Boolean(data.requireSentinel);
       if (!connectedWallet) {
         throw new Error('Connect your wallet before deploying a dare');
       }
@@ -255,6 +383,7 @@ function CreateDareContent() {
           creationContext: 'CREATE',
           imageUrl: dareImage?.url,
           imageCid: dareImage?.cid,
+          requireSentinel: selectedSentinel,
           stakerAddress: connectedWallet,
         },
         {
@@ -268,6 +397,16 @@ function CreateDareContent() {
 
       trigger('success');
       setSuccessData(result);
+
+      trackClientEvent('sentinel_dare_created', {
+        recommended: sentinelRecommendationReason !== 'none',
+        selected: selectedSentinel,
+        reason: getSentinelReasonForSelection({
+          recommendedReason: sentinelRecommendationReason,
+          selected: selectedSentinel,
+        }),
+        source: 'create_form',
+      });
 
       if (result.isNearbyDare) clearLocation();
 
@@ -576,10 +715,7 @@ function CreateDareContent() {
                 <DareGenerator
                   onSelect={(text) => setValue('title', text)}
                   shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
-                  onContextChange={({ mode, tag }) => {
-                    setValue('missionMode', mode);
-                    setValue('missionTag', tag);
-                  }}
+                  onContextChange={handleGeneratorContextChange}
                 />
                 <textarea
                   {...register('title')}
@@ -778,6 +914,40 @@ function CreateDareContent() {
                 )}
               </div>
 
+              <div className="space-y-4">
+                <div className={`${dentGroupClass} rounded-xl p-4`}>
+                  <label className="flex cursor-pointer items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white">Enable Sentinel Verification</p>
+                        <span
+                          title="Sentinel adds an extra trust layer before payout. Great for brand, venue, and higher-stakes dares."
+                          className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/[0.04] p-1 text-white/55"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </span>
+                        {isSentinelRecommended ? (
+                          <span className="rounded-full border border-emerald-400/25 bg-emerald-500/12 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
+                            Recommended
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-[10px] md:text-xs text-gray-500 font-mono">
+                        {appSettings.sentinelEnabled
+                          ? 'Extra anti-deepfake proof with manual referee review. Recommended for brand, venue, or high-value dares.'
+                          : formatSentinelPausedMessage(appSettings.sentinelPausedReason)}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      {...requireSentinelField}
+                      disabled={!appSettings.sentinelEnabled}
+                      className="mt-1 h-5 w-5 accent-emerald-500"
+                    />
+                  </label>
+                </div>
+              </div>
+
               {/* 3. BOUNTY & TIME */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-3">
@@ -910,42 +1080,30 @@ function CreateDareContent() {
                         {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
                       </button>
                     ) : (
-                      /* Active state - with static premium border */
-                      <div className="relative group p-[1.5px] rounded-xl overflow-hidden">
-                        <div
-                          className="absolute inset-0 rounded-xl bg-[linear-gradient(135deg,rgba(255,248,204,0.95)_0%,rgba(250,204,21,0.95)_18%,rgba(187,135,4,0.92)_52%,rgba(250,204,21,0.85)_82%,rgba(255,243,179,0.92)_100%)] opacity-95 transition-opacity duration-300"
-                          aria-hidden="true"
-                        />
-                        <div
-                          className="pointer-events-none absolute inset-[1px] rounded-[11px] border border-white/15"
-                          aria-hidden="true"
-                        />
-
-                        <CosmicButton
+                      <InitProtocolButton
+                          active={isSubmitting}
                           type="submit"
                           disabled={isSubmitting}
-                          variant="gold"
-                          size="xl"
-                          fullWidth
-                          className="h-16 md:h-20"
-                        >
-                          {isSubmitting ? (
+                          className="w-full"
+                          buttonClassName="h-16 md:h-20"
+                          activeContent={
                             <>
                               <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
-                              <span className="relative">
+                              <span className="relative text-base md:text-xl font-black italic uppercase tracking-[0.18em] text-yellow-400">
                                 {approvalStatus === 'approving' ? 'Approving USDC...' :
                                   approvalStatus === 'funding' ? 'Deploying Dare...' :
                                     approvalStatus === 'verifying' ? 'Verifying...' : 'Processing...'}
                               </span>
                             </>
-                          ) : (
-                            <>
-                              <span className="relative">Deploy Contract</span>
-                              <ChevronRight className="w-6 h-6 md:w-8 md:h-8 relative" />
-                            </>
-                          )}
-                        </CosmicButton>
-                      </div>
+                          }
+                        >
+                          <div className="relative flex items-center justify-center gap-3">
+                            <span className="font-black italic uppercase tracking-[0.2em] text-lg text-white md:text-xl">
+                              Initiate Protocol
+                            </span>
+                            <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
+                          </div>
+                        </InitProtocolButton>
                     )}
 
                     <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">

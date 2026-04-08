@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { approveDareWithPayout } from '@/lib/dare-approval';
+import { trackServerEvent } from '@/lib/server-analytics';
+import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
 
 // ============================================================================
 // ADMIN APPEALS API
@@ -203,10 +205,29 @@ export async function PUT(request: NextRequest) {
       });
     } else {
       // Reject = Keep as FAILED, mark appeal rejected
+      if (dare.requireSentinel) {
+        const recommendation = getSentinelRecommendation({
+          amount: dare.bounty,
+          missionTag: dare.tag,
+          venueId: dare.venueId,
+        });
+
+        trackServerEvent('sentinel_review_rejected', {
+          recommended: recommendation.recommended,
+          selected: true,
+          reason: getSentinelReasonForSelection({
+            recommendedReason: recommendation.reason,
+            selected: true,
+          }),
+          source: 'admin_review',
+        });
+      }
+
       await prisma.dare.update({
         where: { id: dareId },
         data: {
           appealStatus: 'REJECTED',
+          manualReviewNeeded: false,
         },
       });
 
