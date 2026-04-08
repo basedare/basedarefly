@@ -238,13 +238,13 @@ function HomeContent() {
               <HowItWorks />
               <div id="active-bounties" className="w-full flex justify-center py-20 z-30 px-4 md:px-6">
                 <div className="relative w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
-                  <div className="pointer-events-none absolute right-4 top-[-14px] z-20 hidden xl:block 2xl:right-8">
+                  <div className="pointer-events-none absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10">
                     <img
                       src="/assets/honey-drip.png"
                       alt=""
-                      width={132}
-                      height={70}
-                      className="h-auto w-[104px] select-none opacity-[0.92] [filter:drop-shadow(0_12px_22px_rgba(0,0,0,0.32))_drop-shadow(0_4px_12px_rgba(232,183,38,0.16))] 2xl:w-[124px]"
+                      width={184}
+                      height={98}
+                      className="h-auto w-[148px] select-none opacity-[0.97] [filter:drop-shadow(0_15px_26px_rgba(0,0,0,0.38))_drop-shadow(0_6px_18px_rgba(232,183,38,0.18))] 2xl:w-[172px]"
                     />
                   </div>
                   <div className="mb-12 flex flex-col items-center">
