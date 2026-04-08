@@ -242,9 +242,9 @@ function HomeContent() {
                     <img
                       src="/assets/honey-drip.png"
                       alt=""
-                      width={420}
-                      height={223}
-                      className="h-auto w-[320px] select-none opacity-[0.985] [filter:drop-shadow(0_16px_28px_rgba(0,0,0,0.42))_drop-shadow(0_6px_20px_rgba(232,183,38,0.2))] 2xl:w-[370px]"
+                      width={210}
+                      height={112}
+                      className="h-auto w-[160px] select-none opacity-[0.985] [filter:drop-shadow(0_16px_28px_rgba(0,0,0,0.42))_drop-shadow(0_6px_20px_rgba(232,183,38,0.2))] 2xl:w-[185px]"
                     />
                   </div>
                   <div className="mb-12 flex flex-col items-center">
