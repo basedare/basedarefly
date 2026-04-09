@@ -218,6 +218,17 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
     };
   }
 
+  if (isAssignedCreator && dare.status === 'FUNDING') {
+    return {
+      label: 'Funding Sync Pending',
+      detail:
+        'The dare has been assigned to you, but the onchain funding receipt is still syncing. Proof unlocks automatically as soon as funding is confirmed.',
+      cta: 'Open Brief',
+      tone: 'yellow',
+      priority: 1,
+    };
+  }
+
   if (isAssignedCreator && dare.status === 'PENDING_REVIEW') {
     return {
       label: 'In Review',

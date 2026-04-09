@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { reconcileFundingDares } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 
 function toPublicDare(dare: {
@@ -162,12 +163,13 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
       take: 100, // Limit results for performance
     });
-    const stakerAvatarMap = await getStakerAvatarMap(dares.map((dare) => dare.stakerAddress));
+    const reconciledDares = await reconcileFundingDares(dares);
+    const stakerAvatarMap = await getStakerAvatarMap(reconciledDares.map((dare) => dare.stakerAddress));
 
     // If includeAll (Dashboard mode), return public-safe dare objects
     if (includeAll) {
       return NextResponse.json(
-        dares.map((dare) => ({
+        reconciledDares.map((dare) => ({
           ...toPublicDare(dare),
           imageUrl: resolveDareImageUrl(dare, stakerAvatarMap),
         }))
@@ -176,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     // Otherwise, format for the public feed (legacy format)
     // Also mark expired dares based on expiresAt for frontend display
-    const formattedDares = dares.map(dare => {
+    const formattedDares = reconciledDares.map(dare => {
       const isExpiredByDate = dare.expiresAt && new Date(dare.expiresAt) < now;
       const effectiveStatus = isExpiredByDate ? 'EXPIRED' : dare.status;
 

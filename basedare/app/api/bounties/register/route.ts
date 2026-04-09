@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { createPublicClient, http, decodeEventLog, isAddress, type Address } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { generateOnChainDareId } from '@/lib/dare-id';
 
 const RegisterBountySchema = z.object({
     dareId: z.string().min(1),
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const expectedOnChainDareId = dare.onChainDareId || generateOnChainDareId(dare.id).toString();
+
         // 3. Extract BountyCreated event and verify onChainBountyId
         let foundBountyEvent = false;
         let actualOnChainDareId = null;
@@ -96,10 +99,11 @@ export async function POST(request: NextRequest) {
                     // Depending on ABI types, dareId might be bigInt
                     const eventDareId = decoded.args.dareId?.toString();
 
-                    if (dare.onChainDareId === null) {
+                    if (!expectedOnChainDareId) {
                         actualOnChainDareId = eventDareId;
                         foundBountyEvent = true;
-                    } else if (eventDareId === dare.onChainDareId) {
+                    } else if (eventDareId === expectedOnChainDareId) {
+                        actualOnChainDareId = eventDareId;
                         foundBountyEvent = true;
                     }
                 }
@@ -118,7 +122,7 @@ export async function POST(request: NextRequest) {
             data: {
                 status: 'PENDING',
                 txHash,
-                onChainDareId: actualOnChainDareId || dare.onChainDareId
+                onChainDareId: actualOnChainDareId || expectedOnChainDareId
             },
             select: {
                 id: true,

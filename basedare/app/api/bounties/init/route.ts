@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const shortId = generateShortId();
 
-        const dbDare = await prisma.dare.create({
+        const createdDare = await prisma.dare.create({
             data: {
                 title,
                 missionMode: normalizedMissionMode,
@@ -291,7 +291,11 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const onChainDareId = generateOnChainDareId(dbDare.id).toString();
+        const onChainDareId = generateOnChainDareId(createdDare.id).toString();
+        const dbDare = await prisma.dare.update({
+            where: { id: createdDare.id },
+            data: { onChainDareId },
+        });
 
         return NextResponse.json({
             success: true,
