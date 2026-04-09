@@ -97,6 +97,7 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
     }, []);
 
     const hasResults = results.streamers.length > 0 || results.dares.length > 0;
+    const hasQuery = query.trim().length > 0;
 
     const renderResults = () => {
         if (!query.trim()) {
@@ -174,7 +175,7 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
                         placeholder="Search creators or dares..."
                         className="w-full bg-transparent border-none py-2 px-3 text-sm text-white focus:outline-none placeholder-gray-500"
                     />
-                    {query && (
+                    {hasQuery && (
                         <button onClick={() => setQuery('')} className="p-1 text-gray-500 hover:text-white flex-shrink-0">
                             <X className="w-4 h-4" />
                         </button>
@@ -191,7 +192,12 @@ export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
                             setIsOpen(true);
                         }
                     }}
-                    className={`absolute right-0 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${isOpen ? 'bg-transparent hover:bg-white/10' : 'bd-dent-surface bd-dent-surface--soft border border-white/10 hover:bg-white/10'
+                    className={`absolute right-0 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+                        isOpen && hasQuery
+                            ? 'opacity-0 pointer-events-none'
+                            : isOpen
+                                ? 'bg-transparent hover:bg-white/10'
+                                : 'bd-dent-surface bd-dent-surface--soft border border-white/10 hover:bg-white/10'
                         }`}
                 >
                     {isOpen ? <X className="w-4 h-4 text-white" /> : <Search className="w-4 h-4 text-gray-400 hover:text-white" />}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
 import { Livepeer } from 'livepeer';
 import {
   createPublicClient,
@@ -18,8 +17,8 @@ import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
-import { authOptions } from '@/lib/auth-options';
 import { getAppSettings } from '@/lib/app-settings';
+import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import {
@@ -72,30 +71,6 @@ const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !=
 
 function getPlatformWalletFallback(): Address | null {
   return isAddress(PLATFORM_WALLET_ADDRESS) ? PLATFORM_WALLET_ADDRESS : null;
-}
-
-type WalletSession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as WalletSession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-
-  return wallet.toLowerCase();
 }
 
 // ============================================================================
@@ -367,8 +342,10 @@ export async function POST(request: NextRequest) {
     const normalizedMissionTag = missionTag?.trim() || null;
 
     const normalizedStakerAddress = stakerAddress?.toLowerCase();
-    const sessionWallet = await getVerifiedSessionWallet(request);
     const isInternalAuthorized = isInternalApiAuthorized(request);
+    const authorizedWallet = normalizedStakerAddress
+      ? await getAuthorizedBountyWallet(request, normalizedStakerAddress)
+      : null;
     const shouldRequireWalletAuth = REQUIRE_WALLET_IN_SIMULATION || !FORCE_SIMULATION;
 
     if (shouldRequireWalletAuth) {
@@ -379,7 +356,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (!isInternalAuthorized && (!sessionWallet || normalizedStakerAddress !== sessionWallet)) {
+      if (!isInternalAuthorized && (!authorizedWallet || normalizedStakerAddress !== authorizedWallet)) {
         return NextResponse.json(
           { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
           { status: 401 }

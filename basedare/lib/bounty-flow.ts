@@ -54,6 +54,7 @@ export async function submitBountyCreation(
   input: BountyCreationInput,
   options: {
     sessionToken?: string | null;
+    authHeaders?: Record<string, string>;
     isSimulationMode?: boolean;
     publicClient?: unknown;
     writeContractAsync?: unknown;
@@ -63,6 +64,7 @@ export async function submitBountyCreation(
   const isSimulationMode = options.isSimulationMode ?? getBountyModeSnapshot().simulated;
   const jsonHeaders: HeadersInit = {
     'Content-Type': 'application/json',
+    ...(options.authHeaders ?? {}),
     ...(options.sessionToken ? { Authorization: `Bearer ${options.sessionToken}` } : {}),
   };
 

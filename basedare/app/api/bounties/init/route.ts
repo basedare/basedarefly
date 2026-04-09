@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
 import { isAddress, type Address } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
-import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { getAppSettings } from '@/lib/app-settings';
+import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import {
     BountyPlaceResolutionError,
     resolveCanonicalBountyPlaceContext,
@@ -21,30 +20,6 @@ const LEGACY_TAG_MAP: Record<string, Address> = {
     '@KaiCenat': '0x1234567890123456789012345678901234567890',
     '@xQc': '0x2345678901234567890123456789012345678901',
 };
-
-type WalletSession = {
-    token?: string;
-    walletAddress?: string;
-    user?: {
-        walletAddress?: string | null;
-    } | null;
-};
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-    const session = (await getServerSession(authOptions)) as WalletSession | null;
-    if (!session) return null;
-
-    const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (session.token && (!bearerToken || bearerToken !== session.token)) {
-        return null;
-    }
-
-    const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-    if (!wallet || !isAddress(wallet)) return null;
-
-    return wallet.toLowerCase();
-}
 
 // Simplified schema for initialization
 const InitBountySchema = z.object({
@@ -161,8 +136,10 @@ export async function POST(request: NextRequest) {
             !streamerTag || streamerTag.trim() === '' || OPEN_BOUNTY_TAGS.includes(normalizedTag);
 
         const normalizedStakerAddress = stakerAddress?.toLowerCase();
-        const sessionWallet = await getVerifiedSessionWallet(request);
         const isInternalAuthorized = isInternalApiAuthorized(request);
+        const authorizedWallet = normalizedStakerAddress
+            ? await getAuthorizedBountyWallet(request, normalizedStakerAddress)
+            : null;
 
         if (!normalizedStakerAddress || !isAddress(normalizedStakerAddress)) {
             return NextResponse.json(
@@ -175,14 +152,14 @@ export async function POST(request: NextRequest) {
             if (
                 REQUIRE_WALLET_IN_SIMULATION &&
                 !isInternalAuthorized &&
-                (!sessionWallet || normalizedStakerAddress !== sessionWallet)
+                (!authorizedWallet || normalizedStakerAddress !== authorizedWallet)
             ) {
                 return NextResponse.json(
                     { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
                     { status: 401 }
                 );
             }
-        } else if (!isInternalAuthorized && (!sessionWallet || normalizedStakerAddress !== sessionWallet)) {
+        } else if (!isInternalAuthorized && (!authorizedWallet || normalizedStakerAddress !== authorizedWallet)) {
             return NextResponse.json(
                 { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
                 { status: 401 }

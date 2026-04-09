@@ -19,6 +19,7 @@ import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBountyMode } from '@/hooks/useBountyMode';
+import { buildBountyCreateMessage } from '@/lib/bounty-create-auth';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
 import { buildDareImageUploadMessage } from '@/lib/dare-image-auth';
@@ -362,8 +363,19 @@ function CreateDareContent() {
         throw new Error('Connect your wallet before deploying a dare');
       }
 
-      if (session && sessionWallet && sessionWallet !== connectedWallet) {
-        throw new Error('Wallet session mismatch. Please reconnect and sign in again.');
+      let walletAuthHeaders: Record<string, string> | undefined;
+      if (!sessionToken || !sessionWallet || sessionWallet !== connectedWallet) {
+        const issuedAt = new Date().toISOString();
+        const message = buildBountyCreateMessage({
+          walletAddress: connectedWallet,
+          issuedAt,
+        });
+        const signature = await signMessageAsync({ message });
+        walletAuthHeaders = {
+          'x-basedare-bounty-wallet': connectedWallet,
+          'x-basedare-bounty-signature': String(signature),
+          'x-basedare-bounty-issued-at': issuedAt,
+        };
       }
 
       const isNearbyDareEnabled = Boolean(data.isNearbyDare);
@@ -388,6 +400,7 @@ function CreateDareContent() {
         },
         {
           sessionToken,
+          authHeaders: walletAuthHeaders,
           isSimulationMode,
           publicClient,
           writeContractAsync,
