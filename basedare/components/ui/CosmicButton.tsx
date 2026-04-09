@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import './CosmicButton.css';
 
-type CosmicButtonVariant = 'gold' | 'blue';
+type CosmicButtonVariant = 'gold' | 'blue' | 'purple';
 type CosmicButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 type SharedProps = {
@@ -31,6 +31,7 @@ type CosmicButtonProps = CosmicButtonAsButton | CosmicButtonAsLink;
 const HUE_BY_VARIANT: Record<CosmicButtonVariant, number> = {
   gold: 42,
   blue: 214,
+  purple: 282,
 };
 
 export default function CosmicButton(props: CosmicButtonProps) {

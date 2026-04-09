@@ -760,7 +760,7 @@ export default function Dashboard() {
                 </span>
                 <CosmicButton
                   onClick={() => jumpToActivation(primaryActivation.id)}
-                  variant={primaryActivationState.label === 'Ready for Proof' ? 'gold' : 'blue'}
+                  variant={primaryActivationState.label === 'Ready for Proof' ? 'gold' : 'purple'}
                   size="md"
                   className="min-w-[178px]"
                 >
@@ -1077,7 +1077,7 @@ export default function Dashboard() {
                             }
                             router.push(`/dare/${dare.shortId || dare.id}`);
                           }}
-                          variant={loopState.label === 'Ready for Proof' ? 'gold' : 'blue'}
+                          variant={loopState.label === 'Ready for Proof' ? 'gold' : 'purple'}
                           size="sm"
                           className="min-w-[128px]"
                         >
