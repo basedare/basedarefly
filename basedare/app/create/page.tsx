@@ -19,7 +19,7 @@ import { useFeedback } from '@/hooks/useFeedback';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBountyMode } from '@/hooks/useBountyMode';
-import { buildBountyCreateMessage } from '@/lib/bounty-create-auth';
+import { BOUNTY_CREATE_WINDOW_MS, buildBountyCreateMessage } from '@/lib/bounty-create-auth';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
 import { trackClientEvent } from '@/lib/analytics';
@@ -102,6 +102,8 @@ type FormData = z.input<typeof CreateBountySchema>;
 interface SuccessData {
   dareId: string;
   simulated?: boolean;
+  txHash?: string;
+  syncPending?: boolean;
   awaitingClaim?: boolean;
   inviteLink?: string | null;
   claimDeadline?: string | null;
@@ -123,6 +125,14 @@ type PublicAppSettings = {
   sentinelEnabled: boolean;
   sentinelPausedReason: string | null;
 };
+
+type StoredBountyCreateAuth = {
+  walletAddress: string;
+  issuedAt: string;
+  signature: string;
+};
+
+const BOUNTY_CREATE_AUTH_STORAGE_KEY = 'basedare:bounty-create-auth';
 
 function CreateDareContent() {
   const searchParams = useSearchParams();
@@ -153,6 +163,40 @@ function CreateDareContent() {
     sentinelPausedReason: null,
   });
   const recommendationTrackedRef = useRef<SentinelRecommendationReason | null>(null);
+
+  const readStoredBountyCreateAuth = useCallback((walletAddress: string): StoredBountyCreateAuth | null => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const raw = window.sessionStorage.getItem(BOUNTY_CREATE_AUTH_STORAGE_KEY);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as StoredBountyCreateAuth;
+      if (
+        !parsed?.walletAddress ||
+        !parsed?.issuedAt ||
+        !parsed?.signature ||
+        parsed.walletAddress !== walletAddress
+      ) {
+        return null;
+      }
+
+      const issuedAtMs = Date.parse(parsed.issuedAt);
+      if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > BOUNTY_CREATE_WINDOW_MS) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const persistBountyCreateAuth = useCallback((payload: StoredBountyCreateAuth) => {
+    if (typeof window === 'undefined') return;
+
+    window.sessionStorage.setItem(BOUNTY_CREATE_AUTH_STORAGE_KEY, JSON.stringify(payload));
+  }, []);
 
   // Wallet & Balance Check
   const { address, isConnected } = useAccount();
@@ -366,12 +410,25 @@ function CreateDareContent() {
 
       let walletAuthHeaders: Record<string, string> | undefined;
       if (!sessionToken || !sessionWallet || sessionWallet !== connectedWallet) {
-        const issuedAt = new Date().toISOString();
-        const message = buildBountyCreateMessage({
-          walletAddress: connectedWallet,
-          issuedAt,
-        });
-        const signature = await signMessageAsync({ message });
+        const cachedAuth = readStoredBountyCreateAuth(connectedWallet);
+        const issuedAt = cachedAuth?.issuedAt ?? new Date().toISOString();
+        const signature =
+          cachedAuth?.signature ??
+          (await signMessageAsync({
+            message: buildBountyCreateMessage({
+              walletAddress: connectedWallet,
+              issuedAt,
+            }),
+          }));
+
+        if (!cachedAuth) {
+          persistBountyCreateAuth({
+            walletAddress: connectedWallet,
+            issuedAt,
+            signature: String(signature),
+          });
+        }
+
         walletAuthHeaders = {
           'x-basedare-bounty-wallet': connectedWallet,
           'x-basedare-bounty-signature': String(signature),
@@ -466,8 +523,14 @@ function CreateDareContent() {
       if (result.isNearbyDare) clearLocation();
 
       toast({
-        title: result.simulated ? '🧪 SIMULATION SUCCESS' : '✅ CONTRACT DEPLOYED',
-        description: `Dare ID: ${result.dareId}`,
+        title: result.syncPending
+          ? '⏳ ONCHAIN DEPLOYED'
+          : result.simulated
+            ? '🧪 SIMULATION SUCCESS'
+            : '✅ CONTRACT DEPLOYED',
+        description: result.syncPending
+          ? `Tx ${result.txHash?.slice(0, 10)}... landed. Syncing dare record now.`
+          : `Dare ID: ${result.dareId}`,
         duration: 6000,
       });
       reset();
@@ -590,6 +653,8 @@ function CreateDareContent() {
                   }`}>
                   {successData.awaitingClaim
                     ? 'Awaiting Claim'
+                    : successData.syncPending
+                      ? 'Syncing Dare Record'
                     : successData.simulated
                       ? 'Simulation Success'
                       : 'Contract Deployed'}
@@ -598,6 +663,8 @@ function CreateDareContent() {
                   }`}>
                   {successData.awaitingClaim
                     ? `Escrowed for ${successData.streamerTag}`
+                    : successData.syncPending
+                      ? `Onchain tx confirmed: ${successData.txHash?.slice(0, 12)}...`
                     : successData.streamerTag
                       ? `Dare ID: ${successData.dareId}`
                       : 'Open dare - anyone can complete!'}

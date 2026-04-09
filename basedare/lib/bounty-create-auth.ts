@@ -1,4 +1,5 @@
 export const BOUNTY_CREATE_WINDOW_MS = 5 * 60 * 1000;
+export const MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC = 100;
 
 type BountyCreateMessageParams = {
   walletAddress: string;

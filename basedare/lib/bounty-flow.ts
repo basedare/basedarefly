@@ -6,6 +6,7 @@ import {
   USDC_ADDRESS,
 } from '@/lib/contracts';
 import { getBountyModeSnapshot } from '@/lib/bounty-mode';
+import { MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC } from '@/lib/bounty-create-auth';
 
 export type BountyApprovalStatus = 'idle' | 'approving' | 'funding' | 'verifying';
 
@@ -33,6 +34,8 @@ export type BountyCreationInput = {
 export type BountyCreationResult = {
   dareId: string;
   simulated: boolean;
+  txHash?: string;
+  syncPending?: boolean;
   awaitingClaim?: boolean;
   inviteLink?: string | null;
   claimDeadline?: string | null;
@@ -42,6 +45,20 @@ export type BountyCreationResult = {
   isNearbyDare?: boolean;
   locationLabel?: string | null;
 };
+
+type RegisterBountyPayload = {
+  success?: boolean;
+  data?: {
+    id: string;
+    shortId?: string;
+    status?: string;
+    streamerHandle?: string | null;
+  };
+};
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 type PublicClientLike = {
   readContract: (...args: readonly unknown[]) => Promise<unknown>;
@@ -144,8 +161,10 @@ export async function submitBountyCreation(
     throw new Error(initData.error || 'Failed to initialize dare');
   }
 
-  const { dareId, onChainDareId, targetAddress, referrerAddress } = initData.data;
+  const { dareId, onChainDareId, targetAddress, referrerAddress, shortId } = initData.data;
   const amountInUnits = parseUnits(input.amount.toString(), 6);
+  const reusableAllowanceFloor = parseUnits(String(MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC), 6);
+  const approvalAmount = amountInUnits > reusableAllowanceFloor ? amountInUnits : reusableAllowanceFloor;
   const bountyContract = BOUNTY_CONTRACT_ADDRESS as `0x${string}`;
 
   const currentAllowance = (await publicClient.readContract({
@@ -162,7 +181,7 @@ export async function submitBountyCreation(
         address: USDC_ADDRESS,
         abi: USDC_ABI,
         functionName: 'approve',
-        args: [bountyContract, amountInUnits],
+        args: [bountyContract, approvalAmount],
       });
       await publicClient.waitForTransactionReceipt({ hash: approveTx });
     } catch (error) {
@@ -198,20 +217,46 @@ export async function submitBountyCreation(
   }
 
   options.onApprovalStatusChange?.('verifying');
-  const regRes = await fetch('/api/bounties/register', {
-    method: 'POST',
-    headers: jsonHeaders,
-    body: JSON.stringify({ dareId, txHash }),
-  });
-  const regData = await regRes.json();
+  let regData: RegisterBountyPayload | null = null;
+  let registerSucceeded = false;
 
-  if (!regData.success) {
-    throw new Error(`Dare created onchain (tx: ${txHash}), sync pending - contact support`);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const regRes = await fetch('/api/bounties/register', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ dareId, txHash }),
+    });
+    regData = await regRes.json().catch(() => null);
+
+    if (regRes.ok && regData?.success) {
+      registerSucceeded = true;
+      break;
+    }
+
+    if (attempt < 2) {
+      await sleep(900);
+    }
+  }
+
+  if (!registerSucceeded) {
+    return {
+      dareId,
+      simulated: false,
+      txHash,
+      syncPending: true,
+      awaitingClaim: false,
+      streamerTag: input.streamerTag,
+      shortId,
+      isOpenBounty: !input.streamerTag,
+      isNearbyDare: Boolean(requestBody.isNearbyDare),
+      locationLabel: (requestBody.locationLabel as string | undefined) ?? null,
+    };
   }
 
   return {
     dareId: regData.data.id,
     simulated: false,
+    txHash,
     awaitingClaim: regData.data.status === 'AWAITING_CLAIM',
     streamerTag: regData.data.streamerHandle,
     shortId: regData.data.shortId,
