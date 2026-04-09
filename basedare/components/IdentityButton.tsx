@@ -7,9 +7,48 @@ import { useFeedback } from '@/hooks/useFeedback';
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
   injected: { label: 'Browser Wallet (MetaMask/Brave)', icon: '🦊' },
+  metaMask: { label: 'MetaMask', icon: '🦊' },
+  brave: { label: 'Brave Wallet', icon: '🦁' },
+  uniswap: { label: 'Uniswap Extension', icon: '🦄' },
   coinbaseWalletSDK: { label: 'Coinbase Smart Wallet', icon: '🔵' },
   walletConnect: { label: 'WalletConnect', icon: '🔗' },
 };
+
+type ConnectorLike = {
+  id: string;
+  name: string;
+};
+
+function getConnectorMeta(connector: ConnectorLike) {
+  const id = connector.id.toLowerCase();
+  const name = connector.name.toLowerCase();
+
+  if (id.includes('coinbase') || name.includes('coinbase')) {
+    return { key: 'coinbase', label: CONNECTOR_META.coinbaseWalletSDK.label, icon: CONNECTOR_META.coinbaseWalletSDK.icon };
+  }
+
+  if (id.includes('walletconnect') || name.includes('walletconnect')) {
+    return { key: 'walletconnect', label: CONNECTOR_META.walletConnect.label, icon: CONNECTOR_META.walletConnect.icon };
+  }
+
+  if (id.includes('uniswap') || name.includes('uniswap')) {
+    return { key: 'uniswap', label: CONNECTOR_META.uniswap.label, icon: CONNECTOR_META.uniswap.icon };
+  }
+
+  if (id.includes('brave') || name.includes('brave')) {
+    return { key: 'brave', label: CONNECTOR_META.brave.label, icon: CONNECTOR_META.brave.icon };
+  }
+
+  if (id.includes('metamask') || name.includes('metamask')) {
+    return { key: 'metamask', label: CONNECTOR_META.metaMask.label, icon: CONNECTOR_META.metaMask.icon };
+  }
+
+  if (id.includes('injected') || name.includes('browser wallet')) {
+    return { key: 'injected', label: CONNECTOR_META.injected.label, icon: CONNECTOR_META.injected.icon };
+  }
+
+  return { key: `${id}:${name}`, label: connector.name, icon: '💼' };
+}
 
 export function IdentityButton() {
   const { address, isConnected } = useAccount();
@@ -18,6 +57,8 @@ export function IdentityButton() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const walletPickerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 8 });
   const { trigger } = useFeedback();
 
@@ -32,7 +73,12 @@ export function IdentityButton() {
 
   useEffect(() => {
     function handleClickOutside(event: PointerEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedTrigger = dropdownRef.current?.contains(target);
+      const clickedAccountMenu = accountMenuRef.current?.contains(target);
+      const clickedWalletPicker = walletPickerRef.current?.contains(target);
+
+      if (!clickedTrigger && !clickedAccountMenu && !clickedWalletPicker) {
         setShowDropdown(false);
         setShowWalletPicker(false);
       }
@@ -52,12 +98,17 @@ export function IdentityButton() {
     };
   }, [showDropdown, showWalletPicker, updateMenuPosition]);
 
-  // Filter and deduplicate connectors to ensure a clean UI
-  // Wagmi sometimes injects multiple 'injected' connectors depending on the browser
-  const uniqueConnectors = Array.from(new Map(connectors.map(c => [
-    c.id === 'injected' || c.id === 'metaMask' ? 'injected' : c.id,
-    c
-  ])).values());
+  // Filter and deduplicate connectors to ensure a clean UI.
+  // Multiple injected providers can surface at once; normalize them into
+  // distinct brand rows so the picker does not show duplicate generic entries.
+  const uniqueConnectors = Array.from(
+    new Map(
+      connectors.map((connector) => {
+        const meta = getConnectorMeta(connector);
+        return [meta.key, { connector, meta }] as const;
+      })
+    ).values()
+  );
 
   const handleClick = () => {
     if (isConnected) {
@@ -85,6 +136,7 @@ export function IdentityButton() {
 
   const accountMenu = showDropdown && isConnected ? (
     <div
+      ref={accountMenuRef}
       className="fixed w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
@@ -103,6 +155,7 @@ export function IdentityButton() {
 
   const walletPicker = showWalletPicker && !isConnected ? (
     <div
+      ref={walletPickerRef}
       className="fixed w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
@@ -115,15 +168,12 @@ export function IdentityButton() {
             No wallet providers detected. Install a wallet extension or open in a wallet browser.
           </div>
         )}
-        {uniqueConnectors.map(connector => {
-          const meta = CONNECTOR_META[connector.id] || { label: connector.name, icon: '💼' };
-          const finalMeta = connector.id.toLowerCase().includes('injected') || connector.id.toLowerCase().includes('metamask')
-            ? CONNECTOR_META.injected
-            : meta;
+        {uniqueConnectors.map(({ connector, meta }) => {
+          const finalMeta = meta;
 
           return (
             <button
-              key={connector.id}
+              key={`${meta.key}:${connector.id}`}
               onClick={() => handleConnectWallet(connector.id)}
               className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn"
             >
