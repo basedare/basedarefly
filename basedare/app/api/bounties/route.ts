@@ -21,11 +21,13 @@ import { getAppSettings } from '@/lib/app-settings';
 import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
 } from '@/lib/bounty-place';
 import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/sentinel';
+import { getPostFundingDareStatus } from '@/lib/dare-status';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -586,6 +588,15 @@ export async function POST(request: NextRequest) {
         }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
       }
 
+      if (dbDare.targetWalletAddress) {
+        await notifyTargetedDareReceived({
+          walletAddress: dbDare.targetWalletAddress,
+          title,
+          shortId,
+          bounty: amount,
+        });
+      }
+
       return NextResponse.json({
         success: true,
         simulated: true,
@@ -756,7 +767,12 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // 11. UPDATE PRISMA DATABASE WITH TX RESULT
     // -------------------------------------------------------------------------
-    const dareStatus = receipt.status !== 'success' ? 'FAILED' : (isAwaitingClaimOnChain ? 'AWAITING_CLAIM' : 'PENDING');
+    const dareStatus = receipt.status !== 'success'
+      ? 'FAILED'
+      : getPostFundingDareStatus({
+          isAwaitingClaim: isAwaitingClaimOnChain,
+          targetWalletAddress: targetWalletAddressOnChain,
+        });
 
     const dbDare = await prisma.dare.update({
       where: { id: dbDarePreCreate.id },
@@ -802,6 +818,15 @@ export async function POST(request: NextRequest) {
         pledgerAddress: stakerAddress,
         txHash,
       }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
+    }
+
+    if (dbDare.targetWalletAddress) {
+      await notifyTargetedDareReceived({
+        walletAddress: dbDare.targetWalletAddress,
+        title,
+        shortId,
+        bounty: amount,
+      });
     }
 
     // Build invite link for unclaimed tags (not for open bounties)

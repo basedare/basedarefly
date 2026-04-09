@@ -10,9 +10,11 @@ import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import CosmicButton from "@/components/ui/CosmicButton";
 import InitProtocolButton from "@/components/InitProtocolButton";
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { coinbaseWallet } from 'wagmi/connectors';
 import { useSession } from 'next-auth/react';
+import { buildDareResponseMessage, DARE_RESPONSE_WINDOW_MS } from '@/lib/dare-response-auth';
+import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 
 interface Dare {
   id: string;
@@ -117,6 +119,13 @@ interface FootprintStats {
   } | null;
 }
 
+type StoredDareResponseAuth = {
+  walletAddress: string;
+  dareId: string;
+  issuedAt: string;
+  signature: string;
+};
+
 const raisedPanelClass =
   "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
 
@@ -206,6 +215,17 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
     };
   }
 
+  if (isAssignedCreator && dare.status === DARE_STATUS_PENDING_ACCEPTANCE) {
+    return {
+      label: 'Respond Now',
+      detail:
+        'You were directly dared. Accept to unlock proof submission, or decline so the creator gets a clear answer.',
+      cta: 'Respond',
+      tone: 'yellow',
+      priority: 0,
+    };
+  }
+
   if (isAssignedCreator && dare.status === 'PENDING') {
     return {
       label: 'Ready for Proof',
@@ -215,6 +235,16 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
       cta: 'Submit Proof',
       tone: 'cyan',
       priority: 0,
+    };
+  }
+
+  if (isAssignedCreator && dare.status === DARE_STATUS_DECLINED) {
+    return {
+      label: 'Declined',
+      detail: 'You declined this dare. The creator has been notified.',
+      cta: 'Open Brief',
+      tone: 'red',
+      priority: 5,
     };
   }
 
@@ -289,6 +319,7 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const { connect, isPending: isConnecting } = useConnect();
   const { data: session } = useSession();
   const [fundedDares, setFundedDares] = useState<Dare[]>([]);
@@ -304,6 +335,9 @@ export default function Dashboard() {
   const [opportunitiesReason, setOpportunitiesReason] = useState<string | null>(null);
   const [claimingOpportunityId, setClaimingOpportunityId] = useState<string | null>(null);
   const [claimFeedback, setClaimFeedback] = useState<Record<string, string>>({});
+  const [activationFeedback, setActivationFeedback] = useState<Record<string, string>>({});
+  const [activationActionId, setActivationActionId] = useState<string | null>(null);
+  const [activationActionType, setActivationActionType] = useState<'ACCEPT' | 'DECLINE' | null>(null);
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
   const activationsRef = useRef<HTMLDivElement | null>(null);
   const [stats, setStats] = useState({
@@ -315,6 +349,8 @@ export default function Dashboard() {
 
   const sessionData = session as SessionPlatformData | null;
   const sessionToken = sessionData?.token ?? null;
+  const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
+  const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
   const connectedProvider = sessionData?.provider || null;
   const connectedHandle = sessionData?.platformHandle?.replace(/^@/, '').trim() || null;
   const identityHandle =
@@ -350,6 +386,81 @@ export default function Dashboard() {
   // Format wallet address for display
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const readStoredDareResponseAuth = (walletAddress: string, dareId: string): StoredDareResponseAuth | null => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const raw = window.sessionStorage.getItem(`basedare:dare-response:${dareId}`);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as StoredDareResponseAuth;
+      if (
+        !parsed?.walletAddress ||
+        !parsed?.issuedAt ||
+        !parsed?.signature ||
+        !parsed?.dareId ||
+        parsed.walletAddress !== walletAddress ||
+        parsed.dareId !== dareId
+      ) {
+        return null;
+      }
+
+      const issuedAtMs = Date.parse(parsed.issuedAt);
+      if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > DARE_RESPONSE_WINDOW_MS) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const persistDareResponseAuth = (payload: StoredDareResponseAuth) => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(`basedare:dare-response:${payload.dareId}`, JSON.stringify(payload));
+  };
+
+  const getDareResponseAuthHeaders = async (dareId: string): Promise<Record<string, string>> => {
+    const connectedWallet = address?.toLowerCase() ?? null;
+    const headers: Record<string, string> = {};
+
+    if (sessionToken) {
+      headers.Authorization = `Bearer ${sessionToken}`;
+    }
+
+    if (!connectedWallet || (sessionWallet && sessionWallet === connectedWallet)) {
+      return headers;
+    }
+
+    const cachedAuth = readStoredDareResponseAuth(connectedWallet, dareId);
+    const issuedAt = cachedAuth?.issuedAt ?? new Date().toISOString();
+    const signature =
+      cachedAuth?.signature ??
+      (await signMessageAsync({
+        message: buildDareResponseMessage({
+          walletAddress: connectedWallet,
+          dareId,
+          issuedAt,
+        }),
+      }));
+
+    if (!cachedAuth) {
+      persistDareResponseAuth({
+        walletAddress: connectedWallet,
+        dareId,
+        issuedAt,
+        signature: String(signature),
+      });
+    }
+
+    headers['x-basedare-dare-wallet'] = connectedWallet;
+    headers['x-basedare-dare-signature'] = String(signature);
+    headers['x-basedare-dare-issued-at'] = issuedAt;
+
+    return headers;
   };
 
   // Handle wallet connection
@@ -405,7 +516,7 @@ export default function Dashboard() {
         setForMeDares(forMeData);
 
         // Calculate stats from funded dares
-        const active = fundedData.filter((d: Dare) => d.status === 'PENDING').length;
+        const active = fundedData.filter((d: Dare) => d.status === 'PENDING' || d.status === DARE_STATUS_PENDING_ACCEPTANCE).length;
         const completed = fundedData.filter((d: Dare) => d.status === 'VERIFIED').length;
         const total = fundedData.reduce((sum: number, d: Dare) => sum + d.bounty, 0);
 
@@ -522,12 +633,72 @@ export default function Dashboard() {
     }
   };
 
+  const handleActivationResponse = async (dare: Dare, action: 'ACCEPT' | 'DECLINE') => {
+    if (!address) return;
+
+    try {
+      setActivationActionId(dare.id);
+      setActivationActionType(action);
+      setActivationFeedback((current) => ({ ...current, [dare.id]: '' }));
+
+      const response = await fetch(`/api/dares/${dare.id}/respond`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getDareResponseAuthHeaders(dare.id)),
+        },
+        body: JSON.stringify({
+          action,
+          walletAddress: address,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!payload.success) {
+        throw new Error(payload.error || 'Failed to respond to dare');
+      }
+
+      setForMeDares((current) =>
+        current.map((entry) =>
+          entry.id === dare.id
+            ? {
+                ...entry,
+                status: payload.data.status,
+                claimedBy: payload.data.claimedBy,
+                claimedAt: payload.data.claimedAt,
+                updatedAt: new Date().toISOString(),
+              }
+            : entry
+        )
+      );
+
+      setActivationFeedback((current) => ({
+        ...current,
+        [dare.id]: payload.data.message,
+      }));
+    } catch (error) {
+      setActivationFeedback((current) => ({
+        ...current,
+        [dare.id]: error instanceof Error ? error.message : 'Failed to respond to dare',
+      }));
+    } finally {
+      setActivationActionId(null);
+      setActivationActionType(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
         return (
           <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30 flex items-center gap-1">
             <Clock className="w-3 h-3" /> Pending
+          </span>
+        );
+      case DARE_STATUS_PENDING_ACCEPTANCE:
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-fuchsia-500/20 text-fuchsia-200 rounded-full border border-fuchsia-500/30 flex items-center gap-1">
+            <Zap className="w-3 h-3" /> Waiting for response
           </span>
         );
       case 'VERIFIED':
@@ -552,6 +723,12 @@ export default function Dashboard() {
         return (
           <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-400 rounded-full border border-red-500/30 flex items-center gap-1">
             <XCircle className="w-3 h-3" /> Failed
+          </span>
+        );
+      case DARE_STATUS_DECLINED:
+        return (
+          <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-300 rounded-full border border-red-500/30 flex items-center gap-1">
+            <XCircle className="w-3 h-3" /> Declined
           </span>
         );
       default:
@@ -751,6 +928,8 @@ export default function Dashboard() {
                 <p className="mt-1 text-sm text-white/62">
                   {primaryActivationState.label === 'Ready for Proof'
                     ? 'You have been picked for this activation. Open it and submit proof.'
+                    : primaryActivationState.label === 'Respond Now'
+                      ? 'You have been directly dared. Accept or decline so the state is crystal clear.'
                     : primaryActivationState.detail}
                 </p>
               </div>
@@ -765,7 +944,11 @@ export default function Dashboard() {
                   className="min-w-[178px]"
                 >
                   <Zap className="h-4 w-4" />
-                  {primaryActivationState.label === 'Ready for Proof' ? 'Open & Submit Proof' : 'Open Activation'}
+                  {primaryActivationState.label === 'Ready for Proof'
+                    ? 'Open & Submit Proof'
+                    : primaryActivationState.label === 'Respond Now'
+                      ? 'Review Dare'
+                      : 'Open Activation'}
                 </CosmicButton>
               </div>
             </div>
@@ -1071,7 +1254,7 @@ export default function Dashboard() {
                         </span>
                         <CosmicButton
                           onClick={() => {
-                            if (loopState.label === 'Ready for Proof') {
+                            if (loopState.label === 'Ready for Proof' || loopState.label === 'Respond Now') {
                               setExpandedActivationId(dare.id);
                               return;
                             }
@@ -1081,7 +1264,11 @@ export default function Dashboard() {
                           size="sm"
                           className="min-w-[128px]"
                         >
-                          {loopState.label === 'Ready for Proof' ? 'Submit proof' : 'Open'}
+                          {loopState.label === 'Ready for Proof'
+                            ? 'Submit proof'
+                            : loopState.label === 'Respond Now'
+                              ? 'Respond'
+                              : 'Open'}
                         </CosmicButton>
                       </div>
                     </div>
@@ -1089,13 +1276,41 @@ export default function Dashboard() {
                     {isExpanded ? (
                       <div className={`${insetWellClass} m-3 border border-white/8 px-4 py-4`}>
                         <p className="text-sm text-white/60">{loopState.detail}</p>
+                        {activationFeedback[dare.id] ? (
+                          <div className="mt-3 rounded-[16px] border border-green-400/18 bg-green-500/[0.07] px-3 py-3 text-sm text-green-200">
+                            {activationFeedback[dare.id]}
+                          </div>
+                        ) : null}
                         {dare.moderatorNote && (dare.status === 'FAILED' || dare.status === 'PENDING_REVIEW') ? (
                           <div className="mt-3 rounded-[18px] border border-amber-300/16 bg-amber-500/[0.06] px-3 py-3">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">Review Note</p>
                             <p className="mt-1 text-sm text-white/74">{dare.moderatorNote}</p>
                           </div>
                         ) : null}
-                        {dare.status === 'PENDING' && loopState.label === 'Ready for Proof' ? (
+                        {dare.status === DARE_STATUS_PENDING_ACCEPTANCE && loopState.label === 'Respond Now' ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => handleActivationResponse(dare, 'ACCEPT')}
+                              disabled={activationActionId === dare.id}
+                              className={volumetricButtonPurple}
+                            >
+                              {activationActionId === dare.id && activationActionType === 'ACCEPT' ? 'Accepting...' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => handleActivationResponse(dare, 'DECLINE')}
+                              disabled={activationActionId === dare.id}
+                              className={volumetricButtonNeutral}
+                            >
+                              {activationActionId === dare.id && activationActionType === 'DECLINE' ? 'Declining...' : 'Decline'}
+                            </button>
+                            <button
+                              onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
+                              className={volumetricButtonNeutral}
+                            >
+                              Open brief
+                            </button>
+                          </div>
+                        ) : dare.status === 'PENDING' && loopState.label === 'Ready for Proof' ? (
                           <div className="mt-4">
                             <SubmitEvidence
                               dareId={dare.id}
@@ -1231,6 +1446,11 @@ export default function Dashboard() {
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
+                          {dare.status === DARE_STATUS_PENDING_ACCEPTANCE ? (
+                            <div className="rounded-[16px] border border-fuchsia-300/18 bg-fuchsia-500/[0.07] px-3 py-3 text-sm text-fuchsia-100">
+                              Waiting for {dare.streamerHandle || 'the target'} to accept or decline.
+                            </div>
+                          ) : null}
                           <button
                             onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
                             className={volumetricButtonPurple}

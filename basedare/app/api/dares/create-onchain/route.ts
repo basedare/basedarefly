@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { extractDareIdFromReceipt } from '@/lib/contracts/utils';
 import type { Address } from 'viem';
+import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
+import { getPostFundingDareStatus } from '@/lib/dare-status';
 
 const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
 
@@ -94,24 +96,23 @@ export async function POST(request: NextRequest) {
     await prisma.dare.update({
       where: { id: dbDare.id },
       data: {
-        status: receipt.status === 'success' ? 'PENDING' : 'FAILED',
+        status: receipt.status === 'success'
+          ? getPostFundingDareStatus({
+              isAwaitingClaim: false,
+              targetWalletAddress: streamerAddress,
+            })
+          : 'FAILED',
         txHash: hash,
         onChainDareId: actualOnChainDareId?.toString() ?? null,
       },
     });
 
-    // Create Notification if successful and we have a target streamer
     if (receipt.status === 'success' && streamerAddress) {
-      // Find the streamer tag to get their wallet address or use the provided address
-
-      await prisma.notification.create({
-        data: {
-          wallet: streamerAddress.toLowerCase(),
-          type: 'DARE_CREATED',
-          title: 'New Dare Received!',
-          message: `You have a new dare: "${title || 'On-chain dare'}" for ${amount} USDC`,
-          link: '/dashboard',
-        }
+      await notifyTargetedDareReceived({
+        walletAddress: streamerAddress,
+        title: title || 'On-chain dare',
+        shortId: dbDare.shortId || dbDare.id,
+        bounty: amount,
       });
     }
 

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { getPostFundingDareStatus } from '@/lib/dare-status';
 
 function generateShortId(length = 8): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -50,7 +51,10 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
   const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const shortId = generateShortId();
-  const dareStatus = isAwaitingClaim ? 'AWAITING_CLAIM' : 'PENDING';
+  const dareStatus = getPostFundingDareStatus({
+    isAwaitingClaim,
+    targetWalletAddress: input.tagVerified ? input.targetWalletAddress || null : null,
+  });
 
   const dare = await db.dare.create({
     data: {

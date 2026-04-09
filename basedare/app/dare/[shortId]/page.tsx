@@ -19,6 +19,7 @@ import SentinelBadge from '@/components/SentinelBadge';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 import { buildXSharePayload } from '@/lib/social-share';
+import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -84,6 +85,8 @@ function statusConfig(status: string) {
   if (s === 'VERIFIED' || s === 'COMPLETED') return { label: 'VERIFIED', cls: 'bg-green-500/20 border-green-500/40 text-green-400' };
   if (s === 'EXPIRED' || s === 'FAILED') return { label: 'EXPIRED', cls: 'bg-gray-500/20 border-gray-500/40 text-gray-400' };
   if (s === 'PENDING_REVIEW') return { label: 'UNDER REVIEW', cls: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' };
+  if (s === DARE_STATUS_PENDING_ACCEPTANCE) return { label: 'WAITING FOR RESPONSE', cls: 'bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-200' };
+  if (s === DARE_STATUS_DECLINED) return { label: 'DECLINED', cls: 'bg-red-500/20 border-red-500/40 text-red-300' };
   return { label: 'LIVE', cls: 'bg-red-500/20 border-red-500/40 text-red-400' };
 }
 

@@ -5,6 +5,8 @@ import { createPublicClient, http, decodeEventLog, isAddress, type Address } fro
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { generateOnChainDareId } from '@/lib/dare-id';
+import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
+import { getPostFundingDareStatus } from '@/lib/dare-status';
 
 const RegisterBountySchema = z.object({
     dareId: z.string().min(1),
@@ -120,7 +122,10 @@ export async function POST(request: NextRequest) {
         const updatedDare = await prisma.dare.update({
             where: { id: dareId },
             data: {
-                status: 'PENDING',
+                status: getPostFundingDareStatus({
+                    isAwaitingClaim: false,
+                    targetWalletAddress: dare.targetWalletAddress,
+                }),
                 txHash,
                 onChainDareId: actualOnChainDareId || expectedOnChainDareId
             },
@@ -129,8 +134,20 @@ export async function POST(request: NextRequest) {
                 shortId: true,
                 status: true,
                 streamerHandle: true,
+                title: true,
+                bounty: true,
+                targetWalletAddress: true,
             }
         });
+
+        if (updatedDare.targetWalletAddress) {
+            await notifyTargetedDareReceived({
+                walletAddress: updatedDare.targetWalletAddress,
+                title: updatedDare.title,
+                shortId: updatedDare.shortId || updatedDare.id,
+                bounty: updatedDare.bounty,
+            });
+        }
 
         return NextResponse.json({
             success: true,

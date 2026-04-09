@@ -3,6 +3,7 @@ import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { BOUNTY_CONTRACT_ADDRESS, CONTRACT_VALIDATION, publicClient } from '@/lib/contracts';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { prisma } from '@/lib/prisma';
+import { getPostFundingDareStatus } from '@/lib/dare-status';
 
 const bountyFundedEvent = parseAbiItem(
   'event BountyFunded(uint256 indexed dareId, address indexed backer, uint256 amount)'
@@ -73,7 +74,10 @@ export async function reconcileFundingDare<T extends FundingReconciliationDare>(
     const reconciled = await prisma.dare.update({
       where: { id: dare.id },
       data: {
-        status: 'PENDING',
+        status: getPostFundingDareStatus({
+          isAwaitingClaim: false,
+          targetWalletAddress: dare.targetWalletAddress,
+        }),
         onChainDareId: expectedOnChainDareId,
         txHash: latestFunding?.transactionHash ?? dare.txHash ?? null,
       },
