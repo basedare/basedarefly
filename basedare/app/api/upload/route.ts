@@ -1,37 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
 import {
   MediaUploadError,
   uploadPublicMediaFile,
   validateSupportedMediaFile,
 } from '@/lib/media-upload';
-
-type UploadSession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as UploadSession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-  return wallet.toLowerCase();
-}
 
 export const config = {
   api: {
@@ -43,14 +18,7 @@ const PROOF_UPLOADABLE_STATUSES = new Set(['PENDING']);
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionWallet = await getVerifiedSessionWallet(request);
     const isInternalAuthorized = isInternalApiAuthorized(request);
-    if (!sessionWallet && !isInternalAuthorized) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -104,11 +72,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Dare not found' }, { status: 404 });
     }
 
+    const authorizedWallet = isInternalAuthorized
+      ? null
+      : await getAuthorizedProofSubmitterWallet(request, {
+          dareId,
+          authorizedWallets: [
+            dare.stakerAddress,
+            dare.targetWalletAddress,
+            dare.claimedBy,
+          ],
+        });
+
+    if (!authorizedWallet && !isInternalAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const isAuthorized =
       isInternalAuthorized ||
-      dare.stakerAddress?.toLowerCase() === sessionWallet ||
-      dare.targetWalletAddress?.toLowerCase() === sessionWallet ||
-      dare.claimedBy?.toLowerCase() === sessionWallet;
+      dare.stakerAddress?.toLowerCase() === authorizedWallet ||
+      dare.targetWalletAddress?.toLowerCase() === authorizedWallet ||
+      dare.claimedBy?.toLowerCase() === authorizedWallet;
 
     if (!isAuthorized) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

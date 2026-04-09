@@ -7,14 +7,13 @@ import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { alertError, alertSentinelReviewRequired, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
+import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -45,14 +44,6 @@ type RefereeBalanceClient = {
   getBalance: (args: { address: Address }) => Promise<bigint>;
 };
 
-type VerifySession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
-
 // ============================================================================
 // ZOD VALIDATION
 // ============================================================================
@@ -67,21 +58,6 @@ const VerifyProofSchema = z.object({
     timestamp: z.number().optional(),
   }).optional(),
 });
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as VerifySession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-  return wallet.toLowerCase();
-}
 
 // ============================================================================
 // SERVER-SIDE WALLET CLIENT (Referee)
@@ -378,19 +354,10 @@ function mockSunderReputation(streamerHandle: string): void {
 
 export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
-  // 0a. AUTHENTICATION - Internal key OR authenticated session token
+  // 0a. AUTHENTICATION - Internal key OR authenticated wallet/session
   // -------------------------------------------------------------------------
   const internalAuthError = verifyInternalApiKey(req);
   const isInternalAuthorized = !internalAuthError;
-  const sessionWallet = await getVerifiedSessionWallet(req);
-  const isSessionAuthorized = Boolean(sessionWallet);
-
-  if (!isInternalAuthorized && !isSessionAuthorized) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
 
   // -------------------------------------------------------------------------
   // 0b. RATE LIMITING - Prevent abuse of AI Referee
@@ -448,12 +415,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const authorizedWallet = isInternalAuthorized
+      ? null
+      : await getAuthorizedProofSubmitterWallet(req, {
+          dareId,
+          authorizedWallets: [
+            dare.stakerAddress,
+            dare.targetWalletAddress,
+            dare.claimedBy,
+          ],
+        });
+
+    if (!authorizedWallet && !isInternalAuthorized) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     if (
       !isInternalAuthorized &&
-      sessionWallet &&
-      dare.stakerAddress?.toLowerCase() !== sessionWallet &&
-      dare.targetWalletAddress?.toLowerCase() !== sessionWallet &&
-      dare.claimedBy?.toLowerCase() !== sessionWallet
+      dare.stakerAddress?.toLowerCase() !== authorizedWallet &&
+      dare.targetWalletAddress?.toLowerCase() !== authorizedWallet &&
+      dare.claimedBy?.toLowerCase() !== authorizedWallet
     ) {
       return NextResponse.json(
         { success: false, error: 'Forbidden', code: 'FORBIDDEN' },

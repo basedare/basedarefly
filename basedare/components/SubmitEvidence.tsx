@@ -3,9 +3,11 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useAccount, useSignMessage } from 'wagmi';
 import { useToast } from '@/components/ui/use-toast';
 import ShareWinButton from '@/components/ShareWinButton';
 import CosmicButton from '@/components/ui/CosmicButton';
+import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
 
 type VerificationStatus =
   | 'idle'
@@ -26,6 +28,15 @@ interface SubmitEvidenceProps {
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
+type StoredProofSubmitAuth = {
+  walletAddress: string;
+  dareId: string;
+  issuedAt: string;
+  signature: string;
+};
+
+const buildProofSubmitStorageKey = (dareId: string) => `basedare:proof-submit-auth:${dareId}`;
+
 export default function SubmitEvidence({
   dareId,
   dareTitle,
@@ -36,6 +47,8 @@ export default function SubmitEvidence({
   onVerificationComplete,
 }: SubmitEvidenceProps) {
   const { data: session } = useSession();
+  const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<VerificationStatus>('idle');
@@ -50,6 +63,84 @@ export default function SubmitEvidence({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+  const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const raw = window.sessionStorage.getItem(buildProofSubmitStorageKey(dareId));
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as StoredProofSubmitAuth;
+      if (
+        !parsed?.walletAddress ||
+        !parsed?.issuedAt ||
+        !parsed?.signature ||
+        !parsed?.dareId ||
+        parsed.walletAddress !== walletAddress ||
+        parsed.dareId !== dareId
+      ) {
+        return null;
+      }
+
+      const issuedAtMs = Date.parse(parsed.issuedAt);
+      if (!Number.isFinite(issuedAtMs) || Date.now() - issuedAtMs > PROOF_SUBMIT_WINDOW_MS) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const persistProofAuth = (payload: StoredProofSubmitAuth) => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(buildProofSubmitStorageKey(dareId), JSON.stringify(payload));
+  };
+
+  const getProofAuthHeaders = async (): Promise<Record<string, string>> => {
+    const authToken = (session as { token?: string } | null)?.token;
+    const sessionWalletRaw = (session as { walletAddress?: string | null } | null)?.walletAddress;
+    const sessionWallet = sessionWalletRaw?.toLowerCase() ?? null;
+    const connectedWallet = address?.toLowerCase() ?? null;
+    const headers: Record<string, string> = {};
+
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
+    if (!connectedWallet || (sessionWallet && sessionWallet === connectedWallet)) {
+      return headers;
+    }
+
+    const cachedAuth = readStoredProofAuth(connectedWallet);
+    const issuedAt = cachedAuth?.issuedAt ?? new Date().toISOString();
+    const signature =
+      cachedAuth?.signature ??
+      (await signMessageAsync({
+        message: buildProofSubmitMessage({
+          walletAddress: connectedWallet,
+          dareId,
+          issuedAt,
+        }),
+      }));
+
+    if (!cachedAuth) {
+      persistProofAuth({
+        walletAddress: connectedWallet,
+        dareId,
+        issuedAt,
+        signature: String(signature),
+      });
+    }
+
+    headers['x-basedare-proof-wallet'] = connectedWallet;
+    headers['x-basedare-proof-signature'] = String(signature);
+    headers['x-basedare-proof-issued-at'] = issuedAt;
+
+    return headers;
+  };
+
   const parseJsonSafe = async (response: Response): Promise<Record<string, unknown>> => {
     try {
       return (await response.json()) as Record<string, unknown>;
@@ -137,7 +228,7 @@ export default function SubmitEvidence({
     setError(null);
 
     try {
-      const authToken = (session as { token?: string } | null)?.token;
+      const proofAuthHeaders = await getProofAuthHeaders();
       // Step 1: Upload file to IPFS via Pinata
       const formData = new FormData();
       formData.append('file', file);
@@ -145,9 +236,7 @@ export default function SubmitEvidence({
 
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
-        headers: {
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
+        headers: proofAuthHeaders,
         body: formData,
       });
 
@@ -180,7 +269,7 @@ export default function SubmitEvidence({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...proofAuthHeaders,
         },
         body: JSON.stringify({
           dareId,
@@ -309,12 +398,12 @@ export default function SubmitEvidence({
     }
 
     try {
-      const authToken = (session as { token?: string } | null)?.token;
+      const proofAuthHeaders = await getProofAuthHeaders();
       const response = await fetch('/api/verify-proof', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...proofAuthHeaders,
         },
         body: JSON.stringify({
           dareId,
