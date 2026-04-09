@@ -67,7 +67,7 @@ async function resolveTagToAddress(
         select: { walletAddress: true, status: true },
     });
 
-    if (verifiedTag && verifiedTag.status === 'VERIFIED') {
+    if (verifiedTag && ['ACTIVE', 'VERIFIED'].includes(verifiedTag.status)) {
         return {
             address: verifiedTag.walletAddress as Address,
             simulated: false,

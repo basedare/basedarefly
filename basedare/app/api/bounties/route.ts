@@ -92,8 +92,8 @@ async function resolveTagToAddress(tag: string): Promise<{ address: Address | nu
     select: { walletAddress: true, status: true },
   });
 
-  if (verifiedTag && verifiedTag.status === 'VERIFIED') {
-    console.log(`[TAG] Resolved ${normalizedTag} → ${verifiedTag.walletAddress} (verified)`);
+  if (verifiedTag && ['ACTIVE', 'VERIFIED'].includes(verifiedTag.status)) {
+    console.log(`[TAG] Resolved ${normalizedTag} → ${verifiedTag.walletAddress} (${verifiedTag.status.toLowerCase()})`);
     return {
       address: verifiedTag.walletAddress as Address,
       simulated: false,
