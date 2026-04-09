@@ -3,6 +3,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
 
 interface LivePotBubbleProps {
@@ -11,6 +12,7 @@ interface LivePotBubbleProps {
 
 export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const { isControlMode } = useView(); // Use global context
+  const pathname = usePathname();
   const [translateY, setTranslateY] = useState(0);
   const [triggerBounce, setTriggerBounce] = useState(false);
   const potRef = useRef<HTMLDivElement>(null);
@@ -64,6 +66,10 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [triggerBounce]);
+
+  if (pathname !== '/') {
+    return null;
+  }
 
   return (
     <motion.div

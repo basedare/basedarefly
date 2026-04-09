@@ -22,7 +22,6 @@ import { useBountyMode } from '@/hooks/useBountyMode';
 import { buildBountyCreateMessage } from '@/lib/bounty-create-auth';
 import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
-import { buildDareImageUploadMessage } from '@/lib/dare-image-auth';
 import { trackClientEvent } from '@/lib/analytics';
 import {
   formatSentinelPausedMessage,
@@ -114,8 +113,10 @@ interface SuccessData {
 }
 
 type DareImageUploadState = {
-  url: string;
-  cid: string;
+  previewUrl: string;
+  file: File | null;
+  uploadedUrl?: string;
+  uploadedCid?: string;
 };
 
 type PublicAppSettings = {
@@ -145,7 +146,7 @@ function CreateDareContent() {
   const publicClient = usePublicClient();
   const { signMessageAsync } = useSignMessage();
   const [dareImage, setDareImage] = useState<DareImageUploadState | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [, setIsUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [appSettings, setAppSettings] = useState<PublicAppSettings>({
     sentinelEnabled: true,
@@ -378,6 +379,47 @@ function CreateDareContent() {
         };
       }
 
+      let uploadedDareImage = dareImage;
+      if (dareImage?.file && (!dareImage.uploadedUrl || !dareImage.uploadedCid)) {
+        setIsUploadingImage(true);
+        setImageError(null);
+
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', dareImage.file);
+        uploadFormData.append('walletAddress', connectedWallet);
+
+        const uploadHeaders: Record<string, string> = {
+          ...(walletAuthHeaders ?? {}),
+        };
+
+        if (sessionToken) {
+          uploadHeaders.Authorization = `Bearer ${sessionToken}`;
+        }
+
+        const uploadResponse = await fetch('/api/upload/dare-image', {
+          method: 'POST',
+          headers: uploadHeaders,
+          body: uploadFormData,
+        });
+
+        const uploadPayload = await uploadResponse.json().catch(() => null) as {
+          success?: boolean;
+          error?: string;
+          data?: { url: string; cid: string };
+        } | null;
+
+        if (!uploadResponse.ok || !uploadPayload?.success || !uploadPayload.data) {
+          throw new Error(uploadPayload?.error || 'Failed to upload dare image');
+        }
+
+        uploadedDareImage = {
+          ...dareImage,
+          uploadedUrl: uploadPayload.data.url,
+          uploadedCid: uploadPayload.data.cid,
+        };
+        setDareImage(uploadedDareImage);
+      }
+
       const isNearbyDareEnabled = Boolean(data.isNearbyDare);
       const result = await submitBountyCreation(
         {
@@ -393,8 +435,8 @@ function CreateDareContent() {
           locationLabel: data.locationLabel || undefined,
           discoveryRadiusKm: data.discoveryRadiusKm ?? 5,
           creationContext: 'CREATE',
-          imageUrl: dareImage?.url,
-          imageCid: dareImage?.cid,
+          imageUrl: uploadedDareImage?.uploadedUrl,
+          imageCid: uploadedDareImage?.uploadedCid,
           requireSentinel: selectedSentinel,
           stakerAddress: connectedWallet,
         },
@@ -441,6 +483,7 @@ function CreateDareContent() {
         description: message,
       });
     } finally {
+      setIsUploadingImage(false);
       setIsSubmitting(false);
       setApprovalStatus('idle');
     }
@@ -470,63 +513,40 @@ function CreateDareContent() {
       event.target.value = '';
       return;
     }
-
-    setIsUploadingImage(true);
     setImageError(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('walletAddress', connectedWallet);
-
-      const headers: Record<string, string> = {};
-      if (sessionToken) {
-        headers.Authorization = `Bearer ${sessionToken}`;
-      } else {
-        const issuedAt = new Date().toISOString();
-        const message = buildDareImageUploadMessage({
-          walletAddress: connectedWallet,
-          issuedAt,
-        });
-        const signature = await signMessageAsync({ message });
-        headers['x-basedare-dare-image-wallet'] = connectedWallet;
-        headers['x-basedare-dare-image-signature'] = String(signature);
-        headers['x-basedare-dare-image-issued-at'] = issuedAt;
+    setDareImage((current) => {
+      if (current?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(current.previewUrl);
       }
 
-      const response = await fetch('/api/upload/dare-image', {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
+      return {
+        previewUrl: URL.createObjectURL(file),
+        file,
+      };
+    });
 
-      const payload = await response.json().catch(() => null) as {
-        success?: boolean;
-        error?: string;
-        data?: DareImageUploadState;
-      } | null;
-
-      if (!response.ok || !payload?.success || !payload.data) {
-        throw new Error(payload?.error || 'Failed to upload dare image');
-      }
-
-      setDareImage(payload.data);
-      setImageError(null);
-    } catch (error: unknown) {
-      setImageError(error instanceof Error ? error.message : 'Failed to upload dare image');
-    } finally {
-      setIsUploadingImage(false);
-      event.target.value = '';
-    }
+    event.target.value = '';
   };
 
   const clearDareImage = () => {
+    if (dareImage?.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(dareImage.previewUrl);
+    }
     setDareImage(null);
     setImageError(null);
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (dareImage?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(dareImage.previewUrl);
+      }
+    };
+  }, [dareImage]);
 
   return (
     <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8 md:py-24">
@@ -768,14 +788,10 @@ function CreateDareContent() {
                       <button
                         type="button"
                         onClick={() => imageInputRef.current?.click()}
-                        disabled={isUploadingImage}
+                        disabled={isSubmitting}
                         className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-200 transition hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isUploadingImage ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <ImagePlus className="h-3.5 w-3.5" />
-                        )}
+                        <ImagePlus className="h-3.5 w-3.5" />
                         {dareImage ? 'Replace' : 'Upload'}
                       </button>
                       {dareImage && (
@@ -793,7 +809,7 @@ function CreateDareContent() {
                   {dareImage && (
                     <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/30">
                       <img
-                        src={dareImage.url}
+                        src={dareImage.previewUrl}
                         alt="Dare cover preview"
                         className="h-40 w-full object-cover"
                       />

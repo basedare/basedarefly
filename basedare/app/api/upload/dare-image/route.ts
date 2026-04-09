@@ -5,6 +5,7 @@ import {
   uploadPublicMediaFile,
   validateSupportedImageFile,
 } from '@/lib/media-upload';
+import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { getAuthorizedDareImageWallet } from '@/lib/dare-image-auth-server';
 
 export const config = {
@@ -37,7 +38,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Wallet address is required.' }, { status: 400 });
     }
 
-    const authorizedWallet = await getAuthorizedDareImageWallet(request, walletAddress);
+    const authorizedWallet =
+      (await getAuthorizedDareImageWallet(request, walletAddress)) ??
+      (await getAuthorizedBountyWallet(request, walletAddress));
     if (!authorizedWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
