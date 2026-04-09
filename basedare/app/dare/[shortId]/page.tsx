@@ -264,7 +264,6 @@ export default function DareDetailPage() {
         },
         body: JSON.stringify({
           walletAddress: address,
-          displayName: `${address.slice(0, 6)}...${address.slice(-4)}`,
           body: commentBody.trim(),
         }),
       });
