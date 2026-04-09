@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -58,6 +58,9 @@ interface CreatorProfile {
     kickHandle: string | null;
     bio: string | null;
     pfpUrl: string | null;
+    pfpScale: number;
+    pfpOffsetX: number;
+    pfpOffsetY: number;
     followerCount: number | null;
     tags: string[];
     stats: CreatorStats;
@@ -89,7 +92,16 @@ interface OwnedTag {
     status: string;
     bio?: string | null;
     pfpUrl?: string | null;
+    pfpScale?: number;
+    pfpOffsetX?: number;
+    pfpOffsetY?: number;
 }
+
+type AvatarFrame = {
+    scale: number;
+    offsetX: number;
+    offsetY: number;
+};
 
 function formatCompactCount(value: number | null | undefined): string | null {
     if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
@@ -120,6 +132,18 @@ function getIdentityStateLabel(status: string | null | undefined): string {
     if (status === 'PENDING') return 'Pending review';
     if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Needs re-verify';
     return 'Unverified';
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
+function getAvatarStyle(frame: AvatarFrame): CSSProperties {
+    return {
+        objectPosition: `${frame.offsetX}% ${frame.offsetY}%`,
+        transform: `scale(${frame.scale})`,
+        transformOrigin: 'center center',
+    };
 }
 
 const raisedPanelClass =
@@ -227,11 +251,21 @@ export default function CreatorProfilePage() {
     const [profileEditorError, setProfileEditorError] = useState<string | null>(null);
     const [profileEditorNotice, setProfileEditorNotice] = useState<string | null>(null);
     const [profileAvatarDraft, setProfileAvatarDraft] = useState<ProfileAvatarDraft | null>(null);
+    const [profileAvatarFrame, setProfileAvatarFrame] = useState<AvatarFrame>({
+        scale: 1,
+        offsetX: 50,
+        offsetY: 50,
+    });
 
     const displayTag = decodedTag.startsWith('@') ? decodedTag : `@${decodedTag}`;
     const plainTag = decodedTag.replace('@', '').toLowerCase();
     const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
     const editorAvatarImg = profileAvatarDraft?.previewUrl || avatarImg;
+    const savedAvatarFrame: AvatarFrame = {
+        scale: profile?.pfpScale ?? 1,
+        offsetX: profile?.pfpOffsetX ?? 50,
+        offsetY: profile?.pfpOffsetY ?? 50,
+    };
     const normalizedConnectedWallet = address?.toLowerCase() ?? null;
 
     useEffect(() => {
@@ -256,6 +290,9 @@ export default function CreatorProfilePage() {
                         kickHandle: null,
                         bio: null,
                         pfpUrl: null,
+                        pfpScale: 1,
+                        pfpOffsetX: 50,
+                        pfpOffsetY: 50,
                         followerCount: null,
                         tags: [],
                         stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
@@ -318,6 +355,14 @@ export default function CreatorProfilePage() {
     useEffect(() => {
         setProfileBioDraft(profile?.bio || '');
     }, [profile?.bio]);
+
+    useEffect(() => {
+        setProfileAvatarFrame({
+            scale: clamp(profile?.pfpScale ?? 1, 1, 2.5),
+            offsetX: clamp(profile?.pfpOffsetX ?? 50, 0, 100),
+            offsetY: clamp(profile?.pfpOffsetY ?? 50, 0, 100),
+        });
+    }, [profile?.pfpScale, profile?.pfpOffsetX, profile?.pfpOffsetY]);
 
     useEffect(() => {
         return () => {
@@ -438,7 +483,12 @@ export default function CreatorProfilePage() {
         const normalizedDraft = profileBioDraft.trim();
         const normalizedCurrent = (profile?.bio || '').trim();
         const hasAvatarChange = Boolean(profileAvatarDraft?.file);
-        if (normalizedDraft === normalizedCurrent && !hasAvatarChange) {
+        const hasFrameChange =
+            Math.abs(profileAvatarFrame.scale - (profile?.pfpScale ?? 1)) > 0.001 ||
+            Math.abs(profileAvatarFrame.offsetX - (profile?.pfpOffsetX ?? 50)) > 0.001 ||
+            Math.abs(profileAvatarFrame.offsetY - (profile?.pfpOffsetY ?? 50)) > 0.001;
+
+        if (normalizedDraft === normalizedCurrent && !hasAvatarChange && !hasFrameChange) {
             setProfileEditorError(null);
             setProfileEditorNotice('Nothing new to save yet.');
             return;
@@ -479,6 +529,9 @@ export default function CreatorProfilePage() {
                 body: JSON.stringify({
                     tagId: ownedTag.id,
                     bio: profileBioDraft,
+                    pfpScale: profileAvatarFrame.scale,
+                    pfpOffsetX: profileAvatarFrame.offsetX,
+                    pfpOffsetY: profileAvatarFrame.offsetY,
                 }),
             });
 
@@ -493,6 +546,9 @@ export default function CreatorProfilePage() {
                         ...current,
                         bio: payload.data?.bio ?? null,
                         pfpUrl: payload.data?.pfpUrl ?? uploadedPfpUrl ?? current.pfpUrl ?? null,
+                        pfpScale: payload.data?.pfpScale ?? profileAvatarFrame.scale,
+                        pfpOffsetX: payload.data?.pfpOffsetX ?? profileAvatarFrame.offsetX,
+                        pfpOffsetY: payload.data?.pfpOffsetY ?? profileAvatarFrame.offsetY,
                     }
                     : current
             );
@@ -502,6 +558,9 @@ export default function CreatorProfilePage() {
                         ...current,
                         bio: payload.data?.bio ?? null,
                         pfpUrl: payload.data?.pfpUrl ?? uploadedPfpUrl ?? current.pfpUrl ?? null,
+                        pfpScale: payload.data?.pfpScale ?? profileAvatarFrame.scale,
+                        pfpOffsetX: payload.data?.pfpOffsetX ?? profileAvatarFrame.offsetX,
+                        pfpOffsetY: payload.data?.pfpOffsetY ?? profileAvatarFrame.offsetY,
                     }
                     : current
             );
@@ -586,6 +645,7 @@ export default function CreatorProfilePage() {
                                                 src={avatarImg}
                                                 alt={displayTag}
                                                 className="h-full w-full object-cover"
+                                                style={getAvatarStyle(savedAvatarFrame)}
                                             />
                                         </div>
                                     ) : (
@@ -658,6 +718,11 @@ export default function CreatorProfilePage() {
                                                 onClick={() => {
                                                     setProfileEditorError(null);
                                                     setProfileEditorNotice(null);
+                                                    setProfileAvatarFrame({
+                                                        scale: clamp(profile?.pfpScale ?? 1, 1, 2.5),
+                                                        offsetX: clamp(profile?.pfpOffsetX ?? 50, 0, 100),
+                                                        offsetY: clamp(profile?.pfpOffsetY ?? 50, 0, 100),
+                                                    });
                                                     setShowProfileEditor(true);
                                                 }}
                                                 className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
@@ -926,6 +991,7 @@ export default function CreatorProfilePage() {
                                                 src={editorAvatarImg}
                                                 alt={displayTag}
                                                 className="h-full w-full object-cover"
+                                                style={getAvatarStyle(profileAvatarFrame)}
                                             />
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
@@ -949,6 +1015,75 @@ export default function CreatorProfilePage() {
                                             disabled={!ownedTag?.id || profileEditorSaving}
                                         />
                                     </label>
+                                    {editorAvatarImg ? (
+                                        <div className="w-full rounded-[20px] border border-white/10 bg-white/[0.035] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                                            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                                                Framing
+                                            </div>
+                                            <div className="mt-3 space-y-3">
+                                                <label className="block">
+                                                    <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-white/42">
+                                                        <span>Zoom</span>
+                                                        <span>{profileAvatarFrame.scale.toFixed(2)}x</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="1"
+                                                        max="2.5"
+                                                        step="0.01"
+                                                        value={profileAvatarFrame.scale}
+                                                        onChange={(event) =>
+                                                            setProfileAvatarFrame((current) => ({
+                                                                ...current,
+                                                                scale: Number(event.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full accent-cyan-300"
+                                                    />
+                                                </label>
+                                                <label className="block">
+                                                    <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-white/42">
+                                                        <span>Horizontal</span>
+                                                        <span>{Math.round(profileAvatarFrame.offsetX)}%</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        step="1"
+                                                        value={profileAvatarFrame.offsetX}
+                                                        onChange={(event) =>
+                                                            setProfileAvatarFrame((current) => ({
+                                                                ...current,
+                                                                offsetX: Number(event.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full accent-fuchsia-300"
+                                                    />
+                                                </label>
+                                                <label className="block">
+                                                    <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-white/42">
+                                                        <span>Vertical</span>
+                                                        <span>{Math.round(profileAvatarFrame.offsetY)}%</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        step="1"
+                                                        value={profileAvatarFrame.offsetY}
+                                                        onChange={(event) =>
+                                                            setProfileAvatarFrame((current) => ({
+                                                                ...current,
+                                                                offsetY: Number(event.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full accent-yellow-300"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 <div className={`${insetCardClass} px-4 py-4`}>
@@ -997,6 +1132,11 @@ export default function CreatorProfilePage() {
                                             type="button"
                                             onClick={() => {
                                                 setProfileBioDraft(profile?.bio || '');
+                                                setProfileAvatarFrame({
+                                                    scale: clamp(profile?.pfpScale ?? 1, 1, 2.5),
+                                                    offsetX: clamp(profile?.pfpOffsetX ?? 50, 0, 100),
+                                                    offsetY: clamp(profile?.pfpOffsetY ?? 50, 0, 100),
+                                                });
                                                 if (profileAvatarDraft?.previewUrl?.startsWith('blob:')) {
                                                     URL.revokeObjectURL(profileAvatarDraft.previewUrl);
                                                 }

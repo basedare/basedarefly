@@ -294,6 +294,9 @@ model StreamerTag {
   walletAddress        String
   bio                  String?
   pfpUrl               String?
+  pfpScale             Float     @default(1)
+  pfpOffsetX           Float     @default(50)
+  pfpOffsetY           Float     @default(50)
   followerCount        Int?
   tags                 String[]  @default([])
   verificationMethod   String

@@ -11,6 +11,9 @@ const UpdateTagProfileSchema = z.object({
     .transform((value) => value.trim())
     .nullable()
     .optional(),
+  pfpScale: z.number().min(1).max(2.5).optional(),
+  pfpOffsetX: z.number().min(0).max(100).optional(),
+  pfpOffsetY: z.number().min(0).max(100).optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -25,7 +28,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { tagId, bio } = validation.data;
+    const { tagId, bio, pfpScale, pfpOffsetX, pfpOffsetY } = validation.data;
     const sessionWallet = await getAuthorizedCreatorProfileWallet(request, tagId);
     if (!sessionWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -51,12 +54,18 @@ export async function PATCH(request: NextRequest) {
       where: { id: tagId },
       data: {
         bio: bio && bio.length > 0 ? bio : null,
+        pfpScale,
+        pfpOffsetX,
+        pfpOffsetY,
       },
       select: {
         id: true,
         tag: true,
         bio: true,
         pfpUrl: true,
+        pfpScale: true,
+        pfpOffsetX: true,
+        pfpOffsetY: true,
         followerCount: true,
         totalEarned: true,
         completedDares: true,

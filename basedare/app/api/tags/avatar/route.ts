@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
         id: true,
         tag: true,
         pfpUrl: true,
+        pfpScale: true,
+        pfpOffsetX: true,
+        pfpOffsetY: true,
       },
     });
 
