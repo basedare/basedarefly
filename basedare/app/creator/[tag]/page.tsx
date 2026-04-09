@@ -78,6 +78,11 @@ interface CreatorProfile {
     recent: RecentDare[];
 }
 
+type ProfileAvatarDraft = {
+    file: File;
+    previewUrl: string;
+};
+
 interface OwnedTag {
     id: string;
     tag: string;
@@ -221,11 +226,12 @@ export default function CreatorProfilePage() {
     const [profileEditorSaving, setProfileEditorSaving] = useState(false);
     const [profileEditorError, setProfileEditorError] = useState<string | null>(null);
     const [profileEditorNotice, setProfileEditorNotice] = useState<string | null>(null);
-    const [profileAvatarUploading, setProfileAvatarUploading] = useState(false);
+    const [profileAvatarDraft, setProfileAvatarDraft] = useState<ProfileAvatarDraft | null>(null);
 
     const displayTag = decodedTag.startsWith('@') ? decodedTag : `@${decodedTag}`;
     const plainTag = decodedTag.replace('@', '').toLowerCase();
     const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
+    const editorAvatarImg = profileAvatarDraft?.previewUrl || avatarImg;
     const normalizedConnectedWallet = address?.toLowerCase() ?? null;
 
     useEffect(() => {
@@ -312,6 +318,14 @@ export default function CreatorProfilePage() {
     useEffect(() => {
         setProfileBioDraft(profile?.bio || '');
     }, [profile?.bio]);
+
+    useEffect(() => {
+        return () => {
+            if (profileAvatarDraft?.previewUrl?.startsWith('blob:')) {
+                URL.revokeObjectURL(profileAvatarDraft.previewUrl);
+            }
+        };
+    }, [profileAvatarDraft]);
 
     if (loading) return (
         <main className="min-h-screen bg-transparent text-white">
@@ -423,7 +437,8 @@ export default function CreatorProfilePage() {
 
         const normalizedDraft = profileBioDraft.trim();
         const normalizedCurrent = (profile?.bio || '').trim();
-        if (normalizedDraft === normalizedCurrent) {
+        const hasAvatarChange = Boolean(profileAvatarDraft?.file);
+        if (normalizedDraft === normalizedCurrent && !hasAvatarChange) {
             setProfileEditorError(null);
             setProfileEditorNotice('Nothing new to save yet.');
             return;
@@ -434,6 +449,26 @@ export default function CreatorProfilePage() {
             setProfileEditorError(null);
             setProfileEditorNotice(null);
             const authHeaders = await getProfileEditHeaders(ownedTag.id);
+
+            let uploadedPfpUrl = profile?.pfpUrl ?? null;
+            if (profileAvatarDraft?.file) {
+                const formData = new FormData();
+                formData.append('file', profileAvatarDraft.file);
+                formData.append('tagId', ownedTag.id);
+
+                const avatarResponse = await fetch('/api/tags/avatar', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: formData,
+                });
+
+                const avatarPayload = await avatarResponse.json();
+                if (!avatarResponse.ok || !avatarPayload.success) {
+                    throw new Error(avatarPayload.error || 'Failed to upload profile photo');
+                }
+
+                uploadedPfpUrl = avatarPayload.data?.pfpUrl ?? uploadedPfpUrl;
+            }
 
             const response = await fetch('/api/tags/profile', {
                 method: 'PATCH',
@@ -457,7 +492,7 @@ export default function CreatorProfilePage() {
                     ? {
                         ...current,
                         bio: payload.data?.bio ?? null,
-                        pfpUrl: payload.data?.pfpUrl ?? current.pfpUrl ?? null,
+                        pfpUrl: payload.data?.pfpUrl ?? uploadedPfpUrl ?? current.pfpUrl ?? null,
                     }
                     : current
             );
@@ -466,10 +501,14 @@ export default function CreatorProfilePage() {
                     ? {
                         ...current,
                         bio: payload.data?.bio ?? null,
-                        pfpUrl: payload.data?.pfpUrl ?? current.pfpUrl ?? null,
+                        pfpUrl: payload.data?.pfpUrl ?? uploadedPfpUrl ?? current.pfpUrl ?? null,
                     }
                     : current
             );
+            if (profileAvatarDraft?.previewUrl?.startsWith('blob:')) {
+                URL.revokeObjectURL(profileAvatarDraft.previewUrl);
+            }
+            setProfileAvatarDraft(null);
             setProfileEditorNotice('Profile saved.');
         } catch (saveError) {
             setProfileEditorError(saveError instanceof Error ? saveError.message : 'Failed to save creator profile');
@@ -484,49 +523,28 @@ export default function CreatorProfilePage() {
 
         if (!file || !ownedTag?.id) return;
 
-        try {
-            setProfileAvatarUploading(true);
-            setProfileEditorError(null);
-            setProfileEditorNotice(null);
-            const authHeaders = await getProfileEditHeaders(ownedTag.id);
+        if (!file.type.startsWith('image/')) {
+            setProfileEditorError('Please choose a JPG, PNG, or GIF image.');
+            return;
+        }
 
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('tagId', ownedTag.id);
+        if (file.size > 5 * 1024 * 1024) {
+            setProfileEditorError('Image file is too large. Max size is 5MB.');
+            return;
+        }
 
-            const response = await fetch('/api/tags/avatar', {
-                method: 'POST',
-                headers: authHeaders,
-                body: formData,
-            });
-
-            const payload = await response.json();
-            if (!response.ok || !payload.success) {
-                throw new Error(payload.error || 'Failed to upload profile photo');
+        setProfileEditorError(null);
+        setProfileEditorNotice('Photo ready. Save profile to apply all changes.');
+        setProfileAvatarDraft((current) => {
+            if (current?.previewUrl?.startsWith('blob:')) {
+                URL.revokeObjectURL(current.previewUrl);
             }
 
-            setProfile((current) =>
-                current
-                    ? {
-                        ...current,
-                        pfpUrl: payload.data?.pfpUrl ?? null,
-                    }
-                    : current
-            );
-            setOwnedTag((current) =>
-                current
-                    ? {
-                        ...current,
-                        pfpUrl: payload.data?.pfpUrl ?? null,
-                    }
-                    : current
-            );
-            setProfileEditorNotice('Profile photo updated.');
-        } catch (uploadError) {
-            setProfileEditorError(uploadError instanceof Error ? uploadError.message : 'Failed to upload profile photo');
-        } finally {
-            setProfileAvatarUploading(false);
-        }
+            return {
+                file,
+                previewUrl: URL.createObjectURL(file),
+            };
+        });
     };
 
     return (
@@ -884,7 +902,7 @@ export default function CreatorProfilePage() {
                                         Update the public profile brands and other creators actually see.
                                     </div>
                                     <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-cyan-100/65">
-                                        We only ask for a wallet signature when you save changes or upload a new photo.
+                                        We only ask for one wallet signature when you save your bio and photo changes together.
                                     </div>
                                 </div>
                                 <button
@@ -903,9 +921,9 @@ export default function CreatorProfilePage() {
                             <div className="mt-5 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
                                 <div className={`${insetCardClass} flex flex-col items-center gap-3 px-4 py-4`}>
                                     <div className="h-24 w-24 overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_14px_28px_rgba(0,0,0,0.24)]">
-                                        {avatarImg ? (
+                                        {editorAvatarImg ? (
                                             <img
-                                                src={avatarImg}
+                                                src={editorAvatarImg}
                                                 alt={displayTag}
                                                 className="h-full w-full object-cover"
                                             />
@@ -918,17 +936,17 @@ export default function CreatorProfilePage() {
                                     <div className="text-center">
                                         <div className="text-sm font-semibold text-white">{displayTag}</div>
                                         <div className="mt-1 text-xs text-white/45">
-                                            {profileAvatarUploading ? 'Uploading photo...' : 'JPG, PNG, or GIF up to 5MB'}
+                                            {profileAvatarDraft ? 'Photo ready to save' : 'JPG, PNG, or GIF up to 5MB'}
                                         </div>
                                     </div>
                                     <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16">
-                                        {profileAvatarUploading ? 'Uploading...' : 'Upload photo'}
+                                        {profileAvatarDraft ? 'Replace photo' : 'Upload photo'}
                                         <input
                                             type="file"
                                             accept="image/png,image/jpeg,image/gif"
                                             className="hidden"
                                             onChange={handleAvatarUpload}
-                                            disabled={!ownedTag?.id || profileAvatarUploading}
+                                            disabled={!ownedTag?.id || profileEditorSaving}
                                         />
                                     </label>
                                 </div>
@@ -979,6 +997,10 @@ export default function CreatorProfilePage() {
                                             type="button"
                                             onClick={() => {
                                                 setProfileBioDraft(profile?.bio || '');
+                                                if (profileAvatarDraft?.previewUrl?.startsWith('blob:')) {
+                                                    URL.revokeObjectURL(profileAvatarDraft.previewUrl);
+                                                }
+                                                setProfileAvatarDraft(null);
                                                 setProfileEditorError(null);
                                                 setProfileEditorNotice(null);
                                                 setShowProfileEditor(false);
