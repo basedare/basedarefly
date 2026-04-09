@@ -1,8 +1,8 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2 } from "lucide-react";
+import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -294,6 +294,7 @@ export default function Dashboard() {
   const [claimingOpportunityId, setClaimingOpportunityId] = useState<string | null>(null);
   const [claimFeedback, setClaimFeedback] = useState<Record<string, string>>({});
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
+  const activationsRef = useRef<HTMLDivElement | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -577,6 +578,18 @@ export default function Dashboard() {
 
   const expandedActivation = creatorClaims.find((dare) => dare.id === expandedActivationId) || null;
   const expandedFundedDare = fundedRows.find((dare) => dare.id === expandedFundedId) || null;
+  const primaryActivation = creatorClaims[0] || null;
+  const primaryActivationState = primaryActivation ? getClaimLoopState(primaryActivation, address) : null;
+
+  const jumpToActivation = (activationId?: string | null) => {
+    setActivationsOpen(true);
+    if (activationId) {
+      setExpandedActivationId(activationId);
+    }
+    requestAnimationFrame(() => {
+      activationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -712,6 +725,42 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {isConnected && primaryActivation && primaryActivationState ? (
+          <div className={`${raisedTileClass} mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)]`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_15%,rgba(250,204,21,0.16),transparent_26%),radial-gradient(circle_at_88%_0%,rgba(168,85,247,0.18),transparent_32%)]" />
+            <div className="relative flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-400/[0.08] px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100 shadow-[0_0_18px_rgba(250,204,21,0.12)]">
+                  <Zap className="h-3.5 w-3.5 text-yellow-300" />
+                  New Dare Incoming
+                </div>
+                <p className="mt-3 text-lg font-black text-white sm:text-xl">
+                  {primaryActivation.title}
+                </p>
+                <p className="mt-1 text-sm text-white/62">
+                  {primaryActivationState.label === 'Ready for Proof'
+                    ? 'You have been picked for this activation. Open it and submit proof.'
+                    : primaryActivationState.detail}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-fuchsia-100">
+                  {creatorClaims.length} live {creatorClaims.length === 1 ? 'activation' : 'activations'}
+                </span>
+                <CosmicButton
+                  onClick={() => jumpToActivation(primaryActivation.id)}
+                  variant={primaryActivationState.label === 'Ready for Proof' ? 'gold' : 'blue'}
+                  size="md"
+                  className="min-w-[178px]"
+                >
+                  <Zap className="h-4 w-4" />
+                  {primaryActivationState.label === 'Ready for Proof' ? 'Open & Submit Proof' : 'Open Activation'}
+                </CosmicButton>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             {
@@ -729,16 +778,26 @@ export default function Dashboard() {
             {
               label: 'Activations',
               value: !isConnected ? '--' : loading ? '…' : `${stats.daresForMe}`,
+              urgent: isConnected && stats.daresForMe > 0,
             },
           ].map((item) => (
-            <div key={item.label} className={`${metricTileClass} px-4 py-4`}>
+            <div
+              key={item.label}
+              className={`${metricTileClass} px-4 py-4 ${item.urgent ? 'border-fuchsia-400/20 shadow-[0_18px_34px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.22)]' : ''}`}
+            >
+              {item.urgent ? (
+                <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-yellow-300/20 bg-yellow-400/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-yellow-100">
+                  <Zap className="h-3 w-3 text-yellow-300" />
+                  Live
+                </div>
+              ) : null}
               <div className="text-2xl font-black text-white sm:text-3xl">{item.value}</div>
               <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{item.label}</div>
             </div>
           ))}
         </div>
 
-        <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div ref={activationsRef} className={`${softCardClass} mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">What You&apos;ve Done To The Grid</h2>

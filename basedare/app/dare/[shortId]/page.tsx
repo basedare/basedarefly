@@ -18,6 +18,7 @@ import DareVisual from '@/components/DareVisual';
 import SentinelBadge from '@/components/SentinelBadge';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
+import { buildXSharePayload } from '@/lib/social-share';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -315,21 +316,39 @@ export default function DareDetailPage() {
     }
   };
 
-  // ── Share link (native share + clipboard fallback) ────────────────────
+  // ── Share link (prefer X on desktop, native share on mobile) ──────────
   const handleShare = useCallback(async () => {
     const url = `${window.location.origin}/dare/${shortId}`;
     const title = dare?.title || 'BaseDare Bounty';
+    const payload = buildXSharePayload({
+      title,
+      bounty: dare?.bounty,
+      streamerTag: dare?.streamerHandle,
+      shortId,
+      status: dare?.status?.toUpperCase() === 'VERIFIED' ? 'verified' : 'live',
+    });
+    const isMobileShareSurface =
+      typeof navigator !== 'undefined' &&
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
     try {
-      if (navigator.share) {
-        await navigator.share({ title, text: title, url });
+      if (navigator.share && isMobileShareSurface) {
+        await navigator.share({
+          title,
+          text: payload.text,
+          url,
+        });
         setShareFeedback('Shared');
       } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        setShareFeedback('Link copied');
+        const composer = window.open(payload.url, '_blank', 'noopener,noreferrer,width=700,height=620');
+        if (composer) {
+          setShareFeedback('Opened X');
+        } else {
+          await navigator.clipboard.writeText(url);
+          setShareFeedback('Link copied');
+        }
       } else {
-        window.prompt('Copy this link:', url);
-        setShareFeedback('Link ready');
+        setShareFeedback('Share unavailable');
       }
     } catch {
       try {
@@ -345,7 +364,7 @@ export default function DareDetailPage() {
     } finally {
       setTimeout(() => setShareFeedback(null), 2200);
     }
-  }, [dare?.title, shortId]);
+  }, [dare?.bounty, dare?.status, dare?.streamerHandle, dare?.title, shortId]);
 
   const isOnchainContractsReady = CONTRACT_VALIDATION.coreValid;
   const onchainConfigError = CONTRACT_VALIDATION.errors.join(' ');
