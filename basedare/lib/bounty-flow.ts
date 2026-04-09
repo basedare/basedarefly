@@ -253,14 +253,30 @@ export async function submitBountyCreation(
     };
   }
 
+  const registeredData = regData?.data;
+  if (!registeredData) {
+    return {
+      dareId,
+      simulated: false,
+      txHash,
+      syncPending: true,
+      awaitingClaim: false,
+      streamerTag: input.streamerTag,
+      shortId,
+      isOpenBounty: !input.streamerTag,
+      isNearbyDare: Boolean(requestBody.isNearbyDare),
+      locationLabel: (requestBody.locationLabel as string | undefined) ?? null,
+    };
+  }
+
   return {
-    dareId: regData.data.id,
+    dareId: registeredData.id,
     simulated: false,
     txHash,
-    awaitingClaim: regData.data.status === 'AWAITING_CLAIM',
-    streamerTag: regData.data.streamerHandle,
-    shortId: regData.data.shortId,
-    isOpenBounty: !regData.data.streamerHandle,
+    awaitingClaim: registeredData.status === 'AWAITING_CLAIM',
+    streamerTag: registeredData.streamerHandle,
+    shortId: registeredData.shortId,
+    isOpenBounty: !registeredData.streamerHandle,
     isNearbyDare: Boolean(requestBody.isNearbyDare),
     locationLabel: (requestBody.locationLabel as string | undefined) ?? null,
   };

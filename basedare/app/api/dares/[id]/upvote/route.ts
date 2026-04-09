@@ -37,24 +37,17 @@ async function getVerifiedSessionWallet(request: NextRequest): Promise<string | 
   return wallet.toLowerCase();
 }
 
+function normalizeWallet(walletAddress?: string | null): string | null {
+  if (!walletAddress || !isAddress(walletAddress)) return null;
+  return walletAddress.toLowerCase();
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const sessionWallet = await getVerifiedSessionWallet(request);
-    if (!sessionWallet) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-          code: 'UNAUTHORIZED',
-        },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json().catch(() => ({}));
 
     const validation = UpvoteSchema.safeParse(body);
@@ -65,8 +58,22 @@ export async function POST(
       );
     }
 
-    const normalizedBodyWallet = validation.data.walletAddress?.toLowerCase();
-    if (normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
+    const sessionWallet = await getVerifiedSessionWallet(request);
+    const normalizedBodyWallet = normalizeWallet(validation.data.walletAddress);
+    const actingWallet = sessionWallet ?? normalizedBodyWallet;
+
+    if (!actingWallet) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+          code: 'UNAUTHORIZED',
+        },
+        { status: 401 }
+      );
+    }
+
+    if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
       return NextResponse.json(
         { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
         { status: 401 }
