@@ -1,7 +1,7 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { approveDareWithPayout, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderation';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -29,7 +29,8 @@ interface TelegramApiResponse<T = unknown> {
 
 export interface TelegramInlineKeyboardButton {
   text: string;
-  callback_data: string;
+  callback_data?: string;
+  url?: string;
 }
 
 interface TelegramReplyMarkup {
@@ -559,50 +560,35 @@ async function submitProofVerification(dareId: string): Promise<boolean> {
   return response.ok && Boolean(response.data?.success);
 }
 
-async function handleModerationCallback(action: 'approve_dare' | 'reject_dare', dareRef: string): Promise<{ success: boolean; title?: string }> {
-  const dare = await prisma.dare.findFirst({
-    where: {
-      OR: [
-        { shortId: dareRef },
-        { id: dareRef },
-        { id: { startsWith: dareRef } },
-      ],
-    },
-  });
+async function handleModerationCallback(
+  action: 'approve_dare' | 'reject_dare',
+  dareRef: string
+): Promise<{ success: boolean; title?: string; status?: string; pendingReason?: string | null }> {
+  const dare = await findDareForModeration(dareRef);
 
   if (!dare) {
     return { success: false };
   }
 
-  if (action === 'approve_dare') {
-    await approveDareWithPayout({
-      dareId: dare.id,
-      sourceContext: 'TELEGRAM_INLINE',
-      verifiedAt: new Date(),
-      verifyConfidence: 1.0,
-      proofHash: dare.proofHash,
-      proofMedia: dare.videoUrl,
-      appealStatus: 'APPROVED',
-      notificationMessage: `Your proof for "${dare.title}" was approved via Telegram inline moderation.`,
-    });
-
-    return { success: true, title: dare.title };
-  }
-
-  await prisma.dare.update({
-    where: { id: dare.id },
-    data: {
-      status: 'FAILED',
-      appealStatus: 'REJECTED',
-      appealReason: 'Rejected via Telegram inline moderation',
-    },
-  });
-  await syncLinkedCampaignForDareState({
+  const moderation = await moderateDareDecision({
     dareId: dare.id,
-    status: 'FAILED',
+    decision: action === 'approve_dare' ? 'APPROVE' : 'REJECT',
+    sourceContext: 'TELEGRAM_INLINE',
+    moderatorAddress: 'telegram-inline',
+    note:
+      action === 'approve_dare'
+        ? 'Approved via Telegram inline moderation.'
+        : 'Rejected via Telegram inline moderation.',
+    rejectReason: action === 'reject_dare' ? 'Rejected via Telegram inline moderation.' : null,
+    notificationMessage: `Your proof for "${dare.title}" was approved via Telegram inline moderation.`,
   });
 
-  return { success: true, title: dare.title };
+  return {
+    success: true,
+    title: dare.title,
+    status: moderation.newStatus,
+    pendingReason: moderation.pendingReason,
+  };
 }
 
 async function handleTagClaimModerationCallback(
@@ -980,7 +966,13 @@ async function handleCallback(update: TelegramUpdate): Promise<boolean> {
       }
 
       const decision = action === 'approve_dare' ? 'approved ✅' : 'rejected ❌';
-      await sendMessage(chatId, `🛡️ Dare <b>${result.title || dareRef}</b> ${decision}`).catch(() => {});
+      const payoutFollowup =
+        result.status === 'PENDING_PAYOUT'
+          ? `\n⏳ ${result.pendingReason || 'Payout queued for retry.'}`
+          : result.status
+            ? `\n📌 Status: <b>${result.status}</b>`
+            : '';
+      await sendMessage(chatId, `🛡️ Dare <b>${result.title || dareRef}</b> ${decision}${payoutFollowup}`).catch(() => {});
       console.log(`[TELEGRAM] Inline moderation ${action} for ${dareRef}`);
     } catch (error) {
       console.error('[TELEGRAM] Callback moderation error:', error);
@@ -1407,6 +1399,8 @@ export async function sendDareReviewAlert(data: {
   shortId: string;
   title: string;
   streamerTag: string | null;
+  bounty?: number;
+  proofUrl?: string | null;
   confidence?: number;
   reviewReason?: string;
 }): Promise<void> {
@@ -1416,6 +1410,8 @@ export async function sendDareReviewAlert(data: {
 
   const targetTag = data.streamerTag || 'OPEN';
   const callbackRef = data.shortId || data.dareId;
+  const bountyLine = typeof data.bounty === 'number' ? `\n💰 Bounty: <b>$${data.bounty} USDC</b>` : '';
+  const proofUrl = data.proofUrl || null;
   const confidenceLine = typeof data.confidence === 'number'
     ? `\n🤖 AI Confidence: ${data.confidence}%`
     : '';
@@ -1424,7 +1420,7 @@ export async function sendDareReviewAlert(data: {
     '⏳ <b>DARE NEEDS REVIEW</b>',
     '',
     `<b>${data.title}</b>`,
-    `🏷️ Tag: <code>${targetTag}</code>${confidenceLine}`,
+    `🏷️ Tag: <code>${targetTag}</code>${bountyLine}${confidenceLine}`,
     '',
     `⚠️ ${reviewReason}`,
     `🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>`,
@@ -1433,10 +1429,16 @@ export async function sendDareReviewAlert(data: {
   await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
     parseMode: 'HTML',
     replyMarkup: {
-      inline_keyboard: [[
-        { text: '✅ Approve', callback_data: buildCallbackData('approve_dare', callbackRef) },
-        { text: '❌ Reject', callback_data: buildCallbackData('reject_dare', callbackRef) },
-      ]],
+      inline_keyboard: [
+        [
+          { text: '✅ Approve', callback_data: buildCallbackData('approve_dare', callbackRef) },
+          { text: '❌ Reject', callback_data: buildCallbackData('reject_dare', callbackRef) },
+        ],
+        [
+          ...(proofUrl ? [{ text: '🎥 Open Proof', url: proofUrl }] : []),
+          { text: '🛡️ Open Admin', url: `${BASE_URL}/admin` },
+        ],
+      ],
     },
   });
 }

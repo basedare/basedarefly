@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
-import { approveDareWithPayout, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
-import { trackServerEvent } from '@/lib/server-analytics';
-import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
+import { moderateDareDecision } from '@/lib/dare-moderation';
 
 // ============================================================================
 // ADMIN MODERATE API
@@ -264,79 +262,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const moderatedAt = new Date();
-    let newStatus: 'VERIFIED' | 'FAILED' | 'PENDING_PAYOUT';
-    let updatedDare = dare;
-    let pendingReason: string | null = null;
+    const moderationResult = await moderateDareDecision({
+      dareId,
+      decision,
+      sourceContext: 'ADMIN_MODERATE',
+      moderatorAddress: auth.moderatorAddress ?? 'admin',
+      note: note || null,
+      rejectReason: note || null,
+    });
 
-    if (decision === 'APPROVE') {
-      const result = await approveDareWithPayout({
-        dareId,
-        sourceContext: 'ADMIN_MODERATE',
-        verifiedAt: moderatedAt,
-        verifyConfidence: 1.0,
-        proofHash: dare.proofHash,
-        proofMedia: dare.videoUrl,
-        appealStatus: 'APPROVED',
-        moderatorDecision: decision,
-        moderatorAddress: auth.moderatorAddress ?? 'admin',
-        moderatedAt,
-        moderatorNote: note || null,
-      });
-
-      newStatus = result.status;
-      updatedDare = result.dare;
-      pendingReason = result.status === 'PENDING_PAYOUT' ? result.pendingReason : null;
-    } else {
-      newStatus = 'FAILED';
-      if (dare.requireSentinel) {
-        const recommendation = getSentinelRecommendation({
-          amount: dare.bounty,
-          missionTag: dare.tag,
-          venueId: dare.venueId,
-        });
-
-        trackServerEvent('sentinel_review_rejected', {
-          recommended: recommendation.recommended,
-          selected: true,
-          reason: getSentinelReasonForSelection({
-            recommendedReason: recommendation.reason,
-            selected: true,
-          }),
-          source: 'admin_review',
-        });
-      }
-
-      updatedDare = await prisma.dare.update({
-        where: { id: dareId },
-        data: {
-          status: newStatus,
-          manualReviewNeeded: false,
-          moderatorDecision: decision,
-          moderatorAddress: auth.moderatorAddress,
-          moderatedAt,
-          moderatorNote: note || null,
-          verifiedAt: null,
-        },
-      });
-      await syncLinkedCampaignForDareState({
-        dareId,
-        status: 'FAILED',
-      });
-    }
-
-    // Notify Creator of Moderation Decision
-    if (dare.targetWalletAddress && decision === 'REJECT') {
-      await prisma.notification.create({
-        data: {
-          wallet: dare.targetWalletAddress.toLowerCase(),
-          type: 'DARE_FAILED',
-          title: 'Dare Rejected by Admin',
-          message: `Your proof for "${dare.title}" was rejected by moderators.`,
-          link: '/dashboard',
-        }
-      });
-    }
+    const newStatus = moderationResult.newStatus;
+    const updatedDare = moderationResult.dare;
+    const pendingReason = moderationResult.pendingReason;
 
     console.log(
       `[MODERATE] Dare ${dareId} ${decision} by ${auth.moderatorAddress}${note ? ` - ${note}` : ''}`

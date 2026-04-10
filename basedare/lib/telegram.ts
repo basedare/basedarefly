@@ -166,6 +166,8 @@ export async function alertVerification(data: {
   title: string;
   streamerTag: string | null;
   result: 'VERIFIED' | 'FAILED' | 'PENDING_REVIEW';
+  bounty?: number;
+  proofUrl?: string | null;
   confidence?: number;
   payout?: number;
   txHash?: string | null;
@@ -198,6 +200,8 @@ export async function alertVerification(data: {
       shortId: data.shortId,
       title: data.title,
       streamerTag: data.streamerTag,
+      bounty: data.bounty,
+      proofUrl: data.proofUrl,
       confidence: data.confidence,
       reviewReason: 'High-value bounty requires manual verification.',
     });
@@ -224,6 +228,8 @@ export async function alertDareNeedsReview(data: {
   shortId: string;
   title: string;
   streamerTag: string | null;
+  bounty?: number;
+  proofUrl?: string | null;
   confidence?: number;
   reviewReason?: string;
 }): Promise<void> {
@@ -232,6 +238,8 @@ export async function alertDareNeedsReview(data: {
     shortId: data.shortId,
     title: data.title,
     streamerTag: data.streamerTag,
+    bounty: data.bounty,
+    proofUrl: data.proofUrl,
     confidence: data.confidence,
     reviewReason: data.reviewReason,
   });

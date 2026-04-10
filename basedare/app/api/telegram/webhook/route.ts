@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { alertVerification } from '@/lib/telegram';
-import { approveDareWithPayout } from '@/lib/dare-approval';
+import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderation';
 import {
   getPendingTelegramPlaceTags,
   getTelegramPlaceStats,
@@ -50,6 +49,7 @@ async function handlePending(chatId: number) {
   const pendingDares = await prisma.dare.findMany({
     where: {
       OR: [
+        { status: 'PENDING_REVIEW' },
         { appealStatus: 'PENDING' },
         { status: 'AWAITING_CLAIM' },
       ],
@@ -64,10 +64,20 @@ async function handlePending(chatId: number) {
   }
 
   const lines = pendingDares.map((d, i) => {
-    const status = d.appealStatus === 'PENDING' ? '⏳ REVIEW' : '📨 CLAIM';
+    const status =
+      d.status === 'PENDING_REVIEW'
+        ? '🛡 REVIEW'
+        : d.appealStatus === 'PENDING'
+          ? '⏳ APPEAL'
+          : '📨 CLAIM';
     const amount = `$${d.bounty}`;
     const target = d.streamerHandle || 'Open';
-    return `${i + 1}. <code>${d.shortId || d.id.slice(0, 8)}</code> ${status}\n   ${d.title.slice(0, 30)}${d.title.length > 30 ? '...' : ''}\n   💰 ${amount} → ${target}`;
+    const proofLink = d.videoUrl
+      ? d.videoUrl.startsWith('http')
+        ? d.videoUrl
+        : `${BASE_URL}${d.videoUrl}`
+      : null;
+    return `${i + 1}. <code>${d.shortId || d.id.slice(0, 8)}</code> ${status}\n   ${d.title.slice(0, 30)}${d.title.length > 30 ? '...' : ''}\n   💰 ${amount} → ${target}\n   🔗 <a href="${BASE_URL}/dare/${d.shortId || d.id}">Open dare</a>${proofLink ? `\n   🎥 <a href="${proofLink}">Open proof</a>` : ''}`;
   });
 
   const message = `
@@ -94,34 +104,19 @@ async function handleApprove(chatId: number, args: string) {
   }
 
   // Find dare by shortId or id
-  const dare = await prisma.dare.findFirst({
-    where: {
-      OR: [
-        { shortId: dareId },
-        { id: dareId },
-        { id: { startsWith: dareId } },
-      ],
-    },
-  });
+  const dare = await findDareForModeration(dareId);
 
   if (!dare) {
     await sendMessage(chatId, `❌ Dare not found: <code>${dareId}</code>`);
     return;
   }
 
-  if (dare.status === 'VERIFIED') {
-    await sendMessage(chatId, `⚠️ Dare already verified: <code>${dareId}</code>`);
-    return;
-  }
-
-  const result = await approveDareWithPayout({
+  const result = await moderateDareDecision({
     dareId: dare.id,
+    decision: 'APPROVE',
     sourceContext: 'TELEGRAM_WEBHOOK',
-    verifiedAt: new Date(),
-    verifyConfidence: 1.0,
-    proofHash: dare.proofHash,
-    proofMedia: dare.videoUrl,
-    appealStatus: 'APPROVED',
+    moderatorAddress: 'telegram-webhook',
+    note: 'Approved via Telegram command.',
     notificationMessage: `Your proof for "${dare.title}" was approved by Telegram moderation.`,
   });
 
@@ -133,13 +128,12 @@ async function handleApprove(chatId: number, args: string) {
 👤 ${dare.streamerHandle || 'Open Dare'}
 💰 Bounty: $${dare.bounty} USDC
 
-<b>Payout Split:</b>
-• Creator: $${result.payout.streamer.toFixed(2)}
-• Platform: $${result.payout.house.toFixed(2)}
-${result.payout.referrer > 0 ? `• Referrer: $${result.payout.referrer.toFixed(2)}` : ''}
-${result.status === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason}` : ''}
+<b>Status:</b> ${result.newStatus}
+${result.payout ? `\n<b>Payout Split:</b>\n• Creator: $${result.payout.streamer.toFixed(2)}\n• Platform: $${result.payout.house.toFixed(2)}` : ''}
+${result.newStatus === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason || 'Payout queued for retry.'}` : ''}
 
 🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View Dare</a>
+🛡 <a href="${BASE_URL}/admin">Open Admin</a>
 `.trim();
 
   await sendMessage(chatId, message);
@@ -160,28 +154,20 @@ async function handleReject(chatId: number, args: string) {
     return;
   }
 
-  const dare = await prisma.dare.findFirst({
-    where: {
-      OR: [
-        { shortId: dareId },
-        { id: dareId },
-        { id: { startsWith: dareId } },
-      ],
-    },
-  });
+  const dare = await findDareForModeration(dareId);
 
   if (!dare) {
     await sendMessage(chatId, `❌ Dare not found: <code>${dareId}</code>`);
     return;
   }
 
-  await prisma.dare.update({
-    where: { id: dare.id },
-    data: {
-      status: 'FAILED',
-      appealStatus: 'REJECTED',
-      appealReason: reason,
-    },
+  await moderateDareDecision({
+    dareId: dare.id,
+    decision: 'REJECT',
+    sourceContext: 'TELEGRAM_WEBHOOK',
+    moderatorAddress: 'telegram-webhook',
+    note: reason || 'Rejected by Telegram moderation.',
+    rejectReason: reason || 'Rejected by Telegram moderation.',
   });
 
   const message = `
@@ -194,14 +180,6 @@ async function handleReject(chatId: number, args: string) {
 `.trim();
 
   await sendMessage(chatId, message);
-
-  alertVerification({
-    dareId: dare.id,
-    shortId: dare.shortId || dare.id,
-    title: dare.title,
-    streamerTag: dare.streamerHandle,
-    result: 'FAILED',
-  }).catch(() => {});
 
   console.log(`[AUDIT] Dare ${dare.id} rejected via Telegram: ${reason}`);
 }
@@ -216,7 +194,7 @@ async function handleStats(chatId: number) {
   const [totalDares, todayDares, pendingReview, totalVolume] = await Promise.all([
     prisma.dare.count(),
     prisma.dare.count({ where: { createdAt: { gte: today } } }),
-    prisma.dare.count({ where: { appealStatus: 'PENDING' } }),
+    prisma.dare.count({ where: { OR: [{ appealStatus: 'PENDING' }, { status: 'PENDING_REVIEW' }] } }),
     prisma.dare.aggregate({ _sum: { bounty: true } }),
   ]);
 

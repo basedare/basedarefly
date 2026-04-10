@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { approveDareWithPayout } from '@/lib/dare-approval';
+import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderation';
 import {
   getPendingTelegramPlaceTags,
   getTelegramPlaceStats,
   reviewTelegramPlaceTag,
   searchTelegramPlaces,
 } from '@/lib/telegram-place-memory';
-import { trackServerEvent } from '@/lib/server-analytics';
-import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -123,6 +121,7 @@ export async function GET(req: NextRequest) {
       const pendingDares = await prisma.dare.findMany({
         where: {
           OR: [
+            { status: 'PENDING_REVIEW' },
             { appealStatus: 'PENDING' },
             { status: 'AWAITING_CLAIM' },
           ],
@@ -137,8 +136,18 @@ export async function GET(req: NextRequest) {
       }
 
       const lines = pendingDares.map((d, i) => {
-        const status = d.appealStatus === 'PENDING' ? '⏳ REVIEW' : '📨 CLAIM';
-        return `${i + 1}. <code>${d.shortId || d.id.slice(0, 8)}</code> ${status}\n   ${d.title.slice(0, 30)}${d.title.length > 30 ? '...' : ''}\n   💰 $${d.bounty} → ${d.streamerHandle || 'Open'}`;
+        const status =
+          d.status === 'PENDING_REVIEW'
+            ? '🛡 REVIEW'
+            : d.appealStatus === 'PENDING'
+              ? '⏳ APPEAL'
+              : '📨 CLAIM';
+        const proofLink = d.videoUrl
+          ? d.videoUrl.startsWith('http')
+            ? d.videoUrl
+            : `${BASE_URL}${d.videoUrl}`
+          : null;
+        return `${i + 1}. <code>${d.shortId || d.id.slice(0, 8)}</code> ${status}\n   ${d.title.slice(0, 30)}${d.title.length > 30 ? '...' : ''}\n   💰 $${d.bounty} → ${d.streamerHandle || 'Open'}\n   🔗 ${BASE_URL}/dare/${d.shortId || d.id}${proofLink ? `\n   🎥 ${proofLink}` : ''}`;
       });
 
       const message = `📋 <b>PENDING DARES</b> (${pendingDares.length})\n\n${lines.join('\n\n')}`;
@@ -161,37 +170,27 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
       }
 
-      const dare = await prisma.dare.findFirst({
-        where: {
-          OR: [
-            { shortId: id },
-            { id: id },
-            { id: { startsWith: id } },
-          ],
-        },
-      });
+      const dare = await findDareForModeration(id);
 
       if (!dare) {
         await sendMessage(`❌ Dare not found: <code>${id}</code>`);
         return NextResponse.json({ error: 'Dare not found' }, { status: 404 });
       }
 
-      if (dare.status === 'VERIFIED') {
-        return NextResponse.json({ error: 'Already verified' }, { status: 400 });
-      }
-
-      const result = await approveDareWithPayout({
+      const result = await moderateDareDecision({
         dareId: dare.id,
+        decision: 'APPROVE',
         sourceContext: 'TELEGRAM_COMMAND',
-        verifiedAt: new Date(),
-        verifyConfidence: 1.0,
-        proofHash: dare.proofHash,
-        proofMedia: dare.videoUrl,
-        appealStatus: 'APPROVED',
+        moderatorAddress: 'telegram-command',
+        note: 'Approved via Telegram command.',
         notificationMessage: `Your proof for "${dare.title}" was approved via Telegram command.`,
       });
 
-      const message = `✅ <b>DARE APPROVED</b>\n\n<b>${dare.title}</b>\n👤 ${dare.streamerHandle || 'Open Dare'}\n💰 $${dare.bounty} USDC\n\n<b>Payout:</b>\n• Creator: $${result.payout.streamer.toFixed(2)}\n• Platform: $${result.payout.house.toFixed(2)}${result.payout.referrer > 0 ? `\n• Referrer: $${result.payout.referrer.toFixed(2)}` : ''}${result.status === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason}` : ''}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>`;
+      const payoutLines = result.payout
+        ? `\n• Creator: $${result.payout.streamer.toFixed(2)}\n• Platform: $${result.payout.house.toFixed(2)}`
+        : '';
+      const pendingLine = result.newStatus === 'PENDING_PAYOUT' ? `\n⏳ ${result.pendingReason || 'Payout queued for retry.'}` : '';
+      const message = `✅ <b>DARE APPROVED</b>\n\n<b>${dare.title}</b>\n👤 ${dare.streamerHandle || 'Open Dare'}\n💰 $${dare.bounty} USDC\n\n<b>Status:</b> ${result.newStatus}${payoutLines}${pendingLine}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>\n🛡 <a href="${BASE_URL}/admin">Open Admin</a>`;
       await sendMessage(message);
 
       return NextResponse.json({ success: true, approved: dare.id });
@@ -202,50 +201,23 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
       }
 
-      const dare = await prisma.dare.findFirst({
-        where: {
-          OR: [
-            { shortId: id },
-            { id: id },
-            { id: { startsWith: id } },
-          ],
-        },
-      });
+      const dare = await findDareForModeration(id);
 
       if (!dare) {
         await sendMessage(`❌ Dare not found: <code>${id}</code>`);
         return NextResponse.json({ error: 'Dare not found' }, { status: 404 });
       }
 
-      if (dare.requireSentinel) {
-        const recommendation = getSentinelRecommendation({
-          amount: dare.bounty,
-          missionTag: dare.tag,
-          venueId: dare.venueId,
-        });
-
-        trackServerEvent('sentinel_review_rejected', {
-          recommended: recommendation.recommended,
-          selected: true,
-          reason: getSentinelReasonForSelection({
-            recommendedReason: recommendation.reason,
-            selected: true,
-          }),
-          source: 'admin_review',
-        });
-      }
-
-      await prisma.dare.update({
-        where: { id: dare.id },
-        data: {
-          status: 'FAILED',
-          manualReviewNeeded: false,
-          appealStatus: 'REJECTED',
-          appealReason: reason || 'Rejected by admin',
-        },
+      await moderateDareDecision({
+        dareId: dare.id,
+        decision: 'REJECT',
+        sourceContext: 'TELEGRAM_COMMAND',
+        moderatorAddress: 'telegram-command',
+        note: reason || 'Rejected by Telegram command.',
+        rejectReason: reason || 'Rejected by Telegram command.',
       });
 
-      const message = `❌ <b>DARE REJECTED</b>\n\n<b>${dare.title}</b>\n📝 Reason: ${reason || 'Rejected by admin'}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>`;
+      const message = `❌ <b>DARE REJECTED</b>\n\n<b>${dare.title}</b>\n📝 Reason: ${reason || 'Rejected by admin'}\n\n🔗 <a href="${BASE_URL}/dare/${dare.shortId || dare.id}">View</a>\n🛡 <a href="${BASE_URL}/admin">Open Admin</a>`;
       await sendMessage(message);
 
       return NextResponse.json({ success: true, rejected: dare.id });
@@ -300,7 +272,7 @@ export async function GET(req: NextRequest) {
       const [totalDares, todayDares, pendingReview, verified, totalVolume] = await Promise.all([
         prisma.dare.count(),
         prisma.dare.count({ where: { createdAt: { gte: today } } }),
-        prisma.dare.count({ where: { appealStatus: 'PENDING' } }),
+        prisma.dare.count({ where: { OR: [{ appealStatus: 'PENDING' }, { status: 'PENDING_REVIEW' }] } }),
         prisma.dare.count({ where: { status: 'VERIFIED' } }),
         prisma.dare.aggregate({ _sum: { bounty: true } }),
       ]);

@@ -591,6 +591,8 @@ export async function POST(req: NextRequest) {
           title: dare.title,
           streamerTag: dare.streamerHandle,
           result: 'PENDING_REVIEW',
+          bounty: dare.bounty,
+          proofUrl: dare.videoUrl,
           confidence: Math.round(verification.confidence * 100),
         }).catch(err => console.error('[TELEGRAM] Manual review alert failed:', err));
       }
