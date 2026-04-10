@@ -29,9 +29,9 @@ const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS 
 const FORCE_SIMULATION = isBountySimulationMode();
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 
-export const STREAMER_FEE_PERCENT = 89;
-export const HOUSE_FEE_PERCENT = 10;
-export const REFERRER_FEE_PERCENT = 1;
+export const STREAMER_FEE_PERCENT = 96;
+export const HOUSE_FEE_PERCENT = 4;
+export const REFERRER_FEE_PERCENT = 0;
 
 const REFEREE_MAX_BALANCE_ETH = '0.05';
 const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);

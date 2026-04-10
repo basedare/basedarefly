@@ -29,10 +29,10 @@ const LIVEPEER_API_KEY = process.env.LIVEPEER_API_KEY;
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 const FORCE_SIMULATION = isBountySimulationMode();
 
-// Fee distribution constants (matching contract)
-const STREAMER_FEE_PERCENT = 89;
-const HOUSE_FEE_PERCENT = 10;
-const REFERRER_FEE_PERCENT = 1;
+// Fee distribution constants (matching BaseDareBountyV2)
+const STREAMER_FEE_PERCENT = 96;
+const HOUSE_FEE_PERCENT = 4;
+const REFERRER_FEE_PERCENT = 0;
 const REFEREE_MAX_BALANCE_ETH = '0.05';
 const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
