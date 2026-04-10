@@ -339,6 +339,37 @@ async function validateProof(
   }
 }
 
+async function markProofPendingPayoutFallback({
+  dareId,
+  dare,
+  verification,
+  proofVideoUrl,
+}: {
+  dareId: string;
+  dare: {
+    requireSentinel?: boolean | null;
+    sentinelVerified?: boolean | null;
+    videoUrl?: string | null;
+  };
+  verification: {
+    confidence: number;
+    proofHash: string;
+  };
+  proofVideoUrl?: string | null;
+}) {
+  await prisma.dare.update({
+    where: { id: dareId },
+    data: {
+      status: 'PENDING_PAYOUT',
+      videoUrl: proofVideoUrl ?? dare.videoUrl ?? undefined,
+      verifyConfidence: verification.confidence,
+      proofHash: verification.proofHash,
+      manualReviewNeeded: false,
+      sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified ?? false,
+    },
+  });
+}
+
 // ============================================================================
 // MOCK SBT SUNDER (Reputation burn on failure)
 // ============================================================================
@@ -599,113 +630,131 @@ export async function POST(req: NextRequest) {
 
       console.log(`[PAYOUT] Fee split - Streamer: $${streamerPayout}, House: $${houseFee}, Referrer: $${referrerFee}`);
 
-      if (isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION) {
-        // Real contract call
-        const { publicClient, walletClient, account } = getRefereeClient();
+      try {
+        if (isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION) {
+          // Real contract call
+          const { publicClient, walletClient, account } = getRefereeClient();
 
-        const balanceCheck = await enforceRefereeBalanceCap(
-          publicClient,
-          account.address,
-          `verify-proof:${dareId}`
-        );
-
-        if (!balanceCheck.allowed) {
-          await prisma.dare.update({
-            where: { id: dareId },
-            data: {
-              status: 'PENDING_PAYOUT',
-              verifyConfidence: verification.confidence,
-              proofHash: verification.proofHash,
-              manualReviewNeeded: false,
-              sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified,
-            },
-          });
-
-          return NextResponse.json({
-            success: true,
-            data: {
-              dareId,
-              status: 'PENDING_PAYOUT',
-              verification: {
-                confidence: verification.confidence,
-                reason: `Proof verified but payouts are paused. Referee hot wallet balance (${balanceCheck.balanceEth} ETH) exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap.`,
-                proofHash: verification.proofHash,
-              },
-            },
-          });
-        }
-
-        try {
-          if (!dare.onChainDareId) {
-            console.error(`[REFEREE] No onChainDareId for dare ${dareId} — skipping on-chain payout`);
-            throw new Error('Missing on-chain dare ID');
-          }
-          const onChainDareId = BigInt(dare.onChainDareId);
-
-          const hash = await walletClient.writeContract({
-            address: BOUNTY_CONTRACT_ADDRESS,
-            abi: BOUNTY_ABI,
-            functionName: 'verifyAndPayout',
-            args: [onChainDareId],
-          });
-
-          const receipt = await waitForSuccessfulReceipt({
+          const balanceCheck = await enforceRefereeBalanceCap(
             publicClient,
-            hash,
-            context: `verifyAndPayout:${dareId}`,
-          });
-          txHash = hash;
-          blockNumber = receipt.blockNumber.toString();
+            account.address,
+            `verify-proof:${dareId}`
+          );
 
-          console.log(`[AUDIT] Payout executed - txHash: ${txHash}`);
-        } catch (contractError: unknown) {
-          const contractMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
-          console.error(`[REFEREE] Contract payout failed: ${contractMsg}`);
-          // On-chain failed — mark as PENDING_PAYOUT so it can be retried
-          await prisma.dare.update({
-            where: { id: dareId },
-            data: {
-              status: 'PENDING_PAYOUT',
-              verifyConfidence: verification.confidence,
-              proofHash: verification.proofHash,
-              manualReviewNeeded: false,
-              sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified,
-            },
-          });
-
-          return NextResponse.json({
-            success: true,
-            data: {
+          if (!balanceCheck.allowed) {
+            await markProofPendingPayoutFallback({
               dareId,
-              status: 'PENDING_PAYOUT',
-              verification: {
-                confidence: verification.confidence,
-                reason: 'Proof verified but on-chain payout failed. Will be retried.',
-                proofHash: verification.proofHash,
+              dare,
+              verification,
+              proofVideoUrl: proofMedia,
+            });
+
+            return NextResponse.json({
+              success: true,
+              data: {
+                dareId,
+                status: 'PENDING_PAYOUT',
+                verification: {
+                  confidence: verification.confidence,
+                  reason: `Proof verified but payouts are paused. Referee hot wallet balance (${balanceCheck.balanceEth} ETH) exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap.`,
+                  proofHash: verification.proofHash,
+                },
               },
-            },
-          });
+            });
+          }
+
+          try {
+            if (!dare.onChainDareId) {
+              console.error(`[REFEREE] No onChainDareId for dare ${dareId} — skipping on-chain payout`);
+              throw new Error('Missing on-chain dare ID');
+            }
+            const onChainDareId = BigInt(dare.onChainDareId);
+
+            const hash = await walletClient.writeContract({
+              address: BOUNTY_CONTRACT_ADDRESS,
+              abi: BOUNTY_ABI,
+              functionName: 'verifyAndPayout',
+              args: [onChainDareId],
+            });
+
+            const receipt = await waitForSuccessfulReceipt({
+              publicClient,
+              hash,
+              context: `verifyAndPayout:${dareId}`,
+            });
+            txHash = hash;
+            blockNumber = receipt.blockNumber.toString();
+
+            console.log(`[AUDIT] Payout executed - txHash: ${txHash}`);
+          } catch (contractError: unknown) {
+            const contractMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
+            console.error(`[REFEREE] Contract payout failed: ${contractMsg}`);
+            // On-chain failed — mark as PENDING_PAYOUT so it can be retried
+            await markProofPendingPayoutFallback({
+              dareId,
+              dare,
+              verification,
+              proofVideoUrl: proofMedia,
+            });
+
+            return NextResponse.json({
+              success: true,
+              data: {
+                dareId,
+                status: 'PENDING_PAYOUT',
+                verification: {
+                  confidence: verification.confidence,
+                  reason: 'Proof verified but on-chain payout failed. Will be retried.',
+                  proofHash: verification.proofHash,
+                },
+              },
+            });
+          }
+        } else {
+          console.log(`[REFEREE] Simulated mode - skipping on-chain payout`);
         }
-      } else {
-        console.log(`[REFEREE] Simulated mode - skipping on-chain payout`);
-      }
 
-      // Log referrer payout for tracking
-      if (dare.referrerAddress) {
-        console.log(`[REFERRAL] Referrer ${dare.referrerTag || 'direct-address'} (${dare.referrerAddress}) earns $${referrerFee} (1% of $${totalBounty})`);
-      }
+        // Log referrer payout for tracking
+        if (dare.referrerAddress) {
+          console.log(`[REFERRAL] Referrer ${dare.referrerTag || 'direct-address'} (${dare.referrerAddress}) earns $${referrerFee} (0% of $${totalBounty})`);
+        }
 
-      await finalizeVerifiedDare({
-        dareId,
-        sourceContext: 'VERIFY_PROOF',
-        verifiedAt: completedAt,
-        verifyTxHash: txHash,
-        verifyConfidence: verification.confidence,
-        proofHash: verification.proofHash,
-        proofMedia,
-        appealStatus: null,
-        notificationMessage: `Your proof for "${dare.title}" was approved. ${streamerPayout.toFixed(2)} USDC has been sent to your wallet.`,
-      });
+        await finalizeVerifiedDare({
+          dareId,
+          sourceContext: 'VERIFY_PROOF',
+          verifiedAt: completedAt,
+          verifyTxHash: txHash,
+          verifyConfidence: verification.confidence,
+          proofHash: verification.proofHash,
+          proofMedia,
+          appealStatus: null,
+          notificationMessage: `Your proof for "${dare.title}" was approved. ${streamerPayout.toFixed(2)} USDC has been sent to your wallet.`,
+        });
+      } catch (successPathError: unknown) {
+        const successPathMessage =
+          successPathError instanceof Error ? successPathError.message : 'Unknown settlement error';
+        console.error(`[REFEREE] Post-verification settlement fallback for ${dareId}: ${successPathMessage}`);
+
+        await markProofPendingPayoutFallback({
+          dareId,
+          dare,
+          verification,
+          proofVideoUrl: proofMedia,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            dareId,
+            status: 'PENDING_PAYOUT',
+            verification: {
+              confidence: verification.confidence,
+              reason: 'Proof verified but settlement hit an internal ops error. Payout has been queued for retry.',
+              proofHash: verification.proofHash,
+            },
+          },
+        });
+      }
 
       console.log(`[AUDIT] Dare ${dareId} VERIFIED - streamer: ${dare.streamerHandle}, bounty: $${totalBounty} USDC`);
 
