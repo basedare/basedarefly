@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
 import { createPublicClient, createWalletClient, http, isAddress, parseUnits, type Address } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { prisma } from '@/lib/prisma';
+import { getRefereeAccount } from '@/lib/referee-wallet';
 
 // Network selection based on environment
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -36,12 +36,7 @@ const CreateBountySchema = z.object({
 
 // Server-side clients (auto-selects mainnet or sepolia)
 function getServerClients() {
-  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
-  }
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const account = getRefereeAccount(process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS);
 
   const publicClient = createPublicClient({
     chain: activeChain,

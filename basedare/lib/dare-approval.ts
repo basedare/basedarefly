@@ -10,7 +10,6 @@ import {
   parseEther,
   type Address,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
@@ -18,6 +17,7 @@ import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
+import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReasonForSelection } from '@/lib/sentinel';
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
@@ -37,7 +37,6 @@ const REFEREE_MAX_BALANCE_ETH = '0.05';
 const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 
-let warnedLegacyRefereeKey = false;
 let lastRefereeBalanceAlertAt = 0;
 
 type RefereeBalanceClient = {
@@ -158,23 +157,7 @@ export async function syncLinkedCampaignForDareState(input: {
 }
 
 function getRefereeClient() {
-  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
-  }
-
-  if (!process.env.REFEREE_HOT_WALLET_PRIVATE_KEY && !warnedLegacyRefereeKey) {
-    console.warn(
-      '[SECURITY] REFEREE_HOT_WALLET_PRIVATE_KEY not set; falling back to REFEREE_PRIVATE_KEY. Configure a dedicated low-balance hot wallet.'
-    );
-    warnedLegacyRefereeKey = true;
-  }
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
-  const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS?.toLowerCase();
-  if (platformWallet && account.address.toLowerCase() === platformWallet) {
-    throw new Error('Referee wallet must be dedicated and different from platform wallet');
-  }
+  const account = getRefereeAccount(process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS);
 
   const publicClient = createPublicClient({
     chain: activeChain,

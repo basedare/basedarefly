@@ -9,7 +9,6 @@ import {
   isAddress,
   type Address,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
@@ -22,6 +21,7 @@ import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
+import { getRefereeAccount } from '@/lib/referee-wallet';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
@@ -204,12 +204,7 @@ const GetBountySchema = z.object({
 // ============================================================================
 
 function getServerClients() {
-  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured');
-  }
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const account = getRefereeAccount(process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS);
 
   const publicClient = createPublicClient({
     chain: activeChain,

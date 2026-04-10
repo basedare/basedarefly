@@ -2,6 +2,7 @@ import { createPublicClient, createWalletClient, http, type Address, isAddress }
 import { privateKeyToAccount } from 'viem/accounts';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, PROTOCOL_ABI, USDC_ABI } from '@/abis/BaseDareProtocol';
+import { getConfiguredRefereePrivateKey } from '@/lib/referee-wallet';
 
 // ============================================================================
 // NETWORK CONFIGURATION
@@ -173,16 +174,7 @@ export const publicClient = createPublicClient({
 
 // Wallet client factory (for write operations) - SERVER ONLY
 export function getWalletClient() {
-  const privateKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('REFEREE_HOT_WALLET_PRIVATE_KEY not configured. Set this in your .env file (server-side only).');
-  }
-
-  if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
-    throw new Error('REFEREE_PRIVATE_KEY has invalid format. Expected 0x-prefixed 64-character hex string.');
-  }
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const account = privateKeyToAccount(getConfiguredRefereePrivateKey());
   return createWalletClient({
     account,
     chain: activeChain,
