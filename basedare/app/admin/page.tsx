@@ -246,6 +246,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [moderating, setModerating] = useState<string | null>(null);
+  const [moderationActionError, setModerationActionError] = useState<string | null>(null);
   const [selectedDare, setSelectedDare] = useState<DareForModeration | null>(null);
   const [moderateNote, setModerateNote] = useState('');
   const [queueSummary, setQueueSummary] = useState<QueueSummary>({
@@ -949,8 +950,13 @@ export default function AdminPage() {
     decision: 'APPROVE' | 'REJECT',
     options?: { openNext?: boolean }
   ) => {
-    if (!address) return;
+    if (!address) {
+      setModerationActionError('Connect an authorized moderator wallet before taking action.');
+      return;
+    }
 
+    setError(null);
+    setModerationActionError(null);
     setModerating(dareId);
     const openNext = options?.openNext ?? false;
     const currentIndex = dares.findIndex((dare) => dare.id === dareId);
@@ -983,14 +989,24 @@ export default function AdminPage() {
         setSelectedDare(openNext ? nextDareCandidate ?? null : null);
         setModerateNote('');
       } else {
-        setError(data.error || 'Failed to moderate');
+        const message = data.error || 'Failed to moderate';
+        setError(message);
+        setModerationActionError(message);
+
+        if (
+          /already moderated|not found|pending_payout|verified|failed/i.test(message)
+        ) {
+          void fetchQueue();
+        }
       }
     } catch {
-      setError('Failed to submit moderation decision');
+      const message = 'Failed to submit moderation decision';
+      setError(message);
+      setModerationActionError(message);
     } finally {
       setModerating(null);
     }
-  }, [address, dares, moderateNote]);
+  }, [address, dares, fetchQueue, moderateNote]);
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
@@ -1026,6 +1042,16 @@ export default function AdminPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, handleModerate, isAuthorized, moderating, selectRelativeDare, selectedDare]);
+
+  useEffect(() => {
+    if (activeTab !== 'moderation' || !isAuthorized || !address) return;
+
+    const intervalId = window.setInterval(() => {
+      void fetchQueue();
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeTab, address, fetchQueue, isAuthorized]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -1527,10 +1553,20 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {moderationActionError ? (
+                    <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                        <p className="text-sm text-red-300">{moderationActionError}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => handleModerate(selectedDare.id, 'REJECT')}
+                      type="button"
+                      onClick={() => void handleModerate(selectedDare.id, 'REJECT')}
                       disabled={moderating === selectedDare.id}
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                     >
@@ -1542,7 +1578,8 @@ export default function AdminPage() {
                       Reject
                     </button>
                     <button
-                      onClick={() => handleModerate(selectedDare.id, 'APPROVE')}
+                      type="button"
+                      onClick={() => void handleModerate(selectedDare.id, 'APPROVE')}
                       disabled={moderating === selectedDare.id}
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                     >
@@ -1556,7 +1593,8 @@ export default function AdminPage() {
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => handleModerate(selectedDare.id, 'REJECT', { openNext: true })}
+                      type="button"
+                      onClick={() => void handleModerate(selectedDare.id, 'REJECT', { openNext: true })}
                       disabled={moderating === selectedDare.id}
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 font-bold text-[11px] uppercase tracking-[0.18em] rounded-xl transition-colors disabled:opacity-50"
                     >
@@ -1564,7 +1602,8 @@ export default function AdminPage() {
                       Reject + Next
                     </button>
                     <button
-                      onClick={() => handleModerate(selectedDare.id, 'APPROVE', { openNext: true })}
+                      type="button"
+                      onClick={() => void handleModerate(selectedDare.id, 'APPROVE', { openNext: true })}
                       disabled={moderating === selectedDare.id}
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-300 font-bold text-[11px] uppercase tracking-[0.18em] rounded-xl transition-colors disabled:opacity-50"
                     >
