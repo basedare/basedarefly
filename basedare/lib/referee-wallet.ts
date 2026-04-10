@@ -3,13 +3,21 @@ import { privateKeyToAccount } from 'viem/accounts';
 let warnedLegacyRefereeKey = false;
 
 function normalizePrivateKey(value: string) {
-  let normalized = value.replace(/\r?\n/g, '').trim();
+  let normalized = value.replace(/[\s\u200B-\u200D\uFEFF]+/g, '').trim();
 
   if (
     (normalized.startsWith('"') && normalized.endsWith('"')) ||
-    (normalized.startsWith("'") && normalized.endsWith("'"))
+    (normalized.startsWith("'") && normalized.endsWith("'")) ||
+    (normalized.startsWith('`') && normalized.endsWith('`'))
   ) {
-    normalized = normalized.slice(1, -1).trim();
+    normalized = normalized
+      .slice(1, -1)
+      .replace(/[\s\u200B-\u200D\uFEFF]+/g, '')
+      .trim();
+  }
+
+  if (/^[a-fA-F0-9]{64}$/.test(normalized)) {
+    normalized = `0x${normalized}`;
   }
 
   return normalized;
