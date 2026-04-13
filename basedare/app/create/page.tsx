@@ -1144,19 +1144,21 @@ function CreateDareContent() {
                 <div className="space-y-3">
                   {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
                     <InitProtocolButton
+                      variant="liquid"
                       disabled
                       height={48}
                       className="w-full"
                       buttonClassName="h-12"
                     >
                       <div className="relative flex items-center justify-center gap-3">
-                        <span className="font-black uppercase tracking-[0.08em] text-[0.95rem] text-black/55">
+                        <span className="font-black uppercase tracking-[0.12em] text-[0.95rem] text-white/45">
                           {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
                         </span>
                       </div>
                     </InitProtocolButton>
                   ) : (
                     <InitProtocolButton
+                      variant="liquid"
                       active={isSubmitting}
                       type="submit"
                       disabled={isSubmitting}
@@ -1165,8 +1167,8 @@ function CreateDareContent() {
                       buttonClassName="h-12"
                       activeContent={
                         <div className="relative flex items-center justify-center gap-3">
-                          <Loader2 className="h-5 w-5 animate-spin text-black/75 md:h-6 md:w-6" />
-                          <span className="relative text-sm font-black uppercase tracking-[0.08em] text-black/82">
+                          <Loader2 className="h-5 w-5 animate-spin text-yellow-400 md:h-6 md:w-6" />
+                          <span className="relative text-sm font-black uppercase tracking-[0.12em] text-yellow-400">
                             {approvalStatus === 'approving'
                               ? 'Approving USDC...'
                               : approvalStatus === 'funding'
