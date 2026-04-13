@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
+import { useFeedback } from '@/hooks/useFeedback';
 import './PremiumBentoGrid.css';
 
 const SUGGESTIONS = {
@@ -162,6 +163,7 @@ export default function DareGenerator({
   onContextChange,
   shouldAutoFillTitle = true,
 }: GeneratorProps) {
+  const { trigger } = useFeedback();
   const [mode, setMode] = useState<'IRL' | 'STREAM'>('IRL');
   const [streamCategory, setStreamCategory] = useState<keyof typeof SUGGESTIONS>('GAMING');
   const [irlCategory, setIrlCategory] = useState<keyof typeof IRL_SUGGESTIONS>('nightlife');
@@ -209,7 +211,10 @@ export default function DareGenerator({
 
         <div className="grid grid-cols-2 gap-2">
           <SquircleButton
-            onClick={() => setMode('IRL')}
+            onClick={() => {
+              trigger('click');
+              setMode('IRL');
+            }}
             tone={mode === 'IRL' ? 'yellow' : 'slate'}
             label="IRL"
             height={48}
@@ -217,7 +222,10 @@ export default function DareGenerator({
             className="min-w-0"
           />
           <SquircleButton
-            onClick={() => setMode('STREAM')}
+            onClick={() => {
+              trigger('click');
+              setMode('STREAM');
+            }}
             tone={mode === 'STREAM' ? 'purple' : 'slate'}
             label="STREAM"
             height={48}
