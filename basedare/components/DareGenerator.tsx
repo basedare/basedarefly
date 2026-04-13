@@ -1,8 +1,10 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { useFeedback } from '@/hooks/useFeedback';
+import { cn } from '@/lib/utils';
 import './PremiumBentoGrid.css';
 
 const SUGGESTIONS = {
@@ -144,12 +146,22 @@ const IRL_SUGGESTIONS = {
   ]
 };
 
-const IRL_TAGS: Array<{ key: keyof typeof IRL_SUGGESTIONS; label: string }> = [
-  { key: 'nightlife', label: 'nightlife' },
-  { key: 'gym', label: 'fitness' },
-  { key: 'cafe', label: 'cafe' },
-  { key: 'beach', label: 'outdoors' },
-  { key: 'street', label: 'city' },
+const IRL_TAGS: Array<{ key: keyof typeof IRL_SUGGESTIONS; label: string; emoji: string }> = [
+  { key: 'nightlife', label: 'nightlife', emoji: '🍸' },
+  { key: 'gym', label: 'fitness', emoji: '💪' },
+  { key: 'cafe', label: 'cafe', emoji: '☕' },
+  { key: 'beach', label: 'outdoors', emoji: '🌴' },
+  { key: 'street', label: 'city', emoji: '🌃' },
+];
+
+const STREAM_TAGS: Array<{ key: keyof typeof SUGGESTIONS; label: string; emoji: string }> = [
+  { key: 'GAMING', label: 'gaming', emoji: '🎮' },
+  { key: 'CREATIVE', label: 'creative', emoji: '🎨' },
+  { key: 'SOCIAL', label: 'social', emoji: '💬' },
+  { key: 'FITNESS', label: 'fitness', emoji: '🏋️' },
+  { key: 'FOOD', label: 'food', emoji: '🍜' },
+  { key: 'CHAOS', label: 'chaos', emoji: '⚡' },
+  { key: 'MUSIC', label: 'music', emoji: '🎵' },
 ];
 
 interface GeneratorProps {
@@ -163,16 +175,26 @@ export default function DareGenerator({
   onContextChange,
   shouldAutoFillTitle = true,
 }: GeneratorProps) {
-  const { trigger } = useFeedback();
+  const { trigger, haptic } = useFeedback();
   const [mode, setMode] = useState<'IRL' | 'STREAM'>('IRL');
   const [streamCategory, setStreamCategory] = useState<keyof typeof SUGGESTIONS>('GAMING');
   const [irlCategory, setIrlCategory] = useState<keyof typeof IRL_SUGGESTIONS>('nightlife');
   const [suggestion, setSuggestion] = useState(IRL_SUGGESTIONS.nightlife[0]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isSegmentScrubbing, setIsSegmentScrubbing] = useState(false);
+  const scrubPointerIdRef = useRef<number | null>(null);
+  const segmentRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const activeSuggestions = useMemo(() => {
     return mode === 'IRL' ? IRL_SUGGESTIONS[irlCategory] : SUGGESTIONS[streamCategory];
   }, [mode, irlCategory, streamCategory]);
+
+  const currentSegments = useMemo(
+    () => (mode === 'IRL' ? IRL_TAGS : STREAM_TAGS),
+    [mode]
+  );
+
+  const selectedSegmentKey = mode === 'IRL' ? irlCategory : streamCategory;
 
   useEffect(() => {
     const first = activeSuggestions[0];
@@ -202,6 +224,94 @@ export default function DareGenerator({
     }, 50);
   };
 
+  const updateSegmentSelection = useCallback((segmentKey: string) => {
+    if (mode === 'IRL') {
+      const nextKey = segmentKey as keyof typeof IRL_SUGGESTIONS;
+      setIrlCategory(nextKey);
+      setSuggestion(IRL_SUGGESTIONS[nextKey][0]);
+      return;
+    }
+
+    const nextKey = segmentKey as keyof typeof SUGGESTIONS;
+    setStreamCategory(nextKey);
+    setSuggestion(SUGGESTIONS[nextKey][0]);
+  }, [mode]);
+
+  const handleModeChange = (nextMode: 'IRL' | 'STREAM') => {
+    trigger('click');
+    setMode(nextMode);
+  };
+
+  const handleSegmentChange = (segmentKey: string) => {
+    trigger('click');
+    updateSegmentSelection(segmentKey);
+  };
+
+  const getNearestSegmentKey = useCallback((clientX: number) => {
+    let nearestKey: string | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const segment of currentSegments) {
+      const element = segmentRefs.current[segment.key];
+      if (!element) continue;
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const distance = Math.abs(centerX - clientX);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestKey = segment.key;
+      }
+    }
+
+    return nearestKey;
+  }, [currentSegments]);
+
+  const scrubToPointer = useCallback((clientX: number) => {
+    const nextKey = getNearestSegmentKey(clientX);
+    if (!nextKey || nextKey === selectedSegmentKey) {
+      return;
+    }
+
+    haptic('tap');
+    updateSegmentSelection(nextKey);
+  }, [getNearestSegmentKey, haptic, selectedSegmentKey, updateSegmentSelection]);
+
+  const stopSegmentScrub = useCallback(() => {
+    setIsSegmentScrubbing(false);
+    scrubPointerIdRef.current = null;
+  }, []);
+
+  const handleSegmentRailPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    scrubPointerIdRef.current = event.pointerId;
+    setIsSegmentScrubbing(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleSegmentRailPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (scrubPointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    scrubToPointer(event.clientX);
+  }, [scrubToPointer]);
+
+  const handleSegmentRailPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (scrubPointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    stopSegmentScrub();
+  }, [stopSegmentScrub]);
+
   return (
     <div className="p-6 bg-purple-900/10 border border-purple-500/30 rounded-2xl mb-8">
       <div className="flex flex-col gap-4 mb-4">
@@ -211,84 +321,103 @@ export default function DareGenerator({
 
         <div className="grid grid-cols-2 gap-2">
           <SquircleButton
-            onClick={() => {
-              trigger('click');
-              setMode('IRL');
-            }}
+            onClick={() => handleModeChange('IRL')}
             tone={mode === 'IRL' ? 'yellow' : 'slate'}
             label="IRL"
-            height={48}
+            height={44}
             fullWidth
-            className="min-w-0"
+            className={cn(
+              'min-w-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[22%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.48),rgba(255,255,255,0.1)_72%,rgba(255,255,255,0))] before:opacity-90 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/10 after:opacity-70',
+              mode === 'IRL' ? 'before:opacity-100' : 'before:opacity-55 after:opacity-50'
+            )}
           />
           <SquircleButton
-            onClick={() => {
-              trigger('click');
-              setMode('STREAM');
-            }}
+            onClick={() => handleModeChange('STREAM')}
             tone={mode === 'STREAM' ? 'purple' : 'slate'}
             label="STREAM"
-            height={48}
+            height={44}
             fullWidth
-            className="min-w-0"
+            className={cn(
+              'min-w-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[22%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.48),rgba(255,255,255,0.1)_72%,rgba(255,255,255,0))] before:opacity-90 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/10 after:opacity-70',
+              mode === 'STREAM' ? 'before:opacity-100' : 'before:opacity-55 after:opacity-50'
+            )}
           />
         </div>
 
         <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
-          <div className="premium-filter-shell flex w-max gap-2 p-1.5">
-            {mode === 'IRL'
-              ? IRL_TAGS.map((tag) => {
-                  const selected = irlCategory === tag.key;
+          <div
+            onPointerDown={handleSegmentRailPointerDown}
+            onPointerMove={handleSegmentRailPointerMove}
+            onPointerUp={handleSegmentRailPointerUp}
+            onPointerCancel={handleSegmentRailPointerUp}
+            className={cn(
+              'relative flex w-max min-w-full gap-2 rounded-[1.7rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(7,9,17,0.84)_0%,rgba(18,16,29,0.92)_100%)] p-2 shadow-[0_16px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-14px_18px_rgba(0,0,0,0.3)] touch-pan-x select-none',
+              isSegmentScrubbing && 'cursor-grabbing'
+            )}
+          >
+            <div className="pointer-events-none absolute inset-x-6 top-1.5 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-8 bottom-1.5 h-px bg-gradient-to-r from-transparent via-black/35 to-transparent" />
 
-                  return (
-                    <button
-                      key={tag.key}
-                      type="button"
-                      onClick={() => {
-                        setIrlCategory(tag.key);
-                        setSuggestion(IRL_SUGGESTIONS[tag.key][0]);
-                      }}
-                      className={`premium-filter-chip ${
-                        selected ? 'premium-filter-chip--active premium-filter-chip--all' : ''
-                      } rounded-[2.25rem] px-4 py-2.5 font-mono text-[9px] uppercase tracking-[0.2em] whitespace-nowrap transition-all duration-300`}
-                      aria-pressed={selected}
-                    >
-                      <span
-                        className={`premium-filter-chip__label ${
-                          selected ? 'premium-filter-chip__label--active' : ''
-                        }`}
-                      >
-                        {tag.label}
-                      </span>
-                    </button>
-                  );
-                })
-              : (Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>).map((cat) => {
-                  const selected = streamCategory === cat;
+            {currentSegments.map((segment) => {
+              const selected = selectedSegmentKey === segment.key;
 
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        setStreamCategory(cat);
-                        setSuggestion(SUGGESTIONS[cat][0]);
+              return (
+                <button
+                  key={segment.key}
+                  type="button"
+                  onClick={() => handleSegmentChange(segment.key)}
+                  ref={(node) => {
+                    segmentRefs.current[segment.key] = node;
+                  }}
+                  className={cn(
+                    'group relative h-12 min-w-[88px] rounded-[1.15rem] cursor-grab active:cursor-grabbing',
+                    isSegmentScrubbing && 'cursor-grabbing'
+                  )}
+                  aria-pressed={selected}
+                >
+                  {selected ? (
+                    <motion.div
+                      layoutId="mission-roll-switch"
+                      transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+                      animate={{
+                        scale: isSegmentScrubbing ? 1.025 : 1,
+                        y: isSegmentScrubbing ? -1 : 0,
                       }}
-                      className={`premium-filter-chip ${
-                        selected ? 'premium-filter-chip--active premium-filter-chip--all' : ''
-                      } rounded-[2.25rem] px-4 py-2.5 font-mono text-[9px] uppercase tracking-[0.2em] whitespace-nowrap transition-all duration-300`}
-                      aria-pressed={selected}
+                      className="absolute inset-0 overflow-hidden rounded-[1.15rem] border border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(183,128,255,0.16)_36%,rgba(18,16,31,0.88)_100%)] shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_14px_rgba(0,0,0,0.22)] backdrop-blur-xl"
                     >
-                      <span
-                        className={`premium-filter-chip__label ${
-                          selected ? 'premium-filter-chip__label--active' : ''
-                        }`}
+                      <div className="absolute inset-x-3 top-1 h-3 rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.45),rgba(255,255,255,0.12)_72%,rgba(255,255,255,0))]" />
+                      <div
+                        className={cn(
+                          'absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.95),rgba(255,255,255,0.22)_24%,rgba(190,132,252,0.18)_58%,rgba(15,16,24,0.82)_100%)] shadow-[0_10px_16px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.35)] transition-transform duration-150',
+                          isSegmentScrubbing && 'scale-105'
+                        )}
                       >
-                        {cat}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <motion.span
+                          key={`${mode}-${segment.key}`}
+                          initial={{ opacity: 0, scale: 0.82 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.22 }}
+                          className="text-sm"
+                        >
+                          {segment.emoji}
+                        </motion.span>
+                      </div>
+                    </motion.div>
+                  ) : null}
+
+                  <span
+                    className={cn(
+                      'relative z-10 flex h-full w-full items-center text-[10px] font-bold uppercase tracking-[0.18em] transition-colors duration-300',
+                      selected
+                        ? 'justify-start pl-12 pr-3 text-white'
+                        : 'justify-center px-3 text-white/42 group-hover:text-white/78'
+                    )}
+                  >
+                    {segment.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -318,7 +447,7 @@ export default function DareGenerator({
           height={58}
           square
           icon={<RefreshCw className={`h-7 w-7 ${isAnimating ? 'animate-spin' : ''}`} />}
-          className="shrink-0"
+          className="shrink-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[24%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.56),rgba(255,255,255,0.14)_72%,rgba(255,255,255,0))] before:opacity-100"
         />
       </div>
 

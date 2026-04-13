@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useState, type PointerEvent, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 const HEXES =
   '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc800cca00014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf00cc9900ffffffd3e2ef'.match(
@@ -41,6 +41,10 @@ type SquircleButtonProps = {
   children?: ReactNode;
 };
 
+function formatPathNumber(value: number) {
+  return Number(value.toFixed(4));
+}
+
 function squirclePath(width: number, height: number, radius: number, x: number, y: number) {
   let path = '';
 
@@ -50,15 +54,18 @@ function squirclePath(width: number, height: number, radius: number, x: number, 
       const c = Math.cos(q);
       const s = Math.sin(q);
 
-      path +=
-        (j || i ? 'L' : 'M') +
-        (x +
+      const px = formatPathNumber(
+        x +
           (c > 0 ? width - radius : radius) +
-          Math.sign(c) * Math.pow(Math.abs(c), 0.6) * radius) +
-        ' ' +
-        (y +
+          Math.sign(c) * Math.pow(Math.abs(c), 0.6) * radius
+      );
+      const py = formatPathNumber(
+        y +
           (s > 0 ? height - radius : radius) +
-          Math.sign(s) * Math.pow(Math.abs(s), 0.6) * radius);
+          Math.sign(s) * Math.pow(Math.abs(s), 0.6) * radius
+      );
+
+      path += `${j || i ? 'L' : 'M'}${px} ${py}`;
     }
   }
 
@@ -69,22 +76,17 @@ function mix(hex: string, pct: number, fallback: string) {
   return `color-mix(in srgb, #${hex} ${pct}%, ${fallback})`;
 }
 
-function useButtonWidth(label: string, icon: boolean, square: boolean, height: number, fullWidth: boolean) {
-  const [measured, setMeasured] = useState(square ? 48 : 160);
+function useButtonWidth(label: string, icon: boolean, square: boolean, fullWidth: boolean) {
+  return useMemo(() => {
+    if (square) return 48;
+    if (fullWidth) return 160;
 
-  useEffect(() => {
-    if (square || fullWidth) return;
+    const compactLabel = label.trim().toUpperCase();
+    const estimatedTextWidth = compactLabel.length * 9.6;
+    const paddingWidth = icon ? 86 : 68;
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.font = '900 15px Inter, system-ui, sans-serif';
-    const width = Math.ceil((ctx.measureText(label.toUpperCase()).width + (icon ? 100 : 80)) * 1.1);
-    setMeasured(width);
-  }, [fullWidth, height, icon, label, square]);
-
-  return measured;
+    return Math.max(120, Math.ceil((estimatedTextWidth + paddingWidth) * 1.08));
+  }, [fullWidth, icon, label, square]);
 }
 
 export default function SquircleButton({
@@ -97,7 +99,6 @@ export default function SquircleButton({
   height = 44,
   className,
   buttonClassName,
-  active = false,
   disabled = false,
   onClick,
   type = 'button',
@@ -107,7 +108,7 @@ export default function SquircleButton({
   const highlight = HEXES[idx * 2] ?? 'ffd825';
   const depth = HEXES[idx * 2 + 1] ?? 'ca8a00';
   const white = tone === 'white';
-  const width = useButtonWidth(label, Boolean(icon), square, height, fullWidth);
+  const width = useButtonWidth(label, Boolean(icon), square, fullWidth);
   const [pressed, setPressed] = useState(false);
   const scale = height / 40;
 
@@ -126,7 +127,7 @@ export default function SquircleButton({
     setPressed(true);
   };
 
-  const handlePointerUp = (_event: PointerEvent<HTMLButtonElement>) => {
+  const handlePointerUp = () => {
     setPressed(false);
   };
 

@@ -141,7 +141,7 @@ function CreateDareContent() {
   const [approvalStatus, setApprovalStatus] = useState<'idle' | 'approving' | 'funding' | 'verifying'>('idle');
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { trigger } = useFeedback();
+  const { trigger, haptic } = useFeedback();
   const { data: session } = useSession();
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -393,6 +393,18 @@ function CreateDareContent() {
       });
     },
   });
+
+  const handleNearbyToggle = useCallback(() => {
+    const nextValue = !watchIsNearbyDare;
+    setValue('isNearbyDare', nextValue, { shouldDirty: true, shouldTouch: true });
+
+    if (nextValue && !coordinates) {
+      requestLocation();
+    }
+
+    haptic(nextValue ? 'success' : 'tap');
+    trigger('click');
+  }, [coordinates, haptic, requestLocation, setValue, trigger, watchIsNearbyDare]);
 
   const onSubmit = async (data: FormData) => {
     trigger('fund');
@@ -905,24 +917,19 @@ function CreateDareContent() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      const newValue = !watchIsNearbyDare;
-                      setValue('isNearbyDare', newValue);
-                      if (newValue && !coordinates) {
-                        requestLocation();
-                      }
-                      trigger('click');
-                    }}
-                    className={`relative w-14 h-8 rounded-full transition-all ${watchIsNearbyDare
-                      ? 'bg-[#FACC15]/20 border-2 border-[#FACC15]'
-                      : 'bg-white/[0.05] border-2 border-white/10'
-                      }`}
+                    onClick={handleNearbyToggle}
+                    className={`relative h-8 w-14 rounded-full border-2 transition-all ${
+                      watchIsNearbyDare
+                        ? 'border-[#FACC15] bg-[#FACC15]/20'
+                        : 'border-white/10 bg-white/[0.05]'
+                    }`}
                   >
                     <span
-                      className={`absolute top-1 w-5 h-5 rounded-full transition-all ${watchIsNearbyDare
-                        ? 'left-7 bg-[#FACC15]'
-                        : 'left-1 bg-gray-500'
-                        }`}
+                      className={`absolute top-1 h-5 w-5 rounded-full transition-all ${
+                        watchIsNearbyDare
+                          ? 'left-7 bg-[#FACC15]'
+                          : 'left-1 bg-gray-500'
+                      }`}
                     />
                   </button>
                 </div>
