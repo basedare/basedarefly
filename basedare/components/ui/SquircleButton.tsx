@@ -1,0 +1,213 @@
+'use client';
+
+import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState, type PointerEvent, type ReactNode } from 'react';
+
+const HEXES =
+  '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc800cca00014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf00cc9900ffffffd3e2ef'.match(
+    /.{6}/g
+  ) ?? [];
+
+const COLORS = {
+  blue: 0,
+  green: 1,
+  red: 2,
+  orange: 3,
+  yellow: 4,
+  teal: 5,
+  pink: 6,
+  purple: 7,
+  slate: 8,
+  amber: 9,
+  white: 10,
+} as const;
+
+type SquircleTone = keyof typeof COLORS;
+
+type SquircleButtonProps = {
+  tone?: SquircleTone;
+  label?: string;
+  icon?: ReactNode;
+  fullWidth?: boolean;
+  square?: boolean;
+  floating?: boolean;
+  height?: number;
+  className?: string;
+  buttonClassName?: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  type?: 'button' | 'submit' | 'reset';
+  children?: ReactNode;
+};
+
+function squirclePath(width: number, height: number, radius: number, x: number, y: number) {
+  let path = '';
+
+  for (let j = 0; j < 4; j += 1) {
+    for (let i = 0; i < 31; i += 1) {
+      const q = ((j + i / 30) * Math.PI) / 2;
+      const c = Math.cos(q);
+      const s = Math.sin(q);
+
+      path +=
+        (j || i ? 'L' : 'M') +
+        (x +
+          (c > 0 ? width - radius : radius) +
+          Math.sign(c) * Math.pow(Math.abs(c), 0.6) * radius) +
+        ' ' +
+        (y +
+          (s > 0 ? height - radius : radius) +
+          Math.sign(s) * Math.pow(Math.abs(s), 0.6) * radius);
+    }
+  }
+
+  return `${path}Z`;
+}
+
+function mix(hex: string, pct: number, fallback: string) {
+  return `color-mix(in srgb, #${hex} ${pct}%, ${fallback})`;
+}
+
+function useButtonWidth(label: string, icon: boolean, square: boolean, height: number, fullWidth: boolean) {
+  const [measured, setMeasured] = useState(square ? 48 : 160);
+
+  useEffect(() => {
+    if (square || fullWidth) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.font = '900 15px Inter, system-ui, sans-serif';
+    const width = Math.ceil((ctx.measureText(label.toUpperCase()).width + (icon ? 100 : 80)) * 1.1);
+    setMeasured(width);
+  }, [fullWidth, height, icon, label, square]);
+
+  return measured;
+}
+
+export default function SquircleButton({
+  tone = 'yellow',
+  label = '',
+  icon,
+  fullWidth = false,
+  square = false,
+  floating = false,
+  height = 44,
+  className,
+  buttonClassName,
+  active = false,
+  disabled = false,
+  onClick,
+  type = 'button',
+  children,
+}: SquircleButtonProps) {
+  const idx = COLORS[tone] ?? 0;
+  const highlight = HEXES[idx * 2] ?? 'ffd825';
+  const depth = HEXES[idx * 2 + 1] ?? 'ca8a00';
+  const white = tone === 'white';
+  const width = useButtonWidth(label, Boolean(icon), square, height, fullWidth);
+  const [pressed, setPressed] = useState(false);
+  const scale = height / 40;
+
+  const isDown = pressed && !disabled;
+  const faceY = isDown ? 9 : 4;
+  const baseY = 12;
+  const z = Math.min(0.5, 20 / width);
+  const dy = floating ? (isDown ? 12 : 24) : isDown ? 2 : 4;
+  const std = floating ? (isDown ? 6 : 12) : isDown ? 1.5 : 3;
+  const opacity = floating ? 0.15 : 0.3;
+  const svgWidth = width + 10;
+  const svgHeight = 60;
+  const labelText = label.toUpperCase();
+  const handlePointerDown = () => {
+    if (disabled) return;
+    setPressed(true);
+  };
+
+  const handlePointerUp = (_event: PointerEvent<HTMLButtonElement>) => {
+    setPressed(false);
+  };
+
+  const basePath = useMemo(() => squirclePath(width, 40, 18, 5, baseY), [width]);
+  const facePath = useMemo(() => squirclePath(width, 40, 18, 5, faceY), [faceY, width]);
+  const stackCount = Math.max(0, baseY - faceY);
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={cn(
+        'group relative inline-block select-none overflow-visible transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50',
+        fullWidth ? 'block w-full' : 'inline-block',
+        className
+      )}
+      style={{
+        width: fullWidth ? '100%' : `${svgWidth * scale}px`,
+        height: `${svgHeight * scale}px`,
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="none"
+        className={cn('h-full w-full overflow-visible', buttonClassName)}
+      >
+        <defs>
+          <filter id={`b-${tone}-${width}-${height}-${floating ? 'f' : 'n'}`} x="-100%" y="-100%" width="300%" height="300%">
+            <feDropShadow dy={dy} stdDeviation={std} floodColor={mix(depth, 35, 'black')} floodOpacity={opacity} />
+          </filter>
+          <linearGradient id={`g-${tone}-${width}-${height}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0" stopColor={mix(depth, 65, 'white')} />
+            <stop offset={`${z * 100}%`} stopColor={mix(depth, 90, 'white')} />
+            <stop offset={`${(1 - z) * 100}%`} stopColor={mix(depth, 90, 'white')} />
+            <stop offset="100%" stopColor={mix(depth, 65, 'white')} />
+          </linearGradient>
+        </defs>
+
+        <path d={basePath} fill={mix(depth, 60, 'black')} filter={`url(#b-${tone}-${width}-${height}-${floating ? 'f' : 'n'})`} />
+        <path
+          d={basePath}
+          fill={mix(depth, 80, 'black')}
+          stroke={floating ? mix(highlight, 70, 'white') : mix(depth, 50, 'black')}
+          strokeWidth="1"
+        />
+
+        {Array.from({ length: stackCount }).map((_, index) => (
+          <path key={index} d={squirclePath(width, 40, 18, 5, faceY + 1 + index)} fill={`url(#g-${tone}-${width}-${height})`} />
+        ))}
+
+        <path
+          d={facePath}
+          fill={white ? '#ffffff' : `#${highlight}`}
+          stroke={white ? '#e2e8f0' : mix(highlight, 70, 'white')}
+          strokeWidth="1.5"
+        />
+
+        <foreignObject x="5" y={faceY} width={width} height="40">
+          <div className="flex h-full w-full items-center justify-center px-4">
+            {children ? (
+              <div className="relative z-10 flex items-center justify-center">{children}</div>
+            ) : (
+              <div
+                className={cn(
+                  'relative z-10 flex items-center justify-center font-black uppercase',
+                  square ? 'text-[1.45rem]' : 'gap-2 text-[0.95rem] tracking-[0.08em]',
+                  tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white'
+                )}
+              >
+                {icon ? <span className="flex shrink-0 items-center justify-center">{icon}</span> : null}
+                {!square ? <span>{labelText}</span> : null}
+              </div>
+            )}
+          </div>
+        </foreignObject>
+      </svg>
+    </button>
+  );
+}

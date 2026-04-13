@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Zap, Wallet, Clock, Users, ChevronRight, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info } from "lucide-react";
+import { Zap, Wallet, Clock, Users, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
@@ -1139,78 +1139,54 @@ function CreateDareContent() {
                 </div>
               )}
 
-              {/* DEPLOY BUTTON - Liquid Metal Style */}
+              {/* DEPLOY BUTTON */}
               <div className={`${isConnected && !isSimulationMode ? "pt-3" : "pt-4 md:pt-6"}`}>
-                <div className="relative overflow-hidden rounded-2xl border border-white/[0.1] bg-[linear-gradient(155deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_22%,rgba(10,8,16,0.9)_62%,rgba(7,5,12,0.96)_100%)] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_32px_rgba(0,0,0,0.45),0_0_30px_rgba(250,204,21,0.05),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.35)] md:p-4">
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.14),transparent_42%),radial-gradient(circle_at_100%_100%,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.1)_0%,transparent_28%,transparent_72%,rgba(0,0,0,0.35)_100%)]"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-black/50 to-transparent"
-                  />
-
-                  <div className="relative">
-                    <div className="mb-3 flex items-center justify-between px-1">
-                      <div>
-                        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">Launch Control</p>
-                        <p className="mt-1 text-xs font-mono uppercase tracking-wider text-white/25">
-                          {isSimulationMode ? 'Database simulation active' : 'Onchain escrow deployment'}
-                        </p>
+                <div className="space-y-3">
+                  {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
+                    <InitProtocolButton
+                      disabled
+                      height={48}
+                      className="w-full"
+                      buttonClassName="h-12"
+                    >
+                      <div className="relative flex items-center justify-center gap-3">
+                        <span className="font-black uppercase tracking-[0.08em] text-[0.95rem] text-black/55">
+                          {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
+                        </span>
                       </div>
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#FACC15] shadow-[0_0_12px_rgba(250,204,21,0.65)]" />
-                    </div>
-
-                    {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
-                      /* Disabled state - no spinning border */
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full h-16 md:h-20 text-lg md:text-2xl font-black uppercase tracking-widest rounded-xl flex items-center justify-center cursor-not-allowed border border-[#f5d977]/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.45)_0%,rgba(250,204,21,0.34)_48%,rgba(150,111,9,0.55)_100%)] text-black/45 shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-8px_14px_rgba(126,82,0,0.18)_inset,0_10px_18px_rgba(0,0,0,0.28)]"
-                      >
-                        {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
-                      </button>
-                    ) : (
-                      <InitProtocolButton
-                          active={isSubmitting}
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="w-full"
-                          buttonClassName="h-16 md:h-20"
-                          activeContent={
-                            <>
-                              <Loader2 className="w-6 h-6 md:w-8 md:h-8 relative animate-spin" />
-                              <span className="relative text-base md:text-xl font-black italic uppercase tracking-[0.18em] text-yellow-400">
-                                {approvalStatus === 'approving' ? 'Approving USDC...' :
-                                  approvalStatus === 'funding' ? 'Deploying Dare...' :
-                                    approvalStatus === 'verifying' ? 'Verifying...' : 'Processing...'}
-                              </span>
-                            </>
-                          }
-                        >
-                          <div className="relative flex items-center justify-center gap-3">
-                            <span className="font-black italic uppercase tracking-[0.2em] text-lg text-white md:text-xl">
-                              Initiate Protocol
-                            </span>
-                            <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
-                          </div>
-                        </InitProtocolButton>
-                    )}
-
-                    <p className="text-center text-[9px] md:text-[10px] text-gray-500 font-mono mt-3 md:mt-4 uppercase px-4">
-                      {(!isSimulationMode && !isOnchainContractsReady)
-                        ? '* Configure contract env vars and redeploy.'
-                        : hasInsufficientBalance
-                        ? '* Fund your wallet with USDC to deploy'
-                        : '* Gas fees apply. Smart contract is immutable once deployed.'
+                    </InitProtocolButton>
+                  ) : (
+                    <InitProtocolButton
+                      active={isSubmitting}
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full"
+                      height={48}
+                      buttonClassName="h-12"
+                      activeContent={
+                        <div className="relative flex items-center justify-center gap-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-black/75 md:h-6 md:w-6" />
+                          <span className="relative text-sm font-black uppercase tracking-[0.08em] text-black/82">
+                            {approvalStatus === 'approving'
+                              ? 'Approving USDC...'
+                              : approvalStatus === 'funding'
+                                ? 'Deploying Dare...'
+                                : approvalStatus === 'verifying'
+                                  ? 'Verifying...'
+                                  : 'Processing...'}
+                          </span>
+                        </div>
                       }
+                    />
+                  )}
+
+                  {(hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady)) && (
+                    <p className="px-2 text-center font-mono text-[9px] uppercase text-gray-500 md:text-[10px]">
+                      {!isSimulationMode && !isOnchainContractsReady
+                        ? '* Configure contract env vars and redeploy.'
+                        : '* Fund your wallet with USDC to deploy'}
                     </p>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
