@@ -72,6 +72,40 @@ interface QueueSummary {
   campaignBackedReady: number;
 }
 
+interface PayoutBacklogSummary {
+  total: number;
+  oldestQueuedHours: number;
+  missingOnChainId: number;
+  campaignBacked: number;
+}
+
+interface PayoutBacklogEntry {
+  id: string;
+  shortId: string | null;
+  title: string;
+  bounty: number;
+  streamerHandle: string | null;
+  status: string;
+  targetWalletAddress: string | null;
+  updatedAt: string;
+  moderatedAt: string | null;
+  queuedHours: number;
+  queueReason: string;
+  onChainDareId: string | null;
+  isSimulated: boolean;
+  venue: {
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+  } | null;
+  linkedCampaign: {
+    id: string;
+    title: string;
+    brandName: string | null;
+  } | null;
+}
+
 interface AdminSettingsState {
   sentinelEnabled: boolean;
   sentinelPausedReason: string | null;
@@ -254,6 +288,14 @@ export default function AdminPage() {
     oldestProofHours: 0,
     campaignBackedReady: 0,
   });
+  const [payoutBacklog, setPayoutBacklog] = useState<PayoutBacklogEntry[]>([]);
+  const [payoutBacklogSummary, setPayoutBacklogSummary] = useState<PayoutBacklogSummary>({
+    total: 0,
+    oldestQueuedHours: 0,
+    missingOnChainId: 0,
+    campaignBacked: 0,
+  });
+  const [moderationActionNotice, setModerationActionNotice] = useState<string | null>(null);
   const [adminSettings, setAdminSettings] = useState<AdminSettingsState>({
     sentinelEnabled: true,
     sentinelPausedReason: null,
@@ -341,6 +383,13 @@ export default function AdminPage() {
         const nextDares = data.data.dares || [];
         setDares(nextDares);
         setQueueSummary(data.data.queueSummary || deriveQueueSummary(nextDares));
+        setPayoutBacklog(data.data.payoutBacklog || []);
+        setPayoutBacklogSummary(data.data.payoutBacklogSummary || {
+          total: 0,
+          oldestQueuedHours: 0,
+          missingOnChainId: 0,
+          campaignBacked: 0,
+        });
         setSelectedDare((current) => {
           if (!nextDares.length) return null;
           if (!current) return nextDares[0];
@@ -957,6 +1006,7 @@ export default function AdminPage() {
 
     setError(null);
     setModerationActionError(null);
+    setModerationActionNotice(null);
     setModerating(dareId);
     const openNext = options?.openNext ?? false;
     const currentIndex = dares.findIndex((dare) => dare.id === dareId);
@@ -988,6 +1038,13 @@ export default function AdminPage() {
         setQueueSummary(deriveQueueSummary(remainingDares));
         setSelectedDare(openNext ? nextDareCandidate ?? null : null);
         setModerateNote('');
+        setModerationActionNotice(
+          data.data?.message ||
+          (data.data?.newStatus === 'PENDING_PAYOUT'
+            ? 'Dare approved. Payout is queued for retry.'
+            : 'Moderation decision saved.')
+        );
+        await fetchQueue();
       } else {
         const message = data.error || 'Failed to moderate';
         setError(message);
@@ -1270,7 +1327,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Proof Queue</p>
                 <p className="mt-2 text-3xl font-black text-white">{dares.length}</p>
@@ -1287,7 +1344,46 @@ export default function AdminPage() {
                 <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Oldest Proof</p>
                 <p className="mt-2 text-3xl font-black text-orange-300">{formatProofAge(queueSummary.oldestProofHours)}</p>
               </div>
+              <div className={`backdrop-blur-xl rounded-2xl p-4 border ${payoutBacklogSummary.total > 0 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-black/20 border-white/10'}`}>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Payout Backlog</p>
+                <p className={`mt-2 text-3xl font-black ${payoutBacklogSummary.total > 0 ? 'text-amber-200' : 'text-white'}`}>
+                  {payoutBacklogSummary.total}
+                </p>
+              </div>
+              <div className={`backdrop-blur-xl rounded-2xl p-4 border ${payoutBacklogSummary.total > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-black/20 border-white/10'}`}>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-gray-500">Oldest Retry</p>
+                <p className={`mt-2 text-3xl font-black ${payoutBacklogSummary.total > 0 ? 'text-red-200' : 'text-white'}`}>
+                  {payoutBacklogSummary.total > 0 ? formatProofAge(payoutBacklogSummary.oldestQueuedHours) : 'none'}
+                </p>
+              </div>
             </div>
+
+            {payoutBacklogSummary.total > 0 ? (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-amber-200/80">Payout Retry Backlog</p>
+                    <p className="mt-2 text-sm text-amber-50">
+                      {payoutBacklogSummary.total} approved {payoutBacklogSummary.total === 1 ? 'dare is' : 'dares are'} waiting on payout retry.
+                      {payoutBacklogSummary.missingOnChainId > 0
+                        ? ` ${payoutBacklogSummary.missingOnChainId} ${payoutBacklogSummary.missingOnChainId === 1 ? 'entry is' : 'entries are'} missing an on-chain dare ID and likely need funding-sync repair.`
+                        : ' Automatic retry should clear the rest once referee wallet and cron are healthy.'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-amber-100/80">
+                    <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1">
+                      backlog {payoutBacklogSummary.total}
+                    </span>
+                    <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-1">
+                      oldest {formatProofAge(payoutBacklogSummary.oldestQueuedHours)}
+                    </span>
+                    <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1">
+                      campaign-backed {payoutBacklogSummary.campaignBacked}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Queue List */}
@@ -1403,6 +1499,52 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+
+              {payoutBacklog.length > 0 ? (
+                <div className="mt-6 border-t border-white/10 pt-6">
+                  <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-200">
+                    <AlertTriangle className="h-4 w-4" />
+                    Payout Retry Queue ({payoutBacklog.length})
+                  </h4>
+                  <div className="mt-4 space-y-3">
+                    {payoutBacklog.slice(0, 6).map((dare) => (
+                      <Link
+                        key={dare.id}
+                        href={`/dare/${dare.shortId || dare.id}`}
+                        className="block rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 transition hover:border-amber-400/40 hover:bg-amber-500/10"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-white line-clamp-1">{dare.title}</p>
+                            <p className="mt-1 text-xs text-amber-100/70">
+                              {dare.streamerHandle || '@everyone'} • ${dare.bounty}
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200">
+                            payout queued
+                          </span>
+                        </div>
+                        <p className="mt-3 text-xs text-amber-50/85">{dare.queueReason}</p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.16em]">
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-gray-300">
+                            queued {formatProofAge(dare.queuedHours)}
+                          </span>
+                          {dare.linkedCampaign ? (
+                            <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-cyan-300">
+                              {dare.linkedCampaign.brandName ? `${dare.linkedCampaign.brandName} campaign` : 'campaign-backed'}
+                            </span>
+                          ) : null}
+                          {!dare.onChainDareId ? (
+                            <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-1 text-red-300">
+                              missing chain id
+                            </span>
+                          ) : null}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Selected Dare Details */}
@@ -1558,6 +1700,15 @@ export default function AdminPage() {
                       <div className="flex items-start gap-2">
                         <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                         <p className="text-sm text-red-300">{moderationActionError}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {moderationActionNotice ? (
+                    <div className="mb-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                        <p className="text-sm text-emerald-100">{moderationActionNotice}</p>
                       </div>
                     </div>
                   ) : null}

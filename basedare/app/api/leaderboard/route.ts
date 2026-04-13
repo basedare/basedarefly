@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeCreatorHandle, toDisplayCreatorHandle } from '@/lib/creator-stats';
 
 // ============================================================================
 // LEADERBOARD API
@@ -66,10 +67,11 @@ export async function GET(request: NextRequest) {
       }>();
 
       topCreators.forEach((c) => {
-        if (!c.streamerHandle) return;
+        const normalizedHandle = normalizeCreatorHandle(c.streamerHandle);
+        if (!normalizedHandle) return;
 
-        const existing = creatorMap.get(c.streamerHandle) || {
-          handle: c.streamerHandle,
+        const existing = creatorMap.get(normalizedHandle) || {
+          handle: toDisplayCreatorHandle(c.streamerHandle) || c.streamerHandle!,
           p2pVolume: 0,
           p2pCount: 0,
           b2bVolume: 0,
@@ -77,13 +79,15 @@ export async function GET(request: NextRequest) {
         };
         existing.p2pVolume = c._sum.bounty || 0;
         existing.p2pCount = c._count.id;
-        creatorMap.set(c.streamerHandle, existing);
+        creatorMap.set(normalizedHandle, existing);
       });
 
       campaignCompletions.forEach((c) => {
-        if (!c.creatorHandle) return;
-        const existing = creatorMap.get(c.creatorHandle) || {
-          handle: c.creatorHandle,
+        const normalizedHandle = normalizeCreatorHandle(c.creatorHandle);
+        if (!normalizedHandle) return;
+
+        const existing = creatorMap.get(normalizedHandle) || {
+          handle: toDisplayCreatorHandle(c.creatorHandle) || c.creatorHandle!,
           p2pVolume: 0,
           p2pCount: 0,
           b2bVolume: 0,
@@ -91,7 +95,7 @@ export async function GET(request: NextRequest) {
         };
         existing.b2bVolume = c._sum.totalPayout || 0;
         existing.b2bCount = c._count.id;
-        creatorMap.set(c.creatorHandle, existing);
+        creatorMap.set(normalizedHandle, existing);
       });
 
       // Convert to array and sort by total volume

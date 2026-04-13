@@ -53,6 +53,31 @@ function isAuthorized(request: NextRequest): { authorized: boolean; moderatorAdd
   return { authorized: false };
 }
 
+function ageInHours(timestamp: Date | null | undefined) {
+  if (!timestamp) return 0;
+  return Math.max(0, Math.round((Date.now() - new Date(timestamp).getTime()) / (1000 * 60 * 60)));
+}
+
+function getPayoutQueueReason(dare: {
+  onChainDareId: string | null;
+  isSimulated: boolean;
+  moderatedAt: Date | null;
+}) {
+  if (!dare.onChainDareId) {
+    return 'Missing on-chain dare ID. Retry queue cannot settle until funding sync is repaired.';
+  }
+
+  if (dare.isSimulated) {
+    return 'Simulated dare is waiting for the retry worker to mark it verified.';
+  }
+
+  if (dare.moderatedAt) {
+    return 'Approved already. On-chain payout is queued for automatic retry.';
+  }
+
+  return 'Payout retry queued. Check referee wallet health and cron execution.';
+}
+
 // ============================================================================
 // GET /api/admin/moderate - List dares ready for moderation
 // ============================================================================
@@ -107,6 +132,46 @@ export async function GET(request: NextRequest) {
           },
         },
         _count: { select: { votes: true } },
+      },
+    });
+
+    const payoutBacklog = await prisma.dare.findMany({
+      where: {
+        status: 'PENDING_PAYOUT',
+      },
+      orderBy: [{ moderatedAt: 'asc' }, { updatedAt: 'asc' }],
+      take: limit,
+      select: {
+        id: true,
+        shortId: true,
+        title: true,
+        bounty: true,
+        streamerHandle: true,
+        status: true,
+        updatedAt: true,
+        moderatedAt: true,
+        targetWalletAddress: true,
+        onChainDareId: true,
+        isSimulated: true,
+        venue: {
+          select: {
+            slug: true,
+            name: true,
+            city: true,
+            country: true,
+          },
+        },
+        linkedCampaign: {
+          select: {
+            id: true,
+            title: true,
+            brand: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -182,16 +247,55 @@ export async function GET(request: NextRequest) {
     const campaignBackedReadyCount = sortedDares.filter(
       (dare) => Boolean(dare.linkedCampaign) && (dare.status === 'PENDING_REVIEW' || dare.readyForDecision)
     ).length;
+    const payoutBacklogItems = payoutBacklog.map((dare) => {
+      const queuedHours = ageInHours(dare.moderatedAt ?? dare.updatedAt);
+
+      return {
+        id: dare.id,
+        shortId: dare.shortId,
+        title: dare.title,
+        bounty: dare.bounty,
+        streamerHandle: dare.streamerHandle,
+        status: dare.status,
+        targetWalletAddress: dare.targetWalletAddress,
+        updatedAt: dare.updatedAt,
+        moderatedAt: dare.moderatedAt,
+        queuedHours,
+        queueReason: getPayoutQueueReason(dare),
+        onChainDareId: dare.onChainDareId,
+        isSimulated: dare.isSimulated,
+        venue: dare.venue,
+        linkedCampaign: dare.linkedCampaign
+          ? {
+              id: dare.linkedCampaign.id,
+              title: dare.linkedCampaign.title,
+              brandName: dare.linkedCampaign.brand?.name ?? null,
+            }
+          : null,
+      };
+    });
+    const payoutBacklogOldestHours = payoutBacklogItems.reduce(
+      (maxHours, dare) => Math.max(maxHours, dare.queuedHours),
+      0
+    );
+    const missingOnChainIdCount = payoutBacklogItems.filter((dare) => !dare.onChainDareId).length;
 
     return NextResponse.json({
       success: true,
       data: {
         dares: sortedDares,
+        payoutBacklog: payoutBacklogItems,
         total: sortedDares.length,
         queueSummary: {
           readyNow: readyNowCount,
           oldestProofHours,
           campaignBackedReady: campaignBackedReadyCount,
+        },
+        payoutBacklogSummary: {
+          total: payoutBacklogItems.length,
+          oldestQueuedHours: payoutBacklogOldestHours,
+          missingOnChainId: missingOnChainIdCount,
+          campaignBacked: payoutBacklogItems.filter((dare) => Boolean(dare.linkedCampaign)).length,
         },
       },
     });

@@ -16,6 +16,7 @@ import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { buildCreatorHandleVariants } from '@/lib/creator-stats';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
@@ -237,6 +238,44 @@ function getCompletionWalletAddress(dare: Dare): string | null {
     dare.stakerAddress?.toLowerCase() ||
     null
   );
+}
+
+async function syncStreamerTagAggregatesForDare(
+  tx: Prisma.TransactionClient,
+  dare: Dare
+) {
+  const handleVariants = buildCreatorHandleVariants(dare.streamerHandle);
+  if (handleVariants.length === 0) {
+    return;
+  }
+
+  const aggregate = await tx.dare.aggregate({
+    where: {
+      status: 'VERIFIED',
+      streamerHandle: { in: handleVariants, mode: 'insensitive' },
+    },
+    _sum: { bounty: true },
+    _count: { id: true },
+  });
+
+  const normalizedHandle = handleVariants[0].replace(/^@/, '');
+
+  await tx.streamerTag.updateMany({
+    where: {
+      OR: [
+        { tag: { in: handleVariants, mode: 'insensitive' } },
+        { twitterHandle: { equals: normalizedHandle, mode: 'insensitive' } },
+        { twitchHandle: { equals: normalizedHandle, mode: 'insensitive' } },
+        { youtubeHandle: { equals: normalizedHandle, mode: 'insensitive' } },
+        { kickHandle: { equals: normalizedHandle, mode: 'insensitive' } },
+      ],
+      status: { in: ['ACTIVE', 'VERIFIED'] },
+    },
+    data: {
+      totalEarned: aggregate._sum.bounty ?? 0,
+      completedDares: aggregate._count.id,
+    },
+  });
 }
 
 async function ensureApprovedPlaceTagForVerifiedDare(
@@ -481,6 +520,8 @@ export async function finalizeVerifiedDare(
       proofHash,
       input.moderatorAddress ?? null
     );
+
+    await syncStreamerTagAggregatesForDare(tx, nextDare);
 
     await ensureCampaignWritebackForVerifiedDare(tx, nextDare, verifiedAt);
 

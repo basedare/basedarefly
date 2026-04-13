@@ -29,6 +29,7 @@ interface CreatorStats {
     total: number;
     completed: number;
     live: number;
+    payoutQueued: number;
     acceptRate: number;
     totalPool: number;
     totalEarned: number;
@@ -161,6 +162,7 @@ const pillClass =
 function getStatusStyle(status: string) {
     const s = status?.toUpperCase();
     if (s === 'VERIFIED') return 'bg-green-500/15 text-green-400 border-green-500/30';
+    if (s === 'PENDING_PAYOUT') return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
     if (s === 'EXPIRED' || s === 'FAILED') return 'bg-gray-500/15 text-gray-400 border-gray-400/30';
     if (s === 'PENDING_REVIEW') return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
     return 'bg-red-500/15 text-red-400 border-red-500/30';
@@ -169,6 +171,7 @@ function getStatusStyle(status: string) {
 function getStatusLabel(status: string) {
     const s = status?.toUpperCase();
     if (s === 'VERIFIED') return 'DONE';
+    if (s === 'PENDING_PAYOUT') return 'PAYOUT QUEUED';
     if (s === 'EXPIRED') return 'EXPIRED';
     return 'LIVE';
 }
@@ -295,7 +298,7 @@ export default function CreatorProfilePage() {
                         pfpOffsetY: 50,
                         followerCount: null,
                         tags: [],
-                        stats: { total: 0, completed: 0, live: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
+                        stats: { total: 0, completed: 0, live: 0, payoutQueued: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
                         contribution: { totalMarks: 0, firstMarks: 0, uniqueVenues: 0, lastMarkedAt: null, topVenue: null },
                         recent: [],
                     });
@@ -1156,11 +1159,12 @@ export default function CreatorProfilePage() {
                     </div>
                 ) : null}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                     {[
                         { icon: Target, label: 'Total Dares', value: stats?.total ?? 0, color: 'text-white' },
                         { icon: Award, label: 'Completed', value: stats?.completed ?? 0, color: 'text-green-400' },
                         { icon: TrendingUp, label: 'Accept Rate', value: `${stats?.acceptRate ?? 0}%`, color: 'text-yellow-400' },
+                        { icon: AlertCircle, label: 'Queued', value: stats?.payoutQueued ?? 0, color: 'text-amber-300' },
                         { icon: Heart, label: 'Live Now', value: stats?.live ?? 0, color: 'text-red-400' },
                     ].map(({ icon: Icon, label, value, color }) => (
                         <div key={label} className={`${softCardClass} p-4 flex flex-col gap-1.5`}>

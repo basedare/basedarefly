@@ -83,6 +83,7 @@ function formatCountdown(expiresAt: string | null): string {
 function statusConfig(status: string) {
   const s = status?.toUpperCase();
   if (s === 'VERIFIED' || s === 'COMPLETED') return { label: 'VERIFIED', cls: 'bg-green-500/20 border-green-500/40 text-green-400' };
+  if (s === 'PENDING_PAYOUT') return { label: 'PAYOUT QUEUED', cls: 'bg-amber-500/20 border-amber-500/40 text-amber-300' };
   if (s === 'EXPIRED' || s === 'FAILED') return { label: 'EXPIRED', cls: 'bg-gray-500/20 border-gray-500/40 text-gray-400' };
   if (s === 'PENDING_REVIEW') return { label: 'UNDER REVIEW', cls: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' };
   if (s === DARE_STATUS_PENDING_ACCEPTANCE) return { label: 'WAITING FOR RESPONSE', cls: 'bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-200' };

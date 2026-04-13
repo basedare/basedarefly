@@ -207,18 +207,22 @@ export default function DareGenerator({
           <Sparkles className="w-4 h-4 text-[#FFD700]" /> AI Mission Generator
         </h3>
 
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <SquircleButton
             onClick={() => setMode('IRL')}
             tone={mode === 'IRL' ? 'yellow' : 'slate'}
             label="IRL"
-            height={50}
+            height={48}
+            fullWidth
+            className="min-w-0"
           />
           <SquircleButton
             onClick={() => setMode('STREAM')}
             tone={mode === 'STREAM' ? 'purple' : 'slate'}
             label="STREAM"
-            height={50}
+            height={48}
+            fullWidth
+            className="min-w-0"
           />
         </div>
 

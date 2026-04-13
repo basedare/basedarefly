@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { buildCreatorHandleVariants, normalizeCreatorHandle, toDisplayCreatorHandle } from '@/lib/creator-stats';
 import { deriveIdentityHandle, deriveIdentityPlatform, selectPrimaryTag } from '@/lib/creator-identity';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 
@@ -14,7 +15,12 @@ export async function GET(
     try {
         const { tag } = await params;
         const rawTag = decodeURIComponent(tag).trim();
-        const handlePlain = rawTag.replace(/^@/, '');
+        const normalizedHandle = normalizeCreatorHandle(rawTag);
+        if (!normalizedHandle) {
+            return NextResponse.json({ success: false, error: 'Creator not found' }, { status: 404 });
+        }
+
+        const handlePlain = normalizedHandle;
         const handle = `@${handlePlain}`;
 
         const matchingTags = await prisma.streamerTag.findMany({
@@ -59,11 +65,12 @@ export async function GET(
 
         const streamTag = selectPrimaryTag(matchingTags);
 
-        const canonicalHandle = streamTag?.tag || handle;
+        const canonicalHandle = toDisplayCreatorHandle(streamTag?.tag || handle) || handle;
         const canonicalPlain = canonicalHandle.replace(/^@/, '');
-        const handleVariants = Array.from(
-            new Set([canonicalHandle, canonicalPlain, `@${canonicalPlain}`, handle, handlePlain])
-        );
+        const handleVariants = Array.from(new Set([
+            ...buildCreatorHandleVariants(canonicalHandle),
+            ...buildCreatorHandleVariants(handle),
+        ]));
 
         // Fetch all dares targeting this creator (case-insensitive)
         const allDares = await prisma.dare.findMany({
@@ -87,6 +94,7 @@ export async function GET(
 
         const total = allDares.length;
         const completed = allDares.filter(d => d.status === 'VERIFIED').length;
+        const payoutQueued = allDares.filter(d => d.status === 'PENDING_PAYOUT').length;
         const live = allDares.filter(d => ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW'].includes(d.status)).length;
         const earnedFromDares = allDares
             .filter(d => d.status === 'VERIFIED')
@@ -94,8 +102,8 @@ export async function GET(
         const totalPool = allDares.reduce((sum, d) => sum + d.bounty, 0);
         const acceptRate = total > 0 ? Math.round((completed / total) * 100) : 0;
         const minBounty = allDares.length > 0 ? Math.min(...allDares.map(d => d.bounty)) : 0;
-        const totalEarned = streamTag?.totalEarned ?? earnedFromDares;
-        const completedCount = streamTag?.completedDares ?? completed;
+        const totalEarned = Math.max(streamTag?.totalEarned ?? 0, earnedFromDares);
+        const completedCount = Math.max(streamTag?.completedDares ?? 0, completed);
 
         const recent = allDares.slice(0, 12).map(d => ({
             id: d.id,
@@ -201,7 +209,7 @@ export async function GET(
                 pfpOffsetY: streamTag?.pfpOffsetY ?? 50,
                 followerCount: streamTag?.followerCount ?? null,
                 tags: streamTag?.tags || [],
-                stats: { total, completed: completedCount, live, acceptRate, totalPool, totalEarned, minBounty },
+                stats: { total, completed: completedCount, live, payoutQueued, acceptRate, totalPool, totalEarned, minBounty },
                 contribution,
                 recent,
             },
