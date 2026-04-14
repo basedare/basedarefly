@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildCreatorHandleVariants, normalizeCreatorHandle, toDisplayCreatorHandle } from '@/lib/creator-stats';
 import { deriveIdentityHandle, deriveIdentityPlatform, selectPrimaryTag } from '@/lib/creator-identity';
+import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
+import { isCreatorReviewTableMissingError } from '@/lib/creator-reviews';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 
 /**
  * GET /api/creator/[tag]
  * Returns profile stats + recent dares for a streamer handle.
  */
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ tag: string }> }
@@ -75,16 +80,16 @@ export async function GET(
         // Fetch all dares targeting this creator (case-insensitive)
         const allDares = await prisma.dare.findMany({
             where: {
-                OR: handleVariants.map((value) => ({
-                    streamerHandle: { equals: value, mode: 'insensitive' },
-                })),
+                OR: handleVariants.flatMap((value) => ([
+                    { streamerHandle: { equals: value, mode: 'insensitive' } },
+                    { claimRequestTag: { equals: value, mode: 'insensitive' } },
+                ])),
             },
             orderBy: { createdAt: 'desc' },
-            take: 50,
             select: {
                 id: true, shortId: true, title: true, bounty: true,
                 status: true, expiresAt: true, createdAt: true,
-                streamerHandle: true,
+                streamerHandle: true, claimRequestTag: true,
             },
         });
 
@@ -95,15 +100,18 @@ export async function GET(
         const total = allDares.length;
         const completed = allDares.filter(d => d.status === 'VERIFIED').length;
         const payoutQueued = allDares.filter(d => d.status === 'PENDING_PAYOUT').length;
+        const approved = completed + payoutQueued;
         const live = allDares.filter(d => ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW'].includes(d.status)).length;
         const earnedFromDares = allDares
             .filter(d => d.status === 'VERIFIED')
             .reduce((sum, d) => sum + d.bounty, 0);
         const totalPool = allDares.reduce((sum, d) => sum + d.bounty, 0);
-        const acceptRate = total > 0 ? Math.round((completed / total) * 100) : 0;
         const minBounty = allDares.length > 0 ? Math.min(...allDares.map(d => d.bounty)) : 0;
+        const averageBounty = total > 0 ? Math.round(totalPool / total) : 0;
         const totalEarned = Math.max(streamTag?.totalEarned ?? 0, earnedFromDares);
         const completedCount = Math.max(streamTag?.completedDares ?? 0, completed);
+        const approvedCount = Math.max(completedCount + payoutQueued, approved);
+        const acceptRate = total > 0 ? Math.round((approvedCount / total) * 100) : 0;
 
         const recent = allDares.slice(0, 12).map(d => ({
             id: d.id,
@@ -189,7 +197,50 @@ export async function GET(
             }
         }
 
-        return NextResponse.json({
+        const reviews = await prisma.creatorReview.findMany({
+            where: {
+                creatorTag: { in: handleVariants, mode: 'insensitive' },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: {
+                id: true,
+                rating: true,
+                review: true,
+                createdAt: true,
+                dare: {
+                    select: {
+                        title: true,
+                        shortId: true,
+                    },
+                },
+            },
+        }).catch((error) => {
+            if (isCreatorReviewTableMissingError(error)) {
+                return [];
+            }
+            throw error;
+        });
+
+        const reviewCount = reviews.length;
+        const averageRating = reviewCount > 0
+            ? Math.round((reviews.reduce((sum, entry) => sum + entry.rating, 0) / reviewCount) * 10) / 10
+            : null;
+
+        const trust = deriveCreatorTrustProfile({
+            approvedMissions: approvedCount,
+            settledMissions: completedCount,
+            totalEarned,
+            uniqueVenues: contribution.uniqueVenues,
+            firstMarks: contribution.firstMarks,
+            followerCount: streamTag?.followerCount ?? null,
+        });
+        const averageEarnedPerWin = completedCount > 0 ? Math.round(totalEarned / completedCount) : 0;
+        const firstSparkRate = contribution.totalMarks > 0
+            ? Math.round((contribution.firstMarks / contribution.totalMarks) * 100)
+            : 0;
+
+        const response = NextResponse.json({
             success: true,
             data: {
                 handle: canonicalHandle,
@@ -209,13 +260,46 @@ export async function GET(
                 pfpOffsetY: streamTag?.pfpOffsetY ?? 50,
                 followerCount: streamTag?.followerCount ?? null,
                 tags: streamTag?.tags || [],
-                stats: { total, completed: completedCount, live, payoutQueued, acceptRate, totalPool, totalEarned, minBounty },
+                stats: {
+                    total,
+                    approved: approvedCount,
+                    completed: completedCount,
+                    live,
+                    payoutQueued,
+                    acceptRate,
+                    totalPool,
+                    totalEarned,
+                    minBounty,
+                    averageBounty,
+                },
+                trust,
+                reviews: {
+                    count: reviewCount,
+                    averageRating,
+                    recent: reviews.map((entry) => ({
+                        id: entry.id,
+                        rating: entry.rating,
+                        review: entry.review,
+                        createdAt: entry.createdAt.toISOString(),
+                        dareTitle: entry.dare.title,
+                        dareShortId: entry.dare.shortId || null,
+                    })),
+                },
+                businessMetrics: {
+                    venueReach: contribution.uniqueVenues,
+                    firstSparkRate,
+                    averageEarnedPerWin,
+                },
                 contribution,
                 recent,
             },
         });
+        response.headers.set('Cache-Control', 'no-store, max-age=0');
+        return response;
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : 'Failed to fetch creator';
-        return NextResponse.json({ success: false, error: msg }, { status: 500 });
+        const response = NextResponse.json({ success: false, error: msg }, { status: 500 });
+        response.headers.set('Cache-Control', 'no-store, max-age=0');
+        return response;
     }
 }

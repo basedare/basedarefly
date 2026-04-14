@@ -8,9 +8,9 @@ import Link from 'next/link';
 import {
   ArrowLeft, Share2, Clock, Heart, MessageCircle,
   ExternalLink, AlertCircle, Loader2, CheckCircle,
-  ChevronDown, Send, Shield, Zap, LayoutDashboard,
+  ChevronDown, Send, Shield, Zap, LayoutDashboard, Star,
 } from 'lucide-react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi';
 import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -20,6 +20,7 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 import { buildXSharePayload } from '@/lib/social-share';
 import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
+import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -54,6 +55,14 @@ interface DareDetail {
 interface Comment {
   id: string; walletAddress: string; displayName: string;
   body: string; createdAt: string;
+}
+
+interface CreatorReview {
+  id: string;
+  rating: number;
+  review: string | null;
+  createdAt: string;
+  reviewerWallet: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -162,6 +171,7 @@ export default function DareDetailPage() {
   const router = useRouter();
   const shortId = params.shortId as string;
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const { data: session } = useSession();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
@@ -188,6 +198,11 @@ export default function DareDetailPage() {
   const [commentError, setCommentError] = useState<string | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
+  const [creatorReview, setCreatorReview] = useState<CreatorReview | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   // Claim state (preserved)
   const [claimLoading, setClaimLoading] = useState(false);
@@ -254,6 +269,30 @@ export default function DareDetailPage() {
 
   useEffect(() => { if (dare) loadComments(); }, [dare, loadComments]);
 
+  useEffect(() => {
+    if (!dare?.id) return;
+
+    let cancelled = false;
+    const loadReview = async () => {
+      try {
+        const res = await fetch(`/api/dares/${dare.id}/review`, { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled && res.ok && data.success) {
+          setCreatorReview(data.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setCreatorReview(null);
+        }
+      }
+    };
+
+    void loadReview();
+    return () => {
+      cancelled = true;
+    };
+  }, [dare?.id]);
+
   // ── Submit comment ─────────────────────────────────────────────────────
   const submitComment = async () => {
     if (!commentBody.trim() || !dare || !isConnected || !address) return;
@@ -281,6 +320,52 @@ export default function DareDetailPage() {
     } catch {
       setCommentError('Network error posting comment');
     } finally { setSubmittingComment(false); }
+  };
+
+  const submitCreatorReview = async () => {
+    if (!dare || !address || !isConnected || reviewSubmitting) return;
+
+    setReviewSubmitting(true);
+    setReviewError(null);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (sessionToken) {
+        headers.Authorization = `Bearer ${sessionToken}`;
+      } else {
+        const issuedAt = new Date().toISOString();
+        const message = buildCreatorReviewMessage({
+          walletAddress: address,
+          dareId: dare.id,
+          issuedAt,
+        });
+        const signature = await signMessageAsync({ message });
+        headers['x-basedare-review-wallet'] = address;
+        headers['x-basedare-review-issued-at'] = issuedAt;
+        headers['x-basedare-review-signature'] = String(signature);
+      }
+
+      const res = await fetch(`/api/dares/${dare.id}/review`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          rating: reviewRating,
+          review: reviewBody.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit review');
+      }
+      setCreatorReview(data.data);
+      setReviewBody('');
+    } catch (err: unknown) {
+      setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   // ── Upvote (persisted) ────────────────────────────────────────────────
@@ -439,6 +524,14 @@ export default function DareDetailPage() {
   const isUserInvolved = dare && address &&
     (address.toLowerCase() === dare.stakerAddress?.toLowerCase() ||
       address.toLowerCase() === dare.targetWalletAddress?.toLowerCase());
+  const canReviewCreator = Boolean(
+    dare &&
+    address &&
+    dare.stakerAddress &&
+    address.toLowerCase() === dare.stakerAddress.toLowerCase() &&
+    ['VERIFIED', 'PENDING_PAYOUT'].includes(dare.status?.toUpperCase()) &&
+    !creatorReview
+  );
 
   const sc = dare ? statusConfig(dare.status) : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
@@ -729,6 +822,90 @@ export default function DareDetailPage() {
         {dare.videoUrl && (
           <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
             <video src={dare.videoUrl} controls className="w-full rounded-2xl" />
+          </div>
+        )}
+
+        {(['VERIFIED', 'PENDING_PAYOUT'].includes(dare.status?.toUpperCase()) && (canReviewCreator || creatorReview)) && (
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 backdrop-blur-xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-base font-black uppercase tracking-[0.18em] text-white/85">Creator Review</h2>
+                <p className="mt-1 text-sm text-white/45">
+                  Simple business-side signal after a mission lands.
+                </p>
+              </div>
+              {creatorReview ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Review logged
+                </span>
+              ) : null}
+            </div>
+
+            {creatorReview ? (
+              <div className="mt-4 rounded-[20px] border border-white/[0.08] bg-black/20 px-4 py-4">
+                <div className="flex gap-1 text-[#f9e27a]">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} className={`h-4 w-4 ${creatorReview.rating >= index + 1 ? 'fill-current' : 'text-white/12'}`} />
+                  ))}
+                </div>
+                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-white/35">
+                  Logged {formatDistanceToNow(new Date(creatorReview.createdAt), { addSuffix: true })}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-white/68">
+                  {creatorReview.review || 'No written note, just the star rating.'}
+                </p>
+              </div>
+            ) : canReviewCreator ? (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">Rating</p>
+                  <div className="mt-2 flex gap-2">
+                    {Array.from({ length: 5 }).map((_, index) => {
+                      const nextRating = index + 1;
+                      return (
+                        <button
+                          key={nextRating}
+                          type="button"
+                          onClick={() => setReviewRating(nextRating)}
+                          className="transition-transform hover:scale-105"
+                        >
+                          <Star className={`h-6 w-6 ${reviewRating >= nextRating ? 'fill-[#f9e27a] text-[#f9e27a]' : 'text-white/15'}`} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/35">Optional note</p>
+                  <textarea
+                    value={reviewBody}
+                    onChange={(event) => setReviewBody(event.target.value.slice(0, 240))}
+                    rows={3}
+                    placeholder="How was delivery, proof quality, or venue impact?"
+                    className="mt-2 w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-purple-500/50 focus:outline-none"
+                  />
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/35">
+                    <span>Visible on the creator profile.</span>
+                    <span>{reviewBody.length}/240</span>
+                  </div>
+                </div>
+                {reviewError ? (
+                  <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                    {reviewError}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={submitCreatorReview}
+                  disabled={reviewSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-sm font-black uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16 disabled:opacity-50"
+                >
+                  {reviewSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+                  {reviewSubmitting ? 'Saving...' : 'Save review'}
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
 

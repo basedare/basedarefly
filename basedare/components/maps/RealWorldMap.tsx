@@ -408,6 +408,7 @@ const MAP_PRESET_OPTIONS: Array<{
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
+const CURRENT_LOCATION_CENTERED_ICON_PATH = '/assets/current-location-bear-pin.png';
 const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
   {
     id: 'classic',
@@ -430,6 +431,7 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 ];
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
+const currentLocationIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
 function getRadiusMetersForZoom(zoom: number) {
   if (zoom >= 15) return 2000;
@@ -812,6 +814,42 @@ function createPeebearMarkerIcon({
   return icon;
 }
 
+function createCurrentLocationIcon({
+  centered,
+  heading,
+}: {
+  centered: boolean;
+  heading: number | null;
+}) {
+  const headingBucket = heading === null ? 'none' : String(Math.round(heading / 5) * 5);
+  const cacheKey = `${centered ? 'centered' : 'dot'}:${headingBucket}`;
+  const cachedIcon = currentLocationIconCache.get(cacheKey);
+  if (cachedIcon) {
+    return cachedIcon;
+  }
+
+  const icon = divIcon({
+    className: 'current-location-leaflet-icon',
+    iconSize: centered ? [72, 88] : [56, 56],
+    iconAnchor: centered ? [36, 88] : [28, 28],
+    popupAnchor: [0, -28],
+    html: `
+      <div class="current-location-marker ${centered ? 'is-centered' : 'is-dot'}">
+        ${heading !== null ? `<span class="current-location-heading" style="transform: translateX(-50%) rotate(${heading}deg);"></span>` : ''}
+        <span class="current-location-pulse"></span>
+        ${
+          centered
+            ? `<img src="${CURRENT_LOCATION_CENTERED_ICON_PATH}" alt="Current location" class="current-location-bear" />`
+            : `<span class="current-location-dot-ring"></span><span class="current-location-dot-core"></span>`
+        }
+      </div>
+    `,
+  });
+
+  currentLocationIconCache.set(cacheKey, icon);
+  return icon;
+}
+
 function createFootprintMarkerIcon({
   firstMark,
   latest,
@@ -995,6 +1033,7 @@ export default function RealWorldMap() {
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [footprintMarks, setFootprintMarks] = useState<FootprintMark[]>([]);
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
   const [creatorOpportunities, setCreatorOpportunities] = useState<MapCreatorOpportunity[]>([]);
@@ -1035,6 +1074,7 @@ export default function RealWorldMap() {
   const skipNextSearchRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
+  const hasUserLocation = Boolean(userLocation);
 
   const focusedCreatorActivation = useMemo(() => {
     if (!deepLinkedDareShortId) return null;
@@ -1212,6 +1252,7 @@ export default function RealWorldMap() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         });
+        setUserHeading(Number.isFinite(position.coords.heading) ? position.coords.heading : null);
         setTargetCenter([position.coords.latitude, position.coords.longitude]);
         setTargetZoom(14);
         setLocating(false);
@@ -1227,6 +1268,26 @@ export default function RealWorldMap() {
       cancelled = true;
     };
   }, [mapReady]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation || !hasUserLocation) {
+      return undefined;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setUserHeading(Number.isFinite(position.coords.heading) ? position.coords.heading : null);
+      },
+      () => undefined,
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 12000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [hasUserLocation]);
 
   useEffect(() => {
     if (hasDeepLinkedPlace) {
@@ -1716,6 +1777,22 @@ export default function RealWorldMap() {
     );
   }, [selectedPlace, userLocation]);
 
+  const isUserCentered = useMemo(() => {
+    if (!userLocation || !viewportCenter) {
+      return false;
+    }
+
+    const thresholdMeters = mapZoom >= 15 ? 55 : mapZoom >= 14 ? 90 : 140;
+    return (
+      calculateDistanceMeters(
+        userLocation.latitude,
+        userLocation.longitude,
+        viewportCenter.latitude,
+        viewportCenter.longitude
+      ) <= thresholdMeters
+    );
+  }, [mapZoom, userLocation, viewportCenter]);
+
   const firstMarkState = useMemo(() => {
     const approvedCount = selectedPlace?.approvedCount ?? 0;
     const pendingCount = selectedPendingPlaceTags.length;
@@ -2182,6 +2259,10 @@ export default function RealWorldMap() {
       matched: Boolean(showMatchedLayer && selectedPlaceMatch),
     });
   }, [selectedPlace, selectedPlaceMatch, selectedPulse, selectedVisualState, showMatchedLayer]);
+  const currentLocationMarkerIcon = useMemo(
+    () => createCurrentLocationIcon({ centered: isUserCentered, heading: userHeading }),
+    [isUserCentered, userHeading]
+  );
 
   const mapPanelShellClass =
     'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[36px]';
@@ -2547,6 +2628,20 @@ export default function RealWorldMap() {
                   }}
                 />
               ))}
+
+              {userLocation ? (
+                <Marker
+                  position={[userLocation.latitude, userLocation.longitude]}
+                  icon={currentLocationMarkerIcon}
+                  zIndexOffset={680}
+                  eventHandlers={{
+                    click: () => {
+                      setTargetCenter([userLocation.latitude, userLocation.longitude]);
+                      setTargetZoom(Math.max(Math.round(mapZoom), 14));
+                    },
+                  }}
+                />
+              ) : null}
 
               {selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerIcon ? (
                 <Marker
@@ -4213,6 +4308,28 @@ export default function RealWorldMap() {
           }
         }
 
+        @keyframes currentLocationPulse {
+          0%,
+          100% {
+            transform: scale(0.96);
+            opacity: 0.62;
+          }
+          50% {
+            transform: scale(1.08);
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes currentLocationBob {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-2px);
+          }
+        }
+
         .basedare-leaflet-map :global(.leaflet-container) {
           height: 100%;
           width: 100%;
@@ -4233,9 +4350,94 @@ export default function RealWorldMap() {
           border: 0;
         }
 
+        .basedare-leaflet-map :global(.current-location-leaflet-icon) {
+          background: transparent;
+          border: 0;
+        }
+
         .basedare-leaflet-map :global(.place-cluster-leaflet-icon) {
           background: transparent;
           border: 0;
+        }
+
+        .basedare-leaflet-map :global(.current-location-marker) {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .basedare-leaflet-map :global(.current-location-marker.is-dot) {
+          width: 56px;
+          height: 56px;
+        }
+
+        .basedare-leaflet-map :global(.current-location-marker.is-centered) {
+          width: 72px;
+          height: 88px;
+        }
+
+        .basedare-leaflet-map :global(.current-location-pulse) {
+          position: absolute;
+          inset: 10px;
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(34, 211, 238, 0.22) 0%, rgba(184, 127, 255, 0.12) 48%, transparent 74%);
+          filter: blur(8px);
+          animation: currentLocationPulse 2.4s ease-in-out infinite;
+        }
+
+        .basedare-leaflet-map :global(.current-location-heading) {
+          position: absolute;
+          left: 50%;
+          bottom: 50%;
+          z-index: 0;
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-top: 52px solid rgba(95, 230, 255, 0.24);
+          filter: drop-shadow(0 0 12px rgba(95, 230, 255, 0.18));
+          transform-origin: 50% calc(100% - 6px);
+          opacity: 0.82;
+        }
+
+        .basedare-leaflet-map :global(.current-location-dot-ring) {
+          position: absolute;
+          z-index: 1;
+          width: 30px;
+          height: 30px;
+          border-radius: 9999px;
+          border: 2px solid rgba(190, 249, 255, 0.85);
+          background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(34, 211, 238, 0.18) 40%, rgba(7, 13, 22, 0.94) 100%);
+          box-shadow:
+            0 0 0 6px rgba(34, 211, 238, 0.14),
+            0 0 18px rgba(34, 211, 238, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .basedare-leaflet-map :global(.current-location-dot-core) {
+          position: absolute;
+          z-index: 2;
+          width: 14px;
+          height: 14px;
+          border-radius: 9999px;
+          background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.92) 0%, #9ff5ff 38%, #36d8ff 100%);
+          box-shadow: 0 0 12px rgba(95, 230, 255, 0.4);
+        }
+
+        .basedare-leaflet-map :global(.current-location-bear) {
+          position: relative;
+          z-index: 2;
+          display: block;
+          width: 72px;
+          height: 88px;
+          object-fit: contain;
+          filter:
+            drop-shadow(0 16px 24px rgba(0, 0, 0, 0.34))
+            drop-shadow(0 0 16px rgba(184, 127, 255, 0.24));
+          animation: currentLocationBob 2.8s ease-in-out infinite;
+          user-select: none;
+          -webkit-user-drag: none;
         }
 
         .basedare-leaflet-map :global(.place-cluster-marker) {

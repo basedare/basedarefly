@@ -9,6 +9,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
     Heart, TrendingUp, Target, Award, AlertCircle,
+    Star,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -27,6 +28,7 @@ const STREAMER_IMAGES: Record<string, string> = {
 
 interface CreatorStats {
     total: number;
+    approved: number;
     completed: number;
     live: number;
     payoutQueued: number;
@@ -34,6 +36,7 @@ interface CreatorStats {
     totalPool: number;
     totalEarned: number;
     minBounty: number;
+    averageBounty: number;
 }
 
 interface RecentDare {
@@ -65,6 +68,29 @@ interface CreatorProfile {
     followerCount: number | null;
     tags: string[];
     stats: CreatorStats;
+    trust: {
+        level: number;
+        label: string;
+        score: number;
+        summary: string;
+    };
+    businessMetrics: {
+        venueReach: number;
+        firstSparkRate: number;
+        averageEarnedPerWin: number;
+    };
+    reviews: {
+        count: number;
+        averageRating: number | null;
+        recent: Array<{
+            id: string;
+            rating: number;
+            review: string | null;
+            createdAt: string;
+            dareTitle: string;
+            dareShortId: string | null;
+        }>;
+    };
     contribution: {
         totalMarks: number;
         firstMarks: number;
@@ -274,7 +300,9 @@ export default function CreatorProfilePage() {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await fetch(`/api/creator/${encodeURIComponent(decodedTag)}`);
+                const res = await fetch(`/api/creator/${encodeURIComponent(decodedTag)}`, {
+                    cache: 'no-store',
+                });
                 const data = await res.json();
                 if (res.ok && data.success) {
                     setProfile(data.data);
@@ -298,7 +326,10 @@ export default function CreatorProfilePage() {
                         pfpOffsetY: 50,
                         followerCount: null,
                         tags: [],
-                        stats: { total: 0, completed: 0, live: 0, payoutQueued: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0 },
+                        stats: { total: 0, approved: 0, completed: 0, live: 0, payoutQueued: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0, averageBounty: 0 },
+                        trust: { level: 0, label: 'Fresh', score: 0, summary: 'No approved missions yet. Trust starts compounding after the first cleared dare.' },
+                        businessMetrics: { venueReach: 0, firstSparkRate: 0, averageEarnedPerWin: 0 },
+                        reviews: { count: 0, averageRating: null, recent: [] },
                         contribution: { totalMarks: 0, firstMarks: 0, uniqueVenues: 0, lastMarkedAt: null, topVenue: null },
                         recent: [],
                     });
@@ -402,6 +433,9 @@ export default function CreatorProfilePage() {
     );
 
     const stats = profile?.stats;
+    const trust = profile?.trust;
+    const businessMetrics = profile?.businessMetrics;
+    const reviews = profile?.reviews;
     const connectedPlatforms = [
         profile?.identityHandle && profile?.identityPlatform
             ? {
@@ -671,6 +705,9 @@ export default function CreatorProfilePage() {
                                                 Verified
                                             </span>
                                         )}
+                                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 text-[#f9e27a] uppercase tracking-[0.18em]">
+                                            {trust?.label || 'Fresh'} Lv.{trust?.level ?? 0}
+                                        </span>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2.5 mt-3">
@@ -761,15 +798,117 @@ export default function CreatorProfilePage() {
                                 <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Quick Read</p>
                                 <div className="mt-4 space-y-3">
                                     <div className={`${insetCardClass} px-4 py-3`}>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Trust Score</p>
+                                        <p className="mt-1 text-2xl font-black text-[#f9e27a]">{trust?.score ?? 0}</p>
+                                    </div>
+                                    <div className={`${insetCardClass} px-4 py-3`}>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Approval Rate</p>
+                                        <p className="mt-1 text-2xl font-black text-yellow-400">{stats?.acceptRate ?? 0}%</p>
+                                    </div>
+                                    <div className={`${insetCardClass} px-4 py-3`}>
                                         <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Live Now</p>
                                         <p className="mt-1 text-2xl font-black text-red-400">{stats?.live ?? 0}</p>
                                     </div>
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Accept Rate</p>
-                                        <p className="mt-1 text-2xl font-black text-yellow-400">{stats?.acceptRate ?? 0}%</p>
-                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={`${softCardClass} p-5 sm:p-6`}>
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f9e27a] shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                <Award className="w-3.5 h-3.5" />
+                                Trust Layer
+                            </div>
+                            <h2 className="mt-4 text-lg font-black text-white">Business-readable proof</h2>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
+                                The trust signal brands can actually use: approved mission delivery, venue range, and how often this creator sparks a place first.
+                            </p>
+                        </div>
+                        <div className={`${pillClass} text-[10px] tracking-[0.2em] text-[#f9e27a]`}>
+                            {trust?.label || 'Fresh'} level
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 md:grid-cols-4">
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Level</p>
+                            <p className="mt-2 text-2xl font-black text-[#f9e27a]">{trust?.level ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">{trust?.summary || 'No trust signal yet.'}</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Approved Missions</p>
+                            <p className="mt-2 text-2xl font-black text-emerald-300">{stats?.approved ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">Approved proof, including payouts still clearing on-chain.</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Venue Reach</p>
+                            <p className="mt-2 text-2xl font-black text-cyan-200">{businessMetrics?.venueReach ?? 0}</p>
+                            <p className="mt-1 text-[11px] text-white/46">Distinct venues where this creator has left verified memory.</p>
+                        </div>
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">First Spark Rate</p>
+                            <p className="mt-2 text-2xl font-black text-fuchsia-200">{businessMetrics?.firstSparkRate ?? 0}%</p>
+                            <p className="mt-1 text-[11px] text-white/46">Share of marks where they were first to wake the venue up.</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Business Rating</p>
+                            <div className="mt-2 flex items-end gap-2">
+                                <p className="text-3xl font-black text-white">{reviews?.averageRating?.toFixed(1) ?? '--'}</p>
+                                <span className="pb-1 text-xs font-bold uppercase tracking-[0.18em] text-[#f9e27a]">
+                                    {reviews?.count ?? 0} review{reviews?.count === 1 ? '' : 's'}
+                                </span>
+                            </div>
+                            <div className="mt-3 flex gap-1 text-[#f9e27a]">
+                                {Array.from({ length: 5 }).map((_, index) => (
+                                    <Star
+                                        key={index}
+                                        className={`h-4 w-4 ${((reviews?.averageRating ?? 0) >= index + 1) ? 'fill-current' : 'text-white/12'}`}
+                                    />
+                                ))}
+                            </div>
+                            <p className="mt-3 text-[11px] text-white/46">
+                                Simple post-completion signal from the business side after a mission lands.
+                            </p>
+                        </div>
+
+                        <div className={`${insetCardClass} px-4 py-4`}>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Recent Reviews</p>
+                            {reviews?.recent && reviews.recent.length > 0 ? (
+                                <div className="mt-3 space-y-3">
+                                    {reviews.recent.map((entry) => (
+                                        <div key={entry.id} className="rounded-[18px] border border-white/[0.06] bg-white/[0.03] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex gap-1 text-[#f9e27a]">
+                                                    {Array.from({ length: 5 }).map((_, index) => (
+                                                        <Star
+                                                            key={index}
+                                                            className={`h-3.5 w-3.5 ${entry.rating >= index + 1 ? 'fill-current' : 'text-white/12'}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] uppercase tracking-[0.18em] text-white/35">
+                                                    {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2 text-sm font-semibold text-white">{entry.dareTitle}</p>
+                                            <p className="mt-2 text-sm leading-6 text-white/65">
+                                                {entry.review || 'No written note, just the star rating.'}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="mt-3 rounded-[18px] border border-white/[0.06] bg-white/[0.03] px-4 py-4 text-sm text-white/45">
+                                    No business reviews yet. The first completed mission rating will show up here.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1159,11 +1298,12 @@ export default function CreatorProfilePage() {
                     </div>
                 ) : null}
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                     {[
                         { icon: Target, label: 'Total Dares', value: stats?.total ?? 0, color: 'text-white' },
-                        { icon: Award, label: 'Completed', value: stats?.completed ?? 0, color: 'text-green-400' },
-                        { icon: TrendingUp, label: 'Accept Rate', value: `${stats?.acceptRate ?? 0}%`, color: 'text-yellow-400' },
+                        { icon: Award, label: 'Approved', value: stats?.approved ?? 0, color: 'text-emerald-300' },
+                        { icon: CheckCircle, label: 'Settled', value: stats?.completed ?? 0, color: 'text-green-400' },
+                        { icon: TrendingUp, label: 'Approval Rate', value: `${stats?.acceptRate ?? 0}%`, color: 'text-yellow-400' },
                         { icon: AlertCircle, label: 'Queued', value: stats?.payoutQueued ?? 0, color: 'text-amber-300' },
                         { icon: Heart, label: 'Live Now', value: stats?.live ?? 0, color: 'text-red-400' },
                     ].map(({ icon: Icon, label, value, color }) => (
@@ -1183,6 +1323,14 @@ export default function CreatorProfilePage() {
                     <div className={`${softCardClass} p-5`}>
                         <p className="text-[10px] text-purple-500/60 uppercase tracking-wider font-bold mb-1">Total Earned</p>
                         <p className="text-xl font-black text-purple-400">${(stats?.totalEarned ?? 0).toLocaleString()} <span className="text-xs text-purple-600">USDC</span></p>
+                    </div>
+                    <div className={`${softCardClass} p-5`}>
+                        <p className="text-[10px] text-cyan-500/60 uppercase tracking-wider font-bold mb-1">Average Bounty</p>
+                        <p className="text-xl font-black text-cyan-200">${(stats?.averageBounty ?? 0).toLocaleString()} <span className="text-xs text-cyan-400/70">USDC</span></p>
+                    </div>
+                    <div className={`${softCardClass} p-5`}>
+                        <p className="text-[10px] text-fuchsia-500/60 uppercase tracking-wider font-bold mb-1">Average Earned Per Win</p>
+                        <p className="text-xl font-black text-fuchsia-200">${(businessMetrics?.averageEarnedPerWin ?? 0).toLocaleString()} <span className="text-xs text-fuchsia-400/70">USDC</span></p>
                     </div>
                 </div>
 

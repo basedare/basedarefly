@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight } from "lucide-react";
+import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
@@ -16,6 +16,15 @@ type Creator = {
   completedDares: number;
   status: string;
   tags?: string[];
+  reviews?: {
+    count: number;
+    averageRating: number | null;
+  };
+  trust?: {
+    level: number;
+    label: string;
+    score: number;
+  };
 };
 
 const raisedPanelClass =
@@ -40,7 +49,7 @@ export default function CreatorsPage() {
   React.useEffect(() => {
     async function fetchCreators() {
       try {
-        const res = await fetch("/api/creators");
+        const res = await fetch("/api/creators", { cache: "no-store" });
         const data = await res.json();
         if (data.success) {
           setCreators(data.data);
@@ -290,6 +299,20 @@ export default function CreatorsPage() {
                                 <h3 className="text-sm font-black text-white group-hover:text-purple-300 transition-colors truncate italic">
                                   {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
                                 </h3>
+
+                                <div className="mt-3 flex min-h-[2rem] flex-wrap items-center justify-center gap-1.5">
+                                  {creator.trust ? (
+                                    <span className="inline-flex items-center rounded-full border border-[#f5c518]/20 bg-[#f5c518]/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-[#f9e27a]">
+                                      {creator.trust.label} Lv.{creator.trust.level}
+                                    </span>
+                                  ) : null}
+                                  {(creator.reviews?.count ?? 0) > 0 ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/72">
+                                      <Star className="h-3 w-3 fill-[#f9e27a] text-[#f9e27a]" />
+                                      {creator.reviews?.averageRating?.toFixed(1)} · {creator.reviews?.count}
+                                    </span>
+                                  ) : null}
+                                </div>
 
                                 <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
                                   <div className="flex flex-col">

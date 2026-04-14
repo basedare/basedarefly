@@ -92,6 +92,7 @@ model Dare {
   linkedCampaign      Campaign? @relation("CampaignLinkedDare")
   votes               Vote[]
   comments            Comment[]
+  creatorReview       CreatorReview?
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -103,6 +104,21 @@ model Dare {
   @@index([tag])
   @@index([geo_bucket])
   @@index([venueId, status])
+}
+
+model CreatorReview {
+  id             String   @id @default(cuid())
+  dareId         String   @unique
+  creatorTag     String
+  reviewerWallet String
+  rating         Int
+  review         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  dare           Dare     @relation(fields: [dareId], references: [id], onDelete: Cascade)
+
+  @@index([creatorTag, createdAt])
+  @@index([reviewerWallet, createdAt])
 }
 
 model Venue {

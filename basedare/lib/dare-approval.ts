@@ -244,7 +244,7 @@ async function syncStreamerTagAggregatesForDare(
   tx: Prisma.TransactionClient,
   dare: Dare
 ) {
-  const handleVariants = buildCreatorHandleVariants(dare.streamerHandle);
+  const handleVariants = buildCreatorHandleVariants(dare.streamerHandle ?? dare.claimRequestTag);
   if (handleVariants.length === 0) {
     return;
   }
@@ -252,7 +252,10 @@ async function syncStreamerTagAggregatesForDare(
   const aggregate = await tx.dare.aggregate({
     where: {
       status: 'VERIFIED',
-      streamerHandle: { in: handleVariants, mode: 'insensitive' },
+      OR: [
+        { streamerHandle: { in: handleVariants, mode: 'insensitive' } },
+        { claimRequestTag: { in: handleVariants, mode: 'insensitive' } },
+      ],
     },
     _sum: { bounty: true },
     _count: { id: true },

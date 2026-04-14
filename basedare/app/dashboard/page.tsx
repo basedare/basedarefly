@@ -1455,7 +1455,7 @@ export default function Dashboard() {
                             onClick={() => router.push(`/dare/${dare.shortId || dare.id}`)}
                             className={volumetricButtonPurple}
                           >
-                            Open brief
+                            {dare.status === 'VERIFIED' || dare.status === 'PENDING_PAYOUT' ? 'Rate creator' : 'Open brief'}
                           </button>
                           {dare.status === 'VERIFIED' ? (
                             <ShareWinButton
