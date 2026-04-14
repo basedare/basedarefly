@@ -12,9 +12,11 @@ import {
   useMap,
   useMapEvents,
 } from 'react-leaflet';
-import { divIcon, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
+import { CRS, divIcon, latLng, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Flame,
   Loader2,
   LocateFixed,
@@ -99,6 +101,31 @@ type SearchResponse = {
   success: boolean;
   data?: {
     results: SearchResult[];
+  };
+};
+
+type NearbyDare = {
+  id: string;
+  shortId: string | null;
+  title: string;
+  bounty: number;
+  status: string;
+  locationLabel: string | null;
+  distanceKm: number;
+  distanceDisplay: string;
+  expiresAt: string | null;
+  createdAt: string;
+  streamerHandle: string | null;
+  isOpenBounty: boolean;
+  requireSentinel: boolean;
+  sentinelVerified: boolean;
+  venueSlug: string | null;
+};
+
+type NearbyDaresResponse = {
+  success: boolean;
+  data?: {
+    dares: NearbyDare[];
   };
 };
 
@@ -315,9 +342,28 @@ type CeremonyState =
       body: string;
     }
   | null;
+type NearbyDareFilter = 'all' | 'open' | 'sentinel' | 'high';
+type ClusteredNearbyMarker =
+  | {
+      kind: 'place';
+      key: string;
+      place: NearbyPlace;
+    }
+  | {
+      kind: 'cluster';
+      key: string;
+      latitude: number;
+      longitude: number;
+      count: number;
+      pulse: PulseState;
+      visualState: PlaceVisualState;
+      matched: boolean;
+      challengeLiveCount: number;
+    };
 
 const markerIconCache = new Map<string, ReturnType<typeof divIcon>>();
 const footprintMarkerIconCache = new Map<string, ReturnType<typeof divIcon>>();
+const placeClusterIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
 const MAP_PRESET_OPTIONS: Array<{
   value: MapPreset;
@@ -348,6 +394,21 @@ function getRadiusMetersForZoom(zoom: number) {
   if (zoom >= 13) return 5000;
   if (zoom >= 11) return 10000;
   return 20000;
+}
+
+function getDareRadiusKmForZoom(zoom: number) {
+  if (zoom >= 15) return 2;
+  if (zoom >= 13) return 5;
+  if (zoom >= 11) return 10;
+  return 20;
+}
+
+function getClusterCellSize(zoom: number) {
+  if (zoom >= 15) return 0;
+  if (zoom >= 14) return 54;
+  if (zoom >= 13) return 62;
+  if (zoom >= 12) return 72;
+  return 84;
 }
 
 function getPulse(approvedCount: number, lastTaggedAt: string | null): PulseState {
@@ -735,6 +796,48 @@ function createFootprintMarkerIcon({
   return icon;
 }
 
+function createPlaceClusterIcon({
+  count,
+  pulse,
+  visualState,
+  matched,
+  challengeLiveCount,
+}: {
+  count: number;
+  pulse: PulseState;
+  visualState: PlaceVisualState;
+  matched: boolean;
+  challengeLiveCount: number;
+}) {
+  const cacheKey = `${count > 9 ? '9+' : count}:${pulse}:${visualState}:${matched ? 'matched' : 'neutral'}:${challengeLiveCount > 0 ? 'live' : 'quiet'}`;
+  const cachedIcon = placeClusterIconCache.get(cacheKey);
+  if (cachedIcon) {
+    return cachedIcon;
+  }
+
+  const icon = divIcon({
+    className: 'place-cluster-leaflet-icon',
+    iconSize: [88, 88],
+    iconAnchor: [44, 44],
+    popupAnchor: [0, -28],
+    html: `
+      <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}">
+        <span class="place-cluster-aura"></span>
+        ${matched ? '<span class="place-cluster-match">MATCH</span>' : ''}
+        ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
+        <span class="place-cluster-core">
+          <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
+          <span class="place-cluster-label">${count > 4 ? 'HUB' : 'NODE'}</span>
+        </span>
+        <span class="place-cluster-shadow"></span>
+      </div>
+    `,
+  });
+
+  placeClusterIconCache.set(cacheKey, icon);
+  return icon;
+}
+
 function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) {
   const compact = options?.compact ?? false;
   const sizeClass = compact ? 'h-16 w-16 rounded-[14px]' : 'h-20 w-20 rounded-[16px] md:h-22 md:w-22';
@@ -840,6 +943,9 @@ export default function RealWorldMap() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
+  const [nearbyDaresLoading, setNearbyDaresLoading] = useState(false);
+  const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -850,6 +956,7 @@ export default function RealWorldMap() {
   const [showMatchedLayer, setShowMatchedLayer] = useState(false);
   const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
+  const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [sprayBurst, setSprayBurst] = useState(false);
   const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
@@ -859,6 +966,9 @@ export default function RealWorldMap() {
   const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
+  const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
+  const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
+  const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const isImmersiveMobile = false;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
@@ -874,6 +984,7 @@ export default function RealWorldMap() {
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
+  const nearbyDareFetchIdRef = useRef(0);
   const skipNextSearchRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
@@ -1197,6 +1308,48 @@ export default function RealWorldMap() {
     }
   }, []);
 
+  const fetchNearbyDares = useCallback(async (latitude: number, longitude: number, zoom: number) => {
+    const requestId = ++nearbyDareFetchIdRef.current;
+    try {
+      setNearbyDaresLoading(true);
+      const radiusKm = Math.max(getDareRadiusKmForZoom(zoom), nearbyDareRadiusKm);
+      const url = new URL('/api/dares/nearby', window.location.origin);
+      url.searchParams.set('lat', String(latitude));
+      url.searchParams.set('lng', String(longitude));
+      url.searchParams.set('radius', String(radiusKm));
+      url.searchParams.set('limit', '8');
+
+      const response = await fetch(url.toString());
+      const payload = (await response.json()) as NearbyDaresResponse;
+
+      if (!response.ok || !payload.success || !payload.data?.dares) {
+        throw new Error('Failed to load nearby dares');
+      }
+
+      if (requestId === nearbyDareFetchIdRef.current) {
+        setNearbyDares(payload.data.dares);
+      }
+    } catch (error) {
+      console.error('[REAL_WORLD_MAP] Nearby dares failed:', error);
+      if (requestId === nearbyDareFetchIdRef.current) {
+        setNearbyDares([]);
+      }
+    } finally {
+      if (requestId === nearbyDareFetchIdRef.current) {
+        setNearbyDaresLoading(false);
+      }
+    }
+  }, [nearbyDareRadiusKm]);
+
+  useEffect(() => {
+    const source = userLocation ?? viewportCenter;
+    if (!source) {
+      return;
+    }
+
+    void fetchNearbyDares(source.latitude, source.longitude, mapZoom);
+  }, [fetchNearbyDares, mapZoom, userLocation, viewportCenter]);
+
   const handleMapReady = useCallback((map: LeafletMap) => {
     mapInstanceRef.current = map;
     setMapReady(true);
@@ -1213,6 +1366,8 @@ export default function RealWorldMap() {
 
   const handleViewportChange = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
+      setViewportCenter({ latitude, longitude });
+      setMapZoom(zoom);
       void fetchNearbyPlaces(latitude, longitude, zoom);
     },
     [fetchNearbyPlaces]
@@ -1591,22 +1746,39 @@ export default function RealWorldMap() {
     });
   }, [nearbyPlaces, pulseFilter]);
 
-  const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
-    if (!selectedPlace) {
-      return false;
-    }
-
-    return !filteredNearbyPlaces.some((place) => {
-      if (selectedPlace.placeId && place.id === selectedPlace.placeId) {
-        return true;
-      }
-
-      return (
-        Math.abs(place.latitude - selectedPlace.latitude) < 0.000001 &&
-        Math.abs(place.longitude - selectedPlace.longitude) < 0.000001
-      );
+  const nearbyPlaceBySlug = useMemo(() => {
+    const index = new Map<string, NearbyPlace>();
+    nearbyPlaces.forEach((place) => {
+      index.set(place.slug, place);
     });
-  }, [filteredNearbyPlaces, selectedPlace]);
+    return index;
+  }, [nearbyPlaces]);
+
+  const nearbyDaresInRange = useMemo(
+    () => nearbyDares.filter((dare) => dare.distanceKm <= nearbyDareRadiusKm),
+    [nearbyDareRadiusKm, nearbyDares]
+  );
+  const nearbyDareFeed = useMemo(() => {
+    const filtered = nearbyDaresInRange.filter((dare) => {
+      if (nearbyDareFilter === 'all') return true;
+      if (nearbyDareFilter === 'open') return dare.isOpenBounty;
+      if (nearbyDareFilter === 'sentinel') return dare.requireSentinel;
+      if (nearbyDareFilter === 'high') return dare.bounty >= 100;
+      return true;
+    });
+
+    return filtered.slice(0, 4);
+  }, [nearbyDareFilter, nearbyDaresInRange]);
+  const nearbyDareCounts = useMemo(
+    () => ({
+      all: nearbyDaresInRange.length,
+      open: nearbyDaresInRange.filter((dare) => dare.isOpenBounty).length,
+      sentinel: nearbyDaresInRange.filter((dare) => dare.requireSentinel).length,
+      high: nearbyDaresInRange.filter((dare) => dare.bounty >= 100).length,
+    }),
+    [nearbyDaresInRange]
+  );
+  const showNearbyDarePanel = nearbyDaresLoading || nearbyDares.length > 0;
 
   const filterCounts = useMemo(() => {
     const counts: Record<PulseFilter, number> = {
@@ -1681,6 +1853,111 @@ export default function RealWorldMap() {
     return index;
   }, [creatorOpportunities]);
 
+  const clusteredNearbyMarkers = useMemo<ClusteredNearbyMarker[]>(() => {
+    if (filteredNearbyPlaces.length <= 1) {
+      return filteredNearbyPlaces.map((place) => ({
+        kind: 'place',
+        key: place.id,
+        place,
+      }));
+    }
+
+    const roundedZoom = Math.max(0, Math.round(mapZoom));
+    const cellSize = getClusterCellSize(roundedZoom);
+
+    if (cellSize <= 0) {
+      return filteredNearbyPlaces.map((place) => ({
+        kind: 'place',
+        key: place.id,
+        place,
+      }));
+    }
+
+    const buckets = new Map<string, NearbyPlace[]>();
+
+    filteredNearbyPlaces.forEach((place) => {
+      const point = CRS.EPSG3857.latLngToPoint(latLng(place.latitude, place.longitude), roundedZoom);
+      const bucketX = Math.floor(point.x / cellSize);
+      const bucketY = Math.floor(point.y / cellSize);
+      const bucketKey = `${bucketX}:${bucketY}`;
+      const existing = buckets.get(bucketKey);
+      if (existing) {
+        existing.push(place);
+      } else {
+        buckets.set(bucketKey, [place]);
+      }
+    });
+
+    const markers: ClusteredNearbyMarker[] = [];
+
+    Array.from(buckets.entries()).forEach(([bucketKey, places]) => {
+      if (places.length === 1) {
+        markers.push({
+          kind: 'place',
+          key: places[0].id,
+          place: places[0],
+        });
+        return;
+      }
+
+      const dominantPlace = places.reduce((best, current) => {
+        const bestScore =
+          best.tagSummary.approvedCount * 1000 + best.activeDareCount * 100 + best.tagSummary.heatScore;
+        const currentScore =
+          current.tagSummary.approvedCount * 1000 + current.activeDareCount * 100 + current.tagSummary.heatScore;
+        return currentScore > bestScore ? current : best;
+      }, places[0]);
+      const latitude = places.reduce((sum, place) => sum + place.latitude, 0) / places.length;
+      const longitude = places.reduce((sum, place) => sum + place.longitude, 0) / places.length;
+      const challengeLiveCount = places.reduce((sum, place) => sum + place.activeDareCount, 0);
+      const matched = Boolean(
+        showMatchedLayer && places.some((place) => matchedVenueIndex.has(place.slug))
+      );
+
+      markers.push({
+        kind: 'cluster',
+        key: `cluster:${bucketKey}`,
+        latitude,
+        longitude,
+        count: places.length,
+        pulse: getPulse(
+          dominantPlace.tagSummary.approvedCount,
+          dominantPlace.tagSummary.lastTaggedAt
+        ),
+        visualState: getPlaceVisualState({
+          approvedCount: dominantPlace.tagSummary.approvedCount,
+          lastTaggedAt: dominantPlace.tagSummary.lastTaggedAt,
+        }),
+        matched,
+        challengeLiveCount,
+      });
+    });
+
+    return markers;
+  }, [filteredNearbyPlaces, mapZoom, matchedVenueIndex, showMatchedLayer]);
+
+  const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
+    if (!selectedPlace) {
+      return false;
+    }
+
+    return !clusteredNearbyMarkers.some((marker) => {
+      if (marker.kind !== 'place') {
+        return false;
+      }
+
+      const place = marker.place;
+      if (selectedPlace.placeId && place.id === selectedPlace.placeId) {
+        return true;
+      }
+
+      return (
+        Math.abs(place.latitude - selectedPlace.latitude) < 0.000001 &&
+        Math.abs(place.longitude - selectedPlace.longitude) < 0.000001
+      );
+    });
+  }, [clusteredNearbyMarkers, selectedPlace]);
+
   const selectedPlaceFootprintStats = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -1747,6 +2024,42 @@ export default function RealWorldMap() {
       accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
     },
   ];
+  const nearbyDareFilterOptions: Array<{
+    value: NearbyDareFilter;
+    label: string;
+    count: number;
+    accentClass: string;
+  }> = [
+    {
+      value: 'all',
+      label: 'All',
+      count: nearbyDareCounts.all,
+      accentClass:
+        'data-[active=true]:border-white/20 data-[active=true]:bg-white/[0.08] data-[active=true]:text-white',
+    },
+    {
+      value: 'open',
+      label: 'Open',
+      count: nearbyDareCounts.open,
+      accentClass:
+        'data-[active=true]:border-cyan-300/42 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
+    },
+    {
+      value: 'sentinel',
+      label: 'Sentinel',
+      count: nearbyDareCounts.sentinel,
+      accentClass:
+        'data-[active=true]:border-amber-300/42 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
+    },
+    {
+      value: 'high',
+      label: '100+',
+      count: nearbyDareCounts.high,
+      accentClass:
+        'data-[active=true]:border-fuchsia-300/42 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
+    },
+  ];
+  const nearbyRadiusOptions = [2, 5, 10, 20];
 
   const handleSpray = () => {
     setSprayBurst(false);
@@ -2032,7 +2345,31 @@ export default function RealWorldMap() {
                 onMapClick={handleMapClick}
               />
 
-              {filteredNearbyPlaces.map((place) => {
+              {clusteredNearbyMarkers.map((marker) => {
+                if (marker.kind === 'cluster') {
+                  return (
+                    <Marker
+                      key={marker.key}
+                      position={[marker.latitude, marker.longitude]}
+                      icon={createPlaceClusterIcon({
+                        count: marker.count,
+                        pulse: marker.pulse,
+                        visualState: marker.visualState,
+                        matched: marker.matched,
+                        challengeLiveCount: marker.challengeLiveCount,
+                      })}
+                      zIndexOffset={280}
+                      eventHandlers={{
+                        click: () => {
+                          setTargetCenter([marker.latitude, marker.longitude]);
+                          setTargetZoom(Math.min(Math.max(Math.round(mapZoom) + 2, 14), 16));
+                        },
+                      }}
+                    />
+                  );
+                }
+
+                const place = marker.place;
                 const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
                 const visualState = getPlaceVisualState({
                   approvedCount: place.tagSummary.approvedCount,
@@ -2040,6 +2377,7 @@ export default function RealWorldMap() {
                 });
                 const isActive = selectedPlace?.placeId === place.id;
                 const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
+
                 return (
                   <Marker
                     key={place.id}
@@ -2131,8 +2469,157 @@ export default function RealWorldMap() {
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             {showFootprintLayer && footprintMarks.length > 0 ? (
-              <div className="pointer-events-none absolute bottom-3 left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:text-[10px]">
+              <div
+                className={`pointer-events-none absolute left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:left-5 md:text-[10px] ${showNearbyDarePanel ? nearbyDarePanelCollapsed ? 'bottom-[4.75rem] md:bottom-[6.4rem]' : 'bottom-[16.25rem] md:bottom-[18.9rem]' : 'bottom-3 md:bottom-5'}`}
+              >
                 Your trace · {footprintMarks.length} verified marks
+              </div>
+            ) : null}
+            {showNearbyDarePanel ? (
+              <div className="absolute bottom-3 left-3 right-3 z-[10] max-w-[23rem] overflow-hidden rounded-[24px] border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] md:bottom-5 md:left-5 md:right-auto">
+                <div className="border-b border-white/8 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
+                        Nearby Live Missions
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/55">
+                        {userLocation ? 'Closest live dares around you' : 'Live dares in this map view'}
+                      </p>
+                    </div>
+                    <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                      {nearbyDaresLoading ? 'scanning' : `${nearbyDareFeed.length} live`}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {nearbyDareFilterOptions.map((option) => (
+                        <button
+                          key={`nearby-dare-filter:${option.value}`}
+                          type="button"
+                          data-active={nearbyDareFilter === option.value}
+                          onClick={() => setNearbyDareFilter(option.value)}
+                          className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white ${option.accentClass}`}
+                        >
+                          <span>{option.label}</span>
+                          <span className="rounded-full border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] text-white/62">
+                            {option.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNearbyDarePanelCollapsed((current) => !current)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:border-white/16 hover:text-white"
+                      aria-label={nearbyDarePanelCollapsed ? 'Expand nearby dare panel' : 'Collapse nearby dare panel'}
+                    >
+                      {nearbyDarePanelCollapsed ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                      Radius
+                    </span>
+                    {nearbyRadiusOptions.map((radius) => (
+                      <button
+                        key={`nearby-radius:${radius}`}
+                        type="button"
+                        data-active={nearbyDareRadiusKm === radius}
+                        onClick={() => setNearbyDareRadiusKm(radius)}
+                        className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white data-[active=true]:border-[#f5c518]/32 data-[active=true]:bg-[#f5c518]/[0.12] data-[active=true]:text-[#f8dd72]"
+                      >
+                        {radius}km
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {!nearbyDarePanelCollapsed ? (
+                <div className="px-2 py-2">
+                  {nearbyDaresLoading ? (
+                    <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
+                      Scanning nearby dares...
+                    </div>
+                  ) : (
+                    nearbyDareFeed.length > 0 ? (
+                    nearbyDareFeed.map((dare) => {
+                      const matchingPlace = dare.venueSlug ? nearbyPlaceBySlug.get(dare.venueSlug) : null;
+
+                      return (
+                        <div
+                          key={`nearby-dare:${dare.id}`}
+                          className="flex items-center justify-between gap-3 rounded-[18px] border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/[0.04]"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#f5c518] shadow-[0_0_12px_rgba(245,197,24,0.45)]" />
+                              <div className="min-w-0">
+                                <p className="truncate text-[13px] font-semibold text-white">{dare.title}</p>
+                                <p className="mt-1 truncate text-[11px] text-white/48">
+                                  {dare.distanceDisplay}
+                                  {dare.locationLabel ? ` · ${dare.locationLabel}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2 pl-[18px]">
+                              <div className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72]">
+                                {dare.bounty} USDC
+                              </div>
+                              {dare.streamerHandle ? (
+                                <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/62">
+                                  {dare.streamerHandle}
+                                </div>
+                              ) : (
+                                <div className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
+                                  Open
+                                </div>
+                              )}
+                              <SentinelBadge
+                                requireSentinel={dare.requireSentinel}
+                                sentinelVerified={dare.sentinelVerified}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            {matchingPlace ? (
+                              <button
+                                type="button"
+                                onClick={() => focusExistingPlace(matchingPlace)}
+                                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
+                              >
+                                Venue
+                              </button>
+                            ) : null}
+                            <Link
+                              href={dare.shortId ? `/dare/${dare.shortId}` : '/dares'}
+                              className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/34 hover:bg-[#f5c518]/[0.14]"
+                            >
+                              Open
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                    ) : (
+                      <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
+                        No nearby dares match this filter in {nearbyDareRadiusKm}km
+                      </div>
+                    )
+                  )}
+                </div>
+                ) : (
+                  <div className="px-4 py-3 text-[11px] text-white/48">
+                    {nearbyDaresLoading
+                      ? 'Scanning nearby dares...'
+                      : nearbyDareFeed.length > 0
+                        ? `${nearbyDareFeed[0].title}`
+                        : `No nearby dares match this filter in ${nearbyDareRadiusKm}km`}
+                  </div>
+                )}
               </div>
             ) : null}
             <div className="absolute left-5 top-6 z-[9] hidden md:flex flex-col gap-2">
@@ -2989,7 +3476,7 @@ export default function RealWorldMap() {
                         className="map-action-button map-action-button--violet"
                       >
                         <span className="max-w-[7.2rem] text-balance leading-[1.02] sm:max-w-none">
-                          Open place page
+                          Open place
                         </span>
                       </Link>
                     ) : null}
@@ -3057,29 +3544,32 @@ export default function RealWorldMap() {
 
         :global(.map-action-button) {
           position: relative;
+          isolation: isolate;
           display: inline-flex;
-          min-height: 112px;
+          min-height: 118px;
           width: 100%;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.68rem;
+          gap: 0.62rem;
           overflow: hidden;
-          border-radius: 32px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          padding: 0.95rem 0.9rem 0.86rem;
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          padding: 1rem 0.88rem 0.9rem;
           text-align: center;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
           transition:
             transform 180ms ease,
             box-shadow 180ms ease,
             border-color 180ms ease,
-            filter 180ms ease;
+            filter 180ms ease,
+            background 180ms ease;
         }
 
         :global(.map-action-button::before) {
@@ -3088,25 +3578,25 @@ export default function RealWorldMap() {
           inset: 1px;
           border-radius: inherit;
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.18) 100%),
-            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.16), transparent 44%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 26%, rgba(0, 0, 0, 0.22) 100%),
+            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.18), transparent 44%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -18px 24px rgba(0, 0, 0, 0.3),
-            inset 16px 16px 24px rgba(255, 255, 255, 0.02),
-            inset -16px -16px 24px rgba(0, 0, 0, 0.1);
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -20px 26px rgba(0, 0, 0, 0.32),
+            inset 16px 16px 24px rgba(255, 255, 255, 0.03),
+            inset -18px -18px 24px rgba(0, 0, 0, 0.12);
           pointer-events: none;
         }
 
         :global(.map-action-button::after) {
           content: '';
           position: absolute;
-          inset: auto 14% 10px;
-          height: 18px;
+          inset: 8px 18% auto;
+          height: 16px;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
-          opacity: 0.6;
-          filter: blur(10px);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 75%, rgba(255, 255, 255, 0));
+          opacity: 0.88;
+          filter: blur(1px);
           pointer-events: none;
         }
 
@@ -3117,7 +3607,7 @@ export default function RealWorldMap() {
 
         :global(.map-action-button:hover) {
           transform: translateY(-1px);
-          filter: saturate(1.05);
+          filter: saturate(1.06);
         }
 
         :global(.map-action-button:active) {
@@ -3128,22 +3618,22 @@ export default function RealWorldMap() {
         }
 
         :global(.map-action-button span) {
-          max-width: 7.35rem;
+          max-width: 6.6rem;
           text-wrap: balance;
-          line-height: 1.02;
+          line-height: 1.04;
         }
 
         :global(.map-action-button--cyan) {
           color: #defcff;
-          border-color: rgba(34, 211, 238, 0.34);
+          border-color: rgba(34, 211, 238, 0.3);
           background:
-            radial-gradient(circle at 50% 0%, rgba(180, 247, 255, 0.16), transparent 36%),
-            linear-gradient(180deg, rgba(27, 198, 225, 0.24) 0%, rgba(7, 43, 62, 0.88) 48%, rgba(5, 20, 34, 0.98) 100%);
+            radial-gradient(circle at 50% 0%, rgba(180, 247, 255, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(59, 218, 242, 0.28) 0%, rgba(10, 74, 96, 0.9) 44%, rgba(5, 20, 34, 0.99) 100%);
           box-shadow:
-            0 20px 36px rgba(0, 0, 0, 0.3),
-            0 0 24px rgba(34, 211, 238, 0.14),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12),
-            inset 0 -22px 30px rgba(0, 0, 0, 0.32);
+            0 22px 38px rgba(0, 0, 0, 0.32),
+            0 0 26px rgba(34, 211, 238, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -24px 30px rgba(0, 0, 0, 0.34);
         }
 
         :global(.map-action-button--cyan:hover) {
@@ -3157,15 +3647,15 @@ export default function RealWorldMap() {
 
         :global(.map-action-button--gold) {
           color: #fff0bc;
-          border-color: rgba(245, 197, 24, 0.34);
+          border-color: rgba(245, 197, 24, 0.32);
           background:
-            radial-gradient(circle at 50% 0%, rgba(255, 240, 182, 0.16), transparent 36%),
-            linear-gradient(180deg, rgba(245, 197, 24, 0.22) 0%, rgba(93, 55, 10, 0.88) 50%, rgba(39, 23, 5, 0.98) 100%);
+            radial-gradient(circle at 50% 0%, rgba(255, 240, 182, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(255, 209, 67, 0.3) 0%, rgba(130, 80, 16, 0.9) 48%, rgba(39, 23, 5, 0.99) 100%);
           box-shadow:
-            0 20px 36px rgba(0, 0, 0, 0.3),
-            0 0 24px rgba(245, 197, 24, 0.14),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12),
-            inset 0 -22px 30px rgba(0, 0, 0, 0.32);
+            0 22px 38px rgba(0, 0, 0, 0.32),
+            0 0 26px rgba(245, 197, 24, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -24px 30px rgba(0, 0, 0, 0.34);
         }
 
         :global(.map-action-button--gold:hover) {
@@ -3179,15 +3669,15 @@ export default function RealWorldMap() {
 
         :global(.map-action-button--violet) {
           color: #fdeaff;
-          border-color: rgba(217, 70, 239, 0.36);
+          border-color: rgba(217, 70, 239, 0.34);
           background:
-            radial-gradient(circle at 50% 0%, rgba(247, 193, 255, 0.16), transparent 36%),
-            linear-gradient(180deg, rgba(217, 70, 239, 0.26) 0%, rgba(120, 36, 184, 0.82) 50%, rgba(63, 21, 104, 0.98) 100%);
+            radial-gradient(circle at 50% 0%, rgba(247, 193, 255, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(224, 97, 242, 0.3) 0%, rgba(142, 46, 202, 0.84) 48%, rgba(63, 21, 104, 0.99) 100%);
           box-shadow:
-            0 20px 36px rgba(0, 0, 0, 0.3),
-            0 0 28px rgba(217, 70, 239, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -22px 30px rgba(29, 8, 52, 0.38);
+            0 22px 38px rgba(0, 0, 0, 0.32),
+            0 0 30px rgba(217, 70, 239, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -24px 30px rgba(29, 8, 52, 0.4);
         }
 
         :global(.map-action-button--violet:hover) {
@@ -3201,12 +3691,12 @@ export default function RealWorldMap() {
 
         @media (min-width: 640px) {
           :global(.map-action-button) {
-            min-height: 64px;
+            min-height: 68px;
             flex-direction: row;
-            gap: 0.55rem;
+            gap: 0.5rem;
             border-radius: 999px;
-            padding: 0.95rem 1.1rem 0.9rem;
-            font-size: 11px;
+            padding: 0.98rem 1rem 0.92rem;
+            font-size: 10px;
           }
 
           :global(.map-action-button span) {
@@ -3529,6 +4019,177 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.peebear-leaflet-icon) {
           background: transparent;
           border: 0;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-leaflet-icon) {
+          background: transparent;
+          border: 0;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker) {
+          position: relative;
+          width: 88px;
+          height: 88px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-aura) {
+          position: absolute;
+          inset: 10px;
+          border-radius: 9999px;
+          background:
+            radial-gradient(circle, rgba(245, 197, 24, 0.22) 0%, rgba(184, 127, 255, 0.12) 45%, transparent 76%);
+          filter: blur(7px);
+          opacity: 0.95;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-core) {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          height: 68px;
+          width: 68px;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background:
+            radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.22) 0%, transparent 36%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 18%, rgba(16, 18, 31, 0.96) 54%, rgba(7, 8, 17, 0.98) 100%);
+          box-shadow:
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            0 0 0 3px rgba(255, 255, 255, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-count) {
+          font-size: 22px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          color: rgba(255, 255, 255, 0.98);
+          text-shadow: 0 4px 16px rgba(0, 0, 0, 0.42);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-label) {
+          font-size: 8px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.22em;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-shadow) {
+          position: absolute;
+          bottom: 10px;
+          left: 50%;
+          z-index: 0;
+          width: 48px;
+          height: 14px;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          background: rgba(0, 0, 0, 0.4);
+          filter: blur(10px);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-match) {
+          position: absolute;
+          top: -2px;
+          left: 50%;
+          z-index: 3;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          border: 1px solid rgba(34, 211, 238, 0.32);
+          background:
+            linear-gradient(180deg, rgba(190, 249, 255, 0.16), rgba(34, 211, 238, 0.08)),
+            linear-gradient(180deg, rgba(7, 14, 22, 0.95), rgba(5, 10, 18, 0.98));
+          padding: 3px 7px;
+          font-size: 6px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.18em;
+          color: #d8fbff;
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          white-space: nowrap;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-live) {
+          position: absolute;
+          right: 0;
+          bottom: 8px;
+          z-index: 3;
+          border-radius: 9999px;
+          border: 1px solid rgba(245, 197, 24, 0.34);
+          background:
+            linear-gradient(180deg, rgba(255, 233, 157, 0.16), rgba(245, 197, 24, 0.1)),
+            linear-gradient(180deg, rgba(58, 38, 8, 0.96), rgba(19, 13, 5, 0.98));
+          padding: 4px 7px;
+          font-size: 6px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.16em;
+          color: rgba(255, 244, 200, 0.94);
+          box-shadow:
+            0 10px 16px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          white-space: nowrap;
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker--blazing .place-cluster-core) {
+          border-color: rgba(255, 95, 130, 0.74);
+          box-shadow:
+            0 0 0 4px rgba(255, 45, 85, 0.12),
+            0 0 24px rgba(255, 45, 85, 0.24),
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker--igniting .place-cluster-core) {
+          border-color: rgba(34, 211, 238, 0.72);
+          box-shadow:
+            0 0 0 4px rgba(34, 211, 238, 0.12),
+            0 0 22px rgba(34, 211, 238, 0.22),
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker--simmering .place-cluster-core),
+        .basedare-leaflet-map :global(.place-cluster-marker--first-mark .place-cluster-core) {
+          border-color: rgba(245, 197, 24, 0.74);
+          box-shadow:
+            0 0 0 4px rgba(245, 197, 24, 0.12),
+            0 0 22px rgba(245, 197, 24, 0.2),
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker--pending .place-cluster-core) {
+          border-color: rgba(251, 191, 36, 0.74);
+          box-shadow:
+            0 0 0 4px rgba(251, 191, 36, 0.12),
+            0 0 22px rgba(251, 191, 36, 0.2),
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.place-cluster-marker.is-matched .place-cluster-core) {
+          box-shadow:
+            0 0 0 4px rgba(34, 211, 238, 0.12),
+            0 0 24px rgba(34, 211, 238, 0.18),
+            0 18px 28px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
         .basedare-leaflet-map :global(.peebear-marker) {

@@ -404,7 +404,7 @@ export default function CreatePlaceChallengeButton({
       >
         <Zap className="hidden h-4 w-4 sm:block" aria-hidden="true" />
         <span className="max-w-[7.35rem] text-balance leading-[1.03] sm:max-w-none">
-          Create challenge
+          Challenge
         </span>
       </button>
 

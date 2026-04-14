@@ -28,7 +28,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
   return (
     <>
       {children}
-      {isLoading ? <ProtocolLoader onComplete={handleComplete} variant="overlay" /> : null}
+      {isLoading ? <ProtocolLoader onComplete={handleComplete} variant="fullscreen" /> : null}
     </>
   );
 }

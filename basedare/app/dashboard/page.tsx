@@ -142,7 +142,7 @@ const metricTileClass =
   `${raisedTileClass} before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/28 before:to-transparent`;
 
 const sectionBarClass =
-  "relative overflow-hidden rounded-[20px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(31,29,49,0.96),rgba(14,14,24,0.98))] px-4 py-3 shadow-[0_16px_32px_rgba(0,0,0,0.28),0_0_18px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)]";
+  "relative isolate overflow-hidden rounded-[22px] border border-white/[0.1] bg-[linear-gradient(180deg,rgba(48,43,73,0.96)_0%,rgba(25,22,41,0.98)_38%,rgba(12,12,21,1)_100%)] px-4 py-3 shadow-[0_18px_34px_rgba(0,0,0,0.3),0_0_20px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_20px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-x-[12%] before:top-[8%] before:h-[22%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(255,255,255,0.08)_70%,rgba(255,255,255,0))] after:pointer-events-none after:absolute after:inset-[1px] after:rounded-[20px] after:border after:border-white/10";
 
 const insetWellClass =
   "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)]";
@@ -154,16 +154,16 @@ const pillClass =
   "inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]";
 
 const volumetricButtonBase =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color,background,color] duration-150 ease-out hover:translate-y-[1px] active:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_14px_28px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_16px_rgba(0,0,0,0.24)] hover:shadow-[inset_0_12px_18px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.06)]";
+  "relative isolate inline-flex min-h-[48px] items-center justify-center gap-2 overflow-hidden rounded-[18px] border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color,background,color] duration-150 ease-out hover:translate-y-[1px] active:translate-y-[2px] disabled:cursor-not-allowed disabled:opacity-50 shadow-[0_18px_30px_rgba(0,0,0,0.34),0_0_18px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_18px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[24%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.44),rgba(255,255,255,0.12)_72%,rgba(255,255,255,0))] after:pointer-events-none after:absolute after:inset-[1px] after:rounded-[16px] after:border after:border-white/10 hover:shadow-[0_16px_26px_rgba(0,0,0,0.28),0_0_22px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_16px_rgba(0,0,0,0.3)]";
 
 const volumetricButtonPurple =
-  `${volumetricButtonBase} border-purple-400/25 bg-[linear-gradient(145deg,rgba(50,24,84,0.92),rgba(20,12,36,0.98))] text-purple-100 hover:border-purple-300/40 hover:bg-[linear-gradient(145deg,rgba(58,28,96,0.96),rgba(24,14,42,1))] hover:shadow-[inset_0_12px_18px_rgba(10,5,22,0.5),inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(168,85,247,0.18)]`;
+  `${volumetricButtonBase} border-purple-300/22 bg-[linear-gradient(180deg,rgba(97,52,156,0.94)_0%,rgba(54,28,92,0.96)_24%,rgba(22,14,38,0.99)_100%)] text-purple-100 hover:border-purple-200/35 hover:bg-[linear-gradient(180deg,rgba(108,60,168,0.96)_0%,rgba(60,32,102,0.98)_24%,rgba(24,15,42,1)_100%)] hover:shadow-[0_18px_30px_rgba(0,0,0,0.32),0_0_24px_rgba(168,85,247,0.16),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_18px_rgba(10,5,22,0.4)]`;
 
 const volumetricButtonGold =
-  `${volumetricButtonBase} border-yellow-400/25 bg-[linear-gradient(145deg,rgba(58,44,12,0.94),rgba(24,18,6,0.98))] text-yellow-200 hover:border-yellow-300/40 hover:bg-[linear-gradient(145deg,rgba(66,50,14,0.98),rgba(28,21,7,1))] hover:shadow-[inset_0_12px_18px_rgba(18,12,2,0.52),inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_rgba(245,197,24,0.18)]`;
+  `${volumetricButtonBase} border-yellow-300/26 bg-[linear-gradient(180deg,rgba(255,209,67,0.98)_0%,rgba(223,170,25,0.96)_22%,rgba(92,67,8,0.98)_70%,rgba(30,22,5,1)_100%)] text-[#161109] hover:border-yellow-200/42 hover:bg-[linear-gradient(180deg,rgba(255,218,88,1)_0%,rgba(234,180,30,0.98)_22%,rgba(98,71,9,1)_70%,rgba(34,25,6,1)_100%)] hover:shadow-[0_18px_32px_rgba(0,0,0,0.32),0_0_24px_rgba(245,197,24,0.18),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-14px_18px_rgba(54,38,2,0.34)] after:border-yellow-100/18`;
 
 const volumetricButtonNeutral =
-  `${volumetricButtonBase} border-white/10 bg-[linear-gradient(145deg,rgba(28,28,44,0.92),rgba(12,12,20,0.98))] text-white/85 hover:border-white/20 hover:bg-[linear-gradient(145deg,rgba(32,32,50,0.96),rgba(15,15,24,1))]`;
+  `${volumetricButtonBase} border-white/12 bg-[linear-gradient(180deg,rgba(76,92,116,0.32)_0%,rgba(44,52,69,0.7)_18%,rgba(20,22,34,0.98)_100%)] text-white/88 hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(86,104,130,0.34)_0%,rgba(50,59,79,0.74)_18%,rgba(23,25,38,1)_100%)]`;
 
 function getProviderLabel(provider: string | null | undefined): string {
   if (provider === 'twitter') return 'X';

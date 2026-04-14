@@ -1,6 +1,6 @@
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
-import RealWorldMap from "@/components/maps/RealWorldMap";
+import RealWorldMapClient from './RealWorldMapClient';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ export default function MapPage() {
       <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
         <GradualBlurOverlay />
       </div>
-      <RealWorldMap />
+      <RealWorldMapClient />
     </div>
   );
 }
