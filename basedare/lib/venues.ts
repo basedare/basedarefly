@@ -16,8 +16,10 @@ import {
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
   NearbyVenueItem,
+  VenueCommandCenterSummary,
   VenueDetail,
   VenueCreatorContribution,
+  VenueExperienceMode,
   VenueMemorySummary,
   VenueQrPayload,
   VenueSessionSummary,
@@ -25,6 +27,26 @@ import type {
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
+const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
+  {
+    id: 'classic',
+    status: 'live',
+    label: 'Classic',
+    description: 'Primary tactical venue map mode.',
+  },
+  {
+    id: 'noir',
+    status: 'live',
+    label: 'Noir',
+    description: 'Lower-noise venue reconnaissance mode.',
+  },
+  {
+    id: 'ar',
+    status: 'planned',
+    label: 'AR',
+    description: 'LocAR-powered venue twins and floating bounty overlays are planned next.',
+  },
+];
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -108,6 +130,44 @@ function mapSessionSummary(session: {
     pausedAt: session.pausedAt?.toISOString() ?? null,
     lastCheckInAt: session.lastCheckInAt?.toISOString() ?? null,
   };
+}
+
+function buildVenueCommandCenterSummary(input: {
+  slug: string;
+  isPartner: boolean;
+  activeCampaignCount: number;
+  hasLiveSession: boolean;
+  paidActivationCount: number;
+}): VenueCommandCenterSummary {
+  const live =
+    input.isPartner ||
+    input.hasLiveSession ||
+    input.activeCampaignCount > 0 ||
+    input.paidActivationCount > 0;
+
+  if (live) {
+    return {
+      status: 'live',
+      label: 'Command center live',
+      summary: 'This venue already has the rails for sponsored dares, QR operations, and verified foot-traffic tracking.',
+      sponsorReady: true,
+      activeCampaignCount: input.activeCampaignCount,
+      consoleUrl: `/venues/${input.slug}/console`,
+    };
+  }
+
+  return {
+    status: 'claimable',
+    label: 'Claimable venue',
+    summary: 'This pin can graduate into a managed venue with sponsored dares, venue budgets, and command-center analytics.',
+    sponsorReady: false,
+    activeCampaignCount: 0,
+    consoleUrl: null,
+  };
+}
+
+function buildVenueExperienceModes() {
+  return DEFAULT_VENUE_MAP_MODES.map((mode) => ({ ...mode }));
 }
 
 function mapActiveDare(dare: {
@@ -510,6 +570,11 @@ export async function getNearbyVenues(input: {
         orderBy: { updatedAt: 'desc' },
         take: 1,
       },
+      campaigns: {
+        select: {
+          id: true,
+        },
+      },
       dares: {
         where: {
           NOT: {
@@ -545,6 +610,14 @@ export async function getNearbyVenues(input: {
         return null;
       }
 
+      const commandCenter = buildVenueCommandCenterSummary({
+        slug: venue.slug,
+        isPartner: venue.isPartner,
+        activeCampaignCount: venue.campaigns.length,
+        hasLiveSession: Boolean(venue.qrSessions[0]),
+        paidActivationCount: 0,
+      });
+
       return {
         id: venue.id,
         slug: venue.slug,
@@ -565,6 +638,8 @@ export async function getNearbyVenues(input: {
         memorySummary: mapMemorySummary(venue.memories[0] ?? null),
         tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
         liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+        commandCenter,
+        mapModes: buildVenueExperienceModes(),
         activeDareCount: venue.dares.length,
         checkInCount: venue._count.checkIns,
       };
@@ -615,6 +690,11 @@ export async function getVenueDetailBySlug(
         },
         orderBy: { updatedAt: 'desc' },
         take: 1,
+      },
+      campaigns: {
+        select: {
+          id: true,
+        },
       },
       dares: {
         where: {
@@ -702,6 +782,14 @@ export async function getVenueDetailBySlug(
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
   const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
   const activeDares = venue.dares.map(mapActiveDare);
+  const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length;
+  const commandCenter = buildVenueCommandCenterSummary({
+    slug: venue.slug,
+    isPartner: venue.isPartner,
+    activeCampaignCount: venue.campaigns.length,
+    hasLiveSession: Boolean(venue.qrSessions[0]),
+    paidActivationCount,
+  });
   const creatorContribution: VenueCreatorContribution | null = normalizedCreatorWallet
     ? await (async () => {
         const [creatorTags, tagLeaderboard, primaryCreatorTag] = await Promise.all([
@@ -785,6 +873,8 @@ export async function getVenueDetailBySlug(
     memoryHistory: venue.memories.map((memory) => mapMemorySummary(memory)).filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null),
     tagSummary,
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+    commandCenter,
+    mapModes: buildVenueExperienceModes(),
     liveStats: {
       scansLastHour,
       uniqueVisitorsToday: uniqueVisitorRows.length,
@@ -799,7 +889,7 @@ export async function getVenueDetailBySlug(
     recentTags: recentTagsWithOwnership,
     creatorContribution,
     activeDares,
-    paidActivationCount: venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length,
+    paidActivationCount,
     featuredPaidActivation: getFeaturedPaidActivation(activeDares),
     consoleUrl: `/venues/${venue.slug}/console`,
   };

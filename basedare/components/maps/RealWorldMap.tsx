@@ -53,6 +53,22 @@ type SearchResult = {
   lastTaggedAt?: string | null;
 };
 
+type VenueCommandCenter = {
+  status: 'live' | 'claimable';
+  label: string;
+  summary: string;
+  sponsorReady: boolean;
+  activeCampaignCount: number;
+  consoleUrl: string | null;
+};
+
+type VenueMapMode = {
+  id: 'classic' | 'noir' | 'ar';
+  status: 'live' | 'planned';
+  label: string;
+  description: string;
+};
+
 type NearbyPlace = {
   id: string;
   slug: string;
@@ -69,6 +85,8 @@ type NearbyPlace = {
     heatScore: number;
     lastTaggedAt: string | null;
   };
+  commandCenter?: VenueCommandCenter;
+  mapModes?: VenueMapMode[];
   activeDareCount: number;
 };
 
@@ -88,6 +106,8 @@ type SelectedPlace = {
   heatScore?: number;
   lastTaggedAt?: string | null;
   activeDareCount?: number;
+  commandCenter?: VenueCommandCenter;
+  mapModes?: VenueMapMode[];
 };
 
 type NearbyResponse = {
@@ -252,6 +272,8 @@ type VenueDetailResponse = {
         heatScore: number;
         lastTaggedAt: string | null;
       };
+      commandCenter: VenueCommandCenter;
+      mapModes: VenueMapMode[];
       activeDares: Array<{
         id: string;
         shortId: string;
@@ -386,6 +408,26 @@ const MAP_PRESET_OPTIONS: Array<{
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
+const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
+  {
+    id: 'classic',
+    status: 'live',
+    label: 'Classic',
+    description: 'Primary tactical venue map mode.',
+  },
+  {
+    id: 'noir',
+    status: 'live',
+    label: 'Noir',
+    description: 'Lower-noise venue reconnaissance mode.',
+  },
+  {
+    id: 'ar',
+    status: 'planned',
+    label: 'AR',
+    description: 'LocAR venue overlays are planned for this map layer.',
+  },
+];
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 
@@ -706,6 +748,7 @@ function createPeebearMarkerIcon({
   visualState,
   challengeLiveCount,
   matched = false,
+  compact = false,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -714,12 +757,15 @@ function createPeebearMarkerIcon({
   visualState: PlaceVisualState;
   challengeLiveCount: number;
   matched?: boolean;
+  compact?: boolean;
 }) {
   const badge = getSparkBadge(approvedCount);
-  const showRipple = pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark';
+  const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
   const showCount = approvedCount > 0;
-  const showPulseChip = heatScore > 0;
+  const showPulseChip = !compact && heatScore > 0;
   const hasChallengeLive = challengeLiveCount > 0;
+  const showChallengeLiveChrome = hasChallengeLive && !compact;
+  const showMatchBadge = matched && !compact;
   const stateLabel =
     visualState === 'first-mark'
       ? 'FIRST'
@@ -732,7 +778,7 @@ function createPeebearMarkerIcon({
             : 'OPEN';
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -741,14 +787,14 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: [92, 132],
-    iconAnchor: [44, 68],
-    popupAnchor: [0, -54],
+    iconSize: compact ? [76, 92] : [92, 132],
+    iconAnchor: compact ? [38, 44] : [44, 68],
+    popupAnchor: compact ? [0, -38] : [0, -54],
     html: `
-      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${hasChallengeLive ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''}">
+      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
-        ${hasChallengeLive ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
-        ${matched ? `<span class="peebear-match-badge">MATCH</span>` : ''}
+        ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
+        ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
@@ -970,6 +1016,7 @@ export default function RealWorldMap() {
   const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const isImmersiveMobile = false;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
@@ -1022,6 +1069,43 @@ export default function RealWorldMap() {
   }, [focusedCreatorActivation, selectedPlaceActiveDares]);
 
   const featuredPaidActivation = showFeaturedPaidActivation ? selectedPlaceFeaturedPaidActivation : null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncViewportMode = (event?: MediaQueryListEvent) => {
+      setIsMobileViewport(event ? event.matches : mediaQuery.matches);
+    };
+
+    syncViewportMode();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewportMode);
+      return () => mediaQuery.removeEventListener('change', syncViewportMode);
+    }
+
+    mediaQuery.addListener(syncViewportMode);
+    return () => mediaQuery.removeListener(syncViewportMode);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      return;
+    }
+
+    setNearbyDarePanelCollapsed(true);
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    if (!isMobileViewport || !selectedPlace) {
+      return;
+    }
+
+    setNearbyDarePanelCollapsed(true);
+  }, [isMobileViewport, selectedPlace]);
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -1199,6 +1283,8 @@ export default function RealWorldMap() {
           heatScore: venue.tagSummary.heatScore,
           lastTaggedAt: venue.tagSummary.lastTaggedAt,
           activeDareCount: venue.activeDares.length,
+          commandCenter: venue.commandCenter,
+          mapModes: venue.mapModes,
         });
         setSelectedPlaceActiveDares(venue.activeDares);
         setTargetCenter([venue.latitude, venue.longitude]);
@@ -1380,6 +1466,7 @@ export default function RealWorldMap() {
       latitude,
       longitude,
       placeSource: 'MAP_DROP',
+      mapModes: DEFAULT_VENUE_MAP_MODES,
     });
   }, []);
 
@@ -1398,6 +1485,8 @@ export default function RealWorldMap() {
       heatScore: place.tagSummary.heatScore,
       lastTaggedAt: place.tagSummary.lastTaggedAt,
       activeDareCount: place.activeDareCount,
+      commandCenter: place.commandCenter,
+      mapModes: place.mapModes ?? DEFAULT_VENUE_MAP_MODES,
     });
     setTargetCenter([place.latitude, place.longitude]);
     setTargetZoom(15);
@@ -1441,6 +1530,8 @@ export default function RealWorldMap() {
             heatScore: venue.tagSummary.heatScore,
             lastTaggedAt: venue.tagSummary.lastTaggedAt,
             activeDareCount: venue.activeDares.length,
+            commandCenter: venue.commandCenter,
+            mapModes: venue.mapModes,
           };
         });
       } catch (error) {
@@ -2060,6 +2151,13 @@ export default function RealWorldMap() {
     },
   ];
   const nearbyRadiusOptions = [2, 5, 10, 20];
+  const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
+  const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
+  const selectedPlacePanelWrapClass = isMobileViewport
+    ? 'selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30'
+    : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
+  const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
+  const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
 
   const handleSpray = () => {
     setSprayBurst(false);
@@ -2222,6 +2320,7 @@ export default function RealWorldMap() {
                               : undefined,
                           lastTaggedAt: result.lastTaggedAt ?? null,
                           activeDareCount: result.activeDareCount ?? 0,
+                          mapModes: DEFAULT_VENUE_MAP_MODES,
                         });
                         setTargetCenter([result.latitude, result.longitude]);
                         setTargetZoom(15);
@@ -2377,6 +2476,7 @@ export default function RealWorldMap() {
                 });
                 const isActive = selectedPlace?.placeId === place.id;
                 const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
+                const compact = !isActive && mapZoom < compactMarkerZoomThreshold;
 
                 return (
                   <Marker
@@ -2390,6 +2490,7 @@ export default function RealWorldMap() {
                       visualState,
                       challengeLiveCount: place.activeDareCount,
                       matched: isMatchedVenue,
+                      compact,
                     })}
                     zIndexOffset={isActive ? 600 : 240}
                     eventHandlers={{
@@ -2468,15 +2569,45 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {showFootprintLayer && footprintMarks.length > 0 ? (
+              {showFootprintLayer && footprintMarks.length > 0 ? (
               <div
-                className={`pointer-events-none absolute left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:left-5 md:text-[10px] ${showNearbyDarePanel ? nearbyDarePanelCollapsed ? 'bottom-[4.75rem] md:bottom-[6.4rem]' : 'bottom-[16.25rem] md:bottom-[18.9rem]' : 'bottom-3 md:bottom-5'}`}
+                className={`pointer-events-none absolute left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:left-5 md:text-[10px] ${showNearbyDareTray ? nearbyDarePanelCollapsed ? 'bottom-[4.75rem] md:bottom-[6.4rem]' : 'bottom-[16.25rem] md:bottom-[18.9rem]' : 'bottom-3 md:bottom-5'}`}
               >
                 Your trace · {footprintMarks.length} verified marks
               </div>
             ) : null}
-            {showNearbyDarePanel ? (
-              <div className="absolute bottom-3 left-3 right-3 z-[10] max-w-[23rem] overflow-hidden rounded-[24px] border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] md:bottom-5 md:left-5 md:right-auto">
+            {showNearbyDareTray ? (
+              <div className={`absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}>
+                {isMobileViewport && nearbyDarePanelCollapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => setNearbyDarePanelCollapsed(false)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    aria-label="Expand nearby mission tray"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
+                        Nearby Live Missions
+                      </p>
+                      <p className="mt-1 truncate text-[11px] text-white/52">
+                        {nearbyDaresLoading
+                          ? 'Scanning nearby dares...'
+                          : nearbyDareFeed.length > 0
+                            ? `${nearbyDareFeed.length} live within ${nearbyDareRadiusKm}km`
+                            : `No live dares within ${nearbyDareRadiusKm}km`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                        {nearbyDaresLoading ? 'scanning' : `${nearbyDareFeed.length} live`}
+                      </div>
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
+                        <ChevronUp className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </button>
+                ) : (
+                <>
                 <div className="border-b border-white/8 px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -2539,7 +2670,7 @@ export default function RealWorldMap() {
                   </div>
                 </div>
                 {!nearbyDarePanelCollapsed ? (
-                <div className="px-2 py-2">
+                <div className={`px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
                   {nearbyDaresLoading ? (
                     <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
                       Scanning nearby dares...
@@ -2620,6 +2751,8 @@ export default function RealWorldMap() {
                         : `No nearby dares match this filter in ${nearbyDareRadiusKm}km`}
                   </div>
                 )}
+                </>
+                )}
               </div>
             ) : null}
             <div className="absolute left-5 top-6 z-[9] hidden md:flex flex-col gap-2">
@@ -2687,12 +2820,12 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className="selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0">
+              <div className={selectedPlacePanelWrapClass}>
                 <div className={`${mapPanelShellClass} place-panel-popup`}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className="flex max-h-[52dvh] flex-col overflow-hidden md:h-full md:max-h-none">
+                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[72dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -2766,7 +2899,10 @@ export default function RealWorldMap() {
                   </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6">
+                  <div
+                    className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
+                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' } : undefined}
+                  >
 
                   {ceremonyState ? (
                     <div
@@ -2828,6 +2964,61 @@ export default function RealWorldMap() {
                       })}
                     </div>
                   </div>
+
+                  {selectedCommandCenter ? (
+                    <div className={`mt-4 ${mapPanelSectionClass}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                          <LocateFixed className="h-3.5 w-3.5 text-cyan-200" />
+                          Venue Ops
+                        </div>
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${
+                            selectedCommandCenter.status === 'live'
+                              ? 'border-cyan-300/20 bg-cyan-500/[0.08] text-cyan-100'
+                              : 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72]'
+                          }`}
+                        >
+                          {selectedCommandCenter.label}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm leading-relaxed text-white/74">
+                        {selectedCommandCenter.summary}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2.5">
+                        <span className={mapPanelInsetChipClass}>
+                          {selectedCommandCenter.sponsorReady ? 'Sponsor-ready' : 'Unclaimed venue'}
+                        </span>
+                        <span className={mapPanelInsetChipClass}>
+                          {selectedCommandCenter.activeCampaignCount} campaign{selectedCommandCenter.activeCampaignCount === 1 ? '' : 's'}
+                        </span>
+                        {selectedMapModes.map((mode) => (
+                          <span
+                            key={`mode-${mode.id}`}
+                            className={`rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] ${
+                              mode.status === 'live'
+                                ? 'border-white/10 bg-white/[0.04] text-white/60'
+                                : 'border-fuchsia-300/18 bg-fuchsia-500/[0.08] text-fuchsia-100/80'
+                            }`}
+                            title={mode.description}
+                          >
+                            {mode.label} {mode.status === 'planned' ? 'soon' : 'live'}
+                          </span>
+                        ))}
+                      </div>
+                      {selectedCommandCenter.consoleUrl ? (
+                        <div className="mt-4">
+                          <Link
+                            href={selectedCommandCenter.consoleUrl}
+                            className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-cyan-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/36 hover:bg-cyan-500/[0.12]"
+                          >
+                            Open Console
+                            <ArrowLeft className="h-3 w-3 rotate-180" />
+                          </Link>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {selectedPlaceFootprintStats ? (
                     <div className="map-panel-section mt-4 rounded-[24px] border border-fuchsia-300/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.14)_0%,rgba(10,10,18,0.82)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
@@ -3501,6 +3692,13 @@ export default function RealWorldMap() {
           max-height: calc(100% - 16px);
         }
 
+        @media (max-width: 767px) {
+          .selected-place-panel-wrap {
+            bottom: max(8px, env(safe-area-inset-bottom));
+            max-height: min(72dvh, calc(100% - 76px));
+          }
+        }
+
         @media (min-width: 768px) {
           .selected-place-panel-wrap {
             top: 16px;
@@ -3540,6 +3738,20 @@ export default function RealWorldMap() {
           border: 1px solid rgba(255, 255, 255, 0.04);
           border-top: 1px solid rgba(255, 255, 255, 0.12);
           border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        @media (max-width: 767px) {
+          .map-panel-shell {
+            transform-origin: 50% 100%;
+          }
+
+          .place-panel-popup {
+            box-shadow:
+              0 18px 44px rgba(0, 0, 0, 0.54),
+              0 0 20px rgba(34, 211, 238, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              inset 0 -12px 18px rgba(0, 0, 0, 0.2);
+          }
         }
 
         :global(.map-action-button) {
@@ -4202,6 +4414,11 @@ export default function RealWorldMap() {
           justify-content: flex-start;
         }
 
+        .basedare-leaflet-map :global(.peebear-marker.is-compact) {
+          width: 76px;
+          height: 92px;
+        }
+
         .basedare-leaflet-map :global(.peebear-match-badge) {
           position: absolute;
           left: 50%;
@@ -4291,6 +4508,15 @@ export default function RealWorldMap() {
           flex-direction: column;
           align-items: center;
           gap: 4px;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-meta),
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-match-badge),
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-aura),
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-ring),
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-pill),
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-ripple) {
+          display: none;
         }
 
         .basedare-leaflet-map :global(.peebear-pulse-pill) {
@@ -4406,6 +4632,17 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
           animation: peebearHover 3.2s ease-in-out infinite;
           transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-core) {
+          height: 54px;
+          width: 54px;
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.48),
+            0 0 0 2px rgba(255, 255, 255, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -10px 14px rgba(0, 0, 0, 0.22);
+          animation: none;
         }
 
         .basedare-leaflet-map :global(.map-pin-marker) {
@@ -4680,6 +4917,17 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
+        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-count) {
+          top: -10px;
+          min-width: 24px;
+          height: 22px;
+          padding: 0 7px;
+          font-size: 11px;
+          box-shadow:
+            0 8px 14px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
         .basedare-leaflet-map :global(.peebear-count--blazing) {
           border-color: rgba(255, 95, 130, 0.8);
           color: #fff1f4;
@@ -4734,6 +4982,54 @@ export default function RealWorldMap() {
 
         .basedare-leaflet-map :global(.peebear-ripple--blazing) {
           border: 1.5px solid rgba(255, 45, 85, 0.88);
+        }
+
+        @media (max-width: 767px) {
+          .basedare-leaflet-map {
+            --mesh-opacity: 0.06;
+            --links-opacity: 0.08;
+            --star-opacity: 0.12;
+            --scan-opacity: 0.03;
+            --haze-opacity: 0.72;
+          }
+
+          .basedare-leaflet-map[data-map-preset='crt'] {
+            --mesh-opacity: 0.08;
+            --links-opacity: 0.1;
+            --star-opacity: 0.1;
+            --scan-opacity: 0.07;
+            --haze-opacity: 0.7;
+          }
+
+          .basedare-leaflet-map[data-map-preset='heat'] {
+            --mesh-opacity: 0.06;
+            --links-opacity: 0.08;
+            --star-opacity: 0.11;
+            --scan-opacity: 0.03;
+            --haze-opacity: 0.76;
+          }
+
+          .basedare-leaflet-map[data-map-preset='night'] {
+            --mesh-opacity: 0.06;
+            --links-opacity: 0.08;
+            --star-opacity: 0.14;
+            --scan-opacity: 0.02;
+            --haze-opacity: 0.66;
+          }
+
+          .basedare-leaflet-map :global(.place-cluster-aura),
+          .basedare-leaflet-map :global(.peebear-challenge-aura) {
+            filter: blur(4px);
+            opacity: 0.7;
+          }
+
+          .basedare-leaflet-map :global(.place-cluster-core) {
+            box-shadow:
+              0 14px 22px rgba(0, 0, 0, 0.3),
+              0 0 0 2px rgba(255, 255, 255, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12),
+              inset 0 -10px 14px rgba(0, 0, 0, 0.2);
+          }
         }
 
         .basedare-leaflet-map :global(.peebear-ripple--igniting) {

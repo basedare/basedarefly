@@ -57,6 +57,22 @@ export type VenueSessionSummary = {
   lastCheckInAt: string | null;
 };
 
+export type VenueCommandCenterSummary = {
+  status: 'live' | 'claimable';
+  label: string;
+  summary: string;
+  sponsorReady: boolean;
+  activeCampaignCount: number;
+  consoleUrl: string | null;
+};
+
+export type VenueExperienceMode = {
+  id: 'classic' | 'noir' | 'ar';
+  status: 'live' | 'planned';
+  label: string;
+  description: string;
+};
+
 export type NearbyVenueItem = {
   id: string;
   slug: string;
@@ -77,6 +93,8 @@ export type NearbyVenueItem = {
   memorySummary: VenueMemorySummary | null;
   tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;
+  commandCenter: VenueCommandCenterSummary;
+  mapModes: VenueExperienceMode[];
   activeDareCount: number;
   checkInCount: number;
 };
@@ -103,6 +121,8 @@ export type VenueDetail = {
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;
+  commandCenter: VenueCommandCenterSummary;
+  mapModes: VenueExperienceMode[];
   liveStats: {
     scansLastHour: number;
     uniqueVisitorsToday: number;
