@@ -3853,24 +3853,24 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 118px;
+          min-height: 84px;
           width: 100%;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.62rem;
+          gap: 0.42rem;
           overflow: hidden;
-          border-radius: 30px;
+          border-radius: 24px;
           border: 1px solid rgba(255, 255, 255, 0.18);
-          padding: 1rem 0.88rem 0.9rem;
+          padding: 0.78rem 0.78rem 0.74rem;
           text-align: center;
-          font-size: 9.5px;
+          font-size: 8.8px;
           font-weight: 800;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           transition:
             transform 180ms ease,
             box-shadow 180ms ease,
@@ -3885,24 +3885,24 @@ export default function RealWorldMap() {
           inset: 1px;
           border-radius: inherit;
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 26%, rgba(0, 0, 0, 0.22) 100%),
-            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.18), transparent 44%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.2) 100%),
+            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.14), transparent 40%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.16),
-            inset 0 -20px 26px rgba(0, 0, 0, 0.32),
-            inset 16px 16px 24px rgba(255, 255, 255, 0.03),
-            inset -18px -18px 24px rgba(0, 0, 0, 0.12);
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -16px 22px rgba(0, 0, 0, 0.28),
+            inset 12px 12px 18px rgba(255, 255, 255, 0.025),
+            inset -14px -14px 20px rgba(0, 0, 0, 0.1);
           pointer-events: none;
         }
 
         :global(.map-action-button::after) {
           content: '';
           position: absolute;
-          inset: 8px 18% auto;
-          height: 16px;
+          inset: 7px 22% auto;
+          height: 10px;
           border-radius: 999px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 75%, rgba(255, 255, 255, 0));
-          opacity: 0.88;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0));
+          opacity: 0.68;
           filter: blur(1px);
           pointer-events: none;
         }
@@ -3925,9 +3925,9 @@ export default function RealWorldMap() {
         }
 
         :global(.map-action-button span) {
-          max-width: 6.6rem;
+          max-width: 6rem;
           text-wrap: balance;
-          line-height: 1.04;
+          line-height: 1;
         }
 
         :global(.map-action-button--cyan) {
