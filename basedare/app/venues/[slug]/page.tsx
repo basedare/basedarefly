@@ -6,6 +6,7 @@ import { Activity, ArrowRight, Clock3, Flame, MapPin, ShieldCheck, Waves } from 
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import VenuePageShell from '../VenuePageShell';
+import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -185,20 +186,46 @@ export default async function VenueDetailPage(
                 </div>
 
                 <div className="grid min-w-[260px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  <Link
-                    href={venue.commandCenter.consoleUrl ?? venue.commandCenter.contactUrl}
-                    className={`${softCardClass} group px-5 py-4 transition hover:-translate-y-[1px] hover:border-fuchsia-400/40 hover:bg-fuchsia-500/10`}
-                  >
+                  <div className={`${softCardClass} px-5 py-4`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Command Center</p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-lg font-bold">
-                        {venue.commandCenter.consoleUrl ? 'Open live QR console' : 'Claim this venue'}
+                        {venue.commandCenter.consoleUrl
+                          ? 'Open live QR console'
+                          : venue.commandCenter.claimState === 'pending'
+                            ? 'Claim pending'
+                            : 'Claim this venue'}
                       </span>
-                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </div>
                     <p className="mt-2 text-sm text-white/58">{venue.commandCenter.summary}</p>
-                  </Link>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {venue.commandCenter.consoleUrl ? (
+                        <Link
+                          href={venue.commandCenter.consoleUrl}
+                          className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                        >
+                          Open Console
+                          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                        </Link>
+                      ) : (
+                        <ClaimVenueButton
+                          venueSlug={venue.slug}
+                          venueName={venue.name}
+                          pending={venue.commandCenter.claimState === 'pending'}
+                          className="inline-flex items-center justify-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                          pendingClassName="inline-flex items-center justify-center rounded-full border border-amber-300/24 bg-amber-500/[0.08] px-4 py-2 text-sm font-semibold text-amber-100"
+                          requireAuthClassName="inline-flex items-center justify-center rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                        />
+                      )}
+                      <Link
+                        href={venue.commandCenter.contactUrl}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        {venue.commandCenter.contactLabel}
+                      </Link>
+                    </div>
+                  </div>
                   <div className={`${softCardClass} px-5 py-4`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Ops Snapshot</p>

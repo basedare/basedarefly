@@ -34,6 +34,7 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
+import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 
 type SearchResult = {
   id: string;
@@ -55,6 +56,7 @@ type SearchResult = {
 
 type VenueCommandCenter = {
   status: 'live' | 'claimable';
+  claimState: 'unclaimed' | 'pending' | 'claimed';
   label: string;
   summary: string;
   sponsorReady: boolean;
@@ -62,6 +64,7 @@ type VenueCommandCenter = {
   consoleUrl: string | null;
   contactUrl: string;
   contactLabel: string;
+  operatorTag: string | null;
   metrics: {
     approvedMarks: number;
     activeChallenges: number;
@@ -3143,12 +3146,43 @@ export default function RealWorldMap() {
                             <ArrowLeft className="h-3 w-3 rotate-180" />
                           </Link>
                         ) : null}
+                        {selectedCommandCenter.claimState !== 'claimed' ? (
+                          <ClaimVenueButton
+                            venueSlug={selectedPlace?.slug ?? ''}
+                            venueName={selectedPlace?.name ?? 'this venue'}
+                            pending={selectedCommandCenter.claimState === 'pending'}
+                            className="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/24 bg-fuchsia-500/[0.1] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-500/[0.14]"
+                            pendingClassName="inline-flex items-center gap-2 rounded-full border border-amber-300/24 bg-amber-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-100"
+                            requireAuthClassName="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/24 bg-fuchsia-500/[0.1] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-500/[0.14]"
+                            onClaimSubmitted={(claimRequestTag) => {
+                              setSelectedPlace((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      commandCenter: current.commandCenter
+                                        ? {
+                                            ...current.commandCenter,
+                                            claimState: 'pending',
+                                            label: 'Claim pending',
+                                            summary: claimRequestTag
+                                              ? `${claimRequestTag} has requested control of this venue. Once approved, the command center can graduate into QR operations and sponsored dares.`
+                                              : 'A venue claim request is pending moderator review.',
+                                            contactLabel: 'Claim pending',
+                                            operatorTag: claimRequestTag,
+                                          }
+                                        : current.commandCenter,
+                                    }
+                                  : current
+                              );
+                            }}
+                          />
+                        ) : null}
                         <Link
                           href={selectedCommandCenter.contactUrl}
                           className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition ${
                             selectedCommandCenter.status === 'live'
                               ? 'border-[#f5c518]/24 bg-[#f5c518]/[0.08] text-[#f8dd72] hover:border-[#f5c518]/40 hover:bg-[#f5c518]/[0.12]'
-                              : 'border-fuchsia-300/24 bg-fuchsia-500/[0.1] text-fuchsia-100 hover:border-fuchsia-300/40 hover:bg-fuchsia-500/[0.14]'
+                              : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-white/18 hover:bg-white/[0.08] hover:text-white'
                           }`}
                         >
                           {selectedCommandCenter.contactLabel}

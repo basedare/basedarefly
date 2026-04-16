@@ -142,6 +142,15 @@ model Venue {
   qrMode              String           @default("ROTATING")
   qrRotationSeconds   Int              @default(45)
   checkInRadiusMeters Int              @default(120)
+  claimedBy           String?
+  claimedAt           DateTime?
+  claimRequestWallet  String?
+  claimRequestTag     String?
+  claimRequestedAt    DateTime?
+  claimRequestStatus  String?
+  moderatorAddress    String?
+  moderatedAt         DateTime?
+  moderatorNote       String?
   hoursJson           Json?
   metadataJson        Json?
   createdAt           DateTime         @default(now())
@@ -157,6 +166,8 @@ model Venue {
   @@index([status])
   @@index([geohash])
   @@index([city, status])
+  @@index([claimRequestStatus])
+  @@index([claimedBy])
 }
 
 model PlaceTag {

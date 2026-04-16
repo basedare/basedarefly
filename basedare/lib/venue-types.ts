@@ -59,6 +59,7 @@ export type VenueSessionSummary = {
 
 export type VenueCommandCenterSummary = {
   status: 'live' | 'claimable';
+  claimState: 'unclaimed' | 'pending' | 'claimed';
   label: string;
   summary: string;
   sponsorReady: boolean;
@@ -66,6 +67,7 @@ export type VenueCommandCenterSummary = {
   consoleUrl: string | null;
   contactUrl: string;
   contactLabel: string;
+  operatorTag: string | null;
   metrics: {
     approvedMarks: number;
     activeChallenges: number;

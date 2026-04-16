@@ -141,27 +141,63 @@ function buildVenueCommandCenterSummary(input: {
   activeChallengeCount: number;
   totalLiveFundingUsd: number;
   approvedMarks: number;
+  claimedBy: string | null;
+  claimRequestStatus: string | null;
+  claimRequestTag: string | null;
   uniqueVisitorsToday?: number | null;
   scansLastHour?: number | null;
 }): VenueCommandCenterSummary {
   const claimUrl = `/contact?topic=venue-claim&venue=${encodeURIComponent(input.slug)}`;
   const sponsorUrl = `/contact?topic=venue-partnership&venue=${encodeURIComponent(input.slug)}`;
+  const claimPending = input.claimRequestStatus === 'PENDING';
+  const claimed = Boolean(input.claimedBy);
   const live =
     input.isPartner ||
+    claimed ||
     input.hasLiveSession ||
     input.activeCampaignCount > 0 ||
     input.paidActivationCount > 0;
 
   if (live) {
+    const managedLabel = claimed && input.claimRequestTag ? `Managed by ${input.claimRequestTag}` : 'Command center live';
     return {
       status: 'live',
-      label: 'Command center live',
-      summary: 'This venue already has the rails for sponsored dares, QR operations, and verified foot-traffic tracking.',
+      claimState: claimed ? 'claimed' : 'unclaimed',
+      label: managedLabel,
+      summary: claimed
+        ? 'This venue has been claimed and now has the rails for sponsored dares, QR operations, and verified foot-traffic tracking.'
+        : 'This venue already has the rails for sponsored dares, QR operations, and verified foot-traffic tracking.',
       sponsorReady: true,
       activeCampaignCount: input.activeCampaignCount,
       consoleUrl: `/venues/${input.slug}/console`,
       contactUrl: sponsorUrl,
       contactLabel: 'Sponsor venue',
+      operatorTag: input.claimRequestTag,
+      metrics: {
+        approvedMarks: input.approvedMarks,
+        activeChallenges: input.activeChallengeCount,
+        paidActivations: input.paidActivationCount,
+        totalLiveFundingUsd: input.totalLiveFundingUsd,
+        uniqueVisitorsToday: input.uniqueVisitorsToday ?? null,
+        scansLastHour: input.scansLastHour ?? null,
+      },
+    };
+  }
+
+  if (claimPending) {
+    return {
+      status: 'claimable',
+      claimState: 'pending',
+      label: 'Claim pending',
+      summary: input.claimRequestTag
+        ? `${input.claimRequestTag} has requested control of this venue. Once approved, the command center can graduate into QR operations and sponsored dares.`
+        : 'A venue claim request is pending moderator review.',
+      sponsorReady: false,
+      activeCampaignCount: input.activeCampaignCount,
+      consoleUrl: null,
+      contactUrl: claimUrl,
+      contactLabel: 'Claim pending',
+      operatorTag: input.claimRequestTag,
       metrics: {
         approvedMarks: input.approvedMarks,
         activeChallenges: input.activeChallengeCount,
@@ -175,6 +211,7 @@ function buildVenueCommandCenterSummary(input: {
 
   return {
     status: 'claimable',
+    claimState: 'unclaimed',
     label: 'Claimable venue',
     summary: 'This pin can graduate into a managed venue with sponsored dares, venue budgets, and command-center analytics.',
     sponsorReady: false,
@@ -182,6 +219,7 @@ function buildVenueCommandCenterSummary(input: {
     consoleUrl: null,
     contactUrl: claimUrl,
     contactLabel: 'Claim venue',
+    operatorTag: null,
     metrics: {
       approvedMarks: input.approvedMarks,
       activeChallenges: input.activeChallengeCount,
@@ -586,6 +624,9 @@ export async function getNearbyVenues(input: {
       partnerTier: true,
       checkInRadiusMeters: true,
       qrRotationSeconds: true,
+      claimedBy: true,
+      claimRequestTag: true,
+      claimRequestStatus: true,
       memories: {
         orderBy: { bucketStartAt: 'desc' },
         take: 1,
@@ -647,6 +688,9 @@ export async function getNearbyVenues(input: {
         activeChallengeCount: venue.dares.length,
         totalLiveFundingUsd: venue.dares.reduce((sum, dare) => sum + dare.bounty, 0),
         approvedMarks: getVenueTagSummary(tagSummaryMap, venue.id).approvedCount,
+        claimedBy: venue.claimedBy,
+        claimRequestStatus: venue.claimRequestStatus,
+        claimRequestTag: venue.claimRequestTag,
         uniqueVisitorsToday: null,
         scansLastHour: null,
       });
@@ -713,6 +757,9 @@ export async function getVenueDetailBySlug(
       qrMode: true,
       qrRotationSeconds: true,
       checkInRadiusMeters: true,
+      claimedBy: true,
+      claimRequestTag: true,
+      claimRequestStatus: true,
       memories: {
         orderBy: { bucketStartAt: 'desc' },
         take: 7,
@@ -825,6 +872,9 @@ export async function getVenueDetailBySlug(
     activeChallengeCount: activeDares.length,
     totalLiveFundingUsd: activeDares.reduce((sum, dare) => sum + dare.bounty, 0),
     approvedMarks: tagSummary.approvedCount,
+    claimedBy: venue.claimedBy,
+    claimRequestStatus: venue.claimRequestStatus,
+    claimRequestTag: venue.claimRequestTag,
     uniqueVisitorsToday: uniqueVisitorRows.length,
     scansLastHour,
   });
