@@ -36,6 +36,47 @@ interface Brand {
     payoutQueued: number;
     paid: number;
   };
+  venueRadar?: BrandVenueRadarItem[];
+}
+
+interface BrandVenueRadarItem {
+  id: string;
+  slug: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  claimState: 'unclaimed' | 'pending' | 'claimed';
+  commandStatus: 'live' | 'claimable';
+  sponsorReady: boolean;
+  priorityLabel: string;
+  strategyLabel: string;
+  summary: string;
+  score: number;
+  rankReasons: string[];
+  activity: {
+    approvedMarks: number;
+    activeChallenges: number;
+    paidActivations: number;
+    totalLiveFundingUsd: number;
+    uniqueVisitorsToday: number;
+    scansLastHour: number;
+    recentCompletedCount: number;
+  };
+  brandHistory: {
+    campaigns: number;
+    liveCampaigns: number;
+    totalSpendUsd: number;
+  };
+  recentSignals: Array<{
+    creatorTag: string | null;
+    caption: string | null;
+    submittedAt: string;
+    vibeTags: string[];
+    firstMark: boolean;
+  }>;
+  contactUrl: string;
+  contactLabel: string;
+  consoleUrl: string | null;
 }
 
 interface Campaign {
@@ -191,6 +232,7 @@ interface CampaignMatchesState {
 }
 
 type ResponseRailTab = 'shortlisted' | 'claimed' | 'proof' | 'review' | 'verified';
+type VenueRadarFilter = 'hot' | 'managed' | 'claimable';
 
 const PLATFORM_OPTIONS = [
   { value: 'twitter', label: 'X' },
@@ -292,6 +334,22 @@ function getCreatorStrengthLabel(match: CampaignMatch) {
   return 'Ready to activate';
 }
 
+function getVenueRadarClaimTone(venue: BrandVenueRadarItem) {
+  if (venue.claimState === 'claimed') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+
+  if (venue.claimState === 'pending') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  return 'border-zinc-200 bg-zinc-100 text-zinc-600';
+}
+
+function formatVenueRadarLocation(venue: Pick<BrandVenueRadarItem, 'city' | 'country'>) {
+  return [venue.city, venue.country].filter(Boolean).join(', ') || 'Venue on the grid';
+}
+
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
@@ -310,6 +368,8 @@ export default function BrandPortalPage() {
   const [showRegister, setShowRegister] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
+  const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
+  const [selectedVenueRadarId, setSelectedVenueRadarId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CampaignFormData>({
     type: 'PLACE',
@@ -369,6 +429,49 @@ export default function BrandPortalPage() {
     campaignSummary?.inReview ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW').length;
   const payoutQueuedCount =
     campaignSummary?.payoutQueued ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT').length;
+  const venueRadar = brand?.venueRadar ?? [];
+  const filteredVenueRadar = venueRadar.filter((venue) => {
+    if (venueRadarFilter === 'managed') {
+      return venue.claimState === 'claimed' || venue.sponsorReady;
+    }
+
+    if (venueRadarFilter === 'claimable') {
+      return venue.claimState !== 'claimed';
+    }
+
+    return true;
+  });
+  const selectedVenueRadar =
+    filteredVenueRadar.find((venue) => venue.id === selectedVenueRadarId) ??
+    filteredVenueRadar[0] ??
+    venueRadar[0] ??
+    null;
+
+  const openCampaignComposerForVenue = (venue: BrandVenueRadarItem) => {
+    const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
+    setSelectedPlace({
+      id: venue.id,
+      name: venue.name,
+      displayName,
+      city: venue.city,
+      country: venue.country,
+      placeId: venue.id,
+      slug: venue.slug,
+    });
+    setPlaceQuery(displayName);
+    setFormData((current) => ({
+      ...current,
+      type: 'PLACE',
+      title: current.title.trim() ? current.title : `${venue.name} activation`,
+      description: current.description.trim()
+        ? current.description
+        : `Launch a creator activation at ${venue.name} while venue signal is already building.`,
+    }));
+    setShowCreateCampaign(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  };
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -1446,6 +1549,280 @@ export default function BrandPortalPage() {
               {inReviewCount} in review {' • '} {payoutQueuedCount} queued
             </div>
           </div>
+        </div>
+
+        <div className="mb-6 md:mb-8 rounded-2xl border border-zinc-200 bg-white/80 p-4 md:p-5 backdrop-blur-xl">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
+              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Where your next activation should go</h2>
+              <p className="mt-1 max-w-2xl text-sm text-zinc-600">
+                Ranked using live venue activity, command-center readiness, and your existing campaign history so you can spot the best places to fund next.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { id: 'hot', label: 'Hot now' },
+                { id: 'managed', label: 'Managed' },
+                { id: 'claimable', label: 'Claimable' },
+              ] as const).map((filter) => {
+                const active = venueRadarFilter === filter.id;
+                return (
+                  <button
+                    key={filter.id}
+                    onClick={() => setVenueRadarFilter(filter.id)}
+                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                      active
+                        ? 'border-purple-400 bg-purple-500/[0.08] text-purple-700'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {filteredVenueRadar.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
+              No venue signal is strong enough yet for this filter. Launch a campaign or wait for more verified venue activity.
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 lg:grid-cols-3">
+              {filteredVenueRadar.slice(0, 6).map((venue, index) => (
+                <button
+                  key={venue.id}
+                  type="button"
+                  onClick={() => setSelectedVenueRadarId(venue.id)}
+                  className={`rounded-2xl border bg-white/90 p-4 text-left shadow-[0_20px_50px_rgba(12,12,16,0.08)] transition ${
+                    selectedVenueRadar?.id === venue.id
+                      ? 'border-purple-400 ring-2 ring-purple-400/20'
+                      : 'border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          #{index + 1}
+                        </span>
+                        <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getVenueRadarClaimTone(venue)}`}>
+                          {venue.claimState === 'claimed'
+                            ? 'Claimed'
+                            : venue.claimState === 'pending'
+                              ? 'Claim pending'
+                              : 'Unclaimed'}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-lg font-semibold text-zinc-900">{venue.name}</div>
+                      <div className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{venue.city ?? venue.country ?? 'Venue on the grid'}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">Score</div>
+                      <div className="text-xl font-semibold text-zinc-900">{venue.score}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-700">
+                      {venue.priorityLabel}
+                    </span>
+                    <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                      {venue.strategyLabel}
+                    </span>
+                  </div>
+
+                  <p className="mt-4 text-sm leading-6 text-zinc-600">{venue.summary}</p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {venue.rankReasons.slice(0, 2).map((reason) => (
+                      <span
+                        key={reason}
+                        className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Visitors today</div>
+                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.activity.uniqueVisitorsToday}</div>
+                      <div className="text-[11px] text-zinc-500">{venue.activity.scansLastHour} scans last hour</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Live funding</div>
+                      <div className="mt-1 text-lg font-semibold text-zinc-900">${venue.activity.totalLiveFundingUsd.toLocaleString()}</div>
+                      <div className="text-[11px] text-zinc-500">{venue.activity.activeChallenges} live challenges</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Brand history</div>
+                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.brandHistory.campaigns}</div>
+                      <div className="text-[11px] text-zinc-500">${venue.brandHistory.totalSpendUsd.toLocaleString()} total spend</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Verified signal</div>
+                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.activity.approvedMarks}</div>
+                      <div className="text-[11px] text-zinc-500">{venue.activity.recentCompletedCount} recent completions</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700">
+                      Inspect venue
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                      Fund here
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedVenueRadar ? (
+            <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-950 px-4 py-5 text-white shadow-[0_24px_80px_rgba(15,10,35,0.25)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-3xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
+                      {selectedVenueRadar.priorityLabel}
+                    </span>
+                    <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                      {selectedVenueRadar.strategyLabel}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 text-2xl font-semibold">{selectedVenueRadar.name}</h3>
+                  <div className="mt-1 flex items-center gap-1 text-sm text-zinc-400">
+                    <MapPin className="h-4 w-4" />
+                    <span>{formatVenueRadarLocation(selectedVenueRadar)}</span>
+                  </div>
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300">{selectedVenueRadar.summary}</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 lg:min-w-[220px]">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Why it ranks</div>
+                  <div className="mt-3 space-y-2">
+                    {selectedVenueRadar.rankReasons.map((reason) => (
+                      <div key={reason} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-200">
+                        {reason}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Visitors today</div>
+                  <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.activity.uniqueVisitorsToday}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.activity.scansLastHour} scans last hour</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Live funding</div>
+                  <div className="mt-2 text-2xl font-semibold">${selectedVenueRadar.activity.totalLiveFundingUsd.toLocaleString()}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.activity.activeChallenges} open challenges</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Brand history</div>
+                  <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.brandHistory.campaigns}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.brandHistory.liveCampaigns} live campaigns here</div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Verified memory</div>
+                  <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.activity.approvedMarks}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.activity.recentCompletedCount} recent completions</div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent creator signal</div>
+                  {selectedVenueRadar.recentSignals.length === 0 ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
+                      No approved creator memory has been logged here yet. This is still a good venue to seed if the foot traffic signal is rising.
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {selectedVenueRadar.recentSignals.map((signal, index) => (
+                        <div key={`${signal.creatorTag ?? 'anon'}-${signal.submittedAt}-${index}`} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-white">{signal.creatorTag ?? 'Anonymous creator'}</div>
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                              {signal.firstMark ? 'First spark' : 'Venue memory'}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm text-zinc-300">
+                            {signal.caption || 'Creator left a verified venue signal here.'}
+                          </div>
+                          {signal.vibeTags.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {signal.vibeTags.slice(0, 3).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-300"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Next move</div>
+                  <div className="mt-3 text-lg font-semibold text-white">
+                    {selectedVenueRadar.strategyLabel}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">
+                    If you want to capture this venue while the signal is fresh, launch a place activation now and route a creator directly into the existing movement.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openCampaignComposerForVenue(selectedVenueRadar)}
+                      className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
+                    >
+                      <PlayCircle className="h-4 w-4" />
+                      Fund challenge here
+                    </button>
+                    <Link
+                      href={`/venues/${selectedVenueRadar.slug}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"
+                    >
+                      <MapPin className="h-3.5 w-3.5" />
+                      View venue
+                    </Link>
+                    {selectedVenueRadar.consoleUrl ? (
+                      <Link
+                        href={selectedVenueRadar.consoleUrl}
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/40"
+                      >
+                        <PlayCircle className="h-3.5 w-3.5" />
+                        Open console
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={selectedVenueRadar.contactUrl}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/40"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      {selectedVenueRadar.contactLabel}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Value Menu / Create Campaign */}

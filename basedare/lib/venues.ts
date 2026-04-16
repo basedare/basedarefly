@@ -15,6 +15,7 @@ import {
 } from '@/lib/place-tags';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
+  BrandVenueRadarItem,
   NearbyVenueItem,
   VenueCommandCenterSummary,
   VenueDetail,
@@ -577,6 +578,265 @@ export async function getFeaturedVenues(limit = 4) {
     memorySummary: mapMemorySummary(venue.memories[0] ?? null),
     tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+  }));
+}
+
+export async function getBrandVenueRadar(input: {
+  brandWallet: string;
+  limit?: number;
+}): Promise<BrandVenueRadarItem[]> {
+  const normalizedWallet = normalizeWalletAddress(input.brandWallet);
+  if (!normalizedWallet) {
+    return [];
+  }
+
+  const limit = Math.max(3, Math.min(input.limit ?? 6, 12));
+  const now = new Date();
+  const today = startOfDay(now);
+  const lastHour = subHours(now, 1);
+  const brand = await prisma.brand.findUnique({
+    where: { walletAddress: normalizedWallet },
+    select: { id: true },
+  });
+
+  if (!brand) {
+    return [];
+  }
+
+  const venues = await prisma.venue.findMany({
+    where: {
+      status: 'ACTIVE',
+      OR: [
+        { campaigns: { some: { brandId: brand.id, venueId: { not: null } } } },
+        { isPartner: true },
+        { claimedBy: { not: null } },
+        { claimRequestStatus: 'PENDING' },
+        {
+          memories: {
+            some: {
+              bucketStartAt: { gte: today },
+              OR: [
+                { checkInCount: { gt: 0 } },
+                { uniqueVisitorCount: { gt: 0 } },
+                { completedDareCount: { gt: 0 } },
+              ],
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      city: true,
+      country: true,
+      isPartner: true,
+      claimedBy: true,
+      claimRequestTag: true,
+      claimRequestStatus: true,
+      updatedAt: true,
+      memories: {
+        where: { bucketStartAt: { gte: today } },
+        orderBy: { bucketStartAt: 'desc' },
+        take: 1,
+        select: {
+          uniqueVisitorCount: true,
+          checkInCount: true,
+          completedDareCount: true,
+        },
+      },
+      checkIns: {
+        where: { scannedAt: { gte: lastHour } },
+        select: { id: true },
+      },
+      campaigns: {
+        select: {
+          id: true,
+          brandId: true,
+          status: true,
+          budgetUsdc: true,
+        },
+      },
+      dares: {
+        where: {
+          NOT: {
+            OR: [
+              { status: { in: [...TERMINAL_DARE_STATUSES] } },
+              { expiresAt: { lt: now } },
+            ],
+          },
+        },
+        select: {
+          id: true,
+          bounty: true,
+          linkedCampaign: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+      qrSessions: {
+        where: {
+          status: { in: [...LIVE_SESSION_STATUSES] },
+        },
+        take: 1,
+        select: { id: true },
+      },
+    },
+    orderBy: [{ isPartner: 'desc' }, { updatedAt: 'desc' }],
+    take: limit * 4,
+  });
+
+  if (venues.length === 0) {
+    return [];
+  }
+
+  const tagSummaryMap = await getApprovedTagSummaryMap(venues.map((venue) => venue.id));
+
+  const radar = venues
+    .map((venue) => {
+      const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
+      const todayMemory = venue.memories[0] ?? null;
+      const brandCampaigns = venue.campaigns.filter((campaign) => campaign.brandId === brand.id);
+      const liveBrandCampaigns = brandCampaigns.filter((campaign) =>
+        ['LIVE', 'RECRUITING'].includes(campaign.status)
+      ).length;
+      const totalBrandSpendUsd = brandCampaigns.reduce((sum, campaign) => sum + campaign.budgetUsdc, 0);
+      const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.id)).length;
+      const totalLiveFundingUsd = venue.dares.reduce((sum, dare) => sum + dare.bounty, 0);
+      const uniqueVisitorsToday = todayMemory?.uniqueVisitorCount ?? 0;
+      const recentCompletedCount = todayMemory?.completedDareCount ?? 0;
+      const scansLastHour = venue.checkIns.length;
+      const activeChallenges = venue.dares.length;
+      const commandCenter = buildVenueCommandCenterSummary({
+        slug: venue.slug,
+        isPartner: venue.isPartner,
+        activeCampaignCount: venue.campaigns.length,
+        hasLiveSession: Boolean(venue.qrSessions[0]),
+        paidActivationCount,
+        activeChallengeCount: activeChallenges,
+        totalLiveFundingUsd,
+        approvedMarks: tagSummary.approvedCount,
+        claimedBy: venue.claimedBy,
+        claimRequestStatus: venue.claimRequestStatus,
+        claimRequestTag: venue.claimRequestTag,
+        uniqueVisitorsToday,
+        scansLastHour,
+      });
+
+      const score =
+        liveBrandCampaigns * 42 +
+        brandCampaigns.length * 18 +
+        Math.min(totalBrandSpendUsd / 50, 22) +
+        (commandCenter.status === 'live' ? 16 : 6) +
+        (commandCenter.claimState === 'claimed' ? 12 : commandCenter.claimState === 'pending' ? 7 : 0) +
+        Math.min(uniqueVisitorsToday * 2, 18) +
+        Math.min(scansLastHour * 3, 12) +
+        Math.min(recentCompletedCount * 4, 16) +
+        Math.min(activeChallenges * 5, 15) +
+        Math.min(totalLiveFundingUsd / 40, 18) +
+        Math.min(tagSummary.approvedCount, 12);
+      const rankReasons = [
+        liveBrandCampaigns > 0 ? `${liveBrandCampaigns} live brand campaign${liveBrandCampaigns > 1 ? 's' : ''}` : null,
+        brandCampaigns.length > 0 ? `${brandCampaigns.length} prior brand activations` : null,
+        uniqueVisitorsToday > 0 ? `${uniqueVisitorsToday} unique visitors today` : null,
+        scansLastHour > 0 ? `${scansLastHour} scans in the last hour` : null,
+        recentCompletedCount > 0 ? `${recentCompletedCount} recent verified completions` : null,
+        activeChallenges > 0 ? `${activeChallenges} live challenge${activeChallenges > 1 ? 's' : ''}` : null,
+        totalLiveFundingUsd > 0 ? `$${Math.round(totalLiveFundingUsd).toLocaleString()} live funding` : null,
+        commandCenter.claimState === 'claimed'
+          ? 'Claimed venue with command-center rails live'
+          : commandCenter.claimState === 'pending'
+            ? 'Claim request already in motion'
+            : null,
+      ].filter((reason): reason is string => Boolean(reason)).slice(0, 4);
+
+      let priorityLabel = 'Emerging signal';
+      let strategyLabel = 'Watch this venue';
+      let summary = 'Fresh movement is building, but this venue still needs more campaign pressure to become a reliable anchor.';
+
+      if (liveBrandCampaigns > 0) {
+        priorityLabel = 'Active with your brand';
+        strategyLabel = 'Double down';
+        summary = 'You already have live spend here, so this venue is the cleanest place to tighten creator routing and repeat traffic.';
+      } else if (brandCampaigns.length > 0) {
+        priorityLabel = 'Warm brand history';
+        strategyLabel = 'Re-ignite';
+        summary = 'Your brand has already touched this venue. Re-opening it should be cheaper than activating somewhere cold.';
+      } else if (commandCenter.claimState === 'claimed') {
+        priorityLabel = 'Claimed + sponsor ready';
+        strategyLabel = 'Pitch immediately';
+        summary = 'This venue already has a claimed command center, which makes it easier to unlock sponsored dares and reliable ops quickly.';
+      } else if (commandCenter.claimState === 'pending') {
+        priorityLabel = 'Claim pending';
+        strategyLabel = 'Monitor approval';
+        summary = 'A claim request is in motion here. Good venue to line up if the ownership rail converts soon.';
+      } else if (uniqueVisitorsToday >= 4 || recentCompletedCount >= 2) {
+        priorityLabel = 'Hot foot traffic';
+        strategyLabel = 'Fund challenge';
+        summary = 'Real people are already moving through this venue, so a paid activation here should convert faster than a cold pin.';
+      }
+
+      return {
+        id: venue.id,
+        slug: venue.slug,
+        name: venue.name,
+        city: venue.city,
+        country: venue.country,
+        claimState: commandCenter.claimState,
+        commandStatus: commandCenter.status,
+        sponsorReady: commandCenter.sponsorReady,
+        priorityLabel,
+        strategyLabel,
+        summary,
+        score: Math.round(score),
+        rankReasons,
+        activity: {
+          approvedMarks: tagSummary.approvedCount,
+          activeChallenges,
+          paidActivations: paidActivationCount,
+          totalLiveFundingUsd,
+          uniqueVisitorsToday,
+          scansLastHour,
+          recentCompletedCount,
+        },
+        brandHistory: {
+          campaigns: brandCampaigns.length,
+          liveCampaigns: liveBrandCampaigns,
+          totalSpendUsd: totalBrandSpendUsd,
+        },
+        recentSignals: [],
+        contactUrl: commandCenter.contactUrl,
+        contactLabel: commandCenter.contactLabel,
+        consoleUrl: commandCenter.consoleUrl,
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, limit);
+
+  const recentSignalsByVenue = await Promise.all(
+    radar.map(async (venue) => {
+      const tags = await getRecentApprovedPlaceTagsByVenueId(venue.id, 3);
+      return [
+        venue.id,
+        tags.map((tag) => ({
+          creatorTag: tag.creatorTag ?? null,
+          caption: tag.caption ?? null,
+          submittedAt: tag.submittedAt,
+          vibeTags: tag.vibeTags,
+          firstMark: tag.firstMark,
+        })),
+      ] as const;
+    })
+  );
+
+  const recentSignalsMap = new Map(recentSignalsByVenue);
+
+  return radar.map((venue) => ({
+    ...venue,
+    recentSignals: recentSignalsMap.get(venue.id) ?? [],
   }));
 }
 

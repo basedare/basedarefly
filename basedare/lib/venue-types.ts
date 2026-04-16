@@ -85,6 +85,46 @@ export type VenueExperienceMode = {
   description: string;
 };
 
+export type BrandVenueRadarItem = {
+  id: string;
+  slug: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  claimState: VenueCommandCenterSummary['claimState'];
+  commandStatus: VenueCommandCenterSummary['status'];
+  sponsorReady: boolean;
+  priorityLabel: string;
+  strategyLabel: string;
+  summary: string;
+  score: number;
+  rankReasons: string[];
+  activity: {
+    approvedMarks: number;
+    activeChallenges: number;
+    paidActivations: number;
+    totalLiveFundingUsd: number;
+    uniqueVisitorsToday: number;
+    scansLastHour: number;
+    recentCompletedCount: number;
+  };
+  brandHistory: {
+    campaigns: number;
+    liveCampaigns: number;
+    totalSpendUsd: number;
+  };
+  recentSignals: Array<{
+    creatorTag: string | null;
+    caption: string | null;
+    submittedAt: string;
+    vibeTags: string[];
+    firstMark: boolean;
+  }>;
+  contactUrl: string;
+  contactLabel: string;
+  consoleUrl: string | null;
+};
+
 export type NearbyVenueItem = {
   id: string;
   slug: string;

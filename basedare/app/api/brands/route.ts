@@ -5,6 +5,7 @@ import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import { getBrandVenueRadar } from '@/lib/venues';
 
 // ============================================================================
 // BRANDS API
@@ -93,6 +94,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const venueRadar = await getBrandVenueRadar({
+      brandWallet: walletAddress.toLowerCase(),
+      limit: 6,
+    });
+
     const liveCampaigns = brand.campaigns.filter((campaign) => ['LIVE', 'RECRUITING'].includes(campaign.status));
     const creatorMovement = brand.campaigns.filter(
       (campaign) =>
@@ -128,6 +134,7 @@ export async function GET(request: NextRequest) {
           payoutQueued: payoutQueued.length,
           paid: paid.length,
         },
+        venueRadar,
       },
     });
   } catch (error: unknown) {
