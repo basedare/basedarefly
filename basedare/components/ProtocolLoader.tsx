@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
 
@@ -12,33 +12,44 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isShattering, setIsShattering] = useState(false);
   const isOverlay = variant === 'overlay';
+  const durationMs = isOverlay ? 1100 : 1800;
+
+  const statusLabel = useMemo(() => {
+    if (loadingProgress < 26) return 'LOCKING SIGNAL';
+    if (loadingProgress < 58) return 'SYNCING VENUES';
+    if (loadingProgress < 86) return 'ARMING PROTOCOL';
+    return 'ACCESS GRANTED';
+  }, [loadingProgress]);
 
   const handleCompletion = React.useCallback(() => {
     setIsShattering(true);
-    setTimeout(() => onComplete(), isOverlay ? 500 : 1000);
+    setTimeout(() => onComplete(), isOverlay ? 380 : 650);
   }, [isOverlay, onComplete]);
 
   useEffect(() => {
-    // Progress Simulation (Linear but organic)
-    const interval = setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          handleCompletion();
-          return 100;
-        }
-        const next = prev + Math.random() * 8 + 2;
-        if (next >= 100) {
-          clearInterval(interval);
-          handleCompletion();
-          return 100;
-        }
-        return next; // Aggressive loading speed
-      });
-    }, 100);
+    const startedAt = performance.now();
+    let rafId = 0;
 
-    return () => clearInterval(interval);
-  }, [handleCompletion]);
+    const tick = (now: number) => {
+      const elapsed = now - startedAt;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 2.6);
+      const next = Math.min(100, eased * 100);
+
+      setLoadingProgress(next);
+
+      if (progress >= 1) {
+        handleCompletion();
+        return;
+      }
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [durationMs, handleCompletion]);
 
   return (
     <motion.div
@@ -55,54 +66,46 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
             ? { opacity: 0, y: 8, filter: "blur(8px)" }
             : { opacity: 1, y: 0, filter: "blur(0px)" }
           : isShattering
-            ? { opacity: 0, scale: 1.5, filter: "blur(20px)" }
+            ? { opacity: 0, scale: 1.04, filter: "blur(10px)" }
             : { opacity: 1, scale: 1, filter: "blur(0px)" }
       }
-      transition={{ duration: isOverlay ? 0.45 : 0.8, ease: "easeInOut" }}
+      transition={{ duration: isOverlay ? 0.35 : 0.45, ease: "easeInOut" }}
       aria-live="polite"
       aria-label="Chain initialization in progress"
     >
       {!isOverlay ? (
         <>
-          {/* A. Background Noise & Gradient */}
-          <div className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-          <div className="absolute inset-0 opacity-80" style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 1) 100%)' }} />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(168,85,247,0.22)_0%,rgba(34,197,94,0.05)_18%,rgba(0,0,0,0.94)_56%,#020202_100%)]" />
+          <div className="absolute inset-x-0 top-0 h-px bg-white/8" />
 
-          {/* B. Pulsing Core (The Heartbeat) */}
           <motion.div
-            animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]"
+            animate={{ scale: [0.94, 1.06, 0.94], opacity: [0.16, 0.28, 0.16] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute h-[420px] w-[420px] rounded-full bg-purple-600/20 blur-[100px]"
           />
         </>
       ) : null}
 
-      {/* C. The Orbital Loader - Money vs Death */}
-      <div className={`relative flex items-center justify-center ${isOverlay ? 'chain-init-rings' : 'w-96 h-96'}`}>
+      <div className={`relative flex items-center justify-center ${isOverlay ? 'chain-init-rings' : 'h-[320px] w-[320px] sm:h-[360px] sm:w-[360px]'}`}>
         
-        {/* 1. OUTER RING + DOLLAR (Gold - Risk/Money) */}
-        {/* Spins Clockwise */}
         <div className="absolute inset-0 animate-spin-slow">
-          <div className="w-full h-full rounded-full border-4 border-[#FFD700]/30 border-t-[#FFD700] border-r-transparent shadow-[0_0_20px_rgba(255,215,0,0.4)]"></div>
-          {/* The $ Icon positioned on the ring */}
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[#FFD700] text-4xl font-black drop-shadow-[0_0_10px_rgba(255,215,0,0.8)] rotate-12">
+          <div className="h-full w-full rounded-full border-[3px] border-[#FFD700]/22 border-t-[#FFD700]/85 border-r-transparent shadow-[0_0_22px_rgba(255,215,0,0.22)]"></div>
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 rotate-12 text-3xl font-black text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.5)] sm:text-4xl">
             $
           </div>
         </div>
         
-        {/* 2. INNER RING + SKULL (Purple - Death) */}
-        {/* Spins Counter-Clockwise */}
         <div className="absolute inset-16 animate-spin-reverse-slow">
-          <div className="w-full h-full rounded-full border-4 border-purple-500/30 border-b-purple-500 border-l-transparent shadow-[0_0_20px_rgba(168,85,247,0.4)]"></div>
-          {/* The Skull positioned on the ring */}
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-4xl grayscale-[0.2] drop-shadow-[0_0_10px_rgba(168,85,247,0.8)] -rotate-12">
+          <div className="h-full w-full rounded-full border-[3px] border-purple-500/24 border-b-purple-400/80 border-l-transparent shadow-[0_0_22px_rgba(168,85,247,0.22)]"></div>
+          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 -rotate-12 text-3xl grayscale-[0.12] drop-shadow-[0_0_10px_rgba(168,85,247,0.48)] sm:text-4xl">
             💀
           </div>
         </div>
 
-        {/* 3. CORE PROTOCOL (Static Center - The Zap) */}
-        <div className="relative z-10 w-24 h-24 text-white animate-pulse">
-          <Zap className="w-full h-full text-[#FFD700] fill-[#FFD700]/20 drop-shadow-[0_0_20px_rgba(255,215,0,0.6)]" />
+        <div className="absolute inset-[22%] rounded-full border border-white/8 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_35%,rgba(10,10,14,0.96)_78%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_40px_rgba(0,0,0,0.3)]" />
+
+        <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-[#FFD700]/25 bg-[radial-gradient(circle_at_50%_30%,rgba(255,215,0,0.18)_0%,rgba(255,215,0,0.04)_38%,rgba(0,0,0,0.12)_100%)] text-white shadow-[0_0_28px_rgba(255,215,0,0.18)] sm:h-24 sm:w-24">
+          <Zap className="h-10 w-10 text-[#FFD700] fill-[#FFD700]/10 drop-shadow-[0_0_18px_rgba(255,215,0,0.35)] sm:h-12 sm:w-12" />
         </div>
       </div>
 
@@ -112,28 +115,29 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
           <span className="chain-init-progress">{Math.round(loadingProgress)}%</span>
         </div>
       ) : (
-        <div className="absolute bottom-20 flex flex-col items-center gap-4 w-full px-12 max-w-lg">
+        <div className="absolute bottom-[14vh] flex w-full max-w-md flex-col items-center gap-3 px-8">
+          <div className="text-[11px] font-black uppercase tracking-[0.34em] text-white/45">
+            BaseDare Protocol
+          </div>
           <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="text-[#FFD700] font-black text-xl tracking-[0.2em] uppercase font-mono"
+            animate={{ opacity: [0.62, 1, 0.62] }}
+            transition={{ duration: 1.6, repeat: Infinity }}
+            className="text-center font-mono text-lg font-black uppercase tracking-[0.24em] text-[#FFD700] sm:text-xl"
           >
-            {loadingProgress < 100 ? "INITIALIZING PROTOCOL..." : "ACCESS GRANTED"}
+            {statusLabel}
           </motion.div>
           
-          {/* Progress Bar Container */}
-          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8 backdrop-blur-sm">
             <motion.div
               className="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-[#FFD700]"
               initial={{ width: "0%" }}
               animate={{ width: `${loadingProgress}%` }}
-              transition={{ type: "spring", stiffness: 50, damping: 20 }}
+              transition={{ ease: "easeOut", duration: 0.18 }}
             />
           </div>
           
-          {/* Percentage Number */}
-          <div className="flex justify-between w-full text-[10px] text-gray-500 font-mono">
-              <span>VERIFYING CHAIN</span>
+          <div className="flex w-full items-center justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">
+              <span>Signal Locked</span>
               <span>{Math.round(loadingProgress)}%</span>
           </div>
         </div>
@@ -157,8 +161,8 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
         }
         .chain-init-overlay {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
+          top: 18px;
+          right: 18px;
           z-index: 9999;
           display: flex;
           align-items: center;
@@ -203,7 +207,6 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
         @media (max-width: 480px) {
           .chain-init-overlay {
             top: 78px;
-            bottom: auto;
             right: auto;
             left: 50%;
             translate: -50% 0;

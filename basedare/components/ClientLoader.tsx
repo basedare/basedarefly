@@ -5,23 +5,34 @@ import ProtocolLoader from './ProtocolLoader';
 
 let hasProtocolLoadedInMemory = false;
 
+function shouldShowProtocolLoader() {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  if (hasProtocolLoadedInMemory) {
+    return false;
+  }
+
+  return window.sessionStorage.getItem('protocol-loaded') !== 'true';
+}
+
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(shouldShowProtocolLoader);
 
   useLayoutEffect(() => {
-    if (hasProtocolLoadedInMemory || typeof window === 'undefined') {
-      if (hasProtocolLoadedInMemory) {
-        window.queueMicrotask(() => setIsLoading(false));
-      }
+    if (typeof window === 'undefined') {
       return;
     }
 
     const hasBeenLoaded = window.sessionStorage.getItem('protocol-loaded') === 'true';
     if (hasBeenLoaded) {
       hasProtocolLoadedInMemory = true;
-      window.queueMicrotask(() => setIsLoading(false));
+      if (isLoading) {
+        window.queueMicrotask(() => setIsLoading(false));
+      }
     }
-  }, []);
+  }, [isLoading]);
 
   const handleComplete = () => {
     if (typeof window !== 'undefined') {

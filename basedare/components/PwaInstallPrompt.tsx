@@ -9,7 +9,6 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = 'pwa-install-dismissed-at';
-const DISMISS_MS = 1000 * 60 * 60 * 24 * 7;
 
 function isStandaloneDisplayMode() {
   if (typeof window === 'undefined') return false;
@@ -44,8 +43,7 @@ export default function PwaInstallPrompt() {
         return;
       }
 
-      const isExpired = Date.now() - Number(dismissedAt) > DISMISS_MS;
-      setDismissed(!isExpired);
+      setDismissed(true);
     });
 
     const onBeforeInstallPrompt = (event: Event) => {
