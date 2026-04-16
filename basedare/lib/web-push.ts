@@ -113,12 +113,16 @@ type SendNearbyDarePushInput = {
   radiusKm: number;
 };
 
+const NEARBY_PUSH_COOLDOWN_MS = 1000 * 60 * 20;
+
 export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
   if (!configureWebPush()) {
     return;
   }
 
   const freshnessCutoff = new Date(Date.now() - 1000 * 60 * 60 * 12);
+  const nearbyPushCutoff = new Date(Date.now() - NEARBY_PUSH_COOLDOWN_MS);
+  const alertKey = `nearby:${input.url}`;
 
   const subscriptions = await prisma.webPushSubscription.findMany({
     where: {
@@ -129,6 +133,11 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
       lastLatitude: { not: null },
       lastLongitude: { not: null },
       lastLocationAt: { gte: freshnessCutoff },
+      OR: [
+        { lastNearbyPushAt: null },
+        { lastNearbyPushAt: { lt: nearbyPushCutoff } },
+        { lastNearbyPushKey: { not: alertKey } },
+      ],
     },
     select: {
       id: true,
@@ -138,6 +147,8 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
       lastLatitude: true,
       lastLongitude: true,
       nearbyRadiusKm: true,
+      lastNearbyPushAt: true,
+      lastNearbyPushKey: true,
     },
   });
 
@@ -185,6 +196,14 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
           },
           payload
         );
+
+        await prisma.webPushSubscription.update({
+          where: { id: subscription.id },
+          data: {
+            lastNearbyPushAt: new Date(),
+            lastNearbyPushKey: alertKey,
+          },
+        }).catch(() => {});
       } catch (error: unknown) {
         const statusCode =
           typeof error === 'object' && error && 'statusCode' in error

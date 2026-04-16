@@ -601,6 +601,8 @@ model WebPushSubscription {
   lastLongitude Float?
   nearbyRadiusKm Float?  @default(5)
   lastLocationAt DateTime?
+  lastNearbyPushAt DateTime?
+  lastNearbyPushKey String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   lastSeenAt DateTime @default(now())
@@ -608,4 +610,5 @@ model WebPushSubscription {
   @@index([wallet, isActive])
   @@index([lastSeenAt])
   @@index([lastLocationAt])
+  @@index([lastNearbyPushAt])
 }
