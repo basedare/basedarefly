@@ -12,6 +12,12 @@ type PushSubscriptionPayload = {
   keys?: PushKeys;
 };
 
+type LocationContextPayload = {
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+};
+
 const ALLOWED_TOPICS = ['wallet', 'nearby', 'campaigns', 'venues'] as const;
 type PushTopic = (typeof ALLOWED_TOPICS)[number];
 
@@ -39,6 +45,35 @@ function sanitizeTopics(input: unknown): PushTopic[] {
   return filtered.length > 0 ? Array.from(new Set(filtered)) : ['wallet', 'nearby'];
 }
 
+function sanitizeLocationContext(input: unknown): LocationContextPayload | null {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const payload = input as LocationContextPayload;
+  const latitude = Number(payload.latitude);
+  const longitude = Number(payload.longitude);
+  const radiusKm = payload.radiusKm == null ? undefined : Number(payload.radiusKm);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return null;
+  }
+
+  if (radiusKm != null && (!Number.isFinite(radiusKm) || radiusKm < 0.5 || radiusKm > 50)) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+    radiusKm,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const wallet = request.nextUrl.searchParams.get('wallet');
@@ -58,6 +93,10 @@ export async function GET(request: NextRequest) {
       select: {
         endpoint: true,
         topics: true,
+        lastLatitude: true,
+        lastLongitude: true,
+        nearbyRadiusKm: true,
+        lastLocationAt: true,
         updatedAt: true,
       },
     });
@@ -67,6 +106,15 @@ export async function GET(request: NextRequest) {
       subscribed: Boolean(subscription),
       endpoint: subscription?.endpoint ?? null,
       topics: subscription?.topics ?? ['wallet', 'nearby'],
+      location:
+        subscription?.lastLatitude != null && subscription?.lastLongitude != null
+          ? {
+              latitude: subscription.lastLatitude,
+              longitude: subscription.lastLongitude,
+              radiusKm: subscription.nearbyRadiusKm ?? 5,
+              updatedAt: subscription.lastLocationAt ?? null,
+            }
+          : null,
       updatedAt: subscription?.updatedAt ?? null,
       configured: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
     });
@@ -83,6 +131,7 @@ export async function POST(request: NextRequest) {
     const wallet = body?.wallet;
     const subscription = extractSubscription(body?.subscription);
     const topics = sanitizeTopics(body?.topics);
+    const location = sanitizeLocationContext(body?.location);
 
     if (!wallet || !isAddress(wallet)) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
@@ -106,6 +155,10 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get('user-agent'),
         isActive: true,
         lastSeenAt: new Date(),
+        lastLatitude: location?.latitude ?? null,
+        lastLongitude: location?.longitude ?? null,
+        nearbyRadiusKm: location?.radiusKm ?? 5,
+        lastLocationAt: location ? new Date() : null,
       },
       create: {
         wallet: lowerWallet,
@@ -114,6 +167,10 @@ export async function POST(request: NextRequest) {
         auth: subscription.keys.auth,
         topics,
         userAgent: request.headers.get('user-agent'),
+        lastLatitude: location?.latitude ?? null,
+        lastLongitude: location?.longitude ?? null,
+        nearbyRadiusKm: location?.radiusKm ?? 5,
+        lastLocationAt: location ? new Date() : null,
       },
     });
 
@@ -130,7 +187,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const wallet = body?.wallet;
     const endpoint = body?.endpoint;
-    const topics = sanitizeTopics(body?.topics);
+    const location = sanitizeLocationContext(body?.location);
 
     if (!wallet || !isAddress(wallet)) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
@@ -140,6 +197,19 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Endpoint required' }, { status: 400 });
     }
 
+    const existing = await prisma.webPushSubscription.findFirst({
+      where: {
+        wallet: wallet.toLowerCase(),
+        endpoint,
+        isActive: true,
+      },
+      select: {
+        topics: true,
+      },
+    });
+
+    const topics = body?.topics === undefined ? (existing?.topics ?? ['wallet', 'nearby']) : sanitizeTopics(body?.topics);
+
     await prisma.webPushSubscription.updateMany({
       where: {
         wallet: wallet.toLowerCase(),
@@ -148,6 +218,10 @@ export async function PATCH(request: NextRequest) {
       },
       data: {
         topics,
+        lastLatitude: location?.latitude,
+        lastLongitude: location?.longitude,
+        nearbyRadiusKm: location?.radiusKm ?? undefined,
+        lastLocationAt: location ? new Date() : undefined,
         lastSeenAt: new Date(),
       },
     });

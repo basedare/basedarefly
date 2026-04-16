@@ -2,6 +2,7 @@ import 'server-only';
 
 import webpush from 'web-push';
 
+import { calculateDistance } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
 
 export const PUSH_TOPICS = ['wallet', 'nearby', 'campaigns', 'venues'] as const;
@@ -98,6 +99,108 @@ export async function sendWalletPush(input: SendWalletPushInput) {
 
         const message = error instanceof Error ? error.message : 'Unknown web push error';
         console.error('[WEB_PUSH] Send failed:', message);
+      }
+    })
+  );
+}
+
+type SendNearbyDarePushInput = {
+  title: string;
+  body: string;
+  url: string;
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+};
+
+export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
+  if (!configureWebPush()) {
+    return;
+  }
+
+  const freshnessCutoff = new Date(Date.now() - 1000 * 60 * 60 * 12);
+
+  const subscriptions = await prisma.webPushSubscription.findMany({
+    where: {
+      isActive: true,
+      topics: {
+        has: 'nearby',
+      },
+      lastLatitude: { not: null },
+      lastLongitude: { not: null },
+      lastLocationAt: { gte: freshnessCutoff },
+    },
+    select: {
+      id: true,
+      endpoint: true,
+      p256dh: true,
+      auth: true,
+      lastLatitude: true,
+      lastLongitude: true,
+      nearbyRadiusKm: true,
+    },
+  });
+
+  if (subscriptions.length === 0) {
+    return;
+  }
+
+  const payload = JSON.stringify({
+    title: input.title,
+    body: input.body,
+    url: input.url,
+    topic: 'nearby',
+  });
+
+  await Promise.allSettled(
+    subscriptions.map(async (subscription) => {
+      if (subscription.lastLatitude == null || subscription.lastLongitude == null) {
+        return;
+      }
+
+      const distanceKm = calculateDistance(
+        input.latitude,
+        input.longitude,
+        subscription.lastLatitude,
+        subscription.lastLongitude
+      );
+
+      const effectiveRadius = Math.max(
+        0.5,
+        Math.min(input.radiusKm, subscription.nearbyRadiusKm ?? 5)
+      );
+
+      if (distanceKm > effectiveRadius) {
+        return;
+      }
+
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh,
+              auth: subscription.auth,
+            },
+          },
+          payload
+        );
+      } catch (error: unknown) {
+        const statusCode =
+          typeof error === 'object' && error && 'statusCode' in error
+            ? Number((error as { statusCode?: number }).statusCode)
+            : null;
+
+        if (statusCode === 404 || statusCode === 410) {
+          await prisma.webPushSubscription.update({
+            where: { id: subscription.id },
+            data: { isActive: false },
+          }).catch(() => {});
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : 'Unknown nearby push error';
+        console.error('[WEB_PUSH] Nearby dare push failed:', message);
       }
     })
   );

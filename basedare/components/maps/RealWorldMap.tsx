@@ -29,6 +29,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
+import { calculateDistance } from '@/lib/geo';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
@@ -1084,6 +1085,12 @@ export default function RealWorldMap() {
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
   const nearbyDareFetchIdRef = useRef(0);
+  const lastPushLocationSyncRef = useRef<{
+    latitude: number;
+    longitude: number;
+    radiusKm: number;
+    syncedAt: number;
+  } | null>(null);
   const skipNextSearchRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
@@ -1509,6 +1516,77 @@ export default function RealWorldMap() {
 
     void fetchNearbyDares(source.latitude, source.longitude, mapZoom);
   }, [fetchNearbyDares, mapZoom, userLocation, viewportCenter]);
+
+  useEffect(() => {
+    if (!address || !userLocation || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    const lastSync = lastPushLocationSyncRef.current;
+    const now = Date.now();
+    if (lastSync) {
+      const movedKm = calculateDistance(
+        lastSync.latitude,
+        lastSync.longitude,
+        userLocation.latitude,
+        userLocation.longitude
+      );
+
+      if (movedKm < 0.35 && Math.abs(lastSync.radiusKm - nearbyDareRadiusKm) < 0.5 && now - lastSync.syncedAt < 1000 * 60 * 5) {
+        return;
+      }
+    }
+
+    let cancelled = false;
+
+    const syncNearbyPushZone = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+          return;
+        }
+
+        const response = await fetch('/api/push/subscriptions', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            wallet: address,
+            endpoint: subscription.endpoint,
+            location: {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              radiusKm: nearbyDareRadiusKm,
+            },
+          }),
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        lastPushLocationSyncRef.current = {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          radiusKm: nearbyDareRadiusKm,
+          syncedAt: now,
+        };
+      } catch (error) {
+        if (!cancelled) {
+          console.error('[REAL_WORLD_MAP] Failed to sync nearby push zone:', error);
+        }
+      }
+    };
+
+    void syncNearbyPushZone();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, nearbyDareRadiusKm, userLocation]);
 
   const handleMapReady = useCallback((map: LeafletMap) => {
     mapInstanceRef.current = map;

@@ -597,10 +597,15 @@ model WebPushSubscription {
   topics     String[] @default(["wallet", "nearby"])
   userAgent  String?
   isActive   Boolean  @default(true)
+  lastLatitude  Float?
+  lastLongitude Float?
+  nearbyRadiusKm Float?  @default(5)
+  lastLocationAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   lastSeenAt DateTime @default(now())
 
   @@index([wallet, isActive])
   @@index([lastSeenAt])
+  @@index([lastLocationAt])
 }

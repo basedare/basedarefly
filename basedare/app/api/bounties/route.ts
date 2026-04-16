@@ -21,6 +21,7 @@ import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
+import { sendNearbyDarePush } from '@/lib/web-push';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import {
   BountyPlaceResolutionError,
@@ -592,6 +593,20 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      if (isNearbyDare && latitude != null && longitude != null) {
+        void sendNearbyDarePush({
+          title: `Nearby dare: ${title}`,
+          body: `${amount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
+          url: `/dare/${shortId}`,
+          latitude,
+          longitude,
+          radiusKm: discoveryRadiusKm ?? 5,
+        }).catch((err) => {
+          const message = err instanceof Error ? err.message : 'Unknown nearby push error';
+          console.error('[WEB_PUSH] Nearby simulated dare push failed:', message);
+        });
+      }
+
       return NextResponse.json({
         success: true,
         simulated: true,
@@ -821,6 +836,20 @@ export async function POST(request: NextRequest) {
         title,
         shortId,
         bounty: amount,
+      });
+    }
+
+    if (isNearbyDare && latitude != null && longitude != null) {
+      void sendNearbyDarePush({
+        title: `Nearby dare: ${title}`,
+        body: `${amount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
+        url: `/dare/${shortId}`,
+        latitude,
+        longitude,
+        radiusKm: discoveryRadiusKm ?? 5,
+      }).catch((err) => {
+        const message = err instanceof Error ? err.message : 'Unknown nearby push error';
+        console.error('[WEB_PUSH] Nearby dare push failed:', message);
       });
     }
 
