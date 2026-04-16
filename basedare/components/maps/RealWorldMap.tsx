@@ -60,6 +60,16 @@ type VenueCommandCenter = {
   sponsorReady: boolean;
   activeCampaignCount: number;
   consoleUrl: string | null;
+  contactUrl: string;
+  contactLabel: string;
+  metrics: {
+    approvedMarks: number;
+    activeChallenges: number;
+    paidActivations: number;
+    totalLiveFundingUsd: number;
+    uniqueVisitorsToday: number | null;
+    scansLastHour: number | null;
+  };
 };
 
 type VenueMapMode = {
@@ -3101,8 +3111,30 @@ export default function RealWorldMap() {
                           </span>
                         ))}
                       </div>
-                      {selectedCommandCenter.consoleUrl ? (
-                        <div className="mt-4">
+                      <div className="mt-4 grid grid-cols-2 gap-2.5">
+                        <div className={`${mapPanelMetricClass} px-3 py-3`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Visitors Today</p>
+                          <p className="mt-2 text-xl font-black text-white">
+                            {selectedCommandCenter.metrics.uniqueVisitorsToday ?? 'Pilot'}
+                          </p>
+                        </div>
+                        <div className={`${mapPanelMetricClass} px-3 py-3`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Live Funding</p>
+                          <p className="mt-2 text-xl font-black text-white">
+                            ${selectedCommandCenter.metrics.totalLiveFundingUsd.toFixed(0)}
+                          </p>
+                        </div>
+                        <div className={`${mapPanelMetricClass} px-3 py-3`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Verified Marks</p>
+                          <p className="mt-2 text-xl font-black text-white">{selectedCommandCenter.metrics.approvedMarks}</p>
+                        </div>
+                        <div className={`${mapPanelMetricClass} px-3 py-3`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Paid Activations</p>
+                          <p className="mt-2 text-xl font-black text-white">{selectedCommandCenter.metrics.paidActivations}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2.5">
+                        {selectedCommandCenter.consoleUrl ? (
                           <Link
                             href={selectedCommandCenter.consoleUrl}
                             className="inline-flex items-center gap-2 rounded-full border border-cyan-300/24 bg-cyan-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/36 hover:bg-cyan-500/[0.12]"
@@ -3110,8 +3142,19 @@ export default function RealWorldMap() {
                             Open Console
                             <ArrowLeft className="h-3 w-3 rotate-180" />
                           </Link>
-                        </div>
-                      ) : null}
+                        ) : null}
+                        <Link
+                          href={selectedCommandCenter.contactUrl}
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition ${
+                            selectedCommandCenter.status === 'live'
+                              ? 'border-[#f5c518]/24 bg-[#f5c518]/[0.08] text-[#f8dd72] hover:border-[#f5c518]/40 hover:bg-[#f5c518]/[0.12]'
+                              : 'border-fuchsia-300/24 bg-fuchsia-500/[0.1] text-fuchsia-100 hover:border-fuchsia-300/40 hover:bg-fuchsia-500/[0.14]'
+                          }`}
+                        >
+                          {selectedCommandCenter.contactLabel}
+                          <ArrowLeft className="h-3 w-3 rotate-180" />
+                        </Link>
+                      </div>
                     </div>
                   ) : null}
 

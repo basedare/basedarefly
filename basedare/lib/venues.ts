@@ -138,7 +138,14 @@ function buildVenueCommandCenterSummary(input: {
   activeCampaignCount: number;
   hasLiveSession: boolean;
   paidActivationCount: number;
+  activeChallengeCount: number;
+  totalLiveFundingUsd: number;
+  approvedMarks: number;
+  uniqueVisitorsToday?: number | null;
+  scansLastHour?: number | null;
 }): VenueCommandCenterSummary {
+  const claimUrl = `/contact?topic=venue-claim&venue=${encodeURIComponent(input.slug)}`;
+  const sponsorUrl = `/contact?topic=venue-partnership&venue=${encodeURIComponent(input.slug)}`;
   const live =
     input.isPartner ||
     input.hasLiveSession ||
@@ -153,6 +160,16 @@ function buildVenueCommandCenterSummary(input: {
       sponsorReady: true,
       activeCampaignCount: input.activeCampaignCount,
       consoleUrl: `/venues/${input.slug}/console`,
+      contactUrl: sponsorUrl,
+      contactLabel: 'Sponsor venue',
+      metrics: {
+        approvedMarks: input.approvedMarks,
+        activeChallenges: input.activeChallengeCount,
+        paidActivations: input.paidActivationCount,
+        totalLiveFundingUsd: input.totalLiveFundingUsd,
+        uniqueVisitorsToday: input.uniqueVisitorsToday ?? null,
+        scansLastHour: input.scansLastHour ?? null,
+      },
     };
   }
 
@@ -163,6 +180,16 @@ function buildVenueCommandCenterSummary(input: {
     sponsorReady: false,
     activeCampaignCount: 0,
     consoleUrl: null,
+    contactUrl: claimUrl,
+    contactLabel: 'Claim venue',
+    metrics: {
+      approvedMarks: input.approvedMarks,
+      activeChallenges: input.activeChallengeCount,
+      paidActivations: input.paidActivationCount,
+      totalLiveFundingUsd: input.totalLiveFundingUsd,
+      uniqueVisitorsToday: input.uniqueVisitorsToday ?? null,
+      scansLastHour: input.scansLastHour ?? null,
+    },
   };
 }
 
@@ -586,6 +613,7 @@ export async function getNearbyVenues(input: {
         },
         select: {
           id: true,
+          bounty: true,
         },
       },
       _count: {
@@ -616,6 +644,11 @@ export async function getNearbyVenues(input: {
         activeCampaignCount: venue.campaigns.length,
         hasLiveSession: Boolean(venue.qrSessions[0]),
         paidActivationCount: 0,
+        activeChallengeCount: venue.dares.length,
+        totalLiveFundingUsd: venue.dares.reduce((sum, dare) => sum + dare.bounty, 0),
+        approvedMarks: getVenueTagSummary(tagSummaryMap, venue.id).approvedCount,
+        uniqueVisitorsToday: null,
+        scansLastHour: null,
       });
 
       return {
@@ -789,6 +822,11 @@ export async function getVenueDetailBySlug(
     activeCampaignCount: venue.campaigns.length,
     hasLiveSession: Boolean(venue.qrSessions[0]),
     paidActivationCount,
+    activeChallengeCount: activeDares.length,
+    totalLiveFundingUsd: activeDares.reduce((sum, dare) => sum + dare.bounty, 0),
+    approvedMarks: tagSummary.approvedCount,
+    uniqueVisitorsToday: uniqueVisitorRows.length,
+    scansLastHour,
   });
   const creatorContribution: VenueCreatorContribution | null = normalizedCreatorWallet
     ? await (async () => {

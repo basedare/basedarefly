@@ -145,6 +145,7 @@ export default async function VenueDetailPage(
   const previousPulseState = getPulseState(Math.max(0, venue.tagSummary.heatScore - (creatorContribution?.pulseContribution ?? 0)));
   const creatorShiftedPulseState =
     Boolean(creatorContribution?.pulseContribution) && previousPulseState.label !== currentPulseState.label;
+  const venueOpsMetrics = venue.commandCenter.metrics;
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -185,20 +186,42 @@ export default async function VenueDetailPage(
 
                 <div className="grid min-w-[260px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
                   <Link
-                    href={venue.consoleUrl}
+                    href={venue.commandCenter.consoleUrl ?? venue.commandCenter.contactUrl}
                     className={`${softCardClass} group px-5 py-4 transition hover:-translate-y-[1px] hover:border-fuchsia-400/40 hover:bg-fuchsia-500/10`}
                   >
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Console</p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Command Center</p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-lg font-bold">Open live QR console</span>
+                      <span className="text-lg font-bold">
+                        {venue.commandCenter.consoleUrl ? 'Open live QR console' : 'Claim this venue'}
+                      </span>
                       <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </div>
+                    <p className="mt-2 text-sm text-white/58">{venue.commandCenter.summary}</p>
                   </Link>
                   <div className={`${softCardClass} px-5 py-4`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Check-In Radius</p>
-                    <div className="mt-2 text-lg font-bold">{venue.checkInRadiusMeters}m</div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Ops Snapshot</p>
+                    <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-white/40">Visitors</p>
+                        <p className="mt-1 text-lg font-bold">
+                          {venueOpsMetrics.uniqueVisitorsToday ?? 'Pilot'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-white/40">Live funding</p>
+                        <p className="mt-1 text-lg font-bold">${venueOpsMetrics.totalLiveFundingUsd.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/40">Marks</p>
+                        <p className="mt-1 text-lg font-bold">{venueOpsMetrics.approvedMarks}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/40">Scans/hr</p>
+                        <p className="mt-1 text-lg font-bold">{venueOpsMetrics.scansLastHour ?? 'Pilot'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

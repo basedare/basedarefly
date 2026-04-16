@@ -64,6 +64,16 @@ export type VenueCommandCenterSummary = {
   sponsorReady: boolean;
   activeCampaignCount: number;
   consoleUrl: string | null;
+  contactUrl: string;
+  contactLabel: string;
+  metrics: {
+    approvedMarks: number;
+    activeChallenges: number;
+    paidActivations: number;
+    totalLiveFundingUsd: number;
+    uniqueVisitorsToday: number | null;
+    scansLastHour: number | null;
+  };
 };
 
 export type VenueExperienceMode = {
