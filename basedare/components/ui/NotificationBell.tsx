@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Bell, Check, Smartphone } from 'lucide-react';
 import { useWallet } from '@/context/WalletContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -21,11 +21,16 @@ export function NotificationBell() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [pushSupported, setPushSupported] = useState(false);
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushBusy, setPushBusy] = useState(false);
+    const [pushMessage, setPushMessage] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const unreadCount = notifications.length;
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         if (!address) return;
         try {
             const res = await fetch(`/api/notifications?wallet=${address}`);
@@ -36,7 +41,7 @@ export function NotificationBell() {
         } catch (err) {
             console.error('Failed to fetch notifications', err);
         }
-    };
+    }, [address]);
 
     // Polling every 30s
     useEffect(() => {
@@ -47,6 +52,30 @@ export function NotificationBell() {
         } else {
             setNotifications([]);
         }
+    }, [address, fetchNotifications]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+        setPushSupported(supported);
+
+        if (!supported || !address) {
+            setPushEnabled(false);
+            return;
+        }
+
+        const loadPushState = async () => {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                setPushEnabled(Boolean(subscription));
+            } catch (err) {
+                console.error('Failed to read push state', err);
+            }
+        };
+
+        void loadPushState();
     }, [address]);
 
     // Click outside to close
@@ -84,6 +113,96 @@ export function NotificationBell() {
     const markAllAsRead = () => {
         const ids = notifications.map(n => n.id);
         markAsRead(ids);
+    };
+
+    const urlBase64ToUint8Array = (base64String: string) => {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+    };
+
+    const syncPushSubscription = async () => {
+        if (!address || !pushSupported || !vapidPublicKey) {
+            return;
+        }
+
+        setPushBusy(true);
+        setPushMessage(null);
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                setPushMessage('Push permission is blocked for this browser.');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                });
+            }
+
+            const res = await fetch('/api/push/subscriptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: address,
+                    subscription: subscription.toJSON(),
+                }),
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to save subscription');
+            }
+
+            setPushEnabled(true);
+            setPushMessage('Push alerts armed for this wallet.');
+        } catch (err) {
+            console.error('Failed to enable push alerts', err);
+            setPushMessage('Could not enable push alerts right now.');
+        } finally {
+            setPushBusy(false);
+        }
+    };
+
+    const disablePushSubscription = async () => {
+        if (!address || !pushSupported) {
+            return;
+        }
+
+        setPushBusy(true);
+        setPushMessage(null);
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                await fetch('/api/push/subscriptions', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet: address,
+                        endpoint: subscription.endpoint,
+                    }),
+                });
+                await subscription.unsubscribe();
+            }
+
+            setPushEnabled(false);
+            setPushMessage('Push alerts paused on this device.');
+        } catch (err) {
+            console.error('Failed to disable push alerts', err);
+            setPushMessage('Could not pause push alerts right now.');
+        } finally {
+            setPushBusy(false);
+        }
     };
 
     if (!address) return null;
@@ -133,12 +252,49 @@ export function NotificationBell() {
                             )}
                         </div>
 
+                        {pushSupported && (
+                            <div className="border-b border-white/5 bg-white/[0.03] px-4 py-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
+                                            <Smartphone className="w-3.5 h-3.5" />
+                                            Mobile Push
+                                        </div>
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            {vapidPublicKey
+                                                ? (pushEnabled ? 'This device will get BaseDare alerts.' : 'Enable browser push for nearby and wallet alerts.')
+                                                : 'Push delivery keys are not configured yet.'}
+                                        </p>
+                                    </div>
+                                    {vapidPublicKey ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
+                                            disabled={pushBusy}
+                                            className="shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 disabled:opacity-50"
+                                        >
+                                            {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
+                                        </button>
+                                    ) : (
+                                        <div className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                                            Soon
+                                        </div>
+                                    )}
+                                </div>
+                                {pushMessage && (
+                                    <p className="mt-2 text-[11px] text-cyan-100/80">
+                                        {pushMessage}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
                         {/* List */}
                         <div className="overflow-y-auto flex-1 p-2">
                             {notifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center p-8 text-center">
                                     <Bell className="w-8 h-8 text-white/20 mb-3" />
-                                    <p className="text-sm text-gray-400">You're all caught up!</p>
+                                    <p className="text-sm text-gray-400">You&apos;re all caught up!</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-1">
