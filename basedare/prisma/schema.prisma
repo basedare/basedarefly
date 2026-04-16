@@ -594,6 +594,7 @@ model WebPushSubscription {
   endpoint   String   @unique
   p256dh     String
   auth       String
+  topics     String[] @default(["wallet", "nearby"])
   userAgent  String?
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())

@@ -16,6 +16,15 @@ interface Notification {
     isRead: boolean;
 }
 
+type PushTopic = 'wallet' | 'nearby' | 'campaigns' | 'venues';
+
+const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
+    { id: 'wallet', label: 'Wallet' },
+    { id: 'nearby', label: 'Nearby' },
+    { id: 'campaigns', label: 'Campaigns' },
+    { id: 'venues', label: 'Venues' },
+];
+
 export function NotificationBell() {
     const { address } = useWallet();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -25,6 +34,8 @@ export function NotificationBell() {
     const [pushEnabled, setPushEnabled] = useState(false);
     const [pushBusy, setPushBusy] = useState(false);
     const [pushMessage, setPushMessage] = useState<string | null>(null);
+    const [pushEndpoint, setPushEndpoint] = useState<string | null>(null);
+    const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const unreadCount = notifications.length;
@@ -70,6 +81,16 @@ export function NotificationBell() {
                 const registration = await navigator.serviceWorker.ready;
                 const subscription = await registration.pushManager.getSubscription();
                 setPushEnabled(Boolean(subscription));
+
+                const res = await fetch(`/api/push/subscriptions?wallet=${address}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    setPushEndpoint(data.endpoint ?? subscription?.endpoint ?? null);
+                    setPushTopics(Array.isArray(data.topics) ? data.topics : ['wallet', 'nearby']);
+                } else if (subscription) {
+                    setPushEndpoint(subscription.endpoint);
+                }
             } catch (err) {
                 console.error('Failed to read push state', err);
             }
@@ -153,6 +174,7 @@ export function NotificationBell() {
                 body: JSON.stringify({
                     wallet: address,
                     subscription: subscription.toJSON(),
+                    topics: pushTopics,
                 }),
             });
 
@@ -162,6 +184,7 @@ export function NotificationBell() {
             }
 
             setPushEnabled(true);
+            setPushEndpoint(subscription.endpoint);
             setPushMessage('Push alerts armed for this wallet.');
         } catch (err) {
             console.error('Failed to enable push alerts', err);
@@ -196,10 +219,54 @@ export function NotificationBell() {
             }
 
             setPushEnabled(false);
+            setPushEndpoint(null);
             setPushMessage('Push alerts paused on this device.');
         } catch (err) {
             console.error('Failed to disable push alerts', err);
             setPushMessage('Could not pause push alerts right now.');
+        } finally {
+            setPushBusy(false);
+        }
+    };
+
+    const togglePushTopic = async (topic: PushTopic) => {
+        if (!address || !pushEnabled || !pushEndpoint) {
+            return;
+        }
+
+        const nextTopics = pushTopics.includes(topic)
+            ? pushTopics.filter((entry) => entry !== topic)
+            : [...pushTopics, topic];
+
+        if (nextTopics.length === 0) {
+            setPushMessage('Keep at least one alert category active.');
+            return;
+        }
+
+        setPushBusy(true);
+        setPushMessage(null);
+
+        try {
+            const res = await fetch('/api/push/subscriptions', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: address,
+                    endpoint: pushEndpoint,
+                    topics: nextTopics,
+                }),
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to update push topics');
+            }
+
+            setPushTopics(data.topics);
+            setPushMessage('Alert categories updated.');
+        } catch (err) {
+            console.error('Failed to update push topics', err);
+            setPushMessage('Could not update alert categories right now.');
         } finally {
             setPushBusy(false);
         }
@@ -285,6 +352,28 @@ export function NotificationBell() {
                                     <p className="mt-2 text-[11px] text-cyan-100/80">
                                         {pushMessage}
                                     </p>
+                                )}
+                                {pushEnabled && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {PUSH_TOPIC_LABELS.map((topic) => {
+                                            const active = pushTopics.includes(topic.id);
+                                            return (
+                                                <button
+                                                    key={topic.id}
+                                                    type="button"
+                                                    onClick={() => void togglePushTopic(topic.id)}
+                                                    disabled={pushBusy}
+                                                    className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                                                        active
+                                                            ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
+                                                            : 'border-white/10 bg-white/5 text-white/45'
+                                                    }`}
+                                                >
+                                                    {topic.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 )}
                             </div>
                         )}
