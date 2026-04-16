@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { prisma } from '@/lib/prisma';
+import { createWalletNotification } from '@/lib/notifications';
 
 export async function notifyTargetedDareReceived({
   walletAddress,
@@ -15,14 +15,13 @@ export async function notifyTargetedDareReceived({
 }) {
   if (!walletAddress) return;
 
-  await prisma.notification.create({
-    data: {
-      wallet: walletAddress.toLowerCase(),
-      type: 'DARE_CREATED',
-      title: 'New Dare Received',
-      message: `You were dared: "${title}" for ${bounty} USDC. Accept or decline to continue.`,
-      link: `/dare/${shortId || ''}`,
-    },
+  await createWalletNotification({
+    wallet: walletAddress,
+    type: 'DARE_CREATED',
+    title: 'New Dare Received',
+    message: `You were dared: "${title}" for ${bounty} USDC. Accept or decline to continue.`,
+    link: `/dare/${shortId || ''}`,
+    pushTopic: 'wallet',
   });
 }
 
@@ -44,15 +43,14 @@ export async function notifyTargetedDareResponse({
   const actor = responderTag || 'Your target';
   const accepted = action === 'ACCEPT';
 
-  await prisma.notification.create({
-    data: {
-      wallet: walletAddress.toLowerCase(),
-      type: accepted ? 'DARE_ACCEPTED' : 'DARE_DECLINED',
-      title: accepted ? 'Dare Accepted' : 'Dare Declined',
-      message: accepted
-        ? `${actor} accepted "${title}". Proof is now unlocked.`
-        : `${actor} declined "${title}".`,
-      link: `/dare/${shortId || ''}`,
-    },
+  await createWalletNotification({
+    wallet: walletAddress,
+    type: accepted ? 'DARE_ACCEPTED' : 'DARE_DECLINED',
+    title: accepted ? 'Dare Accepted' : 'Dare Declined',
+    message: accepted
+      ? `${actor} accepted "${title}". Proof is now unlocked.`
+      : `${actor} declined "${title}".`,
+    link: `/dare/${shortId || ''}`,
+    pushTopic: 'wallet',
   });
 }

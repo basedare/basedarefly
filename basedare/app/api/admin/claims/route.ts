@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 
 // ============================================================================
@@ -172,8 +174,16 @@ export async function PUT(request: NextRequest) {
 
       console.log(`[CLAIM APPROVED] Dare ${dareId} assigned to ${dare.claimRequestTag} by moderator ${moderatorWallet}`);
 
+      await createWalletNotification({
+        wallet: dare.claimRequestWallet,
+        type: 'CLAIM_APPROVED',
+        title: 'Claim Approved',
+        message: `You now control "${dare.title}". Submit proof when you are ready.`,
+        link: `/dare/${updatedDare.shortId || updatedDare.id}`,
+        pushTopic: 'wallet',
+      }).catch(() => {});
+
       // TODO: Send notification to the claimer (email, push, etc.)
-      // For now, just log it
 
       return NextResponse.json({
         success: true,
@@ -200,6 +210,15 @@ export async function PUT(request: NextRequest) {
       });
 
       console.log(`[CLAIM REJECTED] Dare ${dareId} claim by ${dare.claimRequestTag} rejected by moderator ${moderatorWallet}`);
+
+      await createWalletNotification({
+        wallet: dare.claimRequestWallet,
+        type: 'CLAIM_REJECTED',
+        title: 'Claim Rejected',
+        message: `Your claim request for "${dare.title}" was not approved.`,
+        link: `/dare/${dare.shortId || dare.id}`,
+        pushTopic: 'wallet',
+      }).catch(() => {});
 
       return NextResponse.json({
         success: true,

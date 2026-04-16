@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 
 export const PLACE_REVIEW_ACTIONS = ['APPROVE', 'REJECT', 'FLAG'] as const;
@@ -139,14 +140,13 @@ export async function reviewTelegramPlaceTag(input: {
       },
     });
 
-    await prisma.notification.create({
-      data: {
-        wallet: existingTag.walletAddress.toLowerCase(),
-        type: 'PLACE_TAG_APPROVED',
-        title: 'Your mark is live',
-        message: `Your tag at "${existingTag.venue.name}" is now part of the BaseDare memory layer.`,
-        link: `/venues/${existingTag.venue.slug}`,
-      },
+    await createWalletNotification({
+      wallet: existingTag.walletAddress,
+      type: 'PLACE_TAG_APPROVED',
+      title: 'Your mark is live',
+      message: `Your tag at "${existingTag.venue.name}" is now part of the BaseDare memory layer.`,
+      link: `/venues/${existingTag.venue.slug}`,
+      pushTopic: 'venues',
     }).catch(() => {});
 
     return {
@@ -171,17 +171,16 @@ export async function reviewTelegramPlaceTag(input: {
     },
   });
 
-  await prisma.notification.create({
-    data: {
-      wallet: existingTag.walletAddress.toLowerCase(),
-      type: nextStatus === 'FLAGGED' ? 'PLACE_TAG_FLAGGED' : 'PLACE_TAG_REJECTED',
-      title: nextStatus === 'FLAGGED' ? 'Your mark was flagged' : 'Your mark was rejected',
-      message:
-        nextStatus === 'FLAGGED'
-          ? `Your tag at "${existingTag.venue.name}" was flagged for review.`
-          : `Your tag at "${existingTag.venue.name}" did not pass review.`,
-      link: `/venues/${existingTag.venue.slug}`,
-    },
+  await createWalletNotification({
+    wallet: existingTag.walletAddress,
+    type: nextStatus === 'FLAGGED' ? 'PLACE_TAG_FLAGGED' : 'PLACE_TAG_REJECTED',
+    title: nextStatus === 'FLAGGED' ? 'Your mark was flagged' : 'Your mark was rejected',
+    message:
+      nextStatus === 'FLAGGED'
+        ? `Your tag at "${existingTag.venue.name}" was flagged for review.`
+        : `Your tag at "${existingTag.venue.name}" did not pass review.`,
+    link: `/venues/${existingTag.venue.slug}`,
+    pushTopic: 'venues',
   }).catch(() => {});
 
   return {

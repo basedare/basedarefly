@@ -11,6 +11,7 @@ import { alertError, alertSentinelReviewRequired, alertVerification } from '@/li
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { createWalletNotification } from '@/lib/notifications';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
@@ -539,16 +540,15 @@ export async function POST(req: NextRequest) {
 
       // Notify User it's under review
       if (dare.targetWalletAddress) {
-        await prisma.notification.create({
-          data: {
-            wallet: dare.targetWalletAddress.toLowerCase(),
-            type: 'DARE_REVIEW',
-            title: 'Dare Under Review',
-            message: sentinelReviewRequested
-              ? `Your proof for "${dare.title}" entered Sentinel review and is waiting on referee approval.`
-              : `Your proof for "${dare.title}" is under manual administrative review.`,
-            link: '/dashboard',
-          }
+        await createWalletNotification({
+          wallet: dare.targetWalletAddress,
+          type: 'DARE_REVIEW',
+          title: 'Dare Under Review',
+          message: sentinelReviewRequested
+            ? `Your proof for "${dare.title}" entered Sentinel review and is waiting on referee approval.`
+            : `Your proof for "${dare.title}" is under manual administrative review.`,
+          link: '/dashboard',
+          pushTopic: 'wallet',
         });
       }
 
@@ -792,14 +792,13 @@ export async function POST(req: NextRequest) {
 
       // Notify Creator of Failure
       if (dare.targetWalletAddress) {
-        await prisma.notification.create({
-          data: {
-            wallet: dare.targetWalletAddress.toLowerCase(),
-            type: 'DARE_FAILED',
-            title: 'Dare Failed Verification',
-            message: `Your proof for "${dare.title}" was rejected. You can submit an appeal.`,
-            link: '/dashboard',
-          }
+        await createWalletNotification({
+          wallet: dare.targetWalletAddress,
+          type: 'DARE_FAILED',
+          title: 'Dare Failed Verification',
+          message: `Your proof for "${dare.title}" was rejected. You can submit an appeal.`,
+          link: '/dashboard',
+          pushTopic: 'wallet',
         });
       }
 

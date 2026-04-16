@@ -22,6 +22,7 @@ import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReasonForSelection } from '@/lib/sentinel';
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
+import { sendWalletPush } from '@/lib/web-push';
 
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
 const activeChain = IS_MAINNET ? base : baseSepolia;
@@ -568,6 +569,21 @@ export async function finalizeVerifiedDare(
       referrerPayout: payout.referrer > 0 ? payout.referrer : undefined,
       txHash: input.verifyTxHash,
     }).catch((err) => console.error('[TELEGRAM] Payout alert failed:', err));
+  }
+
+  if (updatedDare.targetWalletAddress) {
+    void sendWalletPush({
+      wallet: updatedDare.targetWalletAddress,
+      topic: 'wallet',
+      title: 'Dare Verified & Paid!',
+      body:
+        input.notificationMessage ??
+        `Your proof for "${updatedDare.title}" was approved. ${payout.streamer.toFixed(2)} USDC has been sent to your wallet.`,
+      url: '/dashboard',
+    }).catch((err) => {
+      const message = err instanceof Error ? err.message : 'Unknown push send error';
+      console.error('[WEB_PUSH] Verified dare push failed:', message);
+    });
   }
 
   if (updatedDare.requireSentinel) {

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { type Dare } from '@prisma/client';
 
+import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { approveDareWithPayout, syncLinkedCampaignForDareState, type DareApprovalResult } from '@/lib/dare-approval';
 import { trackServerEvent } from '@/lib/server-analytics';
@@ -146,14 +147,13 @@ export async function moderateDareDecision(input: ModerateDareInput): Promise<Mo
   });
 
   if (dare.targetWalletAddress) {
-    await prisma.notification.create({
-      data: {
-        wallet: dare.targetWalletAddress.toLowerCase(),
-        type: 'DARE_FAILED',
-        title: 'Dare Rejected by Admin',
-        message: `Your proof for "${dare.title}" was rejected by moderators.`,
-        link: '/dashboard',
-      },
+    await createWalletNotification({
+      wallet: dare.targetWalletAddress,
+      type: 'DARE_FAILED',
+      title: 'Dare Rejected by Admin',
+      message: `Your proof for "${dare.title}" was rejected by moderators.`,
+      link: '/dashboard',
+      pushTopic: 'wallet',
     });
   }
 
