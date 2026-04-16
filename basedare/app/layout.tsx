@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@fontsource/figtree/400.css";
 import "@fontsource/figtree/500.css";
 import "@fontsource/figtree/600.css";
@@ -19,6 +19,8 @@ import ClientLoader from "@/components/ClientLoader";
 import BackgroundLayers from "@/components/BackgroundLayers";
 import { Toaster } from "@/components/ui/toaster";
 import MobileLightningFlash from "@/components/MobileLightningFlash";
+import PwaRegistrar from "@/components/PwaRegistrar";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -69,6 +71,16 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://basedare.xyz"),
   title: "BaseDare — Own the Grid",
   description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+  applicationName: "BaseDare",
+  manifest: "/manifest.webmanifest",
+  formatDetection: {
+    telephone: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "BaseDare",
+  },
   openGraph: {
     title: "BaseDare — Own the Grid",
     description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
@@ -90,6 +102,11 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#050510",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({ 
   children 
 }: Readonly<{ 
@@ -106,6 +123,8 @@ export default function RootLayout({
 
         {/* Mobile-only periodic lightning flash */}
         <MobileLightningFlash />
+        <PwaRegistrar />
+        <PwaInstallPrompt />
 
         <ClientLoader>
           <Providers>
