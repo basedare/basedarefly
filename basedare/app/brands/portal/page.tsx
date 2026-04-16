@@ -67,6 +67,19 @@ interface BrandVenueRadarItem {
     liveCampaigns: number;
     totalSpendUsd: number;
   };
+  topCreators: Array<{
+    creatorTag: string;
+    walletAddress: string;
+    marksHere: number;
+    firstMarksHere: number;
+    latestMarkAt: string;
+    totalEarned: number;
+    completedDares: number;
+    followerCount: number | null;
+    trustLevel: number;
+    trustLabel: string;
+    trustScore: number;
+  }>;
   recentSignals: Array<{
     creatorTag: string | null;
     caption: string | null;
@@ -370,6 +383,7 @@ export default function BrandPortalPage() {
   const [registerName, setRegisterName] = useState('');
   const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
   const [selectedVenueRadarId, setSelectedVenueRadarId] = useState<string | null>(null);
+  const [preferredCreatorTag, setPreferredCreatorTag] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CampaignFormData>({
     type: 'PLACE',
@@ -447,7 +461,7 @@ export default function BrandPortalPage() {
     venueRadar[0] ??
     null;
 
-  const openCampaignComposerForVenue = (venue: BrandVenueRadarItem) => {
+  const openCampaignComposerForVenue = (venue: BrandVenueRadarItem, creatorTag?: string | null) => {
     const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
     setSelectedPlace({
       id: venue.id,
@@ -466,7 +480,12 @@ export default function BrandPortalPage() {
       description: current.description.trim()
         ? current.description
         : `Launch a creator activation at ${venue.name} while venue signal is already building.`,
+      targetingCriteria: {
+        ...current.targetingCriteria,
+        location: 'near-venue',
+      },
     }));
+    setPreferredCreatorTag(creatorTag?.trim() || null);
     setShowCreateCampaign(true);
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -627,7 +646,9 @@ export default function BrandPortalPage() {
         setSelectedCreatorId((current) =>
           current && matches.some((match: CampaignMatch) => match.creator.id === current)
             ? current
-            : matches[0]?.creator.id ?? null
+            : preferredCreatorTag
+              ? matches.find((match: CampaignMatch) => match.creator.tag.toLowerCase() === preferredCreatorTag.toLowerCase())?.creator.id ?? matches[0]?.creator.id ?? null
+              : matches[0]?.creator.id ?? null
         );
       } catch (error) {
         if (cancelled || controller.signal.aborted) return;
@@ -656,6 +677,7 @@ export default function BrandPortalPage() {
     address,
     sessionToken,
     selectedPlace,
+    preferredCreatorTag,
     formData.targetingCriteria,
   ]);
 
@@ -837,6 +859,7 @@ export default function BrandPortalPage() {
         setPlaceQuery('');
         setPlaceResults([]);
         setSelectedPlace(null);
+        setPreferredCreatorTag(null);
         setRecommendedCreators([]);
         setRecommendedCreatorsError(null);
         setRecommendedCreatorsLoading(false);
@@ -1778,46 +1801,111 @@ export default function BrandPortalPage() {
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Next move</div>
-                  <div className="mt-3 text-lg font-semibold text-white">
-                    {selectedVenueRadar.strategyLabel}
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top creators for this venue</div>
+                    {selectedVenueRadar.topCreators.length === 0 ? (
+                      <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
+                        No creator has built a strong public venue history here yet. This is still a good place to seed if the venue signal is hot.
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {selectedVenueRadar.topCreators.map((creator) => (
+                          <div key={`${creator.creatorTag}-${creator.walletAddress}`} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold text-white">{creator.creatorTag}</div>
+                                <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                                  {creator.trustLabel} level {creator.trustLevel}
+                                </div>
+                              </div>
+                              <div className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
+                                {creator.trustScore} trust
+                              </div>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                              <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2">
+                                <div className="text-sm font-semibold text-white">{creator.marksHere}</div>
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Marks here</div>
+                              </div>
+                              <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2">
+                                <div className="text-sm font-semibold text-white">{creator.completedDares}</div>
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Wins total</div>
+                              </div>
+                              <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2">
+                                <div className="text-sm font-semibold text-white">${Math.round(creator.totalEarned)}</div>
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">Earned</div>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {creator.firstMarksHere > 0 ? (
+                                <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+                                  {creator.firstMarksHere} first sparks
+                                </span>
+                              ) : null}
+                              {typeof creator.followerCount === 'number' && creator.followerCount > 0 ? (
+                                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
+                                  {formatCompactAudience(creator.followerCount)} audience
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openCampaignComposerForVenue(selectedVenueRadar, creator.creatorTag)}
+                                className="inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/15"
+                              >
+                                <PlayCircle className="h-3.5 w-3.5" />
+                                Route this creator
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-zinc-300">
-                    If you want to capture this venue while the signal is fresh, launch a place activation now and route a creator directly into the existing movement.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openCampaignComposerForVenue(selectedVenueRadar)}
-                      className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
-                    >
-                      <PlayCircle className="h-4 w-4" />
-                      Fund challenge here
-                    </button>
-                    <Link
-                      href={`/venues/${selectedVenueRadar.slug}`}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"
-                    >
-                      <MapPin className="h-3.5 w-3.5" />
-                      View venue
-                    </Link>
-                    {selectedVenueRadar.consoleUrl ? (
-                      <Link
-                        href={selectedVenueRadar.consoleUrl}
-                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/40"
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Next move</div>
+                    <div className="mt-3 text-lg font-semibold text-white">
+                      {selectedVenueRadar.strategyLabel}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                      If you want to capture this venue while the signal is fresh, launch a place activation now and route a creator directly into the existing movement.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openCampaignComposerForVenue(selectedVenueRadar)}
+                        className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
                       >
-                        <PlayCircle className="h-3.5 w-3.5" />
-                        Open console
+                        <PlayCircle className="h-4 w-4" />
+                        Fund challenge here
+                      </button>
+                      <Link
+                        href={`/venues/${selectedVenueRadar.slug}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        View venue
                       </Link>
-                    ) : null}
-                    <Link
-                      href={selectedVenueRadar.contactUrl}
-                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/40"
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      {selectedVenueRadar.contactLabel}
-                    </Link>
+                      {selectedVenueRadar.consoleUrl ? (
+                        <Link
+                          href={selectedVenueRadar.consoleUrl}
+                          className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/40"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          Open console
+                        </Link>
+                      ) : null}
+                      <Link
+                        href={selectedVenueRadar.contactUrl}
+                        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/40"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        {selectedVenueRadar.contactLabel}
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1831,7 +1919,10 @@ export default function BrandPortalPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-zinc-900">Create Campaign</h2>
               <button
-                onClick={() => setShowCreateCampaign(false)}
+                onClick={() => {
+                  setShowCreateCampaign(false);
+                  setPreferredCreatorTag(null);
+                }}
                 className="text-zinc-500 hover:text-zinc-900"
               >
                 ✕
@@ -1957,6 +2048,7 @@ export default function BrandPortalPage() {
                       value={selectedPlace ? selectedPlace.displayName : placeQuery}
                       onChange={(e) => {
                         setSelectedPlace(null);
+                        setPreferredCreatorTag(null);
                         setPlaceQuery(e.target.value);
                       }}
                       placeholder="Search for a venue, landmark, or district..."
@@ -1976,6 +2068,7 @@ export default function BrandPortalPage() {
                             key={place.id}
                             onClick={() => {
                               setSelectedPlace(place);
+                              setPreferredCreatorTag(null);
                               setPlaceQuery(place.displayName);
                               setPlaceResults([]);
                             }}
@@ -2104,6 +2197,8 @@ export default function BrandPortalPage() {
                               className={`rounded-xl border p-3 transition ${
                                 isSelected
                                   ? 'border-purple-500 bg-purple-500/[0.06]'
+                                  : preferredCreatorTag?.toLowerCase() === match.creator.tag.toLowerCase()
+                                    ? 'border-cyan-300 bg-cyan-50'
                                   : 'border-zinc-200 bg-white'
                               }`}
                             >
@@ -2128,6 +2223,11 @@ export default function BrandPortalPage() {
                                     <div className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
                                       {getCreatorStrengthLabel(match)}
                                     </div>
+                                    {preferredCreatorTag?.toLowerCase() === match.creator.tag.toLowerCase() ? (
+                                      <div className="rounded-full border border-cyan-300 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                                        venue favorite
+                                      </div>
+                                    ) : null}
                                   </div>
                                   <div className="mt-1 text-sm text-zinc-500">
                                     {match.creator.bio || 'No bio yet. Identity and performance stats still make this creator selectable.'}
@@ -2161,7 +2261,10 @@ export default function BrandPortalPage() {
 
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedCreatorId(match.creator.id)}
+                                  onClick={() => {
+                                    setSelectedCreatorId(match.creator.id);
+                                    setPreferredCreatorTag(match.creator.tag);
+                                  }}
                                   className={`shrink-0 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
                                     isSelected
                                       ? 'border-purple-500 bg-purple-500/[0.12] text-zinc-950'
@@ -2402,7 +2505,10 @@ export default function BrandPortalPage() {
                   : 'Creator Matching Coming Soon'}
               </button>
               <button
-                onClick={() => setShowCreateCampaign(false)}
+                onClick={() => {
+                  setShowCreateCampaign(false);
+                  setPreferredCreatorTag(null);
+                }}
                 className="px-6 py-3 md:py-4 bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 text-zinc-700 transition"
               >
                 Cancel

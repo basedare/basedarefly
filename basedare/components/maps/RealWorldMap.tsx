@@ -2863,14 +2863,30 @@ export default function RealWorldMap() {
                 )}
               </div>
             ) : null}
-            <div className="absolute left-5 top-6 z-[9] hidden md:flex flex-col gap-2">
+            <div className="absolute left-3 top-3 z-[9] flex flex-col gap-2 md:left-5 md:top-6">
               <button
                 type="button"
                 onClick={requestApproximateLocation}
                 disabled={locating}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,12,20,0.92)_100%)] text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-200/38 hover:bg-cyan-500/[0.16] disabled:cursor-wait disabled:opacity-70"
-                aria-label={locating ? 'Locating current position' : 'Center map near my location'}
-                title={locating ? 'Locating...' : 'Locate me'}
+                className={`flex h-10 w-10 items-center justify-center rounded-full border text-cyan-100 shadow-[0_14px_26px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70 md:h-11 md:w-11 ${
+                  isUserCentered
+                    ? 'border-cyan-200/40 bg-[linear-gradient(180deg,rgba(34,211,238,0.22)_0%,rgba(10,16,28,0.94)_100%)] shadow-[0_14px_26px_rgba(0,0,0,0.32),0_0_18px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.1)]'
+                    : 'border-cyan-300/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(8,12,20,0.92)_100%)] hover:border-cyan-200/38 hover:bg-cyan-500/[0.16]'
+                }`}
+                aria-label={
+                  locating
+                    ? 'Locating current position'
+                    : hasUserLocation
+                      ? 'Re-center map on my location'
+                      : 'Locate me on the map'
+                }
+                title={
+                  locating
+                    ? 'Locating...'
+                    : hasUserLocation
+                      ? 'Re-center on me'
+                      : 'Locate me'
+                }
               >
                 {locating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -2878,11 +2894,11 @@ export default function RealWorldMap() {
                   <LocateFixed className="h-4 w-4" />
                 )}
               </button>
-              <div className="overflow-hidden rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,10,20,0.92)_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="overflow-hidden rounded-[20px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,10,20,0.92)_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] md:rounded-[22px]">
                 <button
                   type="button"
                   onClick={() => mapInstanceRef.current?.zoomIn()}
-                  className="flex h-11 w-11 items-center justify-center border-b border-white/10 text-white/82 transition hover:bg-white/[0.08] hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center border-b border-white/10 text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
                   aria-label="Zoom in"
                   title="Zoom in"
                 >
@@ -2891,7 +2907,7 @@ export default function RealWorldMap() {
                 <button
                   type="button"
                   onClick={() => mapInstanceRef.current?.zoomOut()}
-                  className="flex h-11 w-11 items-center justify-center text-white/82 transition hover:bg-white/[0.08] hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
                   aria-label="Zoom out"
                   title="Zoom out"
                 >

@@ -113,6 +113,19 @@ export type BrandVenueRadarItem = {
     liveCampaigns: number;
     totalSpendUsd: number;
   };
+  topCreators: Array<{
+    creatorTag: string;
+    walletAddress: string;
+    marksHere: number;
+    firstMarksHere: number;
+    latestMarkAt: string;
+    totalEarned: number;
+    completedDares: number;
+    followerCount: number | null;
+    trustLevel: number;
+    trustLabel: string;
+    trustScore: number;
+  }>;
   recentSignals: Array<{
     creatorTag: string | null;
     caption: string | null;

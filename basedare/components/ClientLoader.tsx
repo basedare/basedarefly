@@ -1,27 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import ProtocolLoader from './ProtocolLoader';
+
+let hasProtocolLoadedInMemory = false;
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if loader has already run (stored in sessionStorage)
-    // Only check on client side
-    if (typeof window !== 'undefined') {
-      const hasBeenLoaded = sessionStorage.getItem('protocol-loaded');
-      if (hasBeenLoaded === 'true') {
-        const timeoutId = window.setTimeout(() => setIsLoading(false), 0);
-        return () => window.clearTimeout(timeoutId);
+  useLayoutEffect(() => {
+    if (hasProtocolLoadedInMemory || typeof window === 'undefined') {
+      if (hasProtocolLoadedInMemory) {
+        window.queueMicrotask(() => setIsLoading(false));
       }
+      return;
+    }
+
+    const hasBeenLoaded = window.sessionStorage.getItem('protocol-loaded') === 'true';
+    if (hasBeenLoaded) {
+      hasProtocolLoadedInMemory = true;
+      window.queueMicrotask(() => setIsLoading(false));
     }
   }, []);
 
   const handleComplete = () => {
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('protocol-loaded', 'true');
+      window.sessionStorage.setItem('protocol-loaded', 'true');
     }
+    hasProtocolLoadedInMemory = true;
     setIsLoading(false);
   };
 
