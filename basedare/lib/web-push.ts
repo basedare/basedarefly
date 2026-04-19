@@ -16,8 +16,22 @@ type SendWalletPushInput = {
   url?: string | null;
 };
 
+type StoredSubscription = {
+  id: string;
+  wallet: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
 let vapidConfigured = false;
 let vapidAttempted = false;
+
+const WALLET_PUSH_COOLDOWN_BY_TOPIC_MS: Record<Exclude<PushTopic, 'nearby'>, number> = {
+  wallet: 1000 * 60 * 5,
+  campaigns: 1000 * 60 * 8,
+  venues: 1000 * 60 * 12,
+};
 
 function configureWebPush() {
   if (vapidAttempted) {
@@ -39,11 +53,167 @@ function configureWebPush() {
   return true;
 }
 
+async function recordPushDelivery(input: {
+  subscriptionId?: string | null;
+  wallet: string;
+  topic: PushTopic;
+  title: string;
+  body: string;
+  url?: string | null;
+  status: 'SENT' | 'SKIPPED' | 'FAILED' | 'DEACTIVATED';
+  reason?: string | null;
+  errorMessage?: string | null;
+}) {
+  await prisma.webPushDelivery.create({
+    data: {
+      subscriptionId: input.subscriptionId ?? null,
+      wallet: input.wallet,
+      topic: input.topic,
+      title: input.title,
+      body: input.body,
+      url: input.url ?? null,
+      status: input.status,
+      reason: input.reason ?? null,
+      errorMessage: input.errorMessage ?? null,
+    },
+  }).catch(() => {});
+}
+
+async function shouldSkipWalletPush(input: {
+  wallet: string;
+  topic: Exclude<PushTopic, 'nearby'>;
+  title: string;
+  url?: string | null;
+}) {
+  const cooldownMs = WALLET_PUSH_COOLDOWN_BY_TOPIC_MS[input.topic];
+  const since = new Date(Date.now() - cooldownMs);
+
+  const recent = await prisma.webPushDelivery.findFirst({
+    where: {
+      wallet: input.wallet,
+      topic: input.topic,
+      status: 'SENT',
+      title: input.title,
+      url: input.url ?? null,
+      createdAt: {
+        gte: since,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(recent);
+}
+
+async function sendToStoredSubscription(
+  subscription: StoredSubscription,
+  payload: string,
+  errorLabel: string,
+  metadata: {
+    wallet: string;
+    topic: PushTopic;
+    title: string;
+    body: string;
+    url?: string | null;
+  }
+) {
+  try {
+    await webpush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+      },
+      payload
+    );
+
+    await recordPushDelivery({
+      subscriptionId: subscription.id,
+      wallet: metadata.wallet,
+      topic: metadata.topic,
+      title: metadata.title,
+      body: metadata.body,
+      url: metadata.url,
+      status: 'SENT',
+      reason: 'delivered',
+    });
+
+    return { ok: true as const };
+  } catch (error: unknown) {
+    const statusCode =
+      typeof error === 'object' && error && 'statusCode' in error
+        ? Number((error as { statusCode?: number }).statusCode)
+        : null;
+
+    if (statusCode === 404 || statusCode === 410) {
+      await prisma.webPushSubscription.update({
+        where: { id: subscription.id },
+        data: { isActive: false },
+      }).catch(() => {});
+
+      await recordPushDelivery({
+        subscriptionId: subscription.id,
+        wallet: metadata.wallet,
+        topic: metadata.topic,
+        title: metadata.title,
+        body: metadata.body,
+        url: metadata.url,
+        status: 'DEACTIVATED',
+        reason: `endpoint_${statusCode}`,
+      });
+
+      return { ok: false as const, inactive: true as const };
+    }
+
+    const message = error instanceof Error ? error.message : 'Unknown web push error';
+    console.error(`[WEB_PUSH] ${errorLabel}:`, message);
+    await recordPushDelivery({
+      subscriptionId: subscription.id,
+      wallet: metadata.wallet,
+      topic: metadata.topic,
+      title: metadata.title,
+      body: metadata.body,
+      url: metadata.url,
+      status: 'FAILED',
+      reason: 'send_error',
+      errorMessage: message,
+    });
+    return { ok: false as const, inactive: false as const };
+  }
+}
+
 export async function sendWalletPush(input: SendWalletPushInput) {
   if (!input.wallet) return;
   if (!configureWebPush()) return;
 
   const wallet = input.wallet.toLowerCase();
+  const url = input.url || '/dashboard';
+
+  if (input.topic !== 'nearby') {
+    const shouldSkip = await shouldSkipWalletPush({
+      wallet,
+      topic: input.topic,
+      title: input.title,
+      url,
+    });
+
+    if (shouldSkip) {
+      await recordPushDelivery({
+        wallet,
+        topic: input.topic,
+        title: input.title,
+        body: input.body,
+        url,
+        status: 'SKIPPED',
+        reason: 'cooldown_duplicate',
+      });
+      return;
+    }
+  }
 
   const subscriptions = await prisma.webPushSubscription.findMany({
     where: {
@@ -55,6 +225,7 @@ export async function sendWalletPush(input: SendWalletPushInput) {
     },
     select: {
       id: true,
+      wallet: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -66,41 +237,20 @@ export async function sendWalletPush(input: SendWalletPushInput) {
   const payload = JSON.stringify({
     title: input.title,
     body: input.body,
-    url: input.url || '/dashboard',
+    url,
     topic: input.topic,
   });
 
   await Promise.allSettled(
-    subscriptions.map(async (subscription) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: subscription.p256dh,
-              auth: subscription.auth,
-            },
-          },
-          payload
-        );
-      } catch (error: unknown) {
-        const statusCode =
-          typeof error === 'object' && error && 'statusCode' in error
-            ? Number((error as { statusCode?: number }).statusCode)
-            : null;
-
-        if (statusCode === 404 || statusCode === 410) {
-          await prisma.webPushSubscription.update({
-            where: { id: subscription.id },
-            data: { isActive: false },
-          }).catch(() => {});
-          return;
-        }
-
-        const message = error instanceof Error ? error.message : 'Unknown web push error';
-        console.error('[WEB_PUSH] Send failed:', message);
-      }
-    })
+    subscriptions.map((subscription) =>
+      sendToStoredSubscription(subscription, payload, 'Send failed', {
+        wallet,
+        topic: input.topic,
+        title: input.title,
+        body: input.body,
+        url,
+      })
+    )
   );
 }
 
@@ -141,6 +291,7 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
     },
     select: {
       id: true,
+      wallet: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -186,16 +337,22 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
       }
 
       try {
-        await webpush.sendNotification(
+        const result = await sendToStoredSubscription(
+          subscription,
+          payload,
+          'Nearby dare push failed',
           {
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: subscription.p256dh,
-              auth: subscription.auth,
-            },
-          },
-          payload
+            wallet: subscription.wallet,
+            topic: 'nearby',
+            title: input.title,
+            body: input.body,
+            url: input.url,
+          }
         );
+
+        if (!result.ok) {
+          return;
+        }
 
         await prisma.webPushSubscription.update({
           where: { id: subscription.id },
@@ -205,22 +362,62 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
           },
         }).catch(() => {});
       } catch (error: unknown) {
-        const statusCode =
-          typeof error === 'object' && error && 'statusCode' in error
-            ? Number((error as { statusCode?: number }).statusCode)
-            : null;
-
-        if (statusCode === 404 || statusCode === 410) {
-          await prisma.webPushSubscription.update({
-            where: { id: subscription.id },
-            data: { isActive: false },
-          }).catch(() => {});
-          return;
-        }
-
         const message = error instanceof Error ? error.message : 'Unknown nearby push error';
-        console.error('[WEB_PUSH] Nearby dare push failed:', message);
+        console.error('[WEB_PUSH] Nearby dare post-send update failed:', message);
       }
     })
   );
+}
+
+export async function sendTestPushToWalletDevice(input: {
+  wallet: string | null | undefined;
+  endpoint: string | null | undefined;
+}) {
+  if (!input.wallet || !input.endpoint) {
+    return { success: false as const, reason: 'missing_target' as const };
+  }
+
+  if (!configureWebPush()) {
+    return { success: false as const, reason: 'not_configured' as const };
+  }
+
+  const subscription = await prisma.webPushSubscription.findFirst({
+    where: {
+      wallet: input.wallet.toLowerCase(),
+      endpoint: input.endpoint,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      wallet: true,
+      endpoint: true,
+      p256dh: true,
+      auth: true,
+    },
+  });
+
+  if (!subscription) {
+    return { success: false as const, reason: 'not_found' as const };
+  }
+
+  const payload = JSON.stringify({
+    title: 'BaseDare push armed',
+    body: 'This device is ready for nearby dares, wallet updates, and venue alerts.',
+    url: '/dashboard',
+    topic: 'wallet',
+    kind: 'test',
+  });
+
+  const result = await sendToStoredSubscription(subscription, payload, 'Test push failed', {
+    wallet: subscription.wallet,
+    topic: 'wallet',
+    title: 'BaseDare push armed',
+    body: 'This device is ready for nearby dares, wallet updates, and venue alerts.',
+    url: '/dashboard',
+  });
+  if (!result.ok) {
+    return { success: false as const, reason: result.inactive ? 'inactive' as const : 'send_failed' as const };
+  }
+
+  return { success: true as const };
 }

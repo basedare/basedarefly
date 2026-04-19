@@ -25,6 +25,8 @@ const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
     { id: 'venues', label: 'Venues' },
 ];
 
+const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
+
 export function NotificationBell() {
     const { address } = useWallet();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -33,9 +35,11 @@ export function NotificationBell() {
     const [pushSupported, setPushSupported] = useState(false);
     const [pushEnabled, setPushEnabled] = useState(false);
     const [pushBusy, setPushBusy] = useState(false);
+    const [pushTesting, setPushTesting] = useState(false);
     const [pushMessage, setPushMessage] = useState<string | null>(null);
     const [pushEndpoint, setPushEndpoint] = useState<string | null>(null);
     const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
+    const [nearbyRadiusKm, setNearbyRadiusKm] = useState<number>(5);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const unreadCount = notifications.length;
@@ -88,6 +92,9 @@ export function NotificationBell() {
                 if (data.success) {
                     setPushEndpoint(data.endpoint ?? subscription?.endpoint ?? null);
                     setPushTopics(Array.isArray(data.topics) ? data.topics : ['wallet', 'nearby']);
+                    setNearbyRadiusKm(
+                        typeof data.location?.radiusKm === 'number' ? data.location.radiusKm : 5
+                    );
                 } else if (subscription) {
                     setPushEndpoint(subscription.endpoint);
                 }
@@ -175,6 +182,7 @@ export function NotificationBell() {
                     wallet: address,
                     subscription: subscription.toJSON(),
                     topics: pushTopics,
+                    nearbyRadiusKm,
                 }),
             });
 
@@ -272,6 +280,72 @@ export function NotificationBell() {
         }
     };
 
+    const updateNearbyRadius = async (radiusKm: number) => {
+        if (!address || !pushEnabled || !pushEndpoint || radiusKm === nearbyRadiusKm) {
+            return;
+        }
+
+        setPushBusy(true);
+        setPushMessage(null);
+
+        try {
+            const res = await fetch('/api/push/subscriptions', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: address,
+                    endpoint: pushEndpoint,
+                    nearbyRadiusKm: radiusKm,
+                }),
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to update nearby radius');
+            }
+
+            setNearbyRadiusKm(radiusKm);
+            setPushMessage(`Nearby alerts tuned to ${radiusKm} km.`);
+        } catch (err) {
+            console.error('Failed to update nearby radius', err);
+            setPushMessage('Could not update nearby alert radius right now.');
+        } finally {
+            setPushBusy(false);
+        }
+    };
+
+    const sendTestPush = async () => {
+        if (!address || !pushEndpoint) {
+            return;
+        }
+
+        setPushTesting(true);
+        setPushMessage(null);
+
+        try {
+            const res = await fetch('/api/push/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: address,
+                    endpoint: pushEndpoint,
+                }),
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to send test push');
+            }
+
+            setPushMessage('Test push sent. Check this device now.');
+        } catch (err) {
+            console.error('Failed to send test push', err);
+            setPushMessage('Could not send a test push right now.');
+        } finally {
+            setPushTesting(false);
+        }
+    };
+
     if (!address) return null;
 
     return (
@@ -354,25 +428,84 @@ export function NotificationBell() {
                                     </p>
                                 )}
                                 {pushEnabled && (
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {PUSH_TOPIC_LABELS.map((topic) => {
-                                            const active = pushTopics.includes(topic.id);
-                                            return (
-                                                <button
-                                                    key={topic.id}
-                                                    type="button"
-                                                    onClick={() => void togglePushTopic(topic.id)}
-                                                    disabled={pushBusy}
-                                                    className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                                                        active
-                                                            ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
-                                                            : 'border-white/10 bg-white/5 text-white/45'
-                                                    }`}
-                                                >
-                                                    {topic.label}
-                                                </button>
-                                            );
-                                        })}
+                                    <div className="mt-3 space-y-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            {PUSH_TOPIC_LABELS.map((topic) => {
+                                                const active = pushTopics.includes(topic.id);
+                                                return (
+                                                    <button
+                                                        key={topic.id}
+                                                        type="button"
+                                                        onClick={() => void togglePushTopic(topic.id)}
+                                                        disabled={pushBusy}
+                                                        className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                                                            active
+                                                                ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
+                                                                : 'border-white/10 bg-white/5 text-white/45'
+                                                        }`}
+                                                    >
+                                                        {topic.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
+                                                    Device Check
+                                                </p>
+                                                <p className="mt-1 text-[11px] text-white/45">
+                                                    Fire one test alert to confirm this browser is receiving pushes.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => void sendTestPush()}
+                                                disabled={pushTesting || pushBusy}
+                                                className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/14 disabled:opacity-50"
+                                            >
+                                                {pushTesting ? 'Sending...' : 'Test Push'}
+                                            </button>
+                                        </div>
+
+                                        {pushTopics.includes('nearby') && (
+                                            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
+                                                            Nearby Radius
+                                                        </p>
+                                                        <p className="mt-1 text-[11px] text-white/45">
+                                                            Limit nearby dare alerts to the range that actually feels useful.
+                                                        </p>
+                                                    </div>
+                                                    <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/65">
+                                                        {nearbyRadiusKm} km
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {NEARBY_RADIUS_OPTIONS.map((radius) => {
+                                                        const active = nearbyRadiusKm === radius;
+                                                        return (
+                                                            <button
+                                                                key={radius}
+                                                                type="button"
+                                                                onClick={() => void updateNearbyRadius(radius)}
+                                                                disabled={pushBusy}
+                                                                className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                                                                    active
+                                                                        ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
+                                                                        : 'border-white/10 bg-white/5 text-white/45'
+                                                                }`}
+                                                            >
+                                                                {radius} km
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

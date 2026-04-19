@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import {
+  notifyVenueClaimApproved,
+  notifyVenueClaimRejected,
+} from '@/lib/venue-notifications';
 
 const MODERATOR_WALLETS = process.env.MODERATOR_WALLETS?.split(',').map((w) => w.trim().toLowerCase()) || [];
 
@@ -160,6 +164,12 @@ export async function PUT(request: NextRequest) {
         },
       });
 
+      void notifyVenueClaimApproved({
+        wallet: venue.claimRequestWallet,
+        venueSlug: updatedVenue.slug,
+        venueName: updatedVenue.name,
+      });
+
       return NextResponse.json({
         success: true,
         message: `Venue claim approved for ${venue.claimRequestTag}`,
@@ -175,6 +185,13 @@ export async function PUT(request: NextRequest) {
         moderatedAt: new Date(),
         moderatorNote: reason || 'Venue claim rejected',
       },
+    });
+
+    void notifyVenueClaimRejected({
+      wallet: venue.claimRequestWallet,
+      venueSlug: venue.slug,
+      venueName: venue.name,
+      reason,
     });
 
     return NextResponse.json({

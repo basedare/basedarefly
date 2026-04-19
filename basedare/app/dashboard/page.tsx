@@ -339,7 +339,9 @@ export default function Dashboard() {
   const [activationActionId, setActivationActionId] = useState<string | null>(null);
   const [activationActionType, setActivationActionType] = useState<'ACCEPT' | 'DECLINE' | null>(null);
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
+  const [deepLinkedCampaignId, setDeepLinkedCampaignId] = useState<string | null>(null);
   const activationsRef = useRef<HTMLDivElement | null>(null);
+  const opportunitiesRef = useRef<HTMLDivElement | null>(null);
   const [stats, setStats] = useState({
     totalFunded: 0,
     activeBounties: 0,
@@ -547,6 +549,14 @@ export default function Dashboard() {
   }, [address]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const campaignId = params.get('campaign');
+    setDeepLinkedCampaignId(campaignId);
+  }, []);
+
+  useEffect(() => {
     const fetchOpportunities = async () => {
       if (!address) {
         setOpportunities([]);
@@ -578,6 +588,22 @@ export default function Dashboard() {
 
     fetchOpportunities();
   }, [address, sessionToken]);
+
+  useEffect(() => {
+    if (!deepLinkedCampaignId || opportunitiesLoading || opportunities.length === 0) return;
+
+    const matchingOpportunity = opportunities.find((opportunity) => opportunity.id === deepLinkedCampaignId);
+    if (!matchingOpportunity) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      opportunitiesRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [deepLinkedCampaignId, opportunities, opportunitiesLoading]);
 
   const handleClaimOpportunity = async (opportunity: Opportunity) => {
     if (!address || !opportunity.linkedDare?.id) return;
@@ -740,7 +766,21 @@ export default function Dashboard() {
     }
   };
 
-  const topOpportunities = opportunities.slice(0, 3);
+  const topOpportunities = React.useMemo(() => {
+    if (!deepLinkedCampaignId) {
+      return opportunities.slice(0, 3);
+    }
+
+    const matchingOpportunity = opportunities.find((opportunity) => opportunity.id === deepLinkedCampaignId);
+    if (!matchingOpportunity) {
+      return opportunities.slice(0, 3);
+    }
+
+    return [
+      matchingOpportunity,
+      ...opportunities.filter((opportunity) => opportunity.id !== deepLinkedCampaignId).slice(0, 2),
+    ];
+  }, [deepLinkedCampaignId, opportunities]);
   const creatorProfileHref = userTag?.tag ? `/creator/${encodeURIComponent(userTag.tag)}` : null;
   const creatorClaims = React.useMemo(() => {
     const lowerAddress = address?.toLowerCase() || null;
@@ -1060,7 +1100,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div ref={opportunitiesRef} className={`${softCardClass} mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Opportunities</h2>
             <button
@@ -1098,8 +1138,16 @@ export default function Dashboard() {
                   : opportunity.venue?.slug
                     ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}`
                     : '/map';
+                const isDeepLinkedOpportunity = opportunity.id === deepLinkedCampaignId;
                 return (
-                  <div key={opportunity.id} className={`${raisedTileClass} min-h-[220px] min-w-[280px] snap-start p-4 md:min-w-0`}>
+                  <div
+                    key={opportunity.id}
+                    className={`${raisedTileClass} min-h-[220px] min-w-[280px] snap-start p-4 md:min-w-0 ${
+                      isDeepLinkedOpportunity
+                        ? 'ring-1 ring-fuchsia-300/45 shadow-[0_24px_42px_rgba(0,0,0,0.34),0_0_34px_rgba(217,70,239,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_20px_rgba(0,0,0,0.26)]'
+                        : ''
+                    }`}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-base font-black text-white line-clamp-1">{opportunity.venue?.name || 'Venue activation'}</p>
@@ -1113,6 +1161,13 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <p className="mt-4 text-sm font-bold text-white line-clamp-2">{opportunity.title}</p>
+                    {isDeepLinkedOpportunity ? (
+                      <div className="mt-3">
+                        <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
+                          Opened from alert
+                        </span>
+                      </div>
+                    ) : null}
                     {opportunity.matchReasons.length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {opportunity.assignedToCreator ? (

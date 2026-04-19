@@ -74,6 +74,19 @@ function sanitizeLocationContext(input: unknown): LocationContextPayload | null 
   };
 }
 
+function sanitizeNearbyRadius(input: unknown): number | undefined {
+  if (input == null) {
+    return undefined;
+  }
+
+  const radiusKm = Number(input);
+  if (!Number.isFinite(radiusKm) || radiusKm < 0.5 || radiusKm > 50) {
+    return undefined;
+  }
+
+  return radiusKm;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const wallet = request.nextUrl.searchParams.get('wallet');
@@ -132,6 +145,7 @@ export async function POST(request: NextRequest) {
     const subscription = extractSubscription(body?.subscription);
     const topics = sanitizeTopics(body?.topics);
     const location = sanitizeLocationContext(body?.location);
+    const nearbyRadiusKm = sanitizeNearbyRadius(body?.nearbyRadiusKm) ?? location?.radiusKm ?? 5;
 
     if (!wallet || !isAddress(wallet)) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
@@ -157,7 +171,7 @@ export async function POST(request: NextRequest) {
         lastSeenAt: new Date(),
         lastLatitude: location?.latitude ?? null,
         lastLongitude: location?.longitude ?? null,
-        nearbyRadiusKm: location?.radiusKm ?? 5,
+        nearbyRadiusKm,
         lastLocationAt: location ? new Date() : null,
       },
       create: {
@@ -169,7 +183,7 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get('user-agent'),
         lastLatitude: location?.latitude ?? null,
         lastLongitude: location?.longitude ?? null,
-        nearbyRadiusKm: location?.radiusKm ?? 5,
+        nearbyRadiusKm,
         lastLocationAt: location ? new Date() : null,
       },
     });
@@ -188,6 +202,7 @@ export async function PATCH(request: NextRequest) {
     const wallet = body?.wallet;
     const endpoint = body?.endpoint;
     const location = sanitizeLocationContext(body?.location);
+    const nearbyRadiusKm = sanitizeNearbyRadius(body?.nearbyRadiusKm);
 
     if (!wallet || !isAddress(wallet)) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
@@ -220,13 +235,13 @@ export async function PATCH(request: NextRequest) {
         topics,
         lastLatitude: location?.latitude,
         lastLongitude: location?.longitude,
-        nearbyRadiusKm: location?.radiusKm ?? undefined,
+        nearbyRadiusKm: nearbyRadiusKm ?? location?.radiusKm ?? undefined,
         lastLocationAt: location ? new Date() : undefined,
         lastSeenAt: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true, topics });
+    return NextResponse.json({ success: true, topics, nearbyRadiusKm: nearbyRadiusKm ?? location?.radiusKm ?? null });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[PUSH] Update topics failed:', message);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -419,6 +419,8 @@ export default function BrandPortalPage() {
   const [responsesTabByCampaign, setResponsesTabByCampaign] = useState<Record<string, ResponseRailTab>>({});
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
   const [shortlistedCreators, setShortlistedCreators] = useState<Record<string, string[]>>({});
+  const [handledDeepLinkKey, setHandledDeepLinkKey] = useState<string | null>(null);
+  const [deepLinkSearch, setDeepLinkSearch] = useState('');
   const campaignSummary = brand?.campaignSummary;
   const liveCampaignCount =
     campaignSummary?.live ?? campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length;
@@ -443,7 +445,7 @@ export default function BrandPortalPage() {
     campaignSummary?.inReview ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW').length;
   const payoutQueuedCount =
     campaignSummary?.payoutQueued ?? campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT').length;
-  const venueRadar = brand?.venueRadar ?? [];
+  const venueRadar = useMemo(() => brand?.venueRadar ?? [], [brand?.venueRadar]);
   const filteredVenueRadar = venueRadar.filter((venue) => {
     if (venueRadarFilter === 'managed') {
       return venue.claimState === 'claimed' || venue.sponsorReady;
@@ -461,7 +463,7 @@ export default function BrandPortalPage() {
     venueRadar[0] ??
     null;
 
-  const openCampaignComposerForVenue = (venue: BrandVenueRadarItem, creatorTag?: string | null) => {
+  const openCampaignComposerForVenue = useCallback((venue: BrandVenueRadarItem, creatorTag?: string | null) => {
     const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
     setSelectedPlace({
       id: venue.id,
@@ -490,12 +492,71 @@ export default function BrandPortalPage() {
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 50);
-  };
+  }, []);
 
   // Mark as mounted after hydration
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+    setDeepLinkSearch(window.location.search);
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (!brand && campaigns.length === 0) return;
+
+    const params = new URLSearchParams(deepLinkSearch);
+    const venueSlug = params.get('venue');
+    const campaignId = params.get('campaign');
+    const compose = params.get('compose');
+    const creatorTag = params.get('creator');
+    const deepLinkKey = `${venueSlug ?? ''}|${campaignId ?? ''}|${compose ?? ''}|${creatorTag ?? ''}`;
+
+    if (handledDeepLinkKey === deepLinkKey) {
+      return;
+    }
+
+    if (venueSlug) {
+      const matchingVenue = venueRadar.find((venue) => venue.slug === venueSlug);
+      if (matchingVenue) {
+        setSelectedVenueRadarId(matchingVenue.id);
+
+        if (compose === '1') {
+          openCampaignComposerForVenue(matchingVenue, creatorTag);
+        }
+      }
+    }
+
+    if (campaignId) {
+      const matchingCampaign = campaigns.find((campaign) => campaign.id === campaignId);
+      if (matchingCampaign) {
+        setExpandedMatchesCampaignId(matchingCampaign.id);
+        setResponsesTabByCampaign((current) => ({
+          ...current,
+          [matchingCampaign.id]: current[matchingCampaign.id] ?? getDefaultResponseTab(matchingCampaign),
+        }));
+        setTimeout(() => {
+          document.getElementById(`campaign-${matchingCampaign.id}`)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }, 120);
+      }
+    }
+
+    setHandledDeepLinkKey(deepLinkKey);
+  }, [
+    brand,
+    campaigns,
+    deepLinkSearch,
+    handledDeepLinkKey,
+    mounted,
+    openCampaignComposerForVenue,
+    venueRadar,
+  ]);
 
   // Fetch brand and campaigns
   useEffect(() => {
@@ -2576,6 +2637,7 @@ export default function BrandPortalPage() {
                 return (
                   <div
                     key={campaign.id}
+                    id={`campaign-${campaign.id}`}
                     className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 md:p-4 hover:border-white/20 transition"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">

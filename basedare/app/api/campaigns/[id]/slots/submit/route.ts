@@ -7,6 +7,7 @@ import {
   canSubmitSlot,
   getSyncStatusMessage,
 } from '@/lib/campaign-payouts';
+import { notifyCampaignProofSubmitted } from '@/lib/campaign-notifications';
 
 // ============================================================================
 // SLOT SUBMISSION API
@@ -158,6 +159,13 @@ export async function POST(
       `[SLOTS] Submission: ${slot.creatorHandle} for "${campaign.title}" - ` +
         `${payoutResult.status} ($${payoutResult.totalPayout.toFixed(2)})`
     );
+
+    void notifyCampaignProofSubmitted({
+      brandWallet: campaign.brand.walletAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      creatorHandle: slot.creatorHandle,
+    });
 
     return NextResponse.json({
       success: true,

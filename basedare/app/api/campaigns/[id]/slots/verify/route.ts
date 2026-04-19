@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import {
+  notifyCampaignVerificationOutcome,
+  notifyCampaignVerificationOutcomeForBrand,
+} from '@/lib/campaign-notifications';
 
 // ============================================================================
 // SLOT VERIFICATION API
@@ -44,6 +48,13 @@ export async function POST(
     // Get the campaign and slot
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
+      include: {
+        brand: {
+          select: {
+            walletAddress: true,
+          },
+        },
+      },
     });
 
     if (!campaign) {
@@ -183,6 +194,23 @@ export async function POST(
     console.log(
       `[VERIFY] Slot ${slotId}: ${newStatus} (${totalConfidence.toFixed(1)}% confidence)`
     );
+
+    void notifyCampaignVerificationOutcome({
+      creatorWallet: slot.creatorAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      outcome: newStatus === 'VERIFIED' || newStatus === 'FORFEITED' ? newStatus : 'SUBMITTED',
+      confidence: totalConfidence,
+    });
+
+    void notifyCampaignVerificationOutcomeForBrand({
+      brandWallet: campaign.brand.walletAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      creatorHandle: slot.creatorHandle,
+      outcome: newStatus === 'VERIFIED' || newStatus === 'FORFEITED' ? newStatus : 'SUBMITTED',
+      confidence: totalConfidence,
+    });
 
     return NextResponse.json({
       success: true,

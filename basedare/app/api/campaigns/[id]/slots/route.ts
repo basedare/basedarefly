@@ -4,6 +4,11 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
+import {
+  notifyCampaignSlotAssigned,
+  notifyCampaignSlotClaimedForBrand,
+  notifyCampaignSlotVetoed,
+} from '@/lib/campaign-notifications';
 
 // ============================================================================
 // CAMPAIGN SLOTS API
@@ -139,7 +144,14 @@ export async function POST(
     // Get campaign
     const campaign = await prisma.campaign.findUnique({
       where: { id },
-      include: { brand: true },
+      include: {
+        brand: true,
+        venue: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (!campaign) {
@@ -269,6 +281,22 @@ export async function POST(
     console.log(
       `[SLOTS] Slot claimed: ${creatorHandle} for campaign ${campaign.title} by scout ${scout.walletAddress} (${autoAccept ? 'auto-accepted' : 'pending veto'})`
     );
+
+    void notifyCampaignSlotAssigned({
+      creatorWallet: creatorAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      venueName: campaign.venue?.name,
+      autoAccepted: autoAccept,
+    });
+
+    void notifyCampaignSlotClaimedForBrand({
+      brandWallet: campaign.brand.walletAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      creatorHandle,
+      autoAccepted: autoAccept,
+    });
 
     return NextResponse.json({
       success: true,
@@ -401,6 +429,13 @@ export async function PUT(
     console.log(
       `[SLOTS] Slot vetoed: ${slot.creatorHandle} from campaign ${campaign.title}. Reason: ${reason || 'No reason provided'}`
     );
+
+    void notifyCampaignSlotVetoed({
+      creatorWallet: slot.creatorAddress,
+      campaignId: campaign.id,
+      campaignTitle: campaign.title,
+      reason,
+    });
 
     return NextResponse.json({
       success: true,

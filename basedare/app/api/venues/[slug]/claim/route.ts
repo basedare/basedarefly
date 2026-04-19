@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { notifyVenueClaimSubmitted } from '@/lib/venue-notifications';
 
 type ClaimSession = {
   token?: string;
@@ -109,6 +110,12 @@ export async function POST(
         claimRequestTag: true,
         claimRequestStatus: true,
       },
+    });
+
+    void notifyVenueClaimSubmitted({
+      wallet: walletAddress,
+      venueSlug: updatedVenue.slug,
+      venueName: updatedVenue.name,
     });
 
     return NextResponse.json({
