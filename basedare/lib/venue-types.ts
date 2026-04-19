@@ -85,6 +85,35 @@ export type VenueExperienceMode = {
   description: string;
 };
 
+export type VenueActivationInsight = {
+  timeframeLabel: string;
+  summary: string;
+  repeatReady: boolean;
+  reasons: string[];
+  bestActivation: {
+    id: string;
+    shortId: string;
+    title: string;
+    bounty: number;
+    brandName: string | null;
+    campaignTitle: string | null;
+    streamerHandle: string | null;
+    status: string;
+    claimRequestStatus: string | null;
+    claimRequestTag: string | null;
+    claimedBy: string | null;
+    targetWalletAddress: string | null;
+    expiresAt: string | null;
+    createdAt: string;
+  } | null;
+  lift: {
+    recentCompletedCount: number;
+    completedDelta: number;
+    uniqueVisitorDelta: number;
+    checkInDelta: number;
+  };
+};
+
 export type BrandVenueRadarItem = {
   id: string;
   slug: string;
@@ -190,6 +219,7 @@ export type VenueDetail = {
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];
+  activationInsight: VenueActivationInsight;
   liveStats: {
     scansLastHour: number;
     uniqueVisitorsToday: number;

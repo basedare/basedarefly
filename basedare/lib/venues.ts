@@ -16,6 +16,7 @@ import {
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
+  VenueActivationInsight,
   BrandVenueRadarItem,
   NearbyVenueItem,
   VenueCommandCenterSummary,
@@ -236,6 +237,65 @@ function buildVenueCommandCenterSummary(input: {
 
 function buildVenueExperienceModes() {
   return DEFAULT_VENUE_MAP_MODES.map((mode) => ({ ...mode }));
+}
+
+function buildVenueActivationInsight(input: {
+  featuredPaidActivation: VenueDetail['featuredPaidActivation'];
+  memorySummary: VenueDetail['memorySummary'];
+  memoryHistory: VenueDetail['memoryHistory'];
+  paidActivationCount: number;
+}): VenueActivationInsight {
+  const currentBucket = input.memorySummary;
+  const previousBucket = input.memoryHistory[1] ?? null;
+  const recentCompletedCount = currentBucket?.completedDareCount ?? 0;
+  const completedDelta =
+    recentCompletedCount - (previousBucket?.completedDareCount ?? 0);
+  const uniqueVisitorDelta =
+    (currentBucket?.uniqueVisitorCount ?? 0) -
+    (previousBucket?.uniqueVisitorCount ?? 0);
+  const checkInDelta =
+    (currentBucket?.checkInCount ?? 0) - (previousBucket?.checkInCount ?? 0);
+
+  const reasons: string[] = [];
+  if (recentCompletedCount > 0) {
+    reasons.push(
+      `${recentCompletedCount} verified outcome${recentCompletedCount === 1 ? '' : 's'} in the current bucket`
+    );
+  }
+  if (completedDelta > 0) {
+    reasons.push(`completion pace is up ${completedDelta} vs the previous bucket`);
+  }
+  if (uniqueVisitorDelta > 0) {
+    reasons.push(`unique venue traffic is up ${uniqueVisitorDelta}`);
+  }
+  if (checkInDelta > 0) {
+    reasons.push(`confirmed check-ins are up ${checkInDelta}`);
+  }
+  if (input.paidActivationCount > 0) {
+    reasons.push(
+      `${input.paidActivationCount} paid activation${input.paidActivationCount === 1 ? '' : 's'} already proven here`
+    );
+  }
+
+  return {
+    timeframeLabel: currentBucket
+      ? `Current ${currentBucket.bucketType.toLowerCase()} bucket`
+      : 'Current venue pulse',
+    summary: input.featuredPaidActivation
+      ? `The strongest repeat candidate right now is "${input.featuredPaidActivation.title}" because it sits on the clearest mix of live funding, venue memory, and recent completion signal.`
+      : recentCompletedCount > 0
+        ? 'This venue is producing verified outcomes, but it still needs a standout branded brief to turn that into a repeatable activation.'
+        : 'This venue has signal, but it still needs more verified outcomes before a single repeat winner is obvious.',
+    repeatReady: Boolean(input.featuredPaidActivation),
+    reasons: reasons.slice(0, 4),
+    bestActivation: input.featuredPaidActivation,
+    lift: {
+      recentCompletedCount,
+      completedDelta,
+      uniqueVisitorDelta,
+      checkInDelta,
+    },
+  };
 }
 
 async function getTopCreatorsForVenueIds(venueIds: string[]) {
@@ -1248,6 +1308,11 @@ export async function getVenueDetailBySlug(
   const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
   const activeDares = venue.dares.map(mapActiveDare);
   const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length;
+  const memorySummary = mapMemorySummary(venue.memories[0] ?? null);
+  const memoryHistory = venue.memories
+    .map((memory) => mapMemorySummary(memory))
+    .filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null);
+  const featuredPaidActivation = getFeaturedPaidActivation(activeDares);
   const commandCenter = buildVenueCommandCenterSummary({
     slug: venue.slug,
     isPartner: venue.isPartner,
@@ -1323,6 +1388,12 @@ export async function getVenueDetailBySlug(
     ...tag,
     isOwn: normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false,
   }));
+  const activationInsight = buildVenueActivationInsight({
+    featuredPaidActivation,
+    memorySummary,
+    memoryHistory,
+    paidActivationCount,
+  });
 
   return {
     id: venue.id,
@@ -1342,12 +1413,13 @@ export async function getVenueDetailBySlug(
     qrMode: venue.qrMode,
     qrRotationSeconds: venue.qrRotationSeconds,
     checkInRadiusMeters: venue.checkInRadiusMeters,
-    memorySummary: mapMemorySummary(venue.memories[0] ?? null),
-    memoryHistory: venue.memories.map((memory) => mapMemorySummary(memory)).filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null),
+    memorySummary,
+    memoryHistory,
     tagSummary,
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
     commandCenter,
     mapModes: buildVenueExperienceModes(),
+    activationInsight,
     liveStats: {
       scansLastHour,
       uniqueVisitorsToday: uniqueVisitorRows.length,
@@ -1364,7 +1436,7 @@ export async function getVenueDetailBySlug(
     creatorContribution,
     activeDares,
     paidActivationCount,
-    featuredPaidActivation: getFeaturedPaidActivation(activeDares),
+    featuredPaidActivation,
     consoleUrl: `/venues/${venue.slug}/console`,
   };
 }

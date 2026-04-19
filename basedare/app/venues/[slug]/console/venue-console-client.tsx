@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Activity, Flame, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
+import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
+import { Activity, CheckCircle2, Flame, Loader2, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
+import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
+import { useBountyMode } from '@/hooks/useBountyMode';
 import { buildActivationReplayComposerHref, buildRepeatActivationComposerHref } from '@/lib/venue-launch';
 
 const raisedPanelClass =
@@ -96,13 +100,44 @@ function getActivationState(dare: VenueDetail['activeDares'][number]) {
   };
 }
 
+function formatCampaignTierLabel(tier: string) {
+  return tier.replace(/_/g, ' ');
+}
+
+function inferTierByPayout(payout: number) {
+  if (payout >= 1000) return 'APEX';
+  if (payout >= 250) return 'CHALLENGE';
+  if (payout >= 100) return 'SIP_SHILL';
+  return 'SIP_MENTION';
+}
+
 export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
+  const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+  const { data: session } = useSession();
+  const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const { simulated: isSimulationMode } = useBountyMode();
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [qrPayload, setQrPayload] = useState<VenueQrPayload | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [liveStats, setLiveStats] = useState(venue.liveStats);
   const [selectedPresetId, setSelectedPresetId] = useState<(typeof activationPresets)[number]['id']>('foot-traffic');
   const [selectedCreatorTag, setSelectedCreatorTag] = useState<string | null>(venue.topCreators[0]?.creatorTag ?? null);
+  const [launchMode, setLaunchMode] = useState<'preset' | 'repeat'>(
+    venue.featuredPaidActivation ? 'repeat' : 'preset'
+  );
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<BountyApprovalStatus>('idle');
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [launchSuccess, setLaunchSuccess] = useState<{
+    campaignId: string;
+    title: string;
+    linkedDareShortId: string | null;
+    creatorTag: string | null;
+    payout: number;
+    tier: string;
+  } | null>(null);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -193,6 +228,11 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const completedSignalCount = venue.memorySummary?.completedDareCount ?? 0;
   const activationQueue = venue.activeDares.slice(0, 4);
   const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
+  const repeatActivation = venue.featuredPaidActivation;
+  const selectedTopCreator =
+    venue.topCreators.find(
+      (creator) => creator.creatorTag.toLowerCase() === (selectedCreatorTag ?? '').toLowerCase()
+    ) ?? null;
   const launchActivationHref = useMemo(() => {
     const params = new URLSearchParams({
       venue: venue.slug,
@@ -209,6 +249,170 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
 
     return `/brands/portal?${params.toString()}`;
   }, [selectedCreatorTag, selectedPreset, venue.name, venue.slug]);
+  const confirmedLaunch = useMemo(() => {
+    if (launchMode === 'repeat' && repeatActivation && repeatActivationHref) {
+      return {
+        modeLabel: 'Repeat proven activation',
+        title: repeatActivation.title,
+        payout: repeatActivation.bounty,
+        tier: inferTierByPayout(repeatActivation.bounty),
+        creatorTag:
+          repeatActivation.streamerHandle ||
+          venue.topCreators[0]?.creatorTag ||
+          null,
+        objective:
+          `Re-launch the strongest proven brief at ${venue.name} with the same venue energy, cleaner capture, and faster routing.`,
+        href: repeatActivationHref,
+      };
+    }
+
+    return {
+      modeLabel: 'New venue activation',
+      title: selectedPreset.title(venue.name),
+      payout: selectedPreset.payout,
+      tier: selectedPreset.tier,
+      creatorTag: selectedCreatorTag,
+      objective: selectedPreset.objective(venue.name),
+      href: launchActivationHref,
+    };
+  }, [
+    launchActivationHref,
+    launchMode,
+    repeatActivation,
+    repeatActivationHref,
+    selectedCreatorTag,
+    selectedPreset,
+    venue.name,
+    venue.topCreators,
+  ]);
+  const directLaunchEnabled =
+    venue.commandCenter.claimState === 'claimed' &&
+    isConnected &&
+    Boolean(address) &&
+    Boolean(sessionToken) &&
+    Boolean(confirmedLaunch.creatorTag);
+
+  const directLaunchLabel =
+    approvalStatus === 'approving'
+      ? 'Approving USDC'
+      : approvalStatus === 'funding'
+        ? 'Funding onchain'
+        : approvalStatus === 'verifying'
+          ? 'Finalizing launch'
+          : 'Confirm & fund now';
+
+  async function handleDirectLaunch() {
+    if (creatingCampaign) return;
+
+    if (venue.commandCenter.claimState !== 'claimed') {
+      setLaunchError('Claim this venue first to unlock direct launch.');
+      return;
+    }
+
+    if (!isConnected || !address) {
+      setLaunchError('Connect the venue or brand wallet to launch directly from the console.');
+      return;
+    }
+
+    if (!sessionToken) {
+      setLaunchError('Your session is missing. Refresh and sign in again before launching.');
+      return;
+    }
+
+    if (!confirmedLaunch.creatorTag) {
+      setLaunchError('Pick a venue-fit creator first, or use the preview flow to choose one in the brand portal.');
+      return;
+    }
+
+    setCreatingCampaign(true);
+    setLaunchError(null);
+    setLaunchSuccess(null);
+
+    try {
+      const fundedDare = await submitBountyCreation(
+        {
+          title: confirmedLaunch.title.trim(),
+          description: confirmedLaunch.objective.trim(),
+          amount: confirmedLaunch.payout,
+          streamerTag: confirmedLaunch.creatorTag,
+          streamId: `venue-console:${venue.id}:${Date.now()}`,
+          missionMode: 'IRL',
+          missionTag: 'brand-campaign',
+          isNearbyDare: true,
+          latitude: venue.latitude,
+          longitude: venue.longitude,
+          locationLabel: venue.name,
+          discoveryRadiusKm: 0.5,
+          venueId: venue.id,
+          creationContext: 'MAP',
+          stakerAddress: address.toLowerCase(),
+        },
+        {
+          sessionToken,
+          isSimulationMode,
+          publicClient,
+          writeContractAsync,
+          onApprovalStatusChange: setApprovalStatus,
+        }
+      );
+
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({
+          brandWallet: address,
+          type: 'PLACE',
+          tier: confirmedLaunch.tier,
+          title: confirmedLaunch.title,
+          description: confirmedLaunch.objective,
+          creatorCountTarget: 1,
+          payoutPerCreator: confirmedLaunch.payout,
+          venueId: venue.id,
+          selectedCreatorWallet: selectedTopCreator?.walletAddress,
+          selectedCreatorTag: confirmedLaunch.creatorTag,
+          linkedDareId: fundedDare.dareId,
+          targetingCriteria: {},
+          verificationCriteria: {
+            hashtagsRequired: [],
+            minDurationSeconds: 30,
+          },
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Failed to create venue activation');
+      }
+
+      setLiveStats((current) => ({
+        ...current,
+        activeDares: current.activeDares + 1,
+      }));
+      setLaunchSuccess({
+        campaignId: payload.data.id,
+        title: payload.data.title ?? confirmedLaunch.title,
+        linkedDareShortId:
+          payload.data.linkedDare?.shortId ??
+          fundedDare.shortId ??
+          null,
+        creatorTag:
+          payload.data.linkedDare?.streamerHandle ??
+          confirmedLaunch.creatorTag,
+        payout: confirmedLaunch.payout,
+        tier: confirmedLaunch.tier,
+      });
+    } catch (error) {
+      setLaunchError(
+        error instanceof Error ? error.message : 'Failed to launch venue activation'
+      );
+    } finally {
+      setCreatingCampaign(false);
+      setApprovalStatus('idle');
+    }
+  }
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-transparent text-white">
@@ -350,6 +554,89 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
 
               <div className={`${softCardClass} p-5`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Best Repeat Pattern</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">
+                      {venue.activationInsight.bestActivation?.title ?? 'Still finding the winning brief'}
+                    </h3>
+                    <p className="mt-2 max-w-2xl text-sm text-white/58">{venue.activationInsight.summary}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <span className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                      {venue.activationInsight.timeframeLabel}
+                    </span>
+                    {venue.activationInsight.bestActivation ? (
+                      <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                        ${Math.round(venue.activationInsight.bestActivation.bounty)} repeat budget
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Verified outcomes</div>
+                    <div className="mt-2 text-2xl font-black text-white">{venue.activationInsight.lift.recentCompletedCount}</div>
+                    <div className="mt-1 text-xs text-white/48">
+                      {venue.activationInsight.lift.completedDelta > 0
+                        ? `+${venue.activationInsight.lift.completedDelta} vs previous bucket`
+                        : 'Track this after launch'}
+                    </div>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Visitor lift</div>
+                    <div className="mt-2 text-2xl font-black text-cyan-100">
+                      {venue.activationInsight.lift.uniqueVisitorDelta > 0 ? `+${venue.activationInsight.lift.uniqueVisitorDelta}` : venue.activationInsight.lift.uniqueVisitorDelta}
+                    </div>
+                    <div className="mt-1 text-xs text-white/48">vs previous venue bucket</div>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Check-in lift</div>
+                    <div className="mt-2 text-2xl font-black text-emerald-100">
+                      {venue.activationInsight.lift.checkInDelta > 0 ? `+${venue.activationInsight.lift.checkInDelta}` : venue.activationInsight.lift.checkInDelta}
+                    </div>
+                    <div className="mt-1 text-xs text-white/48">confirmed presence delta</div>
+                  </div>
+                </div>
+
+                {venue.activationInsight.reasons.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {venue.activationInsight.reasons.map((reason) => (
+                      <span
+                        key={reason}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {venue.activationInsight.repeatReady ? (
+                    <button
+                      type="button"
+                      onClick={() => setLaunchMode('repeat')}
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.1] px-4 py-2.5 text-sm font-semibold text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.14]"
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                      Load winning brief
+                    </button>
+                  ) : null}
+                  {venue.activationInsight.bestActivation?.shortId ? (
+                    <Link
+                      href={`/dare/${venue.activationInsight.bestActivation.shortId}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                    >
+                      Open proof source
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">Controls</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   <button
@@ -389,6 +676,32 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   </div>
                 </div>
 
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setLaunchMode('preset')}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                      launchMode === 'preset'
+                        ? 'border-fuchsia-300/28 bg-fuchsia-500/[0.12] text-fuchsia-100'
+                        : 'border-white/10 bg-white/[0.04] text-white/58 hover:border-white/16 hover:text-white/78'
+                    }`}
+                  >
+                    New activation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLaunchMode('repeat')}
+                    disabled={!repeatActivationHref}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                      launchMode === 'repeat'
+                        ? 'border-amber-300/28 bg-amber-500/[0.12] text-amber-100'
+                        : 'border-white/10 bg-white/[0.04] text-white/58 hover:border-white/16 hover:text-white/78'
+                    } disabled:cursor-not-allowed disabled:opacity-45`}
+                  >
+                    Repeat proven
+                  </button>
+                </div>
+
                 <div className="mt-4 grid gap-3">
                   {activationPresets.map((preset) => {
                     const selected = preset.id === selectedPreset.id;
@@ -397,11 +710,12 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                         key={preset.id}
                         type="button"
                         onClick={() => setSelectedPresetId(preset.id)}
+                        disabled={launchMode !== 'preset'}
                         className={`rounded-[22px] border px-4 py-4 text-left transition ${
                           selected
                             ? 'border-fuchsia-300/28 bg-[linear-gradient(180deg,rgba(217,70,239,0.12)_0%,rgba(10,10,18,0.94)_100%)] shadow-[0_14px_22px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)]'
                             : `${insetCardClass} hover:border-white/14`
-                        }`}
+                        } ${launchMode !== 'preset' ? 'cursor-not-allowed opacity-45' : ''}`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
@@ -421,14 +735,16 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 <div className={`${insetCardClass} mt-4 px-4 py-4`}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/36">Recommended Brief</p>
-                      <p className="mt-2 text-base font-semibold text-white">{selectedPreset.title(venue.name)}</p>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/36">
+                        {launchMode === 'repeat' ? 'Repeat Brief' : 'Recommended Brief'}
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-white">{confirmedLaunch.title}</p>
                     </div>
                     <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
-                      {selectedPreset.tier.replace('_', ' ')}
+                      {formatCampaignTierLabel(confirmedLaunch.tier)}
                     </div>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-white/62">{selectedPreset.objective(venue.name)}</p>
+                  <p className="mt-3 text-sm leading-6 text-white/62">{confirmedLaunch.objective}</p>
                 </div>
 
                 <div className="mt-4">
@@ -446,11 +762,12 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                             key={`${creator.walletAddress}-${creator.creatorTag}`}
                             type="button"
                             onClick={() => setSelectedCreatorTag(selected ? null : creator.creatorTag)}
+                            disabled={launchMode === 'repeat'}
                             className={`w-full rounded-[20px] border px-4 py-4 text-left transition ${
                               selected
                                 ? 'border-cyan-300/26 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(10,10,18,0.94)_100%)]'
                                 : `${insetCardClass} hover:border-white/14`
-                            }`}
+                            } ${launchMode === 'repeat' ? 'cursor-not-allowed opacity-45' : ''}`}
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div>
@@ -486,13 +803,60 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   )}
                 </div>
 
+                <div className={`${softCardClass} mt-5 p-4`}>
+                  <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Pre-launch confirmation</p>
+                      <h4 className="mt-2 text-lg font-bold text-white">{confirmedLaunch.modeLabel}</h4>
+                      <p className="mt-2 max-w-xl text-sm text-white/58">
+                        One final check before opening the funding surface. The brand portal will open with this brief, venue, budget, and creator routing already locked in.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                        ${Math.round(confirmedLaunch.payout)} budget
+                      </span>
+                      <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                        {formatCampaignTierLabel(confirmedLaunch.tier)}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62">
+                        {confirmedLaunch.creatorTag ? `route ${confirmedLaunch.creatorTag}` : 'open routing'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Venue</div>
+                      <div className="mt-2 text-sm font-semibold text-white">{venue.name}</div>
+                    </div>
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Brief</div>
+                      <div className="mt-2 text-sm font-semibold text-white">{confirmedLaunch.title}</div>
+                    </div>
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Creator route</div>
+                      <div className="mt-2 text-sm font-semibold text-white">{confirmedLaunch.creatorTag ?? 'Decide in composer'}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <Link
-                    href={launchActivationHref}
-                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/26 bg-fuchsia-500/[0.12] px-4 py-2.5 text-sm font-semibold text-fuchsia-100 shadow-[0_14px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/36 hover:bg-fuchsia-500/[0.16]"
+                  <button
+                    type="button"
+                    onClick={() => void handleDirectLaunch()}
+                    disabled={!directLaunchEnabled || creatingCampaign}
+                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/26 bg-fuchsia-500/[0.12] px-4 py-2.5 text-sm font-semibold text-fuchsia-100 shadow-[0_14px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/36 hover:bg-fuchsia-500/[0.16] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <PlayCircle className="h-4 w-4" />
-                    Launch in brand portal
+                    {creatingCampaign ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                    {directLaunchLabel}
+                  </button>
+                  <Link
+                    href={confirmedLaunch.href}
+                    className="inline-flex items-center gap-2 rounded-full border border-cyan-400/22 bg-cyan-500/[0.08] px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-300/32 hover:bg-cyan-500/[0.12]"
+                  >
+                    Preview funding surface
                   </Link>
                   <Link
                     href={`/venues/${venue.slug}`}
@@ -501,16 +865,80 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     <Flame className="h-4 w-4" />
                     Open venue page
                   </Link>
-                  {repeatActivationHref ? (
-                    <Link
-                      href={repeatActivationHref}
-                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.1] px-4 py-2.5 text-sm font-semibold text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.14]"
-                    >
-                      <RefreshCcw className="h-4 w-4" />
-                      Repeat featured brief
-                    </Link>
-                  ) : null}
                 </div>
+
+                {!directLaunchEnabled && !creatingCampaign ? (
+                  <div className="mt-4 rounded-[20px] border border-amber-400/16 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-100/88">
+                    {venue.commandCenter.claimState !== 'claimed'
+                      ? 'Direct launch unlocks after the venue is claimed.'
+                      : !isConnected || !address
+                        ? 'Connect the operator wallet to fund directly from the venue console.'
+                        : !sessionToken
+                          ? 'Refresh your session to unlock direct launch.'
+                          : !confirmedLaunch.creatorTag
+                            ? 'Pick a creator route or use the preview flow to choose one in the brand portal.'
+                            : null}
+                  </div>
+                ) : null}
+
+                {launchError ? (
+                  <div className="mt-4 rounded-[20px] border border-rose-400/16 bg-rose-500/[0.06] px-4 py-3 text-sm text-rose-100/90">
+                    {launchError}
+                  </div>
+                ) : null}
+
+                {launchSuccess ? (
+                  <div className={`${softCardClass} mt-5 p-4`}>
+                    <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/26 to-transparent" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Live now
+                        </div>
+                        <h4 className="mt-3 text-lg font-bold text-white">{launchSuccess.title}</h4>
+                        <p className="mt-2 max-w-xl text-sm text-white/58">
+                          The activation is funded and live. Next, monitor the routed creator, watch proof come in, and refresh the queue when you want to see the new brief in the venue pipeline.
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                          ${Math.round(launchSuccess.payout)} funded
+                        </span>
+                        <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                          {formatCampaignTierLabel(launchSuccess.tier)}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62">
+                          {launchSuccess.creatorTag ? `routed ${launchSuccess.creatorTag}` : 'routing open'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {launchSuccess.linkedDareShortId ? (
+                        <Link
+                          href={`/dare/${launchSuccess.linkedDareShortId}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-emerald-400/22 bg-emerald-500/[0.08] px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:-translate-y-[1px] hover:border-emerald-300/34 hover:bg-emerald-500/[0.12]"
+                        >
+                          Open live brief
+                        </Link>
+                      ) : null}
+                      <Link
+                        href={`/brands/portal?campaign=${encodeURIComponent(launchSuccess.campaignId)}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/22 bg-cyan-500/[0.08] px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-300/34 hover:bg-cyan-500/[0.12]"
+                      >
+                        Open campaign
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        Refresh queue
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className={`${softCardClass} p-5`}>

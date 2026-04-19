@@ -138,6 +138,8 @@ const CreateCampaignSchema = z.object({
   payoutPerCreator: z.number().min(1),
   venueId: z.string().min(1).optional(),
   selectedCreatorId: z.string().cuid().optional(),
+  selectedCreatorWallet: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  selectedCreatorTag: z.string().min(1).max(120).optional(),
   linkedDareId: z.string().cuid().optional(),
   syncTime: z.string().datetime().optional(),
   targetingCriteria: TargetingCriteriaSchema.optional(),
@@ -368,6 +370,8 @@ export async function POST(request: NextRequest) {
       payoutPerCreator,
       venueId,
       selectedCreatorId,
+      selectedCreatorWallet,
+      selectedCreatorTag,
       linkedDareId,
       syncTime,
       targetingCriteria,
@@ -445,13 +449,28 @@ export async function POST(request: NextRequest) {
         const rankedMatches = await getRankedCampaignMatches(prisma, {
           targeting: targetingCriteria || {},
           venueId: placeContext.venueId,
-          limit: 25,
+          limit:
+            selectedCreatorId || selectedCreatorWallet || selectedCreatorTag
+              ? 150
+              : 25,
         });
 
         const chosenCreator =
           (selectedCreatorId
             ? rankedMatches.find((match) => match.creator.id === selectedCreatorId) ?? null
-            : rankedMatches[0] ?? null);
+            : selectedCreatorWallet
+              ? rankedMatches.find(
+                  (match) =>
+                    match.creator.walletAddress.toLowerCase() ===
+                    selectedCreatorWallet.toLowerCase()
+                ) ?? null
+              : selectedCreatorTag
+                ? rankedMatches.find(
+                    (match) =>
+                      match.creator.tag.toLowerCase() ===
+                      selectedCreatorTag.toLowerCase()
+                  ) ?? null
+                : rankedMatches[0] ?? null);
 
         if (!chosenCreator) {
           return NextResponse.json(
