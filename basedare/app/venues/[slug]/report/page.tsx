@@ -1,0 +1,239 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Activity, ArrowRight, BarChart3, Flame, MapPin, Users, Waves } from 'lucide-react';
+import { getVenueDetailBySlug } from '@/lib/venues';
+import {
+  buildRepeatActivationComposerHref,
+  buildVenueCreatorRouteComposerHref,
+} from '@/lib/venue-launch';
+import VenuePageShell from '../../VenuePageShell';
+
+const raisedPanelClass =
+  'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
+
+const softCardClass =
+  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
+
+const insetCardClass =
+  'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+function formatSignedDelta(value: number) {
+  if (value > 0) return `+${value}`;
+  return `${value}`;
+}
+
+export default async function VenueReportPage(
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+  const venue = await getVenueDetailBySlug(slug);
+
+  if (!venue) {
+    notFound();
+  }
+
+  const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
+  const bestCreatorRouteHref = venue.roiSnapshot.bestCreator
+    ? buildVenueCreatorRouteComposerHref({
+        venue,
+        creatorTag: venue.roiSnapshot.bestCreator.creatorTag,
+      })
+    : null;
+
+  return (
+    <VenuePageShell mapHref={`/venues/${encodeURIComponent(venue.slug)}`}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
+      <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <section className="space-y-6">
+          <div className={`${raisedPanelClass} px-6 py-8 sm:px-8`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]">
+                  <BarChart3 className="h-4 w-4" />
+                  Venue Report Card
+                </div>
+                <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
+                <p className="mt-4 max-w-2xl text-base text-white/68">{venue.roiSnapshot.summary}</p>
+                <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-white/55">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <MapPin className="h-4 w-4 text-amber-300" />
+                    {venue.address ? `${venue.address}, ` : ''}{venue.city}, {venue.country}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/14 bg-cyan-500/[0.06] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <Waves className="h-4 w-4 text-cyan-300" />
+                    {venue.liveSession?.campaignLabel ?? 'Venue check-in live'}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/16 bg-amber-500/[0.06] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <Activity className="h-4 w-4 text-amber-200" />
+                    Heat {venue.tagSummary.heatScore}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid min-w-[260px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className={`${softCardClass} px-5 py-4`}>
+                  <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Best Repeat Candidate</p>
+                  <div className="mt-2 text-lg font-bold text-white">
+                    {venue.activationInsight.bestActivation?.title ?? 'Still forming'}
+                  </div>
+                  <p className="mt-2 text-sm text-white/58">{venue.activationInsight.summary}</p>
+                </div>
+                <div className={`${softCardClass} px-5 py-4`}>
+                  <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Strongest Creator Signal</p>
+                  <div className="mt-2 text-lg font-bold text-white">
+                    {venue.roiSnapshot.bestCreator?.creatorTag ?? 'No clear leader yet'}
+                  </div>
+                  <p className="mt-2 text-sm text-white/58">
+                    {venue.roiSnapshot.bestCreator
+                      ? `${venue.roiSnapshot.bestCreator.trustLabel} level ${venue.roiSnapshot.bestCreator.trustLevel} · ${venue.roiSnapshot.bestCreator.marksHere} marks here`
+                      : 'One more proven venue activation will make the strongest operator much clearer.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-6">
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">ROI Windows</p>
+                    <h2 className="mt-2 text-2xl font-bold">Before vs after venue lift</h2>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/58">
+                    Shareable snapshot
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  {[venue.roiSnapshot.windows.last7Days, venue.roiSnapshot.windows.last30Days].map((window) => (
+                    <div key={window.label} className={`${insetCardClass} px-4 py-4`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-white/42">{window.label}</div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/58">
+                          vs previous window
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Verified outcomes</div>
+                          <div className="mt-2 text-2xl font-black text-white">{window.verifiedOutcomes}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.verifiedOutcomesDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Unique visitors</div>
+                          <div className="mt-2 text-2xl font-black text-cyan-100">{window.uniqueVisitors}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.uniqueVisitorsDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Check-ins</div>
+                          <div className="mt-2 text-2xl font-black text-emerald-100">{window.checkIns}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.checkInsDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Proofs</div>
+                          <div className="mt-2 text-2xl font-black text-[#f8dd72]">{window.proofs}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.proofsDelta)} delta</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">Why This Venue Matters</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {venue.activationInsight.reasons.map((reason) => (
+                    <span
+                      key={reason}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60"
+                    >
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {venue.roiSnapshot.bestCreator ? (
+                <div className={`${softCardClass} p-6`}>
+                  <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Top Proving Creator</p>
+                  <h2 className="mt-2 text-2xl font-bold">{venue.roiSnapshot.bestCreator.creatorTag}</h2>
+                  <p className="mt-2 text-sm text-white/58">
+                    This creator currently has the strongest venue-specific proof signal and is the cleanest operator to route back into the next activation here.
+                  </p>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Marks here</div>
+                      <div className="mt-2 text-2xl font-black text-white">{venue.roiSnapshot.bestCreator.marksHere}</div>
+                    </div>
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">First sparks</div>
+                      <div className="mt-2 text-2xl font-black text-[#f8dd72]">{venue.roiSnapshot.bestCreator.firstMarksHere}</div>
+                    </div>
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Wins total</div>
+                      <div className="mt-2 text-2xl font-black text-cyan-100">{venue.roiSnapshot.bestCreator.completedDares}</div>
+                    </div>
+                    <div className={`${insetCardClass} px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Earned</div>
+                      <div className="mt-2 text-2xl font-black text-emerald-100">${Math.round(venue.roiSnapshot.bestCreator.totalEarned)}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">Recommended Next Move</p>
+                <h2 className="mt-2 text-2xl font-bold">Turn this report into the next activation</h2>
+                <p className="mt-2 text-sm text-white/58">
+                  The strongest next move is to repeat the winner or route the proving creator back into this venue while the signal is still warm.
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {repeatActivationHref ? (
+                    <Link
+                      href={repeatActivationHref}
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                    >
+                      <Flame className="h-4 w-4" />
+                      Repeat winning activation
+                    </Link>
+                  ) : null}
+                  {bestCreatorRouteHref ? (
+                    <Link
+                      href={bestCreatorRouteHref}
+                      className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
+                    >
+                      <Users className="h-4 w-4" />
+                      Route top creator
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={venue.commandCenter.consoleUrl ?? `/venues/${encodeURIComponent(venue.slug)}/console`}
+                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Open command console
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </VenuePageShell>
+  );
+}

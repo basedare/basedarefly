@@ -17,6 +17,7 @@ import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
   VenueActivationInsight,
+  VenueRoiSnapshot,
   BrandVenueRadarItem,
   NearbyVenueItem,
   VenueCommandCenterSummary,
@@ -294,6 +295,81 @@ function buildVenueActivationInsight(input: {
       completedDelta,
       uniqueVisitorDelta,
       checkInDelta,
+    },
+  };
+}
+
+function buildVenueRoiWindow(
+  history: VenueDetail['memoryHistory'],
+  length: number,
+  label: string
+) {
+  const current = history.slice(0, length);
+  const previous = history.slice(length, length * 2);
+  const sum = (items: VenueDetail['memoryHistory']) =>
+    items.reduce(
+      (acc, item) => ({
+        approvedMarks: acc.approvedMarks + item.dareCount,
+        checkIns: acc.checkIns + item.checkInCount,
+        uniqueVisitors: acc.uniqueVisitors + item.uniqueVisitorCount,
+        verifiedOutcomes: acc.verifiedOutcomes + item.completedDareCount,
+        proofs: acc.proofs + item.proofCount,
+      }),
+      {
+        approvedMarks: 0,
+        checkIns: 0,
+        uniqueVisitors: 0,
+        verifiedOutcomes: 0,
+        proofs: 0,
+      }
+    );
+
+  const currentTotals = sum(current);
+  const previousTotals = sum(previous);
+
+  return {
+    label,
+    ...currentTotals,
+    marksDelta: currentTotals.approvedMarks - previousTotals.approvedMarks,
+    checkInsDelta: currentTotals.checkIns - previousTotals.checkIns,
+    uniqueVisitorsDelta: currentTotals.uniqueVisitors - previousTotals.uniqueVisitors,
+    verifiedOutcomesDelta:
+      currentTotals.verifiedOutcomes - previousTotals.verifiedOutcomes,
+    proofsDelta: currentTotals.proofs - previousTotals.proofs,
+  };
+}
+
+function buildVenueRoiSnapshot(input: {
+  memoryHistory: VenueDetail['memoryHistory'];
+  topCreators: VenueDetail['topCreators'];
+  activationInsight: VenueActivationInsight;
+}): VenueRoiSnapshot {
+  const bestCreator = input.topCreators[0] ?? null;
+  const last7Days = buildVenueRoiWindow(input.memoryHistory, 7, 'Last 7 days');
+  const last30Days = buildVenueRoiWindow(input.memoryHistory, 30, 'Last 30 days');
+
+  const summary = input.activationInsight.bestActivation
+    ? `Recent venue lift is strong enough to justify repeating "${input.activationInsight.bestActivation.title}", especially if you route ${bestCreator?.creatorTag ?? 'the strongest available creator'} back into the same venue pattern.`
+    : bestCreator
+      ? `${bestCreator.creatorTag} is the clearest local proof asset right now. The next repeatable win should route through them and be measured against the last 7-day venue lift.`
+      : 'Venue memory is accumulating, but the ROI picture is still early. One more verified activation will make the next repeat decision much clearer.';
+
+  return {
+    summary,
+    bestCreator: bestCreator
+      ? {
+          creatorTag: bestCreator.creatorTag,
+          marksHere: bestCreator.marksHere,
+          firstMarksHere: bestCreator.firstMarksHere,
+          completedDares: bestCreator.completedDares,
+          totalEarned: bestCreator.totalEarned,
+          trustLabel: bestCreator.trustLabel,
+          trustLevel: bestCreator.trustLevel,
+        }
+      : null,
+    windows: {
+      last7Days,
+      last30Days,
     },
   };
 }
@@ -1388,11 +1464,17 @@ export async function getVenueDetailBySlug(
     ...tag,
     isOwn: normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false,
   }));
+  const topCreators = topCreatorsByVenue.get(venue.id) ?? [];
   const activationInsight = buildVenueActivationInsight({
     featuredPaidActivation,
     memorySummary,
     memoryHistory,
     paidActivationCount,
+  });
+  const roiSnapshot = buildVenueRoiSnapshot({
+    memoryHistory,
+    topCreators,
+    activationInsight,
   });
 
   return {
@@ -1420,6 +1502,7 @@ export async function getVenueDetailBySlug(
     commandCenter,
     mapModes: buildVenueExperienceModes(),
     activationInsight,
+    roiSnapshot,
     liveStats: {
       scansLastHour,
       uniqueVisitorsToday: uniqueVisitorRows.length,
@@ -1432,7 +1515,7 @@ export async function getVenueDetailBySlug(
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
     recentTags: recentTagsWithOwnership,
-    topCreators: topCreatorsByVenue.get(venue.id) ?? [],
+    topCreators,
     creatorContribution,
     activeDares,
     paidActivationCount,

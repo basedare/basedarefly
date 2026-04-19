@@ -114,6 +114,37 @@ export type VenueActivationInsight = {
   };
 };
 
+export type VenueRoiWindow = {
+  label: string;
+  approvedMarks: number;
+  checkIns: number;
+  uniqueVisitors: number;
+  verifiedOutcomes: number;
+  proofs: number;
+  marksDelta: number;
+  checkInsDelta: number;
+  uniqueVisitorsDelta: number;
+  verifiedOutcomesDelta: number;
+  proofsDelta: number;
+};
+
+export type VenueRoiSnapshot = {
+  summary: string;
+  bestCreator: {
+    creatorTag: string;
+    marksHere: number;
+    firstMarksHere: number;
+    completedDares: number;
+    totalEarned: number;
+    trustLabel: string;
+    trustLevel: number;
+  } | null;
+  windows: {
+    last7Days: VenueRoiWindow;
+    last30Days: VenueRoiWindow;
+  };
+};
+
 export type BrandVenueRadarItem = {
   id: string;
   slug: string;
@@ -220,6 +251,7 @@ export type VenueDetail = {
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];
   activationInsight: VenueActivationInsight;
+  roiSnapshot: VenueRoiSnapshot;
   liveStats: {
     scansLastHour: number;
     uniqueVisitorsToday: number;

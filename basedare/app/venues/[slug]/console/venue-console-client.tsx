@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { Activity, CheckCircle2, Flame, Loader2, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle2, Flame, Loader2, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
@@ -102,6 +102,11 @@ function getActivationState(dare: VenueDetail['activeDares'][number]) {
 
 function formatCampaignTierLabel(tier: string) {
   return tier.replace(/_/g, ' ');
+}
+
+function formatSignedDelta(value: number) {
+  if (value > 0) return `+${value}`;
+  return `${value}`;
 }
 
 function inferTierByPayout(payout: number) {
@@ -632,6 +637,80 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                       Open proof source
                     </Link>
                   ) : null}
+                  <Link
+                    href={`/venues/${venue.slug}/report`}
+                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/22 bg-fuchsia-500/[0.08] px-4 py-2.5 text-sm font-semibold text-fuchsia-100 transition hover:-translate-y-[1px] hover:border-fuchsia-300/34 hover:bg-fuchsia-500/[0.12]"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Open report card
+                  </Link>
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue ROI Snapshot</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">What changed after activation</h3>
+                    <p className="mt-2 max-w-2xl text-sm text-white/58">{venue.roiSnapshot.summary}</p>
+                  </div>
+                  {venue.roiSnapshot.bestCreator ? (
+                    <div className={`${insetCardClass} min-w-[250px] px-4 py-4`}>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Top proving creator</div>
+                      <div className="mt-2 text-lg font-black text-white">{venue.roiSnapshot.bestCreator.creatorTag}</div>
+                      <div className="mt-1 text-xs text-white/48">
+                        {venue.roiSnapshot.bestCreator.trustLabel} level {venue.roiSnapshot.bestCreator.trustLevel} · {venue.roiSnapshot.bestCreator.marksHere} marks here
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72]">
+                          {venue.roiSnapshot.bestCreator.firstMarksHere} first sparks
+                        </span>
+                        <span className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                          ${Math.round(venue.roiSnapshot.bestCreator.totalEarned)} earned
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                  {[
+                    venue.roiSnapshot.windows.last7Days,
+                    venue.roiSnapshot.windows.last30Days,
+                  ].map((window) => (
+                    <div key={window.label} className={`${insetCardClass} px-4 py-4`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-white/42">{window.label}</div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/58">
+                          vs previous window
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Verified outcomes</div>
+                          <div className="mt-2 text-2xl font-black text-white">{window.verifiedOutcomes}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.verifiedOutcomesDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Unique visitors</div>
+                          <div className="mt-2 text-2xl font-black text-cyan-100">{window.uniqueVisitors}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.uniqueVisitorsDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Check-ins</div>
+                          <div className="mt-2 text-2xl font-black text-emerald-100">{window.checkIns}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.checkInsDelta)} delta</div>
+                        </div>
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-3 py-3">
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">Proofs</div>
+                          <div className="mt-2 text-2xl font-black text-[#f8dd72]">{window.proofs}</div>
+                          <div className="mt-1 text-xs text-white/48">{formatSignedDelta(window.proofsDelta)} delta</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

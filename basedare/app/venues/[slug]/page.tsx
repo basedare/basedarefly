@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { Activity, ArrowRight, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -224,6 +224,13 @@ export default async function VenueDetailPage(
                     </div>
                     <p className="mt-2 text-sm text-white/58">{venue.commandCenter.summary}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href={`/venues/${encodeURIComponent(venue.slug)}/report`}
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Open report card
+                      </Link>
                       {venue.commandCenter.consoleUrl ? (
                         <Link
                           href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
