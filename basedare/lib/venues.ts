@@ -25,6 +25,7 @@ import type {
   VenueMemorySummary,
   VenueQrPayload,
   VenueSessionSummary,
+  VenueTopCreator,
 } from '@/lib/venue-types';
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
@@ -235,6 +236,125 @@ function buildVenueCommandCenterSummary(input: {
 
 function buildVenueExperienceModes() {
   return DEFAULT_VENUE_MAP_MODES.map((mode) => ({ ...mode }));
+}
+
+async function getTopCreatorsForVenueIds(venueIds: string[]) {
+  if (venueIds.length === 0) {
+    return new Map<string, VenueTopCreator[]>();
+  }
+
+  const creatorTagRows = await prisma.placeTag.findMany({
+    where: {
+      venueId: { in: venueIds },
+      status: 'APPROVED',
+      creatorTag: { not: null },
+    },
+    select: {
+      venueId: true,
+      creatorTag: true,
+      walletAddress: true,
+      firstMark: true,
+      submittedAt: true,
+    },
+  });
+
+  const creatorTags = Array.from(
+    new Set(
+      creatorTagRows
+        .map((row) => row.creatorTag)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  const streamerTags = creatorTags.length
+    ? await prisma.streamerTag.findMany({
+        where: {
+          tag: { in: creatorTags },
+        },
+        select: {
+          tag: true,
+          followerCount: true,
+          totalEarned: true,
+          completedDares: true,
+        },
+      })
+    : [];
+
+  const streamerTagMap = new Map(streamerTags.map((tag) => [tag.tag.toLowerCase(), tag]));
+  const topCreatorsByVenue = new Map<string, VenueTopCreator[]>();
+
+  for (const row of creatorTagRows) {
+    const creatorTag = row.creatorTag;
+    if (!creatorTag) continue;
+
+    const bucket = topCreatorsByVenue.get(row.venueId) ?? [];
+    let current = bucket.find((item) => item.creatorTag.toLowerCase() === creatorTag.toLowerCase());
+
+    if (!current) {
+      const streamTag = streamerTagMap.get(creatorTag.toLowerCase());
+      const trust = deriveCreatorTrustProfile({
+        approvedMissions: streamTag?.completedDares ?? 0,
+        settledMissions: streamTag?.completedDares ?? 0,
+        totalEarned: streamTag?.totalEarned ?? 0,
+        uniqueVenues: 1,
+        firstMarks: 0,
+        followerCount: streamTag?.followerCount ?? null,
+      });
+
+      current = {
+        creatorTag,
+        walletAddress: row.walletAddress,
+        marksHere: 0,
+        firstMarksHere: 0,
+        latestMarkAt: row.submittedAt.toISOString(),
+        totalEarned: streamTag?.totalEarned ?? 0,
+        completedDares: streamTag?.completedDares ?? 0,
+        followerCount: streamTag?.followerCount ?? null,
+        trustLevel: trust.level,
+        trustLabel: trust.label,
+        trustScore: trust.score,
+      };
+      bucket.push(current);
+    }
+
+    current.marksHere += 1;
+    if (row.firstMark) {
+      current.firstMarksHere += 1;
+    }
+    if (new Date(row.submittedAt).getTime() > new Date(current.latestMarkAt).getTime()) {
+      current.latestMarkAt = row.submittedAt.toISOString();
+    }
+
+    const streamTag = streamerTagMap.get(creatorTag.toLowerCase());
+    const trust = deriveCreatorTrustProfile({
+      approvedMissions: streamTag?.completedDares ?? 0,
+      settledMissions: streamTag?.completedDares ?? 0,
+      totalEarned: streamTag?.totalEarned ?? 0,
+      uniqueVenues: current.marksHere,
+      firstMarks: current.firstMarksHere,
+      followerCount: streamTag?.followerCount ?? null,
+    });
+
+    current.trustLevel = trust.level;
+    current.trustLabel = trust.label;
+    current.trustScore = trust.score;
+    topCreatorsByVenue.set(row.venueId, bucket);
+  }
+
+  for (const [venueId, bucket] of topCreatorsByVenue.entries()) {
+    topCreatorsByVenue.set(
+      venueId,
+      bucket
+        .sort((left, right) => {
+          if (right.marksHere !== left.marksHere) return right.marksHere - left.marksHere;
+          if (right.firstMarksHere !== left.firstMarksHere) return right.firstMarksHere - left.firstMarksHere;
+          return right.trustScore - left.trustScore;
+        })
+        .slice(0, 3)
+    );
+  }
+
+  return topCreatorsByVenue;
 }
 
 function mapActiveDare(dare: {
@@ -835,125 +955,11 @@ export async function getBrandVenueRadar(input: {
 
   const recentSignalsMap = new Map(recentSignalsByVenue);
   const venueIds = radar.map((venue) => venue.id);
-  const creatorTagRows = await prisma.placeTag.findMany({
-    where: {
-      venueId: { in: venueIds },
-      status: 'APPROVED',
-      creatorTag: { not: null },
-    },
-    select: {
-      venueId: true,
-      creatorTag: true,
-      walletAddress: true,
-      firstMark: true,
-      submittedAt: true,
-    },
-  });
-  const creatorTags = Array.from(
-    new Set(
-      creatorTagRows
-        .map((row) => row.creatorTag)
-        .filter((value): value is string => Boolean(value))
-    )
-  );
-  const streamerTags = creatorTags.length
-    ? await prisma.streamerTag.findMany({
-        where: {
-          tag: { in: creatorTags },
-        },
-        select: {
-          tag: true,
-          followerCount: true,
-          totalEarned: true,
-          completedDares: true,
-        },
-      })
-    : [];
-  const streamerTagMap = new Map(streamerTags.map((tag) => [tag.tag.toLowerCase(), tag]));
-  const topCreatorsByVenue = new Map<
-    string,
-    Array<{
-      creatorTag: string;
-      walletAddress: string;
-      marksHere: number;
-      firstMarksHere: number;
-      latestMarkAt: string;
-      totalEarned: number;
-      completedDares: number;
-      followerCount: number | null;
-      trustLevel: number;
-      trustLabel: string;
-      trustScore: number;
-    }>
-  >();
-
-  for (const row of creatorTagRows) {
-    const creatorTag = row.creatorTag;
-    if (!creatorTag) continue;
-    const bucket = topCreatorsByVenue.get(row.venueId) ?? [];
-    let current = bucket.find((item) => item.creatorTag.toLowerCase() === creatorTag.toLowerCase());
-
-    if (!current) {
-      const streamTag = streamerTagMap.get(creatorTag.toLowerCase());
-      const trust = deriveCreatorTrustProfile({
-        approvedMissions: streamTag?.completedDares ?? 0,
-        settledMissions: streamTag?.completedDares ?? 0,
-        totalEarned: streamTag?.totalEarned ?? 0,
-        uniqueVenues: 1,
-        firstMarks: 0,
-        followerCount: streamTag?.followerCount ?? null,
-      });
-
-      current = {
-        creatorTag,
-        walletAddress: row.walletAddress,
-        marksHere: 0,
-        firstMarksHere: 0,
-        latestMarkAt: row.submittedAt.toISOString(),
-        totalEarned: streamTag?.totalEarned ?? 0,
-        completedDares: streamTag?.completedDares ?? 0,
-        followerCount: streamTag?.followerCount ?? null,
-        trustLevel: trust.level,
-        trustLabel: trust.label,
-        trustScore: trust.score,
-      };
-      bucket.push(current);
-    }
-
-    current.marksHere += 1;
-    if (row.firstMark) {
-      current.firstMarksHere += 1;
-    }
-    if (new Date(row.submittedAt).getTime() > new Date(current.latestMarkAt).getTime()) {
-      current.latestMarkAt = row.submittedAt.toISOString();
-    }
-
-    const streamTag = streamerTagMap.get(creatorTag.toLowerCase());
-    const trust = deriveCreatorTrustProfile({
-      approvedMissions: streamTag?.completedDares ?? 0,
-      settledMissions: streamTag?.completedDares ?? 0,
-      totalEarned: streamTag?.totalEarned ?? 0,
-      uniqueVenues: current.marksHere,
-      firstMarks: current.firstMarksHere,
-      followerCount: streamTag?.followerCount ?? null,
-    });
-
-    current.trustLevel = trust.level;
-    current.trustLabel = trust.label;
-    current.trustScore = trust.score;
-    topCreatorsByVenue.set(row.venueId, bucket);
-  }
+  const topCreatorsByVenue = await getTopCreatorsForVenueIds(venueIds);
 
   return radar.map((venue) => ({
     ...venue,
-    topCreators:
-      (topCreatorsByVenue.get(venue.id) ?? [])
-        .sort((left, right) => {
-          if (right.marksHere !== left.marksHere) return right.marksHere - left.marksHere;
-          if (right.firstMarksHere !== left.firstMarksHere) return right.firstMarksHere - left.firstMarksHere;
-          return right.trustScore - left.trustScore;
-        })
-        .slice(0, 3),
+    topCreators: topCreatorsByVenue.get(venue.id) ?? [],
     recentSignals: recentSignalsMap.get(venue.id) ?? [],
   }));
 }
@@ -1236,6 +1242,7 @@ export async function getVenueDetailBySlug(
     }),
     getRecentApprovedPlaceTagsByVenueId(venue.id, 12),
   ]);
+  const topCreatorsByVenue = await getTopCreatorsForVenueIds([venue.id]);
 
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
   const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
@@ -1353,6 +1360,7 @@ export async function getVenueDetailBySlug(
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
     recentTags: recentTagsWithOwnership,
+    topCreators: topCreatorsByVenue.get(venue.id) ?? [],
     creatorContribution,
     activeDares,
     paidActivationCount,

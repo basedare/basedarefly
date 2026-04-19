@@ -113,19 +113,7 @@ export type BrandVenueRadarItem = {
     liveCampaigns: number;
     totalSpendUsd: number;
   };
-  topCreators: Array<{
-    creatorTag: string;
-    walletAddress: string;
-    marksHere: number;
-    firstMarksHere: number;
-    latestMarkAt: string;
-    totalEarned: number;
-    completedDares: number;
-    followerCount: number | null;
-    trustLevel: number;
-    trustLabel: string;
-    trustScore: number;
-  }>;
+  topCreators: VenueTopCreator[];
   recentSignals: Array<{
     creatorTag: string | null;
     caption: string | null;
@@ -136,6 +124,20 @@ export type BrandVenueRadarItem = {
   contactUrl: string;
   contactLabel: string;
   consoleUrl: string | null;
+};
+
+export type VenueTopCreator = {
+  creatorTag: string;
+  walletAddress: string;
+  marksHere: number;
+  firstMarksHere: number;
+  latestMarkAt: string;
+  totalEarned: number;
+  completedDares: number;
+  followerCount: number | null;
+  trustLevel: number;
+  trustLabel: string;
+  trustScore: number;
 };
 
 export type NearbyVenueItem = {
@@ -200,6 +202,7 @@ export type VenueDetail = {
     scannedAt: string;
   }>;
   recentTags: VenueRecentTag[];
+  topCreators: VenueTopCreator[];
   creatorContribution: VenueCreatorContribution | null;
   activeDares: Array<{
     id: string;

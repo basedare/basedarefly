@@ -246,6 +246,15 @@ interface CampaignMatchesState {
 
 type ResponseRailTab = 'shortlisted' | 'claimed' | 'proof' | 'review' | 'verified';
 type VenueRadarFilter = 'hot' | 'managed' | 'claimable';
+type CampaignTier = CampaignFormData['tier'];
+type ComposerPrefill = {
+  creatorTag?: string | null;
+  tier?: CampaignTier;
+  payoutPerCreator?: number | null;
+  title?: string | null;
+  description?: string | null;
+  syncTime?: string | null;
+};
 
 const PLATFORM_OPTIONS = [
   { value: 'twitter', label: 'X' },
@@ -311,6 +320,10 @@ const TIER_INFO = {
     borderColor: 'border-amber-500/30',
   },
 };
+
+function isCampaignTier(value: string | null): value is CampaignTier {
+  return value === 'SIP_MENTION' || value === 'SIP_SHILL' || value === 'CHALLENGE' || value === 'APEX';
+}
 
 function formatCompactAudience(value: number | null) {
   if (typeof value !== 'number' || value <= 0) return 'Building';
@@ -463,8 +476,16 @@ export default function BrandPortalPage() {
     venueRadar[0] ??
     null;
 
-  const openCampaignComposerForVenue = useCallback((venue: BrandVenueRadarItem, creatorTag?: string | null) => {
+  const openCampaignComposerForVenue = useCallback((venue: BrandVenueRadarItem, prefillInput?: string | null | ComposerPrefill) => {
+    const prefill =
+      typeof prefillInput === 'string' || prefillInput === null || prefillInput === undefined
+        ? { creatorTag: prefillInput ?? null }
+        : prefillInput;
     const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
+    const nextTier = prefill.tier ?? 'SIP_SHILL';
+    const minimumPayout = NETWORK_CONFIG.isMainnet ? TIER_INFO[nextTier].minPayout : 1;
+    const nextPayout = prefill.payoutPerCreator ? Math.max(prefill.payoutPerCreator, minimumPayout) : null;
+
     setSelectedPlace({
       id: venue.id,
       name: venue.name,
@@ -478,16 +499,21 @@ export default function BrandPortalPage() {
     setFormData((current) => ({
       ...current,
       type: 'PLACE',
-      title: current.title.trim() ? current.title : `${venue.name} activation`,
-      description: current.description.trim()
-        ? current.description
-        : `Launch a creator activation at ${venue.name} while venue signal is already building.`,
+      tier: nextTier,
+      title: prefill.title?.trim() || (current.title.trim() ? current.title : `${venue.name} activation`),
+      description:
+        prefill.description?.trim() ||
+        (current.description.trim()
+          ? current.description
+          : `Launch a creator activation at ${venue.name} while venue signal is already building.`),
+      payoutPerCreator: nextPayout ?? Math.max(current.payoutPerCreator, minimumPayout),
+      syncTime: prefill.syncTime ?? current.syncTime,
       targetingCriteria: {
         ...current.targetingCriteria,
         location: 'near-venue',
       },
     }));
-    setPreferredCreatorTag(creatorTag?.trim() || null);
+    setPreferredCreatorTag(prefill.creatorTag?.trim() || null);
     setShowCreateCampaign(true);
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -513,7 +539,12 @@ export default function BrandPortalPage() {
     const campaignId = params.get('campaign');
     const compose = params.get('compose');
     const creatorTag = params.get('creator');
-    const deepLinkKey = `${venueSlug ?? ''}|${campaignId ?? ''}|${compose ?? ''}|${creatorTag ?? ''}`;
+    const tier = params.get('tier');
+    const payout = params.get('payout');
+    const title = params.get('title');
+    const objective = params.get('objective');
+    const syncTime = params.get('syncTime');
+    const deepLinkKey = `${venueSlug ?? ''}|${campaignId ?? ''}|${compose ?? ''}|${creatorTag ?? ''}|${tier ?? ''}|${payout ?? ''}|${title ?? ''}|${objective ?? ''}|${syncTime ?? ''}`;
 
     if (handledDeepLinkKey === deepLinkKey) {
       return;
@@ -525,7 +556,14 @@ export default function BrandPortalPage() {
         setSelectedVenueRadarId(matchingVenue.id);
 
         if (compose === '1') {
-          openCampaignComposerForVenue(matchingVenue, creatorTag);
+          openCampaignComposerForVenue(matchingVenue, {
+            creatorTag,
+            tier: isCampaignTier(tier) ? tier : undefined,
+            payoutPerCreator: payout ? Number.parseInt(payout, 10) : undefined,
+            title,
+            description: objective,
+            syncTime,
+          });
         }
       }
     }

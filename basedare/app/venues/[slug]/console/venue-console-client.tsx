@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
-import { Activity, MapPin, PauseCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
+import { Activity, Flame, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
 
 const raisedPanelClass =
@@ -14,6 +14,44 @@ const softCardClass =
 
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+const activationPresets = [
+  {
+    id: 'foot-traffic',
+    label: 'Foot Traffic Burst',
+    tier: 'SIP_SHILL',
+    payout: 120,
+    title: (venueName: string) => `${venueName} foot-traffic burst`,
+    objective: (venueName: string) =>
+      `Drive a high-energy venue activation at ${venueName}. Capture the crowd, the arrival, and why this place feels alive right now.`,
+  },
+  {
+    id: 'first-spark',
+    label: 'First Spark',
+    tier: 'SIP_MENTION',
+    payout: 60,
+    title: (venueName: string) => `${venueName} first spark`,
+    objective: (venueName: string) =>
+      `Give ${venueName} its next visible memory moment. Show what makes the venue worth discovering for the first time.`,
+  },
+  {
+    id: 'headline',
+    label: 'Headline Challenge',
+    tier: 'CHALLENGE',
+    payout: 280,
+    title: (venueName: string) => `${venueName} headline challenge`,
+    objective: (venueName: string) =>
+      `Run a sharper, time-boxed branded challenge at ${venueName}. The proof should feel unmistakably tied to the venue.`,
+  },
+] as const;
+
+function formatCompactAudience(value: number | null) {
+  if (typeof value !== 'number' || value <= 0) return 'Building';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
+  if (value >= 10_000) return `${Math.round(value / 1_000)}K+`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K+`;
+  return `${value}+`;
+}
 
 function formatCountdown(seconds: number) {
   const safeSeconds = Math.max(0, seconds);
@@ -29,11 +67,41 @@ function getSecondsLeft(lastRotatedAt: string, rotationSeconds: number, nowMs: n
   return Math.max(0, cycle - ((elapsed % cycle) + (elapsed < 0 ? cycle : 0)));
 }
 
+function getActivationState(dare: VenueDetail['activeDares'][number]) {
+  if (dare.claimRequestStatus === 'PENDING') {
+    return {
+      label: dare.claimRequestTag ? `pending ${dare.claimRequestTag}` : 'creator pending',
+      className: 'border-amber-400/18 bg-amber-500/[0.08] text-amber-100',
+    };
+  }
+
+  if (dare.claimedBy || dare.targetWalletAddress) {
+    return {
+      label: dare.streamerHandle ? `routed ${dare.streamerHandle}` : 'creator attached',
+      className: 'border-cyan-400/18 bg-cyan-500/[0.08] text-cyan-100',
+    };
+  }
+
+  if (dare.status === 'VERIFIED' || dare.status === 'PENDING_PAYOUT') {
+    return {
+      label: dare.status === 'VERIFIED' ? 'verified' : 'payout queued',
+      className: 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-100',
+    };
+  }
+
+  return {
+    label: 'open',
+    className: 'border-white/10 bg-white/[0.04] text-white/60',
+  };
+}
+
 export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [qrPayload, setQrPayload] = useState<VenueQrPayload | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [liveStats, setLiveStats] = useState(venue.liveStats);
+  const [selectedPresetId, setSelectedPresetId] = useState<(typeof activationPresets)[number]['id']>('foot-traffic');
+  const [selectedCreatorTag, setSelectedCreatorTag] = useState<string | null>(venue.topCreators[0]?.creatorTag ?? null);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -118,6 +186,27 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const qrWindowStart = qrPayload?.windowStartedAt ?? liveSession?.lastRotatedAt ?? null;
   const secondsLeft = qrWindowStart ? getSecondsLeft(qrWindowStart, rotationSeconds, effectiveNowMs) : 0;
   const qrValue = useMemo(() => qrPayload?.qrValue ?? `basedare://handshake?scope=VENUE_CHECKIN&venue=${encodeURIComponent(venue.slug)}&session=offline-preview`, [qrPayload, venue.slug]);
+  const selectedPreset = activationPresets.find((preset) => preset.id === selectedPresetId) ?? activationPresets[0];
+  const liveFundingUsd = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
+  const routedCreatorsCount = venue.activeDares.filter((dare) => Boolean(dare.claimedBy || dare.targetWalletAddress || dare.claimRequestStatus === 'PENDING')).length;
+  const completedSignalCount = venue.memorySummary?.completedDareCount ?? 0;
+  const activationQueue = venue.activeDares.slice(0, 4);
+  const launchActivationHref = useMemo(() => {
+    const params = new URLSearchParams({
+      venue: venue.slug,
+      compose: '1',
+      tier: selectedPreset.tier,
+      payout: String(selectedPreset.payout),
+      title: selectedPreset.title(venue.name),
+      objective: selectedPreset.objective(venue.name),
+    });
+
+    if (selectedCreatorTag) {
+      params.set('creator', selectedCreatorTag);
+    }
+
+    return `/brands/portal?${params.toString()}`;
+  }, [selectedCreatorTag, selectedPreset, venue.name, venue.slug]);
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-transparent text-white">
@@ -228,6 +317,37 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
 
               <div className={`${softCardClass} p-5`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">Activation Impact</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Live funding</div>
+                    <div className="mt-2 text-2xl font-black text-[#f8dd72]">${Math.round(liveFundingUsd)}</div>
+                    <div className="mt-1 text-xs text-white/48">{venue.paidActivationCount} paid activations on venue memory</div>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Routed creators</div>
+                    <div className="mt-2 text-2xl font-black text-cyan-100">{routedCreatorsCount}</div>
+                    <div className="mt-1 text-xs text-white/48">Attached or pending creators across live briefs</div>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Verified outcomes</div>
+                    <div className="mt-2 text-2xl font-black text-emerald-100">{completedSignalCount}</div>
+                    <div className="mt-1 text-xs text-white/48">Completed venue-backed moments in the current memory bucket</div>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Top venue favorite</div>
+                    <div className="mt-2 text-lg font-black text-white">{venue.topCreators[0]?.creatorTag ?? 'No favorite yet'}</div>
+                    <div className="mt-1 text-xs text-white/48">
+                      {venue.topCreators[0]
+                        ? `${venue.topCreators[0].marksHere} marks here · ${venue.topCreators[0].trustLabel} level ${venue.topCreators[0].trustLevel}`
+                        : 'Launch one more activation and this starts filling in.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">Controls</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   <button
@@ -250,6 +370,203 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     Mocked UI for the pilot venue. Session controls wire up next.
                   </div>
                 </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Launch Activation</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">Turn venue signal into a live paid challenge</h3>
+                    <p className="mt-2 text-sm text-white/58">
+                      Pick a simple activation preset, optionally route a venue-favorite creator, then finish funding in the brand portal.
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                    {venue.commandCenter.claimState === 'claimed' ? 'Venue live' : 'Claim to unlock'}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {activationPresets.map((preset) => {
+                    const selected = preset.id === selectedPreset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setSelectedPresetId(preset.id)}
+                        className={`rounded-[22px] border px-4 py-4 text-left transition ${
+                          selected
+                            ? 'border-fuchsia-300/28 bg-[linear-gradient(180deg,rgba(217,70,239,0.12)_0%,rgba(10,10,18,0.94)_100%)] shadow-[0_14px_22px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)]'
+                            : `${insetCardClass} hover:border-white/14`
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-white">{preset.label}</div>
+                            <div className="mt-1 text-xs uppercase tracking-[0.22em] text-white/42">{preset.tier.replace('_', ' ')}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-black text-[#f8dd72]">${preset.payout}</div>
+                            <div className="text-[11px] text-white/48">starter payout</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className={`${insetCardClass} mt-4 px-4 py-4`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/36">Recommended Brief</p>
+                      <p className="mt-2 text-base font-semibold text-white">{selectedPreset.title(venue.name)}</p>
+                    </div>
+                    <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                      {selectedPreset.tier.replace('_', ' ')}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-white/62">{selectedPreset.objective(venue.name)}</p>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/38">Venue-favorite creators</p>
+                  {venue.topCreators.length === 0 ? (
+                    <div className={`${insetCardClass} mt-3 px-4 py-4 text-sm text-white/52`}>
+                      No strong venue favorite yet. Launching without a preset creator will still open the composer with the venue preselected.
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {venue.topCreators.map((creator) => {
+                        const selected = selectedCreatorTag?.toLowerCase() === creator.creatorTag.toLowerCase();
+                        return (
+                          <button
+                            key={`${creator.walletAddress}-${creator.creatorTag}`}
+                            type="button"
+                            onClick={() => setSelectedCreatorTag(selected ? null : creator.creatorTag)}
+                            className={`w-full rounded-[20px] border px-4 py-4 text-left transition ${
+                              selected
+                                ? 'border-cyan-300/26 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(10,10,18,0.94)_100%)]'
+                                : `${insetCardClass} hover:border-white/14`
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold text-white">{creator.creatorTag}</div>
+                                <div className="mt-1 text-xs uppercase tracking-[0.2em] text-white/42">
+                                  {creator.trustLabel} level {creator.trustLevel}
+                                </div>
+                              </div>
+                              <div className="text-right text-xs text-white/55">
+                                <div>{creator.marksHere} marks here</div>
+                                <div>{formatCompactAudience(creator.followerCount)} audience</div>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {creator.firstMarksHere > 0 ? (
+                                <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+                                  {creator.firstMarksHere} first sparks
+                                </span>
+                              ) : null}
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/58">
+                                ${Math.round(creator.totalEarned)} earned
+                              </span>
+                              {selected ? (
+                                <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
+                                  Routing favorite
+                                </span>
+                              ) : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link
+                    href={launchActivationHref}
+                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/26 bg-fuchsia-500/[0.12] px-4 py-2.5 text-sm font-semibold text-fuchsia-100 shadow-[0_14px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/36 hover:bg-fuchsia-500/[0.16]"
+                  >
+                    <PlayCircle className="h-4 w-4" />
+                    Launch in brand portal
+                  </Link>
+                  <Link
+                    href={`/venues/${venue.slug}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/72 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                  >
+                    <Flame className="h-4 w-4" />
+                    Open venue page
+                  </Link>
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Live Activation Queue</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">What this venue is carrying right now</h3>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
+                    {activationQueue.length} live
+                  </div>
+                </div>
+
+                {activationQueue.length === 0 ? (
+                  <div className={`${insetCardClass} mt-4 px-4 py-4 text-sm text-white/54`}>
+                    No live activations yet. Launch one above and it will appear here with creator routing and proof state.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {activationQueue.map((dare) => {
+                      const activationState = getActivationState(dare);
+                      return (
+                        <div key={dare.id} className={`${insetCardClass} px-4 py-4`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-white line-clamp-1">{dare.title}</div>
+                              <div className="mt-1 text-xs text-white/46">
+                                {dare.campaignTitle || dare.brandName || dare.missionMode}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-black text-[#f8dd72]">${dare.bounty}</div>
+                              <div className={`mt-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${activationState.className}`}>
+                                {activationState.label}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/58">
+                              {dare.status}
+                            </span>
+                            {dare.streamerHandle ? (
+                              <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100">
+                                {dare.streamerHandle}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Link
+                              href={`/dare/${dare.shortId}`}
+                              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/72 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                            >
+                              Open brief
+                            </Link>
+                            <Link
+                              href={`/map?place=${encodeURIComponent(venue.slug)}&dare=${encodeURIComponent(dare.shortId)}`}
+                              className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-2 text-xs font-semibold text-fuchsia-100 transition hover:border-fuchsia-300/28 hover:bg-fuchsia-500/[0.12]"
+                            >
+                              Open on map
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className={`${softCardClass} p-5`}>
