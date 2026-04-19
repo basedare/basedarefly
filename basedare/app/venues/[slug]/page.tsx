@@ -5,6 +5,11 @@ import { notFound } from 'next/navigation';
 import { Activity, ArrowRight, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
+import {
+  buildActivationReplayComposerHref,
+  buildRepeatActivationComposerHref,
+  buildVenueCreatorRouteComposerHref,
+} from '@/lib/venue-launch';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 
@@ -97,6 +102,14 @@ function getPulseState(heatScore: number) {
   return { label: 'Dormant', className: 'text-white/62', accentClassName: 'border-white/10 bg-white/[0.04] text-white/62' };
 }
 
+function formatCompactAudience(value: number | null) {
+  if (typeof value !== 'number' || value <= 0) return 'Building';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
+  if (value >= 10_000) return `${Math.round(value / 1_000)}K+`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K+`;
+  return `${value}+`;
+}
+
 export default async function VenueDetailPage(
   {
     params,
@@ -147,6 +160,17 @@ export default async function VenueDetailPage(
   const creatorShiftedPulseState =
     Boolean(creatorContribution?.pulseContribution) && previousPulseState.label !== currentPulseState.label;
   const venueOpsMetrics = venue.commandCenter.metrics;
+  const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
+  const featuredActivationReplayHref = featuredPaidActivation
+    ? buildActivationReplayComposerHref({ venue, activation: featuredPaidActivation })
+    : null;
+  const topCreatorRoutes = venue.topCreators.slice(0, 3).map((creator) => ({
+    ...creator,
+    href: buildVenueCreatorRouteComposerHref({
+      venue,
+      creatorTag: creator.creatorTag,
+    }),
+  }));
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -206,6 +230,15 @@ export default async function VenueDetailPage(
                           className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
                         >
                           Launch Activation
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {repeatActivationHref ? (
+                        <Link
+                          href={repeatActivationHref}
+                          className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                        >
+                          Re-run Activation
                           <ArrowRight className="h-4 w-4" />
                         </Link>
                       ) : null}
@@ -482,14 +515,24 @@ export default async function VenueDetailPage(
                           ) : null}
                         </div>
                       </div>
-                      <Link
-                        href={`/dare/${featuredPaidActivation.shortId}`}
-                        className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-4 py-2 text-sm font-semibold text-rose-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-rose-300/34 hover:bg-rose-500/[0.14]"
-                      >
-                        {featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING'
-                          ? 'Open brief'
-                          : 'Claim now'}
-                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/dare/${featuredPaidActivation.shortId}`}
+                          className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-4 py-2 text-sm font-semibold text-rose-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-rose-300/34 hover:bg-rose-500/[0.14]"
+                        >
+                          {featuredPaidActivation.claimedBy || featuredPaidActivation.targetWalletAddress || featuredPaidActivation.claimRequestStatus === 'PENDING'
+                            ? 'Open brief'
+                            : 'Claim now'}
+                        </Link>
+                        {featuredActivationReplayHref ? (
+                          <Link
+                            href={featuredActivationReplayHref}
+                            className="rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                          >
+                            Re-run brief
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -602,6 +645,95 @@ export default async function VenueDetailPage(
                     <p className="mt-2 text-lg font-bold">{venue.memorySummary?.topCreatorTag ?? 'Waiting...'}</p>
                   </div>
                 </div>
+              </div>
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Top Creators For This Venue</p>
+                    <h2 className="mt-2 text-2xl font-bold">Route proven people into this place faster</h2>
+                    <p className="mt-3 max-w-2xl text-sm text-white/60">
+                      These creators already have signal here. Use them as the fastest path from venue momentum to a funded activation.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
+                    className="inline-flex items-center gap-2 self-start rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                  >
+                    Launch with venue prefilled
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                {topCreatorRoutes.length === 0 ? (
+                  <div className={`${insetCardClass} mt-5 px-4 py-5`}>
+                    <p className="text-sm text-white/78">
+                      No strong venue-fit creator yet. Launch the next activation and this recommendation layer will start filling itself in.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-5 grid gap-3 xl:grid-cols-3">
+                    {topCreatorRoutes.map((creator) => (
+                      <div
+                        key={`${creator.walletAddress}-${creator.creatorTag}`}
+                        className={`${insetCardClass} flex h-full flex-col px-4 py-4`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-lg font-bold text-white">{creator.creatorTag}</div>
+                            <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/42">
+                              {creator.trustLabel} level {creator.trustLevel}
+                            </div>
+                          </div>
+                          <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
+                            {creator.trustScore} trust
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                            <div className="text-lg font-black text-white">{creator.marksHere}</div>
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">Marks</div>
+                          </div>
+                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                            <div className="text-lg font-black text-[#f8dd72]">{creator.firstMarksHere}</div>
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">First sparks</div>
+                          </div>
+                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                            <div className="text-lg font-black text-emerald-100">${Math.round(creator.totalEarned)}</div>
+                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">Earned</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/58">
+                            {creator.completedDares} wins total
+                          </span>
+                          <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
+                            {formatCompactAudience(creator.followerCount)} audience
+                          </span>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Link
+                            href={creator.href}
+                            className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                          >
+                            Route creator
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                          <Link
+                            href={`/creator/${encodeURIComponent(creator.creatorTag)}`}
+                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                          >
+                            View profile
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className={`${softCardClass} p-6`}>

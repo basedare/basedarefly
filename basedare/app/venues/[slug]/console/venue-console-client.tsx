@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { Activity, Flame, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
+import { buildActivationReplayComposerHref, buildRepeatActivationComposerHref } from '@/lib/venue-launch';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -191,6 +192,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const routedCreatorsCount = venue.activeDares.filter((dare) => Boolean(dare.claimedBy || dare.targetWalletAddress || dare.claimRequestStatus === 'PENDING')).length;
   const completedSignalCount = venue.memorySummary?.completedDareCount ?? 0;
   const activationQueue = venue.activeDares.slice(0, 4);
+  const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
   const launchActivationHref = useMemo(() => {
     const params = new URLSearchParams({
       venue: venue.slug,
@@ -499,6 +501,15 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     <Flame className="h-4 w-4" />
                     Open venue page
                   </Link>
+                  {repeatActivationHref ? (
+                    <Link
+                      href={repeatActivationHref}
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.1] px-4 py-2.5 text-sm font-semibold text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.14]"
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                      Repeat featured brief
+                    </Link>
+                  ) : null}
                 </div>
               </div>
 
@@ -522,6 +533,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   <div className="mt-4 space-y-3">
                     {activationQueue.map((dare) => {
                       const activationState = getActivationState(dare);
+                      const replayHref = buildActivationReplayComposerHref({ venue, activation: dare });
                       return (
                         <div key={dare.id} className={`${insetCardClass} px-4 py-4`}>
                           <div className="flex items-start justify-between gap-3">
@@ -560,6 +572,12 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                               className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-2 text-xs font-semibold text-fuchsia-100 transition hover:border-fuchsia-300/28 hover:bg-fuchsia-500/[0.12]"
                             >
                               Open on map
+                            </Link>
+                            <Link
+                              href={replayHref}
+                              className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/[0.08] px-3 py-2 text-xs font-semibold text-amber-100 transition hover:border-amber-300/28 hover:bg-amber-500/[0.12]"
+                            >
+                              Re-run brief
                             </Link>
                           </div>
                         </div>
