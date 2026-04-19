@@ -7,6 +7,7 @@ import {
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
 import VenuePageShell from '../../VenuePageShell';
+import VenueReportActions from './VenueReportActions';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -22,10 +23,21 @@ function formatSignedDelta(value: number) {
   return `${value}`;
 }
 
+type ReportAudience = 'venue' | 'sponsor';
+
 export default async function VenueReportPage(
-  { params }: { params: Promise<{ slug: string }> }
+  {
+    params,
+    searchParams,
+  }: {
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ audience?: string }>;
+  }
 ) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const audience: ReportAudience =
+    resolvedSearchParams?.audience === 'sponsor' ? 'sponsor' : 'venue';
   const venue = await getVenueDetailBySlug(slug);
 
   if (!venue) {
@@ -39,6 +51,20 @@ export default async function VenueReportPage(
         creatorTag: venue.roiSnapshot.bestCreator.creatorTag,
       })
     : null;
+  const reportSummary =
+    audience === 'sponsor'
+      ? `${venue.name} is showing a repeatable venue signal. Over the last 7 days it produced ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, with ${formatSignedDelta(venue.roiSnapshot.windows.last7Days.uniqueVisitorsDelta)} visitor delta versus the previous window.`
+      : venue.roiSnapshot.summary;
+  const reportLabel =
+    audience === 'sponsor' ? 'Sponsor Report Card' : 'Venue Report Card';
+  const reportHeading =
+    audience === 'sponsor'
+      ? 'Why this venue is worth activating next'
+      : 'What changed after activation';
+  const repeatLabel =
+    audience === 'sponsor' ? 'Launch sponsor-ready repeat' : 'Repeat winning activation';
+  const creatorRouteLabel =
+    audience === 'sponsor' ? 'Route best creator into venue' : 'Route top creator';
 
   return (
     <VenuePageShell mapHref={`/venues/${encodeURIComponent(venue.slug)}`}>
@@ -52,10 +78,10 @@ export default async function VenueReportPage(
               <div className="max-w-3xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]">
                   <BarChart3 className="h-4 w-4" />
-                  Venue Report Card
+                  {reportLabel}
                 </div>
                 <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
-                <p className="mt-4 max-w-2xl text-base text-white/68">{venue.roiSnapshot.summary}</p>
+                <p className="mt-4 max-w-2xl text-base text-white/68">{reportSummary}</p>
                 <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-white/55">
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <MapPin className="h-4 w-4 text-amber-300" />
@@ -69,6 +95,14 @@ export default async function VenueReportPage(
                     <Activity className="h-4 w-4 text-amber-200" />
                     Heat {venue.tagSummary.heatScore}
                   </span>
+                </div>
+                <div className="mt-5">
+                  <VenueReportActions
+                    venueSlug={venue.slug}
+                    venueName={venue.name}
+                    summary={reportSummary}
+                    audience={audience}
+                  />
                 </div>
               </div>
 
@@ -104,7 +138,7 @@ export default async function VenueReportPage(
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">ROI Windows</p>
-                    <h2 className="mt-2 text-2xl font-bold">Before vs after venue lift</h2>
+                    <h2 className="mt-2 text-2xl font-bold">{reportHeading}</h2>
                   </div>
                   <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/58">
                     Shareable snapshot
@@ -209,7 +243,7 @@ export default async function VenueReportPage(
                       className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
                     >
                       <Flame className="h-4 w-4" />
-                      Repeat winning activation
+                      {repeatLabel}
                     </Link>
                   ) : null}
                   {bestCreatorRouteHref ? (
@@ -218,7 +252,7 @@ export default async function VenueReportPage(
                       className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
                     >
                       <Users className="h-4 w-4" />
-                      Route top creator
+                      {creatorRouteLabel}
                     </Link>
                   ) : null}
                   <Link
