@@ -9,6 +9,7 @@ import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { getRankedCampaignMatches } from '@/lib/campaign-matching';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
 import { getApprovedTagSummaryMap } from '@/lib/place-tags';
+import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
 import {
   BountyPlaceResolutionError,
   resolveCanonicalBountyPlaceContext,
@@ -142,6 +143,10 @@ const CreateCampaignSchema = z.object({
   selectedCreatorTag: z.string().min(1).max(120).optional(),
   linkedDareId: z.string().cuid().optional(),
   syncTime: z.string().datetime().optional(),
+  reportSource: z.string().max(80).optional(),
+  reportAudience: z.enum(['venue', 'sponsor']).optional(),
+  reportSessionKey: z.string().min(6).max(200).optional(),
+  reportIntent: z.enum(['activation', 'repeat']).optional(),
   targetingCriteria: TargetingCriteriaSchema.optional(),
   verificationCriteria: VerificationCriteriaSchema,
 });
@@ -374,6 +379,10 @@ export async function POST(request: NextRequest) {
       selectedCreatorTag,
       linkedDareId,
       syncTime,
+      reportSource,
+      reportAudience,
+      reportSessionKey,
+      reportIntent,
       targetingCriteria,
       verificationCriteria,
     } = validation.data;
@@ -720,6 +729,22 @@ export async function POST(request: NextRequest) {
     console.log(
       `[CAMPAIGNS] Created: ${title} (${type}/${tier}) - $${totalBudget} for ${effectiveCreatorCountTarget} creator slots`
     );
+
+    if (type === 'PLACE' && venueId && reportSource === 'venue-report') {
+      void recordVenueReportEvent({
+        venueId,
+        audience: reportAudience ?? 'venue',
+        eventType: reportIntent === 'repeat' ? 'REPEAT_LAUNCHED' : 'ACTIVATION_LAUNCHED',
+        sessionKey: reportSessionKey ?? null,
+        channel: 'campaign-create',
+        metadataJson: {
+          campaignId: campaign.id,
+          linkedDareId: campaign.linkedDareId ?? null,
+          tier,
+          payoutPerCreator,
+        },
+      });
+    }
 
     const campaignWithCounts = mapCampaignWithCounts(campaign as Parameters<typeof mapCampaignWithCounts>[0]);
 

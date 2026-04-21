@@ -354,7 +354,7 @@ export default async function VenueReportPage(
                     href={freshActivationHref}
                     venueSlug={venue.slug}
                     audience={audience}
-                    eventType="ACTIVATION_LAUNCHED"
+                    intent="activation"
                     className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                   >
                     <ArrowRight className="h-4 w-4" />
@@ -365,7 +365,7 @@ export default async function VenueReportPage(
                       href={repeatActivationHref}
                       venueSlug={venue.slug}
                       audience={audience}
-                      eventType="REPEAT_LAUNCHED"
+                      intent="repeat"
                       className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
                     >
                       <Flame className="h-4 w-4" />
@@ -374,11 +374,12 @@ export default async function VenueReportPage(
                   ) : null}
                   {bestCreatorRouteHref ? (
                     <VenueReportTrackedLink
-                      href={bestCreatorRouteHref}
-                      venueSlug={venue.slug}
-                      audience={audience}
-                      className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
-                    >
+                    href={bestCreatorRouteHref}
+                    venueSlug={venue.slug}
+                    audience={audience}
+                    intent="activation"
+                    className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
+                  >
                       <Users className="h-4 w-4" />
                       {creatorRouteLabel}
                     </VenueReportTrackedLink>
@@ -387,6 +388,7 @@ export default async function VenueReportPage(
                     href={activationHandoffHref}
                     venueSlug={venue.slug}
                     audience={audience}
+                    intent="activation"
                     className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
                   >
                     <Waves className="h-4 w-4" />
@@ -406,6 +408,7 @@ export default async function VenueReportPage(
                       href={claimHandoffHref}
                       venueSlug={venue.slug}
                       audience={audience}
+                      intent="claim"
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/76 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
                     >
                       <Activity className="h-4 w-4" />

@@ -27,6 +27,7 @@ function getSessionFields(session: SessionShape | null | undefined) {
 type ClaimVenueButtonProps = {
   venueSlug: string;
   venueName: string;
+  claimHref?: string;
   className?: string;
   pendingClassName?: string;
   requireAuthClassName?: string;
@@ -37,6 +38,7 @@ type ClaimVenueButtonProps = {
 export default function ClaimVenueButton({
   venueSlug,
   venueName,
+  claimHref,
   className,
   pendingClassName,
   requireAuthClassName,
@@ -79,7 +81,7 @@ export default function ClaimVenueButton({
 
         try {
           setSubmitting(true);
-          const response = await fetch(`/api/venues/${encodeURIComponent(venueSlug)}/claim`, {
+          const response = await fetch(claimHref ?? `/api/venues/${encodeURIComponent(venueSlug)}/claim`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${sessionFields.token}`,

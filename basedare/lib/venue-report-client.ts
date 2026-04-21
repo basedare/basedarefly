@@ -29,6 +29,7 @@ export function buildTrackedVenueReportHref(input: {
   href: string;
   venueSlug: string;
   audience: VenueReportAudience;
+  intent?: 'claim' | 'activation' | 'repeat' | null;
 }) {
   if (typeof window === 'undefined') return input.href;
   const sessionKey = getVenueReportSessionKey(input.venueSlug, input.audience);
@@ -36,6 +37,9 @@ export function buildTrackedVenueReportHref(input: {
   url.searchParams.set('source', 'venue-report');
   url.searchParams.set('reportSource', 'venue-report');
   url.searchParams.set('reportAudience', input.audience);
+  if (input.intent) {
+    url.searchParams.set('reportIntent', input.intent);
+  }
   if (sessionKey) {
     url.searchParams.set('reportSessionKey', sessionKey);
   }

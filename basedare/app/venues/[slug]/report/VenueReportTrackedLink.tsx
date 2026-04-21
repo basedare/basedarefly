@@ -15,6 +15,7 @@ export default function VenueReportTrackedLink({
   venueSlug,
   audience,
   eventType,
+  intent,
   className,
   children,
 }: {
@@ -22,13 +23,14 @@ export default function VenueReportTrackedLink({
   venueSlug: string;
   audience: VenueReportAudience;
   eventType?: VenueReportEventType;
+  intent?: 'claim' | 'activation' | 'repeat' | null;
   className?: string;
   children: ReactNode;
 }) {
   const router = useRouter();
   const trackedHref = useMemo(
-    () => buildTrackedVenueReportHref({ href, venueSlug, audience }),
-    [audience, href, venueSlug]
+    () => buildTrackedVenueReportHref({ href, venueSlug, audience, intent }),
+    [audience, href, intent, venueSlug]
   );
 
   return (

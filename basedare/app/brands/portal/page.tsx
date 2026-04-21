@@ -254,6 +254,17 @@ type ComposerPrefill = {
   title?: string | null;
   description?: string | null;
   syncTime?: string | null;
+  reportSource?: string | null;
+  reportAudience?: 'venue' | 'sponsor' | null;
+  reportSessionKey?: string | null;
+  reportIntent?: 'activation' | 'repeat' | null;
+};
+
+type ReportAttribution = {
+  source: string | null;
+  audience: 'venue' | 'sponsor' | null;
+  sessionKey: string | null;
+  intent: 'activation' | 'repeat' | null;
 };
 
 const PLATFORM_OPTIONS = [
@@ -397,6 +408,7 @@ export default function BrandPortalPage() {
   const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
   const [selectedVenueRadarId, setSelectedVenueRadarId] = useState<string | null>(null);
   const [preferredCreatorTag, setPreferredCreatorTag] = useState<string | null>(null);
+  const [reportAttribution, setReportAttribution] = useState<ReportAttribution | null>(null);
 
   const [formData, setFormData] = useState<CampaignFormData>({
     type: 'PLACE',
@@ -514,6 +526,16 @@ export default function BrandPortalPage() {
       },
     }));
     setPreferredCreatorTag(prefill.creatorTag?.trim() || null);
+    setReportAttribution(
+      prefill.reportSource === 'venue-report'
+        ? {
+            source: prefill.reportSource,
+            audience: prefill.reportAudience ?? 'venue',
+            sessionKey: prefill.reportSessionKey ?? null,
+            intent: prefill.reportIntent ?? null,
+          }
+        : null
+    );
     setShowCreateCampaign(true);
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -544,7 +566,21 @@ export default function BrandPortalPage() {
     const title = params.get('title');
     const objective = params.get('objective');
     const syncTime = params.get('syncTime');
-    const deepLinkKey = `${venueSlug ?? ''}|${campaignId ?? ''}|${compose ?? ''}|${creatorTag ?? ''}|${tier ?? ''}|${payout ?? ''}|${title ?? ''}|${objective ?? ''}|${syncTime ?? ''}`;
+    const reportSource = params.get('reportSource');
+    const reportAudience =
+      params.get('reportAudience') === 'sponsor'
+        ? 'sponsor'
+        : params.get('reportAudience') === 'venue'
+          ? 'venue'
+          : null;
+    const reportSessionKey = params.get('reportSessionKey');
+    const reportIntent =
+      params.get('reportIntent') === 'repeat'
+        ? 'repeat'
+        : params.get('reportIntent') === 'activation'
+          ? 'activation'
+          : null;
+    const deepLinkKey = `${venueSlug ?? ''}|${campaignId ?? ''}|${compose ?? ''}|${creatorTag ?? ''}|${tier ?? ''}|${payout ?? ''}|${title ?? ''}|${objective ?? ''}|${syncTime ?? ''}|${reportSource ?? ''}|${reportAudience ?? ''}|${reportSessionKey ?? ''}|${reportIntent ?? ''}`;
 
     if (handledDeepLinkKey === deepLinkKey) {
       return;
@@ -563,6 +599,10 @@ export default function BrandPortalPage() {
             title,
             description: objective,
             syncTime,
+            reportSource,
+            reportAudience,
+            reportSessionKey,
+            reportIntent,
           });
         }
       }
@@ -936,6 +976,10 @@ export default function BrandPortalPage() {
           selectedCreatorId: formData.type === 'PLACE' ? selectedCreatorId : undefined,
           linkedDareId,
           syncTime: formData.syncTime || undefined,
+          reportSource: reportAttribution?.source ?? undefined,
+          reportAudience: reportAttribution?.audience ?? undefined,
+          reportSessionKey: reportAttribution?.sessionKey ?? undefined,
+          reportIntent: reportAttribution?.intent ?? undefined,
         }),
       });
 
@@ -959,6 +1003,7 @@ export default function BrandPortalPage() {
         setPlaceResults([]);
         setSelectedPlace(null);
         setPreferredCreatorTag(null);
+        setReportAttribution(null);
         setRecommendedCreators([]);
         setRecommendedCreatorsError(null);
         setRecommendedCreatorsLoading(false);

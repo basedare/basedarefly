@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
 import { notifyVenueClaimSubmitted } from '@/lib/venue-notifications';
 
 type ClaimSession = {
@@ -22,6 +23,9 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const reportSource = request.nextUrl.searchParams.get('reportSource');
+    const reportAudience = request.nextUrl.searchParams.get('reportAudience') === 'sponsor' ? 'sponsor' : 'venue';
+    const reportSessionKey = request.nextUrl.searchParams.get('reportSessionKey');
     const session = (await getServerSession(authOptions)) as ClaimSession | null;
     if (!session) {
       return NextResponse.json({ success: false, error: 'Sign in required to claim a venue' }, { status: 401 });
@@ -76,6 +80,15 @@ export async function POST(
 
     if (venue.claimRequestStatus === 'PENDING') {
       if (venue.claimRequestWallet === walletAddress) {
+        if (reportSource === 'venue-report') {
+          void recordVenueReportEvent({
+            venueId: venue.id,
+            audience: reportAudience,
+            eventType: 'CLAIM_STARTED',
+            sessionKey: reportSessionKey,
+            channel: 'venue-claim',
+          });
+        }
         return NextResponse.json({
           success: true,
           message: 'Your venue claim is already pending moderator review.',
@@ -117,6 +130,16 @@ export async function POST(
       venueSlug: updatedVenue.slug,
       venueName: updatedVenue.name,
     });
+
+    if (reportSource === 'venue-report') {
+      void recordVenueReportEvent({
+        venueId: venue.id,
+        audience: reportAudience,
+        eventType: 'CLAIM_STARTED',
+        sessionKey: reportSessionKey,
+        channel: 'venue-claim',
+      });
+    }
 
     return NextResponse.json({
       success: true,

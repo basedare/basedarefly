@@ -1,7 +1,11 @@
 'use client';
 
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
-import { trackVenueReportEvent, type VenueReportAudience } from '@/lib/venue-report-client';
+import {
+  buildTrackedVenueReportHref,
+  trackVenueReportEvent,
+  type VenueReportAudience,
+} from '@/lib/venue-report-client';
 
 export default function VenueReportClaimButton({
   venueSlug,
@@ -20,10 +24,18 @@ export default function VenueReportClaimButton({
   requireAuthClassName?: string;
   pending?: boolean;
 }) {
+  const claimHref = buildTrackedVenueReportHref({
+    href: `/api/venues/${encodeURIComponent(venueSlug)}/claim`,
+    venueSlug,
+    audience,
+    intent: 'claim',
+  });
+
   return (
     <ClaimVenueButton
       venueSlug={venueSlug}
       venueName={venueName}
+      claimHref={claimHref}
       className={className}
       pendingClassName={pendingClassName}
       requireAuthClassName={requireAuthClassName}
