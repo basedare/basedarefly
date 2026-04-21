@@ -113,6 +113,8 @@ interface AdminSettingsState {
   sentinelPausedReason: string | null;
   sentinelPendingAlertThreshold: number;
   lastSentinelQueueAlertSent: string | null;
+  venueLeadAlertThreshold: number;
+  lastVenueLeadAlertSent: string | null;
 }
 
 function deriveQueueSummary(dares: DareForModeration[]): QueueSummary {
@@ -273,6 +275,22 @@ interface VenueReportLeadEntry {
 
 type LeadInboxFilter = 'all' | 'needsOwner' | 'overdue' | 'highSignal';
 
+function formatLeadStatus(value: VenueReportLeadEntry['followUpStatus']) {
+  switch (value) {
+    case 'FOLLOWING_UP':
+      return 'Working';
+    case 'CONVERTED':
+      return 'Won';
+    case 'ARCHIVED':
+      return 'Archived';
+    case 'WAITING':
+      return 'Waiting';
+    case 'NEW':
+    default:
+      return 'New';
+  }
+}
+
 interface PendingPlaceTag {
   id: string;
   venueId: string;
@@ -432,11 +450,15 @@ export default function AdminPage() {
     sentinelPausedReason: null,
     sentinelPendingAlertThreshold: 5,
     lastSentinelQueueAlertSent: null,
+    venueLeadAlertThreshold: 2,
+    lastVenueLeadAlertSent: null,
   });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [sentinelThresholdDraft, setSentinelThresholdDraft] = useState('5');
+  const [venueLeadThresholdDraft, setVenueLeadThresholdDraft] = useState('2');
   const [sentinelPauseReasonDraft, setSentinelPauseReasonDraft] = useState('');
+  const [leadAlertRunning, setLeadAlertRunning] = useState(false);
 
   // Tags management state
   const [pendingTags, setPendingTags] = useState<PendingTag[]>([]);
@@ -504,7 +526,7 @@ export default function AdminPage() {
   const [reportLeadsError, setReportLeadsError] = useState<string | null>(null);
   const [selectedReportLead, setSelectedReportLead] = useState<VenueReportLeadEntry | null>(null);
   const [reportLeadUpdating, setReportLeadUpdating] = useState<string | null>(null);
-  const [leadInboxFilter, setLeadInboxFilter] = useState<LeadInboxFilter>('all');
+  const [leadInboxFilter, setLeadInboxFilter] = useState<LeadInboxFilter>('needsOwner');
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -594,8 +616,11 @@ export default function AdminPage() {
           sentinelPausedReason: data.data.sentinelPausedReason ?? null,
           sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? 5,
           lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? null,
+          venueLeadAlertThreshold: data.data.venueLeadAlertThreshold ?? 2,
+          lastVenueLeadAlertSent: data.data.lastVenueLeadAlertSent ?? null,
         });
         setSentinelThresholdDraft(String(data.data.sentinelPendingAlertThreshold ?? 5));
+        setVenueLeadThresholdDraft(String(data.data.venueLeadAlertThreshold ?? 2));
         setSentinelPauseReasonDraft(data.data.sentinelPausedReason ?? '');
       }
     } catch {
@@ -641,9 +666,14 @@ export default function AdminPage() {
           sentinelPausedReason: data.data.sentinelPausedReason ?? null,
           sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold,
           lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? adminSettings.lastSentinelQueueAlertSent,
+          venueLeadAlertThreshold: data.data.venueLeadAlertThreshold ?? adminSettings.venueLeadAlertThreshold,
+          lastVenueLeadAlertSent: data.data.lastVenueLeadAlertSent ?? adminSettings.lastVenueLeadAlertSent,
         });
         setSentinelThresholdDraft(
           String(data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold)
+        );
+        setVenueLeadThresholdDraft(
+          String(data.data.venueLeadAlertThreshold ?? adminSettings.venueLeadAlertThreshold)
         );
         setSentinelPauseReasonDraft(data.data.sentinelPausedReason ?? sentinelPauseReasonDraft);
       } else {
@@ -657,9 +687,11 @@ export default function AdminPage() {
   }, [
     address,
     adminSettings.lastSentinelQueueAlertSent,
+    adminSettings.lastVenueLeadAlertSent,
     adminSettings.sentinelPausedReason,
     adminSettings.sentinelEnabled,
     adminSettings.sentinelPendingAlertThreshold,
+    adminSettings.venueLeadAlertThreshold,
     sentinelPauseReasonDraft,
   ]);
 
@@ -694,8 +726,13 @@ export default function AdminPage() {
           sentinelPausedReason: data.data.sentinelPausedReason ?? null,
           sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? nextThreshold,
           lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? null,
+          venueLeadAlertThreshold: data.data.venueLeadAlertThreshold ?? adminSettings.venueLeadAlertThreshold,
+          lastVenueLeadAlertSent: data.data.lastVenueLeadAlertSent ?? adminSettings.lastVenueLeadAlertSent,
         });
         setSentinelThresholdDraft(String(data.data.sentinelPendingAlertThreshold ?? nextThreshold));
+        setVenueLeadThresholdDraft(
+          String(data.data.venueLeadAlertThreshold ?? adminSettings.venueLeadAlertThreshold)
+        );
       } else {
         setError(data.error || 'Failed to update Sentinel queue alert threshold');
       }
@@ -708,8 +745,96 @@ export default function AdminPage() {
     address,
     adminSettings.sentinelEnabled,
     adminSettings.sentinelPausedReason,
+    adminSettings.lastVenueLeadAlertSent,
+    adminSettings.venueLeadAlertThreshold,
     sentinelThresholdDraft,
   ]);
+
+  const handleVenueLeadThresholdSave = useCallback(async () => {
+    if (!address) return;
+
+    const nextThreshold = Number.parseInt(venueLeadThresholdDraft, 10);
+    if (!Number.isFinite(nextThreshold) || nextThreshold < 1) {
+      setError('Venue lead alert threshold must be at least 1');
+      return;
+    }
+
+    try {
+      setSettingsSaving(true);
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-moderator-wallet': address,
+        },
+        body: JSON.stringify({
+          sentinelEnabled: adminSettings.sentinelEnabled,
+          sentinelPausedReason: adminSettings.sentinelEnabled ? null : adminSettings.sentinelPausedReason,
+          sentinelPendingAlertThreshold: adminSettings.sentinelPendingAlertThreshold,
+          venueLeadAlertThreshold: nextThreshold,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setAdminSettings({
+          sentinelEnabled: data.data.sentinelEnabled !== false,
+          sentinelPausedReason: data.data.sentinelPausedReason ?? null,
+          sentinelPendingAlertThreshold: data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold,
+          lastSentinelQueueAlertSent: data.data.lastSentinelQueueAlertSent ?? adminSettings.lastSentinelQueueAlertSent,
+          venueLeadAlertThreshold: data.data.venueLeadAlertThreshold ?? nextThreshold,
+          lastVenueLeadAlertSent: data.data.lastVenueLeadAlertSent ?? adminSettings.lastVenueLeadAlertSent,
+        });
+        setSentinelThresholdDraft(
+          String(data.data.sentinelPendingAlertThreshold ?? adminSettings.sentinelPendingAlertThreshold)
+        );
+        setVenueLeadThresholdDraft(String(data.data.venueLeadAlertThreshold ?? nextThreshold));
+      } else {
+        setError(data.error || 'Failed to update venue lead alert threshold');
+      }
+    } catch {
+      setError('Failed to update venue lead alert threshold');
+    } finally {
+      setSettingsSaving(false);
+    }
+  }, [
+    address,
+    adminSettings.lastSentinelQueueAlertSent,
+    adminSettings.lastVenueLeadAlertSent,
+    adminSettings.sentinelEnabled,
+    adminSettings.sentinelPausedReason,
+    adminSettings.sentinelPendingAlertThreshold,
+    venueLeadThresholdDraft,
+  ]);
+
+  const handleRunLeadAlertScan = useCallback(async () => {
+    if (!address) return;
+
+    try {
+      setLeadAlertRunning(true);
+      const res = await fetch('/api/admin/venue-report-leads/alert', {
+        method: 'POST',
+        headers: {
+          'x-moderator-wallet': address,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setModerationActionNotice(
+          data.data.alerted
+            ? `Lead alert sent for ${data.data.urgentCount} urgent lead${data.data.urgentCount === 1 ? '' : 's'}.`
+            : `Lead scan complete: ${data.data.reason?.toLowerCase?.() || 'no alert sent'}.`
+        );
+        await fetchAdminSettings();
+      } else {
+        setError(data.error || 'Failed to run venue lead alert scan');
+      }
+    } catch {
+      setError('Failed to run venue lead alert scan');
+    } finally {
+      setLeadAlertRunning(false);
+    }
+  }, [address, fetchAdminSettings]);
 
   // Fetch pending tags
   const fetchPendingTags = useCallback(async () => {
@@ -1739,6 +1864,46 @@ export default function AdminPage() {
                       Last queue alert: {formatRelativeTime(adminSettings.lastSentinelQueueAlertSent)}
                     </p>
                   ) : null}
+                  <div className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.05] p-4">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">Venue Lead Nudges</p>
+                    <p className="mt-2 text-sm text-gray-300">
+                      Alert operators when high-signal venue report leads are overdue or still unowned.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <label className="flex max-w-[220px] flex-col gap-2 text-xs text-gray-400">
+                        Lead alert threshold
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={venueLeadThresholdDraft}
+                          onChange={(event) => setVenueLeadThresholdDraft(event.target.value)}
+                          className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-cyan-400/60"
+                        />
+                      </label>
+                      <button
+                        onClick={() => void handleVenueLeadThresholdSave()}
+                        disabled={settingsSaving || settingsLoading}
+                        className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-60"
+                      >
+                        Save threshold
+                      </button>
+                      <button
+                        onClick={() => void handleRunLeadAlertScan()}
+                        disabled={leadAlertRunning || settingsLoading}
+                        className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white/80 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
+                      >
+                        {leadAlertRunning ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Run scan now'
+                        )}
+                      </button>
+                    </div>
+                    <p className="mt-3 text-xs text-gray-500">
+                      Last lead alert: {adminSettings.lastVenueLeadAlertSent ? formatRelativeTime(adminSettings.lastVenueLeadAlertSent) : 'never'}.
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => void handleSentinelToggle()}
@@ -2978,7 +3143,7 @@ export default function AdminPage() {
                             </span>
                           </p>
                           <p className="mt-1 text-sm text-gray-300">
-                            Status: <span className="text-white">{selectedReportLead.followUpStatus.replace(/_/g, ' ')}</span>
+                            Status: <span className="text-white">{formatLeadStatus(selectedReportLead.followUpStatus)}</span>
                           </p>
                           <p className="mt-1 text-sm text-gray-300">
                             Next action: <span className="text-white">{formatLeadDue(selectedReportLead.nextActionAt)}</span>
@@ -2998,16 +3163,6 @@ export default function AdminPage() {
                             )}
                             Assign to me
                           </button>
-                          {selectedReportLead.ownerWallet ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleReportLeadUpdate(selectedReportLead.id, { ownerWallet: null })}
-                              disabled={reportLeadUpdating === selectedReportLead.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
-                            >
-                              Clear owner
-                            </button>
-                          ) : null}
                         </div>
                       </div>
 
@@ -3036,51 +3191,32 @@ export default function AdminPage() {
                           disabled={reportLeadUpdating === selectedReportLead.id}
                           className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
                         >
-                          Follow up in 3d
+                          Wait 3d
                         </button>
                         <button
                           type="button"
                           onClick={() =>
                             void handleReportLeadUpdate(selectedReportLead.id, {
-                              nextActionAt: null,
+                              followUpStatus: 'CONVERTED',
+                            })
+                          }
+                          disabled={reportLeadUpdating === selectedReportLead.id}
+                          className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-emerald-500/15 disabled:opacity-60"
+                        >
+                          Mark won
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleReportLeadUpdate(selectedReportLead.id, {
+                              followUpStatus: 'ARCHIVED',
                             })
                           }
                           disabled={reportLeadUpdating === selectedReportLead.id}
                           className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/55 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-60"
                         >
-                          Clear reminder
+                          Archive
                         </button>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {[
-                          ['NEW', 'New'],
-                          ['FOLLOWING_UP', 'Following up'],
-                          ['WAITING', 'Waiting'],
-                          ['CONVERTED', 'Converted'],
-                          ['ARCHIVED', 'Archived'],
-                        ].map(([value, label]) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() =>
-                              void handleReportLeadUpdate(selectedReportLead.id, {
-                                followUpStatus: value as VenueReportLeadEntry['followUpStatus'],
-                              })
-                            }
-                            disabled={
-                              reportLeadUpdating === selectedReportLead.id ||
-                              selectedReportLead.followUpStatus === value
-                            }
-                            className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] transition ${
-                              selectedReportLead.followUpStatus === value
-                                ? 'border-cyan-400/30 bg-cyan-500/[0.14] text-cyan-200'
-                                : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white'
-                            } disabled:opacity-60`}
-                          >
-                            {label}
-                          </button>
-                        ))}
                       </div>
                     </div>
 

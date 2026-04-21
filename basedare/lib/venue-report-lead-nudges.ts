@@ -136,6 +136,7 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
       email: lead.email,
       audience: lead.audience,
       intent: lead.intent,
+      ownerWallet: lead.ownerWallet,
       reasons: lead.priority.reasons,
     })),
   });

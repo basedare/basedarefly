@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/refund-expired",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/venue-report-leads",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

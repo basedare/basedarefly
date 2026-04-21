@@ -312,6 +312,7 @@ export async function alertVenueLeadFollowUpQueue(data: {
     email: string;
     audience: string;
     intent: string | null;
+    ownerWallet: string | null;
     reasons: string[];
   }>;
 }): Promise<boolean> {
@@ -319,7 +320,8 @@ export async function alertVenueLeadFollowUpQueue(data: {
     .slice(0, 4)
     .map((lead) => {
       const reasons = lead.reasons.join(', ') || 'stale';
-      return `• <b>${lead.venueName}</b> · ${lead.audience}${lead.intent ? ` · ${lead.intent}` : ''}\n  ${lead.email}\n  ${reasons}`;
+      const owner = lead.ownerWallet ? `assigned ${lead.ownerWallet.slice(0, 6)}...${lead.ownerWallet.slice(-4)}` : 'unassigned';
+      return `• <b>${lead.venueName}</b> · ${lead.audience}${lead.intent ? ` · ${lead.intent}` : ''}\n  ${lead.email} · ${owner}\n  ${reasons}`;
     })
     .join('\n');
 
