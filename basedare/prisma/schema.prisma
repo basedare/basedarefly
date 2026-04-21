@@ -161,6 +161,8 @@ model Venue {
   memories            VenueMemory[]
   placeTags           PlaceTag[]
   qrSessions          VenueQrSession[]
+  reportEvents        VenueReportEvent[]
+  reportLeads         VenueReportLead[]
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -168,6 +170,47 @@ model Venue {
   @@index([city, status])
   @@index([claimRequestStatus])
   @@index([claimedBy])
+}
+
+model VenueReportEvent {
+  id         String   @id @default(cuid())
+  venueId     String
+  leadId      String?
+  audience    String   @default("venue")
+  eventType   String
+  sessionKey  String?
+  channel     String?
+  metadataJson Json?
+  createdAt   DateTime @default(now())
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  lead        VenueReportLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([venueId, createdAt])
+  @@index([venueId, eventType, createdAt])
+  @@index([sessionKey, createdAt])
+}
+
+model VenueReportLead {
+  id          String   @id @default(cuid())
+  venueId      String
+  audience     String   @default("venue")
+  source       String   @default("REPORT")
+  intent       String?
+  sessionKey   String?
+  email        String
+  name         String?
+  organization String?
+  notes        String?
+  contactedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  venue        Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  reportEvents VenueReportEvent[]
+
+  @@index([venueId, createdAt])
+  @@index([venueId, audience, createdAt])
+  @@index([email, createdAt])
+  @@index([sessionKey, createdAt])
 }
 
 model PlaceTag {

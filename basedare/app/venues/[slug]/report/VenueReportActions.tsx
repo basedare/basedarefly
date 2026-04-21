@@ -1,8 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Copy, ExternalLink, Mail, Share2 } from 'lucide-react';
+import {
+  buildTrackedVenueReportHref,
+  trackVenueReportEvent,
+} from '@/lib/venue-report-client';
 
 type ReportAudience = 'venue' | 'sponsor';
 
@@ -40,11 +44,44 @@ export default function VenueReportActions({
     });
     return `mailto:?${params.toString()}`;
   }, [shareBody, shareSubject, shareUrl]);
+  const venueLensHref = useMemo(
+    () =>
+      buildTrackedVenueReportHref({
+        href: `/venues/${encodeURIComponent(venueSlug)}/report?audience=venue`,
+        venueSlug,
+        audience,
+      }),
+    [audience, venueSlug]
+  );
+  const sponsorLensHref = useMemo(
+    () =>
+      buildTrackedVenueReportHref({
+        href: `/venues/${encodeURIComponent(venueSlug)}/report?audience=sponsor`,
+        venueSlug,
+        audience,
+      }),
+    [audience, venueSlug]
+  );
+
+  useEffect(() => {
+    void trackVenueReportEvent({
+      venueSlug,
+      audience,
+      eventType: 'OPEN',
+      channel: 'page',
+    });
+  }, [audience, venueSlug]);
 
   async function copyText(kind: 'brief' | 'link') {
     const value = kind === 'brief' ? `${shareSubject}\n\n${shareBody}\n\n${shareUrl}` : shareUrl;
     try {
       await navigator.clipboard.writeText(value);
+      await trackVenueReportEvent({
+        venueSlug,
+        audience,
+        eventType: kind === 'brief' ? 'COPY_BRIEF' : 'COPY_LINK',
+        channel: kind,
+      });
       setCopied(kind);
       window.setTimeout(() => setCopied(null), 1600);
     } catch {
@@ -56,6 +93,12 @@ export default function VenueReportActions({
     try {
       if (navigator.share) {
         await navigator.share(sharePayload);
+        await trackVenueReportEvent({
+          venueSlug,
+          audience,
+          eventType: 'SHARE',
+          channel: 'native-share',
+        });
         return;
       }
       await copyText('link');
@@ -68,7 +111,7 @@ export default function VenueReportActions({
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="flex flex-wrap gap-2">
         <Link
-          href={`/venues/${encodeURIComponent(venueSlug)}/report?audience=venue`}
+          href={venueLensHref}
           className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
             audience === 'venue'
               ? 'border-cyan-300/30 bg-cyan-500/[0.12] text-cyan-100'
@@ -78,7 +121,7 @@ export default function VenueReportActions({
           Venue lens
         </Link>
         <Link
-          href={`/venues/${encodeURIComponent(venueSlug)}/report?audience=sponsor`}
+          href={sponsorLensHref}
           className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
             audience === 'sponsor'
               ? 'border-fuchsia-300/30 bg-fuchsia-500/[0.12] text-fuchsia-100'
@@ -116,6 +159,14 @@ export default function VenueReportActions({
         </button>
         <a
           href={mailtoHref}
+          onClick={() => {
+            void trackVenueReportEvent({
+              venueSlug,
+              audience,
+              eventType: 'EMAIL_BRIEF',
+              channel: 'mailto',
+            });
+          }}
           className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.12]"
         >
           <Mail className="h-3.5 w-3.5" />

@@ -145,6 +145,26 @@ export type VenueRoiSnapshot = {
   };
 };
 
+export type VenueReportPipelineStage = {
+  active: boolean;
+  at: string | null;
+};
+
+export type VenueReportPipelineSummary = {
+  summary: string;
+  opens: number;
+  shares: number;
+  contacts: number;
+  lastTouchedAt: string | null;
+  stages: {
+    shared: VenueReportPipelineStage;
+    contacted: VenueReportPipelineStage;
+    claimStarted: VenueReportPipelineStage;
+    activationLaunched: VenueReportPipelineStage;
+    repeatLaunched: VenueReportPipelineStage;
+  };
+};
+
 export type BrandVenueRadarItem = {
   id: string;
   slug: string;
@@ -252,6 +272,7 @@ export type VenueDetail = {
   mapModes: VenueExperienceMode[];
   activationInsight: VenueActivationInsight;
   roiSnapshot: VenueRoiSnapshot;
+  reportPipeline: VenueReportPipelineSummary;
   liveStats: {
     scansLastHour: number;
     uniqueVisitorsToday: number;

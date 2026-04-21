@@ -13,6 +13,7 @@ import {
   getRecentApprovedPlaceTagsByVenueId,
   getVenueTagSummary,
 } from '@/lib/place-tags';
+import { getVenueReportPipelineSummary } from '@/lib/venue-report-pipeline';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import type {
@@ -1476,6 +1477,7 @@ export async function getVenueDetailBySlug(
     topCreators,
     activationInsight,
   });
+  const reportPipeline = await getVenueReportPipelineSummary(venue.id);
 
   return {
     id: venue.id,
@@ -1503,6 +1505,7 @@ export async function getVenueDetailBySlug(
     mapModes: buildVenueExperienceModes(),
     activationInsight,
     roiSnapshot,
+    reportPipeline,
     liveStats: {
       scansLastHour,
       uniqueVisitorsToday: uniqueVisitorRows.length,

@@ -10,12 +10,22 @@ type WaitlistClientProps = {
   initialTopic: string | null;
   initialVenue: string | null;
   initialCity: string | null;
+  initialVenueSlug: string | null;
+  initialSource: string | null;
+  initialAudience: string | null;
+  initialIntent: string | null;
+  initialReportSessionKey: string | null;
 };
 
 export default function WaitlistClient({
   initialTopic,
   initialVenue,
   initialCity,
+  initialVenueSlug,
+  initialSource,
+  initialAudience,
+  initialIntent,
+  initialReportSessionKey,
 }: WaitlistClientProps) {
   const [email, setEmail] = useState('');
   const raisedShellClass =
@@ -74,6 +84,29 @@ export default function WaitlistClient({
     });
 
     if (response.ok) {
+      if (initialSource === 'venue-report' && initialVenueSlug) {
+        try {
+          await fetch(`/api/venues/${encodeURIComponent(initialVenueSlug)}/report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'handoff',
+              audience: initialAudience === 'sponsor' ? 'sponsor' : 'venue',
+              sessionKey: initialReportSessionKey,
+              intent:
+                initialIntent === 'claim' || initialIntent === 'activation' || initialIntent === 'repeat'
+                  ? initialIntent
+                  : null,
+              email,
+              notes,
+            }),
+          });
+        } catch {
+          // The contact signal should still succeed even if report attribution fails.
+        }
+      }
       setSubmitted(true);
     } else {
       alert('Signal failed to route. Try again in a moment.');
