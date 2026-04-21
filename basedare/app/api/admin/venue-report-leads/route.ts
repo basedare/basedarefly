@@ -30,6 +30,78 @@ function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null;
 }
 
+function hoursSince(value: Date) {
+  return Math.max(0, Math.round((Date.now() - value.getTime()) / (1000 * 60 * 60)));
+}
+
+function buildLeadPriority(input: {
+  audience: 'venue' | 'sponsor';
+  intent: string | null;
+  followUpStatus: string;
+  ownerWallet: string | null;
+  nextActionAt: Date | null;
+  contactedAt: Date;
+  stage: PipelineStageKey;
+}) {
+  let score = 0;
+  const reasons: string[] = [];
+  const staleHours = hoursSince(input.contactedAt);
+  const isOverdue = Boolean(input.nextActionAt && input.nextActionAt.getTime() < Date.now());
+
+  if (!input.ownerWallet && ['NEW', 'FOLLOWING_UP'].includes(input.followUpStatus)) {
+    score += 35;
+    reasons.push('unowned');
+  }
+
+  if (isOverdue) {
+    score += 30;
+    reasons.push('overdue');
+  }
+
+  if (input.audience === 'sponsor') {
+    score += 18;
+    reasons.push('sponsor');
+  }
+
+  if (input.intent === 'repeat') {
+    score += 16;
+    reasons.push('repeat-spend');
+  } else if (input.intent === 'activation') {
+    score += 12;
+    reasons.push('activation');
+  } else if (input.intent === 'claim') {
+    score += 8;
+    reasons.push('claim');
+  }
+
+  if (input.stage === 'CONTACTED') {
+    score += 14;
+    reasons.push('fresh');
+  } else if (input.stage === 'CLAIM_STARTED') {
+    score += 10;
+    reasons.push('claim-live');
+  }
+
+  if (staleHours >= 72) {
+    score += 14;
+    reasons.push('stale');
+  } else if (staleHours >= 24) {
+    score += 8;
+    reasons.push('aging');
+  }
+
+  const label =
+    score >= 75 ? 'Immediate' : score >= 50 ? 'High' : score >= 28 ? 'Active' : 'Monitor';
+
+  return {
+    score,
+    label,
+    reasons,
+    staleHours,
+    isOverdue,
+  };
+}
+
 const VenueReportLeadUpdateSchema = z.object({
   leadId: z.string().min(1),
   followUpStatus: z.enum(['NEW', 'FOLLOWING_UP', 'WAITING', 'CONVERTED', 'ARCHIVED']).optional(),
@@ -141,6 +213,15 @@ export async function GET(request: NextRequest) {
         STAGE_PRIORITY.find((stage) => combinedEvents.some((event) => event.eventType === stage)) ?? 'CONTACTED';
       const stageEvent = combinedEvents.find((event) => event.eventType === reachedStage) ?? null;
       const latestEvent = combinedEvents[0] ?? null;
+      const priority = buildLeadPriority({
+        audience: lead.audience as 'venue' | 'sponsor',
+        intent: lead.intent,
+        followUpStatus: lead.followUpStatus,
+        ownerWallet: lead.ownerWallet,
+        nextActionAt: lead.nextActionAt,
+        contactedAt: lead.contactedAt,
+        stage: reachedStage,
+      });
 
       return {
         id: lead.id,
@@ -178,6 +259,7 @@ export async function GET(request: NextRequest) {
               .replace(/\b\w/g, (char) => char.toUpperCase()) ?? 'Contacted',
           latestEventAt: toIso(latestEvent?.createdAt),
         },
+        priority,
         events: combinedEvents.slice(0, 6).map((event) => ({
           id: event.id,
           eventType: event.eventType,
@@ -187,12 +269,19 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const sortedLeads = [...leadEntries].sort((a, b) => {
+      if (b.priority.score !== a.priority.score) return b.priority.score - a.priority.score;
+      return new Date(b.contactedAt).getTime() - new Date(a.contactedAt).getTime();
+    });
+
     const summary = {
-      totalLeads: leadEntries.length,
+      totalLeads: sortedLeads.length,
       newLeads: leadEntries.filter((lead) => lead.followUpStatus === 'NEW').length,
       activeFollowUps: leadEntries.filter((lead) =>
         ['FOLLOWING_UP', 'WAITING'].includes(lead.followUpStatus)
       ).length,
+      overdue: leadEntries.filter((lead) => lead.priority.isOverdue).length,
+      unowned: leadEntries.filter((lead) => !lead.ownerWallet).length,
       venueAudience: leadEntries.filter((lead) => lead.audience === 'venue').length,
       sponsorAudience: leadEntries.filter((lead) => lead.audience === 'sponsor').length,
       claimStarted: leadEntries.filter((lead) => lead.pipeline.stage === 'CLAIM_STARTED').length,
@@ -204,7 +293,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         summary,
-        leads: leadEntries,
+        leads: sortedLeads,
       },
     });
   } catch (error: unknown) {

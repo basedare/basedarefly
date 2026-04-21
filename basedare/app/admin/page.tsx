@@ -166,6 +166,17 @@ function formatProofAge(hours: number) {
   return `${Math.round(hours / 24)}d`;
 }
 
+function formatLeadDue(value: string | null) {
+  if (!value) return 'No reminder set';
+  const date = new Date(value);
+  const diffMs = date.getTime() - Date.now();
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  if (diffHours < 0) return `${Math.abs(diffHours)}h overdue`;
+  if (diffHours < 24) return `due in ${diffHours}h`;
+  const diffDays = Math.round(diffHours / 24);
+  return `due in ${diffDays}d`;
+}
+
 interface ClaimRequest {
   id: string;
   shortId: string | null;
@@ -205,6 +216,8 @@ interface VenueReportLeadSummary {
   totalLeads: number;
   newLeads: number;
   activeFollowUps: number;
+  overdue: number;
+  unowned: number;
   venueAudience: number;
   sponsorAudience: number;
   claimStarted: number;
@@ -243,6 +256,13 @@ interface VenueReportLeadEntry {
     latestEventLabel: string;
     latestEventAt: string | null;
   };
+  priority: {
+    score: number;
+    label: string;
+    reasons: string[];
+    staleHours: number;
+    isOverdue: boolean;
+  };
   events: Array<{
     id: string;
     eventType: string;
@@ -250,6 +270,8 @@ interface VenueReportLeadEntry {
     createdAt: string;
   }>;
 }
+
+type LeadInboxFilter = 'all' | 'needsOwner' | 'overdue' | 'highSignal';
 
 interface PendingPlaceTag {
   id: string;
@@ -469,6 +491,8 @@ export default function AdminPage() {
     totalLeads: 0,
     newLeads: 0,
     activeFollowUps: 0,
+    overdue: 0,
+    unowned: 0,
     venueAudience: 0,
     sponsorAudience: 0,
     claimStarted: 0,
@@ -480,6 +504,7 @@ export default function AdminPage() {
   const [reportLeadsError, setReportLeadsError] = useState<string | null>(null);
   const [selectedReportLead, setSelectedReportLead] = useState<VenueReportLeadEntry | null>(null);
   const [reportLeadUpdating, setReportLeadUpdating] = useState<string | null>(null);
+  const [leadInboxFilter, setLeadInboxFilter] = useState<LeadInboxFilter>('all');
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -1169,6 +1194,8 @@ export default function AdminPage() {
           totalLeads: 0,
           newLeads: 0,
           activeFollowUps: 0,
+          overdue: 0,
+          unowned: 0,
           venueAudience: 0,
           sponsorAudience: 0,
           claimStarted: 0,
@@ -1196,6 +1223,7 @@ export default function AdminPage() {
     update: {
       followUpStatus?: VenueReportLeadEntry['followUpStatus'];
       ownerWallet?: string | null;
+      nextActionAt?: string | null;
     }
   ) => {
     if (!address) return;
@@ -1249,6 +1277,19 @@ export default function AdminPage() {
       setReportLeadUpdating(null);
     }
   }, [address, fetchReportLeads]);
+
+  const visibleReportLeads = reportLeads.filter((lead) => {
+    if (leadInboxFilter === 'needsOwner') {
+      return !lead.ownerWallet;
+    }
+    if (leadInboxFilter === 'overdue') {
+      return lead.priority.isOverdue;
+    }
+    if (leadInboxFilter === 'highSignal') {
+      return lead.priority.score >= 50;
+    }
+    return true;
+  });
 
   // Handle claim decision
   const handleClaimDecision = async (dareId: string, decision: 'APPROVE' | 'REJECT') => {
@@ -2755,6 +2796,13 @@ export default function AdminPage() {
                 <p className="mt-2 text-3xl font-black text-white">{reportLeadSummary.activeFollowUps}</p>
                 <p className="mt-1 text-xs text-gray-500">Leads currently owned or waiting on reply</p>
               </div>
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/[0.08] p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/70">Overdue / unowned</p>
+                <p className="mt-2 text-3xl font-black text-amber-100">
+                  {reportLeadSummary.overdue} / {reportLeadSummary.unowned}
+                </p>
+                <p className="mt-1 text-xs text-amber-100/60">Reminders missed vs nobody assigned</p>
+              </div>
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.08] p-4 backdrop-blur-xl">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">Launches from report</p>
                 <p className="mt-2 text-3xl font-black text-cyan-100">
@@ -2776,18 +2824,40 @@ export default function AdminPage() {
                   </span>
                 </div>
 
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {[
+                    ['all', `All (${reportLeadSummary.totalLeads})`],
+                    ['needsOwner', `Needs owner (${reportLeadSummary.unowned})`],
+                    ['overdue', `Overdue (${reportLeadSummary.overdue})`],
+                    ['highSignal', 'High signal'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setLeadInboxFilter(value as LeadInboxFilter)}
+                      className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] transition ${
+                        leadInboxFilter === value
+                          ? 'border-cyan-400/30 bg-cyan-500/[0.14] text-cyan-200'
+                          : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
                 {reportLeadsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 text-cyan-300 animate-spin" />
                   </div>
-                ) : reportLeads.length === 0 ? (
+                ) : visibleReportLeads.length === 0 ? (
                   <div className="text-center py-12">
                     <Mail className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-400">No report leads captured yet.</p>
+                    <p className="text-gray-400">No leads match this filter yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[720px] overflow-y-auto pr-2">
-                    {reportLeads.map((lead) => (
+                    {visibleReportLeads.map((lead) => (
                       <button
                         key={lead.id}
                         type="button"
@@ -2827,11 +2897,24 @@ export default function AdminPage() {
                           <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 uppercase tracking-[0.16em]">
                             {lead.audience}
                           </span>
+                          <span className={`rounded-full border px-2 py-1 uppercase tracking-[0.16em] ${
+                            lead.priority.isOverdue
+                              ? 'border-amber-400/30 bg-amber-500/[0.12] text-amber-200'
+                              : 'border-white/10 bg-white/[0.04]'
+                          }`}>
+                            {lead.priority.label}
+                          </span>
                           {lead.intent ? (
                             <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 uppercase tracking-[0.16em]">
                               {lead.intent}
                             </span>
                           ) : null}
+                          {!lead.ownerWallet ? (
+                            <span className="rounded-full border border-red-400/20 bg-red-500/[0.08] px-2 py-1 uppercase tracking-[0.16em] text-red-200">
+                              unowned
+                            </span>
+                          ) : null}
+                          <span>{formatLeadDue(lead.nextActionAt)}</span>
                           <span>{formatRelativeTime(lead.contactedAt)}</span>
                         </div>
                       </button>
@@ -2877,6 +2960,7 @@ export default function AdminPage() {
                           <p>Audience: <span className="text-white">{selectedReportLead.audience}</span></p>
                           <p>Intent: <span className="text-white">{selectedReportLead.intent || 'general'}</span></p>
                           <p>Contacted: <span className="text-white">{formatRelativeTime(selectedReportLead.contactedAt)}</span></p>
+                          <p>Priority: <span className="text-white">{selectedReportLead.priority.label}</span></p>
                         </div>
                       </div>
                     </div>
@@ -2895,6 +2979,9 @@ export default function AdminPage() {
                           </p>
                           <p className="mt-1 text-sm text-gray-300">
                             Status: <span className="text-white">{selectedReportLead.followUpStatus.replace(/_/g, ' ')}</span>
+                          </p>
+                          <p className="mt-1 text-sm text-gray-300">
+                            Next action: <span className="text-white">{formatLeadDue(selectedReportLead.nextActionAt)}</span>
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -2922,6 +3009,47 @@ export default function AdminPage() {
                             </button>
                           ) : null}
                         </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleReportLeadUpdate(selectedReportLead.id, {
+                              nextActionAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                              followUpStatus: selectedReportLead.followUpStatus === 'NEW' ? 'FOLLOWING_UP' : undefined,
+                            })
+                          }
+                          disabled={reportLeadUpdating === selectedReportLead.id}
+                          className="rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/15 disabled:opacity-60"
+                        >
+                          Remind tomorrow
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleReportLeadUpdate(selectedReportLead.id, {
+                              nextActionAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                              followUpStatus: selectedReportLead.followUpStatus === 'NEW' ? 'WAITING' : undefined,
+                            })
+                          }
+                          disabled={reportLeadUpdating === selectedReportLead.id}
+                          className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
+                        >
+                          Follow up in 3d
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleReportLeadUpdate(selectedReportLead.id, {
+                              nextActionAt: null,
+                            })
+                          }
+                          disabled={reportLeadUpdating === selectedReportLead.id}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/55 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-60"
+                        >
+                          Clear reminder
+                        </button>
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">
