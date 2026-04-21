@@ -2,22 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Copy, ExternalLink, Share2 } from 'lucide-react';
+import { Copy, ExternalLink, Mail, Share2 } from 'lucide-react';
 
 type ReportAudience = 'venue' | 'sponsor';
 
 export default function VenueReportActions({
   venueSlug,
-  venueName,
-  summary,
+  shareSubject,
+  shareBody,
   audience,
 }: {
   venueSlug: string;
-  venueName: string;
-  summary: string;
+  shareSubject: string;
+  shareBody: string;
   audience: ReportAudience;
 }) {
-  const [copied, setCopied] = useState<'summary' | 'link' | null>(null);
+  const [copied, setCopied] = useState<'brief' | 'link' | null>(null);
 
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') return '';
@@ -26,18 +26,23 @@ export default function VenueReportActions({
 
   const sharePayload = useMemo(
     () => ({
-      title:
-        audience === 'sponsor'
-          ? `${venueName} sponsor report`
-          : `${venueName} venue report`,
-      text: summary,
+      title: shareSubject,
+      text: shareBody,
       url: shareUrl,
     }),
-    [audience, shareUrl, summary, venueName]
+    [shareBody, shareSubject, shareUrl]
   );
 
-  async function copyText(kind: 'summary' | 'link') {
-    const value = kind === 'summary' ? `${sharePayload.title}\n\n${summary}\n\n${shareUrl}` : shareUrl;
+  const mailtoHref = useMemo(() => {
+    const params = new URLSearchParams({
+      subject: shareSubject,
+      body: `${shareBody}\n\n${shareUrl}`,
+    });
+    return `mailto:?${params.toString()}`;
+  }, [shareBody, shareSubject, shareUrl]);
+
+  async function copyText(kind: 'brief' | 'link') {
+    const value = kind === 'brief' ? `${shareSubject}\n\n${shareBody}\n\n${shareUrl}` : shareUrl;
     try {
       await navigator.clipboard.writeText(value);
       setCopied(kind);
@@ -95,11 +100,11 @@ export default function VenueReportActions({
         </button>
         <button
           type="button"
-          onClick={() => void copyText('summary')}
+          onClick={() => void copyText('brief')}
           className="inline-flex items-center gap-2 rounded-full border border-cyan-400/22 bg-cyan-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-300/34 hover:bg-cyan-500/[0.12]"
         >
           <Copy className="h-3.5 w-3.5" />
-          {copied === 'summary' ? 'Copied summary' : 'Copy summary'}
+          {copied === 'brief' ? 'Copied brief' : 'Copy brief'}
         </button>
         <button
           type="button"
@@ -109,6 +114,13 @@ export default function VenueReportActions({
           <ExternalLink className="h-3.5 w-3.5" />
           {copied === 'link' ? 'Copied link' : 'Copy link'}
         </button>
+        <a
+          href={mailtoHref}
+          className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.12]"
+        >
+          <Mail className="h-3.5 w-3.5" />
+          Email brief
+        </a>
       </div>
     </div>
   );

@@ -55,6 +55,24 @@ export default async function VenueReportPage(
     audience === 'sponsor'
       ? `${venue.name} is showing a repeatable venue signal. Over the last 7 days it produced ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, with ${formatSignedDelta(venue.roiSnapshot.windows.last7Days.uniqueVisitorsDelta)} visitor delta versus the previous window.`
       : venue.roiSnapshot.summary;
+  const reportSubject =
+    audience === 'sponsor' ? `${venue.name} sponsor-ready activation brief` : `${venue.name} venue activation report`;
+  const forwardableBrief =
+    audience === 'sponsor'
+      ? [
+          `${venue.name} is one of the stronger activation venues in the current BaseDare network.`,
+          `Last 7 days: ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes, ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, ${venue.roiSnapshot.windows.last7Days.checkIns} check-ins.`,
+          `Last 30 days: ${venue.roiSnapshot.windows.last30Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last30Days.uniqueVisitors} unique visitors.`,
+          `Best proving creator: ${venue.roiSnapshot.bestCreator?.creatorTag ?? 'still emerging'}.`,
+          `Recommended move: repeat the winning activation pattern while the venue signal is warm.`,
+        ].join('\n')
+      : [
+          `${venue.name} is showing measurable activation lift on BaseDare.`,
+          `Last 7 days: ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes, ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, ${venue.roiSnapshot.windows.last7Days.checkIns} check-ins.`,
+          `Last 30 days: ${venue.roiSnapshot.windows.last30Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last30Days.uniqueVisitors} unique visitors.`,
+          `Top proving creator: ${venue.roiSnapshot.bestCreator?.creatorTag ?? 'still emerging'}.`,
+          `Recommended move: repeat the winning activation or route the strongest creator back into venue.`,
+        ].join('\n');
   const reportLabel =
     audience === 'sponsor' ? 'Sponsor Report Card' : 'Venue Report Card';
   const reportHeading =
@@ -99,8 +117,8 @@ export default async function VenueReportPage(
                 <div className="mt-5">
                   <VenueReportActions
                     venueSlug={venue.slug}
-                    venueName={venue.name}
-                    summary={reportSummary}
+                    shareSubject={reportSubject}
+                    shareBody={forwardableBrief}
                     audience={audience}
                   />
                 </div>
@@ -194,6 +212,25 @@ export default async function VenueReportPage(
                       {reason}
                     </span>
                   ))}
+                </div>
+              </div>
+
+              <div className={`${softCardClass} p-6`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Forwardable Snapshot</p>
+                    <h2 className="mt-2 text-2xl font-bold">Send the venue story without rewriting it</h2>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-white/58">
+                    Email / DM ready
+                  </div>
+                </div>
+                <div className={`${insetCardClass} mt-5 px-4 py-4`}>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">{reportSubject}</div>
+                  <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-white/68">
+                    {forwardableBrief}
+                  </pre>
                 </div>
               </div>
             </div>
