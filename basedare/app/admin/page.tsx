@@ -21,6 +21,7 @@ import {
   Copy,
   Hand,
   Smartphone,
+  Mail,
 } from 'lucide-react';
 import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -200,6 +201,51 @@ interface VenueClaimRequest {
   };
 }
 
+interface VenueReportLeadSummary {
+  totalLeads: number;
+  venueAudience: number;
+  sponsorAudience: number;
+  claimStarted: number;
+  activationsLaunched: number;
+  repeatsLaunched: number;
+}
+
+interface VenueReportLeadEntry {
+  id: string;
+  audience: 'venue' | 'sponsor';
+  source: string;
+  intent: string | null;
+  sessionKey: string | null;
+  email: string;
+  name: string | null;
+  organization: string | null;
+  notes: string | null;
+  contactedAt: string;
+  createdAt: string;
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+    claimedBy: string | null;
+    claimRequestStatus: string | null;
+  };
+  pipeline: {
+    stage: 'CONTACTED' | 'CLAIM_STARTED' | 'ACTIVATION_LAUNCHED' | 'REPEAT_LAUNCHED';
+    stageLabel: string;
+    stageAt: string | null;
+    latestEventLabel: string;
+    latestEventAt: string | null;
+  };
+  events: Array<{
+    id: string;
+    eventType: string;
+    channel: string | null;
+    createdAt: string;
+  }>;
+}
+
 interface PendingPlaceTag {
   id: string;
   venueId: string;
@@ -302,7 +348,15 @@ type AdminPlaceForm = {
   categories: string;
 };
 
-type AdminTab = 'moderation' | 'claims' | 'venueClaims' | 'tags' | 'placeTags' | 'places' | 'push';
+type AdminTab =
+  | 'moderation'
+  | 'claims'
+  | 'venueClaims'
+  | 'reportLeads'
+  | 'tags'
+  | 'placeTags'
+  | 'places'
+  | 'push';
 
 const EMPTY_PLACE_FORM: AdminPlaceForm = {
   slug: '',
@@ -406,6 +460,18 @@ export default function AdminPage() {
   const [processingVenueClaim, setProcessingVenueClaim] = useState<string | null>(null);
   const [selectedVenueClaim, setSelectedVenueClaim] = useState<VenueClaimRequest | null>(null);
   const [venueClaimRejectReason, setVenueClaimRejectReason] = useState('');
+  const [reportLeadSummary, setReportLeadSummary] = useState<VenueReportLeadSummary>({
+    totalLeads: 0,
+    venueAudience: 0,
+    sponsorAudience: 0,
+    claimStarted: 0,
+    activationsLaunched: 0,
+    repeatsLaunched: 0,
+  });
+  const [reportLeads, setReportLeads] = useState<VenueReportLeadEntry[]>([]);
+  const [reportLeadsLoading, setReportLeadsLoading] = useState(false);
+  const [reportLeadsError, setReportLeadsError] = useState<string | null>(null);
+  const [selectedReportLead, setSelectedReportLead] = useState<VenueReportLeadEntry | null>(null);
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -1074,6 +1140,47 @@ export default function AdminPage() {
     }
   }, [address]);
 
+  const fetchReportLeads = useCallback(async () => {
+    if (!address) return;
+
+    setReportLeadsLoading(true);
+    setReportLeadsError(null);
+
+    try {
+      const res = await fetch('/api/admin/venue-report-leads', {
+        headers: {
+          'x-moderator-wallet': address,
+        },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const nextLeads = data.data.leads ?? [];
+        setReportLeadSummary(data.data.summary ?? {
+          totalLeads: 0,
+          venueAudience: 0,
+          sponsorAudience: 0,
+          claimStarted: 0,
+          activationsLaunched: 0,
+          repeatsLaunched: 0,
+        });
+        setReportLeads(nextLeads);
+        setSelectedReportLead((current) => {
+          if (!nextLeads.length) return null;
+          if (!current) return nextLeads[0];
+          return nextLeads.find((lead: VenueReportLeadEntry) => lead.id === current.id) || nextLeads[0];
+        });
+      } else {
+        setReportLeadsError(data.error || 'Failed to load report leads');
+      }
+    } catch {
+      setReportLeadsError('Failed to connect to server');
+    } finally {
+      setReportLeadsLoading(false);
+    }
+  }, [address]);
+
   // Handle claim decision
   const handleClaimDecision = async (dareId: string, decision: 'APPROVE' | 'REJECT') => {
     if (!address) return;
@@ -1164,6 +1271,12 @@ export default function AdminPage() {
       fetchPushDiagnostics();
     }
   }, [activeTab, isAuthorized, fetchPushDiagnostics]);
+
+  useEffect(() => {
+    if (activeTab === 'reportLeads' && isAuthorized) {
+      fetchReportLeads();
+    }
+  }, [activeTab, isAuthorized, fetchReportLeads]);
 
   // Handle moderation decision
   const handleModerate = useCallback(async (
@@ -1342,6 +1455,17 @@ export default function AdminPage() {
               >
                 <MapPin className="w-4 h-4 inline mr-2" />
                 Venue Claims {pendingVenueClaims.length > 0 && `(${pendingVenueClaims.length})`}
+              </button>
+              <button
+                onClick={() => setActiveTab('reportLeads')}
+                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === 'reportLeads'
+                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
+                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Mail className="w-4 h-4 inline mr-2" />
+                Lead Inbox {reportLeadSummary.totalLeads > 0 && `(${reportLeadSummary.totalLeads})`}
               </button>
               <button
                 onClick={() => setActiveTab('tags')}
@@ -2540,6 +2664,229 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {isConnected && isAuthorized && !loading && activeTab === 'reportLeads' && (
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">Warm leads</p>
+                <p className="mt-2 text-3xl font-black text-white">{reportLeadSummary.totalLeads}</p>
+                <p className="mt-1 text-xs text-gray-500">Captured from venue reports</p>
+              </div>
+              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-fuchsia-200/70">Claim started</p>
+                <p className="mt-2 text-3xl font-black text-fuchsia-100">{reportLeadSummary.claimStarted}</p>
+                <p className="mt-1 text-xs text-fuchsia-100/60">Report turned into venue ownership motion</p>
+              </div>
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.08] p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">Activation launched</p>
+                <p className="mt-2 text-3xl font-black text-cyan-100">{reportLeadSummary.activationsLaunched}</p>
+                <p className="mt-1 text-xs text-cyan-100/60">Fresh campaigns created from reports</p>
+              </div>
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/[0.08] p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/70">Repeat launched</p>
+                <p className="mt-2 text-3xl font-black text-amber-100">{reportLeadSummary.repeatsLaunched}</p>
+                <p className="mt-1 text-xs text-amber-100/60">Repeat spend triggered by report evidence</p>
+              </div>
+            </div>
+
+            <div className="grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-6">
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-cyan-300" />
+                    Report Leads
+                  </h3>
+                  <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-gray-400">
+                    {reportLeadSummary.venueAudience} venue · {reportLeadSummary.sponsorAudience} sponsor
+                  </span>
+                </div>
+
+                {reportLeadsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-cyan-300 animate-spin" />
+                  </div>
+                ) : reportLeads.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Mail className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                    <p className="text-gray-400">No report leads captured yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[720px] overflow-y-auto pr-2">
+                    {reportLeads.map((lead) => (
+                      <button
+                        key={lead.id}
+                        type="button"
+                        onClick={() => setSelectedReportLead(lead)}
+                        className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                          selectedReportLead?.id === lead.id
+                            ? 'border-cyan-400/40 bg-cyan-500/[0.08]'
+                            : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-white truncate">
+                              {lead.name || lead.organization || lead.email}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{lead.email}</p>
+                            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-gray-500 truncate">
+                              {lead.venue.name}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
+                              lead.pipeline.stage === 'REPEAT_LAUNCHED'
+                                ? 'border-amber-400/30 bg-amber-500/[0.12] text-amber-200'
+                                : lead.pipeline.stage === 'ACTIVATION_LAUNCHED'
+                                  ? 'border-cyan-400/30 bg-cyan-500/[0.12] text-cyan-200'
+                                  : lead.pipeline.stage === 'CLAIM_STARTED'
+                                    ? 'border-fuchsia-400/30 bg-fuchsia-500/[0.12] text-fuchsia-200'
+                                    : 'border-white/12 bg-white/[0.06] text-white/60'
+                            }`}
+                          >
+                            {lead.pipeline.stageLabel}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 uppercase tracking-[0.16em]">
+                            {lead.audience}
+                          </span>
+                          {lead.intent ? (
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 uppercase tracking-[0.16em]">
+                              {lead.intent}
+                            </span>
+                          ) : null}
+                          <span>{formatRelativeTime(lead.contactedAt)}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {reportLeadsError && (
+                  <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                    <p className="text-xs text-red-400">{reportLeadsError}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
+                {selectedReportLead ? (
+                  <>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-300">Lead Detail</p>
+                        <h3 className="mt-2 text-2xl font-black text-white">
+                          {selectedReportLead.name || selectedReportLead.organization || selectedReportLead.email}
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-400">{selectedReportLead.email}</p>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-gray-400">
+                        {selectedReportLead.pipeline.stageLabel}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Venue</p>
+                        <p className="mt-2 text-lg font-bold text-white">{selectedReportLead.venue.name}</p>
+                        <p className="mt-1 text-sm text-gray-400">
+                          {selectedReportLead.venue.city || 'Unknown city'}
+                          {selectedReportLead.venue.country ? `, ${selectedReportLead.venue.country}` : ''}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Lead context</p>
+                        <div className="mt-2 space-y-1 text-sm text-gray-300">
+                          <p>Audience: <span className="text-white">{selectedReportLead.audience}</span></p>
+                          <p>Intent: <span className="text-white">{selectedReportLead.intent || 'general'}</span></p>
+                          <p>Contacted: <span className="text-white">{formatRelativeTime(selectedReportLead.contactedAt)}</span></p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Pipeline</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {[
+                          { key: 'CONTACTED', label: 'Contacted' },
+                          { key: 'CLAIM_STARTED', label: 'Claim started' },
+                          { key: 'ACTIVATION_LAUNCHED', label: 'Activation launched' },
+                          { key: 'REPEAT_LAUNCHED', label: 'Repeat launched' },
+                        ].map((stage) => {
+                          const active =
+                            stage.key === 'CONTACTED'
+                              ? true
+                              : selectedReportLead.events.some((event) => event.eventType === stage.key);
+                          return (
+                            <div
+                              key={stage.key}
+                              className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                                active
+                                  ? 'border-cyan-400/30 bg-cyan-500/[0.12] text-cyan-200'
+                                  : 'border-white/10 bg-white/[0.04] text-white/35'
+                              }`}
+                            >
+                              {stage.label}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-3 text-xs text-gray-500">
+                        Latest movement: {selectedReportLead.pipeline.latestEventLabel}
+                        {selectedReportLead.pipeline.latestEventAt
+                          ? ` · ${formatRelativeTime(selectedReportLead.pipeline.latestEventAt)}`
+                          : ''}
+                      </p>
+                    </div>
+
+                    {selectedReportLead.notes ? (
+                      <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Notes</p>
+                        <p className="mt-2 text-sm leading-6 text-gray-300">{selectedReportLead.notes}</p>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Link
+                        href={`/venues/${selectedReportLead.venue.slug}/report`}
+                        target="_blank"
+                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300 transition hover:bg-cyan-500/15"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open report
+                      </Link>
+                      <Link
+                        href={`/venues/${selectedReportLead.venue.slug}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        Open venue
+                      </Link>
+                      <a
+                        href={`mailto:${selectedReportLead.email}?subject=${encodeURIComponent(`BaseDare follow-up: ${selectedReportLead.venue.name}`)}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-fuchsia-200 transition hover:bg-fuchsia-500/15"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        Email lead
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex min-h-[420px] items-center justify-center">
+                    <div className="text-center">
+                      <Mail className="mx-auto mb-4 h-12 w-12 text-gray-500" />
+                      <p className="text-gray-400">Select a report lead to inspect the pipeline.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
