@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { getAppSettings } from '@/lib/app-settings';
+import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { alertVenueLeadFollowUpQueue } from '@/lib/telegram';
@@ -50,6 +51,52 @@ function scoreLead(input: {
   }
 
   return { score, reasons, ageHours };
+}
+
+async function notifyAssignedLeadOwners(
+  leads: Array<{
+    audience: string;
+    intent: string | null;
+    ownerWallet: string | null;
+    venue: {
+      name: string;
+    };
+    priority: {
+      score: number;
+      reasons: string[];
+    };
+  }>
+) {
+  const grouped = leads.reduce((map, lead) => {
+    if (!lead.ownerWallet) return map;
+    const key = lead.ownerWallet.toLowerCase();
+    const current = map.get(key) ?? [];
+    current.push(lead);
+    map.set(key, current);
+    return map;
+  }, new Map<string, typeof leads>());
+
+  await Promise.allSettled(
+    Array.from(grouped.entries()).map(async ([ownerWallet, ownerLeads]) => {
+      const ranked = [...ownerLeads].sort((a, b) => b.priority.score - a.priority.score);
+      const topLead = ranked[0];
+      const count = ranked.length;
+      const intentLabel = topLead.intent ? `${topLead.intent} ` : '';
+      const reasonLabel = topLead.priority.reasons.slice(0, 2).join(', ') || 'overdue';
+
+      await createWalletNotification({
+        wallet: ownerWallet,
+        type: 'VENUE_LEAD_OVERDUE',
+        title: count > 1 ? `${count} venue leads need you` : 'A venue lead needs you',
+        message:
+          count > 1
+            ? `${count} assigned venue leads are overdue. Top priority: ${topLead.venue.name} (${topLead.audience} ${intentLabel}lead, ${reasonLabel}).`
+            : `${topLead.venue.name} needs follow-up now (${topLead.audience} ${intentLabel}lead, ${reasonLabel}).`,
+        link: '/admin',
+        pushTopic: 'venues',
+      });
+    })
+  );
 }
 
 export async function checkAndSendVenueLeadFollowUpAlert() {
@@ -108,10 +155,26 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
     .filter((lead) => lead.priority.score >= 50)
     .sort((a, b) => b.priority.score - a.priority.score);
 
+  const unownedUrgentLeads = urgentLeads.filter((lead) => !lead.ownerWallet);
+  const assignedOverdueLeads = urgentLeads.filter(
+    (lead) => Boolean(lead.ownerWallet) && lead.nextActionAt && lead.nextActionAt.getTime() < Date.now()
+  );
+  const ownerBuckets = Array.from(
+    assignedOverdueLeads.reduce((map, lead) => {
+      const key = lead.ownerWallet as string;
+      map.set(key, (map.get(key) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>())
+  )
+    .map(([ownerWallet, count]) => ({ ownerWallet, count }))
+    .sort((a, b) => b.count - a.count);
+
   if (urgentLeads.length < settings.venueLeadAlertThreshold) {
     return {
       alerted: false,
       urgentCount: urgentLeads.length,
+      unownedCount: unownedUrgentLeads.length,
+      assignedOverdueCount: assignedOverdueLeads.length,
       threshold: settings.venueLeadAlertThreshold,
       reason: 'BELOW_THRESHOLD' as const,
     };
@@ -123,6 +186,8 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
     return {
       alerted: false,
       urgentCount: urgentLeads.length,
+      unownedCount: unownedUrgentLeads.length,
+      assignedOverdueCount: assignedOverdueLeads.length,
       threshold: settings.venueLeadAlertThreshold,
       reason: 'COOLDOWN' as const,
     };
@@ -130,7 +195,10 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
 
   const sent = await alertVenueLeadFollowUpQueue({
     urgentCount: urgentLeads.length,
+    unownedCount: unownedUrgentLeads.length,
+    assignedOverdueCount: assignedOverdueLeads.length,
     threshold: settings.venueLeadAlertThreshold,
+    ownerBuckets,
     leads: urgentLeads.map((lead) => ({
       venueName: lead.venue.name,
       email: lead.email,
@@ -145,10 +213,14 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
     return {
       alerted: false,
       urgentCount: urgentLeads.length,
+      unownedCount: unownedUrgentLeads.length,
+      assignedOverdueCount: assignedOverdueLeads.length,
       threshold: settings.venueLeadAlertThreshold,
       reason: 'SEND_FAILED' as const,
     };
   }
+
+  await notifyAssignedLeadOwners(assignedOverdueLeads);
 
   await prisma.appSettings.update({
     where: { id: settings.id },
@@ -164,6 +236,8 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
   return {
     alerted: true,
     urgentCount: urgentLeads.length,
+    unownedCount: unownedUrgentLeads.length,
+    assignedOverdueCount: assignedOverdueLeads.length,
     threshold: settings.venueLeadAlertThreshold,
     reason: 'ALERT_SENT' as const,
   };

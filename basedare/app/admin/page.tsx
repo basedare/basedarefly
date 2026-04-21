@@ -273,7 +273,7 @@ interface VenueReportLeadEntry {
   }>;
 }
 
-type LeadInboxFilter = 'all' | 'needsOwner' | 'overdue' | 'highSignal';
+type LeadInboxFilter = 'all' | 'needsOwner' | 'overdue' | 'highSignal' | 'mine';
 
 function formatLeadStatus(value: VenueReportLeadEntry['followUpStatus']) {
   switch (value) {
@@ -1406,6 +1406,9 @@ export default function AdminPage() {
   const visibleReportLeads = reportLeads.filter((lead) => {
     if (leadInboxFilter === 'needsOwner') {
       return !lead.ownerWallet;
+    }
+    if (leadInboxFilter === 'mine') {
+      return Boolean(address) && lead.ownerWallet?.toLowerCase() === address?.toLowerCase();
     }
     if (leadInboxFilter === 'overdue') {
       return lead.priority.isOverdue;
@@ -2993,6 +2996,12 @@ export default function AdminPage() {
                   {[
                     ['all', `All (${reportLeadSummary.totalLeads})`],
                     ['needsOwner', `Needs owner (${reportLeadSummary.unowned})`],
+                    ...(address
+                      ? [[
+                          'mine',
+                          `Mine (${reportLeads.filter((lead) => lead.ownerWallet?.toLowerCase() === address.toLowerCase()).length})`,
+                        ] as const]
+                      : []),
                     ['overdue', `Overdue (${reportLeadSummary.overdue})`],
                     ['highSignal', 'High signal'],
                   ].map(([value, label]) => (
@@ -3192,6 +3201,23 @@ export default function AdminPage() {
                           className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
                         >
                           Wait 3d
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleReportLeadUpdate(selectedReportLead.id, {
+                              nextActionAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                              followUpStatus:
+                                selectedReportLead.followUpStatus === 'NEW' ||
+                                selectedReportLead.followUpStatus === 'FOLLOWING_UP'
+                                  ? 'WAITING'
+                                  : undefined,
+                            })
+                          }
+                          disabled={reportLeadUpdating === selectedReportLead.id}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/55 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-60"
+                        >
+                          Snooze 7d
                         </button>
                         <button
                           type="button"

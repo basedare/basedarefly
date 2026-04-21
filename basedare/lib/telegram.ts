@@ -307,6 +307,12 @@ Alert threshold: ${data.threshold}
 export async function alertVenueLeadFollowUpQueue(data: {
   urgentCount: number;
   threshold: number;
+  unownedCount: number;
+  assignedOverdueCount: number;
+  ownerBuckets: Array<{
+    ownerWallet: string;
+    count: number;
+  }>;
   leads: Array<{
     venueName: string;
     email: string;
@@ -320,15 +326,25 @@ export async function alertVenueLeadFollowUpQueue(data: {
     .slice(0, 4)
     .map((lead) => {
       const reasons = lead.reasons.join(', ') || 'stale';
-      const owner = lead.ownerWallet ? `assigned ${lead.ownerWallet.slice(0, 6)}...${lead.ownerWallet.slice(-4)}` : 'unassigned';
+      const owner = lead.ownerWallet
+        ? `assigned ${lead.ownerWallet.slice(0, 6)}...${lead.ownerWallet.slice(-4)}`
+        : 'unassigned';
       return `• <b>${lead.venueName}</b> · ${lead.audience}${lead.intent ? ` · ${lead.intent}` : ''}\n  ${lead.email} · ${owner}\n  ${reasons}`;
     })
     .join('\n');
+
+  const ownerBreakdown = data.ownerBuckets.length
+    ? `\nAssigned overdue:\n${data.ownerBuckets
+        .slice(0, 3)
+        .map((bucket) => `• <code>${bucket.ownerWallet.slice(0, 6)}...${bucket.ownerWallet.slice(-4)}</code>: ${bucket.count}`)
+        .join('\n')}`
+    : '';
 
   const message = `
 📬 <b>VENUE LEAD FOLLOW-UP ALERT</b>
 
 ${data.urgentCount} urgent venue report leads need attention (threshold: ${data.threshold})
+Unowned: ${data.unownedCount} · Assigned overdue: ${data.assignedOverdueCount}${ownerBreakdown}
 
 ${preview}
 
