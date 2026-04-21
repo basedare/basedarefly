@@ -35,6 +35,7 @@ const UpdateSettingsSchema = z.object({
   sentinelEnabled: z.boolean(),
   sentinelPausedReason: z.string().max(160).optional().nullable(),
   sentinelPendingAlertThreshold: z.number().int().min(1).max(100).optional(),
+  venueLeadAlertThreshold: z.number().int().min(1).max(100).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -51,6 +52,8 @@ export async function GET(request: NextRequest) {
         sentinelPausedReason: settings.sentinelPausedReason,
         sentinelPendingAlertThreshold: settings.sentinelPendingAlertThreshold,
         lastSentinelQueueAlertSent: settings.lastSentinelQueueAlertSent,
+        venueLeadAlertThreshold: settings.venueLeadAlertThreshold,
+        lastVenueLeadAlertSent: settings.lastVenueLeadAlertSent,
       },
     });
   } catch (error) {
@@ -120,6 +123,8 @@ export async function PUT(request: NextRequest) {
         sentinelPausedReason: settings.sentinelPausedReason,
         sentinelPendingAlertThreshold: settings.sentinelPendingAlertThreshold,
         lastSentinelQueueAlertSent: settings.lastSentinelQueueAlertSent,
+        venueLeadAlertThreshold: settings.venueLeadAlertThreshold,
+        lastVenueLeadAlertSent: settings.lastVenueLeadAlertSent,
       },
     });
   } catch (error) {

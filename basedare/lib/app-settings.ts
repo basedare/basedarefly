@@ -5,6 +5,7 @@ import { DEFAULT_SENTINEL_PAUSED_REASON } from '@/lib/sentinel';
 
 const APP_SETTINGS_ID = 'singleton';
 const DEFAULT_SENTINEL_PENDING_ALERT_THRESHOLD = 5;
+const DEFAULT_VENUE_LEAD_ALERT_THRESHOLD = 2;
 
 export async function getAppSettings() {
   return prisma.appSettings.upsert({
@@ -14,6 +15,7 @@ export async function getAppSettings() {
       id: APP_SETTINGS_ID,
       sentinelEnabled: true,
       sentinelPendingAlertThreshold: DEFAULT_SENTINEL_PENDING_ALERT_THRESHOLD,
+      venueLeadAlertThreshold: DEFAULT_VENUE_LEAD_ALERT_THRESHOLD,
     },
   });
 }
@@ -31,6 +33,7 @@ export async function updateAppSettings(input: {
   sentinelEnabled?: boolean;
   sentinelPausedReason?: string | null;
   sentinelPendingAlertThreshold?: number;
+  venueLeadAlertThreshold?: number;
 }) {
   const current = await getAppSettings();
   const nextSentinelEnabled = input.sentinelEnabled ?? current.sentinelEnabled;
@@ -42,6 +45,10 @@ export async function updateAppSettings(input: {
     1,
     Math.round(input.sentinelPendingAlertThreshold ?? current.sentinelPendingAlertThreshold)
   );
+  const nextVenueLeadAlertThreshold = Math.max(
+    1,
+    Math.round(input.venueLeadAlertThreshold ?? current.venueLeadAlertThreshold)
+  );
 
   return prisma.appSettings.update({
     where: { id: current.id },
@@ -49,6 +56,7 @@ export async function updateAppSettings(input: {
       sentinelEnabled: nextSentinelEnabled,
       sentinelPausedReason: nextPausedReason,
       sentinelPendingAlertThreshold: nextSentinelPendingAlertThreshold,
+      venueLeadAlertThreshold: nextVenueLeadAlertThreshold,
     },
   });
 }

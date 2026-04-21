@@ -336,6 +336,8 @@ model AppSettings {
   sentinelPausedReason        String?
   sentinelPendingAlertThreshold Int     @default(5)
   lastSentinelQueueAlertSent  DateTime?
+  venueLeadAlertThreshold     Int       @default(2)
+  lastVenueLeadAlertSent      DateTime?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 }

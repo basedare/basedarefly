@@ -304,6 +304,38 @@ Alert threshold: ${data.threshold}
   return sendMessage(message);
 }
 
+export async function alertVenueLeadFollowUpQueue(data: {
+  urgentCount: number;
+  threshold: number;
+  leads: Array<{
+    venueName: string;
+    email: string;
+    audience: string;
+    intent: string | null;
+    reasons: string[];
+  }>;
+}): Promise<boolean> {
+  const preview = data.leads
+    .slice(0, 4)
+    .map((lead) => {
+      const reasons = lead.reasons.join(', ') || 'stale';
+      return `• <b>${lead.venueName}</b> · ${lead.audience}${lead.intent ? ` · ${lead.intent}` : ''}\n  ${lead.email}\n  ${reasons}`;
+    })
+    .join('\n');
+
+  const message = `
+📬 <b>VENUE LEAD FOLLOW-UP ALERT</b>
+
+${data.urgentCount} urgent venue report leads need attention (threshold: ${data.threshold})
+
+${preview}
+
+Open the admin lead inbox to assign owners and set follow-ups.
+`.trim();
+
+  return sendMessage(message);
+}
+
 /**
  * Alert: Creator submitted a claim request for an open activation
  */
