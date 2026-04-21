@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { prisma } from '@/lib/prisma';
 
@@ -29,6 +30,13 @@ function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null;
 }
 
+const VenueReportLeadUpdateSchema = z.object({
+  leadId: z.string().min(1),
+  followUpStatus: z.enum(['NEW', 'FOLLOWING_UP', 'WAITING', 'CONVERTED', 'ARCHIVED']).optional(),
+  ownerWallet: z.string().min(6).max(120).nullable().optional(),
+  nextActionAt: z.string().datetime().nullable().optional(),
+});
+
 export async function GET(request: NextRequest) {
   const moderatorWallet = isModerator(request);
   if (!moderatorWallet) {
@@ -49,6 +57,9 @@ export async function GET(request: NextRequest) {
         name: true,
         organization: true,
         notes: true,
+        followUpStatus: true,
+        ownerWallet: true,
+        nextActionAt: true,
         contactedAt: true,
         createdAt: true,
         venueId: true,
@@ -141,6 +152,9 @@ export async function GET(request: NextRequest) {
         name: lead.name,
         organization: lead.organization,
         notes: lead.notes,
+        followUpStatus: lead.followUpStatus,
+        ownerWallet: lead.ownerWallet,
+        nextActionAt: toIso(lead.nextActionAt),
         contactedAt: lead.contactedAt.toISOString(),
         createdAt: lead.createdAt.toISOString(),
         venue: {
@@ -175,6 +189,10 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       totalLeads: leadEntries.length,
+      newLeads: leadEntries.filter((lead) => lead.followUpStatus === 'NEW').length,
+      activeFollowUps: leadEntries.filter((lead) =>
+        ['FOLLOWING_UP', 'WAITING'].includes(lead.followUpStatus)
+      ).length,
       venueAudience: leadEntries.filter((lead) => lead.audience === 'venue').length,
       sponsorAudience: leadEntries.filter((lead) => lead.audience === 'sponsor').length,
       claimStarted: leadEntries.filter((lead) => lead.pipeline.stage === 'CLAIM_STARTED').length,
@@ -193,5 +211,53 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ADMIN_VENUE_REPORT_LEADS] Fetch failed:', message);
     return NextResponse.json({ success: false, error: 'Failed to load report leads' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const moderatorWallet = isModerator(request);
+  if (!moderatorWallet) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const validation = VenueReportLeadUpdateSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0]?.message || 'Invalid request' },
+        { status: 400 }
+      );
+    }
+
+    const { leadId, followUpStatus, ownerWallet, nextActionAt } = validation.data;
+
+    const updatedLead = await prisma.venueReportLead.update({
+      where: { id: leadId },
+      data: {
+        followUpStatus: followUpStatus ?? undefined,
+        ownerWallet: ownerWallet === undefined ? undefined : ownerWallet,
+        nextActionAt: nextActionAt === undefined ? undefined : nextActionAt ? new Date(nextActionAt) : null,
+      },
+      select: {
+        id: true,
+        followUpStatus: true,
+        ownerWallet: true,
+        nextActionAt: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...updatedLead,
+        nextActionAt: toIso(updatedLead.nextActionAt),
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[ADMIN_VENUE_REPORT_LEADS] Update failed:', message);
+    return NextResponse.json({ success: false, error: 'Failed to update report lead' }, { status: 500 });
   }
 }

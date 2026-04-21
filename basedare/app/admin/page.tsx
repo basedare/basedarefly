@@ -203,6 +203,8 @@ interface VenueClaimRequest {
 
 interface VenueReportLeadSummary {
   totalLeads: number;
+  newLeads: number;
+  activeFollowUps: number;
   venueAudience: number;
   sponsorAudience: number;
   claimStarted: number;
@@ -220,6 +222,9 @@ interface VenueReportLeadEntry {
   name: string | null;
   organization: string | null;
   notes: string | null;
+  followUpStatus: 'NEW' | 'FOLLOWING_UP' | 'WAITING' | 'CONVERTED' | 'ARCHIVED';
+  ownerWallet: string | null;
+  nextActionAt: string | null;
   contactedAt: string;
   createdAt: string;
   venue: {
@@ -462,6 +467,8 @@ export default function AdminPage() {
   const [venueClaimRejectReason, setVenueClaimRejectReason] = useState('');
   const [reportLeadSummary, setReportLeadSummary] = useState<VenueReportLeadSummary>({
     totalLeads: 0,
+    newLeads: 0,
+    activeFollowUps: 0,
     venueAudience: 0,
     sponsorAudience: 0,
     claimStarted: 0,
@@ -472,6 +479,7 @@ export default function AdminPage() {
   const [reportLeadsLoading, setReportLeadsLoading] = useState(false);
   const [reportLeadsError, setReportLeadsError] = useState<string | null>(null);
   const [selectedReportLead, setSelectedReportLead] = useState<VenueReportLeadEntry | null>(null);
+  const [reportLeadUpdating, setReportLeadUpdating] = useState<string | null>(null);
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -1159,6 +1167,8 @@ export default function AdminPage() {
         const nextLeads = data.data.leads ?? [];
         setReportLeadSummary(data.data.summary ?? {
           totalLeads: 0,
+          newLeads: 0,
+          activeFollowUps: 0,
           venueAudience: 0,
           sponsorAudience: 0,
           claimStarted: 0,
@@ -1180,6 +1190,65 @@ export default function AdminPage() {
       setReportLeadsLoading(false);
     }
   }, [address]);
+
+  const handleReportLeadUpdate = useCallback(async (
+    leadId: string,
+    update: {
+      followUpStatus?: VenueReportLeadEntry['followUpStatus'];
+      ownerWallet?: string | null;
+    }
+  ) => {
+    if (!address) return;
+
+    setReportLeadUpdating(leadId);
+    try {
+      const res = await fetch('/api/admin/venue-report-leads', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-moderator-wallet': address,
+        },
+        body: JSON.stringify({
+          leadId,
+          ...update,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        setReportLeadsError(data.error || 'Failed to update report lead');
+        return;
+      }
+
+      setReportLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === leadId
+            ? {
+                ...lead,
+                followUpStatus: data.data.followUpStatus ?? lead.followUpStatus,
+                ownerWallet: data.data.ownerWallet ?? null,
+                nextActionAt: data.data.nextActionAt ?? lead.nextActionAt,
+              }
+            : lead
+        )
+      );
+      setSelectedReportLead((current) =>
+        current?.id === leadId
+          ? {
+              ...current,
+              followUpStatus: data.data.followUpStatus ?? current.followUpStatus,
+              ownerWallet: data.data.ownerWallet ?? null,
+              nextActionAt: data.data.nextActionAt ?? current.nextActionAt,
+            }
+          : current
+      );
+      void fetchReportLeads();
+    } catch {
+      setReportLeadsError('Failed to update report lead');
+    } finally {
+      setReportLeadUpdating(null);
+    }
+  }, [address, fetchReportLeads]);
 
   // Handle claim decision
   const handleClaimDecision = async (dareId: string, decision: 'APPROVE' | 'REJECT') => {
@@ -2676,20 +2745,22 @@ export default function AdminPage() {
                 <p className="mt-2 text-3xl font-black text-white">{reportLeadSummary.totalLeads}</p>
                 <p className="mt-1 text-xs text-gray-500">Captured from venue reports</p>
               </div>
-              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] p-4 backdrop-blur-xl">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-fuchsia-200/70">Claim started</p>
-                <p className="mt-2 text-3xl font-black text-fuchsia-100">{reportLeadSummary.claimStarted}</p>
-                <p className="mt-1 text-xs text-fuchsia-100/60">Report turned into venue ownership motion</p>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">Needs follow-up</p>
+                <p className="mt-2 text-3xl font-black text-white">{reportLeadSummary.newLeads}</p>
+                <p className="mt-1 text-xs text-gray-500">Fresh leads with no operator action yet</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">Active follow-up</p>
+                <p className="mt-2 text-3xl font-black text-white">{reportLeadSummary.activeFollowUps}</p>
+                <p className="mt-1 text-xs text-gray-500">Leads currently owned or waiting on reply</p>
               </div>
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.08] p-4 backdrop-blur-xl">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">Activation launched</p>
-                <p className="mt-2 text-3xl font-black text-cyan-100">{reportLeadSummary.activationsLaunched}</p>
-                <p className="mt-1 text-xs text-cyan-100/60">Fresh campaigns created from reports</p>
-              </div>
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/[0.08] p-4 backdrop-blur-xl">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/70">Repeat launched</p>
-                <p className="mt-2 text-3xl font-black text-amber-100">{reportLeadSummary.repeatsLaunched}</p>
-                <p className="mt-1 text-xs text-amber-100/60">Repeat spend triggered by report evidence</p>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">Launches from report</p>
+                <p className="mt-2 text-3xl font-black text-cyan-100">
+                  {reportLeadSummary.activationsLaunched + reportLeadSummary.repeatsLaunched}
+                </p>
+                <p className="mt-1 text-xs text-cyan-100/60">Combined fresh and repeat launches</p>
               </div>
             </div>
 
@@ -2807,6 +2878,81 @@ export default function AdminPage() {
                           <p>Intent: <span className="text-white">{selectedReportLead.intent || 'general'}</span></p>
                           <p>Contacted: <span className="text-white">{formatRelativeTime(selectedReportLead.contactedAt)}</span></p>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">Owner + follow-up</p>
+                          <p className="mt-2 text-sm text-gray-300">
+                            Owner:{' '}
+                            <span className="text-white">
+                              {selectedReportLead.ownerWallet
+                                ? formatAddress(selectedReportLead.ownerWallet)
+                                : 'Unassigned'}
+                            </span>
+                          </p>
+                          <p className="mt-1 text-sm text-gray-300">
+                            Status: <span className="text-white">{selectedReportLead.followUpStatus.replace(/_/g, ' ')}</span>
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleReportLeadUpdate(selectedReportLead.id, { ownerWallet: address ?? null })}
+                            disabled={reportLeadUpdating === selectedReportLead.id}
+                            className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300 transition hover:bg-cyan-500/15 disabled:opacity-60"
+                          >
+                            {reportLeadUpdating === selectedReportLead.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Hand className="h-3.5 w-3.5" />
+                            )}
+                            Assign to me
+                          </button>
+                          {selectedReportLead.ownerWallet ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleReportLeadUpdate(selectedReportLead.id, { ownerWallet: null })}
+                              disabled={reportLeadUpdating === selectedReportLead.id}
+                              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.1] hover:text-white disabled:opacity-60"
+                            >
+                              Clear owner
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {[
+                          ['NEW', 'New'],
+                          ['FOLLOWING_UP', 'Following up'],
+                          ['WAITING', 'Waiting'],
+                          ['CONVERTED', 'Converted'],
+                          ['ARCHIVED', 'Archived'],
+                        ].map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() =>
+                              void handleReportLeadUpdate(selectedReportLead.id, {
+                                followUpStatus: value as VenueReportLeadEntry['followUpStatus'],
+                              })
+                            }
+                            disabled={
+                              reportLeadUpdating === selectedReportLead.id ||
+                              selectedReportLead.followUpStatus === value
+                            }
+                            className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] transition ${
+                              selectedReportLead.followUpStatus === value
+                                ? 'border-cyan-400/30 bg-cyan-500/[0.14] text-cyan-200'
+                                : 'border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white'
+                            } disabled:opacity-60`}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
