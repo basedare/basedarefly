@@ -2,6 +2,7 @@
 
 import RotatingText from "@/components/RotatingText";
 import HowItWorksSignalWires from "@/components/HowItWorksSignalWires";
+import FirstActionSelector from "@/components/FirstActionSelector";
 import './HowItWorksSignalWires.css';
 
 export default function HowItWorks() {
@@ -113,6 +114,10 @@ export default function HowItWorks() {
             </div>
           ))}
           </div>
+        </div>
+
+        <div className="mb-10 flex justify-center md:mb-12">
+          <FirstActionSelector />
         </div>
 
         {/* Desktop Animated Text Strip */}
