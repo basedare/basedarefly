@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/cron/venue-report-leads",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }
