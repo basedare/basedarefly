@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect } from 'wagmi';
+import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
@@ -274,7 +275,10 @@ export default function ScoutDashboardPage() {
               Connect your wallet to join the Army.
             </p>
             <button
-              onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+              onClick={() => {
+                const preferredConnector = getPreferredWalletConnector(connectors);
+                if (preferredConnector) connect({ connector: preferredConnector });
+              }}
               className="px-6 py-4 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition touch-manipulation select-none cursor-pointer active:scale-95"
               style={{
                 WebkitTapHighlightColor: 'transparent',

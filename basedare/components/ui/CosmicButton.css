@@ -40,6 +40,19 @@
     opacity 180ms ease;
 }
 
+.sparkle-button--variant-gold {
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 182, 0.55) 0%, rgba(255, 255, 255, 0) 18%),
+    linear-gradient(180deg, #ffd54a 0%, #ffcb25 18%, #fbbf24 62%, #f5b300 100%);
+  box-shadow:
+    0 12px 0 rgba(140, 92, 0, 0.9),
+    0 18px 30px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 214, 77, 0.6),
+    inset 0 1px 0 rgba(255, 249, 214, 0.9),
+    inset 0 -1px 0 rgba(120, 72, 0, 0.22);
+}
+
 .sparkle-button--full {
   width: 100%;
 }
@@ -68,6 +81,11 @@
   border-radius: inherit;
   transition: inherit;
   pointer-events: none;
+}
+
+.sparkle-button--variant-gold::before,
+.sparkle-button--variant-gold::after {
+  display: none;
 }
 
 .sparkle-button::before {
@@ -125,6 +143,20 @@
     inset 0 -2px 5px -2px rgba(255, 255, 255, 0.5);
 }
 
+.sparkle-button--variant-gold:hover,
+.sparkle-button--variant-gold.sparkle-button--over {
+  transform: translateY(-1px);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 210, 0.58) 0%, rgba(255, 255, 255, 0) 18%),
+    linear-gradient(180deg, #ffda57 0%, #ffd22f 18%, #ffc71c 62%, #f7b400 100%);
+  box-shadow:
+    0 13px 0 rgba(140, 92, 0, 0.95),
+    0 22px 34px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(255, 223, 109, 0.68),
+    inset 0 1px 0 rgba(255, 249, 214, 0.95),
+    inset 0 -1px 0 rgba(120, 72, 0, 0.16);
+}
+
 .sparkle-button.sparkle-button--over {
   transition-duration: 2s;
 }
@@ -153,6 +185,15 @@
     0 0.25em 0.5em hsla(var(--sparkle-hue), 20%, 30%, 0.45),
     inset 0 -2px 5px -2px rgba(255, 255, 255, 0.65);
   transition-duration: 100ms;
+}
+
+.sparkle-button--variant-gold:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 8px 0 rgba(140, 92, 0, 0.95),
+    0 12px 20px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 214, 77, 0.55),
+    inset 0 1px 0 rgba(255, 248, 205, 0.7);
 }
 
 .sparkle-button:active::before,
@@ -194,10 +235,25 @@
   transition: inherit;
 }
 
+.sparkle-button--variant-gold .sparkle-button__label > span {
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+  color: rgba(24, 18, 4, 0.92);
+  filter: none;
+  text-shadow: 0 1px 0 rgba(255, 245, 181, 0.4);
+}
+
 .sparkle-button:hover .sparkle-button__label > span,
 .sparkle-button:active .sparkle-button__label > span,
 .sparkle-button.sparkle-button--over .sparkle-button__label > span {
   background-position-y: -100%;
+}
+
+.sparkle-button--variant-gold:hover .sparkle-button__label > span,
+.sparkle-button--variant-gold:active .sparkle-button__label > span,
+.sparkle-button--variant-gold.sparkle-button--over .sparkle-button__label > span {
+  background-position-y: 0;
 }
 
 .sparkle-button--sm .sparkle-button__label > span {
@@ -234,6 +290,14 @@
     0 0 0 2px rgba(255, 255, 255, 0.14),
     0 0 0 5px hsla(var(--sparkle-hue), 90%, 60%, 0.28),
     0 16px 28px rgba(0, 0, 0, 0.5);
+}
+
+.sparkle-button--variant-gold:focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 219, 0.42),
+    0 0 0 5px rgba(250, 204, 21, 0.22),
+    0 12px 0 rgba(140, 92, 0, 0.9),
+    0 18px 30px rgba(0, 0, 0, 0.44);
 }
 
 .sparkle-button[aria-disabled='true'],

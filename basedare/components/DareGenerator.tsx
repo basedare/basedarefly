@@ -327,8 +327,8 @@ export default function DareGenerator({
             height={44}
             fullWidth
             className={cn(
-              'min-w-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[22%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.48),rgba(255,255,255,0.1)_72%,rgba(255,255,255,0))] before:opacity-90 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/10 after:opacity-70',
-              mode === 'IRL' ? 'before:opacity-100' : 'before:opacity-55 after:opacity-50'
+              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/8',
+              mode === 'IRL' ? 'after:opacity-65' : 'after:opacity-35'
             )}
           />
           <SquircleButton
@@ -338,8 +338,8 @@ export default function DareGenerator({
             height={44}
             fullWidth
             className={cn(
-              'min-w-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[22%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.48),rgba(255,255,255,0.1)_72%,rgba(255,255,255,0))] before:opacity-90 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/10 after:opacity-70',
-              mode === 'STREAM' ? 'before:opacity-100' : 'before:opacity-55 after:opacity-50'
+              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/8',
+              mode === 'STREAM' ? 'after:opacity-65' : 'after:opacity-35'
             )}
           />
         </div>
@@ -383,12 +383,11 @@ export default function DareGenerator({
                         scale: isSegmentScrubbing ? 1.025 : 1,
                         y: isSegmentScrubbing ? -1 : 0,
                       }}
-                      className="absolute inset-0 overflow-hidden rounded-[1.15rem] border border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(183,128,255,0.16)_36%,rgba(18,16,31,0.88)_100%)] shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_14px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+                      className="absolute inset-0 overflow-hidden rounded-[1.15rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(183,128,255,0.12)_30%,rgba(18,16,31,0.9)_100%)] shadow-[0_10px_20px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-8px_12px_rgba(0,0,0,0.18)] backdrop-blur-xl"
                     >
-                      <div className="absolute inset-x-3 top-1 h-3 rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.45),rgba(255,255,255,0.12)_72%,rgba(255,255,255,0))]" />
                       <div
                         className={cn(
-                          'absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.95),rgba(255,255,255,0.22)_24%,rgba(190,132,252,0.18)_58%,rgba(15,16,24,0.82)_100%)] shadow-[0_10px_16px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.35)] transition-transform duration-150',
+                          'absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/18 bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.18),rgba(190,132,252,0.14)_36%,rgba(15,16,24,0.84)_100%)] shadow-[0_8px_14px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12)] transition-transform duration-150',
                           isSegmentScrubbing && 'scale-105'
                         )}
                       >
@@ -447,7 +446,7 @@ export default function DareGenerator({
           height={58}
           square
           icon={<RefreshCw className={`h-7 w-7 ${isAnimating ? 'animate-spin' : ''}`} />}
-          className="shrink-0 before:pointer-events-none before:absolute before:inset-x-[16%] before:top-[8%] before:h-[24%] before:rounded-full before:bg-[linear-gradient(180deg,rgba(255,255,255,0.56),rgba(255,255,255,0.14)_72%,rgba(255,255,255,0))] before:opacity-100"
+          className="shrink-0"
         />
       </div>
 

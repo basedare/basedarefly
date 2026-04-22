@@ -678,6 +678,21 @@ export default async function VenueDetailPage(
                     <p className="text-sm text-white/78">
                       No strong venue-fit creator yet. Launch the next activation and this recommendation layer will start filling itself in.
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
+                        className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                      >
+                        Launch activation
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href={mapHref}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        Open on map
+                      </Link>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-5 grid gap-3 xl:grid-cols-3">
@@ -846,6 +861,21 @@ export default async function VenueDetailPage(
                       <p className="text-sm text-white/58">
                         No verified marks yet. The first approved tag here will start the place-memory timeline.
                       </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
+                          className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                        >
+                          Launch first activation
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href={mapHref}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                        >
+                          Open on map
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>

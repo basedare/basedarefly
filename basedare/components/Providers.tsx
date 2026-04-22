@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
+import WalletAutoReconnect from './WalletAutoReconnect';
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
 const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
@@ -47,6 +48,7 @@ export function Providers({ children }: { children: ReactNode }) {
               paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
             }}
           >
+            <WalletAutoReconnect />
             {children}
           </OnchainKitProvider>
         </QueryClientProvider>

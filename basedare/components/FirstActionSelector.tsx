@@ -132,9 +132,8 @@ export default function FirstActionSelector() {
 
               <Link
                 href={route.href}
-                className={`relative mt-3 inline-flex w-full items-center justify-between overflow-hidden rounded-[18px] border px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] shadow-[0_14px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_16px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] ${route.buttonTone}`}
+                className={`relative mt-3 inline-flex w-full items-center justify-between overflow-hidden rounded-[18px] border px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] shadow-[0_12px_20px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.16)] transition hover:-translate-y-[1px] ${route.buttonTone}`}
               >
-                <span className="pointer-events-none absolute inset-x-[22%] top-[10%] h-[18%] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.28),rgba(255,255,255,0.06)_72%,rgba(255,255,255,0))] opacity-90" />
                 <span>Open route</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>

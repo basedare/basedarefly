@@ -798,16 +798,20 @@ export default function CreatorProfilePage() {
                                 <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Quick Read</p>
                                 <div className="mt-4 space-y-3">
                                     <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Trust Score</p>
-                                        <p className="mt-1 text-2xl font-black text-[#f9e27a]">{trust?.score ?? 0}</p>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Settled</p>
+                                        <p className="mt-1 text-2xl font-black text-emerald-300">{stats?.completed ?? 0}</p>
                                     </div>
                                     <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Approval Rate</p>
-                                        <p className="mt-1 text-2xl font-black text-yellow-400">{stats?.acceptRate ?? 0}%</p>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Clear Rate</p>
+                                        <p className="mt-1 text-2xl font-black text-[#f9e27a]">{stats?.acceptRate ?? 0}%</p>
                                     </div>
                                     <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Live Now</p>
-                                        <p className="mt-1 text-2xl font-black text-red-400">{stats?.live ?? 0}</p>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Payout Queue</p>
+                                        <p className="mt-1 text-2xl font-black text-amber-300">{stats?.payoutQueued ?? 0}</p>
+                                    </div>
+                                    <div className={`${insetCardClass} px-4 py-3`}>
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Venue Reach</p>
+                                        <p className="mt-1 text-2xl font-black text-cyan-200">{businessMetrics?.venueReach ?? 0}</p>
                                     </div>
                                 </div>
                             </div>
@@ -905,8 +909,24 @@ export default function CreatorProfilePage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="mt-3 rounded-[18px] border border-white/[0.06] bg-white/[0.03] px-4 py-4 text-sm text-white/45">
-                                    No business reviews yet. The first completed mission rating will show up here.
+                                <div className="mt-3 rounded-[18px] border border-white/[0.06] bg-white/[0.03] px-4 py-4">
+                                    <p className="text-sm text-white/45">
+                                        No business reviews yet. The first completed mission rating will show up here.
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <Link
+                                            href={`/create?streamer=${encodeURIComponent(displayTag)}`}
+                                            className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                                        >
+                                            Dare {displayTag}
+                                        </Link>
+                                        <Link
+                                            href="/creators"
+                                            className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/68 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                                        >
+                                            Browse creators
+                                        </Link>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1073,8 +1093,24 @@ export default function CreatorProfilePage() {
                                 </p>
                             </div>
                         ) : (
-                            <div className={`${insetCardClass} px-4 py-4 text-sm text-white/45`}>
-                                No place memory yet. Once this creator starts completing venue challenges, their footprint becomes visible here.
+                            <div className={`${insetCardClass} px-4 py-4`}>
+                                <p className="text-sm text-white/45">
+                                    No place memory yet. Once this creator starts completing venue challenges, their footprint becomes visible here.
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Link
+                                        href={`/create?streamer=${encodeURIComponent(displayTag)}`}
+                                        className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                                    >
+                                        Launch first venue dare
+                                    </Link>
+                                    <Link
+                                        href="/map"
+                                        className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/68 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                                    >
+                                        Open map
+                                    </Link>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1346,9 +1382,23 @@ export default function CreatorProfilePage() {
                     </div>
 
                     {(!profile?.recent || profile.recent.length === 0) ? (
-                        <div className={`${insetCardClass} py-12 px-6 text-center text-white/25`}>
-                            <p className="text-sm font-bold">No dares yet</p>
-                            <p className="text-xs mt-1">Be the first to dare {displayTag}!</p>
+                        <div className={`${insetCardClass} py-12 px-6 text-center`}>
+                            <p className="text-sm font-bold text-white/70">No dares yet</p>
+                            <p className="mt-1 text-xs text-white/38">Be the first to dare {displayTag} and start the public track record.</p>
+                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                <Link
+                                    href={`/create?streamer=${encodeURIComponent(displayTag)}`}
+                                    className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                                >
+                                    Dare {displayTag}
+                                </Link>
+                                <Link
+                                    href="/map"
+                                    className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/68 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                                >
+                                    Explore live dares
+                                </Link>
+                            </div>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">

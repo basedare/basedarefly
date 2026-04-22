@@ -25,6 +25,16 @@ type Creator = {
     label: string;
     score: number;
   };
+  stats?: {
+    approved: number;
+    payoutQueued: number;
+    live: number;
+    acceptRate: number;
+  };
+  businessMetrics?: {
+    venueReach: number;
+    firstMarks: number;
+  };
 };
 
 const raisedPanelClass =
@@ -44,7 +54,7 @@ export default function CreatorsPage() {
   const [loadingCreators, setLoadingCreators] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filterMode, setFilterMode] = React.useState<"all" | "verified">("all");
-  const [sortMode, setSortMode] = React.useState<"earned" | "dares" | "az">("earned");
+  const [sortMode, setSortMode] = React.useState<"trust" | "earned" | "dares" | "az">("trust");
 
   React.useEffect(() => {
     async function fetchCreators() {
@@ -98,6 +108,10 @@ export default function CreatorsPage() {
 
       if (sortMode === "dares") {
         return b.completedDares - a.completedDares || b.totalEarned - a.totalEarned;
+      }
+
+      if (sortMode === "trust") {
+        return (b.trust?.score ?? 0) - (a.trust?.score ?? 0) || b.totalEarned - a.totalEarned;
       }
 
       return b.totalEarned - a.totalEarned || b.completedDares - a.completedDares;
@@ -211,6 +225,7 @@ export default function CreatorsPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {([
+                    { value: "trust", label: "Most Trusted" },
                     { value: "earned", label: "Top Earned" },
                     { value: "dares", label: "Most Dares" },
                     { value: "az", label: "A-Z" },
@@ -314,6 +329,20 @@ export default function CreatorsPage() {
                                   ) : null}
                                 </div>
 
+                                <div className="mt-3 flex min-h-[2rem] flex-wrap items-center justify-center gap-1.5">
+                                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/72">
+                                    {creator.stats?.approved ?? creator.completedDares} settled
+                                  </span>
+                                  <span className="inline-flex items-center rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                                    {creator.stats?.acceptRate ?? 0}% clear
+                                  </span>
+                                  {(creator.businessMetrics?.venueReach ?? 0) > 0 ? (
+                                    <span className="inline-flex items-center rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-fuchsia-100">
+                                      {creator.businessMetrics?.venueReach} venues
+                                    </span>
+                                  ) : null}
+                                </div>
+
                                 <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
                                   <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
@@ -321,7 +350,7 @@ export default function CreatorsPage() {
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
-                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Dares</span>
+                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Settled</span>
                                   </div>
                                 </div>
                               </div>

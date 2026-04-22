@@ -61,9 +61,10 @@ export default function CosmicButton(props: CosmicButtonProps) {
 
   const sharedClassName = cn(
     'sparkle-button',
+    `sparkle-button--variant-${variant}`,
     `sparkle-button--${size}`,
     fullWidth && 'sparkle-button--full',
-    over && 'sparkle-button--over',
+    variant !== 'gold' && over && 'sparkle-button--over',
     className
   );
 

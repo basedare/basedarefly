@@ -628,6 +628,44 @@ function getPlaceVisualCopy(state: PlaceVisualState) {
   }
 }
 
+function getPulseMeaning({
+  pulse,
+  approvedCount,
+  heatScore,
+  activeDareCount,
+}: {
+  pulse: PulseState;
+  approvedCount: number;
+  heatScore: number;
+  activeDareCount: number;
+}) {
+  if (pulse === 'blazing') {
+    return {
+      label: 'Blazing',
+      description: `This venue is hot right now: ${approvedCount} verified sparks, heat ${heatScore}, and enough recent movement to feel active before you even arrive.`,
+    };
+  }
+
+  if (pulse === 'igniting') {
+    return {
+      label: 'Igniting',
+      description: `Momentum is real here. Verified marks are stacking, heat is climbing, and ${activeDareCount > 0 ? 'live challenges are helping it move' : 'another activation could push it into the hot tier'}.`,
+    };
+  }
+
+  if (pulse === 'simmering') {
+    return {
+      label: 'Simmering',
+      description: `This venue has signal, but it still needs repetition. A few more verified sparks will make the story obvious.`,
+    };
+  }
+
+  return {
+    label: 'Dormant',
+    description: `The venue exists on the map, but no strong public memory loop is active yet. First mark or first challenge wins the story.`,
+  };
+}
+
 function getVenueTransformationState({
   approvedCount,
   heatScore,
@@ -2326,6 +2364,60 @@ export default function RealWorldMap() {
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
+  const selectedPulseMeaning = useMemo(
+    () =>
+      getPulseMeaning({
+        pulse: selectedPulse,
+        approvedCount: selectedPlace?.approvedCount ?? 0,
+        heatScore: selectedPlace?.heatScore ?? 0,
+        activeDareCount: selectedPlace?.activeDareCount ?? 0,
+      }),
+    [selectedPlace, selectedPulse]
+  );
+  const selectedVenueWhyNow = useMemo(() => {
+    const reasons: string[] = [];
+
+    if ((selectedPlace?.activeDareCount ?? 0) > 0) {
+      reasons.push(`${selectedPlace?.activeDareCount} live ${selectedPlace?.activeDareCount === 1 ? 'challenge is' : 'challenges are'} active here right now.`);
+    }
+
+    if ((selectedPlace?.approvedCount ?? 0) > 0) {
+      reasons.push(`${selectedPlace?.approvedCount} verified ${selectedPlace?.approvedCount === 1 ? 'spark is' : 'sparks are'} already anchored here.`);
+    }
+
+    if (selectedPlaceMatch && showMatchedLayer) {
+      reasons.push('Your creator history already fits this venue, so the grid is routing you toward a stronger hit rate here.');
+    }
+
+    if (selectedCommandCenter?.sponsorReady) {
+      reasons.push('This venue is sponsor-ready, so a brand can launch here without starting from zero.');
+    } else if (selectedCommandCenter?.claimState === 'unclaimed') {
+      reasons.push('This venue is still claimable, which means the first operator here can shape the command layer.');
+    }
+
+    if (!reasons.length) {
+      reasons.push('This is still an open story. A first verified spark or a first funded activation can define what this venue becomes.');
+    }
+
+    return reasons.slice(0, 3);
+  }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
+  const selectedVenueNextMove = useMemo(() => {
+    if ((selectedPlace?.activeDareCount ?? 0) > 0) {
+      return proximityAccess.canReveal
+        ? 'Open the live challenge here now.'
+        : `Travel within ${PROXIMITY_REVEAL_METERS}m to unlock the full live brief.`;
+    }
+
+    if ((selectedPlace?.approvedCount ?? 0) <= 0) {
+      return 'Launch the first activation or land the first verified mark to wake this place up.';
+    }
+
+    if (selectedPlaceMatch && showMatchedLayer) {
+      return 'Use your existing fit here: route yourself in, or open the venue and chase the live signal.';
+    }
+
+    return 'Decide whether to tag the place, launch the next challenge, or open the venue page for the full command view.';
+  }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
 
   const handleSpray = () => {
     setSprayBurst(false);
@@ -3027,7 +3119,7 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[72dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[78dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -3131,6 +3223,34 @@ export default function RealWorldMap() {
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Heat</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/42">{selectedPulseMeaning.label}</p>
+                    </div>
+                  </div>
+
+                  <div className={`mt-4 ${mapPanelSectionClass}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Flame className="h-3.5 w-3.5 text-[#f5c518]" />
+                        Why this venue
+                      </div>
+                      <span className={mapPanelInsetChipClass}>{selectedPulseMeaning.label}</span>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-white/76">
+                      {selectedPulseMeaning.description}
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {selectedVenueWhyNow.map((reason, index) => (
+                        <div
+                          key={`venue-why-${index}`}
+                          className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-2.5 text-sm text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        >
+                          {reason}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 rounded-[18px] border border-cyan-300/16 bg-cyan-500/[0.06] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/72">Next move</p>
+                      <p className="mt-1.5 text-sm text-white/78">{selectedVenueNextMove}</p>
                     </div>
                   </div>
 
@@ -3807,7 +3927,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2.5 sm:mt-4 sm:gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -4024,18 +4144,18 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 84px;
+          min-height: 68px;
           width: 100%;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.42rem;
+          gap: 0.28rem;
           overflow: hidden;
-          border-radius: 24px;
+          border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.18);
-          padding: 0.78rem 0.78rem 0.74rem;
+          padding: 0.62rem 0.72rem 0.58rem;
           text-align: center;
-          font-size: 8.8px;
+          font-size: 8.1px;
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
@@ -4060,20 +4180,20 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.14), transparent 40%);
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -16px 22px rgba(0, 0, 0, 0.28),
-            inset 12px 12px 18px rgba(255, 255, 255, 0.025),
-            inset -14px -14px 20px rgba(0, 0, 0, 0.1);
+            inset 0 -12px 18px rgba(0, 0, 0, 0.28),
+            inset 10px 10px 16px rgba(255, 255, 255, 0.025),
+            inset -12px -12px 18px rgba(0, 0, 0, 0.1);
           pointer-events: none;
         }
 
         :global(.map-action-button::after) {
           content: '';
           position: absolute;
-          inset: 7px 22% auto;
-          height: 10px;
+          inset: 6px 24% auto;
+          height: 8px;
           border-radius: 999px;
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0));
-          opacity: 0.68;
+          opacity: 0.58;
           filter: blur(1px);
           pointer-events: none;
         }
@@ -4096,9 +4216,9 @@ export default function RealWorldMap() {
         }
 
         :global(.map-action-button span) {
-          max-width: 6rem;
+          max-width: 6.5rem;
           text-wrap: balance;
-          line-height: 1;
+          line-height: 0.98;
         }
 
         :global(.map-action-button--cyan) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi';
 import { useSession } from 'next-auth/react';
+import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, PlayCircle, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
@@ -1561,7 +1562,10 @@ export default function BrandPortalPage() {
               Connect your wallet to open the brand portal.
             </p>
             <button
-              onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+              onClick={() => {
+                const preferredConnector = getPreferredWalletConnector(connectors);
+                if (preferredConnector) connect({ connector: preferredConnector });
+              }}
               className="px-6 py-4 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition touch-manipulation select-none cursor-pointer active:scale-95"
               style={{
                 WebkitTapHighlightColor: 'transparent',

@@ -2,7 +2,6 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import {
   Wallet,
   Camera,
@@ -14,7 +13,6 @@ import {
   Target,
   Users,
   BarChart3,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";

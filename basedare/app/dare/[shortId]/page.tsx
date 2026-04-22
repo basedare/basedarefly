@@ -15,11 +15,12 @@ import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
 import DareVisual from '@/components/DareVisual';
+import DareStatusTimeline from '@/components/DareStatusTimeline';
 import SentinelBadge from '@/components/SentinelBadge';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
+import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { buildXSharePayload } from '@/lib/social-share';
-import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
@@ -44,7 +45,9 @@ interface DareDetail {
   id: string; shortId: string; title: string; bounty: number; upvoteCount: number;
   streamerHandle: string | null; status: string; expiresAt: string | null;
   videoUrl: string | null; imageUrl?: string | null; inviteToken: string | null; claimDeadline: string | null;
-  targetWalletAddress: string | null; awaitingClaim: boolean;
+  targetWalletAddress: string | null; awaitingClaim: boolean; updatedAt?: string | null;
+  createdAt?: string | null; claimedBy?: string | null; claimedAt?: string | null;
+  verifiedAt?: string | null; moderatedAt?: string | null;
   claimRequestWallet: string | null; claimRequestTag: string | null;
   claimRequestedAt: string | null; claimRequestStatus: string | null;
   requireSentinel?: boolean | null;
@@ -89,15 +92,18 @@ function formatCountdown(expiresAt: string | null): string {
   return `${s}s left`;
 }
 
-function statusConfig(status: string) {
-  const s = status?.toUpperCase();
-  if (s === 'VERIFIED' || s === 'COMPLETED') return { label: 'VERIFIED', cls: 'bg-green-500/20 border-green-500/40 text-green-400' };
-  if (s === 'PENDING_PAYOUT') return { label: 'PAYOUT QUEUED', cls: 'bg-amber-500/20 border-amber-500/40 text-amber-300' };
-  if (s === 'EXPIRED' || s === 'FAILED') return { label: 'EXPIRED', cls: 'bg-gray-500/20 border-gray-500/40 text-gray-400' };
-  if (s === 'PENDING_REVIEW') return { label: 'UNDER REVIEW', cls: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' };
-  if (s === DARE_STATUS_PENDING_ACCEPTANCE) return { label: 'WAITING FOR RESPONSE', cls: 'bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-200' };
-  if (s === DARE_STATUS_DECLINED) return { label: 'DECLINED', cls: 'bg-red-500/20 border-red-500/40 text-red-300' };
-  return { label: 'LIVE', cls: 'bg-red-500/20 border-red-500/40 text-red-400' };
+function formatStatusMoment(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    return new Date(value).toLocaleString('en-AU', {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return null;
+  }
 }
 
 // ── Skeleton ───────────────────────────────────────────────────────────────
@@ -533,11 +539,104 @@ export default function DareDetailPage() {
     !creatorReview
   );
 
-  const sc = dare ? statusConfig(dare.status) : null;
+  const lifecycle = dare ? getDareLifecycleModel(dare) : null;
+  const sc = lifecycle
+    ? {
+        label: lifecycle.currentStatusLabel.toUpperCase(),
+        cls: lifecycle.statusTone,
+      }
+    : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
   const safeBountyAmount = Number.isFinite(dare?.bounty) ? (dare?.bounty ?? 0) : 0;
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? (dare?.upvoteCount ?? 0) : 0;
+  const lifecycleMoments = dare
+    ? [
+        { label: 'Created', value: dare.createdAt ?? null },
+        { label: 'Claim requested', value: dare.claimRequestedAt ?? null },
+        { label: 'Claimed', value: dare.claimedAt ?? null },
+        { label: 'Reviewed', value: dare.moderatedAt ?? null },
+        {
+          label:
+            dare.status?.toUpperCase() === 'VERIFIED' || dare.status?.toUpperCase() === 'PAID'
+              ? 'Paid'
+              : dare.status?.toUpperCase() === 'PENDING_PAYOUT'
+                ? 'Approved'
+                : 'Updated',
+          value:
+            dare.verifiedAt ??
+            (['PENDING_REVIEW', 'PENDING_PAYOUT'].includes(dare.status?.toUpperCase())
+              ? dare.updatedAt ?? null
+              : null),
+        },
+      ].filter((moment) => Boolean(moment.value))
+    : [];
+  const trustPanel = (() => {
+    if (!dare) return null;
+    const status = dare.status?.toUpperCase();
+
+    if (status === 'PENDING_REVIEW') {
+      return {
+        title: 'Review in progress',
+        tone: 'border-yellow-500/20 bg-yellow-500/[0.08] text-yellow-100',
+        bullets: [
+          dare.updatedAt
+            ? `Proof received ${formatDistanceToNow(new Date(dare.updatedAt), { addSuffix: true })}.`
+            : 'Proof has been received.',
+          'Human review usually lands within 4 hours.',
+          dare.requireSentinel
+            ? 'Sentinel-required proofs may take a little longer because they include manual verification.'
+            : 'No extra action is needed from the creator right now.',
+        ],
+      };
+    }
+
+    if (status === 'PENDING_PAYOUT') {
+      return {
+        title: 'Approved, payout queued',
+        tone: 'border-amber-500/20 bg-amber-500/[0.08] text-amber-100',
+        bullets: [
+          dare.moderatedAt || dare.verifiedAt
+            ? `Approval logged ${formatDistanceToNow(new Date(dare.verifiedAt ?? dare.moderatedAt ?? dare.updatedAt ?? dare.createdAt ?? new Date().toISOString()), { addSuffix: true })}.`
+            : 'Approval is logged on the system.',
+          'Settlement is processing on Base L2.',
+          'Funds are still reserved in escrow while the payout worker clears the queue.',
+        ],
+      };
+    }
+
+    if (['VERIFIED', 'PAID', 'COMPLETED'].includes(status)) {
+      return {
+        title: 'Completed and settled',
+        tone: 'border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-100',
+        bullets: [
+          dare.verifiedAt
+            ? `Completion logged ${formatDistanceToNow(new Date(dare.verifiedAt), { addSuffix: true })}.`
+            : 'This dare has been completed.',
+          'Payout has been sent from escrow.',
+          'If you funded this mission, you can leave a simple creator review below.',
+        ],
+      };
+    }
+
+    if (status === 'PENDING_ACCEPTANCE' || status === 'AWAITING_CLAIM') {
+      return {
+        title: 'Waiting on the creator side',
+        tone: 'border-fuchsia-500/20 bg-fuchsia-500/[0.08] text-fuchsia-100',
+        bullets: [
+          status === 'PENDING_ACCEPTANCE'
+            ? 'The targeted creator still needs to accept or decline this dare.'
+            : 'This dare is waiting for a creator to claim it or finish setting up the target identity.',
+          dare.claimDeadline
+            ? `If nobody takes it by ${formatStatusMoment(dare.claimDeadline)}, it can be refunded.`
+            : 'Once claimed, the creator can move straight into proof submission.',
+          'No proof or payout activity starts until the brief is accepted or claimed.',
+        ],
+      };
+    }
+
+    return null;
+  })();
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -684,6 +783,51 @@ export default function DareDetailPage() {
             <span className="text-xs font-mono font-bold">{safeUpvoteCount.toLocaleString()}</span>
           </button>
         </div>
+
+        <DareStatusTimeline dare={dare} size="full" />
+
+        {trustPanel ? (
+          <section className={`rounded-2xl border p-5 backdrop-blur-xl ${trustPanel.tone}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
+                  Review & settlement
+                </p>
+                <h2 className="mt-2 text-lg font-black text-white">{trustPanel.title}</h2>
+              </div>
+              {lifecycleMoments.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[320px]">
+                  {lifecycleMoments.map((moment) => (
+                    <div
+                      key={`${moment.label}-${moment.value}`}
+                      className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2"
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+                        {moment.label}
+                      </p>
+                      <p className="mt-1 text-xs text-white/72">{formatStatusMoment(moment.value ?? null)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <ul className="mt-4 space-y-2 text-sm leading-6 text-white/72">
+              {trustPanel.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-2">
+                  <span className="mt-[9px] h-1.5 w-1.5 rounded-full bg-current/80" />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/trust"
+              className="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/70 transition hover:text-white"
+            >
+              See how review and payout work
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </section>
+        ) : null}
 
         {/* Tx feedback */}
         {(approvePending || fundPending) && (
