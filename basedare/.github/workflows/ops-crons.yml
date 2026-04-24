@@ -1,0 +1,90 @@
+name: Ops Cron Dispatcher
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Cron job to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - retry-payouts
+          - refund-expired
+          - venue-report-leads
+
+concurrency:
+  group: ops-crons-${{ github.event.schedule || github.event.inputs.job || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch protected ops cron
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      BASEDARE_APP_URL: ${{ secrets.BASEDARE_APP_URL || 'https://basedare.xyz' }}
+      BASEDARE_CRON_SECRET: ${{ secrets.BASEDARE_CRON_SECRET }}
+      REQUESTED_JOB: ${{ github.event.inputs.job || 'scheduled' }}
+      SCHEDULE: ${{ github.event.schedule || '' }}
+
+    steps:
+      - name: Validate scheduler secret
+        shell: bash
+        run: |
+          if [ -z "$BASEDARE_CRON_SECRET" ]; then
+            echo "BASEDARE_CRON_SECRET is not configured in GitHub Actions secrets."
+            exit 1
+          fi
+
+      - name: Dispatch cron endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          call_endpoint() {
+            local label="$1"
+            local path="$2"
+            echo "::group::$label"
+            curl --fail-with-body --show-error --silent \
+              --request POST \
+              --header "Authorization: Bearer ${BASEDARE_CRON_SECRET}" \
+              "${BASEDARE_APP_URL}${path}"
+            echo
+            echo "::endgroup::"
+          }
+
+          should_run() {
+            local job="$1"
+
+            if [ "$REQUESTED_JOB" = "all" ] || [ "$REQUESTED_JOB" = "$job" ]; then
+              return 0
+            fi
+
+            if [ "$REQUESTED_JOB" = "scheduled" ] && [ "$job" = "retry-payouts" ] && [ "$SCHEDULE" = "*/15 * * * *" ]; then
+              return 0
+            fi
+
+            if [ "$REQUESTED_JOB" = "scheduled" ] && [ "$SCHEDULE" = "7 * * * *" ] && [ "$job" != "retry-payouts" ]; then
+              return 0
+            fi
+
+            return 1
+          }
+
+          if should_run "retry-payouts"; then
+            call_endpoint "Retry payouts" "/api/cron/retry-payouts"
+          fi
+
+          if should_run "refund-expired"; then
+            call_endpoint "Refund expired dares" "/api/cron/refund-expired"
+          fi
+
+          if should_run "venue-report-leads"; then
+            call_endpoint "Venue report lead nudges" "/api/cron/venue-report-leads"
+          fi

@@ -1,6 +1,6 @@
 # BaseDare Money Rails Runbook
 
-Updated: 2026-04-09
+Updated: 2026-04-25
 
 ## Purpose
 
@@ -35,11 +35,27 @@ Recommended fallback-only env:
 
 ## Scheduler
 
-This repo now declares Vercel cron schedules in [`vercel.json`](/Users/mrrobot13/Desktop/basedarestar/basedare/vercel.json):
-- payout retry every 10 minutes
-- expired refund processing every 30 minutes
+BaseDare uses two scheduler layers:
 
-If deployment is not on Vercel, mirror the same cadence in Railway, GitHub Actions, or any external scheduler.
+Primary scheduler:
+- GitHub Actions workflow [`ops-crons.yml`](/Users/mrrobot13/Desktop/basedarestar/basedare/.github/workflows/ops-crons.yml)
+- payout retry every 15 minutes
+- expired refund processing hourly
+- venue report lead nudges hourly
+
+Backup scheduler:
+- Vercel Hobby cron declarations in [`vercel.json`](/Users/mrrobot13/Desktop/basedarestar/basedare/vercel.json)
+- payout retry once per day
+- expired refund processing once per day
+- venue report lead nudges once per day
+
+Vercel Hobby only supports daily cron cadence. Treat Vercel cron as the safety net, not the primary money-loop runner.
+
+Required GitHub Actions secrets:
+- `BASEDARE_CRON_SECRET`: must match production `CRON_SECRET`
+- `BASEDARE_APP_URL`: optional, defaults to `https://basedare.xyz`
+
+The workflow can also be run manually with `workflow_dispatch` for `all`, `retry-payouts`, `refund-expired`, or `venue-report-leads`.
 
 ## Fail-Closed Expectations
 
@@ -58,11 +74,12 @@ If deployment is not on Vercel, mirror the same cadence in Railway, GitHub Actio
 
 ## Post-Deploy Smoke Checks
 
-1. Hit `GET /api/refund/expired` manually and confirm the read-only summary loads.
-2. Trigger `POST /api/cron/retry-payouts` with `Authorization: Bearer <CRON_SECRET>` and confirm a success response.
-3. Trigger `POST /api/cron/refund-expired` with `Authorization: Bearer <CRON_SECRET>` and confirm a success response.
-4. Check Telegram for any `PAYOUT_FAILED`, `REFUND_FAILED`, or `CONTRACT_ERROR` alerts.
-5. Verify the Vercel cron jobs appear in the project dashboard after deploy.
+1. Run `npm run safety:endpoints` and confirm all unauthenticated protected routes return 401/403/503.
+2. Run `BASEDARE_ADMIN_SECRET=<secret> npm run safety:production` and confirm there are no blockers.
+3. Run `BASEDARE_CRON_SECRET=<secret> npm run safety:endpoints` and confirm the authenticated cron smoke passes.
+4. Trigger the GitHub Actions `Ops Cron Dispatcher` workflow manually for `all`.
+5. Check Telegram for any `PAYOUT_FAILED`, `REFUND_FAILED`, or `CONTRACT_ERROR` alerts.
+6. Verify the Vercel cron jobs remain visible as daily backup jobs in the project dashboard.
 
 ## Rollback Triggers
 
@@ -88,6 +105,6 @@ If expired refunds are failing:
 
 ## Notes
 
-- `/api/refund/expired` remains the read-only dashboard endpoint for upcoming expiries.
+- `/api/refund/expired` is cron-secret protected because it exposes ops queue metadata.
 - `/api/cron/refund-expired` is the scheduled processing route.
 - Do not turn on new monetization switches until this runbook can be executed cleanly in the target environment.
