@@ -21,6 +21,7 @@ type ActionCenterRole = 'creator' | 'funder' | 'ops' | 'system';
 
 type ActionCenterItem = {
   id: string;
+  dareId?: string | null;
   category: ActionCenterCategory;
   title: string;
   detail: string;

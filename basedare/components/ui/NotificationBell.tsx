@@ -27,6 +27,7 @@ type ActionCenterCategory =
 
 interface ActionCenterItem {
     id: string;
+    dareId?: string | null;
     category: ActionCenterCategory;
     title: string;
     detail: string;

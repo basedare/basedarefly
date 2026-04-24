@@ -15,7 +15,6 @@ import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import { buildDareResponseMessage, DARE_RESPONSE_WINDOW_MS } from '@/lib/dare-response-auth';
 import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
-import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 
 interface Dare {
@@ -123,17 +122,24 @@ interface FootprintStats {
 
 type DashboardInboxItem = {
   id: string;
-  dareId: string;
+  dareId?: string | null;
   shortId?: string;
   title: string;
-  category: 'Needs response' | 'Ready for proof' | 'Under review' | 'Payout queued' | 'Recently paid';
+  category:
+    | 'Needs response'
+    | 'Ready for proof'
+    | 'Under review'
+    | 'Payout queued'
+    | 'Paid'
+    | 'Claim decision'
+    | 'Venue lead follow-up';
   detail: string;
   cta: string;
   href: string;
   priority: number;
-  role: 'creator' | 'funder';
-  bounty: number;
-  statusLabel: string;
+  role: 'creator' | 'funder' | 'ops' | 'system';
+  bounty?: number | null;
+  statusLabel?: string | null;
   locationLabel?: string | null;
 };
 
@@ -142,6 +148,13 @@ type StoredDareResponseAuth = {
   dareId: string;
   issuedAt: string;
   signature: string;
+};
+
+const ACTION_ROLE_LABELS: Record<DashboardInboxItem['role'], string> = {
+  creator: 'Creator side',
+  funder: 'Funder side',
+  ops: 'Ops',
+  system: 'System',
 };
 
 const raisedPanelClass =
@@ -368,6 +381,8 @@ export default function Dashboard() {
   const [activationFeedback, setActivationFeedback] = useState<Record<string, string>>({});
   const [activationActionId, setActivationActionId] = useState<string | null>(null);
   const [activationActionType, setActivationActionType] = useState<'ACCEPT' | 'DECLINE' | null>(null);
+  const [actionInbox, setActionInbox] = useState<DashboardInboxItem[]>([]);
+  const [actionInboxLoading, setActionInboxLoading] = useState(false);
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
   const [deepLinkedCampaignId, setDeepLinkedCampaignId] = useState<string | null>(null);
   const activationsRef = useRef<HTMLDivElement | null>(null);
@@ -624,6 +639,39 @@ export default function Dashboard() {
   }, [address, sessionToken]);
 
   useEffect(() => {
+    const fetchActionCenter = async () => {
+      if (!address) {
+        setActionInbox([]);
+        setActionInboxLoading(false);
+        return;
+      }
+
+      try {
+        setActionInboxLoading(true);
+        const response = await fetch(`/api/action-center?wallet=${address}`, {
+          headers: {
+            'x-moderator-wallet': address,
+          },
+        });
+        const payload = await response.json();
+
+        if (!payload.success) {
+          throw new Error(payload.error || 'Failed to load action center');
+        }
+
+        setActionInbox((payload.data?.items ?? []).slice(0, 6));
+      } catch (error) {
+        console.error('Failed to load action center:', error);
+        setActionInbox([]);
+      } finally {
+        setActionInboxLoading(false);
+      }
+    };
+
+    void fetchActionCenter();
+  }, [address, forMeDares, fundedDares]);
+
+  useEffect(() => {
     if (!deepLinkedCampaignId || opportunitiesLoading || opportunities.length === 0) return;
 
     const matchingOpportunity = opportunities.find((opportunity) => opportunity.id === deepLinkedCampaignId);
@@ -838,167 +886,6 @@ export default function Dashboard() {
     [fundedDares]
   );
 
-  const actionInbox = React.useMemo<DashboardInboxItem[]>(() => {
-    const items: DashboardInboxItem[] = [];
-    const lowerAddress = address?.toLowerCase() || null;
-
-    creatorClaims.forEach((dare) => {
-      const loopState = getClaimLoopState(dare, lowerAddress);
-      const lifecycle = getDareLifecycleModel(dare);
-      const href = `/dare/${dare.shortId || dare.id}`;
-
-      if (dare.status === DARE_STATUS_PENDING_ACCEPTANCE && loopState.label === 'Respond Now') {
-        items.push({
-          id: `creator-${dare.id}-respond`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Needs response',
-          detail: lifecycle.nextActionCopy,
-          cta: 'Respond',
-          href,
-          priority: 0,
-          role: 'creator',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-        return;
-      }
-
-      if (
-        dare.status === 'PENDING' &&
-        (loopState.label === 'Ready for Proof' || loopState.label === 'Proof Uploaded')
-      ) {
-        items.push({
-          id: `creator-${dare.id}-proof`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Ready for proof',
-          detail: lifecycle.nextActionCopy,
-          cta: loopState.label === 'Proof Uploaded' ? 'Resume proof' : 'Submit proof',
-          href,
-          priority: 1,
-          role: 'creator',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-        return;
-      }
-
-      if (dare.status === 'PENDING_REVIEW') {
-        items.push({
-          id: `creator-${dare.id}-review`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Under review',
-          detail: lifecycle.nextActionCopy,
-          cta: 'Open brief',
-          href,
-          priority: 2,
-          role: 'creator',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-        return;
-      }
-
-      if (dare.status === 'PENDING_PAYOUT') {
-        items.push({
-          id: `creator-${dare.id}-queued`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Payout queued',
-          detail: lifecycle.nextActionCopy,
-          cta: 'Open brief',
-          href,
-          priority: 3,
-          role: 'creator',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-        return;
-      }
-
-      if (dare.status === 'VERIFIED') {
-        items.push({
-          id: `creator-${dare.id}-paid`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Recently paid',
-          detail: lifecycle.nextActionCopy,
-          cta: 'Open brief',
-          href,
-          priority: 4,
-          role: 'creator',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-      }
-    });
-
-    fundedRows.forEach((dare) => {
-      const lifecycle = getDareLifecycleModel(dare);
-      const href = `/dare/${dare.shortId || dare.id}`;
-
-      if (dare.status === 'PENDING_PAYOUT') {
-        items.push({
-          id: `funder-${dare.id}-queued`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Payout queued',
-          detail: lifecycle.nextActionCopy,
-          cta: 'Open brief',
-          href,
-          priority: 3,
-          role: 'funder',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-      } else if (dare.status === 'VERIFIED') {
-        items.push({
-          id: `funder-${dare.id}-paid`,
-          dareId: dare.id,
-          shortId: dare.shortId,
-          title: dare.title,
-          category: 'Recently paid',
-          detail: 'Completed and settled. Leave a rating while the result is still fresh.',
-          cta: 'Rate creator',
-          href,
-          priority: 4,
-          role: 'funder',
-          bounty: dare.bounty,
-          statusLabel: lifecycle.currentStatusLabel,
-          locationLabel: dare.locationLabel,
-        });
-      }
-    });
-
-    const seen = new Set<string>();
-    return items
-      .sort((left, right) => {
-        if (left.priority !== right.priority) return left.priority - right.priority;
-        return right.bounty - left.bounty;
-      })
-      .filter((item) => {
-        const key = `${item.role}-${item.dareId}-${item.category}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .slice(0, 6);
-  }, [address, creatorClaims, fundedRows]);
-
   const actionInboxCounts = React.useMemo(() => {
     return actionInbox.reduce<Record<DashboardInboxItem['category'], number>>(
       (counts, item) => {
@@ -1010,7 +897,9 @@ export default function Dashboard() {
         'Ready for proof': 0,
         'Under review': 0,
         'Payout queued': 0,
-        'Recently paid': 0,
+        Paid: 0,
+        'Claim decision': 0,
+        'Venue lead follow-up': 0,
       }
     );
   }, [actionInbox]);
@@ -1243,7 +1132,7 @@ export default function Dashboard() {
                   Open action center
                 </button>
                 {(
-                  ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Recently paid'] as const
+                  ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Claim decision', 'Venue lead follow-up', 'Paid'] as const
                 ).map((category) =>
                   actionInbox.length > 0 && actionInboxCounts[category] > 0 ? (
                     <span
@@ -1262,7 +1151,7 @@ export default function Dashboard() {
             <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>
               Connect wallet and your live creator or funder actions will show up here.
             </div>
-          ) : loading ? (
+          ) : loading || actionInboxLoading ? (
             <div className={`${insetWellClass} flex items-center justify-center px-4 py-6 text-sm text-white/55`}>
               <Loader2 className="mr-3 h-5 w-5 animate-spin text-fuchsia-300" />
               Loading your next actions
@@ -1279,59 +1168,69 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid gap-3 xl:grid-cols-2">
-              {actionInbox.map((item) => (
-                <div key={item.id} className={`${raisedTileClass} overflow-hidden p-4`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
-                          {item.category}
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
-                          {item.role === 'creator' ? 'Creator side' : 'Funder side'}
-                        </span>
+              {actionInbox.map((item) => {
+                const metaLine = [item.locationLabel || null, item.statusLabel || null, item.bounty != null ? `$${item.bounty}` : null]
+                  .filter(Boolean)
+                  .join(' • ');
+
+                return (
+                  <div key={item.id} className={`${raisedTileClass} overflow-hidden p-4`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
+                            {item.category}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
+                            {ACTION_ROLE_LABELS[item.role]}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-base font-black text-white line-clamp-1">{item.title}</p>
+                        {metaLine ? (
+                          <p className="mt-1 text-xs text-white/42">
+                            {metaLine}
+                          </p>
+                        ) : null}
                       </div>
-                      <p className="mt-3 text-base font-black text-white line-clamp-1">{item.title}</p>
-                      <p className="mt-1 text-xs text-white/42">
-                        {item.locationLabel || item.statusLabel} • ${item.bounty}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/58">
-                      {item.statusLabel}
-                    </span>
-                  </div>
-                  <p className="mt-4 text-sm text-white/62">{item.detail}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {item.category === 'Ready for proof' || item.category === 'Needs response' ? (
-                      <SquircleButton
-                        tone="yellow"
-                        height={42}
-                        onClick={() => {
-                          jumpToActivation(item.dareId);
-                        }}
-                        className="min-w-[160px]"
-                      >
-                        <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.84rem] text-black/84">
-                          {item.cta}
+                      {item.statusLabel ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/58">
+                          {item.statusLabel}
                         </span>
-                      </SquircleButton>
-                    ) : (
+                      ) : null}
+                    </div>
+                    <p className="mt-4 text-sm text-white/62">{item.detail}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {item.dareId && (item.category === 'Ready for proof' || item.category === 'Needs response') ? (
+                        <SquircleButton
+                          tone="yellow"
+                          height={42}
+                          onClick={() => {
+                            jumpToActivation(item.dareId);
+                          }}
+                          className="min-w-[160px]"
+                        >
+                          <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.84rem] text-black/84">
+                            {item.cta}
+                          </span>
+                        </SquircleButton>
+                      ) : (
+                        <button
+                          onClick={() => router.push(item.href)}
+                          className={volumetricButtonPurple}
+                        >
+                          {item.cta}
+                        </button>
+                      )}
                       <button
                         onClick={() => router.push(item.href)}
-                        className={volumetricButtonPurple}
+                        className={volumetricButtonNeutral}
                       >
-                        {item.cta}
+                        Open brief
                       </button>
-                    )}
-                    <button
-                      onClick={() => router.push(item.href)}
-                      className={volumetricButtonNeutral}
-                    >
-                      Open brief
-                    </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

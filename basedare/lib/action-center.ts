@@ -17,6 +17,7 @@ export type ActionCenterRole = 'creator' | 'funder' | 'ops' | 'system';
 
 export type ActionCenterItem = {
   id: string;
+  dareId?: string | null;
   category: ActionCenterCategory;
   title: string;
   detail: string;
@@ -383,6 +384,7 @@ export async function getActionCenter(
     if (dare.status === DARE_STATUS_PENDING_ACCEPTANCE && loopState.label === 'Respond Now') {
       items.push({
         id: `creator-${dare.id}-respond`,
+        dareId: dare.id,
         category: 'Needs response',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -401,6 +403,7 @@ export async function getActionCenter(
     if (dare.status === 'PENDING' && (loopState.label === 'Ready for Proof' || loopState.label === 'Proof Uploaded')) {
       items.push({
         id: `creator-${dare.id}-proof`,
+        dareId: dare.id,
         category: 'Ready for proof',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -419,6 +422,7 @@ export async function getActionCenter(
     if (dare.status === 'PENDING_REVIEW') {
       items.push({
         id: `creator-${dare.id}-review`,
+        dareId: dare.id,
         category: 'Under review',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -437,6 +441,7 @@ export async function getActionCenter(
     if (dare.status === 'PENDING_PAYOUT') {
       items.push({
         id: `creator-${dare.id}-queued`,
+        dareId: dare.id,
         category: 'Payout queued',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -455,6 +460,7 @@ export async function getActionCenter(
     if (dare.status === 'VERIFIED') {
       items.push({
         id: `creator-${dare.id}-paid`,
+        dareId: dare.id,
         category: 'Paid',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -477,6 +483,7 @@ export async function getActionCenter(
     if (dare.status === 'PENDING_PAYOUT') {
       items.push({
         id: `funder-${dare.id}-queued`,
+        dareId: dare.id,
         category: 'Payout queued',
         title: dare.title,
         detail: lifecycle.nextActionCopy,
@@ -492,6 +499,7 @@ export async function getActionCenter(
     } else if (dare.status === 'VERIFIED') {
       items.push({
         id: `funder-${dare.id}-paid`,
+        dareId: dare.id,
         category: 'Paid',
         title: dare.title,
         detail: 'Completed and settled. Leave a rating while the result is still fresh.',
