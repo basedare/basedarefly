@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
+import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
@@ -3753,6 +3754,15 @@ export default function RealWorldMap() {
                     <div className="mt-3 space-y-3">
                         {visibleActiveDares.map((dare) => {
                           const activationState = getActivationStateCopy(dare);
+                          const lifecycle = getDareLifecycleModel({
+                            status: dare.status,
+                            streamerHandle: dare.streamerHandle,
+                            targetWalletAddress: dare.targetWalletAddress,
+                            claimRequestStatus: dare.claimRequestStatus,
+                            claimedBy: dare.claimedBy,
+                            createdAt: dare.createdAt,
+                            expiresAt: dare.expiresAt,
+                          });
                           const isFocusedCreatorActivation = dare.shortId === deepLinkedDareShortId;
                           const isMatchedActivation = selectedPlaceMatch?.dareShortId === dare.shortId;
 
@@ -3802,6 +3812,9 @@ export default function RealWorldMap() {
                                       best fit here
                                     </span>
                                   ) : null}
+                                  <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${lifecycle.statusTone}`}>
+                                    {lifecycle.currentStatusLabel}
+                                  </span>
                                   <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${activationState.className}`}>
                                     {activationState.label}
                                   </span>
@@ -3816,6 +3829,14 @@ export default function RealWorldMap() {
                                     Campaign: {dare.campaignTitle}
                                   </p>
                                 ) : null}
+                                <div className="mt-2 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2.5">
+                                  <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/34">
+                                    What happens next
+                                  </p>
+                                  <p className="mt-1.5 line-clamp-2 text-[12px] leading-5 text-white/62">
+                                    {lifecycle.nextActionCopy}
+                                  </p>
+                                </div>
                               </div>
                               {dare.shortId ? (
                                 proximityAccess.canReveal ? (
@@ -4144,18 +4165,18 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 68px;
+          min-height: 60px;
           width: 100%;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 0.28rem;
+          gap: 0.2rem;
           overflow: hidden;
-          border-radius: 20px;
+          border-radius: 18px;
           border: 1px solid rgba(255, 255, 255, 0.18);
-          padding: 0.62rem 0.72rem 0.58rem;
+          padding: 0.52rem 0.68rem 0.5rem;
           text-align: center;
-          font-size: 8.1px;
+          font-size: 8.5px;
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
@@ -4176,26 +4197,15 @@ export default function RealWorldMap() {
           inset: 1px;
           border-radius: inherit;
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.2) 100%),
-            radial-gradient(circle at 50% -6%, rgba(255, 255, 255, 0.14), transparent 40%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(0, 0, 0, 0.18) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -12px 18px rgba(0, 0, 0, 0.28),
-            inset 10px 10px 16px rgba(255, 255, 255, 0.025),
-            inset -12px -12px 18px rgba(0, 0, 0, 0.1);
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.24);
           pointer-events: none;
         }
 
         :global(.map-action-button::after) {
-          content: '';
-          position: absolute;
-          inset: 6px 24% auto;
-          height: 8px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0));
-          opacity: 0.58;
-          filter: blur(1px);
-          pointer-events: none;
+          display: none;
         }
 
         :global(.map-action-button > *) {
@@ -4216,9 +4226,9 @@ export default function RealWorldMap() {
         }
 
         :global(.map-action-button span) {
-          max-width: 6.5rem;
+          max-width: 7rem;
           text-wrap: balance;
-          line-height: 0.98;
+          line-height: 1.02;
         }
 
         :global(.map-action-button--cyan) {
@@ -4228,19 +4238,19 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(180, 247, 255, 0.18), transparent 36%),
             linear-gradient(180deg, rgba(59, 218, 242, 0.28) 0%, rgba(10, 74, 96, 0.9) 44%, rgba(5, 20, 34, 0.99) 100%);
           box-shadow:
-            0 22px 38px rgba(0, 0, 0, 0.32),
-            0 0 26px rgba(34, 211, 238, 0.14),
+            0 16px 28px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(34, 211, 238, 0.12),
             inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -24px 30px rgba(0, 0, 0, 0.34);
+            inset 0 -20px 24px rgba(0, 0, 0, 0.3);
         }
 
         :global(.map-action-button--cyan:hover) {
           border-color: rgba(186, 252, 255, 0.54);
           box-shadow:
-            0 24px 42px rgba(0, 0, 0, 0.32),
-            0 0 28px rgba(34, 211, 238, 0.18),
+            0 18px 32px rgba(0, 0, 0, 0.28),
+            0 0 22px rgba(34, 211, 238, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -22px 30px rgba(0, 0, 0, 0.34);
+            inset 0 -20px 24px rgba(0, 0, 0, 0.3);
         }
 
         :global(.map-action-button--gold) {
@@ -4250,19 +4260,19 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(255, 240, 182, 0.18), transparent 36%),
             linear-gradient(180deg, rgba(255, 209, 67, 0.3) 0%, rgba(130, 80, 16, 0.9) 48%, rgba(39, 23, 5, 0.99) 100%);
           box-shadow:
-            0 22px 38px rgba(0, 0, 0, 0.32),
-            0 0 26px rgba(245, 197, 24, 0.14),
+            0 16px 28px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(245, 197, 24, 0.12),
             inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -24px 30px rgba(0, 0, 0, 0.34);
+            inset 0 -20px 24px rgba(0, 0, 0, 0.3);
         }
 
         :global(.map-action-button--gold:hover) {
           border-color: rgba(248, 221, 114, 0.56);
           box-shadow:
-            0 24px 42px rgba(0, 0, 0, 0.32),
-            0 0 30px rgba(245, 197, 24, 0.18),
+            0 18px 32px rgba(0, 0, 0, 0.28),
+            0 0 22px rgba(245, 197, 24, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            inset 0 -22px 30px rgba(0, 0, 0, 0.34);
+            inset 0 -20px 24px rgba(0, 0, 0, 0.3);
         }
 
         :global(.map-action-button--violet) {
@@ -4272,19 +4282,19 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(247, 193, 255, 0.18), transparent 36%),
             linear-gradient(180deg, rgba(224, 97, 242, 0.3) 0%, rgba(142, 46, 202, 0.84) 48%, rgba(63, 21, 104, 0.99) 100%);
           box-shadow:
-            0 22px 38px rgba(0, 0, 0, 0.32),
-            0 0 30px rgba(217, 70, 239, 0.16),
+            0 16px 28px rgba(0, 0, 0, 0.28),
+            0 0 22px rgba(217, 70, 239, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.16),
-            inset 0 -24px 30px rgba(29, 8, 52, 0.4);
+            inset 0 -20px 24px rgba(29, 8, 52, 0.34);
         }
 
         :global(.map-action-button--violet:hover) {
           border-color: rgba(245, 208, 254, 0.58);
           box-shadow:
-            0 24px 42px rgba(0, 0, 0, 0.34),
-            0 0 34px rgba(217, 70, 239, 0.2),
+            0 18px 32px rgba(0, 0, 0, 0.3),
+            0 0 26px rgba(217, 70, 239, 0.18),
             inset 0 1px 0 rgba(255, 255, 255, 0.16),
-            inset 0 -24px 32px rgba(29, 8, 52, 0.42);
+            inset 0 -20px 24px rgba(29, 8, 52, 0.36);
         }
 
         @media (min-width: 640px) {

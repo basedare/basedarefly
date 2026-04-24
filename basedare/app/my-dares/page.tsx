@@ -7,35 +7,32 @@ import GalaxyBackground from "@/components/GalaxyBackground";
 import MoltenGold from "@/components/ui/MoltenGold";
 import { ElectricCard } from "@/components/ui/electric-card";
 import { Wallet, Clock, CheckCircle, XCircle, Zap, Loader2 } from "lucide-react";
+import { getDareLifecycleModel } from "@/lib/dare-lifecycle";
 
 interface Dare {
   id: string;
   title: string;
   bounty: number;
-  streamerHandle: string;
+  streamerHandle: string | null;
   status: string;
   expiresAt: string | null;
   shortId: string | null;
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'VERIFIED': return '#22c55e'; // Green
-    case 'PENDING': return '#FACC15'; // Gold - active
-    case 'REJECTED': return '#ef4444'; // Red
-    case 'EXPIRED': return '#6b7280'; // Gray
-    default: return '#A855F7'; // Purple
-  }
-}
-
-function getStatusDisplay(status: string): { label: string; time: string } {
-  switch (status) {
-    case 'VERIFIED': return { label: 'COMPLETED', time: 'Verified' };
-    case 'PENDING': return { label: 'LIVE', time: 'Awaiting proof' };
-    case 'REJECTED': return { label: 'FAILED', time: 'Rejected' };
-    case 'EXPIRED': return { label: 'EXPIRED', time: 'Time ran out' };
-    default: return { label: status, time: '' };
-  }
+  createdAt: string;
+  updatedAt: string;
+  moderatedAt: string | null;
+  verifiedAt: string | null;
+  awaitingClaim: boolean;
+  claimDeadline: string | null;
+  claimedBy: string | null;
+  claimedAt: string | null;
+  targetWalletAddress: string | null;
+  claimRequestWallet: string | null;
+  claimRequestTag: string | null;
+  claimRequestedAt: string | null;
+  claimRequestStatus: string | null;
+  locationLabel: string | null;
+  moderatorNote: string | null;
+  videoUrl: string | null;
 }
 
 function formatTimeLeft(expiresAt: string | null): string {
@@ -52,6 +49,83 @@ function formatTimeLeft(expiresAt: string | null): string {
   if (days > 0) return `${days}d left`;
   if (hours > 0) return `${hours}h left`;
   return 'Soon';
+}
+
+function formatTimelineMoment(value: string | null, fallback: string) {
+  if (!value) return fallback;
+  return new Date(value).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function getLifecycleAccent(status: string): string {
+  switch (status) {
+    case 'VERIFIED':
+    case 'PAID':
+    case 'COMPLETED':
+      return '#22c55e';
+    case 'PENDING_PAYOUT':
+      return '#f59e0b';
+    case 'PENDING_REVIEW':
+      return '#FACC15';
+    case 'FAILED':
+    case 'DECLINED':
+      return '#ef4444';
+    case 'EXPIRED':
+    case 'REFUNDED':
+      return '#6b7280';
+    default:
+      return '#A855F7';
+  }
+}
+
+function getStatusMoment(dare: Dare, lifecycleLabel: string): string {
+  if (dare.status === 'VERIFIED' || dare.status === 'PAID' || dare.status === 'COMPLETED') {
+    return formatTimelineMoment(dare.verifiedAt, 'Settled');
+  }
+
+  if (dare.status === 'PENDING_PAYOUT') {
+    return formatTimelineMoment(dare.moderatedAt, 'Awaiting settlement');
+  }
+
+  if (dare.status === 'PENDING_REVIEW') {
+    return formatTimelineMoment(dare.updatedAt, 'Proof uploaded');
+  }
+
+  if (dare.status === 'PENDING') {
+    if (dare.videoUrl) {
+      return formatTimelineMoment(dare.updatedAt, 'Proof attached');
+    }
+
+    if (dare.claimedAt) {
+      return formatTimelineMoment(dare.claimedAt, 'Claimed');
+    }
+
+    if (dare.claimRequestedAt) {
+      return formatTimelineMoment(dare.claimRequestedAt, 'Claim requested');
+    }
+
+    if (dare.expiresAt) {
+      return formatTimeLeft(dare.expiresAt);
+    }
+  }
+
+  if (dare.status === 'AWAITING_CLAIM' || dare.status === 'PENDING_ACCEPTANCE') {
+    return dare.claimDeadline ? formatTimeLeft(dare.claimDeadline) : 'Waiting on creator';
+  }
+
+  if (dare.status === 'EXPIRED') {
+    return 'Time ran out';
+  }
+
+  if (dare.status === 'FAILED' || dare.status === 'DECLINED') {
+    return dare.moderatorNote ? 'See review note' : lifecycleLabel;
+  }
+
+  return lifecycleLabel;
 }
 
 export default function MyDaresPage() {
@@ -178,10 +252,12 @@ export default function MyDaresPage() {
         {isConnected && !loading && !error && dares.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {dares.map((dare) => {
-              const color = getStatusColor(dare.status);
-              const { label, time } = getStatusDisplay(dare.status);
-              const timeDisplay = dare.status === 'PENDING' ? formatTimeLeft(dare.expiresAt) : time;
-              const isLive = dare.status === 'PENDING';
+              const lifecycle = getDareLifecycleModel(dare);
+              const color = getLifecycleAccent(dare.status);
+              const timeDisplay = getStatusMoment(dare, lifecycle.currentStatusLabel);
+              const isLive = ['PENDING', 'PENDING_REVIEW', 'PENDING_PAYOUT', 'PENDING_ACCEPTANCE', 'AWAITING_CLAIM'].includes(dare.status);
+              const routeType = lifecycle.dareType === 'open' ? 'Open dare' : 'Targeted dare';
+              const contextLine = dare.locationLabel || routeType;
 
               return (
                 <Link key={dare.id} href={`/dare/${dare.shortId || dare.id}`} className="h-[320px] w-full block">
@@ -207,6 +283,9 @@ export default function MyDaresPage() {
                             <div className="text-white font-bold font-serif text-lg">
                               {dare.streamerHandle ? `@${dare.streamerHandle}` : 'Open Bounty'}
                             </div>
+                            <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/40">
+                              {contextLine}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -218,10 +297,18 @@ export default function MyDaresPage() {
                       </div>
 
                       {/* Middle: The Task */}
-                      <div className="flex-grow flex items-center justify-center text-center px-4">
-                        <h3 className="text-2xl font-black text-white leading-tight font-serif italic opacity-90">
+                      <div className="flex-grow px-4 pt-3">
+                        <h3 className="text-center text-2xl font-black text-white leading-tight font-serif italic opacity-90">
                           &quot;{dare.title}&quot;
                         </h3>
+                        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-left">
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                            What happens next
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-white/68 line-clamp-3">
+                            {lifecycle.nextActionCopy}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Bottom: Status Bar */}
@@ -231,12 +318,12 @@ export default function MyDaresPage() {
                           {/* Status Text */}
                           <div className="flex items-center gap-2">
                             {isLive && <Zap size={14} className="text-[#FACC15] fill-[#FACC15] animate-bounce" />}
-                            {dare.status === 'VERIFIED' && <CheckCircle size={14} className="text-green-500" />}
-                            {dare.status === 'REJECTED' && <XCircle size={14} className="text-red-500" />}
-                            {dare.status === 'EXPIRED' && <Clock size={14} className="text-gray-500" />}
+                            {(dare.status === 'VERIFIED' || dare.status === 'PAID' || dare.status === 'COMPLETED') && <CheckCircle size={14} className="text-green-500" />}
+                            {(dare.status === 'FAILED' || dare.status === 'DECLINED') && <XCircle size={14} className="text-red-500" />}
+                            {(dare.status === 'EXPIRED' || dare.status === 'REFUNDED') && <Clock size={14} className="text-gray-500" />}
 
                             <span className="text-sm font-black tracking-widest" style={{ color }}>
-                              {label}
+                              {lifecycle.currentStatusLabel.toUpperCase()}
                             </span>
                           </div>
 

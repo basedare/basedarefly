@@ -15,6 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { buildCreatorProfileEditMessage } from '@/lib/creator-profile-auth';
+import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 
 // Streamer images from existing assets
 const STREAMER_IMAGES: Record<string, string> = {
@@ -185,27 +186,14 @@ const insetCardClass =
 const pillClass =
     'inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]';
 
-function getStatusStyle(status: string) {
-    const s = status?.toUpperCase();
-    if (s === 'VERIFIED') return 'bg-green-500/15 text-green-400 border-green-500/30';
-    if (s === 'PENDING_PAYOUT') return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
-    if (s === 'EXPIRED' || s === 'FAILED') return 'bg-gray-500/15 text-gray-400 border-gray-400/30';
-    if (s === 'PENDING_REVIEW') return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
-    return 'bg-red-500/15 text-red-400 border-red-500/30';
-}
-
-function getStatusLabel(status: string) {
-    const s = status?.toUpperCase();
-    if (s === 'VERIFIED') return 'DONE';
-    if (s === 'PENDING_PAYOUT') return 'PAYOUT QUEUED';
-    if (s === 'EXPIRED') return 'EXPIRED';
-    return 'LIVE';
-}
-
 function DareMiniCard({ dare }: { dare: RecentDare }) {
     const router = useRouter();
+    const lifecycle = getDareLifecycleModel(dare);
     const isExpired = dare.status?.toUpperCase() === 'EXPIRED' ||
         (dare.expiresAt && new Date(dare.expiresAt) < new Date());
+    const metaLabel = dare.status?.toUpperCase() === 'PENDING' && dare.expiresAt
+        ? formatDistanceToNow(new Date(dare.expiresAt), { addSuffix: true })
+        : formatDistanceToNow(new Date(dare.createdAt), { addSuffix: true });
 
     return (
         <motion.div
@@ -214,18 +202,22 @@ function DareMiniCard({ dare }: { dare: RecentDare }) {
             className={`group cursor-pointer p-3 sm:p-4 rounded-[22px] border transition-all ${insetCardClass} ${isExpired ? 'opacity-55 border-white/[0.05]' : 'hover:border-fuchsia-400/20 hover:shadow-[0_0_0_1px_rgba(217,70,239,0.08),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26),0_16px_28px_rgba(0,0,0,0.18)]'}`}
         >
             <div className="flex items-start justify-between gap-2 mb-2">
-                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${getStatusStyle(dare.status)}`}>
-                    {getStatusLabel(dare.status)}
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${lifecycle.statusTone}`}>
+                    {lifecycle.currentStatusLabel}
                 </span>
                 <span className="text-xs font-black text-green-400">${dare.bounty.toLocaleString()}</span>
             </div>
             <p className="text-xs font-bold text-white/80 leading-tight line-clamp-2 italic uppercase transition-colors group-hover:text-white">{dare.title}</p>
+            <div className="mt-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2.5">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/32">What happens next</p>
+                <p className="mt-1.5 text-[11px] leading-5 text-white/62 line-clamp-2">{lifecycle.nextActionCopy}</p>
+            </div>
             <div className="mt-3 flex items-center justify-between gap-2">
                 <p className="text-[10px] text-white/30 font-mono">
-                    {formatDistanceToNow(new Date(dare.createdAt), { addSuffix: true })}
+                    {metaLabel}
                 </p>
                 <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 transition-colors group-hover:text-fuchsia-200/80">
-                    Open
+                    Open brief
                 </span>
             </div>
         </motion.div>
