@@ -6,6 +6,7 @@ import path from 'node:path';
 import { Prisma } from '@prisma/client';
 import { isAddress } from 'viem';
 
+import rlsTables from '@/config/rls-tables.json';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { prisma } from '@/lib/prisma';
 
@@ -34,36 +35,7 @@ export type ProductionSafetyReport = {
   checks: ProductionSafetyCheck[];
 };
 
-const RLS_TABLES = [
-  'User',
-  'Dare',
-  'Referral',
-  'StreamerTag',
-  'Brand',
-  'Campaign',
-  'CampaignSlot',
-  'Scout',
-  'ScoutCreator',
-  'LivePot',
-  'PotTransaction',
-  'LeaderboardEntry',
-  'WeeklyRewardDistribution',
-  'Venue',
-  'PlaceTag',
-  'VenueCheckIn',
-  'VenueMemory',
-  'VenueQrSession',
-  'Comment',
-  'Vote',
-  'VoterPoints',
-  'Notification',
-  'CreatorReview',
-  'VenueReportEvent',
-  'VenueReportLead',
-  'AppSettings',
-  'WebPushSubscription',
-  'WebPushDelivery',
-];
+const RLS_TABLES = rlsTables;
 
 function hasEnv(name: string) {
   return Boolean(process.env[name]?.trim());
@@ -142,6 +114,52 @@ async function checkRls(checks: ProductionSafetyCheck[]) {
       severity: 'block',
       detail: `Could not verify RLS state: ${message}`,
       nextAction: 'Confirm DATABASE_URL points at Supabase Postgres and rerun the production safety check.',
+    });
+  }
+}
+
+async function checkRlsCoverage(checks: ProductionSafetyCheck[]) {
+  try {
+    const schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
+    const schema = await fs.readFile(schemaPath, 'utf8');
+    const modelNames = Array.from(schema.matchAll(/^model\s+(\w+)\s+\{/gm))
+      .map((match) => match[1])
+      .filter(Boolean);
+    const missingModels = modelNames.filter((modelName) => !RLS_TABLES.includes(modelName));
+    const extraTables = RLS_TABLES.filter((tableName) => !modelNames.includes(tableName));
+
+    if (missingModels.length > 0) {
+      checks.push({
+        id: 'database.rls-coverage',
+        label: 'RLS model coverage',
+        severity: 'block',
+        detail: `${missingModels.length} Prisma model(s) are not included in config/rls-tables.json: ${missingModels.join(', ')}.`,
+        nextAction: 'Add the missing models to config/rls-tables.json and create/apply an RLS migration before deploying.',
+      });
+      return;
+    }
+
+    checks.push({
+      id: 'database.rls-coverage',
+      label: 'RLS model coverage',
+      severity: extraTables.length > 0 ? 'warn' : 'pass',
+      detail:
+        extraTables.length > 0
+          ? `Every Prisma model is covered, but ${extraTables.length} configured table(s) are no longer schema models: ${extraTables.join(', ')}.`
+          : `All ${modelNames.length} Prisma models are covered by config/rls-tables.json.`,
+      nextAction:
+        extraTables.length > 0
+          ? 'Confirm whether the extra RLS table names are legacy tables or should be removed from the safety config.'
+          : undefined,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown schema read error';
+    checks.push({
+      id: 'database.rls-coverage',
+      label: 'RLS model coverage',
+      severity: 'warn',
+      detail: `Could not verify Prisma model coverage: ${message}`,
+      nextAction: 'Run npm run safety:rls locally before deploying database changes.',
     });
   }
 }
@@ -329,7 +347,12 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     nextAction: 'Set TELEGRAM_ADMIN_CHAT_ID for the admin alert channel.',
   });
 
-  await Promise.all([checkRls(checks), checkCronSchedules(checks), checkRuntimeQueues(checks)]);
+  await Promise.all([
+    checkRlsCoverage(checks),
+    checkRls(checks),
+    checkCronSchedules(checks),
+    checkRuntimeQueues(checks),
+  ]);
 
   const summary = checks.reduce(
     (acc, check) => {

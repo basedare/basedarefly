@@ -2,46 +2,52 @@
 
 import 'dotenv/config';
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const RLS_TABLES = [
-  'User',
-  'Dare',
-  'Referral',
-  'StreamerTag',
-  'Brand',
-  'Campaign',
-  'CampaignSlot',
-  'Scout',
-  'ScoutCreator',
-  'LivePot',
-  'PotTransaction',
-  'LeaderboardEntry',
-  'WeeklyRewardDistribution',
-  'Venue',
-  'PlaceTag',
-  'VenueCheckIn',
-  'VenueMemory',
-  'VenueQrSession',
-  'Comment',
-  'Vote',
-  'VoterPoints',
-  'Notification',
-  'CreatorReview',
-  'VenueReportEvent',
-  'VenueReportLead',
-  'AppSettings',
-  'WebPushSubscription',
-  'WebPushDelivery',
-];
+const rlsTableConfigPath = path.join(process.cwd(), 'config/rls-tables.json');
+const schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
+
+const RLS_TABLES = JSON.parse(await fs.readFile(rlsTableConfigPath, 'utf8'));
+
+async function verifyModelCoverage() {
+  const schema = await fs.readFile(schemaPath, 'utf8');
+  const modelNames = Array.from(schema.matchAll(/^model\s+(\w+)\s+\{/gm))
+    .map((match) => match[1])
+    .filter(Boolean);
+  const missingModels = modelNames.filter((modelName) => !RLS_TABLES.includes(modelName));
+  const extraTables = RLS_TABLES.filter((tableName) => !modelNames.includes(tableName));
+
+  if (missingModels.length > 0) {
+    console.error(`BLOCKED: ${missingModels.length} Prisma model(s) are missing from config/rls-tables.json:`);
+    for (const modelName of missingModels) {
+      console.error(`- ${modelName}`);
+    }
+    console.error('Add the missing models and create/apply an RLS migration before deploying.');
+    process.exit(1);
+  }
+
+  if (extraTables.length > 0) {
+    console.warn(`WARN: ${extraTables.length} configured RLS table(s) are not Prisma models:`);
+    for (const tableName of extraTables) {
+      console.warn(`- ${tableName}`);
+    }
+  }
+
+  console.log(`RLS config covers all ${modelNames.length} Prisma models.`);
+}
 
 try {
   if (!process.env.DATABASE_URL?.trim()) {
     console.error('BLOCKED: DATABASE_URL is required to verify RLS.');
     process.exit(2);
   }
+
+  await verifyModelCoverage();
 
   const rows = await prisma.$queryRaw`
     SELECT tablename, rowsecurity
