@@ -10,6 +10,7 @@ import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import CosmicButton from "@/components/ui/CosmicButton";
 import InitProtocolButton from "@/components/InitProtocolButton";
+import SquircleButton from "@/components/ui/SquircleButton";
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import { buildDareResponseMessage, DARE_RESPONSE_WINDOW_MS } from '@/lib/dare-response-auth';
@@ -176,11 +177,11 @@ const volumetricButtonBase =
 const volumetricButtonPurple =
   `${volumetricButtonBase} border-purple-300/18 bg-[linear-gradient(180deg,rgba(78,49,124,0.88)_0%,rgba(43,27,71,0.94)_28%,rgba(19,14,31,0.98)_100%)] text-purple-100 hover:border-purple-200/26 hover:bg-[linear-gradient(180deg,rgba(88,56,136,0.9)_0%,rgba(47,30,78,0.95)_28%,rgba(20,14,33,1)_100%)]`;
 
-const volumetricButtonGold =
-  `${volumetricButtonBase} border-yellow-300/20 bg-[linear-gradient(180deg,rgba(223,177,44,0.92)_0%,rgba(159,118,18,0.9)_26%,rgba(58,42,8,0.96)_74%,rgba(22,17,6,1)_100%)] text-[#140f06] hover:border-yellow-200/28 hover:bg-[linear-gradient(180deg,rgba(232,187,52,0.94)_0%,rgba(171,126,21,0.92)_26%,rgba(61,45,8,0.98)_74%,rgba(24,18,6,1)_100%)] after:border-yellow-100/12`;
-
 const volumetricButtonNeutral =
   `${volumetricButtonBase} border-white/10 bg-[linear-gradient(180deg,rgba(62,72,90,0.24)_0%,rgba(35,40,53,0.68)_22%,rgba(18,20,31,0.98)_100%)] text-white/86 hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(68,79,98,0.26)_0%,rgba(38,44,58,0.72)_22%,rgba(20,22,34,1)_100%)]`;
+
+const dashboardSquircleLabelClass =
+  "relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.9rem] text-black/84";
 
 function getProviderLabel(provider: string | null | undefined): string {
   if (provider === 'twitter') return 'X';
@@ -1128,20 +1129,30 @@ export default function Dashboard() {
                         </span>
                       </button>
                     ) : null}
-                    <CosmicButton href="/create" variant="gold" size="md" className="min-w-[176px]">
-                      <Plus className="h-4 w-4" />
-                      Create dare
-                    </CosmicButton>
+                    <SquircleButton
+                      tone="yellow"
+                      height={46}
+                      onClick={() => router.push('/create')}
+                      className="min-w-[176px]"
+                    >
+                      <span className={dashboardSquircleLabelClass}>
+                        <Plus className="h-4 w-4" />
+                        Create dare
+                      </span>
+                    </SquircleButton>
                   </>
                 ) : (
-                  <button
+                  <SquircleButton
+                    tone="yellow"
+                    height={46}
                     onClick={handleConnect}
                     disabled={isConnecting}
-                    className={volumetricButtonGold}
                   >
-                    {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                    Connect wallet
-                  </button>
+                    <span className={dashboardSquircleLabelClass}>
+                      {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+                      Connect wallet
+                    </span>
+                  </SquircleButton>
                 )}
               </div>
             </div>
@@ -1172,19 +1183,29 @@ export default function Dashboard() {
                 <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-fuchsia-100">
                   {creatorClaims.length} live {creatorClaims.length === 1 ? 'activation' : 'activations'}
                 </span>
-                <CosmicButton
-                  onClick={() => jumpToActivation(primaryActivation.id)}
-                  variant={primaryActivationState.label === 'Ready for Proof' ? 'gold' : 'purple'}
-                  size="md"
-                  className="min-w-[178px]"
-                >
-                  <Zap className="h-4 w-4" />
-                  {primaryActivationState.label === 'Ready for Proof'
-                    ? 'Open & Submit Proof'
-                    : primaryActivationState.label === 'Respond Now'
-                      ? 'Review Dare'
-                      : 'Open Activation'}
-                </CosmicButton>
+                {primaryActivationState.label === 'Ready for Proof' ? (
+                  <SquircleButton
+                    tone="yellow"
+                    height={46}
+                    onClick={() => jumpToActivation(primaryActivation.id)}
+                    className="min-w-[178px]"
+                  >
+                    <span className={dashboardSquircleLabelClass}>
+                      <Zap className="h-4 w-4" />
+                      Open &amp; Submit Proof
+                    </span>
+                  </SquircleButton>
+                ) : (
+                  <CosmicButton
+                    onClick={() => jumpToActivation(primaryActivation.id)}
+                    variant="purple"
+                    size="md"
+                    className="min-w-[178px]"
+                  >
+                    <Zap className="h-4 w-4" />
+                    {primaryActivationState.label === 'Respond Now' ? 'Review Dare' : 'Open Activation'}
+                  </CosmicButton>
+                )}
               </div>
             </div>
           </div>
@@ -1260,22 +1281,27 @@ export default function Dashboard() {
                   </div>
                   <p className="mt-4 text-sm text-white/62">{item.detail}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        if (item.category === 'Ready for proof' || item.category === 'Needs response') {
+                    {item.category === 'Ready for proof' || item.category === 'Needs response' ? (
+                      <SquircleButton
+                        tone="yellow"
+                        height={42}
+                        onClick={() => {
                           jumpToActivation(item.dareId);
-                          return;
-                        }
-                        router.push(item.href);
-                      }}
-                      className={
-                        item.category === 'Ready for proof' || item.category === 'Needs response'
-                          ? volumetricButtonGold
-                          : volumetricButtonPurple
-                      }
-                    >
-                      {item.cta}
-                    </button>
+                        }}
+                        className="min-w-[160px]"
+                      >
+                        <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.84rem] text-black/84">
+                          {item.cta}
+                        </span>
+                      </SquircleButton>
+                    ) : (
+                      <button
+                        onClick={() => router.push(item.href)}
+                        className={volumetricButtonPurple}
+                      >
+                        {item.cta}
+                      </button>
+                    )}
                     <button
                       onClick={() => router.push(item.href)}
                       className={volumetricButtonNeutral}
@@ -1514,15 +1540,17 @@ export default function Dashboard() {
                     <div className="mt-6 space-y-2">
                       {opportunity.claimable ? (
                         <>
-                          <CosmicButton
+                          <SquircleButton
+                            tone="yellow"
+                            height={46}
+                            fullWidth
                             onClick={() => handleClaimOpportunity(opportunity)}
                             disabled={claimingOpportunityId === opportunity.id}
-                            variant="gold"
-                            size="md"
-                            fullWidth
                           >
-                            {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
-                          </CosmicButton>
+                            <span className={dashboardSquircleLabelClass}>
+                              {claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
+                            </span>
+                          </SquircleButton>
                           <button
                             onClick={() => router.push(opportunity.venue?.slug ? `/map?place=${encodeURIComponent(opportunity.venue.slug)}&source=creator&matches=1${opportunity.linkedDare?.shortId ? `&dare=${encodeURIComponent(opportunity.linkedDare.shortId)}` : ''}` : '/map?matches=1')}
                             className={`${volumetricButtonNeutral} w-full`}
@@ -1633,24 +1661,33 @@ export default function Dashboard() {
                         <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
                           {loopState.label}
                         </span>
-                        <CosmicButton
-                          onClick={() => {
-                            if (loopState.label === 'Ready for Proof' || loopState.label === 'Respond Now') {
-                              setExpandedActivationId(dare.id);
-                              return;
-                            }
-                            router.push(`/dare/${dare.shortId || dare.id}`);
-                          }}
-                          variant={loopState.label === 'Ready for Proof' ? 'gold' : 'purple'}
-                          size="sm"
-                          className="min-w-[128px]"
-                        >
-                          {loopState.label === 'Ready for Proof'
-                            ? 'Submit proof'
-                            : loopState.label === 'Respond Now'
-                              ? 'Respond'
-                              : 'Open'}
-                        </CosmicButton>
+                        {loopState.label === 'Ready for Proof' ? (
+                          <SquircleButton
+                            tone="yellow"
+                            height={40}
+                            onClick={() => setExpandedActivationId(dare.id)}
+                            className="min-w-[128px]"
+                          >
+                            <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.8rem] text-black/84">
+                              Submit proof
+                            </span>
+                          </SquircleButton>
+                        ) : (
+                          <CosmicButton
+                            onClick={() => {
+                              if (loopState.label === 'Respond Now') {
+                                setExpandedActivationId(dare.id);
+                                return;
+                              }
+                              router.push(`/dare/${dare.shortId || dare.id}`);
+                            }}
+                            variant="purple"
+                            size="sm"
+                            className="min-w-[128px]"
+                          >
+                            {loopState.label === 'Respond Now' ? 'Respond' : 'Open'}
+                          </CosmicButton>
+                        )}
                       </div>
                     </div>
 
