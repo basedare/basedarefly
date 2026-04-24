@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { approveDareWithPayout } from '@/lib/dare-approval';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/sentinel';
@@ -10,42 +11,14 @@ import { getSentinelReasonForSelection, getSentinelRecommendation } from '@/lib/
 // For reviewing and resolving appeals submitted by users
 // ============================================================================
 
-// Admin authentication - REQUIRES env var, no fallback
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-
-if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) {
-  console.error('[SECURITY] ADMIN_SECRET must be set and at least 32 characters');
-}
-
-function isAdmin(request: NextRequest): boolean {
-  if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) {
-    console.error('[SECURITY] Admin access denied - ADMIN_SECRET not properly configured');
-    return false;
-  }
-
-  const authHeader = request.headers.get('x-admin-secret');
-  if (!authHeader) return false;
-
-  // Constant-time comparison to prevent timing attacks
-  if (authHeader.length !== ADMIN_SECRET.length) return false;
-
-  let result = 0;
-  for (let i = 0; i < authHeader.length; i++) {
-    result |= authHeader.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
-  }
-  return result === 0;
-}
-
 // ============================================================================
 // GET /api/admin/appeals - List all appeals
 // ============================================================================
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -126,11 +99,9 @@ const ResolveAppealSchema = z.object({
 });
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {

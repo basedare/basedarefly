@@ -1,27 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-
-function isAdmin(request: NextRequest): boolean {
-  if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) {
-    console.error('[SECURITY] Admin access denied - ADMIN_SECRET not properly configured');
-    return false;
-  }
-
-  const authHeader = request.headers.get('x-admin-secret');
-  if (!authHeader || authHeader.length !== ADMIN_SECRET.length) return false;
-
-  let result = 0;
-  for (let i = 0; i < authHeader.length; i += 1) {
-    result |= authHeader.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
-  }
-
-  return result === 0;
-}
 
 const ALLOWED_PLACE_TAG_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'] as const;
 
@@ -32,8 +14,9 @@ const PlaceTagReviewActionSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -119,8 +102,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -135,7 +119,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const { tagId, action, reason } = validation.data;
-    const reviewerWallet = request.headers.get('x-admin-wallet') || 'admin';
+    const reviewerWallet = auth.walletAddress;
 
     const existingTag = await prisma.placeTag.findUnique({
       where: { id: tagId },

@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { checkAndSendVenueLeadFollowUpAlert } from '@/lib/venue-report-lead-nudges';
 
-const MODERATOR_WALLETS =
-  process.env.MODERATOR_WALLETS?.split(',').map((wallet) => wallet.trim().toLowerCase()) || [];
-
-function isModerator(request: NextRequest): string | null {
-  const walletHeader = request.headers.get('x-moderator-wallet');
-  if (!walletHeader) return null;
-  const lowerWallet = walletHeader.toLowerCase();
-  return MODERATOR_WALLETS.includes(lowerWallet) ? lowerWallet : null;
-}
-
 export async function POST(request: NextRequest) {
-  const moderatorWallet = isModerator(request);
-  if (!moderatorWallet) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {

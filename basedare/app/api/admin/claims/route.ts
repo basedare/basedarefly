@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 
@@ -10,38 +11,14 @@ import { prisma } from '@/lib/prisma';
 // PUT - Approve or reject a claim request
 // ============================================================================
 
-// Moderator authentication (uses moderator wallet from env)
-const MODERATOR_WALLETS = process.env.MODERATOR_WALLETS?.split(',').map((w) => w.trim().toLowerCase()) || [];
-
-// Debug: Log moderator config on startup
-console.log(`[CLAIMS] Config: ${MODERATOR_WALLETS.length} moderator wallets configured`);
-
-function isModerator(request: NextRequest): string | null {
-  const walletHeader = request.headers.get('x-moderator-wallet');
-  if (!walletHeader) {
-    console.log('[CLAIMS] Auth failed: no wallet header');
-    return null;
-  }
-
-  const lowerWallet = walletHeader.toLowerCase();
-  const maskedWallet = `${lowerWallet.slice(0, 6)}...${lowerWallet.slice(-4)}`;
-  const isInList = MODERATOR_WALLETS.includes(lowerWallet);
-  console.log(`[CLAIMS] Auth check: wallet=${maskedWallet}, inList=${isInList}, listSize=${MODERATOR_WALLETS.length}`);
-
-  if (isInList) {
-    return lowerWallet;
-  }
-  return null;
-}
-
 // ============================================================================
 // GET /api/admin/claims - List pending claim requests
 // ============================================================================
 
 export async function GET(request: NextRequest) {
-  const moderatorWallet = isModerator(request);
-  if (!moderatorWallet) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -115,9 +92,9 @@ const ClaimDecisionSchema = z.object({
 });
 
 export async function PUT(request: NextRequest) {
-  const moderatorWallet = isModerator(request);
-  if (!moderatorWallet) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -166,13 +143,13 @@ export async function PUT(request: NextRequest) {
           claimedBy: dare.claimRequestWallet,
           claimedAt: new Date(),
           claimRequestStatus: 'APPROVED',
-          moderatorAddress: moderatorWallet,
+          moderatorAddress: auth.walletAddress,
           moderatedAt: new Date(),
           moderatorNote: reason || 'Claim approved',
         },
       });
 
-      console.log(`[CLAIM APPROVED] Dare ${dareId} assigned to ${dare.claimRequestTag} by moderator ${moderatorWallet}`);
+      console.log(`[CLAIM APPROVED] Dare ${dareId} assigned to ${dare.claimRequestTag} by moderator ${auth.walletAddress}`);
 
       await createWalletNotification({
         wallet: dare.claimRequestWallet,
@@ -203,13 +180,13 @@ export async function PUT(request: NextRequest) {
           claimRequestTag: null,
           claimRequestedAt: null,
           claimRequestStatus: 'REJECTED',
-          moderatorAddress: moderatorWallet,
+          moderatorAddress: auth.walletAddress,
           moderatedAt: new Date(),
           moderatorNote: reason || 'Claim rejected',
         },
       });
 
-      console.log(`[CLAIM REJECTED] Dare ${dareId} claim by ${dare.claimRequestTag} rejected by moderator ${moderatorWallet}`);
+      console.log(`[CLAIM REJECTED] Dare ${dareId} claim by ${dare.claimRequestTag} rejected by moderator ${auth.walletAddress}`);
 
       await createWalletNotification({
         wallet: dare.claimRequestWallet,

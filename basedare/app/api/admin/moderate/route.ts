@@ -1,57 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { isAddress } from 'viem';
 import { moderateDareDecision } from '@/lib/dare-moderation';
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 // ============================================================================
 // ADMIN MODERATE API
 // For moderators to make final decisions on dares after community voting
 // ============================================================================
-
-// Admin authentication via secret OR moderator wallet
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-const MODERATOR_WALLETS = (process.env.MODERATOR_WALLETS || '')
-  .split(',')
-  .map((w) => w.trim().toLowerCase())
-  .filter(Boolean);
-
-// Debug: Log moderator config on startup (safe - doesn't reveal actual addresses)
-console.log(`[MODERATE] Config: ${MODERATOR_WALLETS.length} moderator wallets configured`);
-
-function isAuthorized(request: NextRequest): { authorized: boolean; moderatorAddress?: string } {
-  // Check admin secret header
-  const authHeader = request.headers.get('x-admin-secret');
-  if (authHeader && ADMIN_SECRET && ADMIN_SECRET.length >= 32) {
-    if (authHeader.length === ADMIN_SECRET.length) {
-      let result = 0;
-      for (let i = 0; i < authHeader.length; i++) {
-        result |= authHeader.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
-      }
-      if (result === 0) {
-        return { authorized: true, moderatorAddress: 'admin' };
-      }
-    }
-  }
-
-  // Check moderator wallet header
-  const walletHeader = request.headers.get('x-moderator-wallet');
-  if (walletHeader && isAddress(walletHeader)) {
-    const lowerWallet = walletHeader.toLowerCase();
-    // Debug: Log auth attempt (only first/last 4 chars for safety)
-    const maskedWallet = `${lowerWallet.slice(0, 6)}...${lowerWallet.slice(-4)}`;
-    const isInList = MODERATOR_WALLETS.includes(lowerWallet);
-    console.log(`[MODERATE] Auth check: wallet=${maskedWallet}, inList=${isInList}, listSize=${MODERATOR_WALLETS.length}`);
-
-    if (isInList) {
-      return { authorized: true, moderatorAddress: lowerWallet };
-    }
-  } else if (walletHeader) {
-    console.log(`[MODERATE] Invalid wallet format in header: ${walletHeader?.slice(0, 10)}...`);
-  }
-
-  return { authorized: false };
-}
 
 function ageInHours(timestamp: Date | null | undefined) {
   if (!timestamp) return 0;
@@ -83,12 +39,9 @@ function getPayoutQueueReason(dare: {
 // ============================================================================
 
 export async function GET(request: NextRequest) {
-  const auth = isAuthorized(request);
+  const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized - admin secret or moderator wallet required' },
-      { status: 401 }
-    );
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -317,12 +270,9 @@ const ModerateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const auth = isAuthorized(request);
+  const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized - admin secret or moderator wallet required' },
-      { status: 401 }
-    );
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -370,7 +320,7 @@ export async function POST(request: NextRequest) {
       dareId,
       decision,
       sourceContext: 'ADMIN_MODERATE',
-      moderatorAddress: auth.moderatorAddress ?? 'admin',
+      moderatorAddress: auth.walletAddress,
       note: note || null,
       rejectReason: note || null,
     });
@@ -380,7 +330,7 @@ export async function POST(request: NextRequest) {
     const pendingReason = moderationResult.pendingReason;
 
     console.log(
-      `[MODERATE] Dare ${dareId} ${decision} by ${auth.moderatorAddress}${note ? ` - ${note}` : ''}`
+      `[MODERATE] Dare ${dareId} ${decision} by ${auth.walletAddress}${note ? ` - ${note}` : ''}`
     );
 
     return NextResponse.json({
@@ -390,7 +340,7 @@ export async function POST(request: NextRequest) {
         decision,
         newStatus,
         moderatedAt: updatedDare.moderatedAt,
-        moderatorAddress: auth.moderatorAddress,
+        moderatorAddress: auth.walletAddress,
         note: updatedDare.moderatorNote,
         pendingReason,
         message:

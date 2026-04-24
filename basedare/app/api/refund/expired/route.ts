@@ -255,7 +255,10 @@ export async function POST(request: NextRequest) {
 // GET /api/refund/expired - Check for expired dares (read-only)
 // ============================================================================
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = verifyCronSecret(request);
+  if (authError) return authError;
+
   try {
     const expiredCount = await prisma.dare.count({
       where: {

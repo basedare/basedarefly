@@ -1,11 +1,18 @@
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { testBotConnection } from '@/lib/telegram';
 
 /**
  * GET /api/telegram/test
  * Test the Telegram bot connection
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
+  }
+
   const result = await testBotConnection();
 
   if (result.success) {

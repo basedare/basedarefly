@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { encodeGeohash, isValidCoordinates } from '@/lib/geo';
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-
-function isAdmin(request: NextRequest): boolean {
-  if (!ADMIN_SECRET || ADMIN_SECRET.length < 32) {
-    console.error('[SECURITY] Admin place access denied - ADMIN_SECRET not properly configured');
-    return false;
-  }
-
-  const authHeader = request.headers.get('x-admin-secret');
-  if (!authHeader || authHeader.length !== ADMIN_SECRET.length) return false;
-
-  let result = 0;
-  for (let i = 0; i < authHeader.length; i += 1) {
-    result |= authHeader.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
-  }
-
-  return result === 0;
-}
 
 function slugifyPlaceName(value: string) {
   const normalized = value
@@ -71,8 +53,9 @@ const SavePlaceSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -139,8 +122,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {

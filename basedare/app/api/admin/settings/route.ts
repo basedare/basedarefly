@@ -1,35 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { getAppSettings, updateAppSettings } from '@/lib/app-settings';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { formatSentinelPausedMessage } from '@/lib/sentinel';
 import { alertSentinelHardPauseToggled } from '@/lib/telegram';
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-const MODERATOR_WALLETS = (process.env.MODERATOR_WALLETS || '')
-  .split(',')
-  .map((wallet) => wallet.trim().toLowerCase())
-  .filter(Boolean);
-
-function isAuthorized(request: NextRequest) {
-  const authHeader = request.headers.get('x-admin-secret');
-  if (authHeader && ADMIN_SECRET && ADMIN_SECRET.length >= 32) {
-    if (authHeader.length === ADMIN_SECRET.length) {
-      let result = 0;
-      for (let index = 0; index < authHeader.length; index += 1) {
-        result |= authHeader.charCodeAt(index) ^ ADMIN_SECRET.charCodeAt(index);
-      }
-      if (result === 0) {
-        return true;
-      }
-    }
-  }
-
-  const walletHeader = request.headers.get('x-moderator-wallet');
-  return Boolean(walletHeader && isAddress(walletHeader) && MODERATOR_WALLETS.includes(walletHeader.toLowerCase()));
-}
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 const UpdateSettingsSchema = z.object({
   sentinelEnabled: z.boolean(),
@@ -39,8 +15,9 @@ const UpdateSettingsSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {
@@ -64,8 +41,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
   }
 
   try {

@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+
+import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 
 // Debug endpoint to check environment configuration
 // This doesn't reveal secrets, just confirms if they're set
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
+  }
+
   const moderatorWallets = process.env.MODERATOR_WALLETS || '';
   const walletList = moderatorWallets
     .split(',')

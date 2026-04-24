@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import {
   Shield,
@@ -421,7 +421,7 @@ const EMPTY_PLACE_FORM: AdminPlaceForm = {
 };
 
 export default function AdminPage() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const placeTagRejectReasonRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>('moderation');
   const [dares, setDares] = useState<DareForModeration[]>([]);
@@ -527,6 +527,20 @@ export default function AdminPage() {
   const [selectedReportLead, setSelectedReportLead] = useState<VenueReportLeadEntry | null>(null);
   const [reportLeadUpdating, setReportLeadUpdating] = useState<string | null>(null);
   const [leadInboxFilter, setLeadInboxFilter] = useState<LeadInboxFilter>('needsOwner');
+  const adminSecretTrimmed = adminSecret.trim();
+  const hasAdminAuth = Boolean(address || adminSecretTrimmed);
+  const adminAuthHeaders = useMemo<Record<string, string>>(() => {
+    const headers: Record<string, string> = {};
+    if (adminSecretTrimmed) {
+      headers['x-admin-secret'] = adminSecretTrimmed;
+      return headers;
+    }
+    if (address) {
+      headers['x-moderator-wallet'] = address;
+      return headers;
+    }
+    return headers;
+  }, [address, adminSecretTrimmed]);
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -554,16 +568,14 @@ export default function AdminPage() {
 
   // Fetch moderation queue
   const fetchQueue = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     try {
       setLoading(true);
       setError(null);
 
       const res = await fetch('/api/admin/moderate', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -587,7 +599,7 @@ export default function AdminPage() {
         });
       } else if (res.status === 401) {
         setIsAuthorized(false);
-        setError('Your wallet is not authorized as a moderator');
+        setError(adminSecretTrimmed ? 'Invalid admin secret' : 'Your wallet is not authorized as a moderator');
       } else {
         setError(data.error || 'Failed to load moderation queue');
       }
@@ -596,17 +608,15 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, adminSecretTrimmed, hasAdminAuth]);
 
   const fetchAdminSettings = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     try {
       setSettingsLoading(true);
       const res = await fetch('/api/admin/settings', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
       const data = await res.json();
 
@@ -628,19 +638,19 @@ export default function AdminPage() {
     } finally {
       setSettingsLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, hasAdminAuth]);
 
   useEffect(() => {
-    if (isConnected && address) {
+    if (hasAdminAuth) {
       fetchQueue();
       fetchAdminSettings();
     } else {
       setLoading(false);
     }
-  }, [isConnected, address, fetchAdminSettings, fetchQueue]);
+  }, [fetchAdminSettings, fetchQueue, hasAdminAuth]);
 
   const handleSentinelToggle = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     try {
       setSettingsSaving(true);
@@ -649,7 +659,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           sentinelEnabled: nextEnabled,
@@ -685,18 +695,19 @@ export default function AdminPage() {
       setSettingsSaving(false);
     }
   }, [
-    address,
+    adminAuthHeaders,
     adminSettings.lastSentinelQueueAlertSent,
     adminSettings.lastVenueLeadAlertSent,
     adminSettings.sentinelPausedReason,
     adminSettings.sentinelEnabled,
     adminSettings.sentinelPendingAlertThreshold,
     adminSettings.venueLeadAlertThreshold,
+    hasAdminAuth,
     sentinelPauseReasonDraft,
   ]);
 
   const handleSentinelThresholdSave = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     const nextThreshold = Number.parseInt(sentinelThresholdDraft, 10);
     if (!Number.isFinite(nextThreshold) || nextThreshold < 1) {
@@ -710,7 +721,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           sentinelEnabled: adminSettings.sentinelEnabled,
@@ -742,16 +753,17 @@ export default function AdminPage() {
       setSettingsSaving(false);
     }
   }, [
-    address,
+    adminAuthHeaders,
     adminSettings.sentinelEnabled,
     adminSettings.sentinelPausedReason,
     adminSettings.lastVenueLeadAlertSent,
     adminSettings.venueLeadAlertThreshold,
+    hasAdminAuth,
     sentinelThresholdDraft,
   ]);
 
   const handleVenueLeadThresholdSave = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     const nextThreshold = Number.parseInt(venueLeadThresholdDraft, 10);
     if (!Number.isFinite(nextThreshold) || nextThreshold < 1) {
@@ -765,7 +777,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           sentinelEnabled: adminSettings.sentinelEnabled,
@@ -798,25 +810,24 @@ export default function AdminPage() {
       setSettingsSaving(false);
     }
   }, [
-    address,
+    adminAuthHeaders,
     adminSettings.lastSentinelQueueAlertSent,
     adminSettings.lastVenueLeadAlertSent,
     adminSettings.sentinelEnabled,
     adminSettings.sentinelPausedReason,
     adminSettings.sentinelPendingAlertThreshold,
+    hasAdminAuth,
     venueLeadThresholdDraft,
   ]);
 
   const handleRunLeadAlertScan = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     try {
       setLeadAlertRunning(true);
       const res = await fetch('/api/admin/venue-report-leads/alert', {
         method: 'POST',
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
       const data = await res.json();
       if (data.success) {
@@ -834,7 +845,7 @@ export default function AdminPage() {
     } finally {
       setLeadAlertRunning(false);
     }
-  }, [address, fetchAdminSettings]);
+  }, [adminAuthHeaders, fetchAdminSettings, hasAdminAuth]);
 
   // Fetch pending tags
   const fetchPendingTags = useCallback(async () => {
@@ -1216,16 +1227,14 @@ export default function AdminPage() {
 
   // Fetch pending claims (uses moderator wallet auth, same as moderation queue)
   const fetchPendingClaims = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setClaimsLoading(true);
     setClaimsError(null);
 
     try {
       const res = await fetch('/api/admin/claims?status=PENDING', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1240,19 +1249,17 @@ export default function AdminPage() {
     } finally {
       setClaimsLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, hasAdminAuth]);
 
   const fetchPendingVenueClaims = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setVenueClaimsLoading(true);
     setVenueClaimsError(null);
 
     try {
       const res = await fetch('/api/admin/venue-claims?status=PENDING', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1267,19 +1274,17 @@ export default function AdminPage() {
     } finally {
       setVenueClaimsLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, hasAdminAuth]);
 
   const fetchPushDiagnostics = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     try {
       setPushLoading(true);
       setPushError(null);
 
       const res = await fetch('/api/admin/push', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1296,19 +1301,17 @@ export default function AdminPage() {
     } finally {
       setPushLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, hasAdminAuth]);
 
   const fetchReportLeads = useCallback(async () => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setReportLeadsLoading(true);
     setReportLeadsError(null);
 
     try {
       const res = await fetch('/api/admin/venue-report-leads', {
-        headers: {
-          'x-moderator-wallet': address,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1341,7 +1344,7 @@ export default function AdminPage() {
     } finally {
       setReportLeadsLoading(false);
     }
-  }, [address]);
+  }, [adminAuthHeaders, hasAdminAuth]);
 
   const handleReportLeadUpdate = useCallback(async (
     leadId: string,
@@ -1351,7 +1354,7 @@ export default function AdminPage() {
       nextActionAt?: string | null;
     }
   ) => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setReportLeadUpdating(leadId);
     try {
@@ -1359,7 +1362,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           leadId,
@@ -1401,7 +1404,7 @@ export default function AdminPage() {
     } finally {
       setReportLeadUpdating(null);
     }
-  }, [address, fetchReportLeads]);
+  }, [adminAuthHeaders, fetchReportLeads, hasAdminAuth]);
 
   const visibleReportLeads = reportLeads.filter((lead) => {
     if (leadInboxFilter === 'needsOwner') {
@@ -1421,7 +1424,7 @@ export default function AdminPage() {
 
   // Handle claim decision
   const handleClaimDecision = async (dareId: string, decision: 'APPROVE' | 'REJECT') => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setProcessingClaim(dareId);
 
@@ -1430,7 +1433,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           dareId,
@@ -1457,7 +1460,7 @@ export default function AdminPage() {
   };
 
   const handleVenueClaimDecision = async (venueId: string, decision: 'APPROVE' | 'REJECT') => {
-    if (!address) return;
+    if (!hasAdminAuth) return;
 
     setProcessingVenueClaim(venueId);
 
@@ -1466,7 +1469,7 @@ export default function AdminPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           venueId,
@@ -1522,8 +1525,8 @@ export default function AdminPage() {
     decision: 'APPROVE' | 'REJECT',
     options?: { openNext?: boolean }
   ) => {
-    if (!address) {
-      setModerationActionError('Connect an authorized moderator wallet before taking action.');
+    if (!hasAdminAuth) {
+      setModerationActionError('Connect an authorized moderator wallet or enter the admin secret before taking action.');
       return;
     }
 
@@ -1544,7 +1547,7 @@ export default function AdminPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-moderator-wallet': address,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           dareId,
@@ -1586,7 +1589,7 @@ export default function AdminPage() {
     } finally {
       setModerating(null);
     }
-  }, [address, dares, fetchQueue, moderateNote]);
+  }, [adminAuthHeaders, dares, fetchQueue, hasAdminAuth, moderateNote]);
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
@@ -1624,14 +1627,14 @@ export default function AdminPage() {
   }, [activeTab, handleModerate, isAuthorized, moderating, selectRelativeDare, selectedDare]);
 
   useEffect(() => {
-    if (activeTab !== 'moderation' || !isAuthorized || !address) return;
+    if (activeTab !== 'moderation' || !isAuthorized || !hasAdminAuth) return;
 
     const intervalId = window.setInterval(() => {
       void fetchQueue();
     }, 15000);
 
     return () => window.clearInterval(intervalId);
-  }, [activeTab, address, fetchQueue, isAuthorized]);
+  }, [activeTab, fetchQueue, hasAdminAuth, isAuthorized]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -1659,7 +1662,33 @@ export default function AdminPage() {
           </p>
 
           {/* Tab Switcher */}
-          {isConnected && isAuthorized && (
+          <div className="mt-6 mx-auto flex max-w-xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/35 p-4 text-left sm:flex-row sm:items-end">
+            <label className="flex-1">
+              <span className="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
+                Admin secret fallback
+              </span>
+              <input
+                type="password"
+                value={adminSecret}
+                onChange={(event) => setAdminSecret(event.target.value)}
+                placeholder="Optional: paste ADMIN_SECRET"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm font-bold text-white outline-none transition focus:border-yellow-400/45"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                void fetchQueue();
+                void fetchAdminSettings();
+              }}
+              disabled={!hasAdminAuth || loading}
+              className="rounded-xl border border-yellow-400/35 bg-yellow-400 px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Authorize
+            </button>
+          </div>
+
+          {hasAdminAuth && isAuthorized && (
             <div className="flex justify-center gap-2 mt-6 flex-wrap">
               <button
                 onClick={() => setActiveTab('moderation')}
@@ -1749,31 +1778,40 @@ export default function AdminPage() {
                 <Smartphone className="w-4 h-4 inline mr-2" />
                 Push Ops
               </button>
+              <Link
+                href="/admin/production-safety"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-400/35 text-yellow-200 hover:bg-yellow-400/15"
+              >
+                <Shield className="w-4 h-4 inline mr-2" />
+                Production Safety
+              </Link>
             </div>
           )}
         </div>
 
         {/* Not Connected State */}
-        {!isConnected && (
+        {!hasAdminAuth && (
           <div className="backdrop-blur-xl bg-yellow-500/5 border border-yellow-500/30 rounded-2xl p-8 text-center">
             <Lock className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Connect Wallet</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Authenticate Admin</h3>
             <p className="text-gray-400 text-sm">
-              Connect your moderator wallet to access the admin panel
+              Connect your moderator wallet or paste the admin secret to access the admin panel.
             </p>
           </div>
         )}
 
         {/* Not Authorized State */}
-        {isConnected && !loading && !isAuthorized && (
+        {hasAdminAuth && !loading && !isAuthorized && (
           <div className="backdrop-blur-xl bg-red-500/5 border border-red-500/30 rounded-2xl p-8 text-center">
             <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Not Authorized</h3>
             <p className="text-gray-400 text-sm mb-4">
-              Your wallet ({address && formatAddress(address)}) is not registered as a moderator.
+              {adminSecretTrimmed
+                ? 'The admin secret was not accepted.'
+                : `Your wallet (${address && formatAddress(address)}) is not registered as a moderator.`}
             </p>
             <p className="text-gray-500 text-xs font-mono">
-              Add your wallet to MODERATOR_WALLETS in .env.local
+              Use a signed moderator wallet session or the production ADMIN_SECRET.
             </p>
           </div>
         )}
@@ -1796,7 +1834,7 @@ export default function AdminPage() {
         )}
 
         {/* Authorized Content - Moderation Tab */}
-        {isConnected && isAuthorized && !loading && activeTab === 'moderation' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'moderation' && (
           <div className="space-y-6">
             <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -2373,7 +2411,7 @@ export default function AdminPage() {
         )}
 
         {/* Authorized Content - Claims Tab */}
-        {isConnected && isAuthorized && !loading && activeTab === 'claims' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'claims' && (
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Pending Claims List */}
             <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
@@ -2535,7 +2573,7 @@ export default function AdminPage() {
         )}
 
         {/* Authorized Content - Tags Tab */}
-        {isConnected && isAuthorized && !loading && activeTab === 'tags' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'tags' && (
           <div className="space-y-6">
             {/* Admin Secret Input */}
             {!isTagsAuthorized && (
@@ -2770,7 +2808,7 @@ export default function AdminPage() {
         )}
 
         {/* Authorized Content - Venue Claims Tab */}
-        {isConnected && isAuthorized && !loading && activeTab === 'venueClaims' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'venueClaims' && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -2946,7 +2984,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {isConnected && isAuthorized && !loading && activeTab === 'reportLeads' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'reportLeads' && (
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
@@ -3328,7 +3366,7 @@ export default function AdminPage() {
         )}
 
         {/* Authorized Content - Place Tags Tab */}
-        {isConnected && isAuthorized && !loading && activeTab === 'placeTags' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'placeTags' && (
           <div className="space-y-6">
             {!isTagsAuthorized && (
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
@@ -3653,7 +3691,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {isConnected && isAuthorized && !loading && activeTab === 'places' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'places' && (
           <div className="space-y-6">
             {!isTagsAuthorized && (
               <div className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
@@ -3987,7 +4025,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {isConnected && isAuthorized && !loading && activeTab === 'push' && (
+        {hasAdminAuth && isAuthorized && !loading && activeTab === 'push' && (
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5">

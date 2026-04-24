@@ -67,9 +67,9 @@ export function verifyCronSecret(req: NextRequest): NextResponse | null {
   }
 
   const authHeader = req.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim() || '';
 
-  if (!token || token !== secret) {
+  if (!token || !timingSafeEqualStrings(token, secret)) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }
