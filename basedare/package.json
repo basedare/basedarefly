@@ -16,7 +16,8 @@
     "clawdbot": "node scripts/clawdbot-poll.js",
     "safety:production": "node scripts/production-safety-check.mjs",
     "safety:rls": "node scripts/verify-rls.mjs",
-    "safety:endpoints": "node scripts/production-endpoint-smoke.mjs"
+    "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
+    "safety:static": "node scripts/static-production-safety.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
