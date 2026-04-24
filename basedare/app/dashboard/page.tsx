@@ -245,6 +245,18 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
   }
 
   if (isAssignedCreator && dare.status === 'PENDING') {
+    if (dare.videoUrl) {
+      return {
+        label: 'Proof Uploaded',
+        detail: dare.updatedAt
+          ? `Proof attached ${formatStatusTimestamp(dare.updatedAt)}. Open the brief to finish verification if it did not complete.`
+          : 'Proof is already attached. Open the brief to finish verification if needed.',
+        cta: 'Resume Proof',
+        tone: 'amber',
+        priority: 0,
+      };
+    }
+
     return {
       label: 'Ready for Proof',
       detail: dare.claimedAt
@@ -854,7 +866,10 @@ export default function Dashboard() {
         return;
       }
 
-      if (dare.status === 'PENDING' && loopState.label === 'Ready for Proof') {
+      if (
+        dare.status === 'PENDING' &&
+        (loopState.label === 'Ready for Proof' || loopState.label === 'Proof Uploaded')
+      ) {
         items.push({
           id: `creator-${dare.id}-proof`,
           dareId: dare.id,
@@ -862,7 +877,7 @@ export default function Dashboard() {
           title: dare.title,
           category: 'Ready for proof',
           detail: lifecycle.nextActionCopy,
-          cta: 'Submit proof',
+          cta: loopState.label === 'Proof Uploaded' ? 'Resume proof' : 'Submit proof',
           href,
           priority: 1,
           role: 'creator',
@@ -1192,7 +1207,7 @@ export default function Dashboard() {
                   >
                     <span className={dashboardSquircleLabelClass}>
                       <Zap className="h-4 w-4" />
-                      Open &amp; Submit Proof
+                      Submit proof
                     </span>
                   </SquircleButton>
                 ) : (
@@ -1728,7 +1743,8 @@ export default function Dashboard() {
                               Open brief
                             </button>
                           </div>
-                        ) : dare.status === 'PENDING' && loopState.label === 'Ready for Proof' ? (
+                        ) : dare.status === 'PENDING' &&
+                          (loopState.label === 'Ready for Proof' || loopState.label === 'Proof Uploaded') ? (
                           <div className="mt-4">
                             <SubmitEvidence
                               dareId={dare.id}
@@ -1737,6 +1753,7 @@ export default function Dashboard() {
                               streamerHandle={dare.streamerHandle ?? undefined}
                               shortId={dare.shortId}
                               placeName={dare.locationLabel}
+                              existingProofUrl={dare.videoUrl ?? null}
                               onVerificationComplete={(result: { status: string }) => {
                                 const updateDare = (entry: Dare) =>
                                   entry.id === dare.id
@@ -1744,6 +1761,7 @@ export default function Dashboard() {
                                         ...entry,
                                         status: result.status,
                                         updatedAt: new Date().toISOString(),
+                                        videoUrl: entry.videoUrl ?? dare.videoUrl,
                                       }
                                     : entry;
                                 setFundedDares((prev) => prev.map(updateDare));

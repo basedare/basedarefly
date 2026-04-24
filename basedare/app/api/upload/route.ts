@@ -108,6 +108,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (dare.videoUrl || dare.proofCid) {
+      if (dare.status === 'PENDING') {
+        return NextResponse.json(
+          {
+            success: true,
+            cid: dare.proofCid,
+            url: dare.videoUrl,
+            status: dare.status,
+            existingProof: true,
+          },
+          { status: 200 }
+        );
+      }
+
       return NextResponse.json(
         { error: 'Proof already uploaded for this dare. Review or verification is already in progress.' },
         { status: 409 }

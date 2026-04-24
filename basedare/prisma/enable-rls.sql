@@ -48,6 +48,12 @@ ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VoterPoints"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Notification"             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "CreatorReview"            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueReportEvent"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueReportLead"          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AppSettings"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "WebPushSubscription"      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "WebPushDelivery"          ENABLE ROW LEVEL SECURITY;
 
 -- Prisma internal table
 ALTER TABLE "_prisma_migrations"       ENABLE ROW LEVEL SECURITY;
@@ -172,6 +178,36 @@ DROP POLICY IF EXISTS "service_role_all_Notification" ON "Notification";
 CREATE POLICY "service_role_all_Notification" ON "Notification"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- CreatorReview
+DROP POLICY IF EXISTS "service_role_all_CreatorReview" ON "CreatorReview";
+CREATE POLICY "service_role_all_CreatorReview" ON "CreatorReview"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueReportEvent
+DROP POLICY IF EXISTS "service_role_all_VenueReportEvent" ON "VenueReportEvent";
+CREATE POLICY "service_role_all_VenueReportEvent" ON "VenueReportEvent"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueReportLead
+DROP POLICY IF EXISTS "service_role_all_VenueReportLead" ON "VenueReportLead";
+CREATE POLICY "service_role_all_VenueReportLead" ON "VenueReportLead"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- AppSettings
+DROP POLICY IF EXISTS "service_role_all_AppSettings" ON "AppSettings";
+CREATE POLICY "service_role_all_AppSettings" ON "AppSettings"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- WebPushSubscription
+DROP POLICY IF EXISTS "service_role_all_WebPushSubscription" ON "WebPushSubscription";
+CREATE POLICY "service_role_all_WebPushSubscription" ON "WebPushSubscription"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- WebPushDelivery
+DROP POLICY IF EXISTS "service_role_all_WebPushDelivery" ON "WebPushDelivery";
+CREATE POLICY "service_role_all_WebPushDelivery" ON "WebPushDelivery"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- _prisma_migrations (internal — only service_role should touch this)
 DROP POLICY IF EXISTS "service_role_all_prisma_migrations" ON "_prisma_migrations";
 CREATE POLICY "service_role_all_prisma_migrations" ON "_prisma_migrations"
@@ -194,7 +230,8 @@ BEGIN
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
     'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
     'VenueMemory', 'VenueQrSession', 'Comment', 'Vote', 'VoterPoints',
-    'Notification', '_prisma_migrations'
+    'Notification', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
+    'AppSettings', 'WebPushSubscription', 'WebPushDelivery', '_prisma_migrations'
   ]
   LOOP
     EXECUTE format('REVOKE ALL ON TABLE %I FROM anon', tbl);

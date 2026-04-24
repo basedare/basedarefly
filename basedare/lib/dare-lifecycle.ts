@@ -36,6 +36,7 @@ export const DARE_STATUS_MAP = {
   AWAITING_CLAIM: { label: 'Waiting for creator' },
   PENDING_ACCEPTANCE: { label: 'Waiting for response' },
   PENDING: { label: 'Live' },
+  PROOF_UPLOADED: { label: 'Proof uploaded' },
   PENDING_REVIEW: { label: 'Proof submitted' },
   PENDING_PAYOUT: { label: 'Payout queued' },
   VERIFIED: { label: 'Completed' },
@@ -131,6 +132,8 @@ function getCurrentStepKey(input: DareLifecycleInput): DareTimelineStepKey {
   if (status === 'AWAITING_CLAIM') return dareType === 'open' ? 'liveOpen' : 'waitingCreator';
 
   if (status === 'PENDING') {
+    if (input.videoUrl) return 'proofSubmitted';
+
     if (dareType === 'open') {
       if (input.claimedBy || input.claimRequestStatus === 'APPROVED') {
         return 'claimed';
@@ -174,6 +177,10 @@ function getNextActionCopy(input: DareLifecycleInput, currentStep: DareTimelineS
   }
 
   if (status === 'PENDING' && dareType === 'open') {
+    if (input.videoUrl) {
+      return 'Proof is attached. Open the brief to retry verification if needed. You do not need to upload again.';
+    }
+
     if (input.claimRequestStatus === 'PENDING') {
       return input.claimRequestTag
         ? `${input.claimRequestTag} has requested this activation. A moderator is deciding who gets the brief.`
@@ -188,6 +195,10 @@ function getNextActionCopy(input: DareLifecycleInput, currentStep: DareTimelineS
   }
 
   if (status === 'PENDING') {
+    if (input.videoUrl) {
+      return 'Proof is already attached. Open the brief to finish verification or wait for review to continue.';
+    }
+
     return 'The creator can now complete the mission and submit proof when ready.';
   }
 
@@ -224,7 +235,10 @@ function getNextActionCopy(input: DareLifecycleInput, currentStep: DareTimelineS
   return 'This dare is live. The next action depends on who owns the brief and whether proof has been submitted.';
 }
 
-function getStatusTone(status: string) {
+function getStatusTone(status: string, input: DareLifecycleInput) {
+  if (status === 'PENDING' && input.videoUrl) {
+    return 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300';
+  }
   if (status === 'VERIFIED' || status === 'PAID' || status === 'COMPLETED') {
     return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300';
   }
@@ -279,17 +293,18 @@ export function getDareLifecycleModel(input: DareLifecycleInput) {
     status,
     currentStep,
     currentStatusLabel:
-      status === 'PENDING' && dareType === 'open' && !input.claimedBy && input.claimRequestStatus !== 'APPROVED'
+      status === 'PENDING' && input.videoUrl
+        ? DARE_STATUS_MAP.PROOF_UPLOADED.label
+        : status === 'PENDING' && dareType === 'open' && !input.claimedBy && input.claimRequestStatus !== 'APPROVED'
         ? STEP_META.liveOpen.label
         : status === 'PENDING' && dareType === 'targeted'
           ? STEP_META.claimed.label
           : status === 'AWAITING_CLAIM' && dareType === 'open'
             ? STEP_META.liveOpen.label
             : getTerminalLabel(status),
-    statusTone: getStatusTone(status),
+    statusTone: getStatusTone(status, input),
     nextActionCopy: getNextActionCopy(input, currentStep),
     terminalLabel: terminal ? getTerminalLabel(status) : null,
     steps,
   };
 }
-

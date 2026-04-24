@@ -25,6 +25,7 @@ interface SubmitEvidenceProps {
   streamerHandle?: string;
   shortId?: string;
   placeName?: string | null;
+  existingProofUrl?: string | null;
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
@@ -44,6 +45,7 @@ export default function SubmitEvidence({
   streamerHandle,
   shortId,
   placeName,
+  existingProofUrl,
   onVerificationComplete,
 }: SubmitEvidenceProps) {
   const { data: session } = useSession();
@@ -162,6 +164,117 @@ export default function SubmitEvidence({
       : null;
   const fileTypeLabel = file?.type.startsWith('video/') ? 'video' : file?.type.startsWith('image/') ? 'photo' : 'file';
 
+  const handleVerifyUploadedProof = async (videoUrl: string, proofAuthHeaders: Record<string, string>) => {
+    setStatus('verifying');
+
+    const verifyResponse = await fetch('/api/verify-proof', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...proofAuthHeaders,
+      },
+      body: JSON.stringify({
+        dareId,
+        proofData: {
+          videoUrl,
+          timestamp: Date.now(),
+        },
+      }),
+    });
+
+    const verifyData = await parseJsonSafe(verifyResponse);
+
+    if (!verifyResponse.ok || verifyData.success !== true) {
+      const verifyCode = typeof verifyData.code === 'string' ? verifyData.code : '';
+      if (verifyCode === 'ALREADY_VERIFIED') {
+        setStatus('verified');
+        setVerificationResult({ reason: 'This dare has already been verified!' });
+        return;
+      }
+      throw new Error(readErrorMessage(verifyData, 'Verification failed. Please try again.'));
+    }
+
+    const result = verifyData.data as
+      | {
+          status?: string;
+          verification?: { confidence?: number; reason?: string };
+          appealable?: boolean;
+          message?: string;
+        }
+      | undefined;
+
+    if (!result?.status) {
+      throw new Error('Verification service returned an invalid response. Please try again.');
+    }
+
+    if (result.status === 'VERIFIED') {
+      setStatus('verified');
+      setVerificationResult({
+        confidence: result.verification?.confidence,
+        reason: result.verification?.reason,
+      });
+      onVerificationComplete?.({ status: 'VERIFIED', confidence: result.verification?.confidence });
+
+      toast({
+        variant: 'success',
+        title: 'Dare Verified!',
+        description: result.verification?.confidence
+          ? `Beta AI Referee verified with ${(result.verification.confidence * 100).toFixed(0)}% confidence. Payout processing.`
+          : 'Your proof has been verified. Payout is being processed.',
+        duration: 8000,
+      });
+    } else if (result.status === 'FAILED') {
+      setStatus('failed');
+      setVerificationResult({
+        confidence: result.verification?.confidence,
+        reason: result.verification?.reason,
+        appealable: result.appealable,
+      });
+      onVerificationComplete?.({ status: 'FAILED', confidence: result.verification?.confidence });
+
+      toast({
+        variant: 'destructive',
+        title: 'Verification Failed',
+        description: result.verification?.reason || 'The Beta AI Referee could not verify dare completion. You can submit an appeal.',
+        duration: 10000,
+      });
+    } else if (result.status === 'PENDING_REVIEW') {
+      setStatus('pending_review');
+      setVerificationResult({
+        confidence: result.verification?.confidence,
+        reason:
+          result.verification?.reason ||
+          result.message ||
+          'Your proof is valid and is now under manual review.',
+      });
+      onVerificationComplete?.({ status: 'PENDING_REVIEW', confidence: result.verification?.confidence });
+
+      toast({
+        title: 'Proof Submitted',
+        description: 'Your proof is safely in review. Expect an answer within about 24 hours.',
+        duration: 9000,
+      });
+    } else if (result.status === 'PENDING_PAYOUT') {
+      setStatus('pending_payout');
+      setVerificationResult({
+        confidence: result.verification?.confidence,
+        reason:
+          result.verification?.reason ||
+          result.message ||
+          'Proof verified. Payout is queued and will retry automatically.',
+      });
+      onVerificationComplete?.({ status: 'PENDING_PAYOUT', confidence: result.verification?.confidence });
+
+      toast({
+        title: 'Payout Queued',
+        description: 'Proof cleared. Payout retry is active and will keep running automatically.',
+        duration: 9000,
+      });
+    } else {
+      throw new Error('Unexpected verification status received. Please refresh and check again.');
+    }
+  };
+
   const handleFileSelect = (selectedFile: File) => {
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
     if (!validTypes.includes(selectedFile.type)) {
@@ -226,6 +339,7 @@ export default function SubmitEvidence({
 
     setStatus('uploading');
     setError(null);
+    let uploadedVideoUrl: string | null = null;
 
     try {
       const proofAuthHeaders = await getProofAuthHeaders();
@@ -260,123 +374,15 @@ export default function SubmitEvidence({
       if (!videoUrl) {
         throw new Error('Upload succeeded but no file URL was returned. Please retry.');
       }
+      uploadedVideoUrl = videoUrl;
       console.log('[EVIDENCE] File uploaded:', videoUrl);
 
-      // Step 2: Trigger verification
-      setStatus('verifying');
-
-      const verifyResponse = await fetch('/api/verify-proof', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...proofAuthHeaders,
-        },
-        body: JSON.stringify({
-          dareId,
-          proofData: {
-            videoUrl,
-            timestamp: Date.now(),
-          },
-        }),
-      });
-
-      const verifyData = await parseJsonSafe(verifyResponse);
-
-      if (!verifyResponse.ok || verifyData.success !== true) {
-        const verifyCode = typeof verifyData.code === 'string' ? verifyData.code : '';
-        // Handle specific error codes
-        if (verifyCode === 'ALREADY_VERIFIED') {
-          setStatus('verified');
-          setVerificationResult({ reason: 'This dare has already been verified!' });
-          return;
-        }
-        throw new Error(readErrorMessage(verifyData, 'Verification failed. Please try again.'));
-      }
-
-      // Handle verification result
-      const result = verifyData.data as
-        | {
-            status?: string;
-            verification?: { confidence?: number; reason?: string };
-            appealable?: boolean;
-            message?: string;
-          }
-        | undefined;
-
-      if (!result?.status) {
-        throw new Error('Verification service returned an invalid response. Please try again.');
-      }
-
-      if (result.status === 'VERIFIED') {
-        setStatus('verified');
-        setVerificationResult({
-          confidence: result.verification?.confidence,
-          reason: result.verification?.reason,
-        });
-        onVerificationComplete?.({ status: 'VERIFIED', confidence: result.verification?.confidence });
-
-        // Show success toast
-        toast({
-          variant: 'success',
-          title: 'Dare Verified!',
-          description: result.verification?.confidence
-            ? `Beta AI Referee verified with ${(result.verification.confidence * 100).toFixed(0)}% confidence. Payout processing.`
-            : 'Your proof has been verified. Payout is being processed.',
-          duration: 8000,
-        });
-      } else if (result.status === 'FAILED') {
-        setStatus('failed');
-        setVerificationResult({
-          confidence: result.verification?.confidence,
-          reason: result.verification?.reason,
-          appealable: result.appealable,
-        });
-        onVerificationComplete?.({ status: 'FAILED', confidence: result.verification?.confidence });
-
-        // Show failure toast
-        toast({
-          variant: 'destructive',
-          title: 'Verification Failed',
-          description: result.verification?.reason || 'The Beta AI Referee could not verify dare completion. You can submit an appeal.',
-          duration: 10000,
-        });
-      } else if (result.status === 'PENDING_REVIEW') {
-        setStatus('pending_review');
-        setVerificationResult({
-          confidence: result.verification?.confidence,
-          reason:
-            result.verification?.reason ||
-            result.message ||
-            'Your proof is valid and is now under manual review.',
-        });
-        onVerificationComplete?.({ status: 'PENDING_REVIEW', confidence: result.verification?.confidence });
-
-        toast({
-          title: 'Proof Submitted',
-          description: 'Your proof is safely in review. Expect an answer within about 24 hours.',
-          duration: 9000,
-        });
-      } else if (result.status === 'PENDING_PAYOUT') {
-        setStatus('pending_payout');
-        setVerificationResult({
-          confidence: result.verification?.confidence,
-          reason:
-            result.verification?.reason ||
-            result.message ||
-            'Proof verified. Payout is queued and will retry automatically.',
-        });
-        onVerificationComplete?.({ status: 'PENDING_PAYOUT', confidence: result.verification?.confidence });
-
-        toast({
-          title: 'Payout Queued',
-          description: 'Proof cleared. Payout retry is active and will keep running automatically.',
-          duration: 9000,
-        });
-      } else {
-        throw new Error('Unexpected verification status received. Please refresh and check again.');
-      }
+      await handleVerifyUploadedProof(videoUrl, proofAuthHeaders);
     } catch (err: unknown) {
-      const errorMessage = getUnknownErrorMessage(err, 'Failed to upload and verify. Please try again.');
+      const defaultError = uploadedVideoUrl
+        ? 'Your proof was uploaded safely. Tap submit proof again to retry verification.'
+        : 'Failed to upload and verify. Please try again.';
+      const errorMessage = getUnknownErrorMessage(err, defaultError);
       setError(errorMessage);
       setStatus('idle');
       console.error('[EVIDENCE] Error:', err);
@@ -385,6 +391,30 @@ export default function SubmitEvidence({
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
+    }
+  };
+
+  const handleRetryVerification = async () => {
+    if (!existingProofUrl) return;
+
+    setError(null);
+
+    try {
+      const proofAuthHeaders = await getProofAuthHeaders();
+      await handleVerifyUploadedProof(existingProofUrl, proofAuthHeaders);
+    } catch (err: unknown) {
+      const errorMessage = getUnknownErrorMessage(
+        err,
+        'Your proof is already attached. Please try verification again.'
+      );
+      setError(errorMessage);
+      setStatus('idle');
+      toast({
+        variant: 'destructive',
+        title: 'Verification Failed',
         description: errorMessage,
         duration: 6000,
       });
@@ -729,6 +759,48 @@ export default function SubmitEvidence({
               >
                 <Upload className="w-4 h-4" />
                 Submit Proof
+              </CosmicButton>
+            </div>
+          </>
+        ) : existingProofUrl ? (
+          <>
+            <div className="w-16 h-16 rounded-full bg-yellow-500/12 flex items-center justify-center border border-yellow-400/28">
+              <ShieldCheck className="w-6 h-6 text-yellow-300" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white uppercase tracking-wider mb-1">
+                Proof Already Attached
+              </h3>
+              <p className="text-xs font-mono text-gray-400 max-w-[260px]">
+                Your evidence is already stored for {activationLabel}. If verification did not finish, resume it here without uploading again.
+              </p>
+            </div>
+            <div className="w-full max-w-[280px] rounded-2xl border border-yellow-400/14 bg-yellow-500/[0.06] px-4 py-3 text-left">
+              <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-yellow-100">Recovery Path</p>
+              <p className="mt-2 text-xs text-gray-200">
+                Use the saved proof to re-run verification. Do not upload a second copy unless you want to replace the evidence entirely.
+              </p>
+            </div>
+            {error && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono max-w-[220px]">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
+            <div className="w-full max-w-[280px]">
+              <CosmicButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRetryVerification();
+                }}
+                variant="gold"
+                size="md"
+                fullWidth
+              >
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Retry Verification
+                </>
               </CosmicButton>
             </div>
           </>
