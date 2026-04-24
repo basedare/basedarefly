@@ -1234,12 +1234,18 @@ export default function Dashboard() {
                 The fastest read on what needs your attention right now.
               </p>
             </div>
-            {isConnected && actionInbox.length > 0 ? (
+            {isConnected ? (
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push('/action-center')}
+                  className={volumetricButtonNeutral}
+                >
+                  Open action center
+                </button>
                 {(
                   ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Recently paid'] as const
                 ).map((category) =>
-                  actionInboxCounts[category] > 0 ? (
+                  actionInbox.length > 0 && actionInboxCounts[category] > 0 ? (
                     <span
                       key={category}
                       className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62"

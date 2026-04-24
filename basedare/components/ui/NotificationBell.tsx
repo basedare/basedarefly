@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, Check, Smartphone } from 'lucide-react';
+import { Bell, BellRing, Check, Smartphone } from 'lucide-react';
 import { useWallet } from '@/context/WalletContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -14,6 +14,30 @@ interface Notification {
     link?: string | null;
     createdAt: string;
     isRead: boolean;
+}
+
+type ActionCenterCategory =
+    | 'Needs response'
+    | 'Ready for proof'
+    | 'Under review'
+    | 'Payout queued'
+    | 'Paid'
+    | 'Claim decision'
+    | 'Venue lead follow-up';
+
+interface ActionCenterItem {
+    id: string;
+    category: ActionCenterCategory;
+    title: string;
+    detail: string;
+    cta: string;
+    href: string;
+    statusLabel?: string | null;
+}
+
+interface ActionCenterSummary {
+    total: number;
+    counts: Record<ActionCenterCategory, number>;
 }
 
 type PushTopic = 'wallet' | 'nearby' | 'campaigns' | 'venues';
@@ -30,6 +54,8 @@ const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
 export function NotificationBell() {
     const { address } = useWallet();
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
+    const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [pushSupported, setPushSupported] = useState(false);
@@ -43,6 +69,7 @@ export function NotificationBell() {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const unreadCount = notifications.length;
+    const attentionCount = Math.max(unreadCount, actionSummary?.total ?? 0);
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
     const fetchNotifications = useCallback(async () => {
@@ -58,16 +85,40 @@ export function NotificationBell() {
         }
     }, [address]);
 
+    const fetchActionCenter = useCallback(async () => {
+        if (!address) return;
+        try {
+            const res = await fetch(`/api/action-center?wallet=${address}`, {
+                headers: {
+                    'x-moderator-wallet': address,
+                },
+            });
+            const data = await res.json();
+            if (data.success) {
+                setActionItems((data.data.items ?? []).slice(0, 4));
+                setActionSummary(data.data.summary ?? null);
+            }
+        } catch (err) {
+            console.error('Failed to fetch action center', err);
+        }
+    }, [address]);
+
     // Polling every 30s
     useEffect(() => {
         if (address) {
             fetchNotifications();
-            const intervalId = setInterval(fetchNotifications, 30000);
+            void fetchActionCenter();
+            const intervalId = setInterval(() => {
+                void fetchNotifications();
+                void fetchActionCenter();
+            }, 30000);
             return () => clearInterval(intervalId);
         } else {
             setNotifications([]);
+            setActionItems([]);
+            setActionSummary(null);
         }
-    }, [address, fetchNotifications]);
+    }, [address, fetchActionCenter, fetchNotifications]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -356,16 +407,16 @@ export function NotificationBell() {
                 onMouseLeave={() => setIsHovered(false)}
                 className="relative p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
             >
-                <Bell className={`w-5 h-5 text-gray-300 transition-transform ${isHovered && unreadCount > 0 ? 'animate-wiggle' : ''}`} />
+                <Bell className={`w-5 h-5 text-gray-300 transition-transform ${isHovered && attentionCount > 0 ? 'animate-wiggle' : ''}`} />
 
                 {/* Unread Badge */}
-                {unreadCount > 0 && (
+                {attentionCount > 0 && (
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border-2 border-[#121214]"
                     >
-                        <span className="text-[9px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                        <span className="text-[9px] font-bold text-white">{attentionCount > 9 ? '9+' : attentionCount}</span>
                     </motion.div>
                 )}
             </button>
@@ -382,15 +433,29 @@ export function NotificationBell() {
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
-                            <h3 className="font-bold text-white">Notifications</h3>
-                            {unreadCount > 0 && (
-                                <button
-                                    onClick={markAllAsRead}
-                                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                            <div>
+                                <h3 className="font-bold text-white">Notifications</h3>
+                                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/36">
+                                    {actionSummary?.total ? `${actionSummary.total} live actions` : 'Alerts and push settings'}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/action-center"
+                                    className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100 transition hover:bg-fuchsia-500/[0.14]"
+                                    onClick={() => setIsOpen(false)}
                                 >
-                                    <Check className="w-3 h-3" /> Mark all read
-                                </button>
-                            )}
+                                    Open action center
+                                </Link>
+                                {unreadCount > 0 && (
+                                    <button
+                                        onClick={markAllAsRead}
+                                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                                    >
+                                        <Check className="w-3 h-3" /> Mark all read
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {pushSupported && (
@@ -511,12 +576,65 @@ export function NotificationBell() {
                             </div>
                         )}
 
+                        {actionItems.length > 0 && (
+                            <div className="border-b border-white/5 bg-white/[0.025] px-3 py-3">
+                                <div className="mb-3 flex flex-wrap gap-2">
+                                    {(
+                                        ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Claim decision', 'Venue lead follow-up'] as const
+                                    ).map((category) =>
+                                        actionSummary && actionSummary.counts[category] > 0 ? (
+                                            <span
+                                                key={category}
+                                                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/60"
+                                            >
+                                                {category} {actionSummary.counts[category]}
+                                            </span>
+                                        ) : null
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    {actionItems.map((item) => (
+                                        <Link
+                                            key={item.id}
+                                            href={item.href}
+                                            className="block rounded-2xl border border-white/8 bg-black/20 px-3 py-3 transition hover:bg-white/[0.04]"
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">
+                                                        {item.category}
+                                                    </p>
+                                                    <h4 className="mt-2 text-sm font-bold text-white line-clamp-1">
+                                                        {item.title}
+                                                    </h4>
+                                                </div>
+                                                {item.statusLabel ? (
+                                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+                                                        {item.statusLabel}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            <p className="mt-2 text-xs leading-relaxed text-gray-400 line-clamp-2">
+                                                {item.detail}
+                                            </p>
+                                            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-200/85">
+                                                {item.cta}
+                                            </p>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* List */}
                         <div className="overflow-y-auto flex-1 p-2">
                             {notifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center p-8 text-center">
-                                    <Bell className="w-8 h-8 text-white/20 mb-3" />
-                                    <p className="text-sm text-gray-400">You&apos;re all caught up!</p>
+                                    <BellRing className="w-8 h-8 text-white/20 mb-3" />
+                                    <p className="text-sm text-gray-400">
+                                        {actionItems.length > 0 ? 'No extra alerts. Focus on the live action queue.' : 'You&apos;re all caught up!'}
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-1">
