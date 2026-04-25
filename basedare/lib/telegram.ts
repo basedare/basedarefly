@@ -107,6 +107,71 @@ function formatUSDC(amount: number): string {
   return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC`;
 }
 
+function escapeHtml(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return escapeHtml(value).replace(/"/g, '&quot;');
+}
+
+function appUrl(path: string): string {
+  const base = BASE_URL.replace(/\/$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+function htmlLink(url: string, label: string): string {
+  return `<a href="${escapeHtmlAttribute(url)}">${escapeHtml(label)}</a>`;
+}
+
+function compactText(value: string | null | undefined, maxLength = 180): string {
+  const clean = (value || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= maxLength) return clean;
+  return `${clean.slice(0, maxLength - 3)}...`;
+}
+
+function formatVenuePipelineEvent(eventType: string): string {
+  const labels: Record<string, string> = {
+    EMAIL_BRIEF: 'Sponsor brief shared',
+    CONTACTED: 'Contact handoff received',
+    CLAIM_STARTED: 'Venue claim started',
+    ACTIVATION_LAUNCHED: 'Activation launched',
+    REPEAT_LAUNCHED: 'Repeat activation launched',
+  };
+  return labels[eventType] || eventType.replace(/_/g, ' ').toLowerCase();
+}
+
+function formatVenueAudience(audience: string): string {
+  return audience === 'sponsor' ? 'Sponsor / buyer' : 'Venue owner';
+}
+
+function formatVenueIntent(intent: string | null | undefined): string | null {
+  if (!intent) return null;
+  const labels: Record<string, string> = {
+    claim: 'claim venue',
+    activation: 'launch activation',
+    repeat: 'repeat activation',
+  };
+  return labels[intent] || intent;
+}
+
+function formatOwnerWallet(ownerWallet: string | null | undefined): string {
+  if (!ownerWallet) return 'unassigned';
+  return `${ownerWallet.slice(0, 6)}...${ownerWallet.slice(-4)}`;
+}
+
+function formatRelativeAge(date: Date): string {
+  const diffMs = Math.max(0, Date.now() - date.getTime());
+  const diffHours = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.max(1, Math.round(diffHours / 24));
+  return `${diffDays}d ago`;
+}
+
 // =============================================================================
 // ALERT FUNCTIONS
 // =============================================================================
@@ -325,11 +390,10 @@ export async function alertVenueLeadFollowUpQueue(data: {
   const preview = data.leads
     .slice(0, 4)
     .map((lead) => {
-      const reasons = lead.reasons.join(', ') || 'stale';
-      const owner = lead.ownerWallet
-        ? `assigned ${lead.ownerWallet.slice(0, 6)}...${lead.ownerWallet.slice(-4)}`
-        : 'unassigned';
-      return `• <b>${lead.venueName}</b> · ${lead.audience}${lead.intent ? ` · ${lead.intent}` : ''}\n  ${lead.email} · ${owner}\n  ${reasons}`;
+      const reasons = lead.reasons.map((reason) => escapeHtml(reason)).join(', ') || 'stale';
+      const owner = lead.ownerWallet ? `assigned ${formatOwnerWallet(lead.ownerWallet)}` : 'unassigned';
+      const intent = lead.intent ? ` · ${escapeHtml(lead.intent)}` : '';
+      return `• <b>${escapeHtml(lead.venueName)}</b> · ${escapeHtml(lead.audience)}${intent}\n  ${escapeHtml(lead.email)} · ${escapeHtml(owner)}\n  ${reasons}`;
     })
     .join('\n');
 
@@ -349,6 +413,115 @@ Unowned: ${data.unownedCount} · Assigned overdue: ${data.assignedOverdueCount}$
 ${preview}
 
 Open the admin lead inbox to assign owners and set follow-ups.
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertVenueReportHighIntentEvent(data: {
+  venueName: string;
+  venueSlug: string;
+  city?: string | null;
+  country?: string | null;
+  audience: string;
+  eventType: string;
+  channel?: string | null;
+  intent?: string | null;
+  email?: string | null;
+  name?: string | null;
+  organization?: string | null;
+  notes?: string | null;
+  leadId?: string | null;
+}): Promise<boolean> {
+  const location = [data.city, data.country].filter(Boolean).join(', ');
+  const intent = formatVenueIntent(data.intent);
+  const reportUrl = appUrl(
+    `/venues/${encodeURIComponent(data.venueSlug)}/report?audience=${encodeURIComponent(data.audience)}`
+  );
+  const launchParams = new URLSearchParams({
+    venue: data.venueSlug,
+    source: 'telegram',
+  });
+  if (data.intent) launchParams.set('intent', data.intent);
+  if (data.audience) launchParams.set('audience', data.audience);
+
+  const contactLines = [
+    data.email ? `Email: ${escapeHtml(data.email)}` : null,
+    data.name ? `Name: ${escapeHtml(data.name)}` : null,
+    data.organization ? `Org: ${escapeHtml(data.organization)}` : null,
+  ].filter(Boolean);
+  const notes = compactText(data.notes, 220);
+
+  const message = `
+🎯 <b>VENUE PIPELINE SIGNAL</b>
+
+<b>${escapeHtml(formatVenuePipelineEvent(data.eventType))}</b>
+🏟️ <b>${escapeHtml(data.venueName)}</b>${location ? ` · ${escapeHtml(location)}` : ''}
+Audience: ${escapeHtml(formatVenueAudience(data.audience))}${intent ? ` · Intent: ${escapeHtml(intent)}` : ''}
+${data.channel ? `Source: ${escapeHtml(data.channel)}` : ''}
+${contactLines.length ? `\n${contactLines.join('\n')}` : ''}
+${notes ? `\nNote: ${escapeHtml(notes)}` : ''}
+${data.leadId ? `Lead: <code>${escapeHtml(data.leadId)}</code>` : ''}
+
+${htmlLink(reportUrl, 'Open report')} · ${htmlLink(appUrl(`/brands/portal?${launchParams.toString()}`), 'Launch activation')} · ${htmlLink(appUrl('/admin'), 'Lead inbox')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertVenueLeadActivationDigest(data: {
+  lookbackHours: number;
+  urgentCount: number;
+  unownedCount: number;
+  assignedOverdueCount: number;
+  recentLeadCount: number;
+  recentConversionCount: number;
+  topLeads: Array<{
+    venueName: string;
+    venueSlug: string;
+    email: string;
+    audience: string;
+    intent: string | null;
+    followUpStatus: string | null;
+    ownerWallet: string | null;
+    contactedAt: Date;
+    reasons?: string[];
+  }>;
+  recentEvents: Array<{
+    venueName: string;
+    venueSlug: string;
+    eventType: string;
+    audience: string;
+    channel: string | null;
+    createdAt: Date;
+  }>;
+}): Promise<boolean> {
+  const leadPreview = data.topLeads
+    .slice(0, 5)
+    .map((lead) => {
+      const intent = formatVenueIntent(lead.intent) || 'general';
+      const reasons = lead.reasons?.length ? ` · ${lead.reasons.map((reason) => escapeHtml(reason)).join(', ')}` : '';
+      return `• <b>${escapeHtml(lead.venueName)}</b> · ${escapeHtml(intent)} · ${escapeHtml(formatRelativeAge(lead.contactedAt))}\n  ${escapeHtml(lead.email)} · ${escapeHtml(formatOwnerWallet(lead.ownerWallet))} · ${escapeHtml(lead.followUpStatus || 'NEW')}${reasons}`;
+    })
+    .join('\n');
+
+  const eventPreview = data.recentEvents
+    .slice(0, 5)
+    .map((event) => {
+      const source = event.channel ? ` · ${event.channel}` : '';
+      return `• <b>${escapeHtml(event.venueName)}</b> · ${escapeHtml(formatVenuePipelineEvent(event.eventType))} · ${escapeHtml(formatRelativeAge(event.createdAt))}${escapeHtml(source)}`;
+    })
+    .join('\n');
+
+  const message = `
+📈 <b>VENUE ACTIVATION DIGEST</b>
+
+Last ${data.lookbackHours}h: ${data.recentLeadCount} leads · ${data.recentConversionCount} conversion events
+Urgent now: ${data.urgentCount} · Unowned: ${data.unownedCount} · Assigned overdue: ${data.assignedOverdueCount}
+
+${leadPreview ? `<b>Top leads</b>\n${leadPreview}\n` : ''}
+${eventPreview ? `<b>Conversion signals</b>\n${eventPreview}\n` : ''}
+${htmlLink(appUrl('/admin'), 'Open lead inbox')} · ${htmlLink(appUrl('/brands/portal'), 'Open brand portal')}
 `.trim();
 
   return sendMessage(message);

@@ -4,9 +4,11 @@ import { getAppSettings } from '@/lib/app-settings';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { trackServerEvent } from '@/lib/server-analytics';
-import { alertVenueLeadFollowUpQueue } from '@/lib/telegram';
+import { alertVenueLeadActivationDigest, alertVenueLeadFollowUpQueue } from '@/lib/telegram';
 
 const VENUE_LEAD_ALERT_COOLDOWN_MS = 3 * 60 * 60 * 1000;
+const VENUE_LEAD_DIGEST_LOOKBACK_HOURS = 24;
+const VENUE_LEAD_DIGEST_LOOKBACK_MS = VENUE_LEAD_DIGEST_LOOKBACK_HOURS * 60 * 60 * 1000;
 
 function scoreLead(input: {
   audience: string;
@@ -99,6 +101,130 @@ async function notifyAssignedLeadOwners(
   );
 }
 
+async function maybeSendVenueLeadActivationDigest(input: {
+  urgentLeads: Array<{
+    audience: string;
+    intent: string | null;
+    ownerWallet: string | null;
+    contactedAt: Date;
+    email: string;
+    followUpStatus: string;
+    venue: {
+      name: string;
+      slug: string;
+    };
+    priority: {
+      score: number;
+      reasons: string[];
+    };
+  }>;
+  unownedCount: number;
+  assignedOverdueCount: number;
+}) {
+  const since = new Date(Date.now() - VENUE_LEAD_DIGEST_LOOKBACK_MS);
+  const [recentLeads, recentEvents] = await Promise.all([
+    prisma.venueReportLead.findMany({
+      where: {
+        contactedAt: { gte: since },
+        OR: [
+          { audience: 'sponsor' },
+          { intent: 'activation' },
+          { intent: 'repeat' },
+        ],
+      },
+      orderBy: { contactedAt: 'desc' },
+      take: 12,
+      select: {
+        email: true,
+        audience: true,
+        intent: true,
+        ownerWallet: true,
+        followUpStatus: true,
+        contactedAt: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    }),
+    prisma.venueReportEvent.findMany({
+      where: {
+        createdAt: { gte: since },
+        eventType: {
+          in: ['EMAIL_BRIEF', 'CLAIM_STARTED', 'ACTIVATION_LAUNCHED', 'REPEAT_LAUNCHED'],
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 16,
+      select: {
+        eventType: true,
+        audience: true,
+        channel: true,
+        createdAt: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  if (!recentLeads.length && !recentEvents.length && !input.urgentLeads.length) {
+    return { sent: false, reason: 'NO_ACTIVITY' as const };
+  }
+
+  const digestLeadKeys = new Set<string>();
+  const topLeads = [...input.urgentLeads, ...recentLeads.map((lead) => ({
+    ...lead,
+    priority: {
+      score: 0,
+      reasons: [] as string[],
+    },
+  }))]
+    .filter((lead) => {
+      const key = `${lead.venue.slug}:${lead.email}`;
+      if (digestLeadKeys.has(key)) return false;
+      digestLeadKeys.add(key);
+      return true;
+    })
+    .sort((a, b) => b.priority.score - a.priority.score || b.contactedAt.getTime() - a.contactedAt.getTime())
+    .slice(0, 8);
+
+  const sent = await alertVenueLeadActivationDigest({
+    lookbackHours: VENUE_LEAD_DIGEST_LOOKBACK_HOURS,
+    urgentCount: input.urgentLeads.length,
+    unownedCount: input.unownedCount,
+    assignedOverdueCount: input.assignedOverdueCount,
+    recentLeadCount: recentLeads.length,
+    recentConversionCount: recentEvents.length,
+    topLeads: topLeads.map((lead) => ({
+      venueName: lead.venue.name,
+      venueSlug: lead.venue.slug,
+      email: lead.email,
+      audience: lead.audience,
+      intent: lead.intent,
+      followUpStatus: lead.followUpStatus,
+      ownerWallet: lead.ownerWallet,
+      contactedAt: lead.contactedAt,
+      reasons: lead.priority.reasons,
+    })),
+    recentEvents: recentEvents.map((event) => ({
+      venueName: event.venue.name,
+      venueSlug: event.venue.slug,
+      eventType: event.eventType,
+      audience: event.audience,
+      channel: event.channel,
+      createdAt: event.createdAt,
+    })),
+  });
+
+  return { sent, reason: sent ? 'SENT' as const : 'SEND_FAILED' as const };
+}
+
 export async function checkAndSendVenueLeadFollowUpAlert() {
   const settings = await getAppSettings();
 
@@ -133,9 +259,11 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
       nextActionAt: true,
       contactedAt: true,
       email: true,
+      followUpStatus: true,
       venue: {
         select: {
           name: true,
+          slug: true,
         },
       },
     },
@@ -170,8 +298,16 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
     .sort((a, b) => b.count - a.count);
 
   if (urgentLeads.length < settings.venueLeadAlertThreshold) {
+    const digest = await maybeSendVenueLeadActivationDigest({
+      urgentLeads,
+      unownedCount: unownedUrgentLeads.length,
+      assignedOverdueCount: assignedOverdueLeads.length,
+    });
+
     return {
       alerted: false,
+      digestSent: digest.sent,
+      digestReason: digest.reason,
       urgentCount: urgentLeads.length,
       unownedCount: unownedUrgentLeads.length,
       assignedOverdueCount: assignedOverdueLeads.length,
@@ -183,8 +319,16 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
   const now = new Date();
   const lastAlert = settings.lastVenueLeadAlertSent;
   if (lastAlert && now.getTime() - lastAlert.getTime() < VENUE_LEAD_ALERT_COOLDOWN_MS) {
+    const digest = await maybeSendVenueLeadActivationDigest({
+      urgentLeads,
+      unownedCount: unownedUrgentLeads.length,
+      assignedOverdueCount: assignedOverdueLeads.length,
+    });
+
     return {
       alerted: false,
+      digestSent: digest.sent,
+      digestReason: digest.reason,
       urgentCount: urgentLeads.length,
       unownedCount: unownedUrgentLeads.length,
       assignedOverdueCount: assignedOverdueLeads.length,
@@ -235,6 +379,8 @@ export async function checkAndSendVenueLeadFollowUpAlert() {
 
   return {
     alerted: true,
+    digestSent: false,
+    digestReason: 'URGENT_ALERT_SENT' as const,
     urgentCount: urgentLeads.length,
     unownedCount: unownedUrgentLeads.length,
     assignedOverdueCount: assignedOverdueLeads.length,

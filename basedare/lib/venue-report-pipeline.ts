@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { alertVenueReportHighIntentEvent } from '@/lib/telegram';
 import type { VenueReportPipelineSummary } from '@/lib/venue-types';
 
 export const SHARE_EVENT_TYPES = ['SHARE', 'COPY_BRIEF', 'COPY_LINK', 'EMAIL_BRIEF'] as const;
@@ -15,6 +16,15 @@ export const REPORT_EVENT_TYPES = [
 ] as const;
 
 type ReportEventType = (typeof REPORT_EVENT_TYPES)[number];
+type VenueReportAlertEventType = Exclude<ReportEventType, 'OPEN' | 'SHARE' | 'COPY_BRIEF' | 'COPY_LINK'>;
+
+const TELEGRAM_REPORT_EVENTS = new Set<VenueReportAlertEventType>([
+  'EMAIL_BRIEF',
+  'CONTACTED',
+  'CLAIM_STARTED',
+  'ACTIVATION_LAUNCHED',
+  'REPEAT_LAUNCHED',
+]);
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null;
@@ -34,6 +44,64 @@ function buildSummary(input: VenueReportPipelineSummary['stages']) {
   if (input.contacted.active) return 'This report has already turned into an active business conversation.';
   if (input.shared.active) return 'This report is circulating, but it still needs a real handoff.';
   return 'No downstream pipeline movement yet. Share it or route it into a warm intro.';
+}
+
+function intentFromEvent(eventType: ReportEventType, metadataJson?: Record<string, unknown> | null) {
+  const metadataIntent = metadataJson?.intent;
+  if (typeof metadataIntent === 'string') return metadataIntent;
+  if (eventType === 'CLAIM_STARTED') return 'claim';
+  if (eventType === 'ACTIVATION_LAUNCHED') return 'activation';
+  if (eventType === 'REPEAT_LAUNCHED') return 'repeat';
+  return null;
+}
+
+function shouldAlertVenueReportEvent(input: {
+  eventType: ReportEventType;
+  audience: 'venue' | 'sponsor';
+}) {
+  if (!TELEGRAM_REPORT_EVENTS.has(input.eventType as VenueReportAlertEventType)) return false;
+  if (input.eventType === 'EMAIL_BRIEF') return input.audience === 'sponsor';
+  return true;
+}
+
+function queueVenueReportAlert(input: {
+  venue: {
+    name: string;
+    slug: string;
+    city: string | null;
+    country: string | null;
+  };
+  audience: 'venue' | 'sponsor';
+  eventType: ReportEventType;
+  channel?: string | null;
+  intent?: string | null;
+  email?: string | null;
+  name?: string | null;
+  organization?: string | null;
+  notes?: string | null;
+  leadId?: string | null;
+}) {
+  if (!shouldAlertVenueReportEvent({ eventType: input.eventType, audience: input.audience })) {
+    return;
+  }
+
+  void alertVenueReportHighIntentEvent({
+    venueName: input.venue.name,
+    venueSlug: input.venue.slug,
+    city: input.venue.city,
+    country: input.venue.country,
+    audience: input.audience,
+    eventType: input.eventType,
+    channel: input.channel,
+    intent: input.intent,
+    email: input.email,
+    name: input.name,
+    organization: input.organization,
+    notes: input.notes,
+    leadId: input.leadId,
+  }).catch((error) => {
+    console.error('[VENUE_REPORT_PIPELINE] Telegram alert failed:', error);
+  });
 }
 
 export async function getVenueReportPipelineSummary(
@@ -137,7 +205,7 @@ export async function recordVenueReportEvent(input: {
       if (existing) return;
     }
 
-    await prisma.venueReportEvent.create({
+    const event = await prisma.venueReportEvent.create({
       data: {
         venueId: input.venueId,
         audience: input.audience,
@@ -146,6 +214,27 @@ export async function recordVenueReportEvent(input: {
         channel: input.channel ?? null,
         metadataJson: (input.metadataJson ?? undefined) as Prisma.InputJsonValue | undefined,
       },
+      select: {
+        eventType: true,
+        audience: true,
+        channel: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+            country: true,
+          },
+        },
+      },
+    });
+
+    queueVenueReportAlert({
+      venue: event.venue,
+      audience: event.audience as 'venue' | 'sponsor',
+      eventType: event.eventType as ReportEventType,
+      channel: event.channel,
+      intent: intentFromEvent(input.eventType, input.metadataJson),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -184,6 +273,20 @@ export async function recordVenueReportLead(input: {
       },
       select: {
         id: true,
+        email: true,
+        name: true,
+        organization: true,
+        notes: true,
+        audience: true,
+        intent: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+            country: true,
+          },
+        },
       },
     });
 
@@ -198,6 +301,19 @@ export async function recordVenueReportLead(input: {
           intent: input.intent ?? null,
         },
       },
+    });
+
+    queueVenueReportAlert({
+      venue: lead.venue,
+      audience: lead.audience as 'venue' | 'sponsor',
+      eventType: 'CONTACTED',
+      channel: 'venue-report-handoff',
+      intent: lead.intent,
+      email: lead.email,
+      name: lead.name,
+      organization: lead.organization,
+      notes: lead.notes,
+      leadId: lead.id,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
