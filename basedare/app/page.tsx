@@ -59,6 +59,12 @@ function HomeContent() {
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
   const [isLightningRoar, setIsLightningRoar] = useState(false);
+  const [showViewToggle, setShowViewToggle] = useState(false);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setShowViewToggle(true), 320);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   // Custom view setter that triggers transitions
   const handleViewChange = (newView: 'FAN' | 'BUSINESS') => {
@@ -137,7 +143,7 @@ function HomeContent() {
       <div className="fixed inset-0 z-10 pointer-events-none">
         <GradualBlurOverlay intensity={view === 'BUSINESS' ? 'light' : 'full'} />
       </div>
-      <ViewToggle view={view} setView={handleViewChange} />
+      {showViewToggle ? <ViewToggle view={view} setView={handleViewChange} /> : null}
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
       <RealityShift

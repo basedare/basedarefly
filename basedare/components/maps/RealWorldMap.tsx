@@ -3296,7 +3296,7 @@ export default function RealWorldMap() {
                   </div>
 
                   <div
-                    className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
+                    className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' } : undefined}
                   >
 
@@ -4077,7 +4077,11 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
+                  <div
+                    className={`venue-action-rail mt-3 grid gap-2 sm:mt-4 sm:gap-3 ${
+                      selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'
+                    }`}
+                  >
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -4230,8 +4234,46 @@ export default function RealWorldMap() {
 
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
-            bottom: max(8px, env(safe-area-inset-bottom));
-            max-height: min(72dvh, calc(100% - 76px));
+            bottom: max(6px, env(safe-area-inset-bottom));
+            max-height: min(80dvh, calc(100% - 64px));
+          }
+
+          .selected-place-panel-content {
+            padding-bottom: calc(6.75rem + env(safe-area-inset-bottom)) !important;
+          }
+
+          .venue-action-rail {
+            position: fixed;
+            right: 0.75rem;
+            bottom: calc(0.65rem + env(safe-area-inset-bottom));
+            left: 0.75rem;
+            z-index: 70;
+            margin-top: 0;
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1.35rem;
+            background:
+              linear-gradient(180deg, rgba(14, 16, 28, 0.86), rgba(5, 6, 13, 0.96)),
+              radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.12), transparent 36%),
+              radial-gradient(circle at 82% 0%, rgba(245, 197, 24, 0.12), transparent 34%);
+            box-shadow:
+              0 18px 46px rgba(0, 0, 0, 0.52),
+              0 0 28px rgba(6, 182, 212, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              inset 0 -10px 18px rgba(0, 0, 0, 0.34);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+          }
+
+          .venue-action-rail::before {
+            content: '';
+            position: absolute;
+            inset: 5px 18% auto;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent);
+            opacity: 0.75;
+            pointer-events: none;
           }
         }
 
@@ -4501,6 +4543,28 @@ export default function RealWorldMap() {
           :global(.map-action-button span) {
             max-width: none;
             line-height: 1;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .venue-action-rail :global(.map-action-button) {
+            min-height: 54px;
+            border-radius: 16px;
+            padding: 0.54rem 0.34rem 0.48rem;
+            font-size: 7px;
+            letter-spacing: 0.1em;
+            box-shadow:
+              0 10px 18px rgba(0, 0, 0, 0.28),
+              inset 0 1px 0 rgba(255, 255, 255, 0.13),
+              inset 0 -12px 18px rgba(0, 0, 0, 0.28);
+          }
+
+          .venue-action-rail :global(.map-action-button span) {
+            max-width: 4.9rem;
+          }
+
+          .venue-action-rail :global(.map-action-button svg) {
+            display: none;
           }
         }
 

@@ -13,6 +13,9 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
   const [isShattering, setIsShattering] = useState(false);
   const isOverlay = variant === 'overlay';
   const durationMs = isOverlay ? 1100 : 1800;
+  const fullscreenMotion = isShattering
+    ? { opacity: 0, scale: 1.018 }
+    : { opacity: 1, scale: 1 };
 
   const statusLabel = useMemo(() => {
     if (loadingProgress < 26) return 'LOCKING SIGNAL';
@@ -56,7 +59,7 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
       className={
         isOverlay
           ? `chain-init-overlay ${isShattering ? 'complete' : ''}`
-          : `fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#020202] overflow-hidden ${
+          : `fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#020202] overflow-hidden ${
               isShattering ? "pointer-events-none" : ""
             }`
       }
@@ -65,11 +68,18 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
           ? isShattering
             ? { opacity: 0, y: 8, filter: "blur(8px)" }
             : { opacity: 1, y: 0, filter: "blur(0px)" }
-          : isShattering
-            ? { opacity: 0, scale: 1.04, filter: "blur(10px)" }
-            : { opacity: 1, scale: 1, filter: "blur(0px)" }
+          : fullscreenMotion
       }
       transition={{ duration: isOverlay ? 0.35 : 0.45, ease: "easeInOut" }}
+      style={
+        isOverlay
+          ? undefined
+          : {
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              willChange: 'opacity, transform',
+            }
+      }
       aria-live="polite"
       aria-label="Chain initialization in progress"
     >
@@ -81,7 +91,7 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
           <motion.div
             animate={{ scale: [0.94, 1.06, 0.94], opacity: [0.16, 0.28, 0.16] }}
             transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute h-[420px] w-[420px] rounded-full bg-purple-600/20 blur-[100px]"
+            className="absolute h-[280px] w-[280px] rounded-full bg-purple-600/20 blur-[64px] sm:h-[420px] sm:w-[420px] sm:blur-[100px]"
           />
         </>
       ) : null}

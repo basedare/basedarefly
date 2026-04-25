@@ -37,6 +37,36 @@ export default function WaitlistClient({
     : initialTopic === 'venue-partnership'
       ? 'BaseDare Venue Partnership Signal'
       : 'BaseDare Contact Signal';
+  const signalLabel = initialTopic === 'venue-claim'
+    ? 'Venue claim signal'
+    : initialTopic === 'venue-partnership'
+      ? 'Venue partnership signal'
+      : 'Contact • Feedback • Partnerships';
+  const heroCopy = initialTopic === 'venue-claim'
+    ? 'Claim a venue pin, activate the command center, and get your place ready for sponsored dares.'
+    : initialTopic === 'venue-partnership'
+      ? 'Tell us which venue you want to sponsor and we will route the activation conversation from there.'
+      : 'Suggest a venue, pitch a partnership, report a bug, or send the idea that should become part of the grid.';
+  const routeCards = [
+    {
+      label: 'Venue signal',
+      accent: 'text-cyan-200',
+      body: 'Send a place that should be visible on the map.',
+      foot: 'Name • location • why it matters',
+    },
+    {
+      label: 'Paid activation',
+      accent: 'text-yellow-200',
+      body: 'For venues and brands ready to fund live challenges.',
+      foot: 'Venue • budget • target outcome',
+    },
+    {
+      label: 'Product signal',
+      accent: 'text-purple-200',
+      body: 'Bugs, creator feedback, weird ideas, or broken flows.',
+      foot: 'What happened • what should happen',
+    },
+  ];
   const prefilledNotes = useMemo(() => {
     if (initialTopic === 'venue-claim') {
       return [
@@ -114,7 +144,7 @@ export default function WaitlistClient({
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-transparent px-4 py-12">
+    <main className="relative flex min-h-screen flex-col items-center justify-start overflow-hidden bg-transparent px-4 py-24 md:py-28">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
         <GradualBlurOverlay />
@@ -127,117 +157,137 @@ export default function WaitlistClient({
 
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[100vh] w-[150vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-900/10 blur-[150px]" />
 
-      <div className={`relative z-20 w-full max-w-md space-y-6 p-5 text-center md:space-y-7 md:p-8 ${raisedShellClass}`}>
-        <div className="relative group mx-auto w-fit">
-          <div className="absolute -inset-4 rounded-full bg-purple-500/20 opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-100" />
-          <img
-            src="/assets/peebear-head.png"
-            alt="BaseDare Signal Bear"
-            className="vault-peebear relative z-10 mx-auto h-28 w-28 object-contain sm:h-32 sm:w-32 md:h-44 md:w-44"
-          />
-        </div>
+      <div className={`relative z-20 w-full max-w-6xl overflow-hidden p-4 text-left md:p-6 lg:p-7 ${raisedShellClass}`}>
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-yellow-300/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-purple-500/12 blur-3xl" />
 
-        <div className="space-y-3">
-          <div className={`${dentWellClass} px-4 py-3.5`}>
-            <p className="text-gray-200/90 font-mono text-[10px] uppercase tracking-[0.28em] md:text-xs">
-              {initialTopic === 'venue-claim'
-                ? 'Venue Claim • Partnerships'
-                : initialTopic === 'venue-partnership'
-                  ? 'Venue Partnership • Sponsorship'
-                  : 'Contact • Feedback • Partnerships'}
-            </p>
-          </div>
-          <div className="mx-auto max-w-[300px] space-y-2 md:max-w-[380px]">
-            <div className="md:hidden">
-              <h1 className="font-display text-[22vw] font-black italic leading-[0.86] tracking-[-0.08em] text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">
-                <span className="block">SIGNAL</span>
-                <span className="block">THE</span>
-                <span className="block">GRID</span>
-              </h1>
-            </div>
-            <div className="hidden md:block">
-              <ChromeText
-                text="SIGNAL THE GRID"
-                className="text-5xl leading-[0.92] tracking-[-0.04em]"
-              />
-            </div>
-            <p className="text-sm leading-relaxed text-white/72 md:text-[15px]">
-              {initialTopic === 'venue-claim'
-                ? 'Claim a venue pin, activate the command center, and get your place ready for sponsored dares.'
-                : initialTopic === 'venue-partnership'
-                  ? 'Tell us which venue you want to sponsor and we will route the activation conversation from there.'
-                  : 'Suggest a venue, pitch a partnership, or send us a bug, idea, or question.'}
-            </p>
-          </div>
-        </div>
-
-        {!submitted ? (
-          <div className="w-full space-y-5">
-            <div className="grid gap-3 text-left sm:grid-cols-3">
-              <div className={`${dentWellClass} px-4 py-4`}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-purple-300/90">
-                  Suggest A Venue
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-white/76">
-                  Know a place that should be on the map? Drop us the location.
+        <div className="relative grid gap-4 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
+          <section className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,rgba(7,8,16,0.88)_42%,rgba(5,6,12,0.98)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_34px_rgba(0,0,0,0.28)] md:p-7">
+            <div className="pointer-events-none absolute inset-x-6 top-5 h-10 rounded-full bg-gradient-to-r from-transparent via-white/[0.035] to-transparent blur-sm" />
+            <div className="relative flex items-start justify-between gap-4">
+              <div className={`${dentWellClass} w-fit px-4 py-3`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gray-200/90">
+                  {signalLabel}
                 </p>
               </div>
-              <div className={`${dentWellClass} px-4 py-4`}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-yellow-300/90">
-                  Partnership
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-white/76">
-                  Venues and brands can reach us directly about paid activations.
-                </p>
-              </div>
-              <div className={`${dentWellClass} px-4 py-4`}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/90">
-                  General Signal
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-white/76">
-                  Bugs, feedback, creator questions, or anything else on your mind.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="w-full space-y-3">
-              <div className={`${dentWellClass} px-2 py-2`}>
-                <input
-                  type="email"
-                  required
-                  placeholder="EMAIL ADDRESS"
-                  className="w-full rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 text-center font-mono text-sm tracking-[0.22em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+              <div className="relative hidden shrink-0 sm:block">
+                <div className="absolute -inset-5 rounded-full bg-purple-500/20 blur-2xl" />
+                <img
+                  src="/assets/peebear-head.png"
+                  alt="BaseDare Signal Bear"
+                  className="vault-peebear relative z-10 h-24 w-24 object-contain md:h-32 md:w-32"
                 />
               </div>
+            </div>
 
-              <div className={`${dentWellClass} px-2 py-2`}>
-                <textarea
-                  placeholder="DROP YOUR SIGNAL"
-                  className="min-h-[120px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm leading-relaxed tracking-[0.08em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+            <div className="relative mt-8 max-w-2xl space-y-5">
+              <div className="sm:hidden">
+                <img
+                  src="/assets/peebear-head.png"
+                  alt="BaseDare Signal Bear"
+                  className="vault-peebear mx-auto h-24 w-24 object-contain"
                 />
               </div>
+              <div className="md:hidden">
+                <h1 className="font-display text-[22vw] font-black italic leading-[0.82] tracking-[-0.08em] text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 sm:text-[18vw]">
+                  <span className="block">SIGNAL</span>
+                  <span className="block">THE GRID</span>
+                </h1>
+              </div>
+              <div className="hidden md:block">
+                <ChromeText
+                  text="SIGNAL THE GRID"
+                  className="text-6xl leading-[0.86] tracking-[-0.06em] lg:text-7xl xl:text-8xl"
+                />
+              </div>
+              <p className="max-w-xl text-base leading-relaxed text-white/72 md:text-lg">
+                {heroCopy}
+              </p>
+            </div>
 
-              <CosmicButton type="submit" fullWidth size="lg" className="w-full">
-                Send Signal
-              </CosmicButton>
-            </form>
-          </div>
-        ) : (
-          <div className={`animate-in fade-in zoom-in p-8 duration-500 ${dentWellClass}`}>
-            <h3 className="mb-2 text-2xl font-black italic uppercase tracking-tighter text-white">Signal Received</h3>
-            <p className="font-mono text-xs uppercase tracking-widest text-purple-400">We&apos;ll read it.</p>
-            <p className="mt-3 text-sm text-white/62">Thanks for helping shape the grid.</p>
-          </div>
-        )}
+            <div className="relative mt-7 grid gap-3 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {routeCards.map((card) => (
+                <div key={card.label} className={`${dentWellClass} px-4 py-4`}>
+                  <p className={`font-mono text-[10px] uppercase tracking-[0.24em] ${card.accent}`}>
+                    {card.label}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/75">{card.body}</p>
+                  <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-white/36">
+                    {card.foot}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
 
-        <div className={`${dentWellClass} px-4 py-3`}>
-          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-gray-400/80">
-            Base Mainnet • Open Signal Line
-          </p>
+          <section className="relative rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_0%,rgba(168,85,247,0.14),transparent_38%),linear-gradient(180deg,rgba(10,11,22,0.92),rgba(3,4,10,0.98))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] md:p-6">
+            <div className="mb-5 grid gap-3 sm:grid-cols-3">
+              {[
+                ['Route', initialTopic === 'venue-claim' ? 'Claim' : initialTopic === 'venue-partnership' ? 'Partner' : 'Open'],
+                ['Signal time', 'Under 60 sec'],
+                ['Reply path', 'Direct'],
+              ].map(([label, value]) => (
+                <div key={label} className={`${dentWellClass} px-4 py-3`}>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-white/38">{label}</p>
+                  <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {!submitted ? (
+              <div className="space-y-5">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-purple-200/85">
+                    Open signal line
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white md:text-3xl">
+                    Tell us what should happen next.
+                  </h2>
+                </div>
+
+                <form onSubmit={handleSubmit} className="w-full space-y-4">
+                  <div className={`${dentWellClass} px-2 py-2`}>
+                    <input
+                      type="email"
+                      required
+                      placeholder="EMAIL ADDRESS"
+                      className="w-full rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm tracking-[0.18em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className={`${dentWellClass} px-2 py-2`}>
+                    <textarea
+                      placeholder="DROP YOUR SIGNAL"
+                      className="min-h-[210px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm leading-relaxed tracking-[0.06em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <CosmicButton type="submit" fullWidth size="lg" className="w-full">
+                    Send Signal
+                  </CosmicButton>
+                </form>
+              </div>
+            ) : (
+              <div className={`animate-in fade-in zoom-in p-8 text-center duration-500 ${dentWellClass}`}>
+                <h3 className="mb-2 text-3xl font-black italic uppercase tracking-tighter text-white">
+                  Signal Received
+                </h3>
+                <p className="font-mono text-xs uppercase tracking-widest text-purple-300">We&apos;ll read it.</p>
+                <p className="mt-3 text-sm text-white/62">Thanks for helping shape the grid.</p>
+              </div>
+            )}
+
+            <div className={`${dentWellClass} mt-5 px-4 py-3 text-center`}>
+              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-gray-400/80">
+                Base Mainnet • Open Signal Line
+              </p>
+            </div>
+          </section>
         </div>
       </div>
 

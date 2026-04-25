@@ -1641,7 +1641,7 @@ export default function BrandPortalPage() {
         <>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 px-4 md:px-6 py-3 md:py-4 bg-white/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:bg-white/80 md:px-6 md:py-4 md:shadow-none md:backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2 md:gap-4">
             {/* Back button */}
@@ -1651,7 +1651,7 @@ export default function BrandPortalPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-lg md:text-2xl font-bold text-zinc-900">
+            <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-zinc-950 antialiased md:text-2xl">
               ACTIVATION OPS
             </div>
             <div className="hidden md:block px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
