@@ -44,27 +44,11 @@ export default function CosmicButton(props: CosmicButtonProps) {
     ...rest
   } = props;
 
-  const [over, setOver] = React.useState(false);
-
-  React.useEffect(() => {
-    let stop: number | undefined;
-    const start = window.setTimeout(() => {
-      setOver(true);
-      stop = window.setTimeout(() => setOver(false), 2200);
-    }, 450);
-
-    return () => {
-      window.clearTimeout(start);
-      if (stop) window.clearTimeout(stop);
-    };
-  }, []);
-
   const sharedClassName = cn(
     'sparkle-button',
     `sparkle-button--variant-${variant}`,
     `sparkle-button--${size}`,
     fullWidth && 'sparkle-button--full',
-    variant !== 'gold' && over && 'sparkle-button--over',
     className
   );
 
