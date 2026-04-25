@@ -325,7 +325,7 @@ function HomeContent() {
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
               <p className="text-zinc-600 text-lg max-w-md mx-auto -mt-16 md:-mt-32 lg:-mt-40">
-                The B2B infrastructure for programmatic attention marketing
+                Venue activations, creator routing, and proof you can sell.
               </p>
             </div>
 
@@ -379,11 +379,11 @@ function HomeContent() {
                     <div className="text-4xl mb-4">🏢</div>
                     <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
                     <p className="text-zinc-500 mb-4">
-                      Create campaigns, set budgets, and let the Shadow Army hunt creators for you.
+                      Fund venue activations, set creator payouts, and prove what changed after spend.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Value Menu</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Auto-Verify</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Venue Activation</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">ROI Proof</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">USDC Settlement</span>
                     </div>
                     <div className="mt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">

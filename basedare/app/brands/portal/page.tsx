@@ -1195,7 +1195,7 @@ export default function BrandPortalPage() {
         actor,
         detail: dare.verifiedAt
           ? `verified ${new Date(dare.verifiedAt).toLocaleString()}`
-          : 'campaign verified and payout completed',
+          : 'activation verified and payout completed',
       };
     }
 
@@ -1237,7 +1237,7 @@ export default function BrandPortalPage() {
           ? `claimed ${new Date(dare.claimedAt).toLocaleString()}`
           : dare.status === 'PENDING'
             ? 'creator is attached and can submit proof now'
-            : 'creator is attached to this campaign',
+            : 'creator is attached to this activation',
       };
     }
 
@@ -1287,7 +1287,7 @@ export default function BrandPortalPage() {
     if (!dare) {
       return {
         label: 'No linked activation yet',
-        detail: 'This campaign has not produced a live creator result yet.',
+        detail: 'This activation has not produced a live creator result yet.',
       };
     }
 
@@ -1324,7 +1324,7 @@ export default function BrandPortalPage() {
     if (dare.claimedBy || dare.targetWalletAddress) {
       return {
         label: 'Creator attached',
-        detail: 'A creator is attached and the campaign is waiting for proof.',
+        detail: 'A creator is attached and the activation is waiting for proof.',
       };
     }
 
@@ -1339,7 +1339,7 @@ export default function BrandPortalPage() {
     if (!dare) {
       return {
         label: 'No movement yet',
-        detail: 'The campaign is live but no creator has engaged with it yet.',
+        detail: 'The activation is live but no creator has engaged with it yet.',
       };
     }
 
@@ -1392,7 +1392,7 @@ export default function BrandPortalPage() {
         label: 'Live on the map',
         detail: dare.createdAt
           ? `linked ${new Date(dare.createdAt).toLocaleString()}`
-          : 'campaign is waiting for creator activity',
+          : 'activation is waiting for creator activity',
     };
   };
 
@@ -1429,7 +1429,7 @@ export default function BrandPortalPage() {
         ? {
             key: 'moderated',
             label: dare.status === 'FAILED' ? 'Rejected' : 'Approved',
-            detail: dare.status === 'FAILED' ? 'Review closed this campaign' : 'Review cleared the proof',
+            detail: dare.status === 'FAILED' ? 'Review closed this activation' : 'Review cleared the proof',
             at: dare.moderatedAt,
           }
         : null,
@@ -1474,7 +1474,7 @@ export default function BrandPortalPage() {
     if (!campaign.venue || !impact) {
       return {
         label: 'Venue impact pending',
-        detail: 'Attach this campaign to a venue to track venue memory and momentum.',
+        detail: 'Attach this activation to a venue to track venue memory and momentum.',
       };
     }
 
@@ -1558,8 +1558,8 @@ export default function BrandPortalPage() {
               CONTROL MODE
             </h1>
             <p className="text-zinc-600 max-w-md">
-              Launch venue campaigns, manage creator activity, and track results.
-              Connect your wallet to open the brand portal.
+              Fund live venue activations, route creators, and track proof.
+              Connect your wallet to open the activation portal.
             </p>
             <button
               onClick={() => {
@@ -1599,9 +1599,9 @@ export default function BrandPortalPage() {
           <div className="max-w-md w-full space-y-6">
             <div className="text-center">
               <div className="text-5xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🏢</div>
-              <h1 className="text-2xl font-bold text-zinc-900">Register Your Brand</h1>
+              <h1 className="text-2xl font-bold text-zinc-900">Register Venue or Brand</h1>
               <p className="text-zinc-600 mt-2">
-                Set up your brand profile to launch venue campaigns
+                Set up the buyer profile that will fund venue activations.
               </p>
             </div>
 
@@ -1655,7 +1655,7 @@ export default function BrandPortalPage() {
               CONTROL
             </div>
             <div className="hidden md:block px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
-              BRAND PORTAL
+              ACTIVATION PORTAL
             </div>
           </div>
 
@@ -1688,17 +1688,62 @@ export default function BrandPortalPage() {
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="mb-6 md:mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white/85 p-4 shadow-[0_24px_80px_rgba(15,10,35,0.08)] backdrop-blur-xl md:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-500">
+                For venues, local businesses, and sponsors
+              </div>
+              <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-950 md:text-4xl">
+                Launch a paid venue activation
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 md:text-base">
+                Pick a real place, set the creator payout, fund the mission, then watch proof and venue lift come back into one surface.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCampaign(true)}
+                  className="rounded-xl bg-zinc-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
+                >
+                  Launch activation
+                </button>
+                <Link
+                  href="/map"
+                  className="rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:border-zinc-400"
+                >
+                  View venue map
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {[
+                { label: '1. Pick venue', detail: 'A real place on the grid' },
+                { label: '2. Set payout', detail: 'USDC budget and brief' },
+                { label: '3. Route creator', detail: 'Best available venue fit' },
+                { label: '4. Prove lift', detail: 'Proof, payout, repeat signal' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+                  <div className="font-bold text-zinc-950">{item.label}</div>
+                  <div className="mt-1 text-xs text-zinc-500">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Campaign Spend</div>
+            <div className="text-zinc-500 text-xs md:text-sm">Activation Spend</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
-              {campaignSummary?.total ?? campaigns.length} campaigns launched
+              {campaignSummary?.total ?? campaigns.length} activations launched
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Live Campaigns</div>
+            <div className="text-zinc-500 text-xs md:text-sm">Live Activations</div>
             <div className="text-xl md:text-2xl font-bold text-zinc-900">{liveCampaignCount}</div>
             <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
               {(campaignSummary?.place ?? campaigns.filter((campaign) => campaign.type === 'PLACE').length)} venue
@@ -1726,16 +1771,16 @@ export default function BrandPortalPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
-              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Where your next activation should go</h2>
+              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Best places to activate next</h2>
               <p className="mt-1 max-w-2xl text-sm text-zinc-600">
-                Ranked using live venue activity, command-center readiness, and your existing campaign history so you can spot the best places to fund next.
+                Venues ranked by live activity, ownership signal, and repeat potential so you can choose where spend is most likely to move people.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {([
                 { id: 'hot', label: 'Hot now' },
-                { id: 'managed', label: 'Managed' },
-                { id: 'claimable', label: 'Claimable' },
+                { id: 'managed', label: 'My venues' },
+                { id: 'claimable', label: 'Needs activation' },
               ] as const).map((filter) => {
                 const active = venueRadarFilter === filter.id;
                 return (
@@ -1757,7 +1802,7 @@ export default function BrandPortalPage() {
 
           {filteredVenueRadar.length === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
-              No venue signal is strong enough yet for this filter. Launch a campaign or wait for more verified venue activity.
+              No venues match this view yet. Pick a venue from the map or launch the first activation to create signal.
             </div>
           ) : (
             <div className="mt-5 grid gap-3 lg:grid-cols-3">
@@ -1832,9 +1877,9 @@ export default function BrandPortalPage() {
                       <div className="text-[11px] text-zinc-500">{venue.activity.activeChallenges} live challenges</div>
                     </div>
                     <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Brand history</div>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Past activations</div>
                       <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.brandHistory.campaigns}</div>
-                      <div className="text-[11px] text-zinc-500">${venue.brandHistory.totalSpendUsd.toLocaleString()} total spend</div>
+                      <div className="text-[11px] text-zinc-500">${venue.brandHistory.totalSpendUsd.toLocaleString()} spent here</div>
                     </div>
                     <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
                       <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Verified signal</div>
@@ -1900,9 +1945,9 @@ export default function BrandPortalPage() {
                   <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.activity.activeChallenges} open challenges</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Brand history</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Past activations</div>
                   <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.brandHistory.campaigns}</div>
-                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.brandHistory.liveCampaigns} live campaigns here</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.brandHistory.liveCampaigns} live activations here</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Verified memory</div>
@@ -2019,7 +2064,7 @@ export default function BrandPortalPage() {
                       {selectedVenueRadar.strategyLabel}
                     </div>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      If you want to capture this venue while the signal is fresh, launch a place activation now and route a creator directly into the existing movement.
+                      If you want to capture this venue while the signal is fresh, fund one activation now and route the best-fit creator into the existing movement.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
@@ -2028,7 +2073,7 @@ export default function BrandPortalPage() {
                         className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
                       >
                         <PlayCircle className="h-4 w-4" />
-                        Fund challenge here
+                        Fund activation here
                       </button>
                       <Link
                         href={`/venues/${selectedVenueRadar.slug}`}
@@ -2061,11 +2106,11 @@ export default function BrandPortalPage() {
           ) : null}
         </div>
 
-        {/* Value Menu / Create Campaign */}
+        {/* Value Menu / Launch Activation */}
         {showCreateCampaign ? (
           <div className="mb-8 bg-white/90 backdrop-blur-xl border border-zinc-200 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">Create Campaign</h2>
+              <h2 className="text-xl font-bold text-zinc-900">Launch Venue Activation</h2>
               <button
                 onClick={() => {
                   setShowCreateCampaign(false);
@@ -2079,7 +2124,7 @@ export default function BrandPortalPage() {
 
             {/* Tier Selection - Value Menu Style */}
             <div className="mb-6">
-              <label className="block text-sm text-zinc-600 mb-3">Pick an activation</label>
+              <label className="block text-sm text-zinc-600 mb-3">Choose budget tier</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
                 {(Object.keys(TIER_INFO) as Array<keyof typeof TIER_INFO>).map((tier) => {
                   const info = TIER_INFO[tier];
@@ -2131,12 +2176,12 @@ export default function BrandPortalPage() {
                   {
                     value: 'PLACE',
                     title: 'Venue Activation',
-                    body: 'Launch one venue-linked campaign that appears on the map.',
+                    body: 'Fund one real place mission that appears on the map.',
                   },
                   {
                     value: 'CREATOR',
-                    title: 'Creator Matching',
-                    body: 'Not live yet. Venue activations are the supported launch path right now.',
+                    title: 'Creator-only Campaign',
+                    body: 'Coming later. Venue activations are the supported launch path right now.',
                   },
                 ] as const).map((option) => {
                   const isSelected = formData.type === option.value;
@@ -2167,12 +2212,12 @@ export default function BrandPortalPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Campaign name</label>
+                  <label className="block text-sm text-zinc-600 mb-2">Activation name</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Summer Energy Challenge"
+                    placeholder="e.g., Hideaway Friday Foot-Traffic Push"
                     className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                   />
                 </div>
@@ -2203,7 +2248,7 @@ export default function BrandPortalPage() {
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
                     <div className="mt-2 text-xs text-zinc-500">
-                      Choose where you want the activation to happen. We will attach the campaign to that venue on the map.
+                      Choose where you want the activation to happen. We will attach the live mission to that venue on the map.
                     </div>
                     {placeLoading ? (
                       <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
@@ -2296,16 +2341,16 @@ export default function BrandPortalPage() {
               <div className="space-y-4">
                 {formData.type === 'CREATOR' ? (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                    <div className="text-sm font-semibold text-amber-800">Creator matching is coming soon</div>
+                    <div className="text-sm font-semibold text-amber-800">Creator-only campaigns are coming soon</div>
                     <div className="mt-2 text-sm text-amber-700">
-                      New creator-matching launches are not available yet. Venue activations are the live option today.
+                      New creator-only launches are not available yet. Venue activations are the live option today.
                     </div>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                     <div className="text-sm font-semibold text-zinc-900">How venue activations work</div>
                     <div className="mt-2 text-sm text-zinc-600">
-                      This assigns one recommended creator to the venue activation, shows it on the map, and records the result back into venue memory.
+                      This funds one venue mission, routes one recommended creator, shows it on the map, and records the result back into venue memory.
                     </div>
                   </div>
                 )}
@@ -2647,10 +2692,10 @@ export default function BrandPortalPage() {
                       ? 'Funding activation...'
                       : approvalStatus === 'verifying'
                         ? 'Registering activation...'
-                        : 'Launching campaign...'
+                        : 'Launching activation...'
                   : formData.type === 'PLACE'
-                  ? `Launch Venue Campaign ($${budget.total.toLocaleString()} USDC)`
-                  : 'Creator Matching Coming Soon'}
+                  ? `Launch Activation ($${budget.total.toLocaleString()} USDC)`
+                  : 'Creator-Only Coming Soon'}
               </button>
               <button
                 onClick={() => {
@@ -2670,14 +2715,14 @@ export default function BrandPortalPage() {
           >
             <div className="text-zinc-400 group-hover:text-purple-400 transition">
               <span className="text-2xl mr-2">+</span>
-              Create New Campaign
+              Launch Venue Activation
             </div>
           </button>
         )}
 
-        {/* Campaigns List */}
+        {/* Activations List */}
         <div>
-          <h2 className="text-xl font-bold mb-4">Your Campaigns</h2>
+          <h2 className="text-xl font-bold mb-4">Your Activations</h2>
 
           <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
@@ -2688,7 +2733,7 @@ export default function BrandPortalPage() {
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Creators Assigned</div>
               <div className="mt-1 text-lg font-bold text-zinc-900">{creatorsAttachedCount}</div>
-              <div className="text-xs text-zinc-500">campaigns with a creator attached</div>
+              <div className="text-xs text-zinc-500">activations with a creator attached</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Proofs Submitted</div>
@@ -2704,7 +2749,7 @@ export default function BrandPortalPage() {
 
           {campaigns.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
-              No campaigns yet. Launch your first campaign to start creator activity.
+              No activations yet. Launch your first venue activation to start creator activity.
             </div>
           ) : (
             <div className="space-y-4">
@@ -3355,7 +3400,7 @@ export default function BrandPortalPage() {
                                       <div className="mt-2 text-xs text-zinc-500">
                                         {campaign.venue
                                           ? `This completion now sits in ${campaign.venue.name}'s place memory and strengthens the venue pulse.`
-                                          : 'This completion now counts as a verified cultural outcome for the campaign.'}
+                                          : 'This completion now counts as a verified cultural outcome for the activation.'}
                                       </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
