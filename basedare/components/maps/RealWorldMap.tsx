@@ -739,6 +739,51 @@ function getVenueTransformationState({
   };
 }
 
+function isVenueActivated(commandCenter?: VenueCommandCenter | null) {
+  if (!commandCenter) return false;
+
+  return (
+    commandCenter.status === 'live' ||
+    commandCenter.activeCampaignCount > 0 ||
+    commandCenter.metrics.paidActivations > 0 ||
+    commandCenter.metrics.totalLiveFundingUsd > 0
+  );
+}
+
+function getVenueActivationMarkerLabel(commandCenter?: VenueCommandCenter | null) {
+  if (!commandCenter) return 'OPEN';
+  if (isVenueActivated(commandCenter)) return 'ACTIVATED';
+  if (commandCenter.sponsorReady) return 'READY';
+  if (commandCenter.claimState === 'claimed') return 'CLAIMED';
+  return 'CLAIMABLE';
+}
+
+function getVenueActivationActionCopy(commandCenter: VenueCommandCenter) {
+  if (isVenueActivated(commandCenter)) {
+    return {
+      label: 'Repeat activation',
+      detail: 'Fund another creator moment here',
+    };
+  }
+
+  return {
+    label: 'Activate venue',
+    detail: 'Make this pin visibly sponsored',
+  };
+}
+
+function getVenueActivationHref(venueSlug?: string | null) {
+  if (!venueSlug) return '/brands/portal';
+
+  const params = new URLSearchParams({
+    venue: venueSlug,
+    compose: '1',
+    source: 'map',
+  });
+
+  return `/brands/portal?${params.toString()}`;
+}
+
 function getPulseLegendPalette(pulse: PulseState) {
   switch (pulse) {
     case 'blazing':
@@ -804,6 +849,8 @@ function createPeebearMarkerIcon({
   challengeLiveCount,
   matched = false,
   compact = false,
+  activated = false,
+  activationLabel,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -813,6 +860,8 @@ function createPeebearMarkerIcon({
   challengeLiveCount: number;
   matched?: boolean;
   compact?: boolean;
+  activated?: boolean;
+  activationLabel?: string;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
@@ -831,9 +880,10 @@ function createPeebearMarkerIcon({
           : visualState === 'active'
             ? 'ALIVE'
             : 'OPEN';
+  const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${activated ? `activated-${activationBadgeLabel}` : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -846,11 +896,13 @@ function createPeebearMarkerIcon({
     iconAnchor: compact ? [38, 44] : [44, 68],
     popupAnchor: compact ? [0, -38] : [0, -54],
     html: `
-      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''}">
+      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
         ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+        ${activated ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
+        ${activated && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
         </div>
@@ -2365,6 +2417,11 @@ export default function RealWorldMap() {
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
+  const selectedVenueActivated = isVenueActivated(selectedCommandCenter);
+  const selectedActivationActionCopy = selectedCommandCenter
+    ? getVenueActivationActionCopy(selectedCommandCenter)
+    : null;
+  const selectedActivationHref = selectedCommandCenter ? getVenueActivationHref(selectedPlace?.slug) : null;
   const selectedPulseMeaning = useMemo(
     () =>
       getPulseMeaning({
@@ -2441,8 +2498,10 @@ export default function RealWorldMap() {
       visualState: selectedVisualState,
       challengeLiveCount: selectedPlace.activeDareCount ?? 0,
       matched: Boolean(showMatchedLayer && selectedPlaceMatch),
+      activated: selectedVenueActivated,
+      activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
     });
-  }, [selectedPlace, selectedPlaceMatch, selectedPulse, selectedVisualState, showMatchedLayer]);
+  }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerIcon = useMemo(
     () => createCurrentLocationIcon({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -2742,6 +2801,7 @@ export default function RealWorldMap() {
                 const isActive = selectedPlace?.placeId === place.id;
                 const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
                 const compact = !isActive && mapZoom < compactMarkerZoomThreshold;
+                const activatedVenue = isVenueActivated(place.commandCenter);
 
                 return (
                   <Marker
@@ -2756,8 +2816,10 @@ export default function RealWorldMap() {
                       challengeLiveCount: place.activeDareCount,
                       matched: isMatchedVenue,
                       compact,
+                      activated: activatedVenue,
+                      activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
                     })}
-                    zIndexOffset={isActive ? 600 : 240}
+                    zIndexOffset={isActive ? 600 : activatedVenue ? 360 : 240}
                     eventHandlers={{
                       click: () => focusExistingPlace(place),
                     }}
@@ -2848,7 +2910,46 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-              {showFootprintLayer && footprintMarks.length > 0 ? (
+            {!selectedPlace ? (
+              <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[14rem] rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,11,20,0.92)_24%,rgba(4,5,12,0.97)_100%)] px-4 py-3 shadow-[0_20px_42px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.18)] backdrop-blur md:block">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/38">
+                  Map Legend
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="legend-building-mini" aria-hidden="true">
+                      <span className="legend-building-mini-roof" />
+                      <span className="legend-building-mini-body" />
+                    </span>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
+                        Activated venue
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-white/42">Paid command layer visible</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="legend-live-dot" aria-hidden="true" />
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                        Live challenge
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-white/42">Open money is moving</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="legend-open-dot" aria-hidden="true" />
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/72">
+                        Open venue
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-white/42">Claim or fund the first move</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {showFootprintLayer && footprintMarks.length > 0 ? (
               <div
                 className={`pointer-events-none absolute left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:left-5 md:text-[10px] ${showNearbyDareTray ? nearbyDarePanelCollapsed ? 'bottom-[4.75rem] md:bottom-[6.4rem]' : 'bottom-[16.25rem] md:bottom-[18.9rem]' : 'bottom-3 md:bottom-5'}`}
               >
@@ -3308,6 +3409,34 @@ export default function RealWorldMap() {
                       <p className="mt-3 text-sm leading-relaxed text-white/74">
                         {selectedCommandCenter.summary}
                       </p>
+                      {selectedActivationActionCopy ? (
+                        <Link
+                          href={selectedActivationHref ?? selectedCommandCenter.contactUrl}
+                          className={`mt-3 flex items-center justify-between gap-3 rounded-[20px] border px-3.5 py-3 text-left transition hover:-translate-y-[1px] ${
+                            selectedVenueActivated
+                              ? 'border-[#f5c518]/24 bg-[linear-gradient(180deg,rgba(245,197,24,0.12)_0%,rgba(70,43,7,0.14)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.22),0_0_18px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-[#f5c518]/38'
+                              : 'border-cyan-300/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.11)_0%,rgba(8,14,22,0.78)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.22),0_0_18px_rgba(34,211,238,0.06),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-cyan-300/34'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className={`block text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                              selectedVenueActivated ? 'text-[#f8dd72]' : 'text-cyan-100'
+                            }`}>
+                              {selectedActivationActionCopy.label}
+                            </span>
+                            <span className="mt-1 block text-xs font-medium text-white/58">
+                              {selectedActivationActionCopy.detail}
+                            </span>
+                          </span>
+                          <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
+                            selectedVenueActivated
+                              ? 'border-[#f5c518]/28 bg-[#f5c518]/[0.10] text-[#f8dd72]'
+                              : 'border-cyan-300/24 bg-cyan-500/[0.10] text-cyan-100'
+                          }`}>
+                            <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+                          </span>
+                        </Link>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-2.5">
                         <span className={mapPanelInsetChipClass}>
                           {selectedCommandCenter.sponsorReady ? 'Sponsor-ready' : 'Unclaimed venue'}
@@ -4135,6 +4264,68 @@ export default function RealWorldMap() {
           outline-offset: -3px;
         }
 
+        .map-activation-legend {
+          transform-origin: 100% 100%;
+          animation: mapLegendSettle 260ms ease-out;
+        }
+
+        .legend-building-mini {
+          position: relative;
+          display: inline-flex;
+          height: 28px;
+          width: 28px;
+          flex: 0 0 auto;
+          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38));
+        }
+
+        .legend-building-mini-roof {
+          position: absolute;
+          left: 4px;
+          top: 1px;
+          width: 20px;
+          height: 13px;
+          clip-path: polygon(50% 0%, 100% 45%, 100% 64%, 0% 64%, 0% 45%);
+          background: linear-gradient(135deg, #fff0a3 0%, #f5c518 52%, #8f5c07 100%);
+        }
+
+        .legend-building-mini-body {
+          position: absolute;
+          left: 6px;
+          top: 11px;
+          width: 16px;
+          height: 14px;
+          border-radius: 4px;
+          border: 1px solid rgba(248, 221, 114, 0.38);
+          background:
+            linear-gradient(90deg, transparent 30%, rgba(245, 197, 24, 0.82) 30% 43%, transparent 43% 57%, rgba(245, 197, 24, 0.82) 57% 70%, transparent 70%),
+            linear-gradient(180deg, rgba(42, 34, 58, 0.96), rgba(10, 9, 18, 0.98));
+          box-shadow: 0 0 12px rgba(245, 197, 24, 0.16);
+        }
+
+        .legend-live-dot,
+        .legend-open-dot {
+          display: inline-flex;
+          height: 16px;
+          width: 16px;
+          flex: 0 0 auto;
+          border-radius: 9999px;
+          border: 2px solid rgba(5, 6, 12, 0.88);
+        }
+
+        .legend-live-dot {
+          background: #f5c518;
+          box-shadow:
+            0 0 0 3px rgba(245, 197, 24, 0.12),
+            0 0 18px rgba(245, 197, 24, 0.34);
+        }
+
+        .legend-open-dot {
+          background: #161322;
+          box-shadow:
+            0 0 0 3px rgba(255, 255, 255, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
         .place-panel-popup {
           background: linear-gradient(145deg, #1c1c2e 0%, #14142a 100%);
           box-shadow:
@@ -4922,6 +5113,142 @@ export default function RealWorldMap() {
           height: 92px;
         }
 
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-core) {
+          margin-top: 24px;
+          border-color: rgba(245, 197, 24, 0.74);
+          background:
+            radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.18) 0%, transparent 54%),
+            radial-gradient(circle at 60% 86%, rgba(245, 197, 24, 0.18) 0%, transparent 46%),
+            linear-gradient(180deg, rgba(31, 22, 38, 0.98), rgba(10, 8, 18, 0.99));
+          box-shadow:
+            0 0 0 3px rgba(245, 197, 24, 0.16),
+            0 0 24px rgba(245, 197, 24, 0.28),
+            0 16px 28px rgba(0, 0, 0, 0.46),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.26);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-core) {
+          margin-top: 16px;
+          height: 50px;
+          width: 50px;
+        }
+
+        .basedare-leaflet-map :global(.venue-building-badge) {
+          position: absolute;
+          left: 50%;
+          top: -4px;
+          z-index: 5;
+          display: flex;
+          height: 46px;
+          width: 46px;
+          transform: translateX(-50%);
+          transform-style: preserve-3d;
+          filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 12px rgba(245, 197, 24, 0.24));
+          pointer-events: none;
+          transition: transform 180ms ease, filter 180ms ease;
+        }
+
+        .basedare-leaflet-map :global(.venue-building-roof) {
+          position: absolute;
+          left: 6px;
+          top: 2px;
+          width: 34px;
+          height: 22px;
+          clip-path: polygon(50% 0%, 100% 44%, 100% 64%, 0% 64%, 0% 44%);
+          border-radius: 4px 4px 2px 2px;
+          background:
+            linear-gradient(135deg, rgba(255, 242, 170, 0.95) 0%, rgba(245, 197, 24, 0.98) 46%, rgba(157, 103, 9, 0.98) 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.5),
+            inset 0 -5px 8px rgba(82, 49, 0, 0.28);
+        }
+
+        .basedare-leaflet-map :global(.venue-building-body) {
+          position: absolute;
+          left: 9px;
+          top: 18px;
+          display: grid;
+          width: 28px;
+          height: 23px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 3px;
+          border-radius: 7px 7px 5px 5px;
+          border: 1px solid rgba(248, 221, 114, 0.42);
+          background:
+            linear-gradient(180deg, rgba(42, 34, 58, 0.96), rgba(12, 10, 20, 0.98));
+          padding: 6px 4px 4px;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -8px 10px rgba(0, 0, 0, 0.3),
+            0 0 0 2px rgba(245, 197, 24, 0.1);
+        }
+
+        .basedare-leaflet-map :global(.venue-building-body span) {
+          border-radius: 2px;
+          background:
+            linear-gradient(180deg, rgba(254, 240, 138, 0.96), rgba(245, 197, 24, 0.78));
+          box-shadow: 0 0 8px rgba(245, 197, 24, 0.3);
+        }
+
+        .basedare-leaflet-map :global(.venue-building-base) {
+          position: absolute;
+          left: 5px;
+          bottom: 2px;
+          width: 36px;
+          height: 5px;
+          border-radius: 9999px;
+          background: linear-gradient(90deg, rgba(94, 62, 8, 0.24), rgba(248, 221, 114, 0.8), rgba(94, 62, 8, 0.24));
+          box-shadow: 0 0 12px rgba(245, 197, 24, 0.24);
+        }
+
+        .basedare-leaflet-map :global(.venue-activation-pill) {
+          position: absolute;
+          left: 50%;
+          top: 38px;
+          z-index: 6;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          border: 1px solid rgba(245, 197, 24, 0.38);
+          background:
+            linear-gradient(180deg, rgba(248, 221, 114, 0.18), rgba(245, 197, 24, 0.08)),
+            linear-gradient(180deg, rgba(32, 22, 8, 0.96), rgba(8, 7, 12, 0.98));
+          padding: 3px 8px;
+          font-size: 6.5px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.16em;
+          color: #fff2b7;
+          white-space: nowrap;
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.3),
+            0 0 16px rgba(245, 197, 24, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-count) {
+          left: 18px;
+          top: -10px;
+          z-index: 7;
+          transform: none;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-count) {
+          left: 10px;
+          top: -6px;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
+          top: -12px;
+          transform: translateX(-50%) scale(0.78);
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-active .venue-building-badge) {
+          transform: translateX(-50%) translateY(-3px) scale(1.04);
+          filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(245, 197, 24, 0.36));
+        }
+
         .basedare-leaflet-map :global(.peebear-match-badge) {
           position: absolute;
           left: 50%;
@@ -5391,6 +5718,17 @@ export default function RealWorldMap() {
           50% {
             transform: translateX(-50%) scale(1.04);
             opacity: 1;
+          }
+        }
+
+        @keyframes mapLegendSettle {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
           }
         }
 
