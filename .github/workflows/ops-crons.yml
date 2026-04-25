@@ -1,0 +1,57 @@
+name: Ops Cron Dispatcher
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Cron job to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - retry-payouts
+          - refund-expired
+          - venue-report-leads
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASEDARE_APP_URL: ${{ secrets.BASEDARE_APP_URL || 'https://basedare.xyz' }}
+      BASEDARE_CRON_SECRET: ${{ secrets.BASEDARE_CRON_SECRET }}
+      REQUESTED_JOB: ${{ github.event.inputs.job || 'scheduled' }}
+      SCHEDULE: ${{ github.event.schedule || '' }}
+    steps:
+      - name: Dispatch cron endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$BASEDARE_CRON_SECRET" ]; then
+            echo "BASEDARE_CRON_SECRET is not configured."
+            exit 1
+          fi
+
+          call_endpoint() {
+            curl --fail-with-body --show-error --silent \
+              --request POST \
+              --header "Authorization: Bearer ${BASEDARE_CRON_SECRET}" \
+              "${BASEDARE_APP_URL}$1"
+            echo
+          }
+
+          if [ "$REQUESTED_JOB" = "all" ] || [ "$REQUESTED_JOB" = "retry-payouts" ] || [ "$SCHEDULE" = "*/15 * * * *" ]; then
+            call_endpoint "/api/cron/retry-payouts"
+          fi
+
+          if [ "$REQUESTED_JOB" = "all" ] || [ "$REQUESTED_JOB" = "refund-expired" ] || [ "$SCHEDULE" = "7 * * * *" ]; then
+            call_endpoint "/api/cron/refund-expired"
+          fi
+
+          if [ "$REQUESTED_JOB" = "all" ] || [ "$REQUESTED_JOB" = "venue-report-leads" ] || [ "$SCHEDULE" = "7 * * * *" ]; then
+            call_endpoint "/api/cron/venue-report-leads"
+          fi
