@@ -2417,7 +2417,7 @@ export default function RealWorldMap() {
       return 'Use your existing fit here: route yourself in, or open the venue and chase the live signal.';
     }
 
-    return 'Decide whether to tag the place, launch the next challenge, or open the venue page for the full command view.';
+    return 'Pick one move: mark the venue, fund a dare here, or open the venue command view.';
   }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
 
   const handleSpray = () => {
@@ -3948,7 +3948,7 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 gap-2.5 sm:mt-4 sm:gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
                     <TagPlaceButton
                       placeId={selectedPlace.placeId}
                       placeName={selectedPlace.name}
@@ -4074,7 +4074,7 @@ export default function RealWorldMap() {
                         className="map-action-button map-action-button--violet"
                       >
                         <span className="max-w-[7.2rem] text-balance leading-[1.02] sm:max-w-none">
-                          Open place
+                          Open venue
                         </span>
                       </Link>
                     ) : null}
@@ -4165,20 +4165,20 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 60px;
+          min-height: 50px;
           width: 100%;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 0.2rem;
           overflow: hidden;
-          border-radius: 18px;
+          border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.18);
-          padding: 0.52rem 0.68rem 0.5rem;
+          padding: 0.5rem 0.35rem 0.46rem;
           text-align: center;
-          font-size: 8.5px;
+          font-size: 7.8px;
           font-weight: 800;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
           text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
           backdrop-filter: blur(12px);
@@ -4226,7 +4226,7 @@ export default function RealWorldMap() {
         }
 
         :global(.map-action-button span) {
-          max-width: 7rem;
+          max-width: 4.8rem;
           text-wrap: balance;
           line-height: 1.02;
         }

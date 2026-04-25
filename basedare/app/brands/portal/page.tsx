@@ -1607,12 +1607,12 @@ export default function BrandPortalPage() {
 
             <div className="space-y-4 bg-white/80 backdrop-blur-xl p-6 rounded-xl border border-zinc-200">
               <div>
-                <label className="block text-sm text-zinc-600 mb-2">Brand Name</label>
+                <label className="block text-sm text-zinc-600 mb-2">Venue / brand name</label>
                 <input
                   type="text"
                   value={registerName}
                   onChange={(e) => setRegisterName(e.target.value)}
-                  placeholder="e.g., Red Bull, Monster Energy"
+                  placeholder="e.g., Hideaway, Red Bull, Local Gym"
                   className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-yellow-500 focus:outline-none"
                 />
               </div>
@@ -1629,7 +1629,7 @@ export default function BrandPortalPage() {
                 disabled={!registerName.trim()}
                 className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition disabled:opacity-50"
               >
-                Register Brand
+                Create activation profile
               </button>
             </div>
           </div>
@@ -1652,7 +1652,7 @@ export default function BrandPortalPage() {
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div className="text-lg md:text-2xl font-bold text-zinc-900">
-              CONTROL
+              ACTIVATION OPS
             </div>
             <div className="hidden md:block px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
               ACTIVATION PORTAL
@@ -1771,7 +1771,7 @@ export default function BrandPortalPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
-              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Best places to activate next</h2>
+              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Where to activate next</h2>
               <p className="mt-1 max-w-2xl text-sm text-zinc-600">
                 Venues ranked by live activity, ownership signal, and repeat potential so you can choose where spend is most likely to move people.
               </p>
@@ -2180,7 +2180,7 @@ export default function BrandPortalPage() {
                   },
                   {
                     value: 'CREATOR',
-                    title: 'Creator-only Campaign',
+                    title: 'Creator-only Route',
                     body: 'Coming later. Venue activations are the supported launch path right now.',
                   },
                 ] as const).map((option) => {

@@ -393,7 +393,7 @@ export default function TagPlaceButton({
       >
         <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
         <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
-          Tag place
+          Mark
         </span>
       </button>
 
