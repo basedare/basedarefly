@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useId, useMemo, useState, type ReactNode } from 'react';
 
 const HEXES =
-  '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc800cca00014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf00cc9900ffffffd3e2ef'.match(
+  '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc8008a5a0014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf008a5a00ffffffd3e2ef'.match(
     /.{6}/g
   ) ?? [];
 
@@ -109,6 +109,7 @@ export default function SquircleButton({
   const highlight = HEXES[idx * 2] ?? 'ffd825';
   const depth = HEXES[idx * 2 + 1] ?? 'ca8a00';
   const white = tone === 'white';
+  const warmJelly = tone === 'yellow' || tone === 'amber';
   const width = useButtonWidth(label, Boolean(icon), square, fullWidth);
   const [pressed, setPressed] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -122,6 +123,8 @@ export default function SquircleButton({
   const dy = floating ? (isDown ? 10 : isHovering ? 22 : 18) : isDown ? 1.5 : isHovering ? 5 : 4;
   const std = floating ? (isDown ? 6 : isHovering ? 13 : 11) : isDown ? 1.6 : isHovering ? 4.5 : 3.6;
   const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
+  const shadowOpacity = warmJelly ? (isDown ? 0.34 : 0.58) : isDown ? 0.42 : 0.72;
+  const dropOpacity = warmJelly ? opacity * 0.78 : opacity;
   const svgWidth = width + 10;
   const svgHeight = 56;
   const labelText = label.toUpperCase();
@@ -179,7 +182,7 @@ export default function SquircleButton({
       >
         <defs>
           <filter id={`b-${idSuffix}`} x="-100%" y="-100%" width="300%" height="300%">
-            <feDropShadow dy={dy} stdDeviation={std} floodColor={mix(depth, 35, 'black')} floodOpacity={opacity} />
+            <feDropShadow dy={dy} stdDeviation={std} floodColor={mix(depth, 35, 'black')} floodOpacity={dropOpacity} />
           </filter>
           <linearGradient id={`g-${idSuffix}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0" stopColor={white ? '#ffffff' : mix(highlight, 86, 'white')} />
@@ -196,15 +199,15 @@ export default function SquircleButton({
 
         <path
           d={shadowPath}
-          fill={mix(depth, 52, 'black')}
+          fill={mix(depth, warmJelly ? 42 : 52, 'black')}
           filter={`url(#b-${idSuffix})`}
-          opacity={isDown ? 0.42 : 0.72}
+          opacity={shadowOpacity}
         />
 
         <path
           d={facePath}
           fill={`url(#g-${idSuffix})`}
-          stroke={white ? '#e2e8f0' : mix(highlight, 70, 'white')}
+          stroke={white ? '#e2e8f0' : mix(highlight, warmJelly ? 58 : 70, 'white')}
           strokeWidth="1.5"
         />
         <path d={facePath} fill={`url(#s-${idSuffix})`} opacity={tone === 'slate' ? 0.18 : 0.42} />
