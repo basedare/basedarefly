@@ -116,7 +116,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${figtree.variable} ${alphaLyrae.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
         <LiquidFilter />
-        <div className="fixed inset-0 -z-50 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
+        <div className="fixed inset-0 z-0 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
         <div className="hidden md:block">
           <BackgroundLayers />
         </div>
@@ -130,7 +130,7 @@ export default function RootLayout({
           <Providers>
             <ViewProvider>
               <IgnitionProvider>
-                <div className="flex flex-col min-h-screen">
+                <div className="relative z-10 flex min-h-screen flex-col">
                   <Navbar />
                   <main className="flex-grow pt-24">
                     {children}

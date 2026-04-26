@@ -93,8 +93,7 @@ export default function HyperspaceBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: -30 }}
+      className="absolute inset-0 z-[4] h-full w-full pointer-events-none"
     />
   );
 }

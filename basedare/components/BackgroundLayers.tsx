@@ -11,10 +11,9 @@ const CosmicLayer = dynamic(() => import('@/components/CosmicLayer'), { ssr: fal
 
 export default function BackgroundLayers() {
   return (
-    <>
+    <div className="bd-background-root fixed inset-0 z-0 pointer-events-none overflow-hidden">
       <CosmicLayer />
       <HyperspaceBackground />
-    </>
+    </div>
   );
 }
-
