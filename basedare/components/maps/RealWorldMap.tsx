@@ -31,6 +31,7 @@ import {
 import { useAccount } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
@@ -1349,6 +1350,7 @@ export default function RealWorldMap() {
   const requestApproximateLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocating(false);
+      triggerHaptic('warning');
       return () => undefined;
     }
 
@@ -1356,6 +1358,7 @@ export default function RealWorldMap() {
 
     autoLocateModeRef.current = mapReady ? 'manual' : 'auto';
     setLocating(true);
+    triggerHaptic('selection');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (cancelled) return;
@@ -1367,10 +1370,12 @@ export default function RealWorldMap() {
         setTargetCenter([position.coords.latitude, position.coords.longitude]);
         setTargetZoom(14);
         setLocating(false);
+        triggerHaptic('success');
       },
       () => {
         if (cancelled) return;
         setLocating(false);
+        triggerHaptic('warning');
       },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 8000 }
     );
@@ -1703,6 +1708,7 @@ export default function RealWorldMap() {
   );
 
   const handleMapClick = useCallback((latitude: number, longitude: number) => {
+    triggerHaptic('selection');
     setSelectedPlace({
       name: 'Dropped pin',
       address: `Custom spot · ${formatCoordinateLabel(latitude, longitude)}`,
@@ -1714,6 +1720,7 @@ export default function RealWorldMap() {
   }, []);
 
   const focusExistingPlace = useCallback((place: NearbyPlace) => {
+    triggerHaptic('selection');
     setSelectedPlace({
       placeId: place.id,
       slug: place.slug,
@@ -2413,7 +2420,7 @@ export default function RealWorldMap() {
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
   const selectedPlacePanelWrapClass = isMobileViewport
-    ? 'selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30'
+    ? 'selected-place-panel-wrap absolute inset-x-2 z-30'
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
@@ -2911,43 +2918,69 @@ export default function RealWorldMap() {
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             {!selectedPlace ? (
-              <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[14rem] rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,11,20,0.92)_24%,rgba(4,5,12,0.97)_100%)] px-4 py-3 shadow-[0_20px_42px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.18)] backdrop-blur md:block">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/38">
-                  Map Legend
-                </p>
-                <div className="mt-3 space-y-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="legend-building-mini" aria-hidden="true">
+              <>
+                <div className="map-mobile-legend pointer-events-none absolute left-3 right-3 top-[5.6rem] z-[10] flex items-center justify-between gap-2 rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(14,16,28,0.86),rgba(5,6,13,0.94))] px-3 py-2 shadow-[0_16px_34px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] md:hidden">
+                  <div className="flex items-center gap-1.5">
+                    <span className="legend-building-mini legend-building-mini--tight" aria-hidden="true">
                       <span className="legend-building-mini-roof" />
                       <span className="legend-building-mini-body" />
                     </span>
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
-                        Activated venue
-                      </p>
-                      <p className="mt-0.5 text-[10px] text-white/42">Paid command layer visible</p>
-                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
+                      Activated
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1.5">
                     <span className="legend-live-dot" aria-hidden="true" />
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100">
-                        Live challenge
-                      </p>
-                      <p className="mt-0.5 text-[10px] text-white/42">Open money is moving</p>
-                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100">
+                      Live
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1.5">
                     <span className="legend-open-dot" aria-hidden="true" />
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/72">
-                        Open venue
-                      </p>
-                      <p className="mt-0.5 text-[10px] text-white/42">Claim or fund the first move</p>
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-white/70">
+                      Open
+                    </span>
+                  </div>
+                </div>
+
+                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[14rem] rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,11,20,0.92)_24%,rgba(4,5,12,0.97)_100%)] px-4 py-3 shadow-[0_20px_42px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.18)] backdrop-blur md:block">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/38">
+                    Map Legend
+                  </p>
+                  <div className="mt-3 space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="legend-building-mini" aria-hidden="true">
+                        <span className="legend-building-mini-roof" />
+                        <span className="legend-building-mini-body" />
+                      </span>
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
+                          Activated venue
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-white/42">Paid command layer visible</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="legend-live-dot" aria-hidden="true" />
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                          Live challenge
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-white/42">Open money is moving</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="legend-open-dot" aria-hidden="true" />
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/72">
+                          Open venue
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-white/42">Claim or fund the first move</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             ) : null}
             {showFootprintLayer && footprintMarks.length > 0 ? (
               <div
@@ -2957,7 +2990,7 @@ export default function RealWorldMap() {
               </div>
             ) : null}
             {showNearbyDareTray ? (
-              <div className={`absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}>
+              <div className={`nearby-dare-tray absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}>
                 {isMobileViewport && nearbyDarePanelCollapsed ? (
                   <button
                     type="button"
@@ -3221,8 +3254,8 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[78dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
-                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-4 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
+                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[44dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.94)] px-4 pb-3 pt-3 backdrop-blur-md md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4 md:backdrop-blur-xl">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
                     <div className="min-w-0 flex-1">
@@ -3247,7 +3280,7 @@ export default function RealWorldMap() {
                           </Link>
                         </div>
                       ) : null}
-                      <h3 className="max-w-[14rem] text-[1.85rem] font-black leading-[0.94] tracking-tight text-white md:max-w-[16rem] md:text-[2.15rem]">
+                      <h3 className="max-w-[13rem] text-[1.65rem] font-black leading-[0.94] tracking-tight text-white md:max-w-[16rem] md:text-[2.15rem]">
                         {selectedPlace.name}
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -3279,13 +3312,16 @@ export default function RealWorldMap() {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/58 md:max-w-[17rem]">
+                      <p className="mt-2.5 line-clamp-2 max-w-[15rem] text-sm leading-relaxed text-white/58 md:max-w-[17rem]">
                         {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setSelectedPlace(null)}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSelectedPlace(null);
+                      }}
                       className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
                       aria-label="Close place panel"
                       title="Close place panel"
@@ -3297,7 +3333,6 @@ export default function RealWorldMap() {
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
-                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' } : undefined}
                   >
 
                   {ceremonyState ? (
@@ -3317,7 +3352,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="map-mobile-stats mt-4 grid grid-cols-2 gap-3">
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
@@ -3329,7 +3364,7 @@ export default function RealWorldMap() {
                     </div>
                   </div>
 
-                  <div className={`mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`map-mobile-priority mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Flame className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -3337,10 +3372,10 @@ export default function RealWorldMap() {
                       </div>
                       <span className={mapPanelInsetChipClass}>{selectedPulseMeaning.label}</span>
                     </div>
-                    <p className="mt-3 text-sm leading-relaxed text-white/76">
+                    <p className="map-mobile-trim mt-3 text-sm leading-relaxed text-white/76">
                       {selectedPulseMeaning.description}
                     </p>
-                    <div className="mt-3 space-y-2">
+                    <div className="map-mobile-reasons mt-3 space-y-2">
                       {selectedVenueWhyNow.map((reason, index) => (
                         <div
                           key={`venue-why-${index}`}
@@ -3356,7 +3391,7 @@ export default function RealWorldMap() {
                     </div>
                   </div>
 
-                  <div className="map-panel-section mt-4 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,11,20,0.92)_16%,rgba(6,7,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-14px_18px_rgba(0,0,0,0.18)]">
+                  <div className="map-panel-section map-mobile-secondary mt-4 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,11,20,0.92)_16%,rgba(6,7,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-14px_18px_rgba(0,0,0,0.18)]">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -3390,7 +3425,7 @@ export default function RealWorldMap() {
                   </div>
 
                   {selectedCommandCenter ? (
-                    <div className={`mt-4 ${mapPanelSectionClass}`}>
+                    <div className={`map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                           <LocateFixed className="h-3.5 w-3.5 text-cyan-200" />
@@ -3724,7 +3759,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`crossed-paths-section bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`crossed-paths-section map-mobile-secondary bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
@@ -4234,24 +4269,38 @@ export default function RealWorldMap() {
 
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
-            bottom: max(6px, env(safe-area-inset-bottom));
-            max-height: min(80dvh, calc(100% - 64px));
+            bottom: calc(5.45rem + env(safe-area-inset-bottom));
+            max-height: min(44dvh, 24rem);
           }
 
           .selected-place-panel-content {
-            padding-bottom: calc(6.75rem + env(safe-area-inset-bottom)) !important;
+            padding-bottom: 1rem !important;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+          }
+
+          .map-mobile-priority {
+            margin-top: 0.75rem;
+            padding: 0.9rem !important;
+          }
+
+          .map-mobile-trim,
+          .map-mobile-reasons,
+          .map-mobile-stats,
+          .map-mobile-secondary {
+            display: none !important;
           }
 
           .venue-action-rail {
             position: fixed;
-            right: 0.75rem;
-            bottom: calc(0.65rem + env(safe-area-inset-bottom));
-            left: 0.75rem;
-            z-index: 70;
+            right: max(0.65rem, env(safe-area-inset-right));
+            bottom: calc(0.7rem + env(safe-area-inset-bottom));
+            left: max(0.65rem, env(safe-area-inset-left));
+            z-index: 120;
             margin-top: 0;
-            padding: 0.5rem;
+            padding: 0.42rem;
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 1.35rem;
+            border-radius: 1.15rem;
             background:
               linear-gradient(180deg, rgba(14, 16, 28, 0.86), rgba(5, 6, 13, 0.96)),
               radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.12), transparent 36%),
@@ -4261,8 +4310,9 @@ export default function RealWorldMap() {
               0 0 28px rgba(6, 182, 212, 0.08),
               inset 0 1px 0 rgba(255, 255, 255, 0.1),
               inset 0 -10px 18px rgba(0, 0, 0, 0.34);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            touch-action: manipulation;
           }
 
           .venue-action-rail::before {
@@ -4307,8 +4357,48 @@ export default function RealWorldMap() {
         }
 
         .map-activation-legend {
+          position: absolute;
+          right: 1.25rem;
+          bottom: 1.25rem;
+          left: auto;
+          top: auto;
           transform-origin: 100% 100%;
           animation: mapLegendSettle 260ms ease-out;
+        }
+
+        @media (min-width: 768px) {
+          .nearby-dare-tray {
+            position: absolute;
+            left: 1.25rem !important;
+            right: auto !important;
+            bottom: 1.25rem !important;
+            top: auto !important;
+            max-width: min(23rem, calc(100% - 18rem));
+          }
+
+          .map-activation-legend {
+            right: 1.25rem !important;
+            bottom: 1.25rem !important;
+            left: auto !important;
+            top: auto !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 1120px) {
+          .map-activation-legend {
+            display: none;
+          }
+
+          .nearby-dare-tray {
+            max-width: 22rem;
+          }
+        }
+
+        .map-mobile-legend {
+          transform-origin: 50% 0%;
+          animation: mapLegendSettle 220ms ease-out;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
         }
 
         .legend-building-mini {
@@ -4318,6 +4408,14 @@ export default function RealWorldMap() {
           width: 28px;
           flex: 0 0 auto;
           filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38));
+        }
+
+        .legend-building-mini--tight {
+          height: 18px;
+          width: 18px;
+          transform: scale(0.72);
+          transform-origin: center;
+          margin: -3px -2px;
         }
 
         .legend-building-mini-roof {
@@ -4548,11 +4646,12 @@ export default function RealWorldMap() {
 
         @media (max-width: 767px) {
           .venue-action-rail :global(.map-action-button) {
-            min-height: 54px;
-            border-radius: 16px;
-            padding: 0.54rem 0.34rem 0.48rem;
-            font-size: 7px;
-            letter-spacing: 0.1em;
+            min-height: 48px;
+            border-radius: 14px;
+            padding: 0.44rem 0.28rem 0.4rem;
+            font-size: 7.5px;
+            letter-spacing: 0.09em;
+            touch-action: manipulation;
             box-shadow:
               0 10px 18px rgba(0, 0, 0, 0.28),
               inset 0 1px 0 rgba(255, 255, 255, 0.13),
@@ -4560,7 +4659,8 @@ export default function RealWorldMap() {
           }
 
           .venue-action-rail :global(.map-action-button span) {
-            max-width: 4.9rem;
+            max-width: 4.55rem;
+            line-height: 1.05;
           }
 
           .venue-action-rail :global(.map-action-button svg) {
@@ -5303,8 +5403,8 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
-          top: -12px;
-          transform: translateX(-50%) scale(0.78);
+          top: -14px;
+          transform: translateX(-50%) scale(0.86);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),

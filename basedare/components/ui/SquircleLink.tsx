@@ -1,7 +1,8 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import { useId, useMemo, useState, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 const HEXES =
   '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc800cca00014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf00cc9900ffffffd3e2ef'.match(
@@ -24,20 +25,15 @@ const COLORS = {
 
 type SquircleTone = keyof typeof COLORS;
 
-type SquircleButtonProps = {
+type SquircleLinkProps = {
+  href: string;
   tone?: SquircleTone;
-  label?: string;
-  icon?: ReactNode;
+  label: string;
   fullWidth?: boolean;
-  square?: boolean;
   floating?: boolean;
   height?: number;
   className?: string;
-  buttonClassName?: string;
-  active?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  type?: 'button' | 'submit' | 'reset';
+  labelClassName?: string;
   children?: ReactNode;
 };
 
@@ -76,44 +72,38 @@ function mix(hex: string, pct: number, fallback: string) {
   return `color-mix(in srgb, #${hex} ${pct}%, ${fallback})`;
 }
 
-function useButtonWidth(label: string, icon: boolean, square: boolean, fullWidth: boolean) {
+function useLinkWidth(label: string, fullWidth: boolean) {
   return useMemo(() => {
-    if (square) return 48;
-    if (fullWidth) return 160;
+    if (fullWidth) return 190;
 
     const compactLabel = label.trim().toUpperCase();
     const estimatedTextWidth = compactLabel.length * 9.6;
-    const paddingWidth = icon ? 86 : 68;
 
-    return Math.max(120, Math.ceil((estimatedTextWidth + paddingWidth) * 1.08));
-  }, [fullWidth, icon, label, square]);
+    return Math.max(124, Math.ceil((estimatedTextWidth + 76) * 1.08));
+  }, [fullWidth, label]);
 }
 
-export default function SquircleButton({
+export default function SquircleLink({
+  href,
   tone = 'yellow',
-  label = '',
-  icon,
+  label,
   fullWidth = false,
-  square = false,
   floating = false,
   height = 44,
   className,
-  buttonClassName,
-  disabled = false,
-  onClick,
-  type = 'button',
+  labelClassName,
   children,
-}: SquircleButtonProps) {
+}: SquircleLinkProps) {
   const idx = COLORS[tone] ?? 0;
   const highlight = HEXES[idx * 2] ?? 'ffd825';
   const depth = HEXES[idx * 2 + 1] ?? 'ca8a00';
   const white = tone === 'white';
-  const width = useButtonWidth(label, Boolean(icon), square, fullWidth);
+  const width = useLinkWidth(label, fullWidth);
   const [pressed, setPressed] = useState(false);
   const reactId = useId().replace(/:/g, '');
   const scale = height / 40;
 
-  const isDown = pressed && !disabled;
+  const isDown = pressed;
   const faceY = isDown ? 9 : 4;
   const baseY = 12;
   const z = Math.min(0.5, 20 / width);
@@ -123,31 +113,24 @@ export default function SquircleButton({
   const svgWidth = width + 10;
   const svgHeight = 60;
   const labelText = label.toUpperCase();
-  const idSuffix = `${reactId}-${tone}-${width}-${height}-${floating ? 'f' : 'n'}-button`;
-  const handlePointerDown = () => {
-    if (disabled) return;
-    setPressed(true);
-  };
-
-  const handlePointerUp = () => {
-    setPressed(false);
-  };
 
   const basePath = useMemo(() => squirclePath(width, 40, 18, 5, baseY), [width]);
   const facePath = useMemo(() => squirclePath(width, 40, 18, 5, faceY), [faceY, width]);
   const stackCount = Math.max(0, baseY - faceY);
+  const idSuffix = `${reactId}-${tone}-${width}-${height}-${floating ? 'f' : 'n'}-link`;
+
+  const handlePointerDown = () => setPressed(true);
+  const handlePointerUp = () => setPressed(false);
 
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
+    <Link
+      href={href}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onPointerCancel={handlePointerUp}
       className={cn(
-        'group relative inline-block select-none overflow-visible transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50',
+        'group relative inline-block select-none overflow-visible transition-transform duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         fullWidth ? 'block w-full' : 'inline-block',
         className
       )}
@@ -156,11 +139,7 @@ export default function SquircleButton({
         height: `${svgHeight * scale}px`,
       }}
     >
-      <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        preserveAspectRatio="none"
-        className={cn('h-full w-full overflow-visible', buttonClassName)}
-      >
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <defs>
           <filter id={`b-${idSuffix}`} x="-100%" y="-100%" width="300%" height="300%">
             <feDropShadow dy={dy} stdDeviation={std} floodColor={mix(depth, 35, 'black')} floodOpacity={opacity} />
@@ -194,23 +173,20 @@ export default function SquircleButton({
 
         <foreignObject x="5" y={faceY} width={width} height="40">
           <div className="flex h-full w-full items-center justify-center px-4">
-            {children ? (
-              <div className="relative z-10 flex items-center justify-center">{children}</div>
-            ) : (
-              <div
-                className={cn(
-                  'relative z-10 flex items-center justify-center font-black uppercase',
-                  square ? 'text-[1.45rem]' : 'gap-2 text-[0.95rem] tracking-[0.08em]',
-                  tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white'
-                )}
-              >
-                {icon ? <span className="flex shrink-0 items-center justify-center">{icon}</span> : null}
-                {!square ? <span>{labelText}</span> : null}
-              </div>
-            )}
+            <div
+              className={cn(
+                'relative z-10 flex items-center justify-center gap-2 whitespace-nowrap font-black uppercase tracking-[0.08em]',
+                height >= 48 ? 'text-[0.92rem]' : 'text-[0.82rem]',
+                tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white',
+                labelClassName
+              )}
+            >
+              {children ?? labelText}
+            </div>
           </div>
         </foreignObject>
       </svg>
-    </button>
+      <span className="sr-only">{labelText}</span>
+    </Link>
   );
 }

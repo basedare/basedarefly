@@ -14,7 +14,7 @@ export default function MobileNavbar() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] md:hidden">
+    <div className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 z-[90] -translate-x-1/2 md:hidden">
       <div className="liquid-glass px-6 py-3 flex items-center gap-8">
         {/* HOME */}
         <Link href="/" className={`flex flex-col items-center gap-1 transition-colors ${isActive('/') ? 'text-[#FFD700]' : 'text-gray-500'}`}>
@@ -64,6 +64,5 @@ export default function MobileNavbar() {
     </div>
   );
 }
-
 
 

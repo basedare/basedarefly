@@ -95,7 +95,7 @@ export default function PwaInstallPrompt() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[95] flex justify-center px-4 md:hidden">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[95] flex justify-center px-4 md:hidden">
       <div className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(180deg,rgba(18,20,36,0.96)_0%,rgba(8,9,18,0.94)_100%)] shadow-[0_20px_60px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.04)_inset] backdrop-blur-xl">
         <div className="absolute inset-x-10 top-0 h-px bg-white/20" />
         <button

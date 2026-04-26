@@ -8,6 +8,7 @@ import { useAccount } from 'wagmi';
 import { Crosshair, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useToast } from '@/components/ui/use-toast';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 
 type TagPlaceButtonProps = {
   placeId?: string;
@@ -359,6 +360,7 @@ export default function TagPlaceButton({
         firstMark: Boolean(payload.data?.firstMark),
       });
 
+      triggerHaptic('success');
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
       setFile(null);
@@ -385,6 +387,7 @@ export default function TagPlaceButton({
       <button
         type="button"
         onClick={() => {
+          triggerHaptic('selection');
           setOpen(true);
           setSubmitState('idle');
           setSubmittedFirstMark(false);

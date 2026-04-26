@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 
 interface IgnitionContextType {
   ignitionActive: boolean;
@@ -16,10 +17,7 @@ export const IgnitionProvider = ({ children }: { children: React.ReactNode }) =>
 
   const triggerIgnition = useCallback(() => {
     setIgnitionActive(true);
-    
-    if ('vibrate' in navigator) {
-      navigator.vibrate([50]);
-    }
+    triggerHaptic('impact');
     
     setTimeout(() => setIgnitionActive(false), 1200);
   }, []);

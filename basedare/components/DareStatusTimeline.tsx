@@ -44,6 +44,8 @@ export default function DareStatusTimeline({
   const lifecycle = getDareLifecycleModel(dare);
   const compact = size === 'compact';
 
+  const currentStep = lifecycle.steps.find((step) => step.state === 'current');
+
   return (
     <section
       className={`rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl ${
@@ -68,8 +70,18 @@ export default function DareStatusTimeline({
         </span>
       </div>
 
-      <div className="mt-5 overflow-x-auto pb-2">
-        <ol className={`flex min-w-[720px] items-start ${compact ? 'gap-2' : 'gap-3'}`}>
+      {!compact && currentStep ? (
+        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-black/20 p-4 md:hidden">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+            Current step
+          </p>
+          <p className="mt-2 text-base font-black text-white">{currentStep.label}</p>
+          <p className="mt-1 text-sm leading-6 text-white/58">{currentStep.description}</p>
+        </div>
+      ) : null}
+
+      <div className="mt-5 pb-2 md:overflow-x-auto">
+        <ol className={`${compact ? 'flex flex-col gap-2 md:min-w-[720px] md:flex-row' : 'hidden gap-3 md:flex md:min-w-[720px] md:flex-row md:items-start'}`}>
           {lifecycle.steps.map((step, index) => (
             <li key={step.key} className="flex min-w-0 flex-1 items-start">
               <div className="min-w-0 flex-1">
@@ -87,7 +99,7 @@ export default function DareStatusTimeline({
                     />
                   ) : null}
                 </div>
-                <div className="mt-3 pr-2">
+                <div className={`${compact ? 'mt-2' : 'mt-3'} pr-2`}>
                   <p
                     className={`text-[11px] font-black uppercase tracking-[0.16em] ${
                       step.state === 'complete'
@@ -100,7 +112,7 @@ export default function DareStatusTimeline({
                     {compact && step.label.length > 12 ? step.label : step.label}
                   </p>
                   {!compact ? (
-                    <p className="mt-1 text-xs leading-5 text-white/45">{step.description}</p>
+                    <p className="mt-1 hidden text-xs leading-5 text-white/45 md:block">{step.description}</p>
                   ) : null}
                 </div>
               </div>
@@ -118,4 +130,3 @@ export default function DareStatusTimeline({
     </section>
   );
 }
-

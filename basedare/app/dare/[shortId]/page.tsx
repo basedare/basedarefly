@@ -661,12 +661,12 @@ export default function DareDetailPage() {
   );
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-transparent text-white pb-16">
+    <main className="min-h-screen overflow-x-hidden bg-transparent pb-[calc(7rem+env(safe-area-inset-bottom))] text-white md:pb-16">
       <LiquidBackground />
-      <div className="fixed bottom-0 left-0 right-0 h-44 z-[2] pointer-events-none bg-gradient-to-t from-[#05060f]/90 via-[#05060f]/45 to-transparent backdrop-blur-[6px]" />
+      <div className="fixed bottom-0 left-0 right-0 z-[2] hidden h-44 pointer-events-none bg-gradient-to-t from-[#05060f]/90 via-[#05060f]/45 to-transparent backdrop-blur-[6px] md:block" />
 
       {/* ── HERO ── */}
-      <div className="relative w-full px-4 md:px-8 pt-6">
+      <div className="relative w-full px-4 pt-4 md:px-8 md:pt-6">
         <div className="max-w-3xl mx-auto mb-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
@@ -699,7 +699,7 @@ export default function DareDetailPage() {
           </div>
         )}
 
-        <div className="relative max-w-3xl mx-auto min-h-[300px] md:min-h-[400px] overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] backdrop-blur-2xl shadow-[0_12px_45px_rgba(5,8,24,0.45)]">
+        <div className="relative mx-auto min-h-[250px] max-w-3xl overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] shadow-[0_12px_45px_rgba(5,8,24,0.45)] backdrop-blur-xl md:min-h-[400px] md:backdrop-blur-2xl">
           <div className="absolute inset-0">
             <DareVisual
               imageUrl={dare.imageUrl}
@@ -708,7 +708,7 @@ export default function DareDetailPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[rgba(10,12,26,0.14)] via-[rgba(10,12,26,0.09)] to-[rgba(10,12,26,0.06)]" />
           </div>
-          <div className="relative z-10 flex flex-col justify-end h-full min-h-[300px] md:min-h-[400px] px-5 md:px-8 pb-8">
+          <div className="relative z-10 flex h-full min-h-[250px] flex-col justify-end px-5 pb-6 md:min-h-[400px] md:px-8 md:pb-8">
             {/* Status + timer badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {sc && (
@@ -730,7 +730,7 @@ export default function DareDetailPage() {
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl md:text-5xl font-black italic uppercase leading-tight text-white tracking-tight mb-4 text-shadow-lg">
+            <h1 className="mb-4 text-2xl font-black italic uppercase leading-tight tracking-tight text-white text-shadow-lg md:text-5xl">
               {dare.title}
             </h1>
 
@@ -766,7 +766,7 @@ export default function DareDetailPage() {
       <div className="relative z-10 max-w-3xl mx-auto px-4 md:px-8 space-y-6 mt-4">
 
         {/* Bounty + likes row */}
-        <div className="flex items-center justify-between p-4 bg-white/[0.04] border border-white/[0.08] rounded-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 backdrop-blur-md md:backdrop-blur-xl">
           <div>
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">Pot Size</p>
               <div className="flex items-baseline gap-1.5">
@@ -787,7 +787,7 @@ export default function DareDetailPage() {
         <DareStatusTimeline dare={dare} size="full" />
 
         {trustPanel ? (
-          <section className={`rounded-2xl border p-5 backdrop-blur-xl ${trustPanel.tone}`}>
+          <section className={`rounded-2xl border p-4 backdrop-blur-md md:p-5 md:backdrop-blur-xl ${trustPanel.tone}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
@@ -863,7 +863,7 @@ export default function DareDetailPage() {
 
         {/* Action bar (inline, transparent — no fixed black footer overlay) */}
         {!isExpired && (
-          <div className="p-4 bg-[rgba(15,18,38,0.18)] border border-white/[0.12] rounded-2xl backdrop-blur-2xl shadow-[0_10px_40px_rgba(8,10,24,0.35)]">
+          <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-1 rounded-[24px] border border-white/[0.12] bg-[rgba(7,8,18,0.9)] p-2 shadow-[0_18px_42px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md md:static md:mx-0 md:rounded-2xl md:bg-[rgba(15,18,38,0.18)] md:p-4 md:shadow-[0_10px_40px_rgba(8,10,24,0.35)] md:backdrop-blur-2xl">
             {/* Add-to-pool amount input (expandable) */}
             <AnimatePresence>
               {showAddInput && (
@@ -897,7 +897,7 @@ export default function DareDetailPage() {
               <button
                 onClick={handleUpvote}
                 disabled={upvoteLoading}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl border transition-all bg-white/[0.04] border-white/[0.08] text-white/60 hover:text-white disabled:opacity-60"
+                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2 text-white/60 transition-all hover:text-white disabled:opacity-60 md:py-3"
               >
                 {upvoteLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className="w-5 h-5" />}
                 <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
@@ -911,7 +911,7 @@ export default function DareDetailPage() {
                   setShowAddInput(v => !v);
                 }}
                 disabled={approvePending || fundPending || !isOnchainContractsReady}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-green-500/20 bg-green-500/10 py-2 text-green-400 transition-all hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50 md:py-3"
               >
                 {approvePending || fundPending
                   ? <Loader2 className="w-5 h-5 animate-spin" />
@@ -923,7 +923,7 @@ export default function DareDetailPage() {
               {/* Steal */}
               <button
                 onClick={() => setShowStealModal(true)}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/10 py-2 text-yellow-400 transition-all hover:bg-yellow-500/20 md:py-3"
               >
                 <Shield className="w-5 h-5" />
                 <span className="text-[10px] font-black uppercase tracking-wider">Steal?</span>

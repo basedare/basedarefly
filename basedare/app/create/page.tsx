@@ -624,20 +624,20 @@ function CreateDareContent() {
   }, [dareImage]);
 
   return (
-    <div className="relative min-h-screen flex flex-col pt-20 pb-12 px-4 md:px-8 md:py-24">
+    <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-16 md:px-8 md:py-24">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
       <div className="container mx-auto px-2 md:px-6 relative z-10 max-w-4xl flex-grow">
 
         {/* HEADER */}
-        <div className="text-center mb-8 md:mb-12">
+        <div className="mb-6 text-center md:mb-12">
           {/* Contact button - top right on mobile, integrated on desktop */}
           <div className="flex justify-end mb-4 md:absolute md:right-6 md:top-0">
             <ContactButton />
           </div>
 
-          <h1 className="text-4xl md:text-7xl font-display font-black uppercase italic tracking-tighter mb-3 md:mb-4">
+          <h1 className="mb-3 text-4xl font-display font-black uppercase italic tracking-tighter md:mb-4 md:text-7xl">
             INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-[#FACC15]/70">PROTOCOL</span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
@@ -791,14 +791,14 @@ function CreateDareContent() {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 rounded-2xl border border-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_45px_rgba(168,85,247,0.08),0_0_70px_rgba(250,204,21,0.05)] md:rounded-3xl"
             />
-            <div className="backdrop-blur-2xl bg-white/[0.02] border border-white/[0.06] rounded-2xl md:rounded-3xl p-5 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] relative overflow-hidden">
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl md:rounded-3xl md:p-12 md:backdrop-blur-2xl">
               {/* Liquid glass gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-2xl md:rounded-3xl" />
               {/* Top highlight line */}
               <div className="absolute top-0 left-4 right-4 md:left-0 md:right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               {/* Golden accent line */}
               <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
-              <div className="space-y-8 md:space-y-12">
+              <div className="space-y-5 md:space-y-12">
 
               {/* 1. TARGET (Optional) */}
               <div className="space-y-3">
@@ -808,7 +808,7 @@ function CreateDareContent() {
                 <input
                   {...register('streamerTag')}
                   placeholder="@username or @everyone for open dare"
-                  className={`${dentInputClass} w-full h-14 md:h-16 text-lg md:text-xl font-bold text-white placeholder:text-white/20 rounded-xl pl-5 md:pl-6 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
+                  className={`${dentInputClass} h-12 w-full rounded-xl pl-4 text-base font-bold text-white placeholder:text-white/20 transition-all focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:pl-6 md:text-xl`}
                 />
                 <p className="text-[10px] md:text-xs text-gray-500 font-mono">Use @everyone for open dares anyone can complete</p>
                 {errors.streamerTag && (
@@ -832,7 +832,7 @@ function CreateDareContent() {
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="bd-dent-surface border-white/[0.09] w-full min-h-[120px] md:min-h-[150px] backdrop-blur-2xl bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] text-base md:text-lg text-white placeholder:text-white/20 rounded-xl p-4 md:p-6 focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none transition-all resize-none font-mono"
+                  className="bd-dent-surface min-h-[96px] w-full resize-none rounded-xl border-white/[0.09] bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-base text-white placeholder:text-white/20 backdrop-blur-xl transition-all focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none md:min-h-[150px] md:p-6 md:text-lg md:backdrop-blur-2xl"
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
@@ -850,7 +850,7 @@ function CreateDareContent() {
                       <p className="text-sm font-bold text-white">
                         {dareImage ? 'Custom cover uploaded' : 'Use your own image for this dare'}
                       </p>
-                      <p className="text-[10px] md:text-xs text-gray-500 font-mono">
+                      <p className="text-[10px] font-mono text-gray-500 md:text-xs">
                         {dareImage
                           ? 'If you remove it, the dare will fall back to your profile image when available.'
                           : 'JPG, PNG, or GIF up to 5MB. If left empty, we fall back to your profile image.'}
@@ -910,7 +910,7 @@ function CreateDareContent() {
                       <p className={`text-sm font-bold ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-white'} transition-colors`}>
                         Nearby Dare
                       </p>
-                      <p className="text-[10px] text-gray-500 font-mono">
+                      <p className="text-[10px] font-mono text-gray-500 md:text-xs">
                         Let people nearby discover this dare
                       </p>
                     </div>
@@ -1062,7 +1062,7 @@ function CreateDareContent() {
                       type="number"
                       {...register('amount', { valueAsNumber: true })}
                       placeholder="100"
-                      className={`${dentInputClass} w-full h-14 md:h-16 text-xl md:text-2xl font-black text-[#FACC15] placeholder:text-white/20 rounded-xl pl-5 md:pl-6 pr-20 md:pr-24 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
+                      className={`${dentInputClass} h-12 w-full rounded-xl pl-4 pr-16 text-lg font-black text-[#FACC15] placeholder:text-white/20 transition-all focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:pl-6 md:pr-24 md:text-2xl`}
                     />
                     <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-xs md:text-sm font-bold text-gray-400">
                       USDC
@@ -1082,11 +1082,11 @@ function CreateDareContent() {
                       type="number"
                       {...register('timeValue', { valueAsNumber: true })}
                       placeholder="24"
-                      className={`${dentInputClass} w-full h-14 md:h-16 text-lg md:text-xl font-bold text-white text-center rounded-xl focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
+                      className={`${dentInputClass} h-12 w-full rounded-xl text-center text-base font-bold text-white transition-all focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:text-xl`}
                     />
                     <select
                       {...register('timeUnit')}
-                      className={`${dentInputClass} h-14 md:h-16 text-white rounded-xl px-3 md:px-4 focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none font-bold uppercase cursor-pointer transition-all text-sm md:text-base`}
+                      className={`${dentInputClass} h-12 cursor-pointer rounded-xl px-3 text-sm font-bold uppercase text-white transition-all focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:px-4 md:text-base`}
                     >
                       <option value="Hours">Hours</option>
                       <option value="Days">Days</option>
@@ -1147,8 +1147,19 @@ function CreateDareContent() {
               )}
 
               {/* DEPLOY BUTTON */}
-              <div className={`${isConnected && !isSimulationMode ? "pt-3" : "pt-4 md:pt-6"}`}>
+              <div className={`${isConnected && !isSimulationMode ? "pt-2" : "pt-3 md:pt-6"} sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 rounded-[24px] border border-white/10 bg-[rgba(4,5,12,0.88)] p-2 shadow-[0_18px_42px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none`}>
                 <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-1.5 text-center text-[8px] font-black uppercase tracking-[0.12em] md:hidden">
+                    <span className={`rounded-full border px-2 py-1.5 ${isConnected ? 'border-emerald-300/25 bg-emerald-500/[0.1] text-emerald-200' : 'border-white/10 bg-white/[0.04] text-white/38'}`}>
+                      Wallet
+                    </span>
+                    <span className={`rounded-full border px-2 py-1.5 ${isSimulationMode || !hasInsufficientBalance ? 'border-[#FACC15]/25 bg-[#FACC15]/[0.1] text-[#f8dd72]' : 'border-red-300/25 bg-red-500/[0.1] text-red-200'}`}>
+                      USDC
+                    </span>
+                    <span className={`rounded-full border px-2 py-1.5 ${isSubmitting ? 'border-cyan-300/25 bg-cyan-500/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.04] text-white/45'}`}>
+                      {isSubmitting ? approvalStatus || 'Live' : 'Launch'}
+                    </span>
+                  </div>
                   {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
                     <InitProtocolButton
                       variant="liquid"

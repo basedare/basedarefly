@@ -93,6 +93,8 @@
     /* Toxic gold variable */
     --toxic-gold: #FACC15;
     --neon-purple: #A855F7;
+    --mobile-safe-bottom: max(1rem, env(safe-area-inset-bottom));
+    --mobile-safe-top: max(1rem, env(safe-area-inset-top));
   }
 }
 
@@ -100,13 +102,46 @@
   * {
     border-color: hsl(var(--border));
   }
+  html {
+    min-height: 100%;
+    background: #000000;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     background: #000000; /* Pure Black Base */
     color: #ffffff !important;
     font-family: var(--font-alpha), 'Figtree', system-ui, -apple-system, sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     position: relative;
     overflow-x: hidden;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (max-width: 767px) {
+  .liquid-glass,
+  .apple-liquid-glass,
+  .glass-pill,
+  .glass-panel,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 }
 

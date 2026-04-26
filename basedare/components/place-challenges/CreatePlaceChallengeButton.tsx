@@ -9,6 +9,7 @@ import { Crosshair, Loader2, Sparkles, Target, Wallet, X, Zap } from 'lucide-rea
 import { useToast } from '@/components/ui/use-toast';
 import { submitBountyCreation, type BountyApprovalStatus, type BountyCreationResult } from '@/lib/bounty-flow';
 import { getPlaceChallengeTemplates, type PlaceChallengeTemplate } from '@/lib/place-challenge-templates';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 
 type SessionShape = {
   token?: string | null;
@@ -357,6 +358,7 @@ export default function CreatePlaceChallengeButton({
       );
 
       setCreationResult(result);
+      triggerHaptic('success');
       setSubmitState('success');
       onChallengeCreated?.({ placeId: targetPlaceId, result });
       toast({
@@ -394,6 +396,7 @@ export default function CreatePlaceChallengeButton({
       <button
         type="button"
         onClick={() => {
+          triggerHaptic('selection');
           setOpen(true);
           resetComposer();
         }}

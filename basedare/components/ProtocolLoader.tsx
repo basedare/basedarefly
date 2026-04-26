@@ -59,7 +59,7 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
       className={
         isOverlay
           ? `chain-init-overlay ${isShattering ? 'complete' : ''}`
-          : `fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#020202] overflow-hidden ${
+          : `fixed inset-0 z-[10020] flex flex-col items-center justify-center bg-[#020202] overflow-hidden ${
               isShattering ? "pointer-events-none" : ""
             }`
       }
@@ -220,6 +220,9 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
             right: auto;
             left: 50%;
             translate: -50% 0;
+            z-index: 10010;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
           }
         }
       `}</style>

@@ -44,7 +44,12 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
 
   return (
     <>
-      {children}
+      <div
+        aria-hidden={isLoading}
+        className={isLoading ? 'pointer-events-none opacity-0' : 'opacity-100'}
+      >
+        {children}
+      </div>
       {isLoading ? <ProtocolLoader onComplete={handleComplete} variant="fullscreen" /> : null}
     </>
   );

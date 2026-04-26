@@ -926,8 +926,8 @@ export default function Dashboard() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container relative z-20 mx-auto mb-12 flex-grow px-4 py-24 sm:px-6">
-        <div className={`${raisedPanelClass} mb-8 px-5 py-6 sm:px-6`}>
+      <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-6 md:py-24">
+        <div className={`${raisedPanelClass} order-3 mb-8 px-5 py-6 sm:px-6 md:order-1`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
           <div className="relative flex flex-col gap-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1064,7 +1064,7 @@ export default function Dashboard() {
         </div>
 
         {isConnected && primaryActivation && primaryActivationState ? (
-          <div className={`${raisedTileClass} mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)]`}>
+          <div className={`${raisedTileClass} order-2 mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)] md:order-2`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_15%,rgba(250,204,21,0.16),transparent_26%),radial-gradient(circle_at_88%_0%,rgba(168,85,247,0.18),transparent_32%)]" />
             <div className="relative flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="min-w-0">
@@ -1115,19 +1115,19 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div className={`${softCardClass} order-1 mb-8 p-4 sm:p-6 md:order-3`}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Action inbox</h2>
               <p className="mt-1 text-sm text-white/52">
-                The fastest read on what needs your attention right now.
+                What needs your action now.
               </p>
             </div>
             {isConnected ? (
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => router.push('/action-center')}
-                  className={volumetricButtonNeutral}
+                  className={`${volumetricButtonNeutral} w-full sm:w-auto`}
                 >
                   Open action center
                 </button>
@@ -1198,8 +1198,8 @@ export default function Dashboard() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-4 text-sm text-white/62">{item.detail}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <p className="mt-4 line-clamp-2 text-sm text-white/62 sm:line-clamp-none">{item.detail}</p>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       {item.dareId && (item.category === 'Ready for proof' || item.category === 'Needs response') ? (
                         <SquircleButton
                           tone="yellow"
@@ -1207,7 +1207,8 @@ export default function Dashboard() {
                           onClick={() => {
                             jumpToActivation(item.dareId);
                           }}
-                          className="min-w-[160px]"
+                          fullWidth
+                          className="sm:min-w-[160px] sm:w-auto"
                         >
                           <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.84rem] text-black/84">
                             {item.cta}
@@ -1216,14 +1217,14 @@ export default function Dashboard() {
                       ) : (
                         <button
                           onClick={() => router.push(item.href)}
-                          className={volumetricButtonPurple}
+                          className={`${volumetricButtonPurple} w-full sm:w-auto`}
                         >
                           {item.cta}
                         </button>
                       )}
                       <button
                         onClick={() => router.push(item.href)}
-                        className={volumetricButtonNeutral}
+                        className={`${volumetricButtonNeutral} w-full sm:w-auto`}
                       >
                         Open brief
                       </button>
@@ -1235,7 +1236,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="order-4 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             {
               label: 'Funded',
@@ -1271,7 +1272,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div ref={activationsRef} className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div ref={activationsRef} className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">What You&apos;ve Done To The Grid</h2>

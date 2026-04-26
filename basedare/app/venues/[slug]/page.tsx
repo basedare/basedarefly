@@ -12,6 +12,7 @@ import {
 } from '@/lib/venue-launch';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
+import SquircleLink from '@/components/ui/SquircleLink';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -178,9 +179,9 @@ export default async function VenueDetailPage(
   return (
     <VenuePageShell mapHref={mapHref}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_15%_75%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_90%_85%,rgba(250,204,21,0.06),transparent_22%)]" />
-      <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <main className="relative mx-auto max-w-6xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pt-10 lg:px-8">
         <section className="space-y-6">
-          <div className={`${raisedPanelClass} px-6 py-8 sm:px-8`}>
+          <div className={`${raisedPanelClass} px-5 py-6 sm:px-8 sm:py-8`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
             <div className="relative">
@@ -190,8 +191,8 @@ export default async function VenueDetailPage(
                     <ShieldCheck className="h-4 w-4" />
                     {venue.isPartner ? 'Partner Venue' : 'Venue Beacon'}
                   </div>
-                  <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
-                  <p className="mt-4 max-w-2xl text-base text-white/68">{venue.description ?? 'This venue is now part of the BaseDare memory layer.'}</p>
+                  <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:mt-4 sm:text-base">{venue.description ?? 'This venue is now part of the BaseDare memory layer.'}</p>
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-white/55">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       <MapPin className="h-4 w-4 text-amber-300" />
@@ -204,7 +205,7 @@ export default async function VenueDetailPage(
                   </div>
                 </div>
 
-                <div className="grid min-w-[280px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
@@ -213,22 +214,30 @@ export default async function VenueDetailPage(
                       Challenges can run before a venue is activated. Activation is the premium visibility layer.
                     </p>
                     <div className="mt-5 grid gap-2">
-                      <Link
+                      <SquircleLink
                         href={fundChallengeHref}
-                        className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-[#f5c518] px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-black shadow-[0_10px_0_rgba(126,84,0,0.82),0_20px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.5)] transition hover:-translate-y-[1px] hover:bg-[#ffd335]"
+                        label="Fund challenge"
+                        tone="yellow"
+                        fullWidth
+                        height={54}
+                        labelClassName="text-[0.86rem] tracking-[0.14em] sm:text-[0.92rem]"
                       >
                         Fund challenge
                         <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      <Link
+                      </SquircleLink>
+                      <SquircleLink
                         href={activateVenueHref}
-                        className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-5 py-3 text-sm font-bold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                        label="Activate venue"
+                        tone="purple"
+                        fullWidth
+                        height={50}
+                        labelClassName="text-[0.82rem] tracking-[0.12em] sm:text-[0.88rem]"
                       >
                         Activate venue
-                      </Link>
+                      </SquircleLink>
                     </div>
                   </div>
-                  <div className={`${softCardClass} px-5 py-4`}>
+                  <div className={`${softCardClass} hidden px-5 py-4 md:block`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Owner / ops</p>
                     <div className="mt-2 flex items-center justify-between">
@@ -286,7 +295,7 @@ export default async function VenueDetailPage(
                   </div>
                 </div>
               </div>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <div className={`${insetCardClass} px-4 py-4`}>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Live challenges</p>
                   <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
@@ -309,17 +318,17 @@ export default async function VenueDetailPage(
 
           <div className="relative grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
             <div className="space-y-6">
-              <div className={`${softCardClass} p-6`}>
+              <div className={`${softCardClass} p-5 sm:p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Challenges</p>
-                    <h2 className="mt-2 text-2xl font-bold">Funded missions live at this place</h2>
-                    <p className="mt-3 max-w-2xl text-sm text-white/60">
+                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">Fund a challenge here</h2>
+                    <p className="mt-3 hidden max-w-2xl text-sm text-white/60 sm:block">
                       This is the public money layer. Challenges can run here whether the venue is activated or not.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-4 py-2 text-sm text-[#f8dd72] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       {venue.activeDares.length} live
                     </div>
@@ -345,12 +354,18 @@ export default async function VenueDetailPage(
                         {claimedActivationCount} creator attached
                       </div>
                     ) : null}
-                    <Link
-                      href={fundChallengeHref}
-                      className="rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
-                    >
-                      Fund challenge here
-                    </Link>
+                    <div className="w-full max-w-xs sm:w-48">
+                      <SquircleLink
+                        href={fundChallengeHref}
+                        label="Fund challenge"
+                        tone="yellow"
+                        fullWidth
+                        height={48}
+                        labelClassName="text-[0.78rem] tracking-[0.12em]"
+                      >
+                        Fund challenge
+                      </SquircleLink>
+                    </div>
                   </div>
                 </div>
                 {isCreatorContext && focusedActivation ? (
@@ -600,21 +615,25 @@ export default async function VenueDetailPage(
                       <p className="mt-2 text-sm text-white/58">
                         Fund the first challenge and turn passive venue memory into a live participation surface.
                       </p>
-                      <div className="mt-4">
-                        <Link
+                      <div className="mt-4 max-w-xs">
+                        <SquircleLink
                           href={fundChallengeHref}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                          label="Create first challenge"
+                          tone="yellow"
+                          fullWidth
+                          height={50}
+                          labelClassName="text-[0.74rem] tracking-[0.12em] sm:text-[0.8rem]"
                         >
                           Create first challenge
                           <ArrowRight className="h-4 w-4" />
-                        </Link>
+                        </SquircleLink>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className={`${softCardClass} p-6`}>
+              <div className={`${softCardClass} hidden p-6 md:block`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center justify-between">
                   <div>
@@ -645,7 +664,7 @@ export default async function VenueDetailPage(
                 </div>
               </div>
 
-              <div className={`${softCardClass} p-6`}>
+              <div className={`${softCardClass} hidden p-6 md:block`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -853,13 +872,16 @@ export default async function VenueDetailPage(
                         No verified marks yet. The first approved tag here will start the place-memory timeline.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Link
+                        <SquircleLink
                           href={fundChallengeHref}
-                          className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                          label="Create first challenge"
+                          tone="yellow"
+                          height={48}
+                          labelClassName="text-[0.72rem] tracking-[0.12em]"
                         >
                           Create first challenge
                           <ArrowRight className="h-4 w-4" />
-                        </Link>
+                        </SquircleLink>
                         <Link
                           href={mapHref}
                           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
@@ -874,7 +896,7 @@ export default async function VenueDetailPage(
 
             </div>
 
-            <div className="space-y-6">
+            <div className="hidden space-y-6 lg:block">
               <div className={`${softCardClass} p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center gap-2">

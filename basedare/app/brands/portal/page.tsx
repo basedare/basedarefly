@@ -1687,7 +1687,7 @@ export default function BrandPortalPage() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:py-8">
         <div className="mb-6 md:mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white/85 p-4 shadow-[0_24px_80px_rgba(15,10,35,0.08)] backdrop-blur-xl md:p-6">
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
@@ -1717,7 +1717,7 @@ export default function BrandPortalPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
               {[
                 { label: '1. Pick venue', detail: 'A real place on the grid' },
                 { label: '2. Set payout', detail: 'USDC budget and brief' },
@@ -1772,7 +1772,7 @@ export default function BrandPortalPage() {
             <div>
               <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
               <h2 className="mt-2 text-xl font-semibold text-zinc-900">Where to activate next</h2>
-              <p className="mt-1 max-w-2xl text-sm text-zinc-600">
+              <p className="mt-1 hidden max-w-2xl text-sm text-zinc-600 md:block">
                 Venues ranked by live activity, ownership signal, and repeat potential so you can choose where spend is most likely to move people.
               </p>
             </div>
@@ -1852,9 +1852,9 @@ export default function BrandPortalPage() {
                     </span>
                   </div>
 
-                  <p className="mt-4 text-sm leading-6 text-zinc-600">{venue.summary}</p>
+                  <p className="mt-4 hidden text-sm leading-6 text-zinc-600 md:block">{venue.summary}</p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 hidden flex-wrap gap-2 md:flex">
                     {venue.rankReasons.slice(0, 2).map((reason) => (
                       <span
                         key={reason}
@@ -1865,7 +1865,7 @@ export default function BrandPortalPage() {
                     ))}
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="mt-4 hidden grid-cols-2 gap-2 md:grid">
                     <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
                       <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Visitors today</div>
                       <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.activity.uniqueVisitorsToday}</div>
@@ -1921,7 +1921,7 @@ export default function BrandPortalPage() {
                   <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300">{selectedVenueRadar.summary}</p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 lg:min-w-[220px]">
+                <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 md:block lg:min-w-[220px]">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Why it ranks</div>
                   <div className="mt-3 space-y-2">
                     {selectedVenueRadar.rankReasons.map((reason) => (
@@ -1933,7 +1933,7 @@ export default function BrandPortalPage() {
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-4">
+              <div className="mt-5 hidden gap-3 md:grid md:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Visitors today</div>
                   <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.activity.uniqueVisitorsToday}</div>
@@ -1957,7 +1957,7 @@ export default function BrandPortalPage() {
               </div>
 
               <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                <div className="hidden rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 md:block">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent creator signal</div>
                   {selectedVenueRadar.recentSignals.length === 0 ? (
                     <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
@@ -1995,7 +1995,7 @@ export default function BrandPortalPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+                  <div className="hidden rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 md:block">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top creators for this venue</div>
                     {selectedVenueRadar.topCreators.length === 0 ? (
                       <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
@@ -2108,8 +2108,8 @@ export default function BrandPortalPage() {
 
         {/* Value Menu / Launch Activation */}
         {showCreateCampaign ? (
-          <div className="mb-8 bg-white/90 backdrop-blur-xl border border-zinc-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-6">
+          <div className="mb-8 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-lg backdrop-blur-md md:p-6 md:backdrop-blur-xl">
+            <div className="mb-5 flex items-center justify-between md:mb-6">
               <h2 className="text-xl font-bold text-zinc-900">Launch Venue Activation</h2>
               <button
                 onClick={() => {
@@ -2140,24 +2140,24 @@ export default function BrandPortalPage() {
                           payoutPerCreator: Math.max(formData.payoutPerCreator, activeMinPayout),
                         });
                       }}
-                      className={`p-4 rounded-xl border transition-all ${
+                      className={`rounded-xl border p-3 transition-all md:p-4 ${
                         isSelected
                           ? `bg-gradient-to-br ${info.color} border-transparent text-white`
                           : `bg-white ${info.borderColor} hover:border-zinc-400 text-zinc-900`
                       }`}
                     >
                       <div className="font-semibold">{info.name}</div>
-                      <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>{info.description}</div>
-                      <div className="mt-3 text-xs space-y-1 text-left">
+                      <div className={`mt-1 hidden text-xs md:block ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>{info.description}</div>
+                      <div className="mt-3 space-y-1 text-left text-xs">
                         <div className="flex justify-between">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>From:</span>
                           <span>${NETWORK_CONFIG.isMainnet ? info.minPayout : 1}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="hidden justify-between md:flex">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Timing:</span>
                           <span>{info.window}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="hidden justify-between md:flex">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Boost:</span>
                           <span>{info.bonus}</span>
                         </div>
@@ -2171,7 +2171,7 @@ export default function BrandPortalPage() {
             {/* Campaign Details */}
             <div className="mb-6">
               <label className="block text-sm text-zinc-600 mb-2">Activation format</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {([
                   {
                     value: 'PLACE',
@@ -2359,7 +2359,7 @@ export default function BrandPortalPage() {
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
                     <div>
                       <div className="text-sm font-semibold text-zinc-900">Recommended creators</div>
-                      <div className="mt-1 text-sm text-zinc-600">
+                      <div className="mt-1 hidden text-sm text-zinc-600 md:block">
                         We rank creators by venue fit, proof history, and audience signal. Launching will assign the creator you pick here.
                       </div>
                     </div>
@@ -2422,10 +2422,10 @@ export default function BrandPortalPage() {
                                       </div>
                                     ) : null}
                                   </div>
-                                  <div className="mt-1 text-sm text-zinc-500">
+                                  <div className="mt-1 hidden text-sm text-zinc-500 md:block">
                                     {match.creator.bio || 'No bio yet. Identity and performance stats still make this creator selectable.'}
                                   </div>
-                                  <div className="mt-3 grid grid-cols-3 gap-2">
+                                  <div className="mt-3 hidden grid-cols-3 gap-2 md:grid">
                                     {[
                                       { label: 'Venue fit', value: getCreatorVenueFitLabel(match) },
                                       { label: 'Reliability', value: getCreatorReliabilityLabel(match) },
@@ -2440,7 +2440,7 @@ export default function BrandPortalPage() {
                                       </div>
                                     ))}
                                   </div>
-                                  <div className="mt-2 flex flex-wrap gap-2">
+                                  <div className="mt-2 hidden flex-wrap gap-2 md:flex">
                                     {match.reasons.slice(0, 2).map((reason) => (
                                       <span
                                         key={`${match.creator.id}-${reason}`}
@@ -2458,7 +2458,7 @@ export default function BrandPortalPage() {
                                     setSelectedCreatorId(match.creator.id);
                                     setPreferredCreatorTag(match.creator.tag);
                                   }}
-                                  className={`shrink-0 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+                                  className={`shrink-0 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition md:self-start ${
                                     isSelected
                                       ? 'border-purple-500 bg-purple-500/[0.12] text-zinc-950'
                                       : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
@@ -2475,7 +2475,7 @@ export default function BrandPortalPage() {
                   </div>
                 ) : null}
 
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
+                <div className="hidden rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4 md:block">
                   <div>
                     <div className="text-sm font-semibold text-zinc-900">Optional targeting</div>
                     <div className="mt-1 text-sm text-zinc-600">
@@ -2562,7 +2562,7 @@ export default function BrandPortalPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="hidden md:block">
                   <label className="block text-sm text-zinc-600 mb-2">Required hashtags</label>
                   <div className="flex gap-2">
                     <input
@@ -2659,7 +2659,7 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Guarantee Banner */}
-            <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-xl p-4 mb-6">
+            <div className="mb-6 hidden rounded-xl border border-green-300 bg-gradient-to-r from-green-100 to-emerald-100 p-4 md:block">
               <div className="flex items-center gap-3">
                 <span className="text-2xl" style={{ filter: 'grayscale(1)' }}>⚡</span>
                 <div>
@@ -2674,7 +2674,7 @@ export default function BrandPortalPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+            <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-[0_18px_46px_rgba(15,10,35,0.2)] backdrop-blur md:static md:mx-0 md:flex-row md:gap-4 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
               <button
                 onClick={handleCreateCampaign}
                 disabled={
@@ -2683,7 +2683,7 @@ export default function BrandPortalPage() {
                   formData.type === 'CREATOR' ||
                   (formData.type === 'PLACE' && (!selectedPlace || recommendedCreatorsLoading || !selectedCreatorId))
                 }
-                className="flex-1 py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-sm md:text-lg hover:opacity-90 transition disabled:opacity-50"
+                className="flex-1 rounded-xl bg-zinc-950 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-zinc-800 disabled:opacity-50 md:py-4 md:text-lg"
               >
                 {creatingCampaign
                   ? approvalStatus === 'approving'
@@ -2694,7 +2694,12 @@ export default function BrandPortalPage() {
                         ? 'Registering activation...'
                         : 'Launching activation...'
                   : formData.type === 'PLACE'
-                  ? `Launch Activation ($${budget.total.toLocaleString()} USDC)`
+                  ? (
+                    <>
+                      <span className="md:hidden">Launch ${budget.total.toLocaleString()}</span>
+                      <span className="hidden md:inline">Launch Activation (${budget.total.toLocaleString()} USDC)</span>
+                    </>
+                  )
                   : 'Creator-Only Coming Soon'}
               </button>
               <button
@@ -2702,7 +2707,7 @@ export default function BrandPortalPage() {
                   setShowCreateCampaign(false);
                   setPreferredCreatorTag(null);
                 }}
-                className="px-6 py-3 md:py-4 bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 text-zinc-700 transition"
+                className="rounded-xl border border-zinc-300 bg-zinc-100 px-6 py-3 text-zinc-700 transition hover:bg-zinc-200 md:py-4"
               >
                 Cancel
               </button>
