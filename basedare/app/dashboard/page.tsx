@@ -370,8 +370,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedFundedId, setExpandedFundedId] = useState<string | null>(null);
   const [expandedActivationId, setExpandedActivationId] = useState<string | null>(null);
-  const [activationsOpen, setActivationsOpen] = useState(true);
-  const [fundedOpen, setFundedOpen] = useState(true);
+  const [activationsOpen, setActivationsOpen] = useState(false);
+  const [fundedOpen, setFundedOpen] = useState(false);
   const [userTag, setUserTag] = useState<UserTag | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
@@ -927,7 +927,7 @@ export default function Dashboard() {
       </div>
 
       <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-6 md:py-24">
-        <div className={`${raisedPanelClass} order-3 mb-8 px-5 py-6 sm:px-6 md:order-1`}>
+        <div className={`${raisedPanelClass} order-1 mb-8 px-5 py-6 sm:px-6`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
           <div className="relative flex flex-col gap-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1118,7 +1118,7 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        <div className={`${softCardClass} order-1 mb-8 p-4 sm:p-6 md:order-3`}>
+        <div className={`${softCardClass} order-3 mb-8 p-4 sm:p-6`}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Action inbox</h2>
@@ -1352,7 +1352,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div ref={opportunitiesRef} className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div ref={opportunitiesRef} className={`${softCardClass} order-6 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Opportunities</h2>
             <button
@@ -1507,7 +1507,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div className={`${softCardClass} order-7 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setActivationsOpen((current) => !current)}
@@ -1709,7 +1709,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div id="mission-control" className={`${softCardClass} mb-8 p-5 sm:p-6`}>
+        <div id="mission-control" className={`${softCardClass} order-8 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setFundedOpen((current) => !current)}
@@ -1832,7 +1832,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <details className={`${softCardClass} group mt-10`}>
+        <details className={`${softCardClass} group order-9 mt-2`}>
           <summary className={`${sectionBarClass} m-3 flex min-h-[56px] cursor-pointer list-none items-center justify-between sm:px-6`}>
             <span className="text-lg font-black uppercase tracking-[0.12em] text-white">Fund signal</span>
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 group-open:hidden">Expand</span>

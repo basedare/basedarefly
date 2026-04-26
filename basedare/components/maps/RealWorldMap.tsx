@@ -3310,7 +3310,7 @@ export default function RealWorldMap() {
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
-                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' } : undefined}
+                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 7.5rem)' } : undefined}
                   >
 
                   {ceremonyState ? (
@@ -4252,7 +4252,8 @@ export default function RealWorldMap() {
           }
 
           .selected-place-panel-content {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem) !important;
+            scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem);
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
           }
