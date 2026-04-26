@@ -129,6 +129,7 @@ export default function InitProtocolButton({
   return (
     <SquircleButton
       tone="yellow"
+      label={isActive ? activeLabel : idleLabel}
       fullWidth
       height={height}
       active={isActive}

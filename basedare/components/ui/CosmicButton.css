@@ -58,17 +58,24 @@
 }
 
 .sparkle-button--variant-gold {
-  border-radius: 22px;
-  border: 0;
+  --sparkle-face-top: #ffe98b;
+  --sparkle-face-mid: #ffc928;
+  --sparkle-face-bottom: #b96a00;
+  --sparkle-side: #8f5300;
+  --sparkle-side-dark: #4d2b00;
+  --sparkle-border: rgba(255, 226, 94, 0.62);
+  --sparkle-text: rgba(24, 18, 4, 0.94);
+  border-radius: 999px;
+  border: 1px solid var(--sparkle-border);
   background:
-    linear-gradient(180deg, rgba(255, 246, 182, 0.55) 0%, rgba(255, 255, 255, 0) 18%),
-    linear-gradient(180deg, #ffd54a 0%, #ffcb25 18%, #fbbf24 62%, #f5b300 100%);
+    radial-gradient(120% 170% at 50% -42%, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.2) 34%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, var(--sparkle-face-top) 0%, var(--sparkle-face-mid) 48%, var(--sparkle-face-bottom) 100%);
   box-shadow:
-    0 12px 0 rgba(140, 92, 0, 0.9),
-    0 18px 30px rgba(0, 0, 0, 0.42),
-    0 0 0 1px rgba(255, 214, 77, 0.6),
-    inset 0 1px 0 rgba(255, 249, 214, 0.9),
-    inset 0 -1px 0 rgba(120, 72, 0, 0.22);
+    0 0.5rem 1.15rem rgba(0, 0, 0, 0.38),
+    0 0 1.3rem rgba(255, 196, 0, 0.2),
+    0 0 0 1px rgba(255, 214, 77, 0.16),
+    inset 0 1px 0 rgba(255, 252, 219, 0.72),
+    inset 0 -0.46rem 0.86rem rgba(96, 50, 0, 0.36);
 }
 
 .sparkle-button--full {
@@ -108,7 +115,14 @@
 }
 
 .sparkle-button--variant-gold::after {
-  display: none;
+  display: block;
+  left: 22%;
+  right: 22%;
+  top: 0.18rem;
+  height: 16%;
+  background: rgba(255, 255, 255, 0.58);
+  filter: blur(0.2rem);
+  opacity: 0.7;
 }
 
 .sparkle-button:hover,
@@ -127,14 +141,14 @@
 .sparkle-button--variant-gold.sparkle-button--over {
   transform: translateY(-1px);
   background:
-    linear-gradient(180deg, rgba(255, 250, 210, 0.58) 0%, rgba(255, 255, 255, 0) 18%),
-    linear-gradient(180deg, #ffda57 0%, #ffd22f 18%, #ffc71c 62%, #f7b400 100%);
+    radial-gradient(120% 170% at 50% -42%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.24) 34%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, #fff09b 0%, #ffd43c 48%, #c97700 100%);
   box-shadow:
-    0 13px 0 rgba(140, 92, 0, 0.95),
-    0 22px 34px rgba(0, 0, 0, 0.48),
-    0 0 0 1px rgba(255, 223, 109, 0.68),
-    inset 0 1px 0 rgba(255, 249, 214, 0.95),
-    inset 0 -1px 0 rgba(120, 72, 0, 0.16);
+    0 0.68rem 1.35rem rgba(0, 0, 0, 0.44),
+    0 0 1.75rem rgba(255, 203, 37, 0.27),
+    0 0 0 1px rgba(255, 226, 94, 0.24),
+    inset 0 1px 0 rgba(255, 252, 219, 0.8),
+    inset 0 -0.44rem 0.82rem rgba(96, 50, 0, 0.3);
 }
 
 .sparkle-button:hover::after,
@@ -154,12 +168,11 @@
 }
 
 .sparkle-button--variant-gold:active {
-  transform: translateY(2px);
+  transform: translateY(1px) scale(0.992);
   box-shadow:
-    0 8px 0 rgba(140, 92, 0, 0.95),
-    0 12px 20px rgba(0, 0, 0, 0.38),
-    0 0 0 1px rgba(255, 214, 77, 0.55),
-    inset 0 1px 0 rgba(255, 248, 205, 0.7);
+    0 0.26rem 0.72rem rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 214, 77, 0.18),
+    inset 0 0.38rem 0.92rem rgba(96, 50, 0, 0.36);
 }
 
 .sparkle-button:active::after {
@@ -250,8 +263,8 @@
   box-shadow:
     0 0 0 2px rgba(255, 250, 219, 0.42),
     0 0 0 5px rgba(250, 204, 21, 0.22),
-    0 12px 0 rgba(140, 92, 0, 0.9),
-    0 18px 30px rgba(0, 0, 0, 0.44);
+    0 0.5rem 1.15rem rgba(0, 0, 0, 0.42),
+    0 0 1.3rem rgba(255, 196, 0, 0.2);
 }
 
 .sparkle-button[aria-disabled='true'],

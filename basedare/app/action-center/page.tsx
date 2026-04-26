@@ -215,6 +215,7 @@ export default function ActionCenterPage() {
                             <div className="mt-4 flex flex-wrap gap-2">
                               <SquircleButton
                                 tone={item.category === 'Venue lead follow-up' ? 'purple' : 'yellow'}
+                                label={item.cta}
                                 height={42}
                                 onClick={() => router.push(item.href)}
                               >

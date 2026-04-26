@@ -1035,6 +1035,7 @@ export default function Dashboard() {
                     ) : null}
                     <SquircleButton
                       tone="yellow"
+                      label="Create dare"
                       height={46}
                       onClick={() => router.push('/create')}
                       className="min-w-[176px]"
@@ -1048,6 +1049,7 @@ export default function Dashboard() {
                 ) : (
                   <SquircleButton
                     tone="yellow"
+                    label="Connect wallet"
                     height={46}
                     onClick={handleConnect}
                     disabled={isConnecting}
@@ -1090,6 +1092,7 @@ export default function Dashboard() {
                 {primaryActivationState.label === 'Ready for Proof' ? (
                   <SquircleButton
                     tone="yellow"
+                    label="Submit proof"
                     height={46}
                     onClick={() => jumpToActivation(primaryActivation.id)}
                     className="min-w-[178px]"
@@ -1203,11 +1206,11 @@ export default function Dashboard() {
                       {item.dareId && (item.category === 'Ready for proof' || item.category === 'Needs response') ? (
                         <SquircleButton
                           tone="yellow"
+                          label={item.cta}
                           height={42}
                           onClick={() => {
                             jumpToActivation(item.dareId);
                           }}
-                          fullWidth
                           className="sm:min-w-[160px] sm:w-auto"
                         >
                           <span className="relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.84rem] text-black/84">
@@ -1463,6 +1466,7 @@ export default function Dashboard() {
                         <>
                           <SquircleButton
                             tone="yellow"
+                            label={claimingOpportunityId === opportunity.id ? 'Claiming...' : 'Claim'}
                             height={46}
                             fullWidth
                             onClick={() => handleClaimOpportunity(opportunity)}
@@ -1585,6 +1589,7 @@ export default function Dashboard() {
                         {loopState.label === 'Ready for Proof' ? (
                           <SquircleButton
                             tone="yellow"
+                            label="Submit proof"
                             height={40}
                             onClick={() => setExpandedActivationId(dare.id)}
                             className="min-w-[128px]"

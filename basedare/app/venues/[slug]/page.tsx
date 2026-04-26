@@ -231,8 +231,8 @@ export default async function VenueDetailPage(
                         label="Fund challenge"
                         tone="yellow"
                         fullWidth
-                        height={54}
-                        labelClassName="text-[0.86rem] tracking-[0.14em] sm:text-[0.92rem]"
+                        height={50}
+                        labelClassName="text-[0.8rem] tracking-[0.12em] sm:text-[0.86rem]"
                       >
                         Fund challenge
                         <ArrowRight className="h-4 w-4" />
@@ -242,8 +242,8 @@ export default async function VenueDetailPage(
                         label="Activate venue"
                         tone="purple"
                         fullWidth
-                        height={50}
-                        labelClassName="text-[0.82rem] tracking-[0.12em] sm:text-[0.88rem]"
+                        height={46}
+                        labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
                         Activate venue
                       </SquircleLink>
@@ -633,8 +633,8 @@ export default async function VenueDetailPage(
                           label="Create first challenge"
                           tone="yellow"
                           fullWidth
-                          height={50}
-                          labelClassName="text-[0.74rem] tracking-[0.12em] sm:text-[0.8rem]"
+                          height={46}
+                          labelClassName="text-[0.7rem] tracking-[0.1em] sm:text-[0.76rem]"
                         >
                           Create first challenge
                           <ArrowRight className="h-4 w-4" />
@@ -888,8 +888,8 @@ export default async function VenueDetailPage(
                           href={fundChallengeHref}
                           label="Create first challenge"
                           tone="yellow"
-                          height={48}
-                          labelClassName="text-[0.72rem] tracking-[0.12em]"
+                          height={46}
+                          labelClassName="text-[0.7rem] tracking-[0.1em]"
                         >
                           Create first challenge
                           <ArrowRight className="h-4 w-4" />

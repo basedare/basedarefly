@@ -99,6 +99,7 @@ export default function SquircleButton({
   height = 44,
   className,
   buttonClassName,
+  active = false,
   disabled = false,
   onClick,
   type = 'button',
@@ -115,15 +116,14 @@ export default function SquircleButton({
   const scale = height / 40;
 
   const isDown = pressed && !disabled;
-  const isHovering = hovered && !disabled && !isDown;
-  const faceY = isDown ? 9 : 4;
-  const baseY = 12;
-  const z = Math.min(0.5, 20 / width);
-  const dy = floating ? (isDown ? 12 : isHovering ? 28 : 24) : isDown ? 2 : isHovering ? 6 : 4;
-  const std = floating ? (isDown ? 6 : isHovering ? 14 : 12) : isDown ? 1.5 : isHovering ? 4.25 : 3;
-  const opacity = floating ? (isHovering ? 0.2 : 0.15) : isHovering ? 0.38 : 0.3;
+  const isHovering = (hovered || active) && !disabled && !isDown;
+  const faceY = isDown ? 8 : isHovering ? 5 : 6;
+  const shadowY = isDown ? 11 : isHovering ? 12 : 13;
+  const dy = floating ? (isDown ? 10 : isHovering ? 22 : 18) : isDown ? 1.5 : isHovering ? 5 : 4;
+  const std = floating ? (isDown ? 6 : isHovering ? 13 : 11) : isDown ? 1.6 : isHovering ? 4.5 : 3.6;
+  const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
   const svgWidth = width + 10;
-  const svgHeight = 60;
+  const svgHeight = 56;
   const labelText = label.toUpperCase();
   const idSuffix = `${reactId}-${tone}-${width}-${height}-${floating ? 'f' : 'n'}-button`;
   const handlePointerDown = () => {
@@ -145,9 +145,8 @@ export default function SquircleButton({
     handlePointerUp();
   };
 
-  const basePath = useMemo(() => squirclePath(width, 40, 18, 5, baseY), [width]);
   const facePath = useMemo(() => squirclePath(width, 40, 18, 5, faceY), [faceY, width]);
-  const stackCount = Math.max(0, baseY - faceY);
+  const shadowPath = useMemo(() => squirclePath(width, 40, 18, 5, shadowY), [shadowY, width]);
 
   return (
     <button
@@ -183,30 +182,40 @@ export default function SquircleButton({
             <feDropShadow dy={dy} stdDeviation={std} floodColor={mix(depth, 35, 'black')} floodOpacity={opacity} />
           </filter>
           <linearGradient id={`g-${idSuffix}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0" stopColor={mix(depth, 65, 'white')} />
-            <stop offset={`${z * 100}%`} stopColor={mix(depth, 90, 'white')} />
-            <stop offset={`${(1 - z) * 100}%`} stopColor={mix(depth, 90, 'white')} />
-            <stop offset="100%" stopColor={mix(depth, 65, 'white')} />
+            <stop offset="0" stopColor={white ? '#ffffff' : mix(highlight, 86, 'white')} />
+            <stop offset="32%" stopColor={white ? '#f8fbff' : `#${highlight}`} />
+            <stop offset="68%" stopColor={white ? '#e8eef8' : mix(highlight, 72, depth === highlight ? 'black' : `#${depth}`)} />
+            <stop offset="100%" stopColor={white ? '#d3e2ef' : mix(depth, 88, 'black')} />
           </linearGradient>
+          <radialGradient id={`s-${idSuffix}`} cx="50%" cy="-18%" r="92%">
+            <stop offset="0" stopColor="rgba(255,255,255,0.84)" />
+            <stop offset="42%" stopColor="rgba(255,255,255,0.24)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
         </defs>
 
-        <path d={basePath} fill={mix(depth, 60, 'black')} filter={`url(#b-${idSuffix})`} />
         <path
-          d={basePath}
-          fill={mix(depth, 80, 'black')}
-          stroke={floating ? mix(highlight, 70, 'white') : mix(depth, 50, 'black')}
-          strokeWidth="1"
+          d={shadowPath}
+          fill={mix(depth, 52, 'black')}
+          filter={`url(#b-${idSuffix})`}
+          opacity={isDown ? 0.42 : 0.72}
         />
-
-        {Array.from({ length: stackCount }).map((_, index) => (
-          <path key={index} d={squirclePath(width, 40, 18, 5, faceY + 1 + index)} fill={`url(#g-${idSuffix})`} />
-        ))}
 
         <path
           d={facePath}
-          fill={white ? '#ffffff' : `#${highlight}`}
+          fill={`url(#g-${idSuffix})`}
           stroke={white ? '#e2e8f0' : mix(highlight, 70, 'white')}
           strokeWidth="1.5"
+        />
+        <path d={facePath} fill={`url(#s-${idSuffix})`} opacity={tone === 'slate' ? 0.18 : 0.42} />
+        <rect
+          x={5 + width * 0.22}
+          y={faceY + 3.5}
+          width={width * 0.56}
+          height="5.5"
+          rx="3"
+          fill="rgba(255,255,255,0.5)"
+          opacity={isDown ? 0.12 : isHovering ? 0.7 : 0.52}
         />
 
         <foreignObject x="5" y={faceY} width={width} height="40">
