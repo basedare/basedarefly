@@ -140,6 +140,18 @@ function HomeContent() {
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
       <LiquidBackground />
+      {view === 'FAN' ? (
+        <div className="pointer-events-none fixed inset-0 z-0 hidden opacity-65 md:block" aria-hidden="true">
+          <ParticleNetwork
+            particleCount={130}
+            minDist={135}
+            particleColor="rgba(168, 85, 247, 0.58)"
+            lineColor="rgba(168, 85, 247,"
+            speed={0.16}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.16),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.08),transparent_22%)]" />
+        </div>
+      ) : null}
       <div className="fixed inset-0 z-10 pointer-events-none">
         <GradualBlurOverlay intensity={view === 'BUSINESS' ? 'light' : 'full'} />
       </div>
@@ -290,34 +302,37 @@ function HomeContent() {
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             className="w-full min-h-screen flex flex-col items-center -mt-32 pb-24 relative"
           >
-            {/* Control mode should amplify, not replace, the shared node mesh. */}
+            {/* Light Background with Particle Network */}
             <motion.div
-              className="fixed inset-0 z-0 pointer-events-none"
+              className="fixed inset-0 z-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.14),transparent_42%),linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.22)_100%)]" />
+              {/* Base light gradient */}
+              <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-zinc-50 to-white" />
 
+              {/* Particle Network - fades in with delay for hypnotic effect */}
               <motion.div
-                className="absolute inset-0 opacity-60"
+                className="absolute inset-0"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
               >
                 <ParticleNetwork
-                  particleCount={90}
-                  minDist={130}
-                  particleColor="rgba(168, 85, 247, 0.55)"
-                  lineColor="rgba(168, 85, 247,"
-                  speed={0.18}
+                  particleCount={100}
+                  minDist={120}
+                  particleColor="rgba(0, 0, 0, 0.5)"
+                  lineColor="rgba(0, 0, 0,"
+                  speed={0.25}
                 />
               </motion.div>
 
+              {/* Subtle vignette */}
               <div className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,0.42) 100%)'
+                  background: 'radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.8) 100%)'
                 }}
               />
             </motion.div>

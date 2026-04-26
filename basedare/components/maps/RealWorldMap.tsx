@@ -884,7 +884,8 @@ function createPeebearMarkerIcon({
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${activated ? `activated-${activationBadgeLabel}` : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
+  const showActivatedMarkerChrome = activated && (!compact || active);
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
   const cachedIcon = markerIconCache.get(cacheKey);
   if (cachedIcon) {
@@ -893,17 +894,17 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: compact ? [76, activated ? 112 : 92] : [92, activated ? 148 : 132],
-    iconAnchor: compact ? [38, activated ? 64 : 44] : [44, activated ? 86 : 68],
-    popupAnchor: compact ? [0, activated ? -54 : -38] : [0, activated ? -70 : -54],
+    iconSize: compact ? [76, showActivatedMarkerChrome ? 112 : 92] : [92, showActivatedMarkerChrome ? 148 : 132],
+    iconAnchor: compact ? [38, showActivatedMarkerChrome ? 64 : 44] : [44, showActivatedMarkerChrome ? 86 : 68],
+    popupAnchor: compact ? [0, showActivatedMarkerChrome ? -54 : -38] : [0, showActivatedMarkerChrome ? -70 : -54],
     html: `
       <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
         ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
         ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
         ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-        ${activated ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
-        ${activated && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
+        ${showActivatedMarkerChrome ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
+        ${showActivatedMarkerChrome && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
         <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
           <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
         </div>
@@ -2420,7 +2421,7 @@ export default function RealWorldMap() {
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
   const selectedPlacePanelWrapClass = isMobileViewport
-    ? 'selected-place-panel-wrap absolute inset-x-2 z-30'
+    ? 'selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30'
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
@@ -2919,30 +2920,6 @@ export default function RealWorldMap() {
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             {!selectedPlace ? (
               <>
-                <div className="map-mobile-legend pointer-events-none absolute left-3 right-3 top-[5.6rem] z-[10] flex items-center justify-between gap-2 rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(14,16,28,0.86),rgba(5,6,13,0.94))] px-3 py-2 shadow-[0_16px_34px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] md:hidden">
-                  <div className="flex items-center gap-1.5">
-                    <span className="legend-building-mini legend-building-mini--tight" aria-hidden="true">
-                      <span className="legend-building-mini-roof" />
-                      <span className="legend-building-mini-body" />
-                    </span>
-                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
-                      Activated
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="legend-live-dot" aria-hidden="true" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100">
-                      Live
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="legend-open-dot" aria-hidden="true" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-white/70">
-                      Open
-                    </span>
-                  </div>
-                </div>
-
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[14rem] rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,11,20,0.92)_24%,rgba(4,5,12,0.97)_100%)] px-4 py-3 shadow-[0_20px_42px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.18)] backdrop-blur md:block">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/38">
                     Map Legend
@@ -3254,8 +3231,8 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[44dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
-                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.94)] px-4 pb-3 pt-3 backdrop-blur-md md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4 md:backdrop-blur-xl">
+                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[78dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
                     <div className="min-w-0 flex-1">
@@ -3333,6 +3310,7 @@ export default function RealWorldMap() {
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
+                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' } : undefined}
                   >
 
                   {ceremonyState ? (
@@ -4269,12 +4247,12 @@ export default function RealWorldMap() {
 
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
-            bottom: calc(5.45rem + env(safe-area-inset-bottom));
-            max-height: min(44dvh, 24rem);
+            bottom: calc(0.75rem + env(safe-area-inset-bottom));
+            max-height: min(78dvh, calc(100% - 1.5rem));
           }
 
           .selected-place-panel-content {
-            padding-bottom: 1rem !important;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
           }
@@ -4284,20 +4262,13 @@ export default function RealWorldMap() {
             padding: 0.9rem !important;
           }
 
-          .map-mobile-trim,
-          .map-mobile-reasons,
-          .map-mobile-stats,
-          .map-mobile-secondary {
-            display: none !important;
-          }
-
           .venue-action-rail {
-            position: fixed;
-            right: max(0.65rem, env(safe-area-inset-right));
-            bottom: calc(0.7rem + env(safe-area-inset-bottom));
-            left: max(0.65rem, env(safe-area-inset-left));
-            z-index: 120;
-            margin-top: 0;
+            position: relative;
+            right: auto;
+            bottom: auto;
+            left: auto;
+            z-index: 8;
+            margin-top: 1rem;
             padding: 0.42rem;
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 1.15rem;
