@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -9,7 +9,11 @@ import { Activity, BarChart3, CheckCircle2, Flame, Loader2, MapPin, PauseCircle,
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
-import { buildActivationReplayComposerHref, buildRepeatActivationComposerHref } from '@/lib/venue-launch';
+import {
+  buildActivationReplayCreateHref,
+  buildRepeatActivationCreateHref,
+  buildVenueActivationCreateHref,
+} from '@/lib/venue-launch';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -126,6 +130,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [qrPayload, setQrPayload] = useState<VenueQrPayload | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [refreshingQr, setRefreshingQr] = useState(false);
   const [liveStats, setLiveStats] = useState(venue.liveStats);
   const [selectedPresetId, setSelectedPresetId] = useState<(typeof activationPresets)[number]['id']>('foot-traffic');
   const [selectedCreatorTag, setSelectedCreatorTag] = useState<string | null>(venue.topCreators[0]?.creatorTag ?? null);
@@ -151,43 +156,46 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadQr() {
-      try {
-        const response = await fetch(`/api/venues/id/${venue.id}/qr`, {
-          cache: 'no-store',
-        });
-        const payload = await response.json();
-        if (cancelled) return;
-
-        if (!response.ok || !payload?.success) {
-          setQrError(payload?.error ?? 'Unable to fetch live venue QR');
-          setQrPayload(null);
-          return;
-        }
-
-        setQrPayload(payload.data);
-        setQrError(null);
-      } catch (error) {
-        if (cancelled) return;
-        const message = error instanceof Error ? error.message : 'Unable to fetch live venue QR';
-        setQrError(message);
-        setQrPayload(null);
-      }
+  const loadQr = useCallback(async (options?: { manual?: boolean }) => {
+    if (options?.manual) {
+      setRefreshingQr(true);
     }
 
+    try {
+      const response = await fetch(`/api/venues/id/${venue.id}/qr`, {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        setQrError(payload?.error ?? 'Unable to fetch live venue QR');
+        setQrPayload(null);
+        return;
+      }
+
+      setQrPayload(payload.data);
+      setQrError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to fetch live venue QR';
+      setQrError(message);
+      setQrPayload(null);
+    } finally {
+      if (options?.manual) {
+        setRefreshingQr(false);
+      }
+    }
+  }, [venue.id]);
+
+  useEffect(() => {
     void loadQr();
     const interval = window.setInterval(() => {
       void loadQr();
     }, 10000);
 
     return () => {
-      cancelled = true;
       window.clearInterval(interval);
     };
-  }, [venue.id]);
+  }, [loadQr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,34 +234,31 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const effectiveNowMs = nowMs ?? (liveSession ? new Date(liveSession.lastRotatedAt).getTime() : 0);
   const qrWindowStart = qrPayload?.windowStartedAt ?? liveSession?.lastRotatedAt ?? null;
   const secondsLeft = qrWindowStart ? getSecondsLeft(qrWindowStart, rotationSeconds, effectiveNowMs) : 0;
-  const qrValue = useMemo(() => qrPayload?.qrValue ?? `basedare://handshake?scope=VENUE_CHECKIN&venue=${encodeURIComponent(venue.slug)}&session=offline-preview`, [qrPayload, venue.slug]);
+  const qrValue = qrPayload?.qrValue ?? '';
+  const hasLiveQr = Boolean(qrValue);
   const selectedPreset = activationPresets.find((preset) => preset.id === selectedPresetId) ?? activationPresets[0];
   const liveFundingUsd = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
   const routedCreatorsCount = venue.activeDares.filter((dare) => Boolean(dare.claimedBy || dare.targetWalletAddress || dare.claimRequestStatus === 'PENDING')).length;
   const completedSignalCount = venue.memorySummary?.completedDareCount ?? 0;
   const activationQueue = venue.activeDares.slice(0, 4);
-  const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
+  const repeatActivationHref = buildRepeatActivationCreateHref({ venue, source: 'venue-console' });
   const repeatActivation = venue.featuredPaidActivation;
   const selectedTopCreator =
     venue.topCreators.find(
       (creator) => creator.creatorTag.toLowerCase() === (selectedCreatorTag ?? '').toLowerCase()
     ) ?? null;
   const launchActivationHref = useMemo(() => {
-    const params = new URLSearchParams({
-      venue: venue.slug,
-      compose: '1',
-      tier: selectedPreset.tier,
-      payout: String(selectedPreset.payout),
+    return buildVenueActivationCreateHref({
+      venueId: venue.id,
+      venueSlug: venue.slug,
+      venueName: venue.name,
       title: selectedPreset.title(venue.name),
+      payout: selectedPreset.payout,
+      creatorTag: selectedCreatorTag,
       objective: selectedPreset.objective(venue.name),
+      source: 'venue-console',
     });
-
-    if (selectedCreatorTag) {
-      params.set('creator', selectedCreatorTag);
-    }
-
-    return `/brands/portal?${params.toString()}`;
-  }, [selectedCreatorTag, selectedPreset, venue.name, venue.slug]);
+  }, [selectedCreatorTag, selectedPreset, venue.id, venue.name, venue.slug]);
   const confirmedLaunch = useMemo(() => {
     if (launchMode === 'repeat' && repeatActivation && repeatActivationHref) {
       return {
@@ -325,7 +330,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     }
 
     if (!confirmedLaunch.creatorTag) {
-      setLaunchError('Pick a venue-fit creator first, or use the preview flow to choose one in the brand portal.');
+      setLaunchError('Pick a venue-fit creator first, or use the preview flow to choose one in the funding surface.');
       return;
     }
 
@@ -479,22 +484,36 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 <div className="rounded-full border border-fuchsia-400/20 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-sm font-medium text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.1)]">
                   <span className="inline-flex items-center gap-2">
                     <Timer className="h-4 w-4" />
-                    Rotates in {formatCountdown(secondsLeft)}
+                    {hasLiveQr ? `Rotates in ${formatCountdown(secondsLeft)}` : 'QR offline'}
                   </span>
                 </div>
               </div>
 
               <div className="mt-8 flex flex-col items-center">
-                <div className="relative rounded-[30px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(242,243,248,0.96)_100%)] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45),0_0_22px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.7)]">
-                  <QRCodeSVG value={qrValue} size={260} level="H" includeMargin bgColor="#ffffff" fgColor="#09090b" />
-                  <div className="pointer-events-none absolute inset-x-8 top-4 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
-                </div>
+                {hasLiveQr ? (
+                  <div className="relative rounded-[30px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(242,243,248,0.96)_100%)] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45),0_0_22px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.7)]">
+                    <QRCodeSVG value={qrValue} size={260} level="H" includeMargin bgColor="#ffffff" fgColor="#09090b" />
+                    <div className="pointer-events-none absolute inset-x-8 top-4 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+                  </div>
+                ) : (
+                  <div className="relative flex min-h-[300px] w-full max-w-[300px] flex-col items-center justify-center rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(5,7,13,0.94)_100%)] p-6 text-center shadow-[0_20px_70px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-100">
+                      <Waves className="h-7 w-7" />
+                    </div>
+                    <p className="mt-5 text-xs font-black uppercase tracking-[0.3em] text-cyan-100/70">
+                      Live QR locked
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-white/58">
+                      Start a protected venue session before guests can check in. Until then, no QR presence is accepted.
+                    </p>
+                  </div>
+                )}
                 <p className="mt-5 text-center text-sm text-white/60">
-                  {isLive
+                  {hasLiveQr && isLive
                     ? "Guests scan here to prove presence, light up the venue memory, and unlock live dares."
-                    : isPaused
+                    : hasLiveQr && isPaused
                       ? 'The console is paused. Resume the session to re-enable trusted venue check-ins.'
-                      : 'No live venue session is active yet. This screen is showing the seeded pilot preview.'}
+                      : 'No live venue session is active. This console is waiting for a protected operator session, not showing a fake QR.'}
                 </p>
                 {qrError ? (
                   <p className="mt-3 text-center text-xs uppercase tracking-[0.24em] text-rose-300/80">
@@ -723,19 +742,20 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     disabled
                     className={`${insetCardClass} inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white/45`}
                   >
-                    <PauseCircle className="h-4 w-4" />
-                    Pause QR
+                    {hasLiveQr ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+                    {hasLiveQr ? 'Pause QR' : 'Start QR'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.location.reload()}
-                    className={`${insetCardClass} inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white/55 transition hover:text-white`}
+                    onClick={() => void loadQr({ manual: true })}
+                    disabled={refreshingQr}
+                    className={`${insetCardClass} inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white/55 transition hover:text-white disabled:cursor-wait disabled:opacity-60`}
                   >
-                    <RefreshCcw className="h-4 w-4" />
-                    Refresh
+                    <RefreshCcw className={`h-4 w-4 ${refreshingQr ? 'animate-spin' : ''}`} />
+                    Refresh QR status
                   </button>
                   <div className="rounded-[22px] border border-dashed border-fuchsia-400/30 bg-[linear-gradient(180deg,rgba(217,70,239,0.08)_0%,rgba(12,7,22,0.92)_100%)] px-4 py-3 text-sm text-fuchsia-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    Mocked UI for the pilot venue. Session controls wire up next.
+                    Session controls are intentionally locked behind protected operator auth so the public console cannot spoof venue check-ins.
                   </div>
                 </div>
               </div>
@@ -747,7 +767,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Launch Activation</p>
                     <h3 className="mt-2 text-lg font-bold tracking-tight">Turn venue signal into a live paid challenge</h3>
                     <p className="mt-2 text-sm text-white/58">
-                      Pick a simple activation preset, optionally route a venue-favorite creator, then finish funding in the brand portal.
+                      Pick a simple activation preset, optionally route a venue-favorite creator, then finish funding in the secure create flow.
                     </p>
                   </div>
                   <div className="rounded-full border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
@@ -830,7 +850,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   <p className="text-xs uppercase tracking-[0.24em] text-white/38">Venue-favorite creators</p>
                   {venue.topCreators.length === 0 ? (
                     <div className={`${insetCardClass} mt-3 px-4 py-4 text-sm text-white/52`}>
-                      No strong venue favorite yet. Launching without a preset creator will still open the composer with the venue preselected.
+                      No strong venue favorite yet. Launching without a preset creator will still open the funding flow with the venue preselected.
                     </div>
                   ) : (
                     <div className="mt-3 space-y-3">
@@ -889,7 +909,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Pre-launch confirmation</p>
                       <h4 className="mt-2 text-lg font-bold text-white">{confirmedLaunch.modeLabel}</h4>
                       <p className="mt-2 max-w-xl text-sm text-white/58">
-                        One final check before opening the funding surface. The brand portal will open with this brief, venue, budget, and creator routing already locked in.
+                        One final check before opening the funding surface. The create flow will open with this brief, venue, budget, and creator routing already locked in.
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2">
@@ -916,7 +936,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     </div>
                     <div className={`${insetCardClass} px-4 py-4`}>
                       <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Creator route</div>
-                      <div className="mt-2 text-sm font-semibold text-white">{confirmedLaunch.creatorTag ?? 'Decide in composer'}</div>
+                      <div className="mt-2 text-sm font-semibold text-white">{confirmedLaunch.creatorTag ?? 'Decide in funding flow'}</div>
                     </div>
                   </div>
                 </div>
@@ -953,9 +973,9 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                       : !isConnected || !address
                         ? 'Connect the operator wallet to fund directly from the venue console.'
                         : !sessionToken
-                          ? 'Refresh your session to unlock direct launch.'
-                          : !confirmedLaunch.creatorTag
-                            ? 'Pick a creator route or use the preview flow to choose one in the brand portal.'
+                            ? 'Refresh your session to unlock direct launch.'
+                            : !confirmedLaunch.creatorTag
+                              ? 'Pick a creator route or use the preview flow to choose one in the funding surface.'
                             : null}
                   </div>
                 ) : null}
@@ -1040,7 +1060,11 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   <div className="mt-4 space-y-3">
                     {activationQueue.map((dare) => {
                       const activationState = getActivationState(dare);
-                      const replayHref = buildActivationReplayComposerHref({ venue, activation: dare });
+                      const replayHref = buildActivationReplayCreateHref({
+                        venue,
+                        activation: dare,
+                        source: 'venue-console',
+                      });
                       return (
                         <div key={dare.id} className={`${insetCardClass} px-4 py-4`}>
                           <div className="flex items-start justify-between gap-3">

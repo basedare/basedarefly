@@ -8,6 +8,8 @@ import { getVenueDetailBySlug } from '@/lib/venues';
 import {
   buildActivationReplayComposerHref,
   buildRepeatActivationComposerHref,
+  buildVenueActivationCreateHref,
+  buildVenueChallengeCreateHref,
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
 import VenuePageShell from '../VenuePageShell';
@@ -155,8 +157,18 @@ export default async function VenueDetailPage(
   const mapHref = `/map?place=${encodeURIComponent(venue.slug)}${
     isCreatorContext ? `&source=creator&matches=1${focusedDareShortId ? `&dare=${encodeURIComponent(focusedDareShortId)}` : ''}` : ''
   }`;
-  const fundChallengeHref = mapHref;
-  const activateVenueHref = `/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`;
+  const fundChallengeHref = buildVenueChallengeCreateHref({
+    venueId: venue.id,
+    venueSlug: venue.slug,
+    venueName: venue.name,
+    payout: 60,
+  });
+  const activateVenueHref = buildVenueActivationCreateHref({
+    venueId: venue.id,
+    venueSlug: venue.slug,
+    venueName: venue.name,
+    payout: 120,
+  });
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
   const creatorContribution = venue.creatorContribution;
   const currentPulseState = getPulseState(venue.tagSummary.heatScore);

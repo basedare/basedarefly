@@ -110,16 +110,18 @@ export default function SquircleButton({
   const white = tone === 'white';
   const width = useButtonWidth(label, Boolean(icon), square, fullWidth);
   const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const reactId = useId().replace(/:/g, '');
   const scale = height / 40;
 
   const isDown = pressed && !disabled;
+  const isHovering = hovered && !disabled && !isDown;
   const faceY = isDown ? 9 : 4;
   const baseY = 12;
   const z = Math.min(0.5, 20 / width);
-  const dy = floating ? (isDown ? 12 : 24) : isDown ? 2 : 4;
-  const std = floating ? (isDown ? 6 : 12) : isDown ? 1.5 : 3;
-  const opacity = floating ? 0.15 : 0.3;
+  const dy = floating ? (isDown ? 12 : isHovering ? 28 : 24) : isDown ? 2 : isHovering ? 6 : 4;
+  const std = floating ? (isDown ? 6 : isHovering ? 14 : 12) : isDown ? 1.5 : isHovering ? 4.25 : 3;
+  const opacity = floating ? (isHovering ? 0.2 : 0.15) : isHovering ? 0.38 : 0.3;
   const svgWidth = width + 10;
   const svgHeight = 60;
   const labelText = label.toUpperCase();
@@ -133,6 +135,16 @@ export default function SquircleButton({
     setPressed(false);
   };
 
+  const handlePointerEnter = () => {
+    if (disabled) return;
+    setHovered(true);
+  };
+
+  const handlePointerLeave = () => {
+    setHovered(false);
+    handlePointerUp();
+  };
+
   const basePath = useMemo(() => squirclePath(width, 40, 18, 5, baseY), [width]);
   const facePath = useMemo(() => squirclePath(width, 40, 18, 5, faceY), [faceY, width]);
   const stackCount = Math.max(0, baseY - faceY);
@@ -142,18 +154,23 @@ export default function SquircleButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      onFocus={handlePointerEnter}
+      onBlur={handlePointerLeave}
+      onPointerEnter={handlePointerEnter}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
       onPointerCancel={handlePointerUp}
       className={cn(
-        'group relative inline-block select-none overflow-visible transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50',
+        'group relative inline-block select-none overflow-visible transition-transform duration-150 disabled:cursor-not-allowed disabled:opacity-50',
         fullWidth ? 'block w-full' : 'inline-block',
         className
       )}
       style={{
         width: fullWidth ? '100%' : `${svgWidth * scale}px`,
         height: `${svgHeight * scale}px`,
+        transform: isDown ? 'translateY(1px) scale(0.992)' : isHovering ? 'translateY(-1px) scale(1.012)' : 'translateY(0) scale(1)',
+        transition: 'transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1)',
       }}
     >
       <svg

@@ -893,9 +893,9 @@ function createPeebearMarkerIcon({
 
   const icon = divIcon({
     className: 'peebear-leaflet-icon',
-    iconSize: compact ? [76, 92] : [92, 132],
-    iconAnchor: compact ? [38, 44] : [44, 68],
-    popupAnchor: compact ? [0, -38] : [0, -54],
+    iconSize: compact ? [76, activated ? 112 : 92] : [92, activated ? 148 : 132],
+    iconAnchor: compact ? [38, activated ? 64 : 44] : [44, activated ? 86 : 68],
+    popupAnchor: compact ? [0, activated ? -54 : -38] : [0, activated ? -70 : -54],
     html: `
       <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
         ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
@@ -2481,7 +2481,7 @@ export default function RealWorldMap() {
       return 'Use your existing fit here: route yourself in, or open the venue and chase the live signal.';
     }
 
-    return 'Pick one move: mark the venue, fund a dare here, or open the venue command view.';
+    return 'Open the venue card for the three real moves: mark, fund, or inspect the command view.';
   }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
 
   const handleSpray = () => {
@@ -2807,8 +2807,8 @@ export default function RealWorldMap() {
                 });
                 const isActive = selectedPlace?.placeId === place.id;
                 const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
-                const compact = !isActive && mapZoom < compactMarkerZoomThreshold;
                 const activatedVenue = isVenueActivated(place.commandCenter);
+                const compact = !isActive && (mapZoom < compactMarkerZoomThreshold || activatedVenue);
 
                 return (
                   <Marker
@@ -5277,8 +5277,16 @@ export default function RealWorldMap() {
           height: 92px;
         }
 
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue) {
+          height: 148px;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact) {
+          height: 112px;
+        }
+
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-core) {
-          margin-top: 24px;
+          margin-top: 46px;
           border-color: rgba(245, 197, 24, 0.74);
           background:
             radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.18) 0%, transparent 54%),
@@ -5293,7 +5301,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-core) {
-          margin-top: 16px;
+          margin-top: 38px;
           height: 50px;
           width: 50px;
         }
@@ -5301,7 +5309,7 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.venue-building-badge) {
           position: absolute;
           left: 50%;
-          top: -4px;
+          top: 4px;
           z-index: 5;
           display: flex;
           height: 46px;
@@ -5369,7 +5377,7 @@ export default function RealWorldMap() {
         .basedare-leaflet-map :global(.venue-activation-pill) {
           position: absolute;
           left: 50%;
-          top: 38px;
+          top: 68px;
           z-index: 6;
           transform: translateX(-50%);
           border-radius: 9999px;
@@ -5388,22 +5396,32 @@ export default function RealWorldMap() {
             0 10px 18px rgba(0, 0, 0, 0.3),
             0 0 16px rgba(245, 197, 24, 0.15),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          opacity: 0;
+          transition: opacity 160ms ease, transform 160ms ease;
+        }
+
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue:hover .venue-activation-pill),
+        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-active .venue-activation-pill) {
+          opacity: 1;
+          transform: translateX(-50%) translateY(-2px);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-count) {
-          left: 18px;
-          top: -10px;
+          left: auto;
+          right: 5px;
+          top: 0;
           z-index: 7;
-          transform: none;
+          transform: scale(0.84);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-count) {
-          left: 10px;
-          top: -6px;
+          right: -2px;
+          top: 0;
+          transform: scale(0.74);
         }
 
         .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
-          top: -14px;
+          top: 5px;
           transform: translateX(-50%) scale(0.86);
         }
 

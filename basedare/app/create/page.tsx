@@ -90,6 +90,7 @@ const CreateBountySchema = z.object({
   streamId: z.string().default('dev-stream-001'),
   missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
   missionTag: z.string().min(1).max(40).default('nightlife'),
+  venueId: z.string().optional().or(z.literal('')),
   // Nearby dare fields
   isNearbyDare: z.boolean().default(true),
   locationLabel: z.string().max(100).optional(),
@@ -162,6 +163,11 @@ function CreateDareContent() {
     sentinelEnabled: true,
     sentinelPausedReason: null,
   });
+  const [venuePrefill, setVenuePrefill] = useState<{
+    id: string;
+    name: string;
+    mode: string | null;
+  } | null>(null);
   const recommendationTrackedRef = useRef<SentinelRecommendationReason | null>(null);
 
   const readStoredBountyCreateAuth = useCallback((walletAddress: string): StoredBountyCreateAuth | null => {
@@ -237,6 +243,7 @@ function CreateDareContent() {
       streamId: 'dev-stream-001',
       missionMode: 'IRL',
       missionTag: 'nightlife',
+      venueId: '',
       isNearbyDare: true,
       locationLabel: '',
       discoveryRadiusKm: 5,
@@ -250,6 +257,7 @@ function CreateDareContent() {
   const watchMissionTag = watch('missionTag');
   const watchRequireSentinel = watch('requireSentinel');
   const watchAmount = watch('amount');
+  const watchVenueId = watch('venueId');
   const handleGeneratorContextChange = useCallback(
     ({ mode, tag }: { mode: 'IRL' | 'STREAM'; tag: string }) => {
       if (getValues('missionMode') !== mode) {
@@ -275,12 +283,35 @@ function CreateDareContent() {
     ? sentinelRecommendation.reason
     : 'none';
 
-  // Pre-fill form from URL params (coming from home page)
+  // Pre-fill form from URL params (coming from home, map, or venue pages)
   useEffect(() => {
     const streamer = searchParams.get('streamer');
     const title = searchParams.get('title');
+    const amount = searchParams.get('amount');
+    const venueId = searchParams.get('venueId');
+    const venueName = searchParams.get('venueName');
+    const mode = searchParams.get('mode');
     if (streamer) setValue('streamerTag', streamer);
     if (title) setValue('title', title);
+    if (amount) {
+      const parsedAmount = Number.parseInt(amount, 10);
+      if (Number.isFinite(parsedAmount)) {
+        setValue('amount', Math.max(5, parsedAmount));
+      }
+    }
+    if (venueId) {
+      setValue('venueId', venueId);
+      setValue('isNearbyDare', true);
+      setValue('locationLabel', venueName || searchParams.get('venue') || 'Selected venue');
+      setValue('discoveryRadiusKm', 0.5);
+      setVenuePrefill({
+        id: venueId,
+        name: venueName || searchParams.get('venue') || 'Selected venue',
+        mode,
+      });
+    } else {
+      setVenuePrefill(null);
+    }
   }, [searchParams, setValue]);
 
   useEffect(() => {
@@ -297,10 +328,11 @@ function CreateDareContent() {
   }, [toast]);
 
   useEffect(() => {
+    if (watchVenueId) return;
     if (!watchIsNearbyDare) return;
     if (!geoSupported || geoLoading || coordinates || geoError) return;
     requestLocation();
-  }, [watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
+  }, [watchVenueId, watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -398,13 +430,13 @@ function CreateDareContent() {
     const nextValue = !watchIsNearbyDare;
     setValue('isNearbyDare', nextValue, { shouldDirty: true, shouldTouch: true });
 
-    if (nextValue && !coordinates) {
+    if (nextValue && !coordinates && !watchVenueId) {
       requestLocation();
     }
 
     haptic(nextValue ? 'success' : 'tap');
     trigger('click');
-  }, [coordinates, haptic, requestLocation, setValue, trigger, watchIsNearbyDare]);
+  }, [coordinates, haptic, requestLocation, setValue, trigger, watchIsNearbyDare, watchVenueId]);
 
   const onSubmit = async (data: FormData) => {
     trigger('fund');
@@ -503,7 +535,8 @@ function CreateDareContent() {
           longitude: isNearbyDareEnabled ? coordinates?.lng : undefined,
           locationLabel: data.locationLabel || undefined,
           discoveryRadiusKm: data.discoveryRadiusKm ?? 5,
-          creationContext: 'CREATE',
+          venueId: data.venueId || undefined,
+          creationContext: data.venueId ? 'MAP' : 'CREATE',
           imageUrl: uploadedDareImage?.uploadedUrl,
           imageCid: uploadedDareImage?.uploadedCid,
           requireSentinel: selectedSentinel,
@@ -645,6 +678,32 @@ function CreateDareContent() {
           </p>
         </div>
 
+        {venuePrefill && (
+          <div className="mb-5 rounded-[22px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,12,22,0.74)_100%)] px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] md:mb-7 md:px-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100">
+                  <MapPin className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-100/70">
+                    Venue locked
+                  </div>
+                  <div className="mt-1 text-base font-black text-white">
+                    {venuePrefill.name}
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-white/54">
+                    This mission will attach to the venue record directly. No GPS permission is needed for this route.
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+                {venuePrefill.mode === 'venue-activation' ? 'activation' : 'challenge'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* SUCCESS STATE - Liquid Glass */}
         {successData && (
           <div className={`mb-6 md:mb-8 p-4 md:p-6 rounded-xl md:rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${successData.awaitingClaim
@@ -768,6 +827,7 @@ function CreateDareContent() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit(onSubmit, onError)}>
+          <input type="hidden" {...register('venueId')} />
           {/* Error Summary - Liquid Glass Style */}
           {Object.keys(errors).length > 0 && (
             <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-xl backdrop-blur-xl bg-red-500/10 border border-red-500/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -945,7 +1005,12 @@ function CreateDareContent() {
                         : 'bg-white/[0.03] border-white/[0.06]'
                       }`}>
                       <div className="flex items-center gap-3">
-                        {geoLoading ? (
+                        {watchVenueId ? (
+                          <>
+                            <CheckCircle className="w-5 h-5 text-cyan-300" />
+                            <span className="text-sm text-cyan-200 font-mono">Venue locked · GPS not needed</span>
+                          </>
+                        ) : geoLoading ? (
                           <>
                             <Loader2 className="w-5 h-5 text-[#FACC15] animate-spin" />
                             <span className="text-sm text-gray-400">Getting your location...</span>
@@ -1005,6 +1070,7 @@ function CreateDareContent() {
                         {...register('discoveryRadiusKm', { valueAsNumber: true })}
                         className={`${dentInputClass} w-full h-12 text-white rounded-xl px-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none font-bold cursor-pointer transition-all text-sm`}
                       >
+                        <option value={0.5}>Venue pin - 500m</option>
                         <option value={1}>1 km - Very local</option>
                         <option value={2}>2 km - Walking distance</option>
                         <option value={5}>5 km - Neighborhood (default)</option>
