@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, BellRing, Check, Smartphone } from 'lucide-react';
-import { useWallet } from '@/context/WalletContext';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -53,7 +53,7 @@ const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
 const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
 
 export function NotificationBell() {
-    const { address } = useWallet();
+    const { address } = useActiveWallet();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);

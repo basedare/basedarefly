@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, BellRing, Loader2 } from 'lucide-react';
 
 import SquircleButton from '@/components/ui/SquircleButton';
-import { useWallet } from '@/context/WalletContext';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 
 type ActionCenterCategory =
   | 'Needs response'
@@ -62,7 +62,7 @@ const categoryTone: Record<ActionCenterCategory, string> = {
 
 export default function ActionCenterPage() {
   const router = useRouter();
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, isResolving, isLiveWalletConnected, sessionWallet } = useActiveWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<ActionCenterItem[]>([]);
@@ -74,7 +74,7 @@ export default function ActionCenterPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/action-center?wallet=${address}`, {
+      const res = await fetch(`/api/action-center?wallet=${encodeURIComponent(address)}`, {
         headers: {
           'x-moderator-wallet': address,
         },
@@ -142,7 +142,7 @@ export default function ActionCenterPage() {
 
           {!isConnected ? (
             <div className="mt-6 rounded-[24px] border border-white/8 bg-black/20 px-5 py-5 text-sm text-white/56">
-              Connect your wallet to load your live action center.
+              {isResolving ? 'Checking your wallet session...' : 'Connect your wallet to load your live action center.'}
             </div>
           ) : loading ? (
             <div className="mt-6 flex items-center gap-3 rounded-[24px] border border-white/8 bg-black/20 px-5 py-5 text-sm text-white/56">
@@ -157,6 +157,11 @@ export default function ActionCenterPage() {
           ) : (
             <>
               <div className="mt-6 flex flex-wrap gap-2">
+                {!isLiveWalletConnected && sessionWallet ? (
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                    Session wallet loaded
+                  </span>
+                ) : null}
                 {categoryOrder.map((category) =>
                   summary && summary.counts[category] > 0 ? (
                     <span
