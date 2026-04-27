@@ -98,7 +98,6 @@ export default function SquircleLink({
   const highlight = HEXES[idx * 2] ?? 'ffd825';
   const depth = HEXES[idx * 2 + 1] ?? 'ca8a00';
   const white = tone === 'white';
-  const warmJelly = tone === 'yellow' || tone === 'amber';
   const width = useLinkWidth(label, fullWidth);
   const [pressed, setPressed] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -112,8 +111,8 @@ export default function SquircleLink({
   const dy = floating ? (isDown ? 10 : isHovering ? 22 : 18) : isDown ? 1.5 : isHovering ? 5 : 4;
   const std = floating ? (isDown ? 6 : isHovering ? 13 : 11) : isDown ? 1.6 : isHovering ? 4.5 : 3.6;
   const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
-  const shadowOpacity = warmJelly ? (isDown ? 0.34 : 0.58) : isDown ? 0.42 : 0.72;
-  const dropOpacity = warmJelly ? opacity * 0.78 : opacity;
+  const shadowOpacity = isDown ? 0.42 : 0.72;
+  const dropOpacity = opacity;
   const svgWidth = width + 10;
   const svgHeight = 56;
   const labelText = label.toUpperCase();
@@ -172,7 +171,7 @@ export default function SquircleLink({
 
         <path
           d={shadowPath}
-          fill={mix(depth, warmJelly ? 42 : 52, 'black')}
+          fill={mix(depth, 52, 'black')}
           filter={`url(#b-${idSuffix})`}
           opacity={shadowOpacity}
         />
@@ -180,7 +179,7 @@ export default function SquircleLink({
         <path
           d={facePath}
           fill={`url(#g-${idSuffix})`}
-          stroke={white ? '#e2e8f0' : mix(highlight, warmJelly ? 58 : 70, 'white')}
+          stroke={white ? '#e2e8f0' : mix(highlight, 70, 'white')}
           strokeWidth="1.5"
         />
         <path d={facePath} fill={`url(#s-${idSuffix})`} opacity={tone === 'slate' ? 0.18 : 0.42} />
@@ -194,21 +193,28 @@ export default function SquircleLink({
           opacity={isDown ? 0.12 : isHovering ? 0.7 : 0.52}
         />
 
-        <foreignObject x="5" y={faceY} width={width} height="40">
-          <div className="flex h-full w-full items-center justify-center px-4">
-            <div
-              className={cn(
-                'relative z-10 flex items-center justify-center gap-2 whitespace-nowrap font-black uppercase tracking-[0.08em]',
-                height >= 48 ? 'text-[0.92rem]' : 'text-[0.82rem]',
-                tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white',
-                labelClassName
-              )}
-            >
-              {children ?? labelText}
-            </div>
-          </div>
-        </foreignObject>
       </svg>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 z-10 flex items-center justify-center px-4"
+        style={{
+          top: `${faceY * scale}px`,
+          height: `${40 * scale}px`,
+          WebkitFontSmoothing: 'antialiased',
+          textRendering: 'geometricPrecision',
+        }}
+      >
+        <div
+          className={cn(
+            'relative z-10 flex items-center justify-center gap-2 whitespace-nowrap font-black uppercase tracking-[0.08em]',
+            height >= 48 ? 'text-[0.92rem]' : 'text-[0.82rem]',
+            tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white',
+            labelClassName
+          )}
+        >
+          {children ?? labelText}
+        </div>
+      </div>
       <span className="sr-only">{labelText}</span>
     </Link>
   );

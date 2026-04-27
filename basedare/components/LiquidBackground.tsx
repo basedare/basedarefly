@@ -3,7 +3,11 @@ import React, { useEffect, useState } from 'react';
 // THE ONLY FIX: Pointing to the correct folder
 import { useIgnition } from '@/app/context/IgnitionContext';
 
-export default function LiquidBackground() {
+type LiquidBackgroundProps = {
+  veilOpacity?: number;
+};
+
+export default function LiquidBackground({ veilOpacity = 0.65 }: LiquidBackgroundProps) {
   const { ignitionActive } = useIgnition();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -57,7 +61,7 @@ export default function LiquidBackground() {
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
 
-      <div className="absolute inset-0 bg-black" style={{ opacity: 0.65 }} />
+      <div className="absolute inset-0 bg-black" style={{ opacity: veilOpacity }} />
 
       {/* IGNITION SHOCKWAVE LAYER */}
       {ignitionActive && (

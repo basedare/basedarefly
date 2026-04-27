@@ -228,24 +228,24 @@ export default async function VenueDetailPage(
                     <div className="mt-5 grid gap-2">
                       <SquircleLink
                         href={fundChallengeHref}
-                        label="Fund challenge"
+                        label="Fund dare"
                         tone="yellow"
                         fullWidth
                         height={50}
-                        labelClassName="text-[0.8rem] tracking-[0.12em] sm:text-[0.86rem]"
+                        labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        Fund challenge
+                        Fund dare
                         <ArrowRight className="h-4 w-4" />
                       </SquircleLink>
                       <SquircleLink
                         href={activateVenueHref}
-                        label="Activate venue"
+                        label="Activate"
                         tone="purple"
                         fullWidth
                         height={46}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        Activate venue
+                        Activate
                       </SquircleLink>
                     </div>
                   </div>
@@ -369,13 +369,13 @@ export default async function VenueDetailPage(
                     <div className="w-full max-w-xs sm:w-48">
                       <SquircleLink
                         href={fundChallengeHref}
-                        label="Fund challenge"
+                        label="Fund dare"
                         tone="yellow"
                         fullWidth
                         height={48}
-                        labelClassName="text-[0.78rem] tracking-[0.12em]"
+                        labelClassName="text-[0.74rem] tracking-[0.1em]"
                       >
-                        Fund challenge
+                        Fund dare
                       </SquircleLink>
                     </div>
                   </div>
@@ -630,13 +630,13 @@ export default async function VenueDetailPage(
                       <div className="mt-4 max-w-xs">
                         <SquircleLink
                           href={fundChallengeHref}
-                          label="Create first challenge"
+                          label="Start dare"
                           tone="yellow"
                           fullWidth
                           height={46}
                           labelClassName="text-[0.7rem] tracking-[0.1em] sm:text-[0.76rem]"
                         >
-                          Create first challenge
+                          Start dare
                           <ArrowRight className="h-4 w-4" />
                         </SquircleLink>
                       </div>
@@ -690,7 +690,7 @@ export default async function VenueDetailPage(
                     href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
                     className="inline-flex items-center gap-2 self-start rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                   >
-                    Launch with venue prefilled
+                    Launch here
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -705,7 +705,7 @@ export default async function VenueDetailPage(
                         href={fundChallengeHref}
                         className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                       >
-                        Fund challenge
+                        Fund dare
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                       <Link
@@ -717,36 +717,36 @@ export default async function VenueDetailPage(
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-5 grid gap-3 xl:grid-cols-3">
+                  <div className="mt-5 grid gap-3 xl:grid-cols-2">
                     {topCreatorRoutes.map((creator) => (
                       <div
                         key={`${creator.walletAddress}-${creator.creatorTag}`}
-                        className={`${insetCardClass} flex h-full flex-col px-4 py-4`}
+                        className={`${insetCardClass} flex h-full min-w-0 flex-col overflow-hidden px-4 py-4`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-lg font-bold text-white">{creator.creatorTag}</div>
-                            <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/42">
-                              {creator.trustLabel} level {creator.trustLevel}
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-lg font-bold text-white">{creator.creatorTag}</div>
+                            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/42">
+                              <span>{creator.trustLabel} L{creator.trustLevel}</span>
+                              <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2 py-0.5 text-cyan-100">
+                                {creator.trustScore} trust
+                              </span>
                             </div>
-                          </div>
-                          <div className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
-                            {creator.trustScore} trust
                           </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                        <div className="mt-4 grid grid-cols-3 gap-2">
+                          <div className="min-w-0 rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
                             <div className="text-lg font-black text-white">{creator.marksHere}</div>
-                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">Marks</div>
+                            <div className="truncate text-[10px] uppercase tracking-[0.12em] text-white/42">Marks</div>
                           </div>
-                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                          <div className="min-w-0 rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
                             <div className="text-lg font-black text-[#f8dd72]">{creator.firstMarksHere}</div>
-                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">First sparks</div>
+                            <div className="truncate text-[10px] uppercase tracking-[0.12em] text-white/42">First</div>
                           </div>
-                          <div className="rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
+                          <div className="min-w-0 rounded-[16px] border border-white/10 bg-white/[0.03] px-2 py-2">
                             <div className="text-lg font-black text-emerald-100">${Math.round(creator.totalEarned)}</div>
-                            <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">Earned</div>
+                            <div className="truncate text-[10px] uppercase tracking-[0.12em] text-white/42">Earned</div>
                           </div>
                         </div>
 
@@ -759,19 +759,19 @@ export default async function VenueDetailPage(
                           </span>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
                           <Link
                             href={creator.href}
-                            className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                            className="inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-3 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                           >
-                            Route creator
+                            Route
                             <ArrowRight className="h-4 w-4" />
                           </Link>
                           <Link
                             href={`/creator/${encodeURIComponent(creator.creatorTag)}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                            className="inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
                           >
-                            View profile
+                            Profile
                           </Link>
                         </div>
                       </div>
@@ -886,12 +886,12 @@ export default async function VenueDetailPage(
                       <div className="mt-3 flex flex-wrap gap-2">
                         <SquircleLink
                           href={fundChallengeHref}
-                          label="Create first challenge"
+                          label="Start dare"
                           tone="yellow"
                           height={46}
                           labelClassName="text-[0.7rem] tracking-[0.1em]"
                         >
-                          Create first challenge
+                          Start dare
                           <ArrowRight className="h-4 w-4" />
                         </SquircleLink>
                         <Link
