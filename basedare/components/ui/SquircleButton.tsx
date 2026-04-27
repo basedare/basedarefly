@@ -24,6 +24,11 @@ const COLORS = {
 
 type SquircleTone = keyof typeof COLORS;
 
+const JELLY_FACE_HEIGHT = 40;
+const JELLY_FACE_RADIUS = 20;
+const JELLY_SHINE_WIDTH = 0.44;
+const JELLY_SHINE_HEIGHT = 4.4;
+
 type SquircleButtonProps = {
   tone?: SquircleTone;
   label?: string;
@@ -82,10 +87,10 @@ function useButtonWidth(label: string, icon: boolean, square: boolean, fullWidth
     if (fullWidth) return 160;
 
     const compactLabel = label.trim().toUpperCase();
-    const estimatedTextWidth = compactLabel.length * 9.6;
-    const paddingWidth = icon ? 86 : 68;
+    const estimatedTextWidth = compactLabel.length * 8.7;
+    const paddingWidth = icon ? 78 : 58;
 
-    return Math.max(120, Math.ceil((estimatedTextWidth + paddingWidth) * 1.08));
+    return Math.max(120, Math.ceil((estimatedTextWidth + paddingWidth) * 1.04));
   }, [fullWidth, icon, label, square]);
 }
 
@@ -147,8 +152,10 @@ export default function SquircleButton({
     handlePointerUp();
   };
 
-  const facePath = useMemo(() => squirclePath(width, 40, 18, 5, faceY), [faceY, width]);
-  const shadowPath = useMemo(() => squirclePath(width, 40, 18, 5, shadowY), [shadowY, width]);
+  const facePath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, faceY), [faceY, width]);
+  const shadowPath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, shadowY), [shadowY, width]);
+  const shineWidth = width * JELLY_SHINE_WIDTH;
+  const shineX = 5 + (width - shineWidth) / 2;
 
   return (
     <button
@@ -212,11 +219,11 @@ export default function SquircleButton({
         />
         <path d={facePath} fill={`url(#s-${idSuffix})`} opacity={tone === 'slate' ? 0.18 : 0.42} />
         <rect
-          x={5 + width * 0.22}
+          x={shineX}
           y={faceY + 3.5}
-          width={width * 0.56}
-          height="5.5"
-          rx="3"
+          width={shineWidth}
+          height={JELLY_SHINE_HEIGHT}
+          rx={JELLY_SHINE_HEIGHT / 2}
           fill="rgba(255,255,255,0.5)"
           opacity={isDown ? 0.12 : isHovering ? 0.7 : 0.52}
         />
