@@ -974,8 +974,8 @@ export default function Dashboard() {
                 </p>
 
                 {isConnected && userTag ? (
-                  <div className={`${insetCardClass} mt-4 flex items-center gap-3 px-4 py-3`}>
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_12px_24px_rgba(0,0,0,0.24)]">
+                  <div className={`${insetCardClass} mt-4 flex items-center gap-4 px-4 py-4 sm:px-5`}>
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_16px_34px_rgba(0,0,0,0.32)] sm:h-24 sm:w-24">
                       {dashboardAvatarUrl ? (
                         <img
                           src={dashboardAvatarUrl}
@@ -989,8 +989,8 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-white">{userTag.tag}</div>
-                      <div className="mt-1 text-xs text-white/55">
+                      <div className="text-base font-semibold text-white">{userTag.tag}</div>
+                      <div className="mt-1.5 text-sm text-white/55">
                         {userTag.bio || 'Add a short bio and profile photo so people know who you are.'}
                       </div>
                     </div>
