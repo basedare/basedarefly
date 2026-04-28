@@ -1,41 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-options';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
-
-type WalletSession = {
-    token?: string;
-    walletAddress?: string;
-    user?: {
-        walletAddress?: string | null;
-    } | null;
-};
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 const CommentPostSchema = z.object({
     body: z.string().min(1, 'Comment body is required').max(500, 'Comment too long'),
     displayName: z.string().max(80, 'Display name too long').optional(),
     walletAddress: z.string().optional(),
 });
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-    const session = (await getServerSession(authOptions)) as WalletSession | null;
-    if (!session) return null;
-
-    const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-
-    if (session.token && (!bearerToken || bearerToken !== session.token)) {
-        return null;
-    }
-
-    const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-    if (!wallet || !isAddress(wallet)) return null;
-
-    return wallet.toLowerCase();
-}
 
 function normalizeWalletForComments(walletAddress?: string | null): string | null {
     if (!walletAddress || !isAddress(walletAddress)) return null;
@@ -110,9 +84,12 @@ export async function POST(
         }
 
         const { walletAddress, displayName, body: text } = parsed.data;
-        const sessionWallet = await getVerifiedSessionWallet(request);
         const normalizedBodyWallet = normalizeWalletForComments(walletAddress);
-        const actingWallet = sessionWallet ?? normalizedBodyWallet;
+        const actingWallet = await getAuthorizedWalletForRequest(request, {
+            walletAddress: normalizedBodyWallet,
+            action: 'dare:comment',
+            resource: id,
+        });
 
         if (!actingWallet) {
             return NextResponse.json(
@@ -121,13 +98,6 @@ export async function POST(
                     error: 'Unauthorized',
                     code: 'COMMENT_AUTH_REQUIRED',
                 },
-                { status: 401 }
-            );
-        }
-
-        if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
-            return NextResponse.json(
-                { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
                 { status: 401 }
             );
         }

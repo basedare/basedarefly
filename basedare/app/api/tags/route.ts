@@ -10,9 +10,9 @@ import {
   annotatePrimaryTags,
   deriveIdentityHandle,
   deriveIdentityPlatform,
-  deriveIdentityVerificationCode,
   selectPrimaryTag,
 } from '@/lib/creator-identity';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type WalletSession = {
   token?: string;
@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
           walletAddress: true,
           verifiedAt: true,
           verificationMethod: true,
-          kickVerificationCode: true,
           bio: true,
           pfpUrl: true,
           pfpScale: true,
@@ -93,7 +92,6 @@ export async function GET(request: NextRequest) {
           platform: existing.verificationMethod?.toLowerCase(),
           identityPlatform: deriveIdentityPlatform(existing),
           identityHandle: deriveIdentityHandle(existing),
-          identityVerificationCode: deriveIdentityVerificationCode(existing),
         });
       }
 
@@ -124,7 +122,6 @@ export async function GET(request: NextRequest) {
           youtubeHandle: true,
           youtubeVerified: true,
           kickHandle: true,
-          kickVerificationCode: true,
           kickVerified: true,
           status: true,
           revokedAt: true,
@@ -165,7 +162,6 @@ export async function GET(request: NextRequest) {
         twitchHandle: true,
         youtubeHandle: true,
         kickHandle: true,
-        kickVerificationCode: true,
         verificationMethod: true,
         totalEarned: true,
         completedDares: true,
@@ -188,7 +184,6 @@ export async function GET(request: NextRequest) {
         ...tagRecord,
         identityPlatform: deriveIdentityPlatform(tagRecord),
         identityHandle: deriveIdentityHandle(tagRecord),
-        identityVerificationCode: deriveIdentityVerificationCode(tagRecord),
       })),
     });
   } catch (error: unknown) {
@@ -271,7 +266,11 @@ export async function POST(request: NextRequest) {
     const bodyWallet = rawWalletAddress && isAddress(rawWalletAddress)
       ? rawWalletAddress.toLowerCase()
       : null;
-    const walletAddress = sessionWallet ?? bodyWallet;
+    const walletAddress = await getAuthorizedWalletForRequest(request, {
+      walletAddress: bodyWallet,
+      action: 'tag:claim',
+      resource: normalizedTag.toLowerCase(),
+    });
 
     if (!walletAddress) {
       return NextResponse.json(

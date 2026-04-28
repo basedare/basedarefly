@@ -22,6 +22,7 @@ import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADD
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { buildXSharePayload } from '@/lib/social-share';
 import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -180,6 +181,10 @@ export default function DareDetailPage() {
   const { signMessageAsync } = useSignMessage();
   const { data: session } = useSession();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const sessionWallet =
+    (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.walletAddress?.toLowerCase() ??
+    (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.user?.walletAddress?.toLowerCase() ??
+    null;
 
   // Dare state
   const [dare, setDare] = useState<DareDetail | null>(null);
@@ -305,11 +310,19 @@ export default function DareDetailPage() {
     setSubmittingComment(true);
     setCommentError(null);
     try {
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        sessionToken,
+        sessionWallet,
+        action: 'dare:comment',
+        resource: dare.id,
+        signMessageAsync,
+      });
       const res = await fetch(`/api/dares/${dare.id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           walletAddress: address,
@@ -385,9 +398,17 @@ export default function DareDetailPage() {
     setUpvoteLoading(true);
     setUpvoteError(null);
     try {
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        sessionToken,
+        sessionWallet,
+        action: 'dare:upvote',
+        resource: dare.id,
+        signMessageAsync,
+      });
       const res = await fetch(`/api/dares/${dare.id}/upvote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ walletAddress: address }),
       });
       const data = await res.json();
@@ -506,11 +527,19 @@ export default function DareDetailPage() {
     if (!dare || !address) return;
     setClaimLoading(true); setClaimError(null);
     try {
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        sessionToken,
+        sessionWallet,
+        action: 'dare:claim',
+        resource: dare.id,
+        signMessageAsync,
+      });
       const res = await fetch(`/api/dares/${dare.id}/claim`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({ walletAddress: address }),
       });
@@ -525,7 +554,7 @@ export default function DareDetailPage() {
       } else { setClaimError(data.error || 'Claim request failed'); }
     } catch { setClaimError('Network error'); }
     finally { setClaimLoading(false); }
-  }, [dare, address, sessionToken]);
+  }, [dare, address, sessionToken, sessionWallet, signMessageAsync]);
 
   const isUserInvolved = dare && address &&
     (address.toLowerCase() === dare.stakerAddress?.toLowerCase() ||

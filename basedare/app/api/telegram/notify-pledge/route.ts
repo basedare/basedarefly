@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { alertBigPledge } from '@/lib/telegram';
+import { verifyInternalApiKey } from '@/lib/api-auth';
 
 // Minimum pledge amount to trigger alert (in USDC)
 const BIG_PLEDGE_THRESHOLD = 50;
@@ -16,9 +17,12 @@ const NotifyPledgeSchema = z.object({
 
 /**
  * POST /api/telegram/notify-pledge
- * Called by frontend after successful funding to notify admins
+ * Internal-only alert hook for trusted funding reconciliation jobs.
  */
 export async function POST(req: NextRequest) {
+  const authError = verifyInternalApiKey(req);
+  if (authError) return authError;
+
   try {
     const body = await req.json();
     const validation = NotifyPledgeSchema.safeParse(body);
@@ -54,14 +58,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate new total pot (existing + new pledge)
-    const totalPot = dare.bounty + amount;
-
-    // Update dare bounty in database
-    await prisma.dare.update({
-      where: { id: dareId },
-      data: { bounty: totalPot },
-    });
+    // Do not mutate bounty from this alert route. Funding state must be
+    // reconciled by the trusted bounty/register flow or on-chain settlement.
+    const totalPot = dare.bounty;
 
     // Send Telegram alert
     await alertBigPledge({

@@ -74,27 +74,13 @@ export default function DareInteractions({
         description: `Added ${injectAmount} USDC to the pot`,
       })
 
-      // Notify backend for big pledge alerts (fire and forget)
-      const pledgeAmount = parseFloat(injectAmount)
-      if (pledgeAmount >= 50 && address) {
-        fetch('/api/telegram/notify-pledge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dareId: dareId.toString(),
-            amount: pledgeAmount,
-            pledgerAddress: address,
-          }),
-        }).catch(() => { }) // Ignore errors - notification is best-effort
-      }
-
       setInjectAmount('')
       setShowInjectInput(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Inject capital failed:", error)
       toast({
         title: "Transaction Failed",
-        description: error.message || "Failed to inject capital",
+        description: error instanceof Error ? error.message : "Failed to inject capital",
         variant: "destructive"
       })
     }
@@ -178,4 +164,3 @@ export default function DareInteractions({
     </div>
   )
 }
-

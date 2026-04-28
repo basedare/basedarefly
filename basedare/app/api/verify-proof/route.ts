@@ -899,6 +899,22 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const authorizedWallet = await getAuthorizedProofSubmitterWallet(req, {
+      dareId,
+      authorizedWallets: [
+        dare.stakerAddress,
+        dare.targetWalletAddress,
+        dare.claimedBy,
+      ],
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     if (dare.status !== 'FAILED') {
       return NextResponse.json(
         { success: false, error: 'Only failed dares can be appealed' },

@@ -11,6 +11,7 @@ import {
   uploadPublicMediaFile,
   validateSupportedMediaFile,
 } from '@/lib/media-upload';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type WalletSession = {
   token?: string;
@@ -196,7 +197,11 @@ export async function POST(
     const formData = await request.formData();
     const sessionWallet = await getAuthenticatedWallet(request);
     const bodyWallet = normalizeWallet(formData.get('walletAddress'));
-    const walletAddress = sessionWallet ?? bodyWallet;
+    const walletAddress = await getAuthorizedWalletForRequest(request, {
+      walletAddress: bodyWallet ?? sessionWallet,
+      action: 'place:tag',
+      resource: id,
+    });
     const file = formData.get('file');
     const caption = parseOptionalString(formData.get('caption'));
     const linkedDareId = parseOptionalString(formData.get('linkedDareId'));

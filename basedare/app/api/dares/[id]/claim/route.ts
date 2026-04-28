@@ -6,6 +6,7 @@ import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
 import { alertClaimRequestSubmission } from '@/lib/telegram';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -64,19 +65,15 @@ export async function POST(
     }
 
     const { walletAddress } = validation.data;
-    const sessionWallet = await getVerifiedSessionWallet(request);
     const normalizedBodyWallet = normalizeWallet(walletAddress);
-    const lowerWallet = sessionWallet ?? normalizedBodyWallet;
+    const lowerWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: normalizedBodyWallet,
+      action: 'dare:claim',
+      resource: dareId,
+    });
 
     if (!lowerWallet) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (sessionWallet && normalizedBodyWallet && normalizedBodyWallet !== sessionWallet) {
-      return NextResponse.json(
-        { success: false, error: 'Wallet mismatch. Use authenticated session wallet.' },
-        { status: 401 }
-      );
     }
 
     // Check if user has a verified tag

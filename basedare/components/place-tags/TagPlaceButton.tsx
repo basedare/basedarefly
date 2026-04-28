@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 import { Crosshair, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useToast } from '@/components/ui/use-toast';
 import { triggerHaptic } from '@/lib/mobile-haptics';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 type TagPlaceButtonProps = {
   placeId?: string;
@@ -92,6 +93,7 @@ export default function TagPlaceButton({
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
   const { address: connectedWallet, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const {
     coordinates,
     loading: geoLoading,
@@ -316,13 +318,18 @@ export default function TagPlaceButton({
         formData.append('walletAddress', normalizedConnectedWallet);
       }
 
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: normalizedConnectedWallet ?? sessionWallet,
+        sessionToken,
+        sessionWallet,
+        action: 'place:tag',
+        resource: targetPlaceId,
+        signMessageAsync,
+      });
+
       const response = await fetch(`/api/places/${targetPlaceId}/tags`, {
         method: 'POST',
-        headers: sessionToken
-          ? {
-              Authorization: `Bearer ${sessionToken}`,
-            }
-          : undefined,
+        headers: authHeaders,
         body: formData,
       });
 

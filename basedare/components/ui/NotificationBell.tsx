@@ -3,8 +3,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, BellRing, Check, Smartphone, X } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { useSession } from 'next-auth/react';
+import { useSignMessage } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 interface Notification {
     id: string;
@@ -53,7 +56,9 @@ const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
 const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
 
 export function NotificationBell() {
-    const { address } = useActiveWallet();
+    const { address, sessionWallet } = useActiveWallet();
+    const { data: session } = useSession();
+    const { signMessageAsync } = useSignMessage();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
@@ -72,11 +77,30 @@ export function NotificationBell() {
     const unreadCount = notifications.length;
     const attentionCount = Math.max(unreadCount, actionSummary?.total ?? 0);
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
-    const fetchNotifications = useCallback(async () => {
+    const getWalletAuthHeaders = useCallback(
+        async (action: string, allowSignPrompt = false) => {
+            if (!address) return {};
+
+            return buildWalletActionAuthHeaders({
+                walletAddress: address,
+                sessionToken,
+                sessionWallet,
+                action,
+                resource: address,
+                allowSignPrompt,
+                signMessageAsync,
+            });
+        },
+        [address, sessionToken, sessionWallet, signMessageAsync]
+    );
+
+    const fetchNotifications = useCallback(async (allowSignPrompt = false) => {
         if (!address) return;
         try {
-            const res = await fetch(`/api/notifications?wallet=${address}`);
+            const headers = await getWalletAuthHeaders('notifications:read', allowSignPrompt);
+            const res = await fetch(`/api/notifications?wallet=${address}`, { headers });
             const data = await res.json();
             if (data.success) {
                 setNotifications(data.notifications);
@@ -84,7 +108,7 @@ export function NotificationBell() {
         } catch (err) {
             console.error('Failed to fetch notifications', err);
         }
-    }, [address]);
+    }, [address, getWalletAuthHeaders]);
 
     const fetchActionCenter = useCallback(async () => {
         if (!address) return;
@@ -107,10 +131,10 @@ export function NotificationBell() {
     // Polling every 30s
     useEffect(() => {
         if (address) {
-            fetchNotifications();
+            void fetchNotifications(false);
             void fetchActionCenter();
             const intervalId = setInterval(() => {
-                void fetchNotifications();
+                void fetchNotifications(false);
                 void fetchActionCenter();
             }, 30000);
             return () => clearInterval(intervalId);
@@ -120,6 +144,11 @@ export function NotificationBell() {
             setActionSummary(null);
         }
     }, [address, fetchActionCenter, fetchNotifications]);
+
+    useEffect(() => {
+        if (!isOpen || !address) return;
+        void fetchNotifications(true);
+    }, [address, fetchNotifications, isOpen]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -138,7 +167,8 @@ export function NotificationBell() {
                 const subscription = await registration.pushManager.getSubscription();
                 setPushEnabled(Boolean(subscription));
 
-                const res = await fetch(`/api/push/subscriptions?wallet=${address}`);
+                const headers = await getWalletAuthHeaders('push:read', false);
+                const res = await fetch(`/api/push/subscriptions?wallet=${address}`, { headers });
                 const data = await res.json();
 
                 if (data.success) {
@@ -156,7 +186,7 @@ export function NotificationBell() {
         };
 
         void loadPushState();
-    }, [address]);
+    }, [address, getWalletAuthHeaders]);
 
     // Click outside to close
     useEffect(() => {
@@ -191,15 +221,16 @@ export function NotificationBell() {
         setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
 
         try {
+            const headers = await getWalletAuthHeaders('notifications:write', true);
             await fetch('/api/notifications', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({ wallet: address, notificationIds: ids })
             });
         } catch (err) {
             console.error('Failed to mark notifications as read', err);
             // Re-fetch to restore state on error
-            fetchNotifications();
+            void fetchNotifications(false);
         }
     };
 
@@ -240,9 +271,10 @@ export function NotificationBell() {
                 });
             }
 
+            const headers = await getWalletAuthHeaders('push:write', true);
             const res = await fetch('/api/push/subscriptions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({
                     wallet: address,
                     subscription: subscription.toJSON(),
@@ -280,9 +312,10 @@ export function NotificationBell() {
             const subscription = await registration.pushManager.getSubscription();
 
             if (subscription) {
+                const headers = await getWalletAuthHeaders('push:write', true);
                 await fetch('/api/push/subscriptions', {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...headers },
                     body: JSON.stringify({
                         wallet: address,
                         endpoint: subscription.endpoint,
@@ -320,9 +353,10 @@ export function NotificationBell() {
         setPushMessage(null);
 
         try {
+            const headers = await getWalletAuthHeaders('push:write', true);
             const res = await fetch('/api/push/subscriptions', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({
                     wallet: address,
                     endpoint: pushEndpoint,
@@ -354,9 +388,10 @@ export function NotificationBell() {
         setPushMessage(null);
 
         try {
+            const headers = await getWalletAuthHeaders('push:write', true);
             const res = await fetch('/api/push/subscriptions', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({
                     wallet: address,
                     endpoint: pushEndpoint,
@@ -388,9 +423,10 @@ export function NotificationBell() {
         setPushMessage(null);
 
         try {
+            const headers = await getWalletAuthHeaders('push:test', true);
             const res = await fetch('/api/push/test', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({
                     wallet: address,
                     endpoint: pushEndpoint,

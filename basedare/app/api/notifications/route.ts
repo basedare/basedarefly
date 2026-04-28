@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 // ============================================================================
 // GET /api/notifications - Fetch unread notifications for a wallet
@@ -15,6 +16,15 @@ export async function GET(request: NextRequest) {
         }
 
         const lowerWallet = wallet.toLowerCase();
+        const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+            walletAddress: lowerWallet,
+            action: 'notifications:read',
+            resource: lowerWallet,
+        });
+
+        if (!authorizedWallet) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
 
         const notifications = await prisma.notification.findMany({
             where: {
@@ -52,6 +62,15 @@ export async function PUT(request: NextRequest) {
         }
 
         const lowerWallet = wallet.toLowerCase();
+        const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+            walletAddress: lowerWallet,
+            action: 'notifications:write',
+            resource: lowerWallet,
+        });
+
+        if (!authorizedWallet) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
 
         // Ensure users can only mark their own notifications as read
         await prisma.notification.updateMany({

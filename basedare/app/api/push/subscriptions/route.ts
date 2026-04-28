@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type PushKeys = {
   p256dh?: string;
@@ -95,9 +96,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
     }
 
+    const lowerWallet = wallet.toLowerCase();
+    const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: lowerWallet,
+      action: 'push:read',
+      resource: lowerWallet,
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const subscription = await prisma.webPushSubscription.findFirst({
       where: {
-        wallet: wallet.toLowerCase(),
+        wallet: lowerWallet,
         isActive: true,
       },
       orderBy: {
@@ -156,6 +168,15 @@ export async function POST(request: NextRequest) {
     }
 
     const lowerWallet = wallet.toLowerCase();
+    const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: lowerWallet,
+      action: 'push:write',
+      resource: lowerWallet,
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     await prisma.webPushSubscription.upsert({
       where: {
@@ -212,9 +233,20 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Endpoint required' }, { status: 400 });
     }
 
+    const lowerWallet = wallet.toLowerCase();
+    const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: lowerWallet,
+      action: 'push:write',
+      resource: lowerWallet,
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const existing = await prisma.webPushSubscription.findFirst({
       where: {
-        wallet: wallet.toLowerCase(),
+        wallet: lowerWallet,
         endpoint,
         isActive: true,
       },
@@ -227,7 +259,7 @@ export async function PATCH(request: NextRequest) {
 
     await prisma.webPushSubscription.updateMany({
       where: {
-        wallet: wallet.toLowerCase(),
+        wallet: lowerWallet,
         endpoint,
         isActive: true,
       },
@@ -263,9 +295,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Endpoint required' }, { status: 400 });
     }
 
+    const lowerWallet = wallet.toLowerCase();
+    const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: lowerWallet,
+      action: 'push:write',
+      resource: lowerWallet,
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await prisma.webPushSubscription.updateMany({
       where: {
-        wallet: wallet.toLowerCase(),
+        wallet: lowerWallet,
         endpoint,
       },
       data: {

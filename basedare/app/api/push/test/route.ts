@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
 
 import { sendTestPushToWalletDevice } from '@/lib/web-push';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Valid endpoint required' }, { status: 400 });
     }
 
-    const result = await sendTestPushToWalletDevice({ wallet, endpoint });
+    const lowerWallet = wallet.toLowerCase();
+    const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: lowerWallet,
+      action: 'push:test',
+      resource: lowerWallet,
+    });
+
+    if (!authorizedWallet) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const result = await sendTestPushToWalletDevice({ wallet: lowerWallet, endpoint });
 
     if (!result.success) {
       const error =

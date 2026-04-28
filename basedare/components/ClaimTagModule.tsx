@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
+import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 // Platform icons as SVG components
 const TwitterIcon = ({ className }: { className?: string }) => (
@@ -155,8 +157,15 @@ function sanitizeTagCandidate(value: string | null | undefined): string {
 export function ClaimTagModule() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const { data: session } = useSession();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const sessionWallet =
+    (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.walletAddress?.toLowerCase() ??
+    (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.user?.walletAddress?.toLowerCase() ??
+    null;
 
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [tag, setTag] = useState('');
@@ -393,7 +402,16 @@ export function ClaimTagModule() {
       };
 
       let endpoint = '/api/claim-tag';
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        sessionToken,
+        sessionWallet,
+        action: 'tag:claim',
+        resource: normalizedTag.toLowerCase(),
+        signMessageAsync,
+      });
+      const headers: HeadersInit = { 'Content-Type': 'application/json', ...authHeaders };
 
       endpoint = '/api/tags';
       // Keep the legacy platform field populated while the tag rail still expects it.

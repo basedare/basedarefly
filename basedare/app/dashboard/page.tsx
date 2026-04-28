@@ -16,6 +16,7 @@ import { useSession } from 'next-auth/react';
 import { buildDareResponseMessage, DARE_RESPONSE_WINDOW_MS } from '@/lib/dare-response-auth';
 import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 interface Dare {
   id: string;
@@ -692,11 +693,19 @@ export default function Dashboard() {
 
     try {
       setClaimingOpportunityId(opportunity.id);
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        sessionToken,
+        sessionWallet,
+        action: 'dare:claim',
+        resource: opportunity.linkedDare.id,
+        signMessageAsync,
+      });
       const response = await fetch(`/api/dares/${opportunity.linkedDare.id}/claim`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           walletAddress: address,
