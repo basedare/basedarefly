@@ -38,6 +38,7 @@ export default function InitProtocolButton({
   const { ignitionActive, triggerIgnition } = useIgnition();
   const { trigger } = useFeedback();
   const isActive = !disabled && (active ?? ignitionActive);
+  const liquidRadius = height / 2;
 
   const handleAction = () => {
     if (disabled) return;
@@ -50,11 +51,11 @@ export default function InitProtocolButton({
     return (
       <div
         className={cn(
-          'relative group overflow-hidden rounded-2xl p-[1.5px] transition-all duration-500',
+          'relative group overflow-hidden p-[1.5px] transition-all duration-500',
           disabled && 'opacity-60 saturate-50',
           className
         )}
-        style={{ minHeight: `${height}px` }}
+        style={{ minHeight: `${height}px`, borderRadius: `${liquidRadius + 1.5}px` }}
       >
         <div
           className={cn(
@@ -72,12 +73,12 @@ export default function InitProtocolButton({
           type={type}
           disabled={disabled}
           className={cn(
-            'relative flex h-full min-h-[48px] w-full items-center justify-center rounded-[15px] bg-[#050505] px-8 py-4 backdrop-blur-3xl',
+            'relative flex h-full min-h-[48px] w-full items-center justify-center overflow-hidden bg-[#050505] px-8 py-4 backdrop-blur-3xl',
             buttonClassName
           )}
-          style={{ minHeight: `${height}px` }}
+          style={{ minHeight: `${height}px`, borderRadius: `${liquidRadius}px` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
+          <div className="absolute inset-0 rounded-[inherit] bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
 
           {isActive ? (
             activeContent ?? (
@@ -100,14 +101,14 @@ export default function InitProtocolButton({
                 animate={{ scale: 3, opacity: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="absolute inset-0 rounded-full bg-yellow-400/30 pointer-events-none z-0"
+                className="absolute inset-0 rounded-[inherit] bg-yellow-400/30 pointer-events-none z-0"
               />
             )}
           </AnimatePresence>
 
           <div
             className={cn(
-              'absolute inset-0 bg-yellow-500/5 transition-opacity duration-500',
+              'absolute inset-0 rounded-[inherit] bg-yellow-500/5 transition-opacity duration-500',
               isActive ? 'opacity-100' : 'opacity-0'
             )}
           />
@@ -115,7 +116,7 @@ export default function InitProtocolButton({
 
         <div
           className={cn(
-            'absolute inset-0 transition-opacity duration-700 pointer-events-none',
+            'absolute inset-0 rounded-[inherit] transition-opacity duration-700 pointer-events-none',
             isActive
               ? 'shadow-[0_0_60px_rgba(250,204,21,0.4),inset_0_0_20px_rgba(250,204,21,0.2)] opacity-100'
               : 'opacity-0'

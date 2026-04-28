@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 const HEXES =
   '3b82f61d4ed822c55e15803def4444b91c1cff6a00cc5500ffc8008a5a0014b8a60f766edb3b7cb02e649356d46b3fa13341551e293bffbf008a5a00ffffffd3e2ef'.match(
@@ -87,6 +87,43 @@ function useButtonWidth(label: string, icon: boolean, square: boolean, fullWidth
   }, [fullWidth, icon, label, square]);
 }
 
+function useJellyGeometry(fullWidth: boolean, baseFaceWidth: number, scale: number) {
+  const hostRef = useRef<HTMLButtonElement>(null);
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!fullWidth) {
+      return;
+    }
+
+    const node = hostRef.current;
+    if (!node) return;
+
+    const updateWidth = () => {
+      setMeasuredWidth(node.getBoundingClientRect().width);
+    };
+
+    updateWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fullWidth]);
+
+  const svgWidth =
+    fullWidth && measuredWidth
+      ? Math.max(JELLY_FACE_HEIGHT + 10, measuredWidth / scale)
+      : baseFaceWidth + 10;
+  const faceWidth = Math.max(JELLY_FACE_HEIGHT, svgWidth - 10);
+
+  return { hostRef, faceWidth, svgWidth };
+}
+
 export default function SquircleButton({
   tone = 'yellow',
   label = '',
@@ -122,11 +159,11 @@ export default function SquircleButton({
   const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
   const shadowOpacity = isDown ? 0.42 : 0.72;
   const dropOpacity = opacity;
-  const faceWidth = square ? JELLY_FACE_HEIGHT : width;
-  const svgWidth = faceWidth + 10;
   const svgHeight = 56;
   const labelText = label.toUpperCase();
-  const idSuffix = `${reactId}-${tone}-${faceWidth}-${height}-${floating ? 'f' : 'n'}-button`;
+  const baseFaceWidth = square ? JELLY_FACE_HEIGHT : width;
+  const { hostRef, faceWidth, svgWidth } = useJellyGeometry(fullWidth, baseFaceWidth, scale);
+  const idSuffix = `${reactId}-${tone}-${Math.round(faceWidth)}-${height}-${floating ? 'f' : 'n'}-button`;
   const handlePointerDown = () => {
     if (disabled) return;
     setPressed(true);
@@ -153,6 +190,7 @@ export default function SquircleButton({
 
   return (
     <button
+      ref={hostRef}
       type={type}
       onClick={onClick}
       disabled={disabled}

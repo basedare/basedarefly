@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const HEXES =
@@ -81,6 +81,43 @@ function useLinkWidth(label: string, fullWidth: boolean) {
   }, [fullWidth, label]);
 }
 
+function useJellyGeometry(fullWidth: boolean, baseFaceWidth: number, scale: number) {
+  const hostRef = useRef<HTMLAnchorElement>(null);
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!fullWidth) {
+      return;
+    }
+
+    const node = hostRef.current;
+    if (!node) return;
+
+    const updateWidth = () => {
+      setMeasuredWidth(node.getBoundingClientRect().width);
+    };
+
+    updateWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fullWidth]);
+
+  const svgWidth =
+    fullWidth && measuredWidth
+      ? Math.max(JELLY_FACE_HEIGHT + 10, measuredWidth / scale)
+      : baseFaceWidth + 10;
+  const faceWidth = Math.max(JELLY_FACE_HEIGHT, svgWidth - 10);
+
+  return { hostRef, faceWidth, svgWidth };
+}
+
 export default function SquircleLink({
   href,
   tone = 'yellow',
@@ -111,15 +148,15 @@ export default function SquircleLink({
   const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
   const shadowOpacity = isDown ? 0.42 : 0.72;
   const dropOpacity = opacity;
-  const svgWidth = width + 10;
   const svgHeight = 56;
   const labelText = label.toUpperCase();
+  const { hostRef, faceWidth, svgWidth } = useJellyGeometry(fullWidth, width, scale);
 
-  const facePath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, faceY), [faceY, width]);
-  const shadowPath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, shadowY), [shadowY, width]);
-  const shineWidth = width * JELLY_SHINE_WIDTH;
-  const shineX = 5 + (width - shineWidth) / 2;
-  const idSuffix = `${reactId}-${tone}-${width}-${height}-${floating ? 'f' : 'n'}-link`;
+  const facePath = useMemo(() => squirclePath(faceWidth, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, faceY), [faceY, faceWidth]);
+  const shadowPath = useMemo(() => squirclePath(faceWidth, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, shadowY), [shadowY, faceWidth]);
+  const shineWidth = faceWidth * JELLY_SHINE_WIDTH;
+  const shineX = 5 + (faceWidth - shineWidth) / 2;
+  const idSuffix = `${reactId}-${tone}-${Math.round(faceWidth)}-${height}-${floating ? 'f' : 'n'}-link`;
 
   const handlePointerDown = () => setPressed(true);
   const handlePointerUp = () => setPressed(false);
@@ -131,6 +168,7 @@ export default function SquircleLink({
 
   return (
     <Link
+      ref={hostRef}
       href={href}
       onFocus={handlePointerEnter}
       onBlur={handlePointerLeave}
