@@ -1799,6 +1799,13 @@ export default function AdminPage() {
                 <Clock className="w-4 h-4 inline mr-2" />
                 Daily Command Loop
               </Link>
+              <Link
+                href="/admin/venue-scout-command"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
+              >
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Venue Scout Command
+              </Link>
             </div>
           )}
         </div>

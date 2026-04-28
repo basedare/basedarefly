@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Improve mobile notification centre scroll feel, then add a read-only money-rails settlement cockpit.
+- Goal: Build the first read-only Venue Scout Command Center from the MapiLeads learning.
 
 ### Plan
-- [x] Make the notification centre body momentum-scrollable on mobile.
-- [x] Fix production safety expired-refund counting to match the actual `AWAITING_CLAIM` refund route.
-- [x] Add read-only payout, refund, and stuck-funding visibility to Production Safety.
+- [x] Inspect existing scout, venue-report lead, venue memory, and admin auth surfaces.
+- [x] Add a protected venue scout command report API backed by existing Prisma models.
+- [x] Add an admin page with ranked venue leads, route clusters, outreach copy, and seed venues.
 - [x] Verify with targeted lint/build checks and rebuild graphify.
 
 ### Verification
@@ -22,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Mobile notification centre now uses a single momentum-scrolling sheet body, and Production Safety has a read-only settlement cockpit with payout, refund, and stuck-funding queues.
-- Follow-ups: Decide whether the settlement cockpit should later gain admin-authenticated manual cron triggers or stay read-only.
+- Outcome: Added a protected read-only Venue Scout Command Center with scored venue leads, route clusters, copy-ready outreach, starter dare suggestions, and seed venues.
+- Follow-ups: Decide whether scout command should later gain admin-approved send/schedule actions or stay copy-ready only.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
