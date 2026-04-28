@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Turn the Venue Scout Command Center into a safe internal operator workflow.
+- Goal: Let operators create venue leads directly from Venue Scout seed candidates.
 
 ### Plan
-- [x] Reuse the existing admin venue lead update endpoint instead of adding another mutation route.
-- [x] Add assign, schedule, won, and archive controls to command-center lead cards.
-- [x] Keep external outreach as copy/mailto only; no automated sending.
+- [x] Extend the protected venue-report lead API with admin lead creation.
+- [x] Add create-lead forms to seed venue cards with contact email, name, org, audience, and intent.
+- [x] Create internal CONTACTED pipeline events without sending outbound outreach.
 - [x] Verify with targeted lint/build checks and rebuild graphify.
 
 ### Verification
@@ -22,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Venue Scout Command now supports safe internal lead workflow actions: assign, schedule, mark won, and archive.
-- Follow-ups: Decide whether the next step is admin-approved lead creation from seed venues.
+- Outcome: Seed venues can now be converted into internal venue-report leads from the Venue Scout Command Center, with a CONTACTED pipeline event and no automated outbound send.
+- Follow-ups: Decide whether the next step is a route-level bulk lead capture/import flow.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

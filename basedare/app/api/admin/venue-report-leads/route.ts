@@ -100,6 +100,21 @@ const VenueReportLeadUpdateSchema = z.object({
   nextActionAt: z.string().datetime().nullable().optional(),
 });
 
+const VenueReportLeadCreateSchema = z.object({
+  venueId: z.string().min(1).optional(),
+  venueSlug: z.string().min(1).optional(),
+  audience: z.enum(['venue', 'sponsor']).default('venue'),
+  intent: z.enum(['claim', 'activation', 'repeat']).nullable().optional(),
+  email: z.string().email(),
+  name: z.string().max(120).nullable().optional(),
+  organization: z.string().max(160).nullable().optional(),
+  notes: z.string().max(4000).nullable().optional(),
+  ownerWallet: z.string().min(6).max(120).nullable().optional(),
+  nextActionAt: z.string().datetime().nullable().optional(),
+}).refine((value) => Boolean(value.venueId || value.venueSlug), {
+  message: 'venueId or venueSlug is required',
+});
+
 export async function GET(request: NextRequest) {
   const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) {
@@ -291,6 +306,131 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ADMIN_VENUE_REPORT_LEADS] Fetch failed:', message);
     return NextResponse.json({ success: false, error: 'Failed to load report leads' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) {
+    return unauthorizedAdminResponse(auth);
+  }
+
+  try {
+    const body = await request.json();
+    const validation = VenueReportLeadCreateSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0]?.message || 'Invalid request' },
+        { status: 400 }
+      );
+    }
+
+    const input = validation.data;
+    const venue = await prisma.venue.findFirst({
+      where: input.venueId ? { id: input.venueId } : { slug: input.venueSlug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        city: true,
+        country: true,
+      },
+    });
+
+    if (!venue) {
+      return NextResponse.json({ success: false, error: 'Venue not found' }, { status: 404 });
+    }
+
+    const existingLead = await prisma.venueReportLead.findFirst({
+      where: {
+        venueId: venue.id,
+        email: {
+          equals: input.email,
+          mode: 'insensitive',
+        },
+        followUpStatus: {
+          in: ['NEW', 'FOLLOWING_UP', 'WAITING'],
+        },
+      },
+      select: {
+        id: true,
+        followUpStatus: true,
+        ownerWallet: true,
+        nextActionAt: true,
+      },
+    });
+
+    if (existingLead) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'An active lead already exists for this venue and email.',
+          data: {
+            ...existingLead,
+            nextActionAt: toIso(existingLead.nextActionAt),
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    const lead = await prisma.venueReportLead.create({
+      data: {
+        venueId: venue.id,
+        audience: input.audience,
+        source: 'ADMIN_SCOUT_COMMAND',
+        intent: input.intent ?? null,
+        email: input.email,
+        name: input.name ?? null,
+        organization: input.organization ?? null,
+        notes: input.notes ?? null,
+        ownerWallet: input.ownerWallet ?? null,
+        nextActionAt: input.nextActionAt ? new Date(input.nextActionAt) : null,
+        followUpStatus: input.ownerWallet ? 'FOLLOWING_UP' : 'NEW',
+      },
+      select: {
+        id: true,
+        audience: true,
+        intent: true,
+        email: true,
+        name: true,
+        organization: true,
+        notes: true,
+        followUpStatus: true,
+        ownerWallet: true,
+        nextActionAt: true,
+        contactedAt: true,
+      },
+    });
+
+    await prisma.venueReportEvent.create({
+      data: {
+        venueId: venue.id,
+        leadId: lead.id,
+        audience: input.audience,
+        eventType: 'CONTACTED',
+        channel: 'admin-scout-command',
+        metadataJson: {
+          intent: input.intent ?? null,
+          source: 'admin-scout-command',
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...lead,
+        nextActionAt: toIso(lead.nextActionAt),
+        contactedAt: lead.contactedAt.toISOString(),
+        venue,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[ADMIN_VENUE_REPORT_LEADS] Create failed:', message);
+    return NextResponse.json({ success: false, error: 'Failed to create report lead' }, { status: 500 });
   }
 }
 

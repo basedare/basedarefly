@@ -38,6 +38,22 @@ type VenueLeadUpdatePatch = {
   nextActionAt?: string | null;
 };
 
+type SeedLeadDraft = {
+  email: string;
+  name: string;
+  organization: string;
+  audience: 'venue' | 'sponsor';
+  intent: 'claim' | 'activation' | 'repeat';
+};
+
+const DEFAULT_SEED_LEAD_DRAFT: SeedLeadDraft = {
+  email: '',
+  name: '',
+  organization: '',
+  audience: 'venue',
+  intent: 'activation',
+};
+
 function priorityClasses(priority: VenueScoutLeadPriority) {
   if (priority.label === 'Immediate') return 'border-red-400/35 bg-red-500/10 text-red-100';
   if (priority.label === 'High') return 'border-yellow-300/35 bg-yellow-500/10 text-yellow-100';
@@ -320,7 +336,21 @@ function LeadCard({
   );
 }
 
-function SeedCandidateCard({ candidate }: { candidate: VenueScoutSeedCandidate }) {
+function SeedCandidateCard({
+  candidate,
+  draft,
+  canAssignOwner,
+  isCreating,
+  onDraftChange,
+  onCreateLead,
+}: {
+  candidate: VenueScoutSeedCandidate;
+  draft: SeedLeadDraft;
+  canAssignOwner: boolean;
+  isCreating: boolean;
+  onDraftChange: (candidateId: string, patch: Partial<SeedLeadDraft>) => void;
+  onCreateLead: (candidate: VenueScoutSeedCandidate) => void;
+}) {
   return (
     <article className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -363,6 +393,64 @@ function SeedCandidateCard({ candidate }: { candidate: VenueScoutSeedCandidate }
           Map
         </Link>
       </div>
+      <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/25 p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+          Create pipeline lead
+        </p>
+        <div className="mt-3 grid gap-2">
+          <input
+            type="email"
+            value={draft.email}
+            onChange={(event) => onDraftChange(candidate.id, { email: event.target.value })}
+            placeholder="venue owner email"
+            className="min-h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-bold text-white outline-none transition placeholder:text-white/28 focus:border-yellow-300/45"
+          />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              type="text"
+              value={draft.name}
+              onChange={(event) => onDraftChange(candidate.id, { name: event.target.value })}
+              placeholder="contact name"
+              className="min-h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-bold text-white outline-none transition placeholder:text-white/28 focus:border-yellow-300/45"
+            />
+            <input
+              type="text"
+              value={draft.organization}
+              onChange={(event) => onDraftChange(candidate.id, { organization: event.target.value })}
+              placeholder="organization"
+              className="min-h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-bold text-white outline-none transition placeholder:text-white/28 focus:border-yellow-300/45"
+            />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select
+              value={draft.audience}
+              onChange={(event) => onDraftChange(candidate.id, { audience: event.target.value as SeedLeadDraft['audience'] })}
+              className="min-h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-white outline-none transition focus:border-yellow-300/45"
+            >
+              <option className="bg-[#080814]" value="venue">Venue</option>
+              <option className="bg-[#080814]" value="sponsor">Sponsor</option>
+            </select>
+            <select
+              value={draft.intent}
+              onChange={(event) => onDraftChange(candidate.id, { intent: event.target.value as SeedLeadDraft['intent'] })}
+              className="min-h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-white outline-none transition focus:border-yellow-300/45"
+            >
+              <option className="bg-[#080814]" value="activation">Activation</option>
+              <option className="bg-[#080814]" value="claim">Claim</option>
+              <option className="bg-[#080814]" value="repeat">Repeat</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => onCreateLead(candidate)}
+            disabled={isCreating || draft.email.trim().length === 0}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-yellow-300/25 bg-yellow-300 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-black shadow-[0_5px_0_rgba(118,74,0,0.72)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+          >
+            {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            {canAssignOwner ? 'Create + assign' : 'Create lead'}
+          </button>
+        </div>
+      </div>
     </article>
   );
 }
@@ -375,7 +463,9 @@ export default function VenueScoutCommandPage() {
   const [adminSecret, setAdminSecret] = useState('');
   const [copiedLeadId, setCopiedLeadId] = useState<string | null>(null);
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [creatingSeedId, setCreatingSeedId] = useState<string | null>(null);
   const [leadActionMessage, setLeadActionMessage] = useState<string | null>(null);
+  const [seedLeadDrafts, setSeedLeadDrafts] = useState<Record<string, SeedLeadDraft>>({});
 
   const adminSecretTrimmed = adminSecret.trim();
   const hasAdminAuth = Boolean(address || adminSecretTrimmed);
@@ -531,6 +621,75 @@ export default function VenueScoutCommandPage() {
       }
     },
     [address, adminAuthHeaders, loadReport]
+  );
+
+  const updateSeedLeadDraft = useCallback((candidateId: string, patch: Partial<SeedLeadDraft>) => {
+    setSeedLeadDrafts((prev) => ({
+      ...prev,
+      [candidateId]: {
+        ...(prev[candidateId] ?? DEFAULT_SEED_LEAD_DRAFT),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const createLeadFromSeed = useCallback(
+    async (candidate: VenueScoutSeedCandidate) => {
+      const draft = seedLeadDrafts[candidate.id] ?? DEFAULT_SEED_LEAD_DRAFT;
+      const email = draft.email.trim();
+      if (!email) {
+        setLeadActionMessage('Add an email before creating a venue lead.');
+        return;
+      }
+
+      setCreatingSeedId(candidate.id);
+      setLeadActionMessage(null);
+      setError(null);
+
+      try {
+        const nextActionAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const response = await fetch('/api/admin/venue-report-leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...adminAuthHeaders,
+          },
+          body: JSON.stringify({
+            venueId: candidate.id,
+            audience: draft.audience,
+            intent: draft.intent,
+            email,
+            name: draft.name.trim() || null,
+            organization: draft.organization.trim() || null,
+            ownerWallet: address ?? null,
+            nextActionAt,
+            notes: [
+              `Created from Venue Scout Command seed venue.`,
+              `Suggested angle: ${candidate.suggestedAngle}`,
+              `Seed reasons: ${candidate.reasons.join(', ')}`,
+            ].join('\n'),
+          }),
+        });
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || payload.hint || 'Unable to create venue lead');
+        }
+
+        setLeadActionMessage(`${candidate.name} added to the venue lead queue.`);
+        setSeedLeadDrafts((prev) => {
+          const next = { ...prev };
+          delete next[candidate.id];
+          return next;
+        });
+        await loadReport();
+      } catch (createError) {
+        setError(createError instanceof Error ? createError.message : 'Unable to create venue lead');
+      } finally {
+        setCreatingSeedId(null);
+      }
+    },
+    [address, adminAuthHeaders, loadReport, seedLeadDrafts]
   );
 
   return (
@@ -783,7 +942,15 @@ export default function VenueScoutCommandPage() {
               ) : (
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {report.seedCandidates.map((candidate) => (
-                    <SeedCandidateCard key={candidate.id} candidate={candidate} />
+                    <SeedCandidateCard
+                      key={candidate.id}
+                      candidate={candidate}
+                      draft={seedLeadDrafts[candidate.id] ?? DEFAULT_SEED_LEAD_DRAFT}
+                      canAssignOwner={Boolean(address)}
+                      isCreating={creatingSeedId === candidate.id}
+                      onDraftChange={updateSeedLeadDraft}
+                      onCreateLead={createLeadFromSeed}
+                    />
                   ))}
                 </div>
               )}
