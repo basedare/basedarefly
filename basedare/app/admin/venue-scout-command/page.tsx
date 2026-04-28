@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Archive,
   ArrowRight,
   CheckCircle2,
   Copy,
   ExternalLink,
+  Hand,
   Loader2,
   Lock,
   Mail,
@@ -15,6 +17,7 @@ import {
   Navigation,
   RefreshCw,
   Target,
+  TimerReset,
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
@@ -26,6 +29,14 @@ import type {
   VenueScoutLeadPriority,
   VenueScoutSeedCandidate,
 } from '@/lib/venue-scout-command-types';
+
+type VenueLeadFollowUpStatus = 'NEW' | 'FOLLOWING_UP' | 'WAITING' | 'CONVERTED' | 'ARCHIVED';
+
+type VenueLeadUpdatePatch = {
+  action: 'assign' | 'schedule' | 'convert' | 'archive';
+  followUpStatus?: VenueLeadFollowUpStatus;
+  nextActionAt?: string | null;
+};
 
 function priorityClasses(priority: VenueScoutLeadPriority) {
   if (priority.label === 'Immediate') return 'border-red-400/35 bg-red-500/10 text-red-100';
@@ -94,11 +105,21 @@ function LeadCard({
   lead,
   copied,
   onCopy,
+  canAssignOwner,
+  isUpdating,
+  onUpdateLead,
 }: {
   lead: VenueScoutLead;
   copied: boolean;
   onCopy: (lead: VenueScoutLead) => void;
+  canAssignOwner: boolean;
+  isUpdating: boolean;
+  onUpdateLead: (lead: VenueScoutLead, patch: VenueLeadUpdatePatch) => void;
 }) {
+  const tomorrow = () => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const inThreeDays = () => new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+  const inSevenDays = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
   return (
     <article className="rounded-[2rem] border border-white/10 bg-[#080814]/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(0,0,0,0.38)] sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -120,6 +141,15 @@ function LeadCard({
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onUpdateLead(lead, { action: 'assign' })}
+            disabled={!canAssignOwner || isUpdating}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {isUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Hand className="h-3.5 w-3.5" />}
+            {canAssignOwner ? 'Assign' : 'Wallet needed'}
+          </button>
           <Link
             href={lead.links.report}
             target="_blank"
@@ -212,6 +242,80 @@ function LeadCard({
           </Link>
         </div>
       </div>
+
+      <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-white/[0.025] p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Internal workflow</p>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Status {lead.followUpStatus.toLowerCase().replace(/_/g, ' ')} / next {formatDateTime(lead.nextActionAt)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateLead(lead, {
+                  action: 'schedule',
+                  followUpStatus: lead.followUpStatus === 'NEW' ? 'FOLLOWING_UP' : undefined,
+                  nextActionAt: tomorrow(),
+                })
+              }
+              disabled={isUpdating}
+              className="inline-flex items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-yellow-300/15 disabled:opacity-45"
+            >
+              <TimerReset className="h-3.5 w-3.5" />
+              Tomorrow
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateLead(lead, {
+                  action: 'schedule',
+                  followUpStatus: 'WAITING',
+                  nextActionAt: inThreeDays(),
+                })
+              }
+              disabled={isUpdating}
+              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 transition hover:bg-white/[0.09] hover:text-white disabled:opacity-45"
+            >
+              Wait 3d
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateLead(lead, {
+                  action: 'schedule',
+                  followUpStatus: 'WAITING',
+                  nextActionAt: inSevenDays(),
+                })
+              }
+              disabled={isUpdating}
+              className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/45 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-45"
+            >
+              Snooze 7d
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateLead(lead, { action: 'convert', followUpStatus: 'CONVERTED' })}
+              disabled={isUpdating}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-500/15 disabled:opacity-45"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Won
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateLead(lead, { action: 'archive', followUpStatus: 'ARCHIVED' })}
+              disabled={isUpdating}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/45 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-45"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Archive
+            </button>
+          </div>
+        </div>
+      </div>
     </article>
   );
 }
@@ -270,6 +374,8 @@ export default function VenueScoutCommandPage() {
   const [loading, setLoading] = useState(false);
   const [adminSecret, setAdminSecret] = useState('');
   const [copiedLeadId, setCopiedLeadId] = useState<string | null>(null);
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [leadActionMessage, setLeadActionMessage] = useState<string | null>(null);
 
   const adminSecretTrimmed = adminSecret.trim();
   const hasAdminAuth = Boolean(address || adminSecretTrimmed);
@@ -359,6 +465,73 @@ export default function VenueScoutCommandPage() {
       setCopiedLeadId(null);
     }
   }, []);
+
+  const updateLead = useCallback(
+    async (lead: VenueScoutLead, patch: VenueLeadUpdatePatch) => {
+      if (patch.action === 'assign' && !address) {
+        setLeadActionMessage('Connect a moderator wallet before assigning lead ownership.');
+        return;
+      }
+
+      const body: {
+        leadId: string;
+        followUpStatus?: VenueLeadFollowUpStatus;
+        ownerWallet?: string | null;
+        nextActionAt?: string | null;
+      } = {
+        leadId: lead.id,
+      };
+
+      if (patch.action === 'assign') {
+        body.ownerWallet = address ?? null;
+        if (lead.followUpStatus === 'NEW') {
+          body.followUpStatus = 'FOLLOWING_UP';
+        }
+      }
+      if (patch.followUpStatus !== undefined) {
+        body.followUpStatus = patch.followUpStatus;
+      }
+      if (patch.nextActionAt !== undefined) {
+        body.nextActionAt = patch.nextActionAt;
+      }
+
+      setUpdatingLeadId(lead.id);
+      setLeadActionMessage(null);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/admin/venue-report-leads', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...adminAuthHeaders,
+          },
+          body: JSON.stringify(body),
+        });
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.hint || payload.error || 'Unable to update venue lead');
+        }
+
+        const actionLabel =
+          patch.action === 'assign'
+            ? 'assigned'
+            : patch.action === 'convert'
+              ? 'marked won'
+              : patch.action === 'archive'
+                ? 'archived'
+                : 'scheduled';
+        setLeadActionMessage(`${lead.venue.name} ${actionLabel}.`);
+        await loadReport();
+      } catch (updateError) {
+        setError(updateError instanceof Error ? updateError.message : 'Unable to update venue lead');
+      } finally {
+        setUpdatingLeadId(null);
+      }
+    },
+    [address, adminAuthHeaders, loadReport]
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-10 text-white sm:px-6 lg:px-10">
@@ -454,6 +627,13 @@ export default function VenueScoutCommandPage() {
           <div className="flex items-start gap-3 rounded-[2rem] border border-red-400/30 bg-red-500/10 p-6 text-sm font-bold text-red-100">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
             {error}
+          </div>
+        )}
+
+        {leadActionMessage && !error && (
+          <div className="flex items-start gap-3 rounded-[2rem] border border-emerald-300/25 bg-emerald-500/10 p-5 text-sm font-bold text-emerald-100">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            {leadActionMessage}
           </div>
         )}
 
@@ -572,6 +752,9 @@ export default function VenueScoutCommandPage() {
                         lead={lead}
                         copied={copiedLeadId === lead.id}
                         onCopy={copyPitch}
+                        canAssignOwner={Boolean(address)}
+                        isUpdating={updatingLeadId === lead.id}
+                        onUpdateLead={updateLead}
                       />
                     ))
                   )}

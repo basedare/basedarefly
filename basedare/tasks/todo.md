@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Build the first read-only Venue Scout Command Center from the MapiLeads learning.
+- Goal: Turn the Venue Scout Command Center into a safe internal operator workflow.
 
 ### Plan
-- [x] Inspect existing scout, venue-report lead, venue memory, and admin auth surfaces.
-- [x] Add a protected venue scout command report API backed by existing Prisma models.
-- [x] Add an admin page with ranked venue leads, route clusters, outreach copy, and seed venues.
+- [x] Reuse the existing admin venue lead update endpoint instead of adding another mutation route.
+- [x] Add assign, schedule, won, and archive controls to command-center lead cards.
+- [x] Keep external outreach as copy/mailto only; no automated sending.
 - [x] Verify with targeted lint/build checks and rebuild graphify.
 
 ### Verification
@@ -22,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Added a protected read-only Venue Scout Command Center with scored venue leads, route clusters, copy-ready outreach, starter dare suggestions, and seed venues.
-- Follow-ups: Decide whether scout command should later gain admin-approved send/schedule actions or stay copy-ready only.
+- Outcome: Venue Scout Command now supports safe internal lead workflow actions: assign, schedule, mark won, and archive.
+- Follow-ups: Decide whether the next step is admin-approved lead creation from seed venues.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
