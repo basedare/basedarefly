@@ -479,12 +479,12 @@ export function NotificationBell() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[220] isolate flex max-h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden overscroll-contain rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(24,23,34,0.92)_0%,rgba(8,9,18,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 md:max-h-[80vh] md:w-96"
+                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[220] isolate flex h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(24,23,34,0.92)_0%,rgba(8,9,18,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 md:h-auto md:max-h-[80vh] md:w-96"
                     >
                         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.22),transparent_42%),radial-gradient(circle_at_86%_14%,rgba(34,211,238,0.16),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_38%)]" />
                         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
                         {/* Header */}
-                        <div className="flex flex-col gap-3 border-b border-white/8 bg-white/[0.055] p-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="shrink-0 flex flex-col gap-3 border-b border-white/8 bg-white/[0.055] p-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                                 <h3 className="font-bold text-white">Notifications</h3>
                                 <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/36">
@@ -518,216 +518,220 @@ export function NotificationBell() {
                             </div>
                         </div>
 
-                        {pushSupported && (
-                            <div className="border-b border-white/5 bg-white/[0.03] px-4 py-3">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
-                                            <Smartphone className="w-3.5 h-3.5" />
-                                            Mobile Push
-                                        </div>
-                                        <p className="mt-1 text-xs text-gray-400">
-                                            {vapidPublicKey
-                                                ? (pushEnabled ? 'This device will get BaseDare alerts.' : 'Enable browser push for nearby and wallet alerts.')
-                                                : 'Push delivery keys are not configured yet.'}
-                                        </p>
-                                    </div>
-                                    {vapidPublicKey ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
-                                            disabled={pushBusy}
-                                            className="min-h-9 shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 disabled:opacity-50"
-                                        >
-                                            {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
-                                        </button>
-                                    ) : (
-                                        <div className="min-h-9 shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
-                                            Soon
-                                        </div>
-                                    )}
-                                </div>
-                                {pushMessage && (
-                                    <p className="mt-2 text-[11px] text-cyan-100/80">
-                                        {pushMessage}
-                                    </p>
-                                )}
-                                {pushEnabled && (
-                                    <div className="mt-3 space-y-3">
-                                        <div className="flex flex-wrap gap-2">
-                                            {PUSH_TOPIC_LABELS.map((topic) => {
-                                                const active = pushTopics.includes(topic.id);
-                                                return (
-                                                    <button
-                                                        key={topic.id}
-                                                        type="button"
-                                                        onClick={() => void togglePushTopic(topic.id)}
-                                                        disabled={pushBusy}
-                                                        className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                                                            active
-                                                                ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
-                                                                : 'border-white/10 bg-white/5 text-white/45'
-                                                        }`}
-                                                    >
-                                                        {topic.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
+                            <div className="sticky top-0 z-10 h-4 bg-gradient-to-b from-[#151521]/90 to-transparent pointer-events-none" />
 
-                                        <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
-                                                    Device Check
-                                                </p>
-                                                <p className="mt-1 text-[11px] text-white/45">
-                                                    Fire one test alert to confirm this browser is receiving pushes.
-                                                </p>
+                            {pushSupported && (
+                                <div className="-mt-4 border-b border-white/5 bg-white/[0.03] px-4 py-3">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
+                                                <Smartphone className="w-3.5 h-3.5" />
+                                                Mobile Push
                                             </div>
+                                            <p className="mt-1 text-xs text-gray-400">
+                                                {vapidPublicKey
+                                                    ? (pushEnabled ? 'This device will get BaseDare alerts.' : 'Enable browser push for nearby and wallet alerts.')
+                                                    : 'Push delivery keys are not configured yet.'}
+                                            </p>
+                                        </div>
+                                        {vapidPublicKey ? (
                                             <button
                                                 type="button"
-                                                onClick={() => void sendTestPush()}
-                                                disabled={pushTesting || pushBusy}
-                                                className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/14 disabled:opacity-50"
+                                                onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
+                                                disabled={pushBusy}
+                                                className="min-h-9 shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50"
                                             >
-                                                {pushTesting ? 'Sending...' : 'Test Push'}
+                                                {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
                                             </button>
-                                        </div>
-
-                                        {pushTopics.includes('nearby') && (
-                                            <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
-                                                            Nearby Radius
-                                                        </p>
-                                                        <p className="mt-1 text-[11px] text-white/45">
-                                                            Limit nearby dare alerts to the range that actually feels useful.
-                                                        </p>
-                                                    </div>
-                                                    <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/65">
-                                                        {nearbyRadiusKm} km
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 flex flex-wrap gap-2">
-                                                    {NEARBY_RADIUS_OPTIONS.map((radius) => {
-                                                        const active = nearbyRadiusKm === radius;
-                                                        return (
-                                                            <button
-                                                                key={radius}
-                                                                type="button"
-                                                                onClick={() => void updateNearbyRadius(radius)}
-                                                                disabled={pushBusy}
-                                                                className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                                                                    active
-                                                                        ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
-                                                                        : 'border-white/10 bg-white/5 text-white/45'
-                                                                }`}
-                                                            >
-                                                                {radius} km
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
+                                        ) : (
+                                            <div className="min-h-9 shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                                                Soon
                                             </div>
                                         )}
                                     </div>
-                                )}
-                            </div>
-                        )}
-
-                        {actionItems.length > 0 && (
-                            <div className="border-b border-white/5 bg-white/[0.025] px-3 py-3">
-                                <div className="mb-3 flex flex-wrap gap-2">
-                                    {(
-                                        ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Claim decision', 'Venue lead follow-up'] as const
-                                    ).map((category) =>
-                                        actionSummary && actionSummary.counts[category] > 0 ? (
-                                            <span
-                                                key={category}
-                                                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/60"
-                                            >
-                                                {category} {actionSummary.counts[category]}
-                                            </span>
-                                        ) : null
+                                    {pushMessage && (
+                                        <p className="mt-2 text-[11px] text-cyan-100/80">
+                                            {pushMessage}
+                                        </p>
                                     )}
-                                </div>
-                                <div className="space-y-2">
-                                    {actionItems.map((item) => (
-                                        <Link
-                                            key={item.id}
-                                            href={item.href}
-                                            className="block rounded-2xl border border-white/8 bg-black/20 px-3 py-3 transition hover:bg-white/[0.04]"
-                                            onClick={() => setIsOpen(false)}
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">
-                                                        {item.category}
-                                                    </p>
-                                                    <h4 className="mt-2 text-sm font-bold text-white line-clamp-1">
-                                                        {item.title}
-                                                    </h4>
-                                                </div>
-                                                {item.statusLabel ? (
-                                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
-                                                        {item.statusLabel}
-                                                    </span>
-                                                ) : null}
+                                    {pushEnabled && (
+                                        <div className="mt-3 space-y-3">
+                                            <div className="flex flex-wrap gap-2">
+                                                {PUSH_TOPIC_LABELS.map((topic) => {
+                                                    const active = pushTopics.includes(topic.id);
+                                                    return (
+                                                        <button
+                                                            key={topic.id}
+                                                            type="button"
+                                                            onClick={() => void togglePushTopic(topic.id)}
+                                                            disabled={pushBusy}
+                                                            className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition active:scale-[0.98] ${
+                                                                active
+                                                                    ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
+                                                                    : 'border-white/10 bg-white/5 text-white/45'
+                                                            }`}
+                                                        >
+                                                            {topic.label}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                            <p className="mt-2 text-xs leading-relaxed text-gray-400 line-clamp-2">
-                                                {item.detail}
-                                            </p>
-                                            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-200/85">
-                                                {item.cta}
-                                            </p>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
 
-                        {/* List */}
-                        <div className="flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                            {notifications.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-8 text-center">
-                                    <BellRing className="w-8 h-8 text-white/20 mb-3" />
-                                    <p className="text-sm text-gray-400">
-                                        {actionItems.length > 0 ? 'No extra alerts. Focus on the live action queue.' : 'You&apos;re all caught up!'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-1">
-                                    {notifications.map((notif) => (
-                                        <div
-                                            key={notif.id}
-                                            className="group relative p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
-                                            onClick={() => markAsRead([notif.id])}
-                                        >
-                                            {notif.link ? (
-                                                <Link href={notif.link} className="block">
-                                                    <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
-                                                    <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
-                                                    <span className="text-[10px] text-gray-500 mt-2 block">
-                                                        {new Date(notif.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </Link>
-                                            ) : (
-                                                <div>
-                                                    <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
-                                                    <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
-                                                    <span className="text-[10px] text-gray-500 mt-2 block">
-                                                        {new Date(notif.createdAt).toLocaleDateString()}
-                                                    </span>
+                                            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
+                                                        Device Check
+                                                    </p>
+                                                    <p className="mt-1 text-[11px] text-white/45">
+                                                        Fire one test alert to confirm this browser is receiving pushes.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void sendTestPush()}
+                                                    disabled={pushTesting || pushBusy}
+                                                    className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/14 active:scale-[0.98] disabled:opacity-50"
+                                                >
+                                                    {pushTesting ? 'Sending...' : 'Test Push'}
+                                                </button>
+                                            </div>
+
+                                            {pushTopics.includes('nearby') && (
+                                                <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/75">
+                                                                Nearby Radius
+                                                            </p>
+                                                            <p className="mt-1 text-[11px] text-white/45">
+                                                                Limit nearby dare alerts to the range that actually feels useful.
+                                                            </p>
+                                                        </div>
+                                                        <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/65">
+                                                            {nearbyRadiusKm} km
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                        {NEARBY_RADIUS_OPTIONS.map((radius) => {
+                                                            const active = nearbyRadiusKm === radius;
+                                                            return (
+                                                                <button
+                                                                    key={radius}
+                                                                    type="button"
+                                                                    onClick={() => void updateNearbyRadius(radius)}
+                                                                    disabled={pushBusy}
+                                                                    className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition active:scale-[0.98] ${
+                                                                        active
+                                                                            ? 'border-cyan-300/35 bg-cyan-400/12 text-cyan-100'
+                                                                            : 'border-white/10 bg-white/5 text-white/45'
+                                                                    }`}
+                                                                >
+                                                                    {radius} km
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             )}
-
-                                            {/* Read indicator dot */}
-                                            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             )}
+
+                            {actionItems.length > 0 && (
+                                <div className="border-b border-white/5 bg-white/[0.025] px-3 py-3">
+                                    <div className="mb-3 flex flex-wrap gap-2">
+                                        {(
+                                            ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Claim decision', 'Venue lead follow-up'] as const
+                                        ).map((category) =>
+                                            actionSummary && actionSummary.counts[category] > 0 ? (
+                                                <span
+                                                    key={category}
+                                                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/60"
+                                                >
+                                                    {category} {actionSummary.counts[category]}
+                                                </span>
+                                            ) : null
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        {actionItems.map((item) => (
+                                            <Link
+                                                key={item.id}
+                                                href={item.href}
+                                                className="block rounded-2xl border border-white/8 bg-black/20 px-3 py-3 transition hover:bg-white/[0.04] active:scale-[0.99]"
+                                                onClick={() => setIsOpen(false)}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">
+                                                            {item.category}
+                                                        </p>
+                                                        <h4 className="mt-2 text-sm font-bold text-white line-clamp-1">
+                                                            {item.title}
+                                                        </h4>
+                                                    </div>
+                                                    {item.statusLabel ? (
+                                                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+                                                            {item.statusLabel}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <p className="mt-2 text-xs leading-relaxed text-gray-400 line-clamp-2">
+                                                    {item.detail}
+                                                </p>
+                                                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-200/85">
+                                                    {item.cta}
+                                                </p>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* List */}
+                            <div className="p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                {notifications.length === 0 ? (
+                                    <div className="flex min-h-[14rem] flex-col items-center justify-center p-8 text-center">
+                                        <BellRing className="w-8 h-8 text-white/20 mb-3" />
+                                        <p className="text-sm text-gray-400">
+                                            {actionItems.length > 0 ? 'No extra alerts. Focus on the live action queue.' : 'You&apos;re all caught up!'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-1">
+                                        {notifications.map((notif) => (
+                                            <div
+                                                key={notif.id}
+                                                className="group relative p-3 rounded-xl hover:bg-white/5 active:bg-white/[0.08] active:scale-[0.99] transition cursor-pointer"
+                                                onClick={() => markAsRead([notif.id])}
+                                            >
+                                                {notif.link ? (
+                                                    <Link href={notif.link} className="block">
+                                                        <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
+                                                        <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
+                                                        <span className="text-[10px] text-gray-500 mt-2 block">
+                                                            {new Date(notif.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </Link>
+                                                ) : (
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
+                                                        <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
+                                                        <span className="text-[10px] text-gray-500 mt-2 block">
+                                                            {new Date(notif.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Read indicator dot */}
+                                                <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 )}

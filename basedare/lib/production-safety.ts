@@ -3,7 +3,7 @@ import 'server-only';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { Prisma } from '@prisma/client';
+import { Prisma, type Dare } from '@prisma/client';
 import { isAddress } from 'viem';
 
 import rlsTables from '@/config/rls-tables.json';
@@ -20,6 +20,54 @@ export type ProductionSafetyCheck = {
   nextAction?: string;
 };
 
+export type SettlementQueueItem = {
+  id: string;
+  shortId: string | null;
+  title: string;
+  streamerHandle: string | null;
+  status: string;
+  bounty: number;
+  isSimulated: boolean;
+  onChainDareId: string | null;
+  txHash: string | null;
+  createdAt: string;
+  updatedAt: string;
+  claimDeadline: string | null;
+  ageHours: number | null;
+  dueInHours?: number | null;
+  href: string | null;
+  riskLabel: string;
+};
+
+export type SettlementQueueSummary = {
+  count: number;
+  totalBounty: number;
+  oldestAgeHours: number | null;
+  liveCount: number;
+  simulatedCount: number;
+  issueCount: number;
+  issueLabel: string;
+  items: SettlementQueueItem[];
+};
+
+export type MoneyRailsSettlementSnapshot = {
+  generatedAt: string;
+  payoutQueue: SettlementQueueSummary;
+  expiredRefundQueue: SettlementQueueSummary;
+  stuckFundingQueue: SettlementQueueSummary;
+  pendingReviewCount: number;
+  upcomingRefunds: {
+    count: number;
+    nextDeadline: string | null;
+    items: SettlementQueueItem[];
+  };
+  operatorLinks: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
+};
+
 export type ProductionSafetyReport = {
   generatedAt: string;
   environment: {
@@ -33,12 +81,118 @@ export type ProductionSafetyReport = {
     passes: number;
   };
   checks: ProductionSafetyCheck[];
+  settlement: MoneyRailsSettlementSnapshot | null;
 };
 
 const RLS_TABLES = rlsTables;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const STUCK_FUNDING_AFTER_MS = 15 * 60 * 1000;
+const QUEUE_ITEM_LIMIT = 8;
+
+const MONEY_QUEUE_SELECT = {
+  id: true,
+  shortId: true,
+  title: true,
+  streamerHandle: true,
+  status: true,
+  bounty: true,
+  isSimulated: true,
+  onChainDareId: true,
+  txHash: true,
+  createdAt: true,
+  updatedAt: true,
+  claimDeadline: true,
+} satisfies Prisma.DareSelect;
+
+type SettlementDareRow = Pick<
+  Dare,
+  | 'id'
+  | 'shortId'
+  | 'title'
+  | 'streamerHandle'
+  | 'status'
+  | 'bounty'
+  | 'isSimulated'
+  | 'onChainDareId'
+  | 'txHash'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'claimDeadline'
+>;
 
 function hasEnv(name: string) {
   return Boolean(process.env[name]?.trim());
+}
+
+function roundCurrency(value: number | null | undefined) {
+  return Math.round((value ?? 0) * 100) / 100;
+}
+
+function roundHours(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function hoursSince(date: Date | null | undefined, now: Date) {
+  if (!date) return null;
+  return roundHours(Math.max(0, now.getTime() - date.getTime()) / ONE_HOUR_MS);
+}
+
+function hoursUntil(date: Date | null | undefined, now: Date) {
+  if (!date) return null;
+  return roundHours(Math.max(0, date.getTime() - now.getTime()) / ONE_HOUR_MS);
+}
+
+function isBlank(value: string | null | undefined) {
+  return !value || value.trim().length === 0;
+}
+
+function dareHref(row: SettlementDareRow) {
+  return row.shortId ? `/dare/${row.shortId}` : null;
+}
+
+function mapSettlementItem(
+  row: SettlementDareRow,
+  now: Date,
+  ageDate: Date | null | undefined,
+  riskLabel: string,
+  dueDate?: Date | null
+): SettlementQueueItem {
+  return {
+    id: row.id,
+    shortId: row.shortId,
+    title: row.title,
+    streamerHandle: row.streamerHandle,
+    status: row.status,
+    bounty: row.bounty,
+    isSimulated: row.isSimulated,
+    onChainDareId: row.onChainDareId,
+    txHash: row.txHash,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    claimDeadline: row.claimDeadline?.toISOString() ?? null,
+    ageHours: hoursSince(ageDate, now),
+    dueInHours: dueDate ? hoursUntil(dueDate, now) : undefined,
+    href: dareHref(row),
+    riskLabel,
+  };
+}
+
+function payoutRiskLabel(row: SettlementDareRow) {
+  if (!row.isSimulated && isBlank(row.onChainDareId)) return 'Missing on-chain ID';
+  if (row.isSimulated) return 'Simulation cleanup';
+  return 'Retry payout';
+}
+
+function refundRiskLabel(row: SettlementDareRow) {
+  if (!row.isSimulated && isBlank(row.onChainDareId)) return 'Live refund missing on-chain ID';
+  if (row.isSimulated) return 'Simulation refund';
+  return 'Refund eligible';
+}
+
+function fundingRiskLabel(row: SettlementDareRow) {
+  if (isBlank(row.txHash)) return 'Missing funding tx';
+  if (!row.isSimulated && isBlank(row.onChainDareId)) return 'Registration stale';
+  return 'Funding stale';
 }
 
 function addEnvCheck(
@@ -207,46 +361,218 @@ async function checkCronSchedules(checks: ProductionSafetyCheck[]) {
   }
 }
 
-async function checkRuntimeQueues(checks: ProductionSafetyCheck[]) {
-  try {
-    const [pendingPayouts, stuckFunding, pendingReview, expiredClaims] = await Promise.all([
-      prisma.dare.count({ where: { status: 'PENDING_PAYOUT' } }),
-      prisma.dare.count({
-        where: {
-          status: 'FUNDING',
-          createdAt: { lt: new Date(Date.now() - 15 * 60 * 1000) },
-        },
-      }),
-      prisma.dare.count({ where: { status: 'PENDING_REVIEW' } }),
-      prisma.dare.count({
-        where: {
-          status: 'PENDING',
-          claimDeadline: { lt: new Date() },
-          claimedBy: { not: null },
-        },
-      }),
-    ]);
+function buildQueueSummary(input: {
+  count: number;
+  totalBounty: number | null | undefined;
+  oldestAgeHours: number | null;
+  simulatedCount: number;
+  issueCount: number;
+  issueLabel: string;
+  items: SettlementQueueItem[];
+}): SettlementQueueSummary {
+  return {
+    count: input.count,
+    totalBounty: roundCurrency(input.totalBounty),
+    oldestAgeHours: input.oldestAgeHours,
+    liveCount: Math.max(0, input.count - input.simulatedCount),
+    simulatedCount: input.simulatedCount,
+    issueCount: input.issueCount,
+    issueLabel: input.issueLabel,
+    items: input.items,
+  };
+}
 
-    checks.push({
-      id: 'runtime.money-queues',
-      label: 'Money queue pressure',
-      severity: pendingPayouts > 0 || expiredClaims > 0 || stuckFunding > 0 ? 'warn' : 'pass',
-      detail: `${pendingPayouts} payout queued, ${expiredClaims} expired claimed dares, ${stuckFunding} stuck funding dares, ${pendingReview} proofs under review.`,
-      nextAction:
-        pendingPayouts > 0 || expiredClaims > 0 || stuckFunding > 0
-          ? 'Open admin ops, run authenticated cron checks, and confirm referee wallet health.'
-          : undefined,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown queue error';
+export async function buildMoneyRailsSettlementSnapshot(): Promise<MoneyRailsSettlementSnapshot> {
+  const now = new Date();
+  const stuckFundingCutoff = new Date(now.getTime() - STUCK_FUNDING_AFTER_MS);
+
+  const payoutWhere = { status: 'PENDING_PAYOUT' } satisfies Prisma.DareWhereInput;
+  const expiredRefundWhere = {
+    status: 'AWAITING_CLAIM',
+    claimDeadline: { lt: now },
+  } satisfies Prisma.DareWhereInput;
+  const stuckFundingWhere = {
+    status: 'FUNDING',
+    createdAt: { lt: stuckFundingCutoff },
+  } satisfies Prisma.DareWhereInput;
+  const upcomingRefundWhere = {
+    status: 'AWAITING_CLAIM',
+    claimDeadline: {
+      gte: now,
+      lt: new Date(now.getTime() + 7 * 24 * ONE_HOUR_MS),
+    },
+  } satisfies Prisma.DareWhereInput;
+
+  const missingOnChainWhere = {
+    isSimulated: false,
+    OR: [{ onChainDareId: null }, { onChainDareId: '' }],
+  } satisfies Prisma.DareWhereInput;
+  const missingFundingTxWhere = {
+    OR: [{ txHash: null }, { txHash: '' }],
+  } satisfies Prisma.DareWhereInput;
+
+  const [
+    payoutCount,
+    payoutAggregate,
+    payoutSimulatedCount,
+    payoutIssueCount,
+    payoutRows,
+    expiredRefundCount,
+    expiredRefundAggregate,
+    expiredRefundSimulatedCount,
+    expiredRefundIssueCount,
+    expiredRefundRows,
+    stuckFundingCount,
+    stuckFundingAggregate,
+    stuckFundingSimulatedCount,
+    stuckFundingIssueCount,
+    stuckFundingRows,
+    pendingReviewCount,
+    upcomingRefundCount,
+    upcomingRefundRows,
+  ] = await Promise.all([
+    prisma.dare.count({ where: payoutWhere }),
+    prisma.dare.aggregate({
+      where: payoutWhere,
+      _sum: { bounty: true },
+      _min: { updatedAt: true },
+    }),
+    prisma.dare.count({ where: { ...payoutWhere, isSimulated: true } }),
+    prisma.dare.count({ where: { ...payoutWhere, ...missingOnChainWhere } }),
+    prisma.dare.findMany({
+      where: payoutWhere,
+      select: MONEY_QUEUE_SELECT,
+      orderBy: { updatedAt: 'asc' },
+      take: QUEUE_ITEM_LIMIT,
+    }),
+
+    prisma.dare.count({ where: expiredRefundWhere }),
+    prisma.dare.aggregate({
+      where: expiredRefundWhere,
+      _sum: { bounty: true },
+      _min: { claimDeadline: true },
+    }),
+    prisma.dare.count({ where: { ...expiredRefundWhere, isSimulated: true } }),
+    prisma.dare.count({ where: { ...expiredRefundWhere, ...missingOnChainWhere } }),
+    prisma.dare.findMany({
+      where: expiredRefundWhere,
+      select: MONEY_QUEUE_SELECT,
+      orderBy: { claimDeadline: 'asc' },
+      take: QUEUE_ITEM_LIMIT,
+    }),
+
+    prisma.dare.count({ where: stuckFundingWhere }),
+    prisma.dare.aggregate({
+      where: stuckFundingWhere,
+      _sum: { bounty: true },
+      _min: { createdAt: true },
+    }),
+    prisma.dare.count({ where: { ...stuckFundingWhere, isSimulated: true } }),
+    prisma.dare.count({ where: { ...stuckFundingWhere, ...missingFundingTxWhere } }),
+    prisma.dare.findMany({
+      where: stuckFundingWhere,
+      select: MONEY_QUEUE_SELECT,
+      orderBy: { createdAt: 'asc' },
+      take: QUEUE_ITEM_LIMIT,
+    }),
+
+    prisma.dare.count({ where: { status: 'PENDING_REVIEW' } }),
+    prisma.dare.count({ where: upcomingRefundWhere }),
+    prisma.dare.findMany({
+      where: upcomingRefundWhere,
+      select: MONEY_QUEUE_SELECT,
+      orderBy: { claimDeadline: 'asc' },
+      take: QUEUE_ITEM_LIMIT,
+    }),
+  ]);
+
+  return {
+    generatedAt: now.toISOString(),
+    payoutQueue: buildQueueSummary({
+      count: payoutCount,
+      totalBounty: payoutAggregate._sum.bounty,
+      oldestAgeHours: hoursSince(payoutAggregate._min.updatedAt, now),
+      simulatedCount: payoutSimulatedCount,
+      issueCount: payoutIssueCount,
+      issueLabel: 'missing on-chain ID',
+      items: payoutRows.map((row) => mapSettlementItem(row, now, row.updatedAt, payoutRiskLabel(row))),
+    }),
+    expiredRefundQueue: buildQueueSummary({
+      count: expiredRefundCount,
+      totalBounty: expiredRefundAggregate._sum.bounty,
+      oldestAgeHours: hoursSince(expiredRefundAggregate._min.claimDeadline, now),
+      simulatedCount: expiredRefundSimulatedCount,
+      issueCount: expiredRefundIssueCount,
+      issueLabel: 'live entries missing on-chain ID',
+      items: expiredRefundRows.map((row) => mapSettlementItem(row, now, row.claimDeadline, refundRiskLabel(row))),
+    }),
+    stuckFundingQueue: buildQueueSummary({
+      count: stuckFundingCount,
+      totalBounty: stuckFundingAggregate._sum.bounty,
+      oldestAgeHours: hoursSince(stuckFundingAggregate._min.createdAt, now),
+      simulatedCount: stuckFundingSimulatedCount,
+      issueCount: stuckFundingIssueCount,
+      issueLabel: 'missing funding tx',
+      items: stuckFundingRows.map((row) => mapSettlementItem(row, now, row.createdAt, fundingRiskLabel(row))),
+    }),
+    pendingReviewCount,
+    upcomingRefunds: {
+      count: upcomingRefundCount,
+      nextDeadline: upcomingRefundRows[0]?.claimDeadline?.toISOString() ?? null,
+      items: upcomingRefundRows.map((row) =>
+        mapSettlementItem(row, now, row.updatedAt, 'Expires soon', row.claimDeadline)
+      ),
+    },
+    operatorLinks: [
+      {
+        label: 'Retry payouts cron',
+        path: '/api/cron/retry-payouts',
+        note: 'Run with CRON_SECRET after referee gas and contract env are confirmed.',
+      },
+      {
+        label: 'Expired refunds cron',
+        path: '/api/cron/refund-expired',
+        note: 'Run with CRON_SECRET; this delegates to the protected refund processor.',
+      },
+      {
+        label: 'Money rails runbook',
+        path: 'docs/money-rails-runbook.md',
+        note: 'Use before enabling or recovering live settlement jobs.',
+      },
+    ],
+  };
+}
+
+function addRuntimeQueuesCheck(
+  checks: ProductionSafetyCheck[],
+  settlement: MoneyRailsSettlementSnapshot | null
+) {
+  if (!settlement) {
     checks.push({
       id: 'runtime.money-queues',
       label: 'Money queue pressure',
       severity: 'warn',
-      detail: `Could not read runtime queues: ${message}`,
+      detail: 'Could not read runtime settlement queues.',
       nextAction: 'Confirm Prisma can query production before calling the app launch-safe.',
     });
+    return;
   }
+
+  const pendingPayouts = settlement.payoutQueue.count;
+  const expiredClaims = settlement.expiredRefundQueue.count;
+  const stuckFunding = settlement.stuckFundingQueue.count;
+  const pendingReview = settlement.pendingReviewCount;
+
+  checks.push({
+    id: 'runtime.money-queues',
+    label: 'Money queue pressure',
+    severity: pendingPayouts > 0 || expiredClaims > 0 || stuckFunding > 0 ? 'warn' : 'pass',
+    detail: `${pendingPayouts} payout queued, ${expiredClaims} expired refunds, ${stuckFunding} stuck funding dares, ${pendingReview} proofs under review.`,
+    nextAction:
+      pendingPayouts > 0 || expiredClaims > 0 || stuckFunding > 0
+        ? 'Open the settlement cockpit, run authenticated cron checks, and confirm referee wallet health.'
+        : undefined,
+  });
 }
 
 export async function buildProductionSafetyReport(): Promise<ProductionSafetyReport> {
@@ -347,11 +673,19 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     nextAction: 'Set TELEGRAM_ADMIN_CHAT_ID for the admin alert channel.',
   });
 
+  let settlement: MoneyRailsSettlementSnapshot | null = null;
+  try {
+    settlement = await buildMoneyRailsSettlementSnapshot();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown queue error';
+    console.error('[PRODUCTION_SAFETY] Could not build settlement snapshot:', message);
+  }
+  addRuntimeQueuesCheck(checks, settlement);
+
   await Promise.all([
     checkRlsCoverage(checks),
     checkRls(checks),
     checkCronSchedules(checks),
-    checkRuntimeQueues(checks),
   ]);
 
   const summary = checks.reduce(
@@ -373,5 +707,6 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     },
     summary,
     checks,
+    settlement,
   };
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -29,6 +29,55 @@ type ProductionSafetyReport = {
     detail: string;
     nextAction?: string;
   }>;
+  settlement: MoneyRailsSettlementSnapshot | null;
+};
+
+type SettlementQueueItem = {
+  id: string;
+  shortId: string | null;
+  title: string;
+  streamerHandle: string | null;
+  status: string;
+  bounty: number;
+  isSimulated: boolean;
+  onChainDareId: string | null;
+  txHash: string | null;
+  createdAt: string;
+  updatedAt: string;
+  claimDeadline: string | null;
+  ageHours: number | null;
+  dueInHours?: number | null;
+  href: string | null;
+  riskLabel: string;
+};
+
+type SettlementQueueSummary = {
+  count: number;
+  totalBounty: number;
+  oldestAgeHours: number | null;
+  liveCount: number;
+  simulatedCount: number;
+  issueCount: number;
+  issueLabel: string;
+  items: SettlementQueueItem[];
+};
+
+type MoneyRailsSettlementSnapshot = {
+  generatedAt: string;
+  payoutQueue: SettlementQueueSummary;
+  expiredRefundQueue: SettlementQueueSummary;
+  stuckFundingQueue: SettlementQueueSummary;
+  pendingReviewCount: number;
+  upcomingRefunds: {
+    count: number;
+    nextDeadline: string | null;
+    items: SettlementQueueItem[];
+  };
+  operatorLinks: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
 };
 
 function severityLabel(severity: ProductionSafetySeverity) {
@@ -51,6 +100,139 @@ function severityIcon(severity: ProductionSafetySeverity) {
   if (severity === 'block') return <ShieldAlert className="h-4 w-4" />;
   if (severity === 'warn') return <AlertTriangle className="h-4 w-4" />;
   return <CheckCircle2 className="h-4 w-4" />;
+}
+
+function formatMoney(value: number) {
+  return `$${value.toLocaleString(undefined, {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatHours(hours: number | null | undefined) {
+  if (hours === null || hours === undefined) return 'none';
+  if (hours < 1) return '<1h';
+  if (hours < 24) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
+function queueToneClasses(summary: SettlementQueueSummary) {
+  if (summary.count === 0) return 'border-emerald-300/20 bg-emerald-500/10 text-emerald-100';
+  if (summary.issueCount > 0) return 'border-red-400/30 bg-red-500/10 text-red-100';
+  return 'border-yellow-300/30 bg-yellow-500/10 text-yellow-100';
+}
+
+function queueNextAction(label: string, summary: SettlementQueueSummary) {
+  if (summary.count === 0) return `${label} queue is clean.`;
+  if (summary.issueCount > 0) {
+    return `${summary.issueCount} ${summary.issueLabel}; inspect these before relying on automation.`;
+  }
+  if (label === 'Payout retries') return 'Run authenticated payout retry after checking referee gas.';
+  if (label === 'Expired refunds') return 'Run authenticated expired refund cron and watch Telegram for failures.';
+  return 'Repair funding registration before users assume the dare is live.';
+}
+
+function SettlementQueueCard({
+  label,
+  summary,
+}: {
+  label: string;
+  summary: SettlementQueueSummary;
+}) {
+  return (
+    <article className={`rounded-[1.75rem] border p-5 ${queueToneClasses(summary)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-60">{label}</p>
+          <p className="mt-2 text-4xl font-black">{summary.count}</p>
+        </div>
+        <span className="rounded-full border border-current/20 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] opacity-75">
+          {formatMoney(summary.totalBounty)}
+        </span>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.16em] opacity-75">
+        <span className="rounded-full border border-current/15 bg-black/20 px-2.5 py-1">
+          oldest {formatHours(summary.oldestAgeHours)}
+        </span>
+        <span className="rounded-full border border-current/15 bg-black/20 px-2.5 py-1">
+          live {summary.liveCount}
+        </span>
+        <span className="rounded-full border border-current/15 bg-black/20 px-2.5 py-1">
+          sim {summary.simulatedCount}
+        </span>
+      </div>
+      <p className="mt-4 text-xs font-bold leading-relaxed opacity-80">
+        {queueNextAction(label, summary)}
+      </p>
+    </article>
+  );
+}
+
+function SettlementQueueList({
+  title,
+  items,
+  emptyCopy,
+  ageLabel = 'Age',
+}: {
+  title: string;
+  items: SettlementQueueItem[];
+  emptyCopy: string;
+  ageLabel?: string;
+}) {
+  return (
+    <div className="rounded-[2rem] border border-white/10 bg-black/25 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">{title}</h3>
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+          {items.length} shown
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <p className="rounded-2xl border border-emerald-300/15 bg-emerald-500/[0.06] p-4 text-sm font-bold text-emerald-100/75">
+          {emptyCopy}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => {
+            const content = (
+              <>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-white">{item.title}</p>
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white/38">
+                    {item.shortId ?? item.id.slice(0, 8)} / {item.streamerHandle ?? 'no target'} / {item.isSimulated ? 'sim' : 'live'} / {item.riskLabel}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <span className="text-xs font-black text-yellow-100">{formatMoney(item.bounty)}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
+                    {ageLabel} {formatHours(item.dueInHours ?? item.ageHours)}
+                  </span>
+                </div>
+              </>
+            );
+
+            return item.href ? (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.035] px-3 py-3 transition hover:border-white/16 hover:bg-white/[0.06]"
+              >
+                {content}
+                <span className="sr-only">{item.riskLabel}</span>
+              </Link>
+            ) : (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.035] px-3 py-3"
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProductionSafetyPage() {
@@ -255,6 +437,95 @@ export default function ProductionSafetyPage() {
                 </p>
               </div>
             </div>
+
+            {report.settlement && (
+              <section className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-yellow-200/60">
+                      Money rails
+                    </p>
+                    <h2 className="mt-2 text-xl font-black uppercase tracking-[0.16em]">
+                      Settlement Cockpit
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-sm font-bold leading-relaxed text-white/48">
+                      Read-only operator view for payout retries, expired refunds, and stale funding records.
+                      It mirrors the cron processors without adding a money-moving control.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/50">
+                    <Clock className="h-3.5 w-3.5 text-yellow-200" />
+                    {new Date(report.settlement.generatedAt).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <SettlementQueueCard label="Payout retries" summary={report.settlement.payoutQueue} />
+                  <SettlementQueueCard label="Expired refunds" summary={report.settlement.expiredRefundQueue} />
+                  <SettlementQueueCard label="Stuck funding" summary={report.settlement.stuckFundingQueue} />
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                  <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5 xl:col-span-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
+                      Operator routes
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {report.settlement.operatorLinks.map((link) => (
+                        <div
+                          key={link.path}
+                          className="rounded-2xl border border-white/8 bg-black/25 p-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-black text-white">{link.label}</p>
+                            <code className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-yellow-100/80">
+                              {link.path}
+                            </code>
+                          </div>
+                          <p className="mt-2 text-xs font-bold leading-relaxed text-white/45">{link.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.75rem] border border-cyan-300/20 bg-cyan-500/10 p-5 text-cyan-100">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/55">
+                      Refund horizon
+                    </p>
+                    <p className="mt-2 text-4xl font-black">{report.settlement.upcomingRefunds.count}</p>
+                    <p className="mt-3 text-xs font-bold leading-relaxed text-cyan-100/75">
+                      {report.settlement.upcomingRefunds.nextDeadline
+                        ? `Next claim deadline: ${new Date(report.settlement.upcomingRefunds.nextDeadline).toLocaleString()}`
+                        : 'No upcoming claim expiries in the next 7 days.'}
+                    </p>
+                    <p className="mt-3 rounded-2xl border border-cyan-200/15 bg-black/20 p-3 text-xs font-bold leading-relaxed text-cyan-100/70">
+                      Pending review proofs: {report.settlement.pendingReviewCount}. Keep proof review moving so verified
+                      dares do not pile into payout retry.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                  <SettlementQueueList
+                    title="Payout queue"
+                    items={report.settlement.payoutQueue.items}
+                    emptyCopy="No approved dares are waiting on payout retry."
+                    ageLabel="Queued"
+                  />
+                  <SettlementQueueList
+                    title="Expired refunds"
+                    items={report.settlement.expiredRefundQueue.items}
+                    emptyCopy="No expired AWAITING_CLAIM dares need refund processing."
+                    ageLabel="Overdue"
+                  />
+                  <SettlementQueueList
+                    title="Funding repairs"
+                    items={report.settlement.stuckFundingQueue.items}
+                    emptyCopy="No stale FUNDING records are older than 15 minutes."
+                    ageLabel="Stale"
+                  />
+                </div>
+              </section>
+            )}
 
             <div className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
