@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Let operators create venue leads directly from Venue Scout seed candidates.
+- Goal: Wire Venue Scout output into the Daily Command Loop so operators see the top route, lead, and seed candidate from one daily surface.
 
 ### Plan
-- [x] Extend the protected venue-report lead API with admin lead creation.
-- [x] Add create-lead forms to seed venue cards with contact email, name, org, audience, and intent.
-- [x] Create internal CONTACTED pipeline events without sending outbound outreach.
+- [x] Add a venue scout brief to the daily command report.
+- [x] Route venue follow-up commands to the Venue Scout Command Center.
+- [x] Surface the top route, active lead, and seed candidate in the daily admin UI.
 - [x] Verify with targeted lint/build checks and rebuild graphify.
 
 ### Verification
@@ -22,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Seed venues can now be converted into internal venue-report leads from the Venue Scout Command Center, with a CONTACTED pipeline event and no automated outbound send.
-- Follow-ups: Decide whether the next step is a route-level bulk lead capture/import flow.
+- Outcome: Daily Command Loop now includes a venue scout brief, sends venue follow-up work to the scout cockpit, and shows the top route, lead, and seed candidate from the same daily surface.
+- Follow-ups: Consider route-level bulk lead capture/import after the daily loop can direct operators to the right venue route.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

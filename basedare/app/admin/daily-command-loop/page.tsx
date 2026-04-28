@@ -315,6 +315,100 @@ export default function DailyCommandLoopPage() {
               </div>
             </section>
 
+            <section className="overflow-hidden rounded-[2.25rem] border border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_35%),rgba(5,12,22,0.88)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_90px_rgba(0,0,0,0.45)]">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/75">
+                    <Target className="h-3.5 w-3.5" />
+                    Venue scout brief
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black uppercase tracking-[-0.02em] text-white">
+                    {report.venueScout.currentCommand.title}
+                  </h2>
+                  <p className="mt-2 max-w-4xl text-sm font-bold leading-relaxed text-white/60">
+                    {report.venueScout.currentCommand.detail}
+                  </p>
+                </div>
+                <Link
+                  href="/admin/venue-scout-command"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-300/15"
+                >
+                  Open scout command
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                    Current route
+                  </p>
+                  <p className="mt-2 text-lg font-black text-white">
+                    {report.venueScout.topRoute?.label ?? report.venueScout.summary.topRoute ?? 'No active route'}
+                  </p>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-white/52">
+                    {report.venueScout.topRoute?.nextMove ?? 'Create leads from the strongest seed venues before cold scouting.'}
+                  </p>
+                  {report.venueScout.topRoute && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-cyan-200/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/65">
+                        {report.venueScout.topRoute.leadCount} leads
+                      </span>
+                      <span className="rounded-full border border-yellow-200/15 bg-yellow-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/65">
+                        {report.venueScout.topRoute.immediateCount} immediate
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                    Top lead
+                  </p>
+                  <p className="mt-2 text-lg font-black text-white">
+                    {report.venueScout.topLead?.venueName ?? 'No active lead'}
+                  </p>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-white/52">
+                    {report.venueScout.topLead?.nextAction ?? 'Use seed venues to create the next tracked contact.'}
+                  </p>
+                  {report.venueScout.topLead && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">
+                        {report.venueScout.topLead.priorityLabel}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">
+                        {report.venueScout.topLead.score} score
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                    Next seed
+                  </p>
+                  <p className="mt-2 text-lg font-black text-white">
+                    {report.venueScout.topSeedCandidate?.venueName ?? 'No warm seed'}
+                  </p>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-white/52">
+                    {report.venueScout.topSeedCandidate?.suggestedAngle ?? report.venueScout.currentCommand.nextAction}
+                  </p>
+                  {report.venueScout.topSeedCandidate && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {report.venueScout.topSeedCandidate.reasons.slice(0, 3).map((reason) => (
+                        <span
+                          key={reason}
+                          className="rounded-full border border-emerald-200/15 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/65"
+                        >
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
               <section className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">

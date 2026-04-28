@@ -32,6 +32,50 @@ export type DailyReviewItem = {
   href: string;
 };
 
+export type DailyVenueScoutBrief = {
+  generatedAt: string;
+  currentCommand: {
+    title: string;
+    detail: string;
+    nextAction: string;
+  };
+  summary: {
+    totalLeads: number;
+    immediateLeads: number;
+    highLeads: number;
+    unownedLeads: number;
+    overdueLeads: number;
+    activeRoutes: number;
+    seedCandidates: number;
+    topRoute: string | null;
+  };
+  topRoute: {
+    label: string;
+    leadCount: number;
+    immediateCount: number;
+    topScore: number;
+    nextMove: string;
+    suggestedRoute: string[];
+  } | null;
+  topLead: {
+    venueName: string;
+    routeCluster: string;
+    priorityLabel: string;
+    score: number;
+    nextAction: string;
+    reasons: string[];
+    href: string;
+  } | null;
+  topSeedCandidate: {
+    venueName: string;
+    routeCluster: string;
+    score: number;
+    suggestedAngle: string;
+    reasons: string[];
+    href: string;
+  } | null;
+};
+
 export type DailyCommandLoopReport = {
   generatedAt: string;
   period: {
@@ -65,6 +109,7 @@ export type DailyCommandLoopReport = {
     tone: DailyCommandTone;
     evidence: string[];
   };
+  venueScout: DailyVenueScoutBrief;
   sourceSignals: {
     moderationReady: number;
     payoutBacklog: number;
@@ -81,5 +126,7 @@ export type DailyCommandLoopReport = {
     recentVenueLeads: number;
     recentPlaceTags: number;
     recentCheckIns: number;
+    venueScoutRoutes: number;
+    venueScoutSeedCandidates: number;
   };
 };

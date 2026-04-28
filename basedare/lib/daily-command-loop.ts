@@ -2,6 +2,7 @@ import 'server-only';
 
 import { buildFounderScoreboardPulse } from '@/lib/founder-scoreboard';
 import { prisma } from '@/lib/prisma';
+import { buildVenueScoutCommandReport } from '@/lib/venue-scout-command';
 import type {
   DailyCommandItem,
   DailyCommandLoopReport,
@@ -131,6 +132,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     recentVenueLeads,
     recentPlaceTags,
     recentCheckIns,
+    venueScoutReport,
   ] = await Promise.all([
     prisma.dare.findMany({
       where: {
@@ -245,6 +247,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     prisma.venueReportLead.count({ where: { createdAt: { gte: periodStart } } }),
     prisma.placeTag.count({ where: { submittedAt: { gte: periodStart } } }),
     prisma.venueCheckIn.count({ where: { scannedAt: { gte: periodStart } } }),
+    buildVenueScoutCommandReport(),
   ]);
   const founderScoreboard = await buildFounderScoreboardPulse(7);
 
@@ -286,6 +289,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
   const sponsorLeads = venueLeads.filter((lead) => lead.audience === 'sponsor').length;
   const venueAudienceLeads = venueLeads.filter((lead) => lead.audience === 'venue').length;
   const topLead = leadPriorities[0] ?? null;
+  const topScoutRoute = venueScoutReport.routeClusters[0] ?? null;
+  const topScoutLead = venueScoutReport.leads[0] ?? null;
+  const topSeedCandidate = venueScoutReport.seedCandidates[0] ?? null;
 
   const pendingTrustItems =
     pendingClaims + pendingVenueClaims + pendingCreatorTags + pendingPlaceTags + moderationReady.length;
@@ -382,17 +388,51 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         title: 'Convert hot venue and sponsor leads into replies',
         workstream: 'growth',
         riskTier: 'review',
-        priority: 96 + overdueVenueLeads * 7 + unownedVenueLeads * 4 + sponsorLeads * 3,
+        priority:
+          96 +
+          overdueVenueLeads * 7 +
+          unownedVenueLeads * 4 +
+          sponsorLeads * 3 +
+          venueScoutReport.summary.immediateLeads * 5,
         why: 'The highest-leverage growth work is turning existing intent into conversations before scouting colder leads.',
-        nextAction: topLead
-          ? `Start with ${topLead.lead.venue.name}; ${topLead.priority.reasons.join(', ') || 'active'} signal needs ownership.`
+        nextAction: topScoutLead
+          ? `Open the scout command and work ${topScoutLead.venue.name} in ${topScoutLead.routeCluster}: ${topScoutLead.nextAction}`
+          : topLead
+            ? `Start with ${topLead.lead.venue.name}; ${topLead.priority.reasons.join(', ') || 'active'} signal needs ownership.`
           : 'Rank active leads, assign owners, then prepare the smallest useful follow-up drafts.',
-        href: '/admin',
+        href: '/admin/venue-scout-command',
         evidence: [
           plural(venueLeads.length, 'active lead'),
           `${overdueVenueLeads} overdue`,
           `${unownedVenueLeads} unowned`,
-          `${sponsorLeads} sponsor-side`,
+          topScoutRoute ? `Top route: ${topScoutRoute.label}` : `${sponsorLeads} sponsor-side`,
+        ],
+      })
+    );
+  }
+
+  if (venueScoutReport.summary.seedCandidates > 0) {
+    commands.push(
+      command({
+        id: 'venue-scout-seed-route',
+        title: 'Turn warm venue signals into the next lead batch',
+        workstream: 'growth',
+        riskTier: 'auto',
+        priority:
+          68 +
+          venueScoutReport.summary.seedCandidates * 4 +
+          venueScoutReport.summary.activeRoutes * 2 +
+          (topSeedCandidate?.score ?? 0) / 3,
+        why: 'Venues with place memory, check-ins, dares, campaigns, partner state, or claim intent are warmer than generic scraped lists.',
+        nextAction:
+          topSeedCandidate
+            ? `Create the next lead from ${topSeedCandidate.name}: ${topSeedCandidate.suggestedAngle}`
+            : venueScoutReport.currentCommand.nextAction,
+        href: '/admin/venue-scout-command',
+        evidence: [
+          plural(venueScoutReport.summary.seedCandidates, 'seed venue'),
+          plural(venueScoutReport.summary.activeRoutes, 'route'),
+          topSeedCandidate ? `${topSeedCandidate.score} top seed score` : 'Scout command ready',
         ],
       })
     );
@@ -467,8 +507,10 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       riskTier: 'auto',
       priority: 42,
       why: 'If queues are clear, the loop should create the next batch of qualified conversations.',
-      nextAction: 'Build a small ranked list: 5 creators, 3 venues, 2 sponsor prospects, with one outreach angle each.',
-      href: '/admin',
+      nextAction: venueScoutReport.summary.seedCandidates > 0
+        ? venueScoutReport.currentCommand.nextAction
+        : 'Build a small ranked list: 5 creators, 3 venues, 2 sponsor prospects, with one outreach angle each.',
+      href: venueScoutReport.summary.seedCandidates > 0 ? '/admin/venue-scout-command' : '/admin',
       evidence: ['Safe research only', 'No external send without review', 'Optimized for qualified replies'],
     })
   );
@@ -581,8 +623,15 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       'lead-loop',
       'Lead loop',
       venueLeads.length,
-      `${overdueVenueLeads} overdue, ${unownedVenueLeads} unowned, ${sponsorLeads} sponsor-side`,
+      `${overdueVenueLeads} overdue, ${unownedVenueLeads} unowned, ${venueScoutReport.summary.immediateLeads} immediate in scout`,
       toneForQueue(overdueVenueLeads + unownedVenueLeads, 1, 6)
+    ),
+    buildMetric(
+      'venue-scout',
+      'Venue scout',
+      venueScoutReport.summary.seedCandidates,
+      `${venueScoutReport.summary.activeRoutes} routes, ${venueScoutReport.summary.totalLeads} active leads${topScoutRoute ? `, top: ${topScoutRoute.label}` : ''}`,
+      venueScoutReport.summary.immediateLeads > 0 || venueScoutReport.summary.seedCandidates > 0 ? 'active' : 'neutral'
     ),
     buildMetric(
       'campaign-supply',
@@ -639,6 +688,12 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
               detail: `${plural(overdueVenueLeads, 'lead')} overdue and ${plural(unownedVenueLeads, 'lead')} unowned. Existing intent beats cold scouting today.`,
               tone: 'active' as DailyCommandTone,
             }
+          : venueScoutReport.summary.seedCandidates > 0
+            ? {
+                title: 'Warm venue route is ready to seed',
+                detail: `${plural(venueScoutReport.summary.seedCandidates, 'venue')} has proof signals but no report lead. Convert the top seed before cold list-building.`,
+                tone: 'active' as DailyCommandTone,
+              }
           : activeCampaigns + openCampaignSlots > 0
             ? {
                 title: 'Creator supply is the current leverage point',
@@ -657,7 +712,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       : 'Founder Scoreboard shows no settled GMV in the current 7-day window; today should identify the bottleneck before increasing external promises.',
     recentVenueLeads > 0
       ? `${plural(recentVenueLeads, 'venue/sponsor lead')} arrived in the last 24h, so the loop should prioritize conversion before new sourcing.`
-      : 'No new venue lead arrived in the last 24h; today needs either targeted scouting or a stronger inbound prompt.',
+      : venueScoutReport.summary.seedCandidates > 0
+        ? `${plural(venueScoutReport.summary.seedCandidates, 'warm venue')} is ready to convert from scout seed into a tracked lead.`
+        : 'No new venue lead arrived in the last 24h; today needs either targeted scouting or a stronger inbound prompt.',
     sponsorLeads > venueAudienceLeads
       ? 'Sponsor-side interest is currently heavier than venue-side interest; package activation language around measurable creator movement.'
       : 'Venue-side leads remain the main operating surface; keep follow-ups grounded in foot traffic and creator-proof moments.',
@@ -667,6 +724,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     recentPlaceTags + recentCheckIns > 0
       ? 'Fresh place-memory activity exists; use it as evidence for venue follow-up instead of generic marketplace language.'
       : 'Place-memory input is quiet; the city brief needs scouting rather than relying on passive activity.',
+    topScoutRoute
+      ? `Venue Scout top route is ${topScoutRoute.label}; batch work there before jumping between districts.`
+      : 'Venue Scout has no active route cluster yet; create leads from the strongest venue seeds first.',
   ];
 
   const watchouts = [
@@ -684,6 +744,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       : null,
     founderScoreboard.money.refundedGmv > 0
       ? `$${founderScoreboard.money.refundedGmv.toLocaleString()} refunded GMV appears in the founder period; do not count it as revenue.`
+      : null,
+    venueScoutReport.summary.seedCandidates > 0 && venueScoutReport.summary.totalLeads === 0
+      ? 'Warm venue seeds exist without active leads; the bottleneck is lead capture, not discovery.'
       : null,
   ].filter((item): item is string => Boolean(item));
 
@@ -717,6 +780,42 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       tone: founderSignal.tone,
       evidence: founderSignal.evidence,
     },
+    venueScout: {
+      generatedAt: venueScoutReport.generatedAt,
+      currentCommand: venueScoutReport.currentCommand,
+      summary: venueScoutReport.summary,
+      topRoute: topScoutRoute
+        ? {
+            label: topScoutRoute.label,
+            leadCount: topScoutRoute.leadCount,
+            immediateCount: topScoutRoute.immediateCount,
+            topScore: topScoutRoute.topScore,
+            nextMove: topScoutRoute.nextMove,
+            suggestedRoute: topScoutRoute.suggestedRoute,
+          }
+        : null,
+      topLead: topScoutLead
+        ? {
+            venueName: topScoutLead.venue.name,
+            routeCluster: topScoutLead.routeCluster,
+            priorityLabel: topScoutLead.priority.label,
+            score: topScoutLead.priority.score,
+            nextAction: topScoutLead.nextAction,
+            reasons: topScoutLead.priority.reasons,
+            href: '/admin/venue-scout-command',
+          }
+        : null,
+      topSeedCandidate: topSeedCandidate
+        ? {
+            venueName: topSeedCandidate.name,
+            routeCluster: topSeedCandidate.routeCluster,
+            score: topSeedCandidate.score,
+            suggestedAngle: topSeedCandidate.suggestedAngle,
+            reasons: topSeedCandidate.reasons,
+            href: '/admin/venue-scout-command',
+          }
+        : null,
+    },
     sourceSignals: {
       moderationReady: moderationReady.length,
       payoutBacklog: payoutBacklog.length,
@@ -733,6 +832,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       recentVenueLeads,
       recentPlaceTags,
       recentCheckIns,
+      venueScoutRoutes: venueScoutReport.summary.activeRoutes,
+      venueScoutSeedCandidates: venueScoutReport.summary.seedCandidates,
     },
   };
 }
