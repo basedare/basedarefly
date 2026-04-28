@@ -54,6 +54,17 @@ export type DailyCommandLoopReport = {
   safeAutomaticWork: DailyCommandItem[];
   learnings: string[];
   watchouts: string[];
+  founderPulse: {
+    settledGmv: number;
+    realizedRevenue: number;
+    liveGmv: number;
+    completionRate: number;
+    checkIns: number;
+    activeVenues: number;
+    suggestedCommand: string;
+    tone: DailyCommandTone;
+    evidence: string[];
+  };
   sourceSignals: {
     moderationReady: number;
     payoutBacklog: number;

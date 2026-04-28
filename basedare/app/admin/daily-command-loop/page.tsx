@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
+  Banknote,
   Bot,
   CheckCircle2,
   Clock3,
@@ -278,6 +279,41 @@ export default function DailyCommandLoopPage() {
                 </div>
               ))}
             </div>
+
+            <section className={`rounded-[2rem] border p-5 ${toneClasses(report.founderPulse.tone)}`}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-current/25 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] opacity-75">
+                    <Banknote className="h-3.5 w-3.5" />
+                    Founder pulse
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black uppercase tracking-[-0.02em]">
+                    {report.founderPulse.suggestedCommand}
+                  </h2>
+                  <p className="mt-2 text-sm font-bold opacity-75">
+                    ${report.founderPulse.settledGmv.toLocaleString()} settled GMV, ${report.founderPulse.realizedRevenue.toLocaleString()} estimated revenue,
+                    {' '}${report.founderPulse.checkIns} check-ins across {report.founderPulse.activeVenues} venues.
+                  </p>
+                </div>
+                <Link
+                  href="/admin/founder-scoreboard"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-current/25 bg-black/20 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition hover:bg-black/30"
+                >
+                  Open scoreboard
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {report.founderPulse.evidence.map((signal) => (
+                  <span
+                    key={signal}
+                    className="rounded-full border border-current/15 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] opacity-60"
+                  >
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            </section>
 
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
               <section className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">

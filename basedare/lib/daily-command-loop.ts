@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { buildFounderScoreboardPulse } from '@/lib/founder-scoreboard';
 import { prisma } from '@/lib/prisma';
 import type {
   DailyCommandItem,
@@ -245,6 +246,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     prisma.placeTag.count({ where: { submittedAt: { gte: periodStart } } }),
     prisma.venueCheckIn.count({ where: { scannedAt: { gte: periodStart } } }),
   ]);
+  const founderScoreboard = await buildFounderScoreboardPulse(7);
 
   const moderationReady = moderationDares.filter((dare) => {
     const voteCount = dare.votes.length;
@@ -289,6 +291,43 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     pendingClaims + pendingVenueClaims + pendingCreatorTags + pendingPlaceTags + moderationReady.length;
 
   const commands: DailyCommandItem[] = [];
+  const founderSignal = founderScoreboard.commandSignal;
+  const founderPriority = Math.max(
+    founderSignal.cashPriority,
+    founderSignal.trustPriority,
+    founderSignal.placePriority,
+    founderSignal.growthPriority
+  );
+  const founderWorkstream: DailyCommandItem['workstream'] =
+    founderSignal.cashPriority >= founderPriority
+      ? 'money'
+      : founderSignal.trustPriority >= founderPriority
+        ? 'trust'
+        : founderSignal.placePriority >= founderPriority
+          ? 'market'
+          : 'growth';
+
+  if (
+    founderSignal.tone !== 'neutral' &&
+    !(payoutBacklog.length > 0 && founderSignal.suggestedCommand.startsWith('Clear payout'))
+  ) {
+    commands.push(
+      command({
+        id: 'founder-outcome-pulse',
+        title: founderSignal.suggestedCommand,
+        workstream: founderWorkstream,
+        riskTier: founderSignal.tone === 'critical' ? 'human' : founderSignal.tone === 'positive' ? 'auto' : 'review',
+        priority: 86 + Math.min(34, Math.round(founderPriority / 4)),
+        why: `Founder scoreboard shows ${founderScoreboard.money.settledGmv.toLocaleString()} settled GMV, ${founderScoreboard.money.realizedRevenue.toLocaleString()} estimated revenue, and ${founderScoreboard.place.checkIns} check-ins over ${founderScoreboard.period.label.toLowerCase()}.`,
+        nextAction: founderSignal.suggestedCommand,
+        href: '/admin/founder-scoreboard',
+        evidence: [
+          ...founderSignal.evidence,
+          `$${founderScoreboard.money.realizedRevenue.toLocaleString()} revenue`,
+        ].slice(0, 4),
+      })
+    );
+  }
 
   if (payoutBacklog.length > 0) {
     commands.push(
@@ -518,6 +557,20 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
 
   const scorecard = [
     buildMetric(
+      'settled-gmv',
+      'Settled GMV',
+      `$${founderScoreboard.money.settledGmv.toLocaleString()}`,
+      `$${founderScoreboard.money.realizedRevenue.toLocaleString()} estimated revenue in ${founderScoreboard.period.label.toLowerCase()}`,
+      founderScoreboard.money.settledGmv > 0 ? 'positive' : founderScoreboard.money.liveGmv > 0 ? 'warning' : 'neutral'
+    ),
+    buildMetric(
+      'founder-place',
+      'Venue utility',
+      founderScoreboard.place.checkIns,
+      `${founderScoreboard.place.activeVenues} venues active, ${founderScoreboard.place.venueLinkedDares} venue-linked dares`,
+      founderScoreboard.place.checkIns > 0 ? 'positive' : 'neutral'
+    ),
+    buildMetric(
       'trust-queue',
       'Trust queue',
       pendingTrustItems,
@@ -574,6 +627,12 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
             detail: `${plural(moderationReady.length, 'proof')} can move today. Fast review improves creator confidence and unlocks payout flow.`,
             tone: 'warning' as DailyCommandTone,
           }
+        : founderSignal.tone === 'warning' && founderScoreboard.money.liveGmv > 0
+          ? {
+              title: 'Funded demand needs outcome conversion',
+              detail: `$${founderScoreboard.money.liveGmv.toLocaleString()} live GMV is waiting on proof, review, or payout before it becomes settled GMV.`,
+              tone: 'warning' as DailyCommandTone,
+            }
         : overdueVenueLeads + unownedVenueLeads > 0
           ? {
               title: 'Follow-up discipline is the highest ROI',
@@ -593,6 +652,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
               };
 
   const learnings = [
+    founderScoreboard.money.settledGmv > 0
+      ? `$${founderScoreboard.money.settledGmv.toLocaleString()} settled GMV and $${founderScoreboard.money.realizedRevenue.toLocaleString()} estimated revenue surfaced in the Founder Scoreboard.`
+      : 'Founder Scoreboard shows no settled GMV in the current 7-day window; today should identify the bottleneck before increasing external promises.',
     recentVenueLeads > 0
       ? `${plural(recentVenueLeads, 'venue/sponsor lead')} arrived in the last 24h, so the loop should prioritize conversion before new sourcing.`
       : 'No new venue lead arrived in the last 24h; today needs either targeted scouting or a stronger inbound prompt.',
@@ -620,6 +682,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     openCampaignSlots > 0 && recentCompletedDares === 0
       ? 'Open campaign slots exist without fresh completions in the last 24h; supply routing may be lagging demand.'
       : null,
+    founderScoreboard.money.refundedGmv > 0
+      ? `$${founderScoreboard.money.refundedGmv.toLocaleString()} refunded GMV appears in the founder period; do not count it as revenue.`
+      : null,
   ].filter((item): item is string => Boolean(item));
 
   return {
@@ -641,6 +706,17 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     safeAutomaticWork,
     learnings,
     watchouts,
+    founderPulse: {
+      settledGmv: founderScoreboard.money.settledGmv,
+      realizedRevenue: founderScoreboard.money.realizedRevenue,
+      liveGmv: founderScoreboard.money.liveGmv,
+      completionRate: founderScoreboard.money.completionRate,
+      checkIns: founderScoreboard.place.checkIns,
+      activeVenues: founderScoreboard.place.activeVenues,
+      suggestedCommand: founderSignal.suggestedCommand,
+      tone: founderSignal.tone,
+      evidence: founderSignal.evidence,
+    },
     sourceSignals: {
       moderationReady: moderationReady.length,
       payoutBacklog: payoutBacklog.length,
