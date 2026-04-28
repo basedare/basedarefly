@@ -10,6 +10,7 @@ const PEEBEAR_TEXTURE_URL = '/assets/peebear-head.png';
 
 type PeeBearGlassProps = {
   className?: string;
+  fit?: 'default' | 'edge';
 };
 
 function createPolygonShape(sides: number, radius: number) {
@@ -28,11 +29,12 @@ function createPolygonShape(sides: number, radius: number) {
   return shape;
 }
 
-export default function PeeBearGlass({ className }: PeeBearGlassProps) {
+export default function PeeBearGlass({ className, fit = 'default' }: PeeBearGlassProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sparkleRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    const isEdgeFit = fit === 'edge';
     const mount = mountRef.current;
     const sparkleCanvas = sparkleRef.current;
     if (!mount || !sparkleCanvas) return undefined;
@@ -156,7 +158,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     const glassGeo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.14), extrudeSettings);
     glassGeo.center();
-    glassGeo.scale(0.84, 1.06, 0.58);
+    glassGeo.scale(isEdgeFit ? 1.32 : 0.84, isEdgeFit ? 1.32 : 1.06, 0.58);
 
     const glassMat = new THREE.MeshPhysicalMaterial({
       color: '#4c0f8f',
@@ -207,7 +209,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const clipOctagon = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       const cx = width / 2;
       const cy = height / 2;
-      const r = Math.min(width, height) * 0.47;
+      const r = Math.min(width, height) * (isEdgeFit ? 0.54 : 0.47);
       const sides = 8;
       const offset = Math.PI / 8;
       ctx.beginPath();
@@ -446,7 +448,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [fit]);
 
   return (
     <div

@@ -150,7 +150,7 @@ export default function FAQPage() {
                 className="pointer-events-none absolute inset-[4.25%] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,8,18,0.72)_0%,rgba(14,11,30,0.88)_100%)] shadow-[inset_16px_16px_26px_rgba(0,0,0,0.58),inset_-7px_-7px_18px_rgba(255,255,255,0.035)]"
                 style={{ clipPath: octagonClipPath }}
               />
-              <div className="relative z-10 h-full w-full p-[8.5%]">
+              <div className="relative z-10 h-full w-full">
                 <div className="relative h-full w-full" style={{ clipPath: octagonClipPath }}>
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.18)_0%,transparent_22%),linear-gradient(145deg,rgba(168,85,247,0.99)_0%,rgba(147,51,234,0.98)_32%,rgba(126,34,206,0.98)_64%,rgba(76,29,149,0.99)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-18px_20px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.3)]" />
                   <div className="pointer-events-none absolute inset-[6%] opacity-95" style={{ clipPath: octagonClipPath }}>
@@ -183,8 +183,8 @@ export default function FAQPage() {
                 className="pointer-events-none absolute inset-[6%] border border-white/[0.04] bg-[linear-gradient(180deg,rgba(5,7,16,0.66)_0%,rgba(13,11,28,0.82)_100%)] shadow-[inset_10px_10px_20px_rgba(0,0,0,0.5),inset_-4px_-4px_12px_rgba(255,255,255,0.025)]"
                 style={{ clipPath: octagonClipPath }}
               />
-              <div className="relative z-10 h-full w-full p-1">
-                {isDesktop ? <PeeBearGlass className="mx-auto h-full w-full" /> : null}
+              <div className="relative z-10 h-full w-full">
+                {isDesktop ? <PeeBearGlass fit="edge" className="mx-auto h-full w-full" /> : null}
               </div>
 
               <div className="absolute bottom-1 right-0 z-20 translate-x-1/4 translate-y-1/4">
