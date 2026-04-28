@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import {
@@ -18,6 +19,24 @@ import {
 // ============================================================================
 
 const LIVE_POT_ADMIN_SECRET = process.env.LIVE_POT_ADMIN_SECRET;
+
+const ACTIVE_DARE_STATUSES = [
+  'PENDING',
+  'AWAITING_CLAIM',
+  'PENDING_ACCEPTANCE',
+  'CLAIMED',
+  'PENDING_REVIEW',
+  'UNDER_REVIEW',
+  'PENDING_PAYOUT',
+];
+
+const PAID_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
+const ACTIVE_VENUE_CAMPAIGN_STATUSES = ['FUNDING', 'RECRUITING', 'LIVE', 'ACTIVE', 'VERIFYING'];
+const PAID_CAMPAIGN_SLOT_STATUSES = ['VERIFIED', 'PAID'];
+
+function money(value: number | null | undefined) {
+  return Math.round((value ?? 0) * 100) / 100;
+}
 
 type AdminSession = {
   token?: string;
@@ -106,6 +125,91 @@ export async function GET() {
       _sum: { amount: true },
     });
 
+    const paidCampaignSlotWhere: Prisma.CampaignSlotWhereInput = {
+      OR: [
+        { paidAt: { not: null } },
+        { status: { in: PAID_CAMPAIGN_SLOT_STATUSES } },
+      ],
+    };
+
+    const [
+      liveDarePool,
+      liveDareCount,
+      venueActivationPool,
+      venueActivationCount,
+      paidDarePool,
+      paidDareCount,
+      paidCampaignSlotPool,
+      paidCampaignSlotCount,
+      topVenueRows,
+    ] = await Promise.all([
+      prisma.dare.aggregate({
+        where: { status: { in: ACTIVE_DARE_STATUSES } },
+        _sum: { bounty: true },
+      }),
+      prisma.dare.count({
+        where: { status: { in: ACTIVE_DARE_STATUSES } },
+      }),
+      prisma.campaign.aggregate({
+        where: {
+          venueId: { not: null },
+          status: { in: ACTIVE_VENUE_CAMPAIGN_STATUSES },
+        },
+        _sum: { budgetUsdc: true },
+      }),
+      prisma.campaign.count({
+        where: {
+          venueId: { not: null },
+          status: { in: ACTIVE_VENUE_CAMPAIGN_STATUSES },
+        },
+      }),
+      prisma.dare.aggregate({
+        where: { status: { in: PAID_DARE_STATUSES } },
+        _sum: { bounty: true },
+      }),
+      prisma.dare.count({
+        where: { status: { in: PAID_DARE_STATUSES } },
+      }),
+      prisma.campaignSlot.aggregate({
+        where: paidCampaignSlotWhere,
+        _sum: { totalPayout: true },
+      }),
+      prisma.campaignSlot.count({
+        where: paidCampaignSlotWhere,
+      }),
+      prisma.dare.groupBy({
+        by: ['venueId'],
+        where: {
+          venueId: { not: null },
+          status: { in: PAID_DARE_STATUSES },
+        },
+        _sum: { bounty: true },
+        _count: { id: true },
+        orderBy: { _sum: { bounty: 'desc' } },
+        take: 1,
+      }),
+    ]);
+
+    const topVenueId = topVenueRows[0]?.venueId;
+    const topVenue = topVenueId
+      ? await prisma.venue.findUnique({
+          where: { id: topVenueId },
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+            country: true,
+          },
+        })
+      : null;
+
+    const liveDareAmount = money(liveDarePool._sum.bounty);
+    const venueActivationAmount = money(venueActivationPool._sum.budgetUsdc);
+    const paidOutAmount = money(
+      (paidDarePool._sum.bounty ?? 0) + (paidCampaignSlotPool._sum.totalPayout ?? 0)
+    );
+    const topVenueAmount = money(topVenueRows[0]?._sum.bounty);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -120,6 +224,33 @@ export async function GET() {
         weekly: {
           deposited: weeklyDeposits._sum.amount || 0,
           distributed: Math.abs(weeklyDistributions._sum.amount || 0),
+        },
+        creatorPool: {
+          total: money(liveDareAmount + venueActivationAmount + paidOutAmount),
+          liveDares: {
+            amount: liveDareAmount,
+            count: liveDareCount,
+          },
+          venueActivations: {
+            amount: venueActivationAmount,
+            count: venueActivationCount,
+          },
+          paidOut: {
+            amount: paidOutAmount,
+            count: paidDareCount + paidCampaignSlotCount,
+          },
+          topEarningVenue: topVenue
+            ? {
+                name: topVenue.name,
+                slug: topVenue.slug,
+                city: topVenue.city,
+                country: topVenue.country,
+                amount: topVenueAmount,
+                verifiedDares: topVenueRows[0]?._count.id ?? 0,
+              }
+            : null,
+          fundedBy: ['Brands', 'Venues', 'Dare creators'],
+          updatedAt: new Date().toISOString(),
         },
         recentTransactions,
         feeStructure: {

@@ -6,22 +6,22 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Harden the money rails so payout retries and expired refunds are scheduled, alerting, and release-safe.
+- Goal: Add a read-only Daily Command Loop for BaseDare Brain.
 
 ### Plan
-- [x] Inspect the current payout retry and expired refund routes plus deploy config gaps.
-- [x] Add a schedulable cron path for expired refunds and enable GET-trigger support for payout retries.
-- [x] Add Telegram alerts for cron failures and partial-failure runs.
-- [x] Add deploy-facing config/docs for cron scheduling and required env.
-- [x] Verify with targeted lint and full build.
+- [x] Inspect Brain docs, admin auth, moderation, lead, claim, campaign, and place-memory surfaces.
+- [x] Add a protected read-only command-loop API backed by existing Prisma models.
+- [x] Add an admin page that ranks today’s actions by trust, money, growth, and market signal.
+- [x] Verify with targeted lint/build checks and rebuild graphify.
 
 ### Verification
-- [x] Targeted `eslint` on the touched cron and alert files
+- [x] Targeted lint/type check for the new command-loop files
 - [x] `npm run build`
+- [x] Graphify rebuild
 
 ### Review
-- Outcome: Added deployable cron scheduling via `vercel.json`, a dedicated `/api/cron/refund-expired` route, failure alerts for payout/refund cron runs, and a money-rails runbook.
-- Follow-ups: Smoke-test the cron endpoints in the deployed environment, then move directly into Sentinel Phase 1.
+- Outcome: Added a protected read-only Daily Command Loop that ranks today’s trust, money, growth, and market actions from existing operational signals.
+- Follow-ups: Decide whether the loop should later persist daily snapshots or stay generated-on-read.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

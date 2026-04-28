@@ -9,10 +9,44 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = 'pwa-install-dismissed-at';
+const SEEN_KEY = 'pwa-install-seen-at';
 
 function isStandaloneDisplayMode() {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function readInstallPromptFlag(key: string) {
+  if (typeof window === 'undefined') return true;
+
+  try {
+    return Boolean(window.localStorage.getItem(key));
+  } catch {
+    return true;
+  }
+}
+
+function writeInstallPromptFlag(key: string) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(key, String(Date.now()));
+  } catch {
+    // If storage is blocked, fail closed so the prompt does not spam routes.
+  }
+}
+
+function hasSeenInstallPrompt() {
+  return readInstallPromptFlag(DISMISS_KEY) || readInstallPromptFlag(SEEN_KEY);
+}
+
+function rememberInstallPromptSeen() {
+  writeInstallPromptFlag(SEEN_KEY);
+}
+
+function rememberInstallPromptDismissed() {
+  writeInstallPromptFlag(SEEN_KEY);
+  writeInstallPromptFlag(DISMISS_KEY);
 }
 
 export default function PwaInstallPrompt() {
@@ -31,30 +65,35 @@ export default function PwaInstallPrompt() {
       return;
     }
 
-    const dismissedAt = window.localStorage.getItem(DISMISS_KEY);
+    const seenBefore = hasSeenInstallPrompt();
+    const installed = isStandaloneDisplayMode();
     const ua = window.navigator.userAgent.toLowerCase();
 
     queueMicrotask(() => {
-      setIsInstalled(isStandaloneDisplayMode());
+      setIsInstalled(installed);
       setIsIos(/iphone|ipad|ipod/.test(ua));
-
-      if (!dismissedAt) {
-        setDismissed(false);
-        return;
-      }
-
-      setDismissed(true);
+      setDismissed(installed || seenBefore);
     });
 
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
+
+      if (isStandaloneDisplayMode() || hasSeenInstallPrompt()) {
+        setDeferredPrompt(null);
+        setDismissed(true);
+        return;
+      }
+
+      rememberInstallPromptSeen();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
       setDismissed(false);
     };
 
     const onInstalled = () => {
+      rememberInstallPromptDismissed();
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setDismissed(true);
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
@@ -66,10 +105,14 @@ export default function PwaInstallPrompt() {
     };
   }, []);
 
-  const dismiss = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+  useEffect(() => {
+    if (canShow) {
+      rememberInstallPromptSeen();
     }
+  }, [canShow]);
+
+  const dismiss = () => {
+    rememberInstallPromptDismissed();
     setDismissed(true);
   };
 
@@ -82,8 +125,10 @@ export default function PwaInstallPrompt() {
     const choice = await deferredPrompt.userChoice;
 
     if (choice.outcome === 'accepted') {
+      rememberInstallPromptDismissed();
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setDismissed(true);
       return;
     }
 

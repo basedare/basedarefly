@@ -327,7 +327,7 @@ export default function DareGenerator({
             height={44}
             fullWidth
             className={cn(
-              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/8',
+              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-full after:border after:border-white/8',
               mode === 'IRL' ? 'after:opacity-65' : 'after:opacity-35'
             )}
           />
@@ -338,7 +338,7 @@ export default function DareGenerator({
             height={44}
             fullWidth
             className={cn(
-              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-[16px] after:border after:border-white/8',
+              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-full after:border after:border-white/8',
               mode === 'STREAM' ? 'after:opacity-65' : 'after:opacity-35'
             )}
           />

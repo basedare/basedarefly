@@ -51,30 +51,23 @@ function formatPathNumber(value: number) {
 }
 
 function squirclePath(width: number, height: number, radius: number, x: number, y: number) {
-  let path = '';
+  const r = Math.min(radius, height / 2, width / 2);
+  const c = r * 0.5522847498;
+  const right = x + width;
+  const bottom = y + height;
 
-  for (let j = 0; j < 4; j += 1) {
-    for (let i = 0; i < 31; i += 1) {
-      const q = ((j + i / 30) * Math.PI) / 2;
-      const c = Math.cos(q);
-      const s = Math.sin(q);
-
-      const px = formatPathNumber(
-        x +
-          (c > 0 ? width - radius : radius) +
-          Math.sign(c) * Math.pow(Math.abs(c), 0.6) * radius
-      );
-      const py = formatPathNumber(
-        y +
-          (s > 0 ? height - radius : radius) +
-          Math.sign(s) * Math.pow(Math.abs(s), 0.6) * radius
-      );
-
-      path += `${j || i ? 'L' : 'M'}${px} ${py}`;
-    }
-  }
-
-  return `${path}Z`;
+  return [
+    `M${formatPathNumber(x + r)} ${formatPathNumber(y)}`,
+    `H${formatPathNumber(right - r)}`,
+    `C${formatPathNumber(right - r + c)} ${formatPathNumber(y)} ${formatPathNumber(right)} ${formatPathNumber(y + r - c)} ${formatPathNumber(right)} ${formatPathNumber(y + r)}`,
+    `V${formatPathNumber(bottom - r)}`,
+    `C${formatPathNumber(right)} ${formatPathNumber(bottom - r + c)} ${formatPathNumber(right - r + c)} ${formatPathNumber(bottom)} ${formatPathNumber(right - r)} ${formatPathNumber(bottom)}`,
+    `H${formatPathNumber(x + r)}`,
+    `C${formatPathNumber(x + r - c)} ${formatPathNumber(bottom)} ${formatPathNumber(x)} ${formatPathNumber(bottom - r + c)} ${formatPathNumber(x)} ${formatPathNumber(bottom - r)}`,
+    `V${formatPathNumber(y + r)}`,
+    `C${formatPathNumber(x)} ${formatPathNumber(y + r - c)} ${formatPathNumber(x + r - c)} ${formatPathNumber(y)} ${formatPathNumber(x + r)} ${formatPathNumber(y)}`,
+    'Z',
+  ].join('');
 }
 
 function mix(hex: string, pct: number, fallback: string) {
@@ -129,10 +122,11 @@ export default function SquircleButton({
   const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
   const shadowOpacity = isDown ? 0.42 : 0.72;
   const dropOpacity = opacity;
-  const svgWidth = width + 10;
+  const faceWidth = square ? JELLY_FACE_HEIGHT : width;
+  const svgWidth = faceWidth + 10;
   const svgHeight = 56;
   const labelText = label.toUpperCase();
-  const idSuffix = `${reactId}-${tone}-${width}-${height}-${floating ? 'f' : 'n'}-button`;
+  const idSuffix = `${reactId}-${tone}-${faceWidth}-${height}-${floating ? 'f' : 'n'}-button`;
   const handlePointerDown = () => {
     if (disabled) return;
     setPressed(true);
@@ -152,10 +146,10 @@ export default function SquircleButton({
     handlePointerUp();
   };
 
-  const facePath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, faceY), [faceY, width]);
-  const shadowPath = useMemo(() => squirclePath(width, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, shadowY), [shadowY, width]);
-  const shineWidth = width * JELLY_SHINE_WIDTH;
-  const shineX = 5 + (width - shineWidth) / 2;
+  const facePath = useMemo(() => squirclePath(faceWidth, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, faceY), [faceY, faceWidth]);
+  const shadowPath = useMemo(() => squirclePath(faceWidth, JELLY_FACE_HEIGHT, JELLY_FACE_RADIUS, 5, shadowY), [shadowY, faceWidth]);
+  const shineWidth = faceWidth * JELLY_SHINE_WIDTH;
+  const shineX = 5 + (faceWidth - shineWidth) / 2;
 
   return (
     <button

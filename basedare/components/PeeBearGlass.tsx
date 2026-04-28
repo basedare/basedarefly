@@ -31,7 +31,6 @@ function createPolygonShape(sides: number, radius: number) {
 export default function PeeBearGlass({ className }: PeeBearGlassProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sparkleRef = useRef<HTMLCanvasElement>(null);
-  const baseSpinVelocity = 0.42;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -77,7 +76,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
 
     const group = new THREE.Group();
     group.position.y = 0;
-    group.scale.setScalar(1.72);
+    group.scale.setScalar(1.64);
     scene.add(group);
     group.rotation.order = 'YXZ';
 
@@ -119,7 +118,7 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     group.add(photoMesh);
 
     let currentAspectRatio = 1.0;
-    const photoScale = 2.14;
+    const photoScale = 1.94;
 
     const updatePhotoScale = () => {
       const finalScale = photoScale;
@@ -146,36 +145,37 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     });
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
-      depth: 0.18,
+      depth: 0.11,
       bevelEnabled: true,
-      bevelSegments: 8,
+      bevelSegments: 7,
       steps: 2,
-      bevelSize: 0.08,
-      bevelThickness: 0.03,
+      bevelSize: 0.065,
+      bevelThickness: 0.024,
       curveSegments: 512,
     };
 
-    const glassGeo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.2), extrudeSettings);
+    const glassGeo = new THREE.ExtrudeGeometry(createPolygonShape(8, 1.14), extrudeSettings);
     glassGeo.center();
+    glassGeo.scale(0.84, 1.06, 0.58);
 
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: '#a855f7',
-      transmission: 1.0,
-      opacity: 1.0,
+      color: '#4c0f8f',
+      transmission: 0.86,
+      opacity: 0.96,
       metalness: 0.0,
-      roughness: 0.0,
+      roughness: 0.035,
       ior: 2.33,
-      thickness: 0.22,
-      attenuationColor: new THREE.Color('#f3e8ff'),
-      attenuationDistance: 3.1,
-      emissive: new THREE.Color('#581c87'),
-      emissiveIntensity: 0.28,
-      specularIntensity: 0.8,
-      envMapIntensity: 0.52,
+      thickness: 0.16,
+      attenuationColor: new THREE.Color('#24103f'),
+      attenuationDistance: 1.75,
+      emissive: new THREE.Color('#220044'),
+      emissiveIntensity: 0.16,
+      specularIntensity: 0.72,
+      envMapIntensity: 0.42,
       clearcoat: 1.0,
       clearcoatRoughness: 0.0,
-      sheen: 0.16,
-      sheenColor: new THREE.Color('#f0abfc'),
+      sheen: 0.1,
+      sheenColor: new THREE.Color('#7c3aed'),
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -255,10 +255,11 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     let frameId = 0;
     let isUnmounted = false;
     const clock = new THREE.Clock();
-    let currentRotationY = 0;
-    let spinVelocity = baseSpinVelocity;
+    let dragYawOffset = 0;
+    let dragPitchOffset = 0;
     let isDragging = false;
     let lastPointerX = 0;
+    let lastPointerY = 0;
 
     const animate = () => {
       if (isUnmounted) {
@@ -267,15 +268,21 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
       }
 
       const delta = clock.getDelta();
-      currentRotationY += spinVelocity * delta;
-      spinVelocity *= isDragging ? 0.972 : 0.998;
-      if (Math.abs(spinVelocity) < baseSpinVelocity) {
-        spinVelocity += (baseSpinVelocity - spinVelocity) * 0.02;
+      const elapsed = clock.elapsedTime;
+
+      if (!isDragging) {
+        dragYawOffset = THREE.MathUtils.damp(dragYawOffset, 0, 2.6, delta);
+        dragPitchOffset = THREE.MathUtils.damp(dragPitchOffset, 0, 2.9, delta);
       }
 
-      group.rotation.x = 0;
-      group.rotation.y = currentRotationY;
-      group.rotation.z = 0;
+      const swayY = Math.sin(elapsed * 0.62) * 0.11 + Math.sin(elapsed * 0.29) * 0.035;
+      const swayX = Math.sin(elapsed * 0.48 + 0.65) * 0.042;
+      const swayZ = Math.sin(elapsed * 0.36) * 0.028;
+
+      group.position.y = Math.sin(elapsed * 0.72) * 0.035;
+      group.rotation.x = swayX + dragPitchOffset;
+      group.rotation.y = swayY + dragYawOffset;
+      group.rotation.z = swayZ;
 
       renderer.render(scene, camera);
 
@@ -296,8 +303,8 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
           gradY,
           Math.max(sparkleWidth, sparkleHeight) * 0.8
         );
-        holoGrad.addColorStop(0, 'rgba(168, 85, 247, 0.08)');
-        holoGrad.addColorStop(0.34, 'rgba(192, 132, 252, 0.05)');
+        holoGrad.addColorStop(0, 'rgba(91, 33, 182, 0.075)');
+        holoGrad.addColorStop(0.34, 'rgba(124, 58, 237, 0.045)');
         holoGrad.addColorStop(0.62, 'rgba(245, 197, 24, 0.025)');
         holoGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = holoGrad;
@@ -380,15 +387,18 @@ export default function PeeBearGlass({ className }: PeeBearGlassProps) {
     const onPointerDown = (event: PointerEvent) => {
       isDragging = true;
       lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
       mount.setPointerCapture?.(event.pointerId);
     };
 
     const onPointerMove = (event: PointerEvent) => {
       if (!isDragging) return;
       const deltaX = event.clientX - lastPointerX;
+      const deltaY = event.clientY - lastPointerY;
       lastPointerX = event.clientX;
-      spinVelocity += deltaX * 0.0055;
-      spinVelocity = THREE.MathUtils.clamp(spinVelocity, -1.35, 1.35);
+      lastPointerY = event.clientY;
+      dragYawOffset = THREE.MathUtils.clamp(dragYawOffset + deltaX * 0.0024, -0.28, 0.28);
+      dragPitchOffset = THREE.MathUtils.clamp(dragPitchOffset + deltaY * 0.0018, -0.12, 0.12);
     };
 
     const endDrag = (event?: PointerEvent) => {

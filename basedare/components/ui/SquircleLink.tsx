@@ -47,30 +47,23 @@ function formatPathNumber(value: number) {
 }
 
 function squirclePath(width: number, height: number, radius: number, x: number, y: number) {
-  let path = '';
+  const r = Math.min(radius, height / 2, width / 2);
+  const c = r * 0.5522847498;
+  const right = x + width;
+  const bottom = y + height;
 
-  for (let j = 0; j < 4; j += 1) {
-    for (let i = 0; i < 31; i += 1) {
-      const q = ((j + i / 30) * Math.PI) / 2;
-      const c = Math.cos(q);
-      const s = Math.sin(q);
-
-      const px = formatPathNumber(
-        x +
-          (c > 0 ? width - radius : radius) +
-          Math.sign(c) * Math.pow(Math.abs(c), 0.6) * radius
-      );
-      const py = formatPathNumber(
-        y +
-          (s > 0 ? height - radius : radius) +
-          Math.sign(s) * Math.pow(Math.abs(s), 0.6) * radius
-      );
-
-      path += `${j || i ? 'L' : 'M'}${px} ${py}`;
-    }
-  }
-
-  return `${path}Z`;
+  return [
+    `M${formatPathNumber(x + r)} ${formatPathNumber(y)}`,
+    `H${formatPathNumber(right - r)}`,
+    `C${formatPathNumber(right - r + c)} ${formatPathNumber(y)} ${formatPathNumber(right)} ${formatPathNumber(y + r - c)} ${formatPathNumber(right)} ${formatPathNumber(y + r)}`,
+    `V${formatPathNumber(bottom - r)}`,
+    `C${formatPathNumber(right)} ${formatPathNumber(bottom - r + c)} ${formatPathNumber(right - r + c)} ${formatPathNumber(bottom)} ${formatPathNumber(right - r)} ${formatPathNumber(bottom)}`,
+    `H${formatPathNumber(x + r)}`,
+    `C${formatPathNumber(x + r - c)} ${formatPathNumber(bottom)} ${formatPathNumber(x)} ${formatPathNumber(bottom - r + c)} ${formatPathNumber(x)} ${formatPathNumber(bottom - r)}`,
+    `V${formatPathNumber(y + r)}`,
+    `C${formatPathNumber(x)} ${formatPathNumber(y + r - c)} ${formatPathNumber(x + r - c)} ${formatPathNumber(y)} ${formatPathNumber(x + r)} ${formatPathNumber(y)}`,
+    'Z',
+  ].join('');
 }
 
 function mix(hex: string, pct: number, fallback: string) {

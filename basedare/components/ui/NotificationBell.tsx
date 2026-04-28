@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellRing, Check, Smartphone } from 'lucide-react';
+import { Bell, BellRing, Check, Smartphone, X } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -169,6 +169,19 @@ export function NotificationBell() {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen]);
 
     const markAsRead = async (ids: string[]) => {
@@ -401,7 +414,7 @@ export function NotificationBell() {
     if (!address) return null;
 
     return (
-        <div className="relative z-50" ref={dropdownRef}>
+        <div className="relative z-[200]" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 onMouseEnter={() => setIsHovered(true)}
@@ -430,38 +443,48 @@ export function NotificationBell() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-80 md:w-96 max-h-[80vh] flex flex-col bg-[#16161a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"
+                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[220] isolate flex max-h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden overscroll-contain rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(24,23,34,0.92)_0%,rgba(8,9,18,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 md:max-h-[80vh] md:w-96"
                     >
+                        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.22),transparent_42%),radial-gradient(circle_at_86%_14%,rgba(34,211,238,0.16),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_38%)]" />
+                        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
-                            <div>
+                        <div className="flex flex-col gap-3 border-b border-white/8 bg-white/[0.055] p-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
                                 <h3 className="font-bold text-white">Notifications</h3>
                                 <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/36">
                                     {actionSummary?.total ? `${actionSummary.total} live actions` : 'Alerts and push settings'}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                                 <Link
                                     href="/action-center"
-                                    className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100 transition hover:bg-fuchsia-500/[0.14]"
+                                    className="min-h-9 rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100 transition hover:bg-fuchsia-500/[0.14]"
                                     onClick={() => setIsOpen(false)}
                                 >
-                                    Open action center
+                                    Action center
                                 </Link>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllAsRead}
-                                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                                        className="flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-purple-200 transition-colors hover:text-purple-100"
                                     >
                                         <Check className="w-3 h-3" /> Mark all read
                                     </button>
                                 )}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsOpen(false)}
+                                    className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/25 text-white/58 transition hover:bg-white/10 hover:text-white"
+                                    aria-label="Close notifications"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
 
                         {pushSupported && (
                             <div className="border-b border-white/5 bg-white/[0.03] px-4 py-3">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200/80">
                                             <Smartphone className="w-3.5 h-3.5" />
@@ -478,12 +501,12 @@ export function NotificationBell() {
                                             type="button"
                                             onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
                                             disabled={pushBusy}
-                                            className="shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 disabled:opacity-50"
+                                            className="min-h-9 shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 disabled:opacity-50"
                                         >
                                             {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
                                         </button>
                                     ) : (
-                                        <div className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                                        <div className="min-h-9 shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
                                             Soon
                                         </div>
                                     )}
@@ -629,7 +652,7 @@ export function NotificationBell() {
                         )}
 
                         {/* List */}
-                        <div className="overflow-y-auto flex-1 p-2">
+                        <div className="flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                             {notifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center p-8 text-center">
                                     <BellRing className="w-8 h-8 text-white/20 mb-3" />

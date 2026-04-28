@@ -1785,6 +1785,13 @@ export default function AdminPage() {
                 <Shield className="w-4 h-4 inline mr-2" />
                 Production Safety
               </Link>
+              <Link
+                href="/admin/daily-command-loop"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
+              >
+                <Clock className="w-4 h-4 inline mr-2" />
+                Daily Command Loop
+              </Link>
             </div>
           )}
         </div>
