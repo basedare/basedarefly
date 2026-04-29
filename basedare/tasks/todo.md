@@ -6,12 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Add a referee-review SLA indicator to pending venue marks so creators understand queue state after submission.
+- Goal: Speed up admin place-tag moderation so pending venue marks can be approved, rejected, or flagged with less operator friction.
 
 ### Plan
-- [x] Add SLA metadata to pending venue timeline moments.
-- [x] Render elapsed, remaining, and overdue review states on pending mark cards.
-- [x] Keep approved marks and completed dare moments unchanged.
+- [x] Auto-select the first pending place tag after loading the Chaos Inbox.
+- [x] Add place-tag queue health metrics for overdue, due-soon, first-mark, and oldest submissions.
+- [x] Make keyboard shortcuts process the current item and move to the next one.
+- [x] Add reusable rejection reason chips for common moderation failures.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Pending venue marks now show a clear referee review SLA rail.
-- Follow-ups: Next venue ROI is giving admins a faster approve/reject surface for place marks.
+- Outcome: Production build and static safety pass. Place-tag moderation now behaves more like a fast referee queue instead of a manual inbox.
+- Follow-ups: Next venue ROI is exposing the same moderation pressure inside the Daily Command Loop.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

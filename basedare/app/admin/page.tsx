@@ -320,6 +320,110 @@ interface PendingPlaceTag {
   };
 }
 
+const PLACE_TAG_REVIEW_SLA_MINUTES = 120;
+const PLACE_TAG_REJECT_REASON_CHIPS = [
+  'Off-place proof',
+  'Low-quality proof',
+  'Duplicate or spam',
+  'Unsafe or private content',
+] as const;
+
+function formatCompactReviewDuration(minutes: number) {
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+
+  return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
+}
+
+function getPlaceTagReviewState(submittedAt: string) {
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - new Date(submittedAt).getTime()) / 60000));
+  const remainingMinutes = PLACE_TAG_REVIEW_SLA_MINUTES - elapsedMinutes;
+  const progress = Math.min(100, Math.max(8, Math.round((elapsedMinutes / PLACE_TAG_REVIEW_SLA_MINUTES) * 100)));
+
+  if (remainingMinutes <= 0) {
+    return {
+      label: 'Overdue',
+      detail: `${formatCompactReviewDuration(Math.abs(remainingMinutes))} over SLA`,
+      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
+      progress: 100,
+      tone: 'overdue' as const,
+    };
+  }
+
+  if (remainingMinutes <= 30) {
+    return {
+      label: 'Due soon',
+      detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
+      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
+      progress,
+      tone: 'due' as const,
+    };
+  }
+
+  if (elapsedMinutes < 15) {
+    return {
+      label: 'Fresh',
+      detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
+      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
+      progress,
+      tone: 'fresh' as const,
+    };
+  }
+
+  return {
+    label: 'In queue',
+    detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
+    elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
+    progress,
+    tone: 'active' as const,
+  };
+}
+
+function getPlaceTagReviewToneClass(tone: ReturnType<typeof getPlaceTagReviewState>['tone']) {
+  switch (tone) {
+    case 'overdue':
+      return 'border-red-400/24 bg-red-500/[0.1] text-red-200';
+    case 'due':
+      return 'border-yellow-400/24 bg-yellow-500/[0.1] text-yellow-200';
+    case 'fresh':
+      return 'border-cyan-400/22 bg-cyan-500/[0.09] text-cyan-200';
+    default:
+      return 'border-emerald-400/20 bg-emerald-500/[0.08] text-emerald-200';
+  }
+}
+
+function getPlaceTagReviewFillClass(tone: ReturnType<typeof getPlaceTagReviewState>['tone']) {
+  switch (tone) {
+    case 'overdue':
+      return 'bg-red-300';
+    case 'due':
+      return 'bg-yellow-300';
+    case 'fresh':
+      return 'bg-cyan-300';
+    default:
+      return 'bg-emerald-300';
+  }
+}
+
+function derivePlaceTagQueueSummary(tags: PendingPlaceTag[]) {
+  const states = tags.map((tag) => getPlaceTagReviewState(tag.submittedAt));
+
+  return {
+    total: tags.length,
+    overdue: states.filter((state) => state.tone === 'overdue').length,
+    dueSoon: states.filter((state) => state.tone === 'due').length,
+    firstMarks: tags.filter((tag) => tag.firstMark).length,
+    oldestQueuedLabel: states.length
+      ? states.reduce((oldest, state) =>
+          state.progress > oldest.progress ? state : oldest
+        ).elapsedLabel
+      : 'clear',
+  };
+}
+
 interface AdminPlace {
   id: string;
   slug: string;
@@ -541,6 +645,13 @@ export default function AdminPage() {
     }
     return headers;
   }, [address, adminSecretTrimmed]);
+  const placeTagQueueSummary = useMemo(
+    () => derivePlaceTagQueueSummary(pendingPlaceTags),
+    [pendingPlaceTags]
+  );
+  const selectedPlaceTagReviewState = selectedPlaceTag
+    ? getPlaceTagReviewState(selectedPlaceTag.submittedAt)
+    : null;
   const sentinelQueueCount = dares.filter(
     (dare) => dare.requireSentinel && dare.manualReviewNeeded && dare.status === 'PENDING_REVIEW'
   ).length;
@@ -939,8 +1050,12 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
+        const tags = data.data.tags as PendingPlaceTag[];
         setIsTagsAuthorized(true);
-        setPendingPlaceTags(data.data.tags);
+        setPendingPlaceTags(tags);
+        setSelectedPlaceTag((current) =>
+          current && tags.some((tag) => tag.id === current.id) ? current : tags[0] ?? null
+        );
       } else if (res.status === 401) {
         setIsTagsAuthorized(false);
         setPlaceTagsError('Invalid admin secret');
@@ -1065,19 +1180,19 @@ export default function AdminPage() {
 
       if (key === 'a') {
         event.preventDefault();
-        void handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE');
+        void handlePlaceTagAction(selectedPlaceTag.id, 'APPROVE', { openNext: true });
         return;
       }
 
       if (key === 'r') {
         event.preventDefault();
-        handlePlaceTagRejectIntent();
+        handlePlaceTagRejectIntent({ openNext: true });
         return;
       }
 
       if (key === 'f') {
         event.preventDefault();
-        void handlePlaceTagAction(selectedPlaceTag.id, 'FLAG');
+        void handlePlaceTagAction(selectedPlaceTag.id, 'FLAG', { openNext: true });
         return;
       }
 
@@ -3432,6 +3547,35 @@ export default function AdminPage() {
                     Chaos Inbox ({pendingPlaceTags.length})
                   </h3>
 
+                  <div className="mb-4 grid grid-cols-2 gap-2 xl:grid-cols-5">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Queue</p>
+                      <p className="mt-1 text-lg font-black text-white">{placeTagQueueSummary.total}</p>
+                    </div>
+                    <div className={`rounded-2xl border px-3 py-3 ${placeTagQueueSummary.overdue > 0 ? 'border-red-400/24 bg-red-500/[0.1]' : 'border-white/10 bg-white/[0.04]'}`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Overdue</p>
+                      <p className={`mt-1 text-lg font-black ${placeTagQueueSummary.overdue > 0 ? 'text-red-200' : 'text-white'}`}>
+                        {placeTagQueueSummary.overdue}
+                      </p>
+                    </div>
+                    <div className={`rounded-2xl border px-3 py-3 ${placeTagQueueSummary.dueSoon > 0 ? 'border-yellow-400/24 bg-yellow-500/[0.1]' : 'border-white/10 bg-white/[0.04]'}`}>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Due soon</p>
+                      <p className={`mt-1 text-lg font-black ${placeTagQueueSummary.dueSoon > 0 ? 'text-yellow-200' : 'text-white'}`}>
+                        {placeTagQueueSummary.dueSoon}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-fuchsia-400/16 bg-fuchsia-500/[0.06] px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">First marks</p>
+                      <p className="mt-1 text-lg font-black text-fuchsia-100">{placeTagQueueSummary.firstMarks}</p>
+                    </div>
+                    <div className="rounded-2xl border border-cyan-400/16 bg-cyan-500/[0.06] px-3 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Oldest</p>
+                      <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-cyan-100">
+                        {placeTagQueueSummary.oldestQueuedLabel}
+                      </p>
+                    </div>
+                  </div>
+
                   {placeTagsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-8 h-8 text-cyan-300 animate-spin" />
@@ -3443,7 +3587,10 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                      {pendingPlaceTags.map((tag) => (
+                      {pendingPlaceTags.map((tag) => {
+                        const reviewState = getPlaceTagReviewState(tag.submittedAt);
+
+                        return (
                         <div
                           key={tag.id}
                           onClick={() => setSelectedPlaceTag(tag)}
@@ -3462,16 +3609,28 @@ export default function AdminPage() {
                                 {tag.creatorTag || formatAddress(tag.walletAddress)}
                               </p>
                             </div>
-                            <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-300 shrink-0">
-                              {tag.proofType}
-                            </span>
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-300">
+                                {tag.proofType}
+                              </span>
+                              <span className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${getPlaceTagReviewToneClass(reviewState.tone)}`}>
+                                {reviewState.label}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between text-xs font-mono">
                             <span className="text-gray-400">{tag.venue.city || 'Unknown city'}</span>
                             <span className="text-gray-500">
-                              {new Date(tag.submittedAt).toLocaleDateString()}
+                              {reviewState.elapsedLabel}
                             </span>
+                          </div>
+
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/30">
+                            <div
+                              className={`h-full rounded-full ${getPlaceTagReviewFillClass(reviewState.tone)}`}
+                              style={{ width: `${reviewState.progress}%` }}
+                            />
                           </div>
 
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -3495,7 +3654,8 @@ export default function AdminPage() {
                             </Link>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -3510,6 +3670,35 @@ export default function AdminPage() {
                   {selectedPlaceTag ? (
                     <>
                       <h3 className="text-lg font-bold text-white mb-4">Review Place Tag</h3>
+
+                      {selectedPlaceTagReviewState ? (
+                        <div className={`mb-4 rounded-2xl border px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${getPlaceTagReviewToneClass(selectedPlaceTagReviewState.tone)}`}>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-75">
+                                Referee SLA
+                              </p>
+                              <p className="mt-1 text-base font-black text-white">
+                                {selectedPlaceTagReviewState.label}
+                              </p>
+                            </div>
+                            <div className="text-left sm:text-right">
+                              <p className="text-xs font-bold uppercase tracking-[0.16em]">
+                                {selectedPlaceTagReviewState.elapsedLabel}
+                              </p>
+                              <p className="mt-1 text-[11px] uppercase tracking-[0.14em] opacity-75">
+                                {selectedPlaceTagReviewState.detail}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/30">
+                            <div
+                              className={`h-full rounded-full ${getPlaceTagReviewFillClass(selectedPlaceTagReviewState.tone)}`}
+                              style={{ width: `${selectedPlaceTagReviewState.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
 
                       <div className="mb-4 rounded-xl overflow-hidden bg-black/40">
                         {selectedPlaceTag.proofType === 'VIDEO' ? (
@@ -3611,6 +3800,18 @@ export default function AdminPage() {
                           className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-cyan-500/50 focus:outline-none resize-none"
                           rows={2}
                         />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {PLACE_TAG_REJECT_REASON_CHIPS.map((reason) => (
+                            <button
+                              key={reason}
+                              type="button"
+                              onClick={() => setPlaceTagRejectReason(reason)}
+                              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/58 transition hover:border-red-300/30 hover:bg-red-500/[0.1] hover:text-red-100"
+                            >
+                              {reason}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -3695,7 +3896,7 @@ export default function AdminPage() {
                       </div>
 
                       <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-white/35">
-                        Shortcuts: <span className="text-cyan-300">A</span> approve, <span className="text-red-300">R</span> reject, <span className="text-yellow-300">F</span> flag, <span className="text-white/65">N</span> next
+                        Shortcuts: <span className="text-cyan-300">A</span> approve + next, <span className="text-red-300">R</span> reject + next, <span className="text-yellow-300">F</span> flag + next, <span className="text-white/65">N</span> skip
                       </p>
                     </>
                   ) : (
