@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Make venue mark submissions feel immediate by syncing the public venue logbook after submit and showing the signed-in user their pending mark.
+- Goal: Add a referee-review SLA indicator to pending venue marks so creators understand queue state after submission.
 
 ### Plan
-- [x] Add a venue-specific mark button wrapper that refreshes route data after a successful submission.
-- [x] Include the signed-in creator's own pending place marks in the venue timeline.
-- [x] Make pending marks visually distinct from approved marks and completed dare moments.
+- [x] Add SLA metadata to pending venue timeline moments.
+- [x] Render elapsed, remaining, and overdue review states on pending mark cards.
+- [x] Keep approved marks and completed dare moments unchanged.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Successful venue marks now queue visibly in the logbook for the submitting user.
-- Follow-ups: Once moderation volume grows, add a small referee SLA indicator to pending venue marks.
+- Outcome: Production build and static safety pass. Pending venue marks now show a clear referee review SLA rail.
+- Follow-ups: Next venue ROI is giving admins a faster approve/reject surface for place marks.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

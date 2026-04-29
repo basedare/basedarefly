@@ -96,6 +96,32 @@ function getLogbookSourceLabel(source?: string | null) {
   }
 }
 
+function getReviewSlaClass(tone: string) {
+  switch (tone) {
+    case 'overdue':
+      return 'border-rose-400/18 bg-rose-500/[0.08] text-rose-100';
+    case 'due':
+      return 'border-[#f5c518]/18 bg-[#f5c518]/[0.08] text-[#f8dd72]';
+    case 'fresh':
+      return 'border-cyan-300/14 bg-cyan-500/[0.06] text-cyan-100';
+    default:
+      return 'border-emerald-300/14 bg-emerald-500/[0.06] text-emerald-100';
+  }
+}
+
+function getReviewSlaFillClass(tone: string) {
+  switch (tone) {
+    case 'overdue':
+      return 'bg-rose-300';
+    case 'due':
+      return 'bg-[#f8dd72]';
+    case 'fresh':
+      return 'bg-cyan-300';
+    default:
+      return 'bg-emerald-300';
+  }
+}
+
 function getPulseState(heatScore: number) {
   if (heatScore >= 45) {
     return { label: 'Hot', className: 'text-rose-200', accentClassName: 'border-rose-400/18 bg-rose-500/[0.08] text-rose-100' };
@@ -1120,6 +1146,24 @@ export default async function VenueDetailPage(
                                   <p className="mt-1.5 text-sm leading-relaxed text-white/64">
                                     {moment.body}
                                   </p>
+                                  {moment.reviewSla ? (
+                                    <div className={`mt-3 rounded-[18px] border px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${getReviewSlaClass(moment.reviewSla.tone)}`}>
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                          {moment.reviewSla.label}
+                                        </span>
+                                        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-72">
+                                          {moment.reviewSla.elapsedLabel} · {moment.reviewSla.dueLabel}
+                                        </span>
+                                      </div>
+                                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/28 shadow-[inset_0_1px_2px_rgba(0,0,0,0.38)]">
+                                        <div
+                                          className={`h-full rounded-full ${getReviewSlaFillClass(moment.reviewSla.tone)}`}
+                                          style={{ width: `${moment.reviewSla.progress}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : null}
                                 </div>
                                 <div className="text-left sm:text-right">
                                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/36">

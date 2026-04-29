@@ -47,6 +47,13 @@ export type VenueTimelineMoment = {
   status: string | null;
   badges: string[];
   isOwn?: boolean;
+  reviewSla: {
+    label: string;
+    elapsedLabel: string;
+    dueLabel: string;
+    progress: number;
+    tone: 'fresh' | 'active' | 'due' | 'overdue';
+  } | null;
 };
 
 export type VenueCreatorContribution = {

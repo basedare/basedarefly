@@ -35,6 +35,7 @@ import type {
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
+const PLACE_TAG_REVIEW_SLA_MINUTES = 120;
 const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
   {
     id: 'classic',
@@ -568,6 +569,65 @@ function compactWalletLabel(walletAddress: string) {
   return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
 }
 
+function formatCompactDuration(minutes: number) {
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+
+  if (remainder === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${remainder}m`;
+}
+
+function buildPendingPlaceTagReviewSla(submittedAt: string): VenueTimelineMoment['reviewSla'] {
+  const submittedTime = new Date(submittedAt).getTime();
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - submittedTime) / 60000));
+  const remainingMinutes = PLACE_TAG_REVIEW_SLA_MINUTES - elapsedMinutes;
+  const progress = Math.min(100, Math.max(8, Math.round((elapsedMinutes / PLACE_TAG_REVIEW_SLA_MINUTES) * 100)));
+
+  if (remainingMinutes <= 0) {
+    return {
+      label: 'Review overdue',
+      elapsedLabel: `${formatCompactDuration(elapsedMinutes)} queued`,
+      dueLabel: `${formatCompactDuration(Math.abs(remainingMinutes))} overdue`,
+      progress: 100,
+      tone: 'overdue',
+    };
+  }
+
+  if (remainingMinutes <= 30) {
+    return {
+      label: 'Nearing referee SLA',
+      elapsedLabel: `${formatCompactDuration(elapsedMinutes)} queued`,
+      dueLabel: `${formatCompactDuration(remainingMinutes)} left`,
+      progress,
+      tone: 'due',
+    };
+  }
+
+  if (elapsedMinutes < 15) {
+    return {
+      label: 'Fresh in queue',
+      elapsedLabel: `${formatCompactDuration(elapsedMinutes)} queued`,
+      dueLabel: `${formatCompactDuration(remainingMinutes)} left`,
+      progress,
+      tone: 'fresh',
+    };
+  }
+
+  return {
+    label: 'Referee review live',
+    elapsedLabel: `${formatCompactDuration(elapsedMinutes)} queued`,
+    dueLabel: `${formatCompactDuration(remainingMinutes)} left`,
+    progress,
+    tone: 'active',
+  };
+}
+
 function buildVenueTimelineMoments(input: {
   tags: Array<{
     id: string;
@@ -642,6 +702,7 @@ function buildVenueTimelineMoments(input: {
       ...(tag.vibeTags ?? []).slice(0, 2).map((vibeTag) => `#${vibeTag}`),
     ].filter((badge): badge is string => Boolean(badge)),
     isOwn: tag.isOwn,
+    reviewSla: tag.status === 'PENDING' ? buildPendingPlaceTagReviewSla(tag.submittedAt) : null,
   }));
 
   const dareMoments: VenueTimelineMoment[] = input.completedDares.map((dare) => {
@@ -678,6 +739,7 @@ function buildVenueTimelineMoments(input: {
         dare.linkedCampaign ? 'paid activation' : null,
       ].filter((badge): badge is string => Boolean(badge)),
       isOwn,
+      reviewSla: null,
     };
   });
 
