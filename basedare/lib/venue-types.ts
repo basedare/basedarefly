@@ -21,6 +21,7 @@ export type VenueRecentTag = {
   id: string;
   creatorTag: string | null;
   walletAddress: string;
+  status?: string | null;
   caption: string | null;
   vibeTags: string[];
   proofMediaUrl: string;

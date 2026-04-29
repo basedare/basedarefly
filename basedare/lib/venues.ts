@@ -11,6 +11,7 @@ import {
 import {
   getApprovedTagSummaryMap,
   getRecentApprovedPlaceTagsByVenueId,
+  getRecentPendingPlaceTagsByVenueIdForWallet,
   getVenueTagSummary,
 } from '@/lib/place-tags';
 import { getVenueReportPipelineSummary } from '@/lib/venue-report-pipeline';
@@ -577,6 +578,7 @@ function buildVenueTimelineMoments(input: {
     proofMediaUrl: string;
     proofType: string;
     source?: string | null;
+    status?: string | null;
     submittedAt: string;
     firstMark: boolean;
     isOwn?: boolean;
@@ -612,16 +614,30 @@ function buildVenueTimelineMoments(input: {
     id: `tag:${tag.id}`,
     kind: 'PLACE_MARK',
     occurredAt: tag.submittedAt,
-    title: tag.firstMark ? 'First spark landed' : 'Verified place mark',
-    body: tag.caption ?? 'Verified place mark submitted through BaseDare.',
+    title:
+      tag.status === 'PENDING'
+        ? 'Mark awaiting referee'
+        : tag.firstMark
+          ? 'First spark landed'
+          : 'Verified place mark',
+    body:
+      tag.status === 'PENDING'
+        ? tag.caption ?? 'Your mark was submitted and is waiting for referee review.'
+        : tag.caption ?? 'Verified place mark submitted through BaseDare.',
     creatorLabel: tag.creatorTag ? `@${tag.creatorTag}` : compactWalletLabel(tag.walletAddress),
-    sourceLabel: tag.source === 'DARE_COMPLETION' ? 'verified dare proof' : 'place mark',
+    sourceLabel:
+      tag.status === 'PENDING'
+        ? 'referee review queued'
+        : tag.source === 'DARE_COMPLETION'
+          ? 'verified dare proof'
+          : 'place mark',
     mediaUrl: tag.proofMediaUrl,
     mediaType: tag.proofType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
     rewardUsd: null,
     shortId: null,
-    status: null,
+    status: tag.status ?? null,
     badges: [
+      tag.status === 'PENDING' ? 'pending review' : null,
       tag.firstMark ? 'first spark' : null,
       ...(tag.vibeTags ?? []).slice(0, 2).map((vibeTag) => `#${vibeTag}`),
     ].filter((badge): badge is string => Boolean(badge)),
@@ -1462,7 +1478,7 @@ export async function getVenueDetailBySlug(
     return null;
   }
 
-  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags, completedDares] = await Promise.all([
+  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags, pendingOwnTags, completedDares] = await Promise.all([
     prisma.venueCheckIn.count({
       where: {
         venueId: venue.id,
@@ -1496,6 +1512,9 @@ export async function getVenueDetailBySlug(
       },
     }),
     getRecentApprovedPlaceTagsByVenueId(venue.id, 12),
+    normalizedCreatorWallet
+      ? getRecentPendingPlaceTagsByVenueIdForWallet(venue.id, normalizedCreatorWallet, 3)
+      : Promise.resolve([]),
     prisma.dare.findMany({
       where: {
         venueId: venue.id,
@@ -1620,8 +1639,12 @@ export async function getVenueDetailBySlug(
     ...tag,
     isOwn: normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false,
   }));
+  const timelineTagsWithOwnership = [...pendingOwnTags, ...recentTagsWithOwnership].map((tag) => ({
+    ...tag,
+    isOwn: tag.isOwn ?? (normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false),
+  }));
   const timelineMoments = buildVenueTimelineMoments({
-    tags: recentTagsWithOwnership,
+    tags: timelineTagsWithOwnership,
     completedDares,
     creatorWalletAddress: normalizedCreatorWallet,
   });

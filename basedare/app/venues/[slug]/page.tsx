@@ -14,7 +14,7 @@ import {
 } from '@/lib/venue-launch';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
-import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
+import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 
 const raisedPanelClass =
@@ -174,6 +174,9 @@ export default async function VenueDetailPage(
     (focusedDareShortId && venue.activeDares.find((dare) => dare.shortId === focusedDareShortId)) ||
     (venue.featuredPaidActivation?.shortId === focusedDareShortId ? venue.featuredPaidActivation : null);
   const focusedActivationState = focusedActivation ? getVenueActivationState(focusedActivation) : null;
+  const hasPendingOwnVenueMark = venue.timelineMoments.some(
+    (moment) => moment.kind === 'PLACE_MARK' && moment.status === 'PENDING' && moment.isOwn
+  );
   const showFeaturedPaidActivation =
     Boolean(venue.featuredPaidActivation) && venue.featuredPaidActivation?.shortId !== focusedActivation?.shortId;
   const featuredPaidActivation = showFeaturedPaidActivation ? venue.featuredPaidActivation : null;
@@ -299,7 +302,7 @@ export default async function VenueDetailPage(
                       Verified marks are the fastest way to make this place feel alive. Funded challenges can stack on top.
                     </p>
                     <div className="mt-5 grid gap-2">
-                      <TagPlaceButton
+                      <VenueMarkButton
                         placeId={venue.id}
                         placeName={venue.name}
                         latitude={venue.latitude}
@@ -1052,7 +1055,9 @@ export default async function VenueDetailPage(
                 <div className="mt-5 space-y-3">
                   {venue.tagSummary.approvedCount === 0 ? (
                     <div className="rounded-[18px] border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-4 py-3 text-sm text-[#f8dd72] shadow-[0_14px_28px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                      First mark open. The first approved memory here becomes the venue&apos;s opening legend.
+                      {hasPendingOwnVenueMark
+                        ? 'Your first mark is under referee review. Once approved, it becomes the venue opening legend.'
+                        : 'First mark open. The first approved memory here becomes the venue opening legend.'}
                     </div>
                   ) : null}
                   {venue.timelineMoments.length > 0 ? (
@@ -1095,9 +1100,11 @@ export default async function VenueDetailPage(
                                   <div className="flex flex-wrap items-center gap-2">
                                     <p className="truncate font-semibold text-white">{moment.creatorLabel}</p>
                                     <span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${
-                                      moment.kind === 'DARE_COMPLETION'
-                                        ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72]'
-                                        : 'border-white/10 bg-white/[0.04] text-white/42'
+                                      moment.status === 'PENDING'
+                                        ? 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-100'
+                                        : moment.kind === 'DARE_COMPLETION'
+                                          ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72]'
+                                          : 'border-white/10 bg-white/[0.04] text-white/42'
                                     }`}>
                                       {moment.sourceLabel}
                                     </span>
@@ -1142,11 +1149,13 @@ export default async function VenueDetailPage(
                           </>
                         );
                         const cardClassName = `${insetCardClass} group flex items-start gap-4 px-4 py-4 transition ${
-                          moment.kind === 'DARE_COMPLETION'
-                            ? 'border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(245,197,24,0.08)_0%,rgba(10,10,18,0.92)_100%)] hover:border-[#f5c518]/30 hover:bg-[#f5c518]/[0.08]'
-                            : moment.isOwn
-                              ? 'border-fuchsia-400/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(88,28,135,0.18)]'
-                              : 'hover:border-white/14 hover:bg-white/[0.035]'
+                          moment.status === 'PENDING'
+                            ? 'border-cyan-300/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.09)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(8,145,178,0.12)]'
+                            : moment.kind === 'DARE_COMPLETION'
+                              ? 'border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(245,197,24,0.08)_0%,rgba(10,10,18,0.92)_100%)] hover:border-[#f5c518]/30 hover:bg-[#f5c518]/[0.08]'
+                              : moment.isOwn
+                                ? 'border-fuchsia-400/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(88,28,135,0.18)]'
+                                : 'hover:border-white/14 hover:bg-white/[0.035]'
                         }`;
 
                         return moment.shortId ? (
@@ -1167,7 +1176,7 @@ export default async function VenueDetailPage(
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <div className="w-full max-w-xs">
-                          <TagPlaceButton
+                          <VenueMarkButton
                             placeId={venue.id}
                             placeName={venue.name}
                             latitude={venue.latitude}

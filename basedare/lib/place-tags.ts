@@ -81,6 +81,7 @@ export async function getRecentApprovedPlaceTagsByVenueId(
         id: true,
         creatorTag: true,
         walletAddress: true,
+        status: true,
         caption: true,
         vibeTags: true,
         proofMediaUrl: true,
@@ -95,6 +96,7 @@ export async function getRecentApprovedPlaceTagsByVenueId(
       id: tag.id,
       creatorTag: tag.creatorTag,
       walletAddress: tag.walletAddress,
+      status: tag.status,
       caption: tag.caption,
       vibeTags: tag.vibeTags,
       proofMediaUrl: tag.proofMediaUrl,
@@ -102,6 +104,58 @@ export async function getRecentApprovedPlaceTagsByVenueId(
       source: tag.source,
       submittedAt: tag.submittedAt.toISOString(),
       firstMark: tag.firstMark,
+    }));
+  } catch (error) {
+    if (isPlaceTagTableMissingError(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+export async function getRecentPendingPlaceTagsByVenueIdForWallet(
+  venueId: string,
+  walletAddress: string,
+  limit = 3
+): Promise<VenueRecentTag[]> {
+  try {
+    const tags = await prisma.placeTag.findMany({
+      where: {
+        venueId,
+        walletAddress,
+        status: 'PENDING',
+      },
+      orderBy: { submittedAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        creatorTag: true,
+        walletAddress: true,
+        status: true,
+        caption: true,
+        vibeTags: true,
+        proofMediaUrl: true,
+        proofType: true,
+        source: true,
+        submittedAt: true,
+        firstMark: true,
+      },
+    });
+
+    return tags.map((tag) => ({
+      id: tag.id,
+      creatorTag: tag.creatorTag,
+      walletAddress: tag.walletAddress,
+      status: tag.status,
+      caption: tag.caption,
+      vibeTags: tag.vibeTags,
+      proofMediaUrl: tag.proofMediaUrl,
+      proofType: tag.proofType,
+      source: tag.source,
+      submittedAt: tag.submittedAt.toISOString(),
+      firstMark: tag.firstMark,
+      isOwn: true,
     }));
   } catch (error) {
     if (isPlaceTagTableMissingError(error)) {
