@@ -376,6 +376,7 @@ type SelectedPlaceActiveDare = {
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
 type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'verified' | 'unmarked';
 type MapPreset = 'classic' | 'noir';
+type MapVenueFocus = 'all' | 'live' | 'matched' | 'footprint';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type VenueCommandCardTone = 'gold' | 'cyan' | 'purple';
 type CeremonyState =
@@ -1868,6 +1869,7 @@ export default function RealWorldMap() {
   const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
+  const [mapVenueFocus, setMapVenueFocus] = useState<MapVenueFocus>('all');
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
@@ -1898,6 +1900,7 @@ export default function RealWorldMap() {
   const skipNextMapClickRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
+  const lastAutoFocusedFilterRef = useRef<string | null>(null);
   const hasUserLocation = Boolean(userLocation);
 
   const focusedCreatorActivation = useMemo(() => {
@@ -2048,11 +2051,16 @@ export default function RealWorldMap() {
     if (!isConnected) {
       setShowFootprintLayer(false);
       setShowMatchedLayer(false);
+      setMapVenueFocus((current) =>
+        current === 'matched' || current === 'footprint' ? 'all' : current
+      );
       return;
     }
 
-    setShowFootprintLayer(showTraceParam);
-    setShowMatchedLayer(showMatchesParam || isCreatorSource || Boolean(deepLinkedDareShortId));
+    const shouldFocusMatches = showMatchesParam || isCreatorSource || Boolean(deepLinkedDareShortId);
+    setShowFootprintLayer(showTraceParam && !shouldFocusMatches);
+    setShowMatchedLayer(shouldFocusMatches);
+    setMapVenueFocus(shouldFocusMatches ? 'matched' : showTraceParam ? 'footprint' : 'all');
   }, [deepLinkedDareShortId, isConnected, isCreatorSource, showMatchesParam, showTraceParam]);
 
   useEffect(() => {
@@ -2928,17 +2936,112 @@ export default function RealWorldMap() {
     };
   }, [nearbyPlaces]);
 
+  const nearbyDaresInRange = useMemo(
+    () => nearbyDares.filter((dare) => dare.distanceKm <= nearbyDareRadiusKm),
+    [nearbyDareRadiusKm, nearbyDares]
+  );
+  const liveVenueSlugSet = useMemo(() => {
+    const slugs = new Set<string>();
+    nearbyDaresInRange.forEach((dare) => {
+      if (dare.venueSlug) {
+        slugs.add(dare.venueSlug);
+      }
+    });
+    return slugs;
+  }, [nearbyDaresInRange]);
+  const footprintVenueIndex = useMemo(() => {
+    const ids = new Set<string>();
+    const slugs = new Set<string>();
+
+    footprintMarks.forEach((mark) => {
+      ids.add(mark.venue.id);
+      slugs.add(mark.venue.slug);
+    });
+
+    return { ids, slugs };
+  }, [footprintMarks]);
+  const matchedVenueIndex = useMemo(() => {
+    const index = new Map<
+      string,
+      {
+        venueId: string;
+        venueSlug: string;
+        venueName: string;
+        bestScore: number;
+        reasons: string[];
+        campaignCount: number;
+        dareShortId: string | null;
+      }
+    >();
+
+    creatorOpportunities.forEach((opportunity) => {
+      if (!opportunity.venue?.slug) return;
+
+      const current = index.get(opportunity.venue.slug);
+      if (!current) {
+        index.set(opportunity.venue.slug, {
+          venueId: opportunity.venue.id,
+          venueSlug: opportunity.venue.slug,
+          venueName: opportunity.venue.name,
+          bestScore: opportunity.matchScore,
+          reasons: opportunity.matchReasons.slice(0, 3),
+          campaignCount: 1,
+          dareShortId: opportunity.linkedDare?.shortId ?? null,
+        });
+        return;
+      }
+
+      current.campaignCount += 1;
+      if (opportunity.matchScore > current.bestScore) {
+        current.bestScore = opportunity.matchScore;
+        current.reasons = opportunity.matchReasons.slice(0, 3);
+        current.dareShortId = opportunity.linkedDare?.shortId ?? current.dareShortId;
+      }
+    });
+
+    return index;
+  }, [creatorOpportunities]);
   const filteredNearbyPlaces = useMemo(() => {
     return nearbyPlaces.filter((place) => {
-      if (pulseFilter === 'all') return true;
-      if (pulseFilter === 'verified') return place.tagSummary.approvedCount > 0;
-      if (pulseFilter === 'unmarked') return place.tagSummary.approvedCount <= 0;
+      const pulseMatches =
+        pulseFilter === 'all' ||
+        (pulseFilter === 'verified' && place.tagSummary.approvedCount > 0) ||
+        (pulseFilter === 'unmarked' && place.tagSummary.approvedCount <= 0) ||
+        getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt) === pulseFilter;
 
-      return (
-        getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt) === pulseFilter
-      );
+      if (!pulseMatches) return false;
+
+      if (mapVenueFocus === 'live') {
+        return place.activeDareCount > 0 || liveVenueSlugSet.has(place.slug);
+      }
+
+      if (mapVenueFocus === 'matched') {
+        return matchedVenueIndex.has(place.slug);
+      }
+
+      if (mapVenueFocus === 'footprint') {
+        return footprintVenueIndex.ids.has(place.id) || footprintVenueIndex.slugs.has(place.slug);
+      }
+
+      return true;
     });
-  }, [nearbyPlaces, pulseFilter]);
+  }, [footprintVenueIndex, liveVenueSlugSet, mapVenueFocus, matchedVenueIndex, nearbyPlaces, pulseFilter]);
+  const activeMapFilterLabel = useMemo(() => {
+    if (mapVenueFocus === 'live') return 'Live venues';
+    if (mapVenueFocus === 'matched') return 'Matched for you';
+    if (mapVenueFocus === 'footprint') return 'My footprint';
+    if (pulseFilter === 'verified') return 'Verified venues';
+    if (pulseFilter === 'unmarked') return 'Open first sparks';
+    if (pulseFilter === 'blazing') return 'Blazing venues';
+    if (pulseFilter === 'igniting') return 'Igniting venues';
+    if (pulseFilter === 'simmering') return 'Simmering venues';
+    return 'All venues';
+  }, [mapVenueFocus, pulseFilter]);
+  const activeMapFilterIsScoped = mapVenueFocus !== 'all' || pulseFilter !== 'all';
+  const visibleMatchedVenueCount = useMemo(
+    () => nearbyPlaces.filter((place) => matchedVenueIndex.has(place.slug)).length,
+    [matchedVenueIndex, nearbyPlaces]
+  );
 
   const nearbyPlaceBySlug = useMemo(() => {
     const index = new Map<string, NearbyPlace>();
@@ -2947,6 +3050,22 @@ export default function RealWorldMap() {
     });
     return index;
   }, [nearbyPlaces]);
+
+  useEffect(() => {
+    if (!mapReady || !activeMapFilterIsScoped || filteredNearbyPlaces.length !== 1) {
+      return;
+    }
+
+    const [place] = filteredNearbyPlaces;
+    const focusKey = `${mapVenueFocus}:${pulseFilter}:${place.id}`;
+    if (lastAutoFocusedFilterRef.current === focusKey) {
+      return;
+    }
+
+    lastAutoFocusedFilterRef.current = focusKey;
+    setTargetCenter([place.latitude, place.longitude]);
+    setTargetZoom(Math.max(Math.round(mapZoom), 15));
+  }, [activeMapFilterIsScoped, filteredNearbyPlaces, mapReady, mapVenueFocus, mapZoom, pulseFilter]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -2990,10 +3109,6 @@ export default function RealWorldMap() {
     };
   }, [focusExistingPlace, mapReady, nearbyPlaceBySlug]);
 
-  const nearbyDaresInRange = useMemo(
-    () => nearbyDares.filter((dare) => dare.distanceKm <= nearbyDareRadiusKm),
-    [nearbyDareRadiusKm, nearbyDares]
-  );
   const nearbyDareFeed = useMemo(() => {
     const filtered = nearbyDaresInRange.filter((dare) => {
       if (nearbyDareFilter === 'all') return true;
@@ -3042,48 +3157,6 @@ export default function RealWorldMap() {
 
     return counts;
   }, [nearbyPlaces]);
-
-  const matchedVenueIndex = useMemo(() => {
-    const index = new Map<
-      string,
-      {
-        venueId: string;
-        venueSlug: string;
-        venueName: string;
-        bestScore: number;
-        reasons: string[];
-        campaignCount: number;
-        dareShortId: string | null;
-      }
-    >();
-
-    creatorOpportunities.forEach((opportunity) => {
-      if (!opportunity.venue?.slug) return;
-
-      const current = index.get(opportunity.venue.slug);
-      if (!current) {
-        index.set(opportunity.venue.slug, {
-          venueId: opportunity.venue.id,
-          venueSlug: opportunity.venue.slug,
-          venueName: opportunity.venue.name,
-          bestScore: opportunity.matchScore,
-          reasons: opportunity.matchReasons.slice(0, 3),
-          campaignCount: 1,
-          dareShortId: opportunity.linkedDare?.shortId ?? null,
-        });
-        return;
-      }
-
-      current.campaignCount += 1;
-      if (opportunity.matchScore > current.bestScore) {
-        current.bestScore = opportunity.matchScore;
-        current.reasons = opportunity.matchReasons.slice(0, 3);
-        current.dareShortId = opportunity.linkedDare?.shortId ?? current.dareShortId;
-      }
-    });
-
-    return index;
-  }, [creatorOpportunities]);
 
   const clusteredNearbyMarkers = useMemo<ClusteredNearbyMarker[]>(() => {
     if (filteredNearbyPlaces.length <= 1) {
@@ -3485,7 +3558,7 @@ export default function RealWorldMap() {
         value: matchActive
           ? `${selectedPlaceMatch?.bestScore ?? 0}% fit`
           : isConnected
-            ? `${matchedVenueIndex.size} nearby`
+            ? `${visibleMatchedVenueCount} nearby`
             : 'Connect',
         detail: matchActive
           ? selectedPlaceMatch?.reasons[0] ?? 'Your creator history already fits this venue.'
@@ -3509,7 +3582,6 @@ export default function RealWorldMap() {
     featuredPaidActivation,
     focusedCreatorActivation,
     isConnected,
-    matchedVenueIndex.size,
     proximityAccess.canReveal,
     selectedPendingPlaceTags.length,
     selectedPlace,
@@ -3519,6 +3591,7 @@ export default function RealWorldMap() {
     selectedVenueHref,
     selectedPlaceTags,
     showMatchedLayer,
+    visibleMatchedVenueCount,
     visibleActiveDares,
   ]);
   const signalRailOptions = useMemo(
@@ -3528,13 +3601,17 @@ export default function RealWorldMap() {
         label: 'Live',
         count: nearbyDareCounts.all,
         detail: `${nearbyDareRadiusKm}km`,
-        active: !nearbyDarePanelCollapsed && nearbyDareFilter === 'all',
+        active: mapVenueFocus === 'live',
         disabled: false,
         className:
           'data-[active=true]:border-[#f5c518]/42 data-[active=true]:bg-[#f5c518]/[0.13] data-[active=true]:text-[#f8dd72]',
         onClick: () => {
           setNearbyDareFilter('all');
           setNearbyDarePanelCollapsed(false);
+          setPulseFilter('all');
+          setShowMatchedLayer(false);
+          setShowFootprintLayer(false);
+          setMapVenueFocus((current) => (current === 'live' ? 'all' : 'live'));
           triggerHaptic('selection');
         },
       },
@@ -3548,6 +3625,9 @@ export default function RealWorldMap() {
         className:
           'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
         onClick: () => {
+          setMapVenueFocus('all');
+          setShowMatchedLayer(false);
+          setShowFootprintLayer(false);
           setPulseFilter('blazing');
           triggerHaptic('selection');
         },
@@ -3562,6 +3642,9 @@ export default function RealWorldMap() {
         className:
           'data-[active=true]:border-emerald-300/45 data-[active=true]:bg-emerald-500/[0.14] data-[active=true]:text-emerald-100',
         onClick: () => {
+          setMapVenueFocus('all');
+          setShowMatchedLayer(false);
+          setShowFootprintLayer(false);
           setPulseFilter('verified');
           triggerHaptic('selection');
         },
@@ -3576,6 +3659,9 @@ export default function RealWorldMap() {
         className:
           'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
         onClick: () => {
+          setMapVenueFocus('all');
+          setShowMatchedLayer(false);
+          setShowFootprintLayer(false);
           setPulseFilter('unmarked');
           triggerHaptic('selection');
         },
@@ -3583,19 +3669,22 @@ export default function RealWorldMap() {
       {
         id: 'matched',
         label: 'Matched',
-        count: matchedVenueIndex.size,
+        count: visibleMatchedVenueCount,
         detail: isConnected ? 'you' : 'login',
-        active: showMatchedLayer,
-        disabled: !isConnected,
+        active: mapVenueFocus === 'matched',
+        disabled: !isConnected || visibleMatchedVenueCount === 0,
         className:
           'data-[active=true]:border-cyan-300/45 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
         onClick: () => {
-          if (!isConnected) {
+          if (!isConnected || visibleMatchedVenueCount === 0) {
             triggerHaptic('warning');
             return;
           }
 
-          setShowMatchedLayer((current) => !current);
+          setPulseFilter('all');
+          setShowFootprintLayer(false);
+          setShowMatchedLayer(mapVenueFocus !== 'matched');
+          setMapVenueFocus((current) => (current === 'matched' ? 'all' : 'matched'));
           triggerHaptic('selection');
         },
       },
@@ -3605,13 +3694,11 @@ export default function RealWorldMap() {
       filterCounts.unmarked,
       filterCounts.verified,
       isConnected,
-      matchedVenueIndex.size,
+      mapVenueFocus,
       nearbyDareCounts.all,
-      nearbyDareFilter,
-      nearbyDarePanelCollapsed,
       nearbyDareRadiusKm,
       pulseFilter,
-      showMatchedLayer,
+      visibleMatchedVenueCount,
     ]
   );
 
@@ -4130,7 +4217,13 @@ export default function RealWorldMap() {
                       key={option.value}
                       type="button"
                       data-active={pulseFilter === option.value}
-                      onClick={() => setPulseFilter(option.value)}
+                      onClick={() => {
+                        setMapVenueFocus('all');
+                        setShowMatchedLayer(false);
+                        setShowFootprintLayer(false);
+                        setPulseFilter(option.value);
+                        triggerHaptic('selection');
+                      }}
                       className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
                     >
                       <span>{option.label}</span>
@@ -4139,6 +4232,37 @@ export default function RealWorldMap() {
                       </span>
                     </button>
                   ))}
+                </div>
+
+                <div className="map-active-filter-strip">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/34">
+                      Map focus
+                    </p>
+                    <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-white/72">
+                      {activeMapFilterLabel}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58">
+                      {filteredNearbyPlaces.length}/{nearbyPlaces.length}
+                    </span>
+                    {activeMapFilterIsScoped ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapVenueFocus('all');
+                          setShowMatchedLayer(false);
+                          setShowFootprintLayer(false);
+                          setPulseFilter('all');
+                          triggerHaptic('selection');
+                        }}
+                        className="rounded-full border border-white/12 bg-white/[0.055] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/66 transition hover:border-white/20 hover:text-white"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -4172,8 +4296,15 @@ export default function RealWorldMap() {
                     </div>
                     <button
                       type="button"
-                      data-active={showFootprintLayer}
-                      onClick={() => setShowFootprintLayer((current) => !current)}
+                      data-active={mapVenueFocus === 'footprint'}
+                      onClick={() => {
+                        const nextFocus = mapVenueFocus === 'footprint' ? 'all' : 'footprint';
+                        setPulseFilter('all');
+                        setMapVenueFocus(nextFocus);
+                        setShowMatchedLayer(false);
+                        setShowFootprintLayer(nextFocus === 'footprint');
+                        triggerHaptic('selection');
+                      }}
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
                     >
                       <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
@@ -4184,14 +4315,27 @@ export default function RealWorldMap() {
                     </button>
                     <button
                       type="button"
-                      data-active={showMatchedLayer}
-                      onClick={() => setShowMatchedLayer((current) => !current)}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
+                      data-active={mapVenueFocus === 'matched'}
+                      disabled={visibleMatchedVenueCount === 0}
+                      onClick={() => {
+                        if (visibleMatchedVenueCount === 0) {
+                          triggerHaptic('warning');
+                          return;
+                        }
+
+                        const nextFocus = mapVenueFocus === 'matched' ? 'all' : 'matched';
+                        setPulseFilter('all');
+                        setMapVenueFocus(nextFocus);
+                        setShowFootprintLayer(false);
+                        setShowMatchedLayer(nextFocus === 'matched');
+                        triggerHaptic('selection');
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
                     >
                       <span className="h-2 w-2 rounded-full bg-cyan-300" />
                       <span>Matched For You</span>
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                        {matchedVenueIndex.size}
+                        {visibleMatchedVenueCount}
                       </span>
                     </button>
                   </div>
@@ -5702,6 +5846,10 @@ export default function RealWorldMap() {
             font-size: 0.72rem;
           }
 
+          .map-active-filter-strip {
+            width: 100%;
+          }
+
           .map-command-strip {
             margin-top: 0.85rem;
             border-radius: 1.15rem;
@@ -5853,6 +6001,25 @@ export default function RealWorldMap() {
 
         .map-signal-rail-scroll::-webkit-scrollbar {
           display: none;
+        }
+
+        .map-active-filter-strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.85rem;
+          width: fit-content;
+          max-width: 100%;
+          border-radius: 1.1rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 12% 0%, rgba(34, 211, 238, 0.12), transparent 34%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
+          padding: 0.58rem 0.68rem 0.58rem 0.75rem;
+          box-shadow:
+            0 12px 24px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.2);
         }
 
         .map-signal-pill {
