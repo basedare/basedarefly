@@ -23,6 +23,8 @@ import {
   MapPin,
   Minus,
   Plus,
+  RotateCcw,
+  RotateCw,
   Search,
   Sparkles,
   X,
@@ -434,10 +436,12 @@ const MAPLIBRE_FOOTPRINT_SOURCE_ID = 'basedare-footprint-trail';
 const MAPLIBRE_SELECTED_SOURCE_ID = 'basedare-selected-signal';
 const MAPLIBRE_USER_SOURCE_ID = 'basedare-user-position';
 const MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID = 'basedare-live-signal-halo';
+const MAPLIBRE_ACTIVATED_PLINTH_LAYER_ID = 'basedare-activated-venue-plinth';
 const MAPLIBRE_PROOF_NODE_LAYER_ID = 'basedare-proof-nodes';
 const MAPLIBRE_SIGNAL_LABEL_LAYER_ID = 'basedare-signal-labels';
 const MAPLIBRE_INTERACTIVE_SIGNAL_LAYER_IDS = [
   MAPLIBRE_SIGNAL_LABEL_LAYER_ID,
+  MAPLIBRE_ACTIVATED_PLINTH_LAYER_ID,
   MAPLIBRE_PROOF_NODE_LAYER_ID,
   MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID,
 ];
@@ -1084,6 +1088,27 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
         'circle-stroke-width': ['case', ['>', ['get', 'activeDareCount'], 0], 1.2, 0],
         'circle-stroke-color': '#f8dd72',
         'circle-stroke-opacity': ['case', ['>', ['get', 'activeDareCount'], 0], 0.32, 0],
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: MAPLIBRE_ACTIVATED_PLINTH_LAYER_ID,
+      type: 'circle',
+      source: MAPLIBRE_VENUE_SOURCE_ID,
+      filter: ['==', ['get', 'activated'], true],
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 13, 32, 16, 58],
+        'circle-color': '#22d3ee',
+        'circle-opacity': preset === 'noir' ? 0.16 : 0.24,
+        'circle-blur': 0.34,
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 16, 3],
+        'circle-stroke-color': '#67e8f9',
+        'circle-stroke-opacity': 0.68,
       },
     },
     firstSymbolLayerId
@@ -1825,7 +1850,8 @@ export default function RealWorldMap() {
   const [targetCenter, setTargetCenter] = useState<[number, number] | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
-  const [sprayBurst, setSprayBurst] = useState(false);
+  const [mapBearing, setMapBearing] = useState(DEFAULT_MAP_BEARING);
+  const [mapPitch, setMapPitch] = useState(DEFAULT_MAP_PITCH);
   const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
@@ -2431,6 +2457,8 @@ export default function RealWorldMap() {
 
     const syncViewport = () => {
       const center = map.getCenter();
+      setMapBearing(map.getBearing());
+      setMapPitch(map.getPitch());
       handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
     };
 
@@ -3320,13 +3348,45 @@ export default function RealWorldMap() {
     return 'Open the venue card for the three real moves: mark, fund, or inspect the command view.';
   }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
 
-  const handleSpray = () => {
-    setSprayBurst(false);
-    window.requestAnimationFrame(() => {
-      setSprayBurst(true);
-      window.setTimeout(() => setSprayBurst(false), 640);
-    });
-  };
+  const easeMapCamera = useCallback(
+    ({
+      bearingDelta = 0,
+      pitchDelta = 0,
+      reset = false,
+    }: {
+      bearingDelta?: number;
+      pitchDelta?: number;
+      reset?: boolean;
+    }) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+
+      const minPitch = 28;
+      const maxPitch = isMobileViewport ? 64 : 74;
+      const nextPitch = reset
+        ? isMobileViewport
+          ? 54
+          : DEFAULT_MAP_PITCH
+        : Math.min(maxPitch, Math.max(minPitch, map.getPitch() + pitchDelta));
+      const nextBearing = reset ? 0 : map.getBearing() + bearingDelta;
+      const center = selectedPlace ? ([selectedPlace.longitude, selectedPlace.latitude] as [number, number]) : map.getCenter();
+
+      setMapBearing(nextBearing);
+      setMapPitch(nextPitch);
+      map.easeTo({
+        center,
+        bearing: nextBearing,
+        pitch: nextPitch,
+        duration: reset ? 680 : 520,
+        essential: true,
+      });
+      triggerHaptic('selection');
+    },
+    [isMobileViewport, selectedPlace]
+  );
+
+  const mapCameraBearingLabel = `${Math.round(((mapBearing % 360) + 360) % 360)} deg`;
+  const mapCameraPitchLabel = `${Math.round(mapPitch)} deg`;
 
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
@@ -4112,17 +4172,61 @@ export default function RealWorldMap() {
                   <Minus className="h-4 w-4" />
                 </button>
               </div>
+              <div className="overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur md:rounded-[22px]">
+                <div className="hidden items-center justify-between border-b border-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/70 md:flex">
+                  <span>3D</span>
+                  <span>{mapCameraPitchLabel}</span>
+                </div>
+                <div className="grid grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => easeMapCamera({ bearingDelta: -28 })}
+                    className="flex h-9 w-10 items-center justify-center border-b border-r border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
+                    aria-label="Orbit map left"
+                    title="Orbit left"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => easeMapCamera({ bearingDelta: 28 })}
+                    className="flex h-9 w-10 items-center justify-center border-b border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
+                    aria-label="Orbit map right"
+                    title="Orbit right"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => easeMapCamera({ pitchDelta: -10 })}
+                    className="flex h-9 w-10 items-center justify-center border-r border-white/10 text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
+                    aria-label="Tilt map down"
+                    title="Tilt down"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => easeMapCamera({ pitchDelta: 10 })}
+                    className="flex h-9 w-10 items-center justify-center text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
+                    aria-label="Tilt map up"
+                    title="Tilt up"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => easeMapCamera({ reset: true })}
+                  className="flex h-8 w-full items-center justify-center gap-1 border-t border-white/10 px-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/70 transition hover:bg-cyan-300/[0.12] hover:text-cyan-50 md:h-9"
+                  aria-label="Reset map camera north"
+                  title={`Reset camera north · ${mapCameraBearingLabel}`}
+                >
+                  <span>North</span>
+                  <span className="hidden text-white/36 md:inline">{mapCameraBearingLabel}</span>
+                </button>
+              </div>
             </div>
-            <div className={`spray-burst ${sprayBurst ? 'bang' : ''}`} />
-            <button onClick={handleSpray} className="spray-can hidden md:flex" aria-label="Spray map easter egg">
-              <Image
-                src="/assets/bare-paint-can.png"
-                alt="Bare Paint spray can"
-                width={88}
-                height={88}
-                className="h-auto w-full"
-              />
-            </button>
             <MapCrosshair
               containerRef={mapViewportRef}
               horizontalColor="rgba(184, 127, 255, 0.82)"
@@ -5300,7 +5404,7 @@ export default function RealWorldMap() {
           height: 28px;
           width: 28px;
           flex: 0 0 auto;
-          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38));
+          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(34, 211, 238, 0.2));
         }
 
         .legend-building-mini--tight {
@@ -5318,7 +5422,7 @@ export default function RealWorldMap() {
           width: 20px;
           height: 13px;
           clip-path: polygon(50% 0%, 100% 45%, 100% 64%, 0% 64%, 0% 45%);
-          background: linear-gradient(135deg, #fff0a3 0%, #f5c518 52%, #8f5c07 100%);
+          background: linear-gradient(135deg, #d8fbff 0%, #67e8f9 52%, #5b21b6 100%);
         }
 
         .legend-building-mini-body {
@@ -5328,11 +5432,11 @@ export default function RealWorldMap() {
           width: 16px;
           height: 14px;
           border-radius: 4px;
-          border: 1px solid rgba(248, 221, 114, 0.38);
+          border: 1px solid rgba(103, 232, 249, 0.46);
           background:
-            linear-gradient(90deg, transparent 30%, rgba(245, 197, 24, 0.82) 30% 43%, transparent 43% 57%, rgba(245, 197, 24, 0.82) 57% 70%, transparent 70%),
-            linear-gradient(180deg, rgba(42, 34, 58, 0.96), rgba(10, 9, 18, 0.98));
-          box-shadow: 0 0 12px rgba(245, 197, 24, 0.16);
+            linear-gradient(90deg, transparent 30%, rgba(190, 249, 255, 0.9) 30% 43%, transparent 43% 57%, rgba(34, 211, 238, 0.9) 57% 70%, transparent 70%),
+            linear-gradient(180deg, rgba(17, 34, 54, 0.96), rgba(7, 10, 18, 0.98));
+          box-shadow: 0 0 12px rgba(34, 211, 238, 0.2);
         }
 
         .legend-live-dot,
@@ -5761,104 +5865,6 @@ export default function RealWorldMap() {
           opacity: var(--haze-opacity);
         }
 
-        .spray-can {
-          position: absolute;
-          right: 20px;
-          bottom: 22px;
-          z-index: 18;
-          width: 80px;
-          border: none;
-          background: transparent;
-          padding: 0;
-          transform: rotate(-15deg);
-          transition: transform 0.3s ease, filter 0.3s ease;
-          filter: drop-shadow(0 8px 22px rgba(107, 33, 255, 0.4));
-          animation: canFloat 4s ease-in-out infinite;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .spray-can::after {
-          content: 'BARE PAINT';
-          position: absolute;
-          bottom: 110%;
-          left: 50%;
-          transform: translateX(-50%) rotate(15deg);
-          border-radius: 8px;
-          border: 1px solid rgba(107, 33, 255, 0.4);
-          background: rgba(10, 0, 22, 0.95);
-          color: #00ffc8;
-          font-size: 9px;
-          letter-spacing: 1.5px;
-          white-space: nowrap;
-          padding: 5px 10px;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-          pointer-events: none;
-        }
-
-        .spray-can:hover {
-          transform: rotate(18deg) scale(1.1);
-          filter: drop-shadow(0 0 24px rgba(0, 255, 200, 0.65));
-          animation: none;
-        }
-
-        .spray-can:hover::after {
-          opacity: 1;
-        }
-
-        .spray-can:active {
-          transform: rotate(40deg) scale(0.95);
-        }
-
-        .spray-burst {
-          position: absolute;
-          right: 10px;
-          bottom: 58px;
-          width: 120px;
-          height: 120px;
-          border-radius: 9999px;
-          background: radial-gradient(
-            circle,
-            rgba(0, 255, 200, 0.55),
-            rgba(107, 33, 255, 0.28),
-            transparent 70%
-          );
-          opacity: 0;
-          transform: scale(0);
-          pointer-events: none;
-          z-index: 17;
-        }
-
-        .spray-burst.bang {
-          animation: sprayBang 0.62s ease-out forwards;
-        }
-
-        @keyframes canFloat {
-          0%,
-          100% {
-            transform: rotate(-15deg) translateY(0);
-          }
-          50% {
-            transform: rotate(-12deg) translateY(-8px);
-          }
-        }
-
-        @keyframes sprayBang {
-          0% {
-            opacity: 1;
-            transform: scale(0.2);
-          }
-          60% {
-            opacity: 0.85;
-            transform: scale(1.35);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(2);
-          }
-        }
-
         @keyframes peebearRipple {
           0% {
             transform: translate(-50%, -50%) scale(0.9);
@@ -6279,14 +6285,15 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-core) {
           margin-top: 46px;
-          border-color: rgba(245, 197, 24, 0.74);
+          border-color: rgba(103, 232, 249, 0.74);
           background:
             radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.18) 0%, transparent 54%),
-            radial-gradient(circle at 60% 86%, rgba(245, 197, 24, 0.18) 0%, transparent 46%),
-            linear-gradient(180deg, rgba(31, 22, 38, 0.98), rgba(10, 8, 18, 0.99));
+            radial-gradient(circle at 60% 86%, rgba(34, 211, 238, 0.2) 0%, transparent 46%),
+            linear-gradient(180deg, rgba(13, 29, 47, 0.98), rgba(7, 9, 18, 0.99));
           box-shadow:
-            0 0 0 3px rgba(245, 197, 24, 0.16),
-            0 0 24px rgba(245, 197, 24, 0.28),
+            0 0 0 3px rgba(34, 211, 238, 0.16),
+            0 0 24px rgba(34, 211, 238, 0.3),
+            0 0 34px rgba(184, 127, 255, 0.12),
             0 16px 28px rgba(0, 0, 0, 0.46),
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
             inset 0 -12px 16px rgba(0, 0, 0, 0.26);
@@ -6308,7 +6315,7 @@ export default function RealWorldMap() {
           width: 46px;
           transform: translateX(-50%);
           transform-style: preserve-3d;
-          filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 12px rgba(245, 197, 24, 0.24));
+          filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 14px rgba(34, 211, 238, 0.32));
           pointer-events: none;
           transition: transform 180ms ease, filter 180ms ease;
         }
@@ -6322,10 +6329,10 @@ export default function RealWorldMap() {
           clip-path: polygon(50% 0%, 100% 44%, 100% 64%, 0% 64%, 0% 44%);
           border-radius: 4px 4px 2px 2px;
           background:
-            linear-gradient(135deg, rgba(255, 242, 170, 0.95) 0%, rgba(245, 197, 24, 0.98) 46%, rgba(157, 103, 9, 0.98) 100%);
+            linear-gradient(135deg, rgba(216, 251, 255, 0.98) 0%, rgba(103, 232, 249, 0.98) 46%, rgba(91, 33, 182, 0.98) 100%);
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.5),
-            inset 0 -5px 8px rgba(82, 49, 0, 0.28);
+            inset 0 -5px 8px rgba(18, 18, 70, 0.28);
         }
 
         .basedare-maplibre-map :global(.venue-building-body) {
@@ -6338,21 +6345,22 @@ export default function RealWorldMap() {
           grid-template-columns: repeat(3, 1fr);
           gap: 3px;
           border-radius: 7px 7px 5px 5px;
-          border: 1px solid rgba(248, 221, 114, 0.42);
+          border: 1px solid rgba(103, 232, 249, 0.48);
           background:
-            linear-gradient(180deg, rgba(42, 34, 58, 0.96), rgba(12, 10, 20, 0.98));
+            radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.18), transparent 54%),
+            linear-gradient(180deg, rgba(15, 34, 54, 0.96), rgba(7, 10, 18, 0.98));
           padding: 6px 4px 4px;
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
             inset 0 -8px 10px rgba(0, 0, 0, 0.3),
-            0 0 0 2px rgba(245, 197, 24, 0.1);
+            0 0 0 2px rgba(34, 211, 238, 0.12);
         }
 
         .basedare-maplibre-map :global(.venue-building-body span) {
           border-radius: 2px;
           background:
-            linear-gradient(180deg, rgba(254, 240, 138, 0.96), rgba(245, 197, 24, 0.78));
-          box-shadow: 0 0 8px rgba(245, 197, 24, 0.3);
+            linear-gradient(180deg, rgba(216, 251, 255, 0.98), rgba(34, 211, 238, 0.82));
+          box-shadow: 0 0 8px rgba(34, 211, 238, 0.36);
         }
 
         .basedare-maplibre-map :global(.venue-building-base) {
@@ -6362,8 +6370,8 @@ export default function RealWorldMap() {
           width: 36px;
           height: 5px;
           border-radius: 9999px;
-          background: linear-gradient(90deg, rgba(94, 62, 8, 0.24), rgba(248, 221, 114, 0.8), rgba(94, 62, 8, 0.24));
-          box-shadow: 0 0 12px rgba(245, 197, 24, 0.24);
+          background: linear-gradient(90deg, rgba(12, 43, 57, 0.24), rgba(103, 232, 249, 0.82), rgba(91, 33, 182, 0.24));
+          box-shadow: 0 0 12px rgba(34, 211, 238, 0.28);
         }
 
         .basedare-maplibre-map :global(.venue-activation-pill) {
@@ -6373,20 +6381,20 @@ export default function RealWorldMap() {
           z-index: 6;
           transform: translateX(-50%);
           border-radius: 9999px;
-          border: 1px solid rgba(245, 197, 24, 0.38);
+          border: 1px solid rgba(103, 232, 249, 0.42);
           background:
-            linear-gradient(180deg, rgba(248, 221, 114, 0.18), rgba(245, 197, 24, 0.08)),
-            linear-gradient(180deg, rgba(32, 22, 8, 0.96), rgba(8, 7, 12, 0.98));
+            linear-gradient(180deg, rgba(190, 249, 255, 0.18), rgba(34, 211, 238, 0.08)),
+            linear-gradient(180deg, rgba(7, 24, 38, 0.96), rgba(5, 8, 14, 0.98));
           padding: 3px 8px;
           font-size: 6.5px;
           font-weight: 900;
           line-height: 1;
           letter-spacing: 0.16em;
-          color: #fff2b7;
+          color: #d8fbff;
           white-space: nowrap;
           box-shadow:
             0 10px 18px rgba(0, 0, 0, 0.3),
-            0 0 16px rgba(245, 197, 24, 0.15),
+            0 0 16px rgba(34, 211, 238, 0.18),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           opacity: 0;
           transition: opacity 160ms ease, transform 160ms ease;
@@ -6420,7 +6428,7 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-active .venue-building-badge) {
           transform: translateX(-50%) translateY(-3px) scale(1.04);
-          filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(245, 197, 24, 0.36));
+          filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 20px rgba(34, 211, 238, 0.44));
         }
 
         .basedare-maplibre-map :global(.peebear-match-badge) {
