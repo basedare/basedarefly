@@ -1040,77 +1040,110 @@ export default async function VenueDetailPage(
                       First mark open. The first approved memory here becomes the venue&apos;s opening legend.
                     </div>
                   ) : null}
-                  {venue.recentTags.length > 0 ? (
+                  {venue.timelineMoments.length > 0 ? (
                     <div className="max-h-[34rem] space-y-3 overflow-y-auto pr-1">
-                      {venue.recentTags.map((tag) => (
-                        <div
-                          key={tag.id}
-                          className={`${insetCardClass} flex items-start gap-4 px-4 py-4 ${
-                            tag.isOwn
-                              ? 'border-fuchsia-400/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(88,28,135,0.18)]'
-                              : ''
-                          }`}
-                        >
-                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,18,0.96)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
-                            {tag.proofType === 'IMAGE' ? (
-                              <div
-                                className="absolute inset-0 bg-cover bg-center"
-                                style={{ backgroundImage: `url(${tag.proofMediaUrl})` }}
-                              />
-                            ) : (
-                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(6,7,14,0.96)_100%)]" />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                            <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/70 backdrop-blur-sm">
-                              {tag.proofType === 'VIDEO' ? 'video proof' : 'image proof'}
+                      {venue.timelineMoments.map((moment) => {
+                        const timelineCard = (
+                          <>
+                            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,10,18,0.96)_100%)] shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)] sm:h-28 sm:w-28">
+                              {moment.mediaUrl && moment.mediaType === 'IMAGE' ? (
+                                <div
+                                  className="absolute inset-0 bg-cover bg-center"
+                                  style={{ backgroundImage: `url(${moment.mediaUrl})` }}
+                                />
+                              ) : (
+                                <div className={`absolute inset-0 ${
+                                  moment.kind === 'DARE_COMPLETION'
+                                    ? 'bg-[radial-gradient(circle_at_28%_18%,rgba(245,197,24,0.26),transparent_34%),radial-gradient(circle_at_80%_85%,rgba(34,211,238,0.16),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(6,7,14,0.96)_100%)]'
+                                    : 'bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(6,7,14,0.96)_100%)]'
+                                }`} />
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                              {moment.rewardUsd ? (
+                                <div className="absolute left-2 top-2 rounded-full border border-[#f5c518]/28 bg-[#f5c518]/[0.14] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#f8dd72] backdrop-blur-sm">
+                                  ${moment.rewardUsd.toFixed(0)}
+                                </div>
+                              ) : null}
+                              <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/70 backdrop-blur-sm">
+                                {moment.kind === 'DARE_COMPLETION'
+                                  ? moment.mediaType === 'VIDEO'
+                                    ? 'reward video'
+                                    : 'reward proof'
+                                  : moment.mediaType === 'VIDEO'
+                                    ? 'video proof'
+                                    : 'image proof'}
+                              </div>
                             </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="truncate font-semibold text-white">
-                                    {tag.creatorTag ?? `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
-                                  </p>
-                                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
-                                    {getLogbookSourceLabel(tag.source)}
-                                  </span>
-                                  {tag.isOwn ? (
-                                    <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-fuchsia-100">
-                                      your mark
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate font-semibold text-white">{moment.creatorLabel}</p>
+                                    <span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${
+                                      moment.kind === 'DARE_COMPLETION'
+                                        ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72]'
+                                        : 'border-white/10 bg-white/[0.04] text-white/42'
+                                    }`}>
+                                      {moment.sourceLabel}
                                     </span>
-                                  ) : null}
-                                  {tag.firstMark ? (
-                                    <span className="rounded-full border border-amber-400/18 bg-amber-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-amber-200">
-                                      first mark
+                                    {moment.isOwn ? (
+                                      <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-fuchsia-100">
+                                        {moment.kind === 'DARE_COMPLETION' ? 'your win' : 'your mark'}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <p className="mt-2 text-base font-bold leading-snug text-white">
+                                    {moment.title}
+                                  </p>
+                                  <p className="mt-1.5 text-sm leading-relaxed text-white/64">
+                                    {moment.body}
+                                  </p>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/36">
+                                    {formatVenueLogbookDate(moment.occurredAt)}
+                                  </p>
+                                  {moment.shortId ? (
+                                    <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
+                                      Open dare
+                                      <ArrowRight className="h-3 w-3" />
                                     </span>
                                   ) : null}
                                 </div>
-                                <p className="mt-2 text-sm leading-relaxed text-white/64">
-                                  {tag.caption ?? 'Verified place mark submitted through BaseDare.'}
-                                </p>
                               </div>
-                              <div className="text-left sm:text-right">
-                                <p className="text-[11px] uppercase tracking-[0.22em] text-white/36">
-                                  {formatVenueLogbookDate(tag.submittedAt)}
-                                </p>
-                              </div>
+                              {moment.badges.length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {moment.badges.slice(0, 4).map((badge) => (
+                                    <span
+                                      key={`${moment.id}-${badge}`}
+                                      className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48"
+                                    >
+                                      {badge}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
-                            {tag.vibeTags.length > 0 ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {tag.vibeTags.slice(0, 4).map((vibeTag) => (
-                                  <span
-                                    key={vibeTag}
-                                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48"
-                                  >
-                                    #{vibeTag}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : null}
+                          </>
+                        );
+                        const cardClassName = `${insetCardClass} group flex items-start gap-4 px-4 py-4 transition ${
+                          moment.kind === 'DARE_COMPLETION'
+                            ? 'border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(245,197,24,0.08)_0%,rgba(10,10,18,0.92)_100%)] hover:border-[#f5c518]/30 hover:bg-[#f5c518]/[0.08]'
+                            : moment.isOwn
+                              ? 'border-fuchsia-400/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(88,28,135,0.18)]'
+                              : 'hover:border-white/14 hover:bg-white/[0.035]'
+                        }`;
+
+                        return moment.shortId ? (
+                          <Link key={moment.id} href={`/dare/${moment.shortId}`} className={cardClassName}>
+                            {timelineCard}
+                          </Link>
+                        ) : (
+                          <div key={moment.id} className={cardClassName}>
+                            {timelineCard}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>

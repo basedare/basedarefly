@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Upgrade public venue pages so map traffic lands on a live place-memory destination with clear proof, lift, creator routing, and Secure Handshake context.
+- Goal: Turn venue logbooks into richer proof/reward timelines that show both approved marks and completed dare moments.
 
 ### Plan
-- [x] Add a mobile-visible place-memory command band near the top of venue pages.
-- [x] Surface current pulse, seven-day lift, repeat-activation insight, and memory sparkline from existing venue data.
-- [x] Surface best creator route and Secure Handshake readiness without adding new backend dependencies.
+- [x] Add typed venue timeline moments to the venue detail payload.
+- [x] Query completed, paid, and payout-queued venue dares alongside approved marks.
+- [x] Replace the venue logbook with a mixed proof/reward timeline that links completed dare moments back to their dare page.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Venue pages now expose the venue memory and creator-routing story much earlier in the page.
-- Follow-ups: Next venue ROI is turning the logbook into a richer proof/reward timeline with completed-dare moments, not just approved marks.
+- Outcome: Venue logbooks now read more like place history: marks, rewards, proof media, and completed challenge links in one feed.
+- Follow-ups: Next venue ROI is adding lightweight timeline filters once enough proof/reward density exists.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

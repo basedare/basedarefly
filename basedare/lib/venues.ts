@@ -28,6 +28,7 @@ import type {
   VenueMemorySummary,
   VenueQrPayload,
   VenueSessionSummary,
+  VenueTimelineMoment,
   VenueTopCreator,
 } from '@/lib/venue-types';
 
@@ -560,6 +561,113 @@ function getFeaturedPaidActivation<
 
     return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
   })[0] ?? null;
+}
+
+function compactWalletLabel(walletAddress: string) {
+  return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+}
+
+function buildVenueTimelineMoments(input: {
+  tags: Array<{
+    id: string;
+    creatorTag: string | null;
+    walletAddress: string;
+    caption: string | null;
+    vibeTags: string[];
+    proofMediaUrl: string;
+    proofType: string;
+    source?: string | null;
+    submittedAt: string;
+    firstMark: boolean;
+    isOwn?: boolean;
+  }>;
+  completedDares: Array<{
+    id: string;
+    shortId: string | null;
+    title: string;
+    missionMode: string | null;
+    bounty: number;
+    status: string;
+    streamerHandle: string | null;
+    tag: string | null;
+    videoUrl: string | null;
+    imageUrl: string | null;
+    proof_media: string | null;
+    verifiedAt: Date | null;
+    completed_at: Date | null;
+    updatedAt: Date;
+    claimedBy: string | null;
+    targetWalletAddress: string | null;
+    claimRequestTag: string | null;
+    linkedCampaign: {
+      title: string;
+      brand: {
+        name: string;
+      };
+    } | null;
+  }>;
+  creatorWalletAddress: string | null;
+}): VenueTimelineMoment[] {
+  const tagMoments: VenueTimelineMoment[] = input.tags.map((tag) => ({
+    id: `tag:${tag.id}`,
+    kind: 'PLACE_MARK',
+    occurredAt: tag.submittedAt,
+    title: tag.firstMark ? 'First spark landed' : 'Verified place mark',
+    body: tag.caption ?? 'Verified place mark submitted through BaseDare.',
+    creatorLabel: tag.creatorTag ? `@${tag.creatorTag}` : compactWalletLabel(tag.walletAddress),
+    sourceLabel: tag.source === 'DARE_COMPLETION' ? 'verified dare proof' : 'place mark',
+    mediaUrl: tag.proofMediaUrl,
+    mediaType: tag.proofType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
+    rewardUsd: null,
+    shortId: null,
+    status: null,
+    badges: [
+      tag.firstMark ? 'first spark' : null,
+      ...(tag.vibeTags ?? []).slice(0, 2).map((vibeTag) => `#${vibeTag}`),
+    ].filter((badge): badge is string => Boolean(badge)),
+    isOwn: tag.isOwn,
+  }));
+
+  const dareMoments: VenueTimelineMoment[] = input.completedDares.map((dare) => {
+    const occurredAt = dare.verifiedAt ?? dare.completed_at ?? dare.updatedAt;
+    const mediaUrl = dare.videoUrl ?? dare.imageUrl ?? dare.proof_media ?? null;
+    const ownerWallet = normalizeWalletAddress(dare.claimedBy ?? dare.targetWalletAddress);
+    const isOwn = Boolean(input.creatorWalletAddress && ownerWallet === input.creatorWalletAddress);
+    const creatorLabel =
+      dare.streamerHandle ??
+      dare.claimRequestTag ??
+      dare.tag ??
+      (ownerWallet ? compactWalletLabel(ownerWallet) : 'BaseDare creator');
+    const statusLabel = dare.status === 'PENDING_PAYOUT' ? 'payout queued' : 'reward verified';
+
+    return {
+      id: `dare:${dare.id}`,
+      kind: 'DARE_COMPLETION',
+      occurredAt: occurredAt.toISOString(),
+      title: dare.title,
+      body:
+        dare.status === 'PENDING_PAYOUT'
+          ? 'Proof was approved and settlement is queued on Base.'
+          : 'Proof was approved and the reward became part of this venue memory.',
+      creatorLabel,
+      sourceLabel: statusLabel,
+      mediaUrl,
+      mediaType: mediaUrl ? (dare.videoUrl || dare.proof_media ? 'VIDEO' : 'IMAGE') : null,
+      rewardUsd: dare.bounty,
+      shortId: dare.shortId ?? dare.id.slice(0, 8),
+      status: dare.status,
+      badges: [
+        `${dare.missionMode ?? 'IRL'} mission`,
+        dare.linkedCampaign?.brand.name ?? null,
+        dare.linkedCampaign ? 'paid activation' : null,
+      ].filter((badge): badge is string => Boolean(badge)),
+      isOwn,
+    };
+  });
+
+  return [...tagMoments, ...dareMoments]
+    .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
+    .slice(0, 14);
 }
 
 type VenueQrSessionRecord = {
@@ -1354,7 +1462,7 @@ export async function getVenueDetailBySlug(
     return null;
   }
 
-  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags] = await Promise.all([
+  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags, completedDares] = await Promise.all([
     prisma.venueCheckIn.count({
       where: {
         venueId: venue.id,
@@ -1388,6 +1496,43 @@ export async function getVenueDetailBySlug(
       },
     }),
     getRecentApprovedPlaceTagsByVenueId(venue.id, 12),
+    prisma.dare.findMany({
+      where: {
+        venueId: venue.id,
+        status: { in: ['VERIFIED', 'PAID', 'COMPLETED', 'PENDING_PAYOUT'] },
+      },
+      orderBy: [{ verifiedAt: 'desc' }, { completed_at: 'desc' }, { updatedAt: 'desc' }],
+      take: 8,
+      select: {
+        id: true,
+        shortId: true,
+        title: true,
+        missionMode: true,
+        bounty: true,
+        status: true,
+        streamerHandle: true,
+        tag: true,
+        videoUrl: true,
+        imageUrl: true,
+        proof_media: true,
+        verifiedAt: true,
+        completed_at: true,
+        updatedAt: true,
+        claimedBy: true,
+        targetWalletAddress: true,
+        claimRequestTag: true,
+        linkedCampaign: {
+          select: {
+            title: true,
+            brand: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
   const topCreatorsByVenue = await getTopCreatorsForVenueIds([venue.id]);
 
@@ -1475,6 +1620,11 @@ export async function getVenueDetailBySlug(
     ...tag,
     isOwn: normalizedCreatorWallet ? tag.walletAddress.toLowerCase() === normalizedCreatorWallet : false,
   }));
+  const timelineMoments = buildVenueTimelineMoments({
+    tags: recentTagsWithOwnership,
+    completedDares,
+    creatorWalletAddress: normalizedCreatorWallet,
+  });
   const topCreators = topCreatorsByVenue.get(venue.id) ?? [];
   const activationInsight = buildVenueActivationInsight({
     featuredPaidActivation,
@@ -1528,6 +1678,7 @@ export async function getVenueDetailBySlug(
       scannedAt: checkIn.scannedAt.toISOString(),
     })),
     recentTags: recentTagsWithOwnership,
+    timelineMoments,
     topCreators,
     creatorContribution,
     activeDares,

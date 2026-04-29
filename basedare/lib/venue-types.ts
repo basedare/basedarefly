@@ -31,6 +31,23 @@ export type VenueRecentTag = {
   isOwn?: boolean;
 };
 
+export type VenueTimelineMoment = {
+  id: string;
+  kind: 'PLACE_MARK' | 'DARE_COMPLETION';
+  occurredAt: string;
+  title: string;
+  body: string;
+  creatorLabel: string;
+  sourceLabel: string;
+  mediaUrl: string | null;
+  mediaType: 'IMAGE' | 'VIDEO' | null;
+  rewardUsd: number | null;
+  shortId: string | null;
+  status: string | null;
+  badges: string[];
+  isOwn?: boolean;
+};
+
 export type VenueCreatorContribution = {
   walletAddress: string;
   creatorTag: string | null;
@@ -285,6 +302,7 @@ export type VenueDetail = {
     scannedAt: string;
   }>;
   recentTags: VenueRecentTag[];
+  timelineMoments: VenueTimelineMoment[];
   topCreators: VenueTopCreator[];
   creatorContribution: VenueCreatorContribution | null;
   activeDares: Array<{
