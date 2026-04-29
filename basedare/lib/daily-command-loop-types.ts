@@ -76,6 +76,24 @@ export type DailyVenueScoutBrief = {
   } | null;
 };
 
+export type DailyPlaceTagReviewPressure = {
+  totalPending: number;
+  overdue: number;
+  dueSoon: number;
+  firstMarks: number;
+  oldestQueuedLabel: string;
+  topVenue: {
+    name: string;
+    slug: string;
+    city: string | null;
+    country: string | null;
+    creatorLabel: string;
+    submittedAt: string;
+    reviewLabel: string;
+    reviewDetail: string;
+  } | null;
+};
+
 export type DailyCommandLoopReport = {
   generatedAt: string;
   period: {
@@ -110,6 +128,7 @@ export type DailyCommandLoopReport = {
     evidence: string[];
   };
   venueScout: DailyVenueScoutBrief;
+  placeTagReview: DailyPlaceTagReviewPressure;
   sourceSignals: {
     moderationReady: number;
     payoutBacklog: number;
@@ -120,6 +139,8 @@ export type DailyCommandLoopReport = {
     pendingVenueClaims: number;
     pendingCreatorTags: number;
     pendingPlaceTags: number;
+    overduePlaceTags: number;
+    dueSoonPlaceTags: number;
     activeCampaigns: number;
     openCampaignSlots: number;
     recentDares: number;

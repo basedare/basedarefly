@@ -3,10 +3,12 @@ import 'server-only';
 import { buildFounderScoreboardPulse } from '@/lib/founder-scoreboard';
 import { prisma } from '@/lib/prisma';
 import { buildVenueScoutCommandReport } from '@/lib/venue-scout-command';
+import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import type {
   DailyCommandItem,
   DailyCommandLoopReport,
   DailyCommandMetric,
+  DailyPlaceTagReviewPressure,
   DailyCommandRiskTier,
   DailyCommandTone,
   DailyReviewItem,
@@ -38,6 +40,52 @@ function riskLabel(riskTier: DailyCommandRiskTier) {
   if (riskTier === 'human') return 'Human-only';
   if (riskTier === 'review') return 'Needs review';
   return 'Auto-safe';
+}
+
+function compactWalletLabel(walletAddress: string) {
+  return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+}
+
+function buildPlaceTagReviewPressure(
+  tags: Array<{
+    creatorTag: string | null;
+    walletAddress: string;
+    firstMark: boolean;
+    submittedAt: Date;
+    venue: {
+      name: string;
+      slug: string;
+      city: string | null;
+      country: string | null;
+    };
+  }>,
+  totalPending: number
+): DailyPlaceTagReviewPressure {
+  const tagStates = tags.map((tag) => ({
+    tag,
+    review: getPlaceTagReviewState(tag.submittedAt),
+  }));
+  const top = tagStates[0] ?? null;
+
+  return {
+    totalPending,
+    overdue: tagStates.filter((item) => item.review.tone === 'overdue').length,
+    dueSoon: tagStates.filter((item) => item.review.tone === 'due').length,
+    firstMarks: tags.filter((tag) => tag.firstMark).length,
+    oldestQueuedLabel: top?.review.elapsedLabel ?? 'clear',
+    topVenue: top
+      ? {
+          name: top.tag.venue.name,
+          slug: top.tag.venue.slug,
+          city: top.tag.venue.city,
+          country: top.tag.venue.country,
+          creatorLabel: top.tag.creatorTag ? `@${top.tag.creatorTag}` : compactWalletLabel(top.tag.walletAddress),
+          submittedAt: top.tag.submittedAt.toISOString(),
+          reviewLabel: top.review.label,
+          reviewDetail: top.review.detail,
+        }
+      : null,
+  };
 }
 
 function buildVenueLeadPriority(input: {
@@ -125,6 +173,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     pendingVenueClaims,
     pendingCreatorTags,
     pendingPlaceTags,
+    pendingPlaceTagRows,
     activeCampaigns,
     openCampaignSlots,
     recentDares,
@@ -232,6 +281,25 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     prisma.venue.count({ where: { claimRequestStatus: 'PENDING' } }),
     prisma.streamerTag.count({ where: { status: 'PENDING' } }),
     prisma.placeTag.count({ where: { status: 'PENDING' } }),
+    prisma.placeTag.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { submittedAt: 'asc' },
+      take: 80,
+      select: {
+        creatorTag: true,
+        walletAddress: true,
+        firstMark: true,
+        submittedAt: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+            country: true,
+          },
+        },
+      },
+    }),
     prisma.campaign.count({ where: { status: { in: ACTIVE_CAMPAIGN_STATUSES } } }),
     prisma.campaignSlot.count({ where: { status: { in: OPEN_CAMPAIGN_SLOT_STATUSES } } }),
     prisma.dare.count({ where: { createdAt: { gte: periodStart } } }),
@@ -292,6 +360,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
   const topScoutRoute = venueScoutReport.routeClusters[0] ?? null;
   const topScoutLead = venueScoutReport.leads[0] ?? null;
   const topSeedCandidate = venueScoutReport.seedCandidates[0] ?? null;
+  const placeTagReview = buildPlaceTagReviewPressure(pendingPlaceTagRows, pendingPlaceTags);
 
   const pendingTrustItems =
     pendingClaims + pendingVenueClaims + pendingCreatorTags + pendingPlaceTags + moderationReady.length;
@@ -438,22 +507,48 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     );
   }
 
-  if (pendingClaims + pendingVenueClaims + pendingCreatorTags + pendingPlaceTags > 0) {
+  if (placeTagReview.totalPending > 0) {
+    commands.push(
+      command({
+        id: 'place-tag-review-sla',
+        title: 'Clear place-memory review pressure',
+        workstream: 'trust',
+        riskTier: 'review',
+        priority:
+          94 +
+          placeTagReview.overdue * 9 +
+          placeTagReview.dueSoon * 5 +
+          placeTagReview.firstMarks * 3,
+        why: 'Pending venue marks are now visible to creators. The place-memory loop only feels trustworthy if referee review moves before the SLA turns stale.',
+        nextAction: placeTagReview.topVenue
+          ? `Open Chaos Inbox and start with ${placeTagReview.topVenue.name}; ${placeTagReview.topVenue.reviewLabel.toLowerCase()} from ${placeTagReview.topVenue.creatorLabel}.`
+          : 'Open Chaos Inbox and clear pending place-memory tags oldest first.',
+        href: '/admin',
+        evidence: [
+          plural(placeTagReview.totalPending, 'pending mark'),
+          `${placeTagReview.overdue} overdue`,
+          `${placeTagReview.dueSoon} due soon`,
+          `${placeTagReview.firstMarks} first marks`,
+        ],
+      })
+    );
+  }
+
+  if (pendingClaims + pendingVenueClaims + pendingCreatorTags > 0) {
     commands.push(
       command({
         id: 'identity-and-claims',
         title: 'Clear claim and identity gates',
         workstream: 'trust',
         riskTier: 'review',
-        priority: 82 + pendingClaims * 5 + pendingVenueClaims * 6 + pendingCreatorTags + pendingPlaceTags,
-        why: 'Creators and venues cannot become real operators if claim, tag, and place-memory approvals stall.',
-        nextAction: 'Resolve pending claims first, then creator tags, then place-memory tags.',
+        priority: 82 + pendingClaims * 5 + pendingVenueClaims * 6 + pendingCreatorTags,
+        why: 'Creators and venues cannot become real operators if claim and identity approvals stall.',
+        nextAction: 'Resolve pending claims first, then creator identity tags.',
         href: '/admin',
         evidence: [
           `${pendingClaims} dare claims`,
           `${pendingVenueClaims} venue claims`,
           `${pendingCreatorTags} creator tags`,
-          `${pendingPlaceTags} place tags`,
         ],
       })
     );
@@ -584,14 +679,28 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           href: '/admin',
         })
       : null,
-    pendingCreatorTags + pendingPlaceTags > 0
+    pendingCreatorTags > 0
       ? reviewItem({
-          id: 'tag-gates',
-          title: 'Creator and place-memory tags',
-          count: pendingCreatorTags + pendingPlaceTags,
+          id: 'creator-tag-gates',
+          title: 'Creator identity tags',
+          count: pendingCreatorTags,
           owner: 'Moderator',
           riskTier: 'review',
-          nextAction: 'Approve clean identity/place signals and reject noisy ones.',
+          nextAction: 'Approve clean identity signals and reject noisy ones.',
+          href: '/admin',
+        })
+      : null,
+    placeTagReview.totalPending > 0
+      ? reviewItem({
+          id: 'place-memory-review',
+          title: 'Place-memory mark reviews',
+          count: placeTagReview.totalPending,
+          owner: 'Moderator',
+          riskTier: placeTagReview.overdue > 0 ? 'human' : 'review',
+          nextAction:
+            placeTagReview.overdue > 0
+              ? 'Clear overdue place marks first, then due-soon first marks.'
+              : 'Review pending place marks oldest first.',
           href: '/admin',
         })
       : null,
@@ -616,7 +725,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       'trust-queue',
       'Trust queue',
       pendingTrustItems,
-      `${moderationReady.length} ready proofs, ${pendingClaims + pendingVenueClaims} claim gates, ${pendingCreatorTags + pendingPlaceTags} tag gates`,
+      `${moderationReady.length} ready proofs, ${pendingClaims + pendingVenueClaims} claim gates, ${pendingCreatorTags} creator tags, ${placeTagReview.totalPending} place marks`,
       toneForQueue(pendingTrustItems, 1, 8)
     ),
     buildMetric(
@@ -644,8 +753,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       'place-memory',
       'Place memory',
       recentPlaceTags + recentCheckIns,
-      `${recentPlaceTags} tags and ${recentCheckIns} check-ins in last 24h`,
-      recentPlaceTags + recentCheckIns > 0 ? 'positive' : 'neutral'
+      `${recentPlaceTags} tags and ${recentCheckIns} check-ins in last 24h; ${placeTagReview.overdue} overdue reviews`,
+      placeTagReview.overdue > 0 ? 'warning' : recentPlaceTags + recentCheckIns > 0 ? 'positive' : 'neutral'
     ),
     buildMetric(
       'money-queue',
@@ -676,6 +785,12 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
             detail: `${plural(moderationReady.length, 'proof')} can move today. Fast review improves creator confidence and unlocks payout flow.`,
             tone: 'warning' as DailyCommandTone,
           }
+        : placeTagReview.overdue > 0
+          ? {
+              title: 'Place-memory review is past SLA',
+              detail: `${plural(placeTagReview.overdue, 'venue mark')} overdue and ${plural(placeTagReview.dueSoon, 'mark')} due soon. Clear Chaos Inbox before adding more venue promises.`,
+              tone: 'warning' as DailyCommandTone,
+            }
         : founderSignal.tone === 'warning' && founderScoreboard.money.liveGmv > 0
           ? {
               title: 'Funded demand needs outcome conversion',
@@ -722,7 +837,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       ? `${campaignBackedReviews} campaign-backed proof item needs review; campaign context should raise moderation priority.`
       : 'No campaign-backed proof is currently forcing the review queue.',
     recentPlaceTags + recentCheckIns > 0
-      ? 'Fresh place-memory activity exists; use it as evidence for venue follow-up instead of generic marketplace language.'
+      ? `Fresh place-memory activity exists; ${placeTagReview.totalPending} marks are still pending review, with ${placeTagReview.overdue} overdue.`
       : 'Place-memory input is quiet; the city brief needs scouting rather than relying on passive activity.',
     topScoutRoute
       ? `Venue Scout top route is ${topScoutRoute.label}; batch work there before jumping between districts.`
@@ -739,6 +854,11 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     pendingCreatorTags + pendingPlaceTags > 8
       ? 'Tag queues are large enough to pollute identity/place trust if left stale.'
       : null,
+    placeTagReview.overdue > 0
+      ? `${plural(placeTagReview.overdue, 'place mark')} past the referee SLA; creators now see pending status on venue pages.`
+      : placeTagReview.dueSoon > 0
+        ? `${plural(placeTagReview.dueSoon, 'place mark')} nearing the referee SLA; clear the oldest marks before they turn overdue.`
+        : null,
     openCampaignSlots > 0 && recentCompletedDares === 0
       ? 'Open campaign slots exist without fresh completions in the last 24h; supply routing may be lagging demand.'
       : null,
@@ -816,6 +936,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           }
         : null,
     },
+    placeTagReview,
     sourceSignals: {
       moderationReady: moderationReady.length,
       payoutBacklog: payoutBacklog.length,
@@ -826,6 +947,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       pendingVenueClaims,
       pendingCreatorTags,
       pendingPlaceTags,
+      overduePlaceTags: placeTagReview.overdue,
+      dueSoonPlaceTags: placeTagReview.dueSoon,
       activeCampaigns,
       openCampaignSlots,
       recentDares,

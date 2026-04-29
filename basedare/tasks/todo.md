@@ -6,13 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Speed up admin place-tag moderation so pending venue marks can be approved, rejected, or flagged with less operator friction.
+- Goal: Surface place-memory moderation pressure inside the Daily Command Loop so overdue venue marks become an operator priority.
 
 ### Plan
-- [x] Auto-select the first pending place tag after loading the Chaos Inbox.
-- [x] Add place-tag queue health metrics for overdue, due-soon, first-mark, and oldest submissions.
-- [x] Make keyboard shortcuts process the current item and move to the next one.
-- [x] Add reusable rejection reason chips for common moderation failures.
+- [x] Add shared place-tag review SLA helpers used by venue pages, admin inbox, and the Daily Command Loop.
+- [x] Extend the Daily Command Loop report with pending, overdue, due-soon, first-mark, and oldest place-mark pressure.
+- [x] Add a place-memory review pressure card to the Daily Command Loop UI.
+- [x] Promote overdue place marks into command stack, review queue, scorecard, learnings, and watchouts.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Place-tag moderation now behaves more like a fast referee queue instead of a manual inbox.
-- Follow-ups: Next venue ROI is exposing the same moderation pressure inside the Daily Command Loop.
+- Outcome: Production build and static safety pass. The Daily Command Loop now sees venue mark SLA pressure instead of only a raw pending count.
+- Follow-ups: Next ROI is a direct deep link from Daily Command Loop into the Chaos Inbox tab once admin routing supports tab params.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

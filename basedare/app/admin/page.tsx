@@ -27,6 +27,7 @@ import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import SentinelBadge from '@/components/SentinelBadge';
 import { formatSentinelPausedMessage } from '@/lib/sentinel';
+import { getPlaceTagReviewState, type PlaceTagReviewTone } from '@/lib/place-tag-review-sla';
 
 interface DareForModeration {
   id: string;
@@ -320,7 +321,6 @@ interface PendingPlaceTag {
   };
 }
 
-const PLACE_TAG_REVIEW_SLA_MINUTES = 120;
 const PLACE_TAG_REJECT_REASON_CHIPS = [
   'Off-place proof',
   'Low-quality proof',
@@ -328,61 +328,7 @@ const PLACE_TAG_REJECT_REASON_CHIPS = [
   'Unsafe or private content',
 ] as const;
 
-function formatCompactReviewDuration(minutes: number) {
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m`;
-
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-
-  return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
-}
-
-function getPlaceTagReviewState(submittedAt: string) {
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - new Date(submittedAt).getTime()) / 60000));
-  const remainingMinutes = PLACE_TAG_REVIEW_SLA_MINUTES - elapsedMinutes;
-  const progress = Math.min(100, Math.max(8, Math.round((elapsedMinutes / PLACE_TAG_REVIEW_SLA_MINUTES) * 100)));
-
-  if (remainingMinutes <= 0) {
-    return {
-      label: 'Overdue',
-      detail: `${formatCompactReviewDuration(Math.abs(remainingMinutes))} over SLA`,
-      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
-      progress: 100,
-      tone: 'overdue' as const,
-    };
-  }
-
-  if (remainingMinutes <= 30) {
-    return {
-      label: 'Due soon',
-      detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
-      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
-      progress,
-      tone: 'due' as const,
-    };
-  }
-
-  if (elapsedMinutes < 15) {
-    return {
-      label: 'Fresh',
-      detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
-      elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
-      progress,
-      tone: 'fresh' as const,
-    };
-  }
-
-  return {
-    label: 'In queue',
-    detail: `${formatCompactReviewDuration(remainingMinutes)} left`,
-    elapsedLabel: `${formatCompactReviewDuration(elapsedMinutes)} queued`,
-    progress,
-    tone: 'active' as const,
-  };
-}
-
-function getPlaceTagReviewToneClass(tone: ReturnType<typeof getPlaceTagReviewState>['tone']) {
+function getPlaceTagReviewToneClass(tone: PlaceTagReviewTone) {
   switch (tone) {
     case 'overdue':
       return 'border-red-400/24 bg-red-500/[0.1] text-red-200';
@@ -395,7 +341,7 @@ function getPlaceTagReviewToneClass(tone: ReturnType<typeof getPlaceTagReviewSta
   }
 }
 
-function getPlaceTagReviewFillClass(tone: ReturnType<typeof getPlaceTagReviewState>['tone']) {
+function getPlaceTagReviewFillClass(tone: PlaceTagReviewTone) {
   switch (tone) {
     case 'overdue':
       return 'bg-red-300';

@@ -64,6 +64,13 @@ function formatDateTime(value: string) {
   });
 }
 
+function placeTagReviewTone(pressure: DailyCommandLoopReport['placeTagReview']): DailyCommandTone {
+  if (pressure.overdue > 0) return 'warning';
+  if (pressure.dueSoon > 0) return 'active';
+  if (pressure.totalPending > 0) return 'neutral';
+  return 'positive';
+}
+
 export default function DailyCommandLoopPage() {
   const { address, isConnected } = useAccount();
   const [report, setReport] = useState<DailyCommandLoopReport | null>(null);
@@ -313,6 +320,74 @@ export default function DailyCommandLoopPage() {
                   </span>
                 ))}
               </div>
+            </section>
+
+            <section className={`rounded-[2rem] border p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${toneClasses(placeTagReviewTone(report.placeTagReview))}`}>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-current/25 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] opacity-75">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Place-memory review pressure
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black uppercase tracking-[-0.02em]">
+                    {report.placeTagReview.overdue > 0
+                      ? 'Chaos Inbox is past SLA'
+                      : report.placeTagReview.dueSoon > 0
+                        ? 'Venue marks are due soon'
+                        : report.placeTagReview.totalPending > 0
+                          ? 'Venue marks waiting for referee'
+                          : 'Place-memory review is clear'}
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm font-bold leading-relaxed opacity-75">
+                    {report.placeTagReview.topVenue
+                      ? `Start with ${report.placeTagReview.topVenue.name}; ${report.placeTagReview.topVenue.creatorLabel} has been waiting ${report.placeTagReview.oldestQueuedLabel}.`
+                      : 'No pending venue marks are waiting in the referee queue.'}
+                  </p>
+                </div>
+                <Link
+                  href="/admin"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-current/25 bg-black/20 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition hover:bg-black/30"
+                >
+                  Open Chaos Inbox
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  ['Pending', report.placeTagReview.totalPending],
+                  ['Overdue', report.placeTagReview.overdue],
+                  ['Due soon', report.placeTagReview.dueSoon],
+                  ['First marks', report.placeTagReview.firstMarks],
+                  ['Oldest', report.placeTagReview.oldestQueuedLabel],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-[1.35rem] border border-current/15 bg-black/20 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-55">{label}</p>
+                    <p className="mt-2 text-xl font-black text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {report.placeTagReview.topVenue ? (
+                <div className="mt-4 rounded-[1.5rem] border border-current/15 bg-black/25 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black text-white">{report.placeTagReview.topVenue.name}</p>
+                      <p className="mt-1 text-xs font-bold opacity-65">
+                        {report.placeTagReview.topVenue.city || 'Unknown city'}
+                        {report.placeTagReview.topVenue.country ? `, ${report.placeTagReview.topVenue.country}` : ''} · {report.placeTagReview.topVenue.reviewLabel}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/venues/${report.placeTagReview.topVenue.slug}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-current/20 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition hover:bg-black/30"
+                    >
+                      Open venue
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="overflow-hidden rounded-[2.25rem] border border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_35%),rgba(5,12,22,0.88)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_90px_rgba(0,0,0,0.45)]">
