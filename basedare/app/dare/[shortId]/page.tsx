@@ -759,7 +759,7 @@ export default function DareDetailPage() {
             </div>
 
             {/* Title */}
-            <h1 className="mb-4 text-2xl font-black italic uppercase leading-tight tracking-tight text-white text-shadow-lg md:text-5xl">
+            <h1 className="mb-4 text-2xl font-black italic uppercase leading-tight tracking-tight text-[#f8dd72] drop-shadow-[0_4px_22px_rgba(0,0,0,0.78)] md:text-5xl">
               {dare.title}
             </h1>
 

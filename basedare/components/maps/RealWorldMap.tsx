@@ -34,6 +34,7 @@ import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
+import SquircleLink from '@/components/ui/SquircleLink';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
@@ -4147,7 +4148,8 @@ export default function RealWorldMap() {
                             : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
                         });
                       }}
-                      buttonClassName="map-action-button map-action-button--cyan"
+                      buttonVariant="jelly"
+                      buttonClassName="map-jelly-action"
                     />
 
                     <CreatePlaceChallengeButton
@@ -4207,22 +4209,26 @@ export default function RealWorldMap() {
                             : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
                         });
                       }}
-                      buttonClassName="map-action-button map-action-button--gold"
+                      buttonVariant="jelly"
+                      buttonClassName="map-jelly-action"
                     />
 
                     {selectedPlace.slug ? (
-                      <Link
+                      <SquircleLink
                         href={`/venues/${selectedPlace.slug}${
                           isCreatorSource
                             ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
                             : ''
                         }`}
-                        className="map-action-button map-action-button--violet"
+                        tone="purple"
+                        label="Open venue"
+                        fullWidth
+                        height={42}
+                        className="map-jelly-action"
+                        labelClassName="text-[0.66rem] tracking-[0.1em] sm:text-[0.82rem]"
                       >
-                        <span className="max-w-[7.2rem] text-balance leading-[1.02] sm:max-w-none">
-                          Open venue
-                        </span>
-                      </Link>
+                        <span>Open venue</span>
+                      </SquircleLink>
                     ) : null}
                   </div>
                   </div>
@@ -4598,6 +4604,15 @@ export default function RealWorldMap() {
             0 0 26px rgba(217, 70, 239, 0.18),
             inset 0 1px 0 rgba(255, 255, 255, 0.16),
             inset 0 -20px 24px rgba(29, 8, 52, 0.36);
+        }
+
+        .venue-action-rail :global(.map-jelly-action) {
+          min-width: 0;
+          width: 100%;
+        }
+
+        .venue-action-rail :global(.map-jelly-action svg) {
+          display: block;
         }
 
         @media (min-width: 640px) {

@@ -40,6 +40,7 @@ type SquircleButtonProps = {
   className?: string;
   buttonClassName?: string;
   active?: boolean;
+  stableHover?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit' | 'reset';
@@ -135,6 +136,7 @@ export default function SquircleButton({
   className,
   buttonClassName,
   active = false,
+  stableHover = false,
   disabled = false,
   onClick,
   type = 'button',
@@ -151,7 +153,7 @@ export default function SquircleButton({
   const scale = height / 40;
 
   const isDown = pressed && !disabled;
-  const isHovering = (hovered || active) && !disabled && !isDown;
+  const isHovering = (stableHover ? active : hovered || active) && !disabled && !isDown;
   const faceY = isDown ? 8 : isHovering ? 5 : 6;
   const shadowY = isDown ? 11 : isHovering ? 12 : 13;
   const dy = floating ? (isDown ? 10 : isHovering ? 22 : 18) : isDown ? 1.5 : isHovering ? 5 : 4;
@@ -210,7 +212,11 @@ export default function SquircleButton({
       style={{
         width: fullWidth ? '100%' : `${svgWidth * scale}px`,
         height: `${svgHeight * scale}px`,
-        transform: isDown ? 'translateY(1px) scale(0.992)' : isHovering ? 'translateY(-1px) scale(1.012)' : 'translateY(0) scale(1)',
+        transform: isDown
+          ? 'translateY(1px) scale(0.992)'
+          : isHovering && !stableHover
+            ? 'translateY(-1px) scale(1.012)'
+            : 'translateY(0) scale(1)',
         transition: 'transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1)',
       }}
     >

@@ -6,12 +6,14 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Show user-selected creator profile pictures in the Active Creators grid instead of falling back to initials.
+- Goal: Tighten the homepage, Creator Pool, notifications, dare detail, and map venue action UI polish.
 
 ### Plan
-- [x] Include creator avatar URL and crop fields in `/api/creators`.
-- [x] Render uploaded profile photos before static fallback images or initials.
-- [x] Preserve saved avatar scale and offset on the grid card.
+- [x] Stop the homepage `INITIATE` jelly button from expanding on hover.
+- [x] Replace the Creator Pool popup top grey bar with a proper glass edge.
+- [x] Keep desktop notification dropdown reads silent instead of prompting Coinbase signing.
+- [x] Improve dare detail title contrast against creator-tag backgrounds.
+- [x] Replace map venue action buttons with shared jelly buttons.
 - [x] Verify with targeted lint/type checks, production build, and graphify rebuild.
 
 ### Verification
@@ -20,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Active Creators now uses the selected creator profile photo when available, with the same crop framing used on creator profiles.
-- Follow-ups: Browser-smoke `/creators` after deploy using `lizardlarry7` as the check case.
+- Outcome: Shared UI primitives now support stable homepage hover, venue actions use the jelly system, and notification dropdown opens without forcing wallet signing.
+- Follow-ups: Browser-smoke `/`, `/map`, and a live dare detail URL after deploy.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

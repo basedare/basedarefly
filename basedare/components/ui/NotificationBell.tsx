@@ -181,7 +181,7 @@ export function NotificationBell() {
 
     useEffect(() => {
         if (!isOpen || !address) return;
-        void fetchNotifications(true);
+        void fetchNotifications(false);
         void fetchActionCenter();
     }, [address, fetchActionCenter, fetchNotifications, isOpen]);
 

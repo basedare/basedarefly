@@ -64,7 +64,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const [triggerBounce, setTriggerBounce] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [pool, setPool] = useState<CreatorPoolSummary | null>(null);
-  const [isLoadingPool, setIsLoadingPool] = useState(false);
+  const [poolLoadSettled, setPoolLoadSettled] = useState(false);
   const potRef = useRef<HTMLButtonElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0);
@@ -122,7 +122,6 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
 
     let isActive = true;
     const controller = new AbortController();
-    setIsLoadingPool(true);
 
     fetch('/api/live-pot', {
       signal: controller.signal,
@@ -141,7 +140,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       })
       .finally(() => {
         if (isActive) {
-          setIsLoadingPool(false);
+          setPoolLoadSettled(true);
         }
       });
 
@@ -169,6 +168,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   }
 
   const displayTotal = pool && pool.total > 0 ? pool.total : 86227;
+  const isLoadingPool = !poolLoadSettled && !pool;
   const topVenue = pool?.topEarningVenue;
   const poolStats = [
     {
@@ -313,14 +313,15 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed bottom-36 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-[2rem] border border-purple-300/20 bg-[#070610]/90 p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.72),0_0_46px_rgba(168,85,247,0.24)] backdrop-blur-xl md:bottom-52 md:right-8"
+            className="fixed bottom-36 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(18,16,30,0.76)_0%,rgba(7,6,16,0.92)_100%)] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.72),0_0_46px_rgba(168,85,247,0.24),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl md:bottom-52 md:right-8"
             initial={{ opacity: 0, y: 14, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.24),transparent_46%),radial-gradient(circle_at_bottom_right,rgba(250,204,21,0.16),transparent_42%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-2 h-1 rounded-full bg-white/35 blur-[1px]" />
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-px rounded-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.16)_18%,rgba(255,255,255,0.34)_50%,rgba(255,255,255,0.16)_82%,transparent_100%)]" />
+            <div className="pointer-events-none absolute inset-x-10 top-[1px] h-10 rounded-full bg-white/[0.035] blur-2xl" />
 
             <div className="relative z-10">
               <div className="flex items-start justify-between gap-3">

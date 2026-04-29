@@ -235,6 +235,7 @@ function HomeContent() {
                   <div className="w-full md:w-auto">
                     <InitProtocolButton
                       className="w-full md:w-auto"
+                      stableHover
                       onClick={handleInitiateProtocol}
                     />
                   </div>

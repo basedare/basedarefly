@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
 import { Crosshair, Loader2, Sparkles, Target, Wallet, X, Zap } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import SquircleButton from '@/components/ui/SquircleButton';
 import { submitBountyCreation, type BountyApprovalStatus, type BountyCreationResult } from '@/lib/bounty-flow';
 import { getPlaceChallengeTemplates, type PlaceChallengeTemplate } from '@/lib/place-challenge-templates';
 import { triggerHaptic } from '@/lib/mobile-haptics';
@@ -40,6 +41,7 @@ type CreatePlaceChallengeButtonProps = {
   placeSource?: string | null;
   externalPlaceId?: string | null;
   buttonClassName?: string;
+  buttonVariant?: 'default' | 'jelly';
   onPlaceResolved?: (place: {
     id: string;
     slug: string;
@@ -70,6 +72,7 @@ export default function CreatePlaceChallengeButton({
   placeSource,
   externalPlaceId,
   buttonClassName,
+  buttonVariant = 'default',
   onPlaceResolved,
   onChallengeCreated,
 }: CreatePlaceChallengeButtonProps) {
@@ -391,25 +394,43 @@ export default function CreatePlaceChallengeButton({
     setStreamerTag('');
   }
 
+  const openComposer = () => {
+    triggerHaptic('selection');
+    setOpen(true);
+    resetComposer();
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          triggerHaptic('selection');
-          setOpen(true);
-          resetComposer();
-        }}
-        className={
-          buttonClassName ??
-          'inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/26 bg-[#f5c518]/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f8dd72]'
-        }
-      >
-        <Zap className="hidden h-4 w-4 sm:block" aria-hidden="true" />
-        <span className="max-w-[7.35rem] text-balance leading-[1.03] sm:max-w-none">
-          Fund dare
-        </span>
-      </button>
+      {buttonVariant === 'jelly' ? (
+        <SquircleButton
+          tone="yellow"
+          label="Fund dare"
+          fullWidth
+          height={42}
+          onClick={openComposer}
+          className={buttonClassName}
+        >
+          <span className="flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#15120c] sm:text-[0.78rem]">
+            <Zap className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
+            Fund dare
+          </span>
+        </SquircleButton>
+      ) : (
+        <button
+          type="button"
+          onClick={openComposer}
+          className={
+            buttonClassName ??
+            'inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/26 bg-[#f5c518]/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f8dd72]'
+          }
+        >
+          <Zap className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+          <span className="max-w-[7.35rem] text-balance leading-[1.03] sm:max-w-none">
+            Fund dare
+          </span>
+        </button>
+      )}
 
       {open && mounted
         ? createPortal(

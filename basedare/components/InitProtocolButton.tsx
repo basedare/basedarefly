@@ -17,6 +17,7 @@ interface InitProtocolButtonProps
   activeLabel?: string;
   height?: number;
   variant?: 'squircle' | 'liquid';
+  stableHover?: boolean;
   children?: ReactNode;
   activeContent?: ReactNode;
 }
@@ -30,6 +31,7 @@ export default function InitProtocolButton({
   activeLabel = 'IGNITING...',
   height = 48,
   variant = 'squircle',
+  stableHover = false,
   children,
   activeContent,
   disabled,
@@ -134,6 +136,7 @@ export default function InitProtocolButton({
       fullWidth
       height={height}
       active={isActive}
+      stableHover={stableHover}
       disabled={disabled}
       onClick={handleAction}
       type={type}

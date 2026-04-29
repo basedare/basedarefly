@@ -8,6 +8,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { Crosshair, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useToast } from '@/components/ui/use-toast';
+import SquircleButton from '@/components/ui/SquircleButton';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -22,6 +23,7 @@ type TagPlaceButtonProps = {
   placeSource?: string | null;
   externalPlaceId?: string | null;
   buttonClassName?: string;
+  buttonVariant?: 'default' | 'jelly';
   onPlaceResolved?: (place: {
     id: string;
     slug: string;
@@ -76,6 +78,7 @@ export default function TagPlaceButton({
   placeSource,
   externalPlaceId,
   buttonClassName,
+  buttonVariant = 'default',
   onPlaceResolved,
   onTagSubmitted,
 }: TagPlaceButtonProps) {
@@ -389,23 +392,41 @@ export default function TagPlaceButton({
     }
   }
 
+  const openComposer = () => {
+    triggerHaptic('selection');
+    setOpen(true);
+    setSubmitState('idle');
+    setSubmittedFirstMark(false);
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          triggerHaptic('selection');
-          setOpen(true);
-          setSubmitState('idle');
-          setSubmittedFirstMark(false);
-        }}
-        className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200'}
-      >
-        <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
-        <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
-          Mark
-        </span>
-      </button>
+      {buttonVariant === 'jelly' ? (
+        <SquircleButton
+          tone="teal"
+          label="Mark"
+          fullWidth
+          height={42}
+          onClick={openComposer}
+          className={buttonClassName}
+        >
+          <span className="flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-white sm:text-[0.82rem]">
+            <Sparkles className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
+            Mark
+          </span>
+        </SquircleButton>
+      ) : (
+        <button
+          type="button"
+          onClick={openComposer}
+          className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200'}
+        >
+          <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+          <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
+            Mark
+          </span>
+        </button>
+      )}
 
       {open && mounted
         ? createPortal(
