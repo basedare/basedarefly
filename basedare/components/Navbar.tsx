@@ -14,12 +14,12 @@ import { GlobalSearch } from './ui/GlobalSearch';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
-  { name: "ACTIVATE", href: "/activations" },
   { name: "CREATE", href: "/create" },
   { name: "Map", href: "/map" },
   { name: "DASHBOARD", href: "/dashboard" },
   { name: "CREATORS", href: "/creators" },
   { name: "FAQ", href: "/faq" },
+  { name: "ACTIVATE", href: "/activations" },
   { name: "VERIFY", href: "/verify" },
 ];
 
