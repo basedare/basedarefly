@@ -16,7 +16,7 @@ async function pathExists(filePath) {
   }
 }
 
-async function ensureParentAlias(name) {
+async function ensureParentAlias(name, type = 'dir') {
   const parentPath = path.resolve(cwd, '..', name);
   const targetPath = path.resolve(cwd, name);
 
@@ -25,7 +25,7 @@ async function ensureParentAlias(name) {
   }
 
   const relativeTarget = path.relative(path.dirname(parentPath), targetPath);
-  await symlink(relativeTarget, parentPath, 'dir');
+  await symlink(relativeTarget, parentPath, type);
   console.log(`[prebuild] Linked parent ${name} to ${relativeTarget} for Vercel output collection`);
 }
 
@@ -38,4 +38,5 @@ const isNestedAppRoot = path.basename(cwd) === 'basedare';
 if (isVercelBuild && isNestedAppRoot) {
   await ensureParentAlias('.next');
   await ensureParentAlias('node_modules');
+  await ensureParentAlias('.env.mainnet.example', 'file');
 }
