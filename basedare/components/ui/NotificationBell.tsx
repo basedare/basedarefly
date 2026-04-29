@@ -9,6 +9,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import {
+    NEARBY_RADIUS_OPTIONS,
+    PUSH_TOPIC_LABELS,
+    useWalletPushSubscription,
+} from '@/hooks/useWalletPushSubscription';
 
 interface Notification {
     id: string;
@@ -45,17 +50,6 @@ interface ActionCenterSummary {
     counts: Record<ActionCenterCategory, number>;
 }
 
-type PushTopic = 'wallet' | 'nearby' | 'campaigns' | 'venues';
-
-const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
-    { id: 'wallet', label: 'Wallet' },
-    { id: 'nearby', label: 'Nearby' },
-    { id: 'campaigns', label: 'Campaigns' },
-    { id: 'venues', label: 'Venues' },
-];
-
-const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
-
 export function NotificationBell() {
     const { address, sessionWallet } = useActiveWallet();
     const { data: session } = useSession();
@@ -65,14 +59,6 @@ export function NotificationBell() {
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-    const [pushSupported, setPushSupported] = useState(false);
-    const [pushEnabled, setPushEnabled] = useState(false);
-    const [pushBusy, setPushBusy] = useState(false);
-    const [pushTesting, setPushTesting] = useState(false);
-    const [pushMessage, setPushMessage] = useState<string | null>(null);
-    const [pushEndpoint, setPushEndpoint] = useState<string | null>(null);
-    const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
-    const [nearbyRadiusKm, setNearbyRadiusKm] = useState<number>(5);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -81,10 +67,24 @@ export function NotificationBell() {
 
     const unreadCount = notifications.length;
     const attentionCount = Math.max(unreadCount, actionSummary?.total ?? 0);
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
     const primaryAction = actionItems[0] ?? null;
     const primaryNotification = notifications[0] ?? null;
+    const {
+        disablePushSubscription,
+        nearbyRadiusKm,
+        pushBusy,
+        pushEnabled,
+        pushMessage,
+        pushSupported,
+        pushTesting,
+        pushTopics,
+        sendTestPush,
+        syncPushSubscription,
+        togglePushTopic,
+        updateNearbyRadius,
+        vapidPublicKey,
+    } = useWalletPushSubscription();
 
     const formatNotificationTime = (value: string) =>
         new Date(value).toLocaleDateString([], {
@@ -185,44 +185,6 @@ export function NotificationBell() {
         void fetchActionCenter();
     }, [address, fetchActionCenter, fetchNotifications, isOpen]);
 
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        const supported = 'serviceWorker' in navigator && 'PushManager' in window;
-        setPushSupported(supported);
-
-        if (!supported || !address) {
-            setPushEnabled(false);
-            return;
-        }
-
-        const loadPushState = async () => {
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
-                setPushEnabled(Boolean(subscription));
-
-                const headers = await getWalletAuthHeaders('push:read', false);
-                const res = await fetch(`/api/push/subscriptions?wallet=${address}`, { headers });
-                const data = await res.json();
-
-                if (data.success) {
-                    setPushEndpoint(data.endpoint ?? subscription?.endpoint ?? null);
-                    setPushTopics(Array.isArray(data.topics) ? data.topics : ['wallet', 'nearby']);
-                    setNearbyRadiusKm(
-                        typeof data.location?.radiusKm === 'number' ? data.location.radiusKm : 5
-                    );
-                } else if (subscription) {
-                    setPushEndpoint(subscription.endpoint);
-                }
-            } catch (err) {
-                console.error('Failed to read push state', err);
-            }
-        };
-
-        void loadPushState();
-    }, [address, getWalletAuthHeaders]);
-
     // Click outside to close
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -287,214 +249,6 @@ export function NotificationBell() {
     const markAllAsRead = () => {
         const ids = notifications.map(n => n.id);
         markAsRead(ids);
-    };
-
-    const urlBase64ToUint8Array = (base64String: string) => {
-        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-    };
-
-    const syncPushSubscription = async () => {
-        if (!address || !pushSupported || !vapidPublicKey) {
-            return;
-        }
-
-        setPushBusy(true);
-        setPushMessage(null);
-
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                setPushMessage('Push permission is blocked for this browser.');
-                return;
-            }
-
-            const registration = await navigator.serviceWorker.ready;
-            let subscription = await registration.pushManager.getSubscription();
-
-            if (!subscription) {
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-                });
-            }
-
-            const headers = await getWalletAuthHeaders('push:write', true);
-            const res = await fetch('/api/push/subscriptions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({
-                    wallet: address,
-                    subscription: subscription.toJSON(),
-                    topics: pushTopics,
-                    nearbyRadiusKm,
-                }),
-            });
-
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to save subscription');
-            }
-
-            setPushEnabled(true);
-            setPushEndpoint(subscription.endpoint);
-            setPushMessage('Push alerts armed for this wallet.');
-        } catch (err) {
-            console.error('Failed to enable push alerts', err);
-            setPushMessage('Could not enable push alerts right now.');
-        } finally {
-            setPushBusy(false);
-        }
-    };
-
-    const disablePushSubscription = async () => {
-        if (!address || !pushSupported) {
-            return;
-        }
-
-        setPushBusy(true);
-        setPushMessage(null);
-
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-
-            if (subscription) {
-                const headers = await getWalletAuthHeaders('push:write', true);
-                await fetch('/api/push/subscriptions', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json', ...headers },
-                    body: JSON.stringify({
-                        wallet: address,
-                        endpoint: subscription.endpoint,
-                    }),
-                });
-                await subscription.unsubscribe();
-            }
-
-            setPushEnabled(false);
-            setPushEndpoint(null);
-            setPushMessage('Push alerts paused on this device.');
-        } catch (err) {
-            console.error('Failed to disable push alerts', err);
-            setPushMessage('Could not pause push alerts right now.');
-        } finally {
-            setPushBusy(false);
-        }
-    };
-
-    const togglePushTopic = async (topic: PushTopic) => {
-        if (!address || !pushEnabled || !pushEndpoint) {
-            return;
-        }
-
-        const nextTopics = pushTopics.includes(topic)
-            ? pushTopics.filter((entry) => entry !== topic)
-            : [...pushTopics, topic];
-
-        if (nextTopics.length === 0) {
-            setPushMessage('Keep at least one alert category active.');
-            return;
-        }
-
-        setPushBusy(true);
-        setPushMessage(null);
-
-        try {
-            const headers = await getWalletAuthHeaders('push:write', true);
-            const res = await fetch('/api/push/subscriptions', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({
-                    wallet: address,
-                    endpoint: pushEndpoint,
-                    topics: nextTopics,
-                }),
-            });
-
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to update push topics');
-            }
-
-            setPushTopics(data.topics);
-            setPushMessage('Alert categories updated.');
-        } catch (err) {
-            console.error('Failed to update push topics', err);
-            setPushMessage('Could not update alert categories right now.');
-        } finally {
-            setPushBusy(false);
-        }
-    };
-
-    const updateNearbyRadius = async (radiusKm: number) => {
-        if (!address || !pushEnabled || !pushEndpoint || radiusKm === nearbyRadiusKm) {
-            return;
-        }
-
-        setPushBusy(true);
-        setPushMessage(null);
-
-        try {
-            const headers = await getWalletAuthHeaders('push:write', true);
-            const res = await fetch('/api/push/subscriptions', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({
-                    wallet: address,
-                    endpoint: pushEndpoint,
-                    nearbyRadiusKm: radiusKm,
-                }),
-            });
-
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to update nearby radius');
-            }
-
-            setNearbyRadiusKm(radiusKm);
-            setPushMessage(`Nearby alerts tuned to ${radiusKm} km.`);
-        } catch (err) {
-            console.error('Failed to update nearby radius', err);
-            setPushMessage('Could not update nearby alert radius right now.');
-        } finally {
-            setPushBusy(false);
-        }
-    };
-
-    const sendTestPush = async () => {
-        if (!address || !pushEndpoint) {
-            return;
-        }
-
-        setPushTesting(true);
-        setPushMessage(null);
-
-        try {
-            const headers = await getWalletAuthHeaders('push:test', true);
-            const res = await fetch('/api/push/test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({
-                    wallet: address,
-                    endpoint: pushEndpoint,
-                }),
-            });
-
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to send test push');
-            }
-
-            setPushMessage('Test push sent. Check this device now.');
-        } catch (err) {
-            console.error('Failed to send test push', err);
-            setPushMessage('Could not send a test push right now.');
-        } finally {
-            setPushTesting(false);
-        }
     };
 
     if (!address) return null;

@@ -91,12 +91,14 @@ function sanitizeNearbyRadius(input: unknown): number | undefined {
 export async function GET(request: NextRequest) {
   try {
     const wallet = request.nextUrl.searchParams.get('wallet');
+    const endpoint = request.nextUrl.searchParams.get('endpoint');
 
     if (!wallet || !isAddress(wallet)) {
       return NextResponse.json({ success: false, error: 'Valid wallet address required' }, { status: 400 });
     }
 
     const lowerWallet = wallet.toLowerCase();
+    const endpointFilter = endpoint && endpoint.length <= 2048 ? endpoint : null;
     const authorizedWallet = await getAuthorizedWalletForRequest(request, {
       walletAddress: lowerWallet,
       action: 'push:read',
@@ -111,6 +113,7 @@ export async function GET(request: NextRequest) {
       where: {
         wallet: lowerWallet,
         isActive: true,
+        ...(endpointFilter ? { endpoint: endpointFilter } : {}),
       },
       orderBy: {
         updatedAt: 'desc',

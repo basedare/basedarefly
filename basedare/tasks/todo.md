@@ -6,13 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Add operator-controlled push delivery and stronger production visibility for Web Push.
+- Goal: Increase push alert opt-in discovery without adding another global popup.
 
 ### Plan
-- [x] Return concrete send counts from wallet push delivery and log no-device skips.
-- [x] Add a protected Admin Push Ops wallet send endpoint.
-- [x] Add a controlled wallet push form and delivery result summary in Admin Push Ops.
-- [x] Surface VAPID public/private key readiness in Production Safety.
+- [x] Extract wallet push subscription state/actions into a reusable client hook.
+- [x] Keep the notification bell push controls working from the shared hook.
+- [x] Add a dismissible, wallet-scoped Live Alerts opt-in card to Dashboard and Action Center.
+- [x] Make push subscription reads endpoint-aware so the UI reflects the current device.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Added controlled wallet push delivery for operators, concrete send counts, delivery-key visibility, same-site notification click safety, and production safety coverage.
-- Follow-ups: Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` in production before relying on browser push delivery.
+- Outcome: Added a wallet-scoped, dismissible Live Alerts opt-in on Dashboard and Action Center while keeping the notification bell controls on shared, current-device push subscription logic.
+- Follow-ups: Watch opt-in conversion once VAPID keys are configured in production.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
