@@ -29,6 +29,7 @@ function ensureVercelParentAlias(name: string, type: "dir" | "file" = "dir") {
 if (isVercelBuild && isNestedAppRoot) {
   ensureVercelParentAlias(".next");
   ensureVercelParentAlias("node_modules");
+  ensureVercelParentAlias("config");
   ensureVercelParentAlias("package.json", "file");
 
   if (existsSync(path.join(appRoot, ".env.mainnet.example"))) {

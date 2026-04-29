@@ -38,5 +38,6 @@ const isNestedAppRoot = path.basename(cwd) === 'basedare';
 if (isVercelBuild && isNestedAppRoot) {
   await ensureParentAlias('.next');
   await ensureParentAlias('node_modules');
+  await ensureParentAlias('config');
   await ensureParentAlias('.env.mainnet.example', 'file');
 }
