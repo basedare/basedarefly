@@ -135,6 +135,32 @@ function getPulseState(heatScore: number) {
   return { label: 'Dormant', className: 'text-white/62', accentClassName: 'border-white/10 bg-white/[0.04] text-white/62' };
 }
 
+function getPulseMeterShellClass(label: string) {
+  switch (label) {
+    case 'Hot':
+      return 'border-rose-300/18 bg-rose-500/[0.075] text-rose-100';
+    case 'Alive':
+      return 'border-emerald-300/18 bg-emerald-500/[0.075] text-emerald-100';
+    case 'Simmering':
+      return 'border-[#f5c518]/20 bg-[#f5c518]/[0.075] text-[#f8dd72]';
+    default:
+      return 'border-white/10 bg-white/[0.035] text-white/58';
+  }
+}
+
+function getPulseMeterFillClass(label: string) {
+  switch (label) {
+    case 'Hot':
+      return 'bg-[linear-gradient(90deg,rgba(251,113,133,0.72)_0%,rgba(236,72,153,0.68)_58%,rgba(245,197,24,0.64)_100%)] shadow-[0_0_22px_rgba(251,113,133,0.32),inset_0_1px_0_rgba(255,255,255,0.22)]';
+    case 'Alive':
+      return 'bg-[linear-gradient(90deg,rgba(52,211,153,0.72)_0%,rgba(34,211,238,0.62)_100%)] shadow-[0_0_22px_rgba(52,211,153,0.26),inset_0_1px_0_rgba(255,255,255,0.22)]';
+    case 'Simmering':
+      return 'bg-[linear-gradient(90deg,rgba(245,197,24,0.78)_0%,rgba(248,221,114,0.72)_62%,rgba(34,211,238,0.48)_100%)] shadow-[0_0_24px_rgba(245,197,24,0.3),inset_0_1px_0_rgba(255,255,255,0.24)]';
+    default:
+      return 'bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.1)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]';
+  }
+}
+
 function formatCompactAudience(value: number | null) {
   if (typeof value !== 'number' || value <= 0) return 'Building';
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
@@ -224,6 +250,10 @@ export default async function VenueDetailPage(
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
   const creatorContribution = venue.creatorContribution;
   const currentPulseState = getPulseState(venue.tagSummary.heatScore);
+  const pulseMeterProgress = Math.min(
+    100,
+    Math.max(venue.tagSummary.heatScore > 0 ? 18 : 7, venue.tagSummary.heatScore)
+  );
   const previousPulseState = getPulseState(Math.max(0, venue.tagSummary.heatScore - (creatorContribution?.pulseContribution ?? 0)));
   const creatorShiftedPulseState =
     Boolean(creatorContribution?.pulseContribution) && previousPulseState.label !== currentPulseState.label;
@@ -446,16 +476,40 @@ export default async function VenueDetailPage(
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
             <div className="relative grid gap-3 lg:grid-cols-[1.05fr_1.25fr_0.9fr]">
               <div className={`${insetCardClass} px-4 py-4`}>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">Place memory</p>
                     <p className={`mt-2 text-3xl font-black ${currentPulseState.className}`}>
                       {currentPulseState.label}
                     </p>
                   </div>
-                  <span className={`rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] ${currentPulseState.accentClassName}`}>
-                    Pulse {venue.tagSummary.heatScore}
-                  </span>
+                  <div
+                    className={`w-full rounded-[18px] border px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.22)] sm:w-auto sm:min-w-[8.6rem] ${getPulseMeterShellClass(currentPulseState.label)}`}
+                    aria-label={`Venue pulse ${venue.tagSummary.heatScore}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[9px] font-black uppercase tracking-[0.22em] opacity-72">Pulse</span>
+                      <strong className="text-xs font-black">{venue.tagSummary.heatScore}</strong>
+                    </div>
+                    <div className="mt-2" style={{ perspective: '720px' }}>
+                      <div
+                        className="relative h-5 overflow-visible"
+                        style={{
+                          transform: 'rotateX(58deg)',
+                          transformOrigin: '50% 70%',
+                          transformStyle: 'preserve-3d',
+                        }}
+                      >
+                        <div className="absolute inset-x-0 bottom-0 h-4 rounded-[10px] bg-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-8px_10px_rgba(0,0,0,0.36)]" />
+                        <div
+                          className={`absolute bottom-0 left-0 h-4 rounded-[10px] ${getPulseMeterFillClass(currentPulseState.label)}`}
+                          style={{ width: `${pulseMeterProgress}%` }}
+                        />
+                        <div className="absolute left-2 right-2 top-1 h-1 rounded-full bg-white/45 opacity-70" />
+                        <div className="absolute inset-x-1 bottom-[-0.38rem] h-2 rounded-[999px] bg-black/40 blur-[3px]" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-white/62">
                   {venue.activationInsight.summary}

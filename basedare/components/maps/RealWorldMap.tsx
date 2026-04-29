@@ -3495,7 +3495,7 @@ export default function RealWorldMap() {
         : 'Add a mark or fund a challenge to make the memory loop obvious.',
       tone: 'cyan' as const,
       href: commandHref,
-      actionLabel: selectedCommandCenter ? 'Open command' : 'Open venue',
+      actionLabel: selectedCommandCenter ? 'Open' : 'Open venue',
     };
   }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
   const selectedVenueCommandCards = useMemo(() => {
@@ -3996,7 +3996,7 @@ export default function RealWorldMap() {
   const mapPanelMetricClass =
     'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
   const mapPanelSectionClass =
-    'map-panel-section rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(9,11,18,0.93)_18%,rgba(5,6,12,0.985)_100%)] px-4 py-4 shadow-[0_18px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]';
+    'map-panel-section bd-dent-surface bd-dent-surface--soft rounded-[24px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(4,5,12,0.84)_0%,rgba(9,10,19,0.94)_48%,rgba(3,4,10,0.985)_100%)] px-4 py-4 shadow-[inset_8px_10px_22px_rgba(0,0,0,0.34),inset_-5px_-6px_14px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-16px_22px_rgba(0,0,0,0.34)]';
   const mapPanelInsetChipClass =
     'rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.14)]';
   const selectedPrimaryButtonTone =
@@ -4945,7 +4945,7 @@ export default function RealWorldMap() {
                     </div>
                   </div>
 
-                  <div className="map-panel-section map-mobile-secondary mt-4 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,11,20,0.92)_16%,rgba(6,7,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-14px_18px_rgba(0,0,0,0.18)]">
+                  <div className={`map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -6266,7 +6266,7 @@ export default function RealWorldMap() {
           z-index: 1;
           display: block;
           flex: 0 0 auto;
-          width: clamp(9.5rem, 30vw, 10.8rem);
+          width: clamp(6.4rem, 22vw, 7.35rem);
         }
 
         .map-command-strip-jelly-shell :global(.map-command-strip-jelly) {
@@ -6803,7 +6803,7 @@ export default function RealWorldMap() {
           }
 
           .map-command-strip-jelly-shell {
-            width: min(12.25rem, 100%);
+            width: min(8.25rem, 100%);
           }
 
           .map-command-strip-orb {
