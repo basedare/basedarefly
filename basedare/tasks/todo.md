@@ -6,13 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Replace repeated raw admin-secret fetches with a short-lived HttpOnly admin session.
+- Goal: Add operator-controlled push delivery and stronger production visibility for Web Push.
 
 ### Plan
-- [x] Add a signed admin session cookie accepted by shared admin authorization.
-- [x] Add `/api/admin/session` to create and clear the HttpOnly admin session after validating `ADMIN_SECRET`.
-- [x] Update admin ops pages to use the secret once, then rely on the cookie instead of sending `x-admin-secret` on every request.
-- [x] Keep a visible manual forget action and update static safety allowlisting for the intentionally different session route.
+- [x] Return concrete send counts from wallet push delivery and log no-device skips.
+- [x] Add a protected Admin Push Ops wallet send endpoint.
+- [x] Add a controlled wallet push form and delivery result summary in Admin Push Ops.
+- [x] Surface VAPID public/private key readiness in Production Safety.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Admin-secret fallback now creates a signed HttpOnly session cookie and stops sending the raw secret on admin API calls.
-- Follow-ups: Add a visible expiry/refresh indicator if the 4-hour session timeout becomes confusing during longer ops sessions.
+- Outcome: Added controlled wallet push delivery for operators, concrete send counts, delivery-key visibility, same-site notification click safety, and production safety coverage.
+- Follow-ups: Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` in production before relying on browser push delivery.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

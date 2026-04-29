@@ -399,6 +399,7 @@ interface AdminPlace {
 }
 
 interface PushDiagnosticsSummary {
+  configured: boolean;
   activeSubscriptions: number;
   inactiveSubscriptions: number;
   freshLocationSubscriptions: number;
@@ -426,6 +427,35 @@ interface PushDeliveryEntry {
   createdAt: string;
   subscriptionId: string | null;
 }
+
+const ADMIN_PUSH_TOPICS = ['wallet', 'nearby', 'campaigns', 'venues'] as const;
+type AdminPushTopic = (typeof ADMIN_PUSH_TOPICS)[number];
+
+type AdminPushForm = {
+  wallet: string;
+  topic: AdminPushTopic;
+  title: string;
+  body: string;
+  url: string;
+};
+
+type AdminPushSendResult = {
+  configured: boolean;
+  subscriptions: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  deactivated: number;
+  reason?: string;
+};
+
+const DEFAULT_ADMIN_PUSH_FORM: AdminPushForm = {
+  wallet: '',
+  topic: 'wallet',
+  title: 'BaseDare alert',
+  body: 'Open BaseDare for the latest action.',
+  url: '/dashboard',
+};
 
 type AdminPlaceForm = {
   id?: string;
@@ -613,6 +643,7 @@ export default function AdminPage() {
   const [placeForm, setPlaceForm] = useState<AdminPlaceForm>(EMPTY_PLACE_FORM);
   const [savingPlace, setSavingPlace] = useState(false);
   const [pushSummary, setPushSummary] = useState<PushDiagnosticsSummary>({
+    configured: false,
     activeSubscriptions: 0,
     inactiveSubscriptions: 0,
     freshLocationSubscriptions: 0,
@@ -625,6 +656,9 @@ export default function AdminPage() {
   const [pushDeliveries, setPushDeliveries] = useState<PushDeliveryEntry[]>([]);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [adminPushForm, setAdminPushForm] = useState<AdminPushForm>(DEFAULT_ADMIN_PUSH_FORM);
+  const [adminPushSending, setAdminPushSending] = useState(false);
+  const [adminPushResult, setAdminPushResult] = useState<AdminPushSendResult | null>(null);
 
   // Claims management state
   const [pendingClaims, setPendingClaims] = useState<ClaimRequest[]>([]);
@@ -1560,6 +1594,50 @@ export default function AdminPage() {
       setPushLoading(false);
     }
   }, [adminAuthHeaders, hasAdminAuth]);
+
+  const handleAdminPushSend = useCallback(async () => {
+    if (!hasAdminAuth) return;
+
+    setAdminPushSending(true);
+    setAdminPushResult(null);
+    setPushError(null);
+
+    try {
+      if (!(await ensureAdminAccess())) {
+        setPushError('Invalid admin secret');
+        return;
+      }
+
+      const res = await fetch('/api/admin/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...adminAuthHeaders,
+        },
+        body: JSON.stringify({
+          wallet: adminPushForm.wallet,
+          topic: adminPushForm.topic,
+          title: adminPushForm.title,
+          body: adminPushForm.body,
+          url: adminPushForm.url,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setPushError(data.error || 'Failed to send push');
+        setAdminPushResult(data.data ?? null);
+        return;
+      }
+
+      setAdminPushResult(data.data);
+      await fetchPushDiagnostics();
+    } catch {
+      setPushError('Failed to send push');
+    } finally {
+      setAdminPushSending(false);
+    }
+  }, [adminAuthHeaders, adminPushForm, ensureAdminAccess, fetchPushDiagnostics, hasAdminAuth]);
 
   const fetchReportLeads = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -4420,7 +4498,14 @@ export default function AdminPage() {
 
         {hasAdminAuth && isAuthorized && !loading && activeTab === 'push' && (
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Delivery keys</div>
+                <div className={`mt-3 text-3xl font-black ${pushSummary.configured ? 'text-emerald-300' : 'text-red-300'}`}>
+                  {pushSummary.configured ? 'Armed' : 'Missing'}
+                </div>
+                <div className="mt-1 text-xs text-white/45">VAPID public/private key status</div>
+              </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Active subscriptions</div>
                 <div className="mt-3 text-3xl font-black text-white">{pushSummary.activeSubscriptions}</div>
@@ -4440,6 +4525,81 @@ export default function AdminPage() {
                 <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Inactive devices</div>
                 <div className="mt-3 text-3xl font-black text-white">{pushSummary.inactiveSubscriptions}</div>
                 <div className="mt-1 text-xs text-white/45">Stored for delivery diagnostics</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-cyan-300/15 bg-cyan-500/[0.06] p-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Controlled Wallet Push</h3>
+                  <p className="mt-1 max-w-2xl text-sm text-white/50">
+                    Send one operator-approved push to a specific wallet and record the delivery outcome. This is for smoke tests,
+                    recovery nudges, and high-trust manual ops only.
+                  </p>
+                </div>
+                {adminPushResult ? (
+                  <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold text-white/65">
+                    Sent {adminPushResult.sent} / failed {adminPushResult.failed} / skipped {adminPushResult.skipped} / inactive {adminPushResult.deactivated}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_160px_minmax(0,0.8fr)]">
+                <input
+                  value={adminPushForm.wallet}
+                  onChange={(event) => setAdminPushForm((current) => ({ ...current, wallet: event.target.value }))}
+                  placeholder="Target wallet 0x..."
+                  className="rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/25 focus:border-cyan-300/45"
+                />
+                <select
+                  value={adminPushForm.topic}
+                  onChange={(event) =>
+                    setAdminPushForm((current) => ({ ...current, topic: event.target.value as AdminPushTopic }))
+                  }
+                  className="rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white outline-none transition focus:border-cyan-300/45"
+                >
+                  {ADMIN_PUSH_TOPICS.map((topic) => (
+                    <option key={topic} className="bg-[#080814]" value={topic}>
+                      {topic}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={adminPushForm.url}
+                  onChange={(event) => setAdminPushForm((current) => ({ ...current, url: event.target.value }))}
+                  placeholder="/dashboard"
+                  className="rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/25 focus:border-cyan-300/45"
+                />
+              </div>
+
+              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
+                <input
+                  value={adminPushForm.title}
+                  onChange={(event) => setAdminPushForm((current) => ({ ...current, title: event.target.value }))}
+                  placeholder="Push title"
+                  maxLength={80}
+                  className="rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/25 focus:border-cyan-300/45"
+                />
+                <input
+                  value={adminPushForm.body}
+                  onChange={(event) => setAdminPushForm((current) => ({ ...current, body: event.target.value }))}
+                  placeholder="Push body"
+                  maxLength={180}
+                  className="rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/25 focus:border-cyan-300/45"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleAdminPushSend()}
+                  disabled={
+                    adminPushSending ||
+                    !adminPushForm.wallet.trim() ||
+                    !adminPushForm.title.trim() ||
+                    !adminPushForm.body.trim()
+                  }
+                  className="rounded-xl border border-cyan-300/25 bg-cyan-300 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {adminPushSending ? 'Sending' : 'Send Push'}
+                </button>
               </div>
             </div>
 

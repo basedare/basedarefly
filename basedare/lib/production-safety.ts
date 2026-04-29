@@ -673,6 +673,24 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     nextAction: 'Set TELEGRAM_ADMIN_CHAT_ID for the admin alert channel.',
   });
 
+  const hasVapidPublicKey = hasEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY') || hasEnv('VAPID_PUBLIC_KEY');
+  const hasVapidPrivateKey = hasEnv('VAPID_PRIVATE_KEY');
+  checks.push({
+    id: 'env.web-push',
+    label: 'Web Push delivery keys',
+    severity: hasVapidPublicKey && hasVapidPrivateKey ? 'pass' : 'warn',
+    detail:
+      hasVapidPublicKey && hasVapidPrivateKey
+        ? 'VAPID public/private keys are configured for browser push delivery.'
+        : `VAPID public key ${hasVapidPublicKey ? 'configured' : 'missing'}; private key ${
+            hasVapidPrivateKey ? 'configured' : 'missing'
+          }.`,
+    nextAction:
+      hasVapidPublicKey && hasVapidPrivateKey
+        ? undefined
+        : 'Set NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY before relying on production push delivery.',
+  });
+
   let settlement: MoneyRailsSettlementSnapshot | null = null;
   try {
     settlement = await buildMoneyRailsSettlementSnapshot();

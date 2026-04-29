@@ -16,6 +16,16 @@ type SendWalletPushInput = {
   url?: string | null;
 };
 
+export type PushSendResult = {
+  configured: boolean;
+  subscriptions: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  deactivated: number;
+  reason?: 'missing_wallet' | 'not_configured' | 'cooldown_duplicate' | 'no_active_subscriptions';
+};
+
 type StoredSubscription = {
   id: string;
   wallet: string;
@@ -187,8 +197,28 @@ async function sendToStoredSubscription(
 }
 
 export async function sendWalletPush(input: SendWalletPushInput) {
-  if (!input.wallet) return;
-  if (!configureWebPush()) return;
+  if (!input.wallet) {
+    return {
+      configured: false,
+      subscriptions: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      deactivated: 0,
+      reason: 'missing_wallet',
+    } satisfies PushSendResult;
+  }
+  if (!configureWebPush()) {
+    return {
+      configured: false,
+      subscriptions: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      deactivated: 0,
+      reason: 'not_configured',
+    } satisfies PushSendResult;
+  }
 
   const wallet = input.wallet.toLowerCase();
   const url = input.url || '/dashboard';
@@ -211,7 +241,15 @@ export async function sendWalletPush(input: SendWalletPushInput) {
         status: 'SKIPPED',
         reason: 'cooldown_duplicate',
       });
-      return;
+      return {
+        configured: true,
+        subscriptions: 0,
+        sent: 0,
+        skipped: 1,
+        failed: 0,
+        deactivated: 0,
+        reason: 'cooldown_duplicate',
+      } satisfies PushSendResult;
     }
   }
 
@@ -232,7 +270,26 @@ export async function sendWalletPush(input: SendWalletPushInput) {
     },
   });
 
-  if (subscriptions.length === 0) return;
+  if (subscriptions.length === 0) {
+    await recordPushDelivery({
+      wallet,
+      topic: input.topic,
+      title: input.title,
+      body: input.body,
+      url,
+      status: 'SKIPPED',
+      reason: 'no_active_subscriptions',
+    });
+    return {
+      configured: true,
+      subscriptions: 0,
+      sent: 0,
+      skipped: 1,
+      failed: 0,
+      deactivated: 0,
+      reason: 'no_active_subscriptions',
+    } satisfies PushSendResult;
+  }
 
   const payload = JSON.stringify({
     title: input.title,
@@ -241,7 +298,7 @@ export async function sendWalletPush(input: SendWalletPushInput) {
     topic: input.topic,
   });
 
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     subscriptions.map((subscription) =>
       sendToStoredSubscription(subscription, payload, 'Send failed', {
         wallet,
@@ -251,6 +308,33 @@ export async function sendWalletPush(input: SendWalletPushInput) {
         url,
       })
     )
+  );
+
+  return results.reduce<PushSendResult>(
+    (summary, result) => {
+      if (result.status === 'rejected') {
+        summary.failed += 1;
+        return summary;
+      }
+      if (result.value.ok) {
+        summary.sent += 1;
+        return summary;
+      }
+      if (result.value.inactive) {
+        summary.deactivated += 1;
+        return summary;
+      }
+      summary.failed += 1;
+      return summary;
+    },
+    {
+      configured: true,
+      subscriptions: subscriptions.length,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      deactivated: 0,
+    }
   );
 }
 
