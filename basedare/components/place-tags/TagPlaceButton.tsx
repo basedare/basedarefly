@@ -472,7 +472,7 @@ export default function TagPlaceButton({
 
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               {submitState === 'success' ? (
-                <div className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="bd-puncture-surface bd-puncture-surface--emerald rounded-[24px] border border-emerald-500/20 p-5">
                   <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Mark pending</p>
                   <p className="mt-3 text-lg font-bold text-white">Your mark is in the Chaos Inbox.</p>
                   <p className="mt-2 text-sm text-white/65">
@@ -509,9 +509,9 @@ export default function TagPlaceButton({
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                    <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
-                      <label className="mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 bg-white/[0.03] px-4 py-5 text-center transition hover:border-cyan-400/30 hover:bg-cyan-500/[0.04]">
+                      <label className="bd-puncture-well mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center transition hover:border-cyan-400/30 hover:bg-cyan-500/[0.04]">
                         <Upload className="h-6 w-6 text-cyan-200" />
                         <p className="mt-3 text-sm font-semibold text-white">
                           {file ? file.name : 'Upload image or video'}
@@ -527,29 +527,29 @@ export default function TagPlaceButton({
                     </div>
 
                     <div className="space-y-4">
-                      <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                      <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Caption</p>
                         <textarea
                           value={caption}
                           onChange={(event) => setCaption(event.target.value)}
                           placeholder="What happened here?"
-                          className="mt-3 h-24 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
+                          className="bd-puncture-well mt-3 h-24 w-full rounded-[18px] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
                         />
                       </div>
 
-                      <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                      <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Vibe Tags</p>
                         <input
                           value={vibeTags}
                           onChange={(event) => setVibeTags(event.target.value)}
                           placeholder="hidden, nightlife, chaos"
-                          className="mt-3 h-12 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
+                          className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <div className="bd-puncture-surface bd-puncture-surface--cyan mt-5 rounded-[22px] border border-white/10 px-4 py-4">
                     <div className="flex items-start gap-3">
                       <MapPin className="mt-0.5 h-4 w-4 text-cyan-200" />
                       <div>
@@ -572,7 +572,7 @@ export default function TagPlaceButton({
                   </div>
 
                   {!canAuthenticate ? (
-                    <div className="mt-5 rounded-[22px] border border-amber-400/20 bg-amber-500/[0.06] px-4 py-4 text-sm text-amber-100">
+                    <div className="bd-puncture-surface bd-puncture-surface--amber mt-5 rounded-[22px] border border-amber-400/20 px-4 py-4 text-sm text-amber-100">
                       <p className="font-semibold">{authMessage.title}</p>
                       <p className="mt-2 text-amber-100/70">
                         {authMessage.description}

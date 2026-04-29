@@ -472,7 +472,7 @@ export default function CreatePlaceChallengeButton({
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-6 sm:pt-6">
                       {submitState === 'success' && creationResult ? (
-                        <div className="rounded-[24px] border border-[#f5c518]/25 bg-[#f5c518]/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-[#f5c518]/25 p-5">
                           <p className="text-xs uppercase tracking-[0.24em] text-[#f8dd72]">Challenge live</p>
                           <p className="mt-3 text-lg font-bold text-white">The bounty is now anchored to {placeName}.</p>
                           <p className="mt-2 text-sm text-white/65">
@@ -489,7 +489,7 @@ export default function CreatePlaceChallengeButton({
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                          <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div>
                                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
@@ -514,7 +514,7 @@ export default function CreatePlaceChallengeButton({
                                     key={template.id}
                                     type="button"
                                     onClick={() => applyTemplate(template)}
-                                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                                    className={`bd-puncture-well rounded-[20px] border px-4 py-4 text-left transition ${
                                       active
                                         ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] shadow-[0_14px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]'
                                         : 'border-white/10 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-[#f5c518]/22 hover:bg-[#f5c518]/[0.06]'
@@ -542,19 +542,19 @@ export default function CreatePlaceChallengeButton({
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                            <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                               <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Challenge title</p>
                               <input
                                 value={title}
                                 onChange={(event) => setTitle(event.target.value)}
                                 placeholder={placeChallengeSuggestions.templates[0]?.title ?? 'Film the wildest sunrise jump here'}
-                                className="mt-3 h-12 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
+                                className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
                               />
                             </div>
 
-                            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                            <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                               <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Bounty amount</p>
-                              <div className="mt-3 flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4">
+                              <div className="bd-puncture-well mt-3 flex items-center gap-3 rounded-[18px] border border-white/10 px-4">
                                 <Wallet className="h-4 w-4 text-[#f8dd72]" />
                                 <input
                                   value={amount}
@@ -569,7 +569,7 @@ export default function CreatePlaceChallengeButton({
                             </div>
                           </div>
 
-                          <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                          <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                             <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Instructions</p>
                             <textarea
                               value={description}
@@ -578,27 +578,27 @@ export default function CreatePlaceChallengeButton({
                                 placeChallengeSuggestions.templates[0]?.description ??
                                 'What exactly should happen at this place?'
                               }
-                              className="mt-3 h-28 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
+                              className="bd-puncture-well mt-3 h-28 w-full rounded-[18px] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
                             />
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                            <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                               <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Challenge vibe</p>
                               <input
                                 value={missionTag}
                                 onChange={(event) => setMissionTag(event.target.value)}
                                 placeholder="nightlife"
-                                className="mt-3 h-12 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
+                                className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm text-white placeholder:text-white/28 focus:border-[#f5c518]/32 focus:outline-none"
                               />
                             </div>
 
-                            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                            <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                               <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Discovery radius</p>
                               <select
                                 value={discoveryRadiusKm}
                                 onChange={(event) => setDiscoveryRadiusKm(event.target.value)}
-                                className="mt-3 h-12 w-full rounded-[18px] border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white focus:border-[#f5c518]/32 focus:outline-none"
+                                className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm font-semibold text-white focus:border-[#f5c518]/32 focus:outline-none"
                               >
                                 <option value="0.5">0.5 km</option>
                                 <option value="1">1 km</option>
@@ -608,7 +608,7 @@ export default function CreatePlaceChallengeButton({
                             </div>
                           </div>
 
-                          <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                          <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[24px] border border-white/10 p-4">
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Targeting</p>
@@ -633,7 +633,7 @@ export default function CreatePlaceChallengeButton({
                               </button>
                             </div>
                             {isTargeted ? (
-                              <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4">
+                              <div className="bd-puncture-well mt-4 flex items-center gap-3 rounded-[18px] border border-white/10 px-4">
                                 <Target className="h-4 w-4 text-[#f8dd72]" />
                                 <input
                                   value={streamerTag}
@@ -645,7 +645,7 @@ export default function CreatePlaceChallengeButton({
                             ) : null}
                           </div>
 
-                          <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                          <div className="bd-puncture-surface bd-puncture-surface--gold rounded-[22px] border border-white/10 px-4 py-4">
                             <div className="flex items-start gap-3">
                               <Sparkles className="mt-0.5 h-4 w-4 text-[#f8dd72]" />
                               <div>
@@ -660,10 +660,10 @@ export default function CreatePlaceChallengeButton({
 
                           {!hasVerifiedSession ? (
                             <div
-                              className={`rounded-[22px] px-4 py-4 text-sm ${
+                              className={`bd-puncture-surface rounded-[22px] px-4 py-4 text-sm ${
                                 hasWalletConnection && !hasWalletMismatch
-                                  ? 'border border-emerald-400/18 bg-emerald-500/[0.06] text-emerald-100'
-                                  : 'border border-amber-400/20 bg-amber-500/[0.06] text-amber-100'
+                                  ? 'bd-puncture-surface--emerald border border-emerald-400/18 text-emerald-100'
+                                  : 'bd-puncture-surface--amber border border-amber-400/20 text-amber-100'
                               }`}
                             >
                               <p className="font-semibold">{authMessage.title}</p>

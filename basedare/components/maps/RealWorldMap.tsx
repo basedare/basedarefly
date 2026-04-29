@@ -3489,9 +3489,9 @@ export default function RealWorldMap() {
       : selectedVenueHref;
 
     return {
-      label: selectedCommandCenter ? 'Use the command layer' : 'Build the next signal',
+      label: selectedCommandCenter ? 'Run venue playbook' : 'Build the next signal',
       detail: selectedCommandCenter
-        ? 'This venue has enough structure for repeat activations.'
+        ? 'Open rewards, proof memory, routing, and repeat plays.'
         : 'Add a mark or fund a challenge to make the memory loop obvious.',
       tone: 'cyan' as const,
       href: commandHref,
