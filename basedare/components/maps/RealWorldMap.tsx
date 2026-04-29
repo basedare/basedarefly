@@ -376,6 +376,7 @@ type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
 type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'verified' | 'unmarked';
 type MapPreset = 'classic' | 'noir';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
+type VenueCommandCardTone = 'gold' | 'cyan' | 'purple';
 type CeremonyState =
   | {
       kind: 'pending' | 'first-spark' | 'alive-upgrade';
@@ -1545,6 +1546,12 @@ function getVenueActivationHref(venueSlug?: string | null) {
   });
 
   return `/brands/portal?${params.toString()}`;
+}
+
+function formatMapUsd(amount: number) {
+  return amount.toLocaleString(undefined, {
+    maximumFractionDigits: amount >= 10 ? 0 : 2,
+  });
 }
 
 function getPulseLegendPalette(pulse: PulseState) {
@@ -3382,6 +3389,98 @@ export default function RealWorldMap() {
       tone: 'cyan' as const,
     };
   }, [proximityAccess.canReveal, selectedCommandCenter, selectedPlace]);
+  const selectedVenueCommandCards = useMemo(() => {
+    const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
+    const primaryActivation =
+      focusedCreatorActivation ?? featuredPaidActivation ?? visibleActiveDares[0] ?? null;
+    const latestProof = selectedPlaceTags[0] ?? null;
+    const proofActor = latestProof
+      ? latestProof.creatorTag
+        ? `@${latestProof.creatorTag}`
+        : `${latestProof.walletAddress.slice(0, 6)}...${latestProof.walletAddress.slice(-4)}`
+      : null;
+    const proofDetail = latestProof
+      ? `${proofActor} left proof ${getLastSparkLabel(latestProof.submittedAt).replace('Last spark ', '')}.`
+      : selectedPendingPlaceTags.length > 0
+        ? `${selectedPendingPlaceTags.length} mark${selectedPendingPlaceTags.length === 1 ? '' : 's'} waiting for referee review.`
+        : 'No approved proof yet. First mark owns the story.';
+    const matchActive = Boolean(selectedPlaceMatch && showMatchedLayer);
+
+    return [
+      {
+        id: 'reward',
+        eyebrow: selectedPlaceActiveDares.length > 0 ? 'Live reward' : 'Reward slot',
+        value: selectedPlaceActiveDares.length > 0 ? `${formatMapUsd(rewardTotal)} USDC` : 'Open',
+        detail: primaryActivation
+          ? proximityAccess.canReveal
+            ? primaryActivation.title
+            : `Brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`
+          : 'Fund the first challenge here.',
+        meta:
+          selectedPlaceActiveDares.length > 0
+            ? `${selectedPlaceActiveDares.length} active`
+            : 'first activation',
+        href: primaryActivation?.shortId && proximityAccess.canReveal ? `/dare/${primaryActivation.shortId}` : null,
+        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : null,
+        tone: 'gold' as VenueCommandCardTone,
+      },
+      {
+        id: 'proof',
+        eyebrow: 'Proof memory',
+        value: `${selectedPlace?.approvedCount ?? 0} spark${(selectedPlace?.approvedCount ?? 0) === 1 ? '' : 's'}`,
+        detail: proofDetail,
+        meta:
+          selectedPendingPlaceTags.length > 0
+            ? `${selectedPendingPlaceTags.length} pending`
+            : selectedPlace?.lastTaggedAt
+              ? getLastSparkLabel(selectedPlace.lastTaggedAt)
+              : 'unclaimed story',
+        href: selectedPlace?.slug ? `/venues/${selectedPlace.slug}` : null,
+        actionLabel: selectedPlace?.slug ? 'Open memory' : null,
+        tone: 'cyan' as VenueCommandCardTone,
+      },
+      {
+        id: 'match',
+        eyebrow: matchActive ? 'Creator fit' : 'Routing',
+        value: matchActive
+          ? `${selectedPlaceMatch?.bestScore ?? 0}% fit`
+          : isConnected
+            ? `${matchedVenueIndex.size} nearby`
+            : 'Connect',
+        detail: matchActive
+          ? selectedPlaceMatch?.reasons[0] ?? 'Your creator history already fits this venue.'
+          : isConnected
+            ? 'Enable matched signals to route yourself toward better venues.'
+            : 'Connect wallet to reveal creator-fit routing.',
+        meta: matchActive
+          ? `${selectedPlaceMatch?.campaignCount ?? 0} live`
+          : showMatchedLayer
+            ? 'scanning'
+            : 'match layer',
+        href:
+          matchActive && selectedPlaceMatch?.dareShortId
+            ? `/dare/${selectedPlaceMatch.dareShortId}`
+            : selectedPlace?.slug
+              ? `/venues/${selectedPlace.slug}`
+              : null,
+        actionLabel: matchActive ? 'Open match' : selectedPlace?.slug ? 'Open venue' : null,
+        tone: 'purple' as VenueCommandCardTone,
+      },
+    ];
+  }, [
+    featuredPaidActivation,
+    focusedCreatorActivation,
+    isConnected,
+    matchedVenueIndex.size,
+    proximityAccess.canReveal,
+    selectedPendingPlaceTags.length,
+    selectedPlace,
+    selectedPlaceActiveDares,
+    selectedPlaceMatch,
+    selectedPlaceTags,
+    showMatchedLayer,
+    visibleActiveDares,
+  ]);
   const signalRailOptions = useMemo(
     () => [
       {
@@ -4528,6 +4627,38 @@ export default function RealWorldMap() {
                     </div>
                   </div>
 
+                  <div className="map-venue-command-grid mt-3">
+                    {selectedVenueCommandCards.map((card) => {
+                      const cardContent = (
+                        <>
+                          <div className="map-venue-command-card-top">
+                            <span>{card.eyebrow}</span>
+                            <span>{card.meta}</span>
+                          </div>
+                          <p className="map-venue-command-card-value">{card.value}</p>
+                          <p className="map-venue-command-card-detail">{card.detail}</p>
+                          {card.actionLabel ? (
+                            <span className="map-venue-command-card-action">
+                              {card.actionLabel}
+                              <ArrowLeft className="h-3 w-3 rotate-180" />
+                            </span>
+                          ) : null}
+                        </>
+                      );
+                      const className = `map-venue-command-card map-venue-command-card--${card.tone}`;
+
+                      return card.href ? (
+                        <Link key={`venue-command-${card.id}`} href={card.href} className={className}>
+                          {cardContent}
+                        </Link>
+                      ) : (
+                        <div key={`venue-command-${card.id}`} className={className}>
+                          {cardContent}
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   <div className="map-mobile-stats mt-4 grid grid-cols-2 gap-3">
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
@@ -5506,6 +5637,32 @@ export default function RealWorldMap() {
             width: 2.55rem;
           }
 
+          .map-venue-command-grid {
+            display: flex;
+            margin-right: -1rem;
+            overflow-x: auto;
+            padding-right: 1rem;
+            padding-bottom: 0.3rem;
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .map-venue-command-grid::-webkit-scrollbar {
+            display: none;
+          }
+
+          .map-venue-command-card {
+            min-width: 8.35rem;
+            min-height: 8.1rem;
+            scroll-snap-align: start;
+            padding: 0.78rem;
+          }
+
+          .map-venue-command-card-value {
+            font-size: 1.06rem;
+          }
+
           .map-mobile-priority {
             margin-top: 0.75rem;
             padding: 0.9rem !important;
@@ -5791,6 +5948,183 @@ export default function RealWorldMap() {
           box-shadow:
             0 0 0 7px rgba(34, 211, 238, 0.1),
             0 0 22px rgba(34, 211, 238, 0.32);
+        }
+
+        .map-venue-command-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.55rem;
+        }
+
+        .map-venue-command-card {
+          position: relative;
+          isolation: isolate;
+          display: flex;
+          min-height: 8.6rem;
+          flex-direction: column;
+          overflow: hidden;
+          border-radius: 1.18rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.11), transparent 34%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.92));
+          padding: 0.85rem;
+          color: white;
+          text-decoration: none;
+          box-shadow:
+            0 14px 30px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -14px 20px rgba(0, 0, 0, 0.2);
+          transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease;
+        }
+
+        .map-venue-command-card::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 48%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent);
+          opacity: 0.85;
+          pointer-events: none;
+        }
+
+        a.map-venue-command-card:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow:
+            0 18px 34px rgba(0, 0, 0, 0.26),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -14px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .map-venue-command-card--gold {
+          border-color: rgba(245, 197, 24, 0.2);
+          background:
+            radial-gradient(circle at 78% 10%, rgba(245, 197, 24, 0.2), transparent 36%),
+            linear-gradient(180deg, rgba(245, 197, 24, 0.11), rgba(8, 8, 15, 0.94));
+        }
+
+        .map-venue-command-card--cyan {
+          border-color: rgba(34, 211, 238, 0.2);
+          background:
+            radial-gradient(circle at 78% 10%, rgba(34, 211, 238, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(34, 211, 238, 0.1), rgba(8, 8, 15, 0.94));
+        }
+
+        .map-venue-command-card--purple {
+          border-color: rgba(184, 127, 255, 0.22);
+          background:
+            radial-gradient(circle at 78% 10%, rgba(184, 127, 255, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(184, 127, 255, 0.11), rgba(8, 8, 15, 0.94));
+        }
+
+        .map-venue-command-card-top {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          color: rgba(255, 255, 255, 0.44);
+          font-size: 0.53rem;
+          font-weight: 850;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+
+        .map-venue-command-card-top span:last-child {
+          max-width: 4.8rem;
+          overflow: hidden;
+          text-align: right;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .map-venue-command-card-value {
+          position: relative;
+          z-index: 1;
+          margin-top: 0.7rem;
+          font-size: 1.18rem;
+          font-weight: 950;
+          letter-spacing: -0.045em;
+          line-height: 0.95;
+          color: white;
+        }
+
+        .map-venue-command-card-detail {
+          position: relative;
+          z-index: 1;
+          display: -webkit-box;
+          margin-top: 0.55rem;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.72rem;
+          line-height: 1.42;
+        }
+
+        .map-venue-command-card-action {
+          position: relative;
+          z-index: 1;
+          display: inline-flex;
+          margin-top: auto;
+          width: fit-content;
+          align-items: center;
+          gap: 0.3rem;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.055);
+          padding: 0.38rem 0.55rem;
+          color: rgba(255, 255, 255, 0.72);
+          font-size: 0.56rem;
+          font-weight: 850;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        @media (max-width: 767px) {
+          .map-command-strip {
+            margin-top: 0.85rem;
+            border-radius: 1.15rem;
+            padding: 0.82rem 0.82rem 0.82rem 0.9rem;
+          }
+
+          .map-command-strip-orb {
+            height: 2.55rem;
+            width: 2.55rem;
+          }
+
+          .map-venue-command-grid {
+            display: flex;
+            margin-right: -1rem;
+            overflow-x: auto;
+            padding-right: 1rem;
+            padding-bottom: 0.3rem;
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .map-venue-command-grid::-webkit-scrollbar {
+            display: none;
+          }
+
+          .map-venue-command-card {
+            min-width: 8.35rem;
+            min-height: 8.1rem;
+            scroll-snap-align: start;
+            padding: 0.78rem;
+          }
+
+          .map-venue-command-card-value {
+            font-size: 1.06rem;
+          }
         }
 
         .map-activation-legend {

@@ -6,13 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Productize the MapLibre venue map so the map becomes an actionable command surface, not only a nice basemap.
+- Goal: Turn selected map venues into richer activation cards with proof, reward, and creator-routing context.
 
 ### Plan
-- [x] Add a compact signal rail for live dares, hot venues, verified places, open first-mark venues, and creator matches.
-- [x] Add a verified venue filter so approved places are discoverable without scanning every pin manually.
-- [x] Add a selected venue command strip that tells users the next best venue action.
-- [x] Improve mobile sheet and nearby-dare tray scrolling for smoother bouncy interaction.
+- [x] Add a compact reward card that surfaces live USDC and opens the active brief when unlocked.
+- [x] Add a proof-memory card that summarizes approved sparks, pending marks, and recent proof.
+- [x] Add a creator-routing card that exposes match fit, campaigns, or wallet-gated routing state.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: The map now exposes clearer venue signals and a more direct next-action layer from the selected place sheet.
-- Follow-ups: Continue productizing venue memory after this slice by turning selected venues into richer activation cards with proof, reward, and creator context.
+- Outcome: The selected venue sheet now has a faster first-glance command layer for money, proof, and creator fit.
+- Follow-ups: Next map ROI is turning venue memory into richer public venue pages and venue-level proof/reward timelines.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
