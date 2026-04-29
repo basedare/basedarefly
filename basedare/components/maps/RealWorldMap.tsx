@@ -34,6 +34,7 @@ import { useAccount } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
+import { buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import SquircleLink from '@/components/ui/SquircleLink';
@@ -3300,7 +3301,7 @@ export default function RealWorldMap() {
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
   const selectedPlacePanelWrapClass = isMobileViewport
     ? 'selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30'
-    : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),24rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
+    : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
   const selectedVenueActivated = isVenueActivated(selectedCommandCenter);
@@ -3308,6 +3309,23 @@ export default function RealWorldMap() {
     ? getVenueActivationActionCopy(selectedCommandCenter)
     : null;
   const selectedActivationHref = selectedCommandCenter ? getVenueActivationHref(selectedPlace?.slug) : null;
+  const selectedVenueHref = selectedPlace?.slug
+    ? `/venues/${selectedPlace.slug}${
+        isCreatorSource
+          ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
+          : ''
+      }`
+    : null;
+  const selectedFundDareHref =
+    selectedPlace?.slug
+      ? buildVenueChallengeCreateHref({
+          venueId: selectedPlace.placeId,
+          venueSlug: selectedPlace.slug,
+          venueName: selectedPlace.name,
+          source: 'map',
+        })
+      : null;
+  const showSelectedVisualBadge = !firstMarkState;
   const selectedPulseMeaning = useMemo(
     () =>
       getPulseMeaning({
@@ -3385,8 +3403,8 @@ export default function RealWorldMap() {
         label: 'Wake this venue up',
         detail: 'Mark it or fund the first challenge.',
         tone: 'purple' as const,
-        href: selectedPlace?.slug ? `/venues/${selectedPlace.slug}` : null,
-        actionLabel: selectedPlace?.slug ? 'Open venue' : null,
+        href: selectedVenueHref,
+        actionLabel: selectedVenueHref ? 'Open venue' : null,
       };
     }
 
@@ -3394,10 +3412,8 @@ export default function RealWorldMap() {
       ? selectedActivationHref ??
         selectedCommandCenter.consoleUrl ??
         selectedCommandCenter.contactUrl ??
-        (selectedPlace?.slug ? `/venues/${selectedPlace.slug}` : null)
-      : selectedPlace?.slug
-        ? `/venues/${selectedPlace.slug}`
-        : null;
+        selectedVenueHref
+      : selectedVenueHref;
 
     return {
       label: selectedCommandCenter ? 'Use the command layer' : 'Build the next signal',
@@ -3408,11 +3424,15 @@ export default function RealWorldMap() {
       href: commandHref,
       actionLabel: selectedCommandCenter ? 'Open command' : 'Open venue',
     };
-  }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedPlace, selectedPlaceActiveDares]);
+  }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
   const selectedVenueCommandCards = useMemo(() => {
     const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
     const primaryActivation =
       focusedCreatorActivation ?? featuredPaidActivation ?? visibleActiveDares[0] ?? null;
+    const rewardHref =
+      primaryActivation?.shortId && proximityAccess.canReveal
+        ? `/dare/${primaryActivation.shortId}`
+        : selectedFundDareHref ?? selectedVenueHref;
     const latestProof = selectedPlaceTags[0] ?? null;
     const proofActor = latestProof
       ? latestProof.creatorTag
@@ -3430,7 +3450,7 @@ export default function RealWorldMap() {
       {
         id: 'reward',
         eyebrow: selectedPlaceActiveDares.length > 0 ? 'Live reward' : 'Reward slot',
-        value: selectedPlaceActiveDares.length > 0 ? `${formatMapUsd(rewardTotal)} USDC` : 'Open',
+        value: selectedPlaceActiveDares.length > 0 ? `${formatMapUsd(rewardTotal)} USDC` : 'Fund',
         detail: primaryActivation
           ? proximityAccess.canReveal
             ? primaryActivation.title
@@ -3440,8 +3460,8 @@ export default function RealWorldMap() {
           selectedPlaceActiveDares.length > 0
             ? `${selectedPlaceActiveDares.length} active`
             : 'first activation',
-        href: primaryActivation?.shortId && proximityAccess.canReveal ? `/dare/${primaryActivation.shortId}` : null,
-        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : null,
+        href: rewardHref,
+        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund dare' : null,
         tone: 'gold' as VenueCommandCardTone,
       },
       {
@@ -3455,8 +3475,8 @@ export default function RealWorldMap() {
             : selectedPlace?.lastTaggedAt
               ? getLastSparkLabel(selectedPlace.lastTaggedAt)
               : 'unclaimed story',
-        href: selectedPlace?.slug ? `/venues/${selectedPlace.slug}` : null,
-        actionLabel: selectedPlace?.slug ? 'Open memory' : null,
+        href: selectedVenueHref,
+        actionLabel: selectedVenueHref ? 'Open memory' : null,
         tone: 'cyan' as VenueCommandCardTone,
       },
       {
@@ -3480,10 +3500,8 @@ export default function RealWorldMap() {
         href:
           matchActive && selectedPlaceMatch?.dareShortId
             ? `/dare/${selectedPlaceMatch.dareShortId}`
-            : selectedPlace?.slug
-              ? `/venues/${selectedPlace.slug}`
-              : null,
-        actionLabel: matchActive ? 'Open match' : selectedPlace?.slug ? 'Open venue' : null,
+            : selectedVenueHref,
+        actionLabel: matchActive ? 'Open match' : selectedVenueHref ? 'Open venue' : null,
         tone: 'purple' as VenueCommandCardTone,
       },
     ];
@@ -3497,6 +3515,8 @@ export default function RealWorldMap() {
     selectedPlace,
     selectedPlaceActiveDares,
     selectedPlaceMatch,
+    selectedFundDareHref,
+    selectedVenueHref,
     selectedPlaceTags,
     showMatchedLayer,
     visibleActiveDares,
@@ -3905,7 +3925,7 @@ export default function RealWorldMap() {
     <>
       <div className="map-command-strip-copy min-w-0">
         <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
-          What can I do here?
+          Primary move
         </p>
         <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
           {selectedPrimaryAction.label}
@@ -4584,7 +4604,7 @@ export default function RealWorldMap() {
                           </Link>
                         </div>
                       ) : null}
-                      <h3 className="max-w-[13rem] text-[1.65rem] font-black leading-[0.94] tracking-tight text-white md:max-w-[16rem] md:text-[2.15rem]">
+                      <h3 className="text-[1.55rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
                         {selectedPlace.name}
                       </h3>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -4595,30 +4615,35 @@ export default function RealWorldMap() {
                             {firstMarkState.label}
                           </span>
                         ) : null}
-                        <span
-                          className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
-                            selectedVisualState === 'hot'
-                              ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
-                              : selectedVisualState === 'active'
-                                ? 'border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100'
-                                : selectedVisualState === 'first-mark'
-                                  ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]'
-                                  : selectedVisualState === 'pending'
-                                    ? 'border-amber-300/30 bg-amber-500/[0.12] text-amber-100'
-                                    : 'border-white/12 bg-white/[0.05] text-white/60'
-                          }`}
-                        >
-                          {selectedVisualCopy.label}
-                        </span>
+                        {showSelectedVisualBadge ? (
+                          <span
+                            className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
+                              selectedVisualState === 'hot'
+                                ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
+                                : selectedVisualState === 'active'
+                                  ? 'border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100'
+                                  : selectedVisualState === 'first-mark'
+                                    ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]'
+                                    : selectedVisualState === 'pending'
+                                      ? 'border-amber-300/30 bg-amber-500/[0.12] text-amber-100'
+                                      : 'border-white/12 bg-white/[0.05] text-white/60'
+                            }`}
+                          >
+                            {selectedVisualCopy.label}
+                          </span>
+                        ) : null}
                         {proximityAccess.label ? (
                           <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                             {proximityAccess.label}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2.5 line-clamp-2 max-w-[15rem] text-sm leading-relaxed text-white/58 md:max-w-[17rem]">
-                        {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
-                      </p>
+                      <div className="mt-3 flex items-start gap-2 rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-2 text-sm leading-relaxed text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
+                        <span className="line-clamp-2 min-w-0">
+                          {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
+                        </span>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -4658,7 +4683,11 @@ export default function RealWorldMap() {
                   ) : null}
 
                   {selectedPrimaryAction.href ? (
-                    <Link href={selectedPrimaryAction.href} className={selectedCommandStripClassName}>
+                    <Link
+                      href={selectedPrimaryAction.href}
+                      className={selectedCommandStripClassName}
+                      aria-label={`${selectedPrimaryAction.actionLabel ?? 'Open'} for ${selectedPlace.name}`}
+                    >
                       {selectedCommandStripContent}
                     </Link>
                   ) : (
@@ -4685,10 +4714,17 @@ export default function RealWorldMap() {
                           ) : null}
                         </>
                       );
-                      const className = `map-venue-command-card map-venue-command-card--${card.tone}`;
+                      const className = `map-venue-command-card map-venue-command-card--${card.tone} ${
+                        card.href ? 'map-venue-command-card--clickable' : 'map-venue-command-card--static'
+                      }`;
 
                       return card.href ? (
-                        <Link key={`venue-command-${card.id}`} href={card.href} className={className}>
+                        <Link
+                          key={`venue-command-${card.id}`}
+                          href={card.href}
+                          className={className}
+                          aria-label={`${card.actionLabel ?? 'Open'} ${card.eyebrow} for ${selectedPlace.name}`}
+                        >
                           {cardContent}
                         </Link>
                       ) : (
@@ -5677,12 +5713,13 @@ export default function RealWorldMap() {
           }
 
           .map-command-strip-cta {
-            display: none;
+            display: inline-flex;
+            padding: 0.38rem 0.52rem;
+            font-size: 0.52rem;
           }
 
           .map-command-strip-orb {
-            height: 2.55rem;
-            width: 2.55rem;
+            display: none;
           }
 
           .map-venue-command-grid {
@@ -5920,7 +5957,7 @@ export default function RealWorldMap() {
           gap: 1rem;
           overflow: hidden;
           border-radius: 1.35rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           padding: 0.95rem 0.95rem 0.95rem 1rem;
           color: inherit;
           text-decoration: none;
@@ -6017,10 +6054,10 @@ export default function RealWorldMap() {
           align-items: center;
           gap: 0.32rem;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.055);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.055));
           padding: 0.42rem 0.58rem;
-          color: rgba(255, 255, 255, 0.72);
+          color: rgba(255, 255, 255, 0.86);
           font-size: 0.56rem;
           font-weight: 850;
           letter-spacing: 0.13em;
@@ -6092,6 +6129,14 @@ export default function RealWorldMap() {
             box-shadow 180ms ease;
         }
 
+        .map-venue-command-card--clickable {
+          cursor: pointer;
+        }
+
+        .map-venue-command-card--static {
+          opacity: 0.72;
+        }
+
         .map-venue-command-card::before {
           content: '';
           position: absolute;
@@ -6110,6 +6155,11 @@ export default function RealWorldMap() {
             0 18px 34px rgba(0, 0, 0, 0.26),
             inset 0 1px 0 rgba(255, 255, 255, 0.1),
             inset 0 -14px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        a.map-venue-command-card:focus-visible {
+          outline: 2px solid rgba(245, 197, 24, 0.72);
+          outline-offset: 3px;
         }
 
         .map-venue-command-card--gold {
@@ -6192,10 +6242,10 @@ export default function RealWorldMap() {
           align-items: center;
           gap: 0.3rem;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.055);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.055));
           padding: 0.38rem 0.55rem;
-          color: rgba(255, 255, 255, 0.72);
+          color: rgba(255, 255, 255, 0.86);
           font-size: 0.56rem;
           font-weight: 850;
           letter-spacing: 0.14em;
@@ -6215,12 +6265,13 @@ export default function RealWorldMap() {
           }
 
           .map-command-strip-cta {
-            display: none;
+            display: inline-flex;
+            padding: 0.38rem 0.52rem;
+            font-size: 0.52rem;
           }
 
           .map-command-strip-orb {
-            height: 2.55rem;
-            width: 2.55rem;
+            display: none;
           }
 
           .map-venue-command-grid {
