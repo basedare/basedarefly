@@ -3,13 +3,24 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 
 // Contract configuration
-const BOUNTY_ADDRESS = '0x9e5a3d27949a1d5A81824472B9806488c2d6E30B';
-// The owner wallet (0xC9EC...) will now also serve as the referee wallet
-const OWNER_PRIVATE_KEY = '0xa7a2fdecd60e8224fc2bc77cb8e0aa4e6aeec03640b99c8a4baf4713b5c84702';
+const BOUNTY_ADDRESS = process.env.BOUNTY_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;
+const OWNER_PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
+
+if (!BOUNTY_ADDRESS || !/^0x[a-fA-F0-9]{40}$/.test(BOUNTY_ADDRESS)) {
+    throw new Error('Set BOUNTY_CONTRACT_ADDRESS or NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS to a valid contract address.');
+}
+
+if (!OWNER_PRIVATE_KEY || !/^0x[a-fA-F0-9]{64}$/.test(OWNER_PRIVATE_KEY)) {
+    throw new Error('Set OWNER_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY to the contract owner private key.');
+}
 
 // Set up the account using the private key
 const account = privateKeyToAccount(OWNER_PRIVATE_KEY);
-const NEW_REFEREE_ADDRESS = account.address;
+const NEW_REFEREE_ADDRESS = process.env.NEW_REFEREE_ADDRESS || account.address;
+
+if (!/^0x[a-fA-F0-9]{40}$/.test(NEW_REFEREE_ADDRESS)) {
+    throw new Error('Set NEW_REFEREE_ADDRESS to a valid address, or omit it to use the signer address.');
+}
 
 console.log('═'.repeat(60));
 console.log('  UPDATING ON-CHAIN REFEREE ADDRESS (MAINNET)');

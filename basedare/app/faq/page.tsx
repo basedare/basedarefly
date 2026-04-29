@@ -94,6 +94,31 @@ const FAQ_ITEMS = [
   }
 ];
 
+function renderFormattedAnswer(answer: string) {
+  const nodes: React.ReactNode[] = [];
+  const boldPattern = /\*\*(.*?)\*\*/g;
+  let lastIndex = 0;
+
+  for (const match of answer.matchAll(boldPattern)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) {
+      nodes.push(answer.slice(lastIndex, index));
+    }
+    nodes.push(
+      <strong key={`${match[1]}-${index}`} className="text-white">
+        {match[1]}
+      </strong>
+    );
+    lastIndex = index + match[0].length;
+  }
+
+  if (lastIndex < answer.length) {
+    nodes.push(answer.slice(lastIndex));
+  }
+
+  return nodes.length > 0 ? nodes : answer;
+}
+
 export default function FAQPage() {
   const [isDesktop, setIsDesktop] = React.useState(false);
 
@@ -236,14 +261,7 @@ export default function FAQPage() {
                     <div className={`faq-answer-well ${insetDentClass} px-4 py-4`}>
                       <div className="flex items-start gap-2 font-mono text-sm leading-relaxed text-gray-200 md:text-base">
                         <span className="text-yellow-500 font-bold">{">"}</span>
-                        <span
-                          dangerouslySetInnerHTML={{
-                            __html: item.a.replace(
-                              /\*\*(.*?)\*\*/g,
-                              '<strong class="text-white">$1</strong>'
-                            ),
-                          }}
-                        />
+                        <span>{renderFormattedAnswer(item.a)}</span>
                       </div>
                     </div>
                   </AccordionContent>

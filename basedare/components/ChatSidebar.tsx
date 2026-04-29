@@ -122,8 +122,29 @@ export default function ChatSidebar({ dare, isOpen, onClose }: ChatSidebarProps)
     });
   };
 
-  const highlightMentions = (text: string) => {
-    return text.replace(/@(\w+)/g, '<span class="text-purple-300 font-bold underline">@$1</span>');
+  const renderMessageText = (text: string) => {
+    const nodes: React.ReactNode[] = [];
+    const mentionPattern = /@(\w+)/g;
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(mentionPattern)) {
+      const index = match.index ?? 0;
+      if (index > lastIndex) {
+        nodes.push(text.slice(lastIndex, index));
+      }
+      nodes.push(
+        <span key={`${match[0]}-${index}`} className="text-purple-300 font-bold underline">
+          {match[0]}
+        </span>
+      );
+      lastIndex = index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      nodes.push(text.slice(lastIndex));
+    }
+
+    return nodes.length > 0 ? nodes : text;
   };
 
   // Touch Handlers
@@ -229,7 +250,7 @@ export default function ChatSidebar({ dare, isOpen, onClose }: ChatSidebarProps)
                      <div className={`p-2 rounded-xl text-xs text-white ${
                        isSelf ? 'bg-purple-500/20 border border-purple-500/30 rounded-tr-sm' : 'bg-gray-800 border border-gray-700 rounded-tl-sm'
                      }`}>
-                       <p dangerouslySetInnerHTML={{ __html: highlightMentions(msg.text) }} />
+                       <p>{renderMessageText(msg.text)}</p>
                      </div>
                      {msg.reactions?.thumb > 0 && (
                        <button onClick={() => handleReaction(msg.id)} className="mt-1 flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20 hover:scale-105 transition">
@@ -273,5 +294,4 @@ export default function ChatSidebar({ dare, isOpen, onClose }: ChatSidebarProps)
     </>
   );
 }
-
 

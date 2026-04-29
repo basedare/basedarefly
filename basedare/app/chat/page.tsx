@@ -177,8 +177,29 @@ function ChatContent() {
     });
   };
 
-  const highlightMentions = (text: string) => {
-    return text.replace(/@(\w+)/g, '<span class="text-purple-300 font-bold underline">@$1</span>');
+  const renderMessageText = (text: string) => {
+    const nodes: React.ReactNode[] = [];
+    const mentionPattern = /@(\w+)/g;
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(mentionPattern)) {
+      const index = match.index ?? 0;
+      if (index > lastIndex) {
+        nodes.push(text.slice(lastIndex, index));
+      }
+      nodes.push(
+        <span key={`${match[0]}-${index}`} className="text-purple-300 font-bold underline">
+          {match[0]}
+        </span>
+      );
+      lastIndex = index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      nodes.push(text.slice(lastIndex));
+    }
+
+    return nodes.length > 0 ? nodes : text;
   };
 
   if (!dare) {
@@ -293,10 +314,7 @@ function ChatContent() {
                       <span className="text-gray-500 text-xs">{formatTime(msg.timestamp)}</span>
                     </div>
                     <div className={isSelf ? 'message-bubble-self' : 'message-bubble-other'}>
-                      <p
-                        className="text-white p-3 text-sm"
-                        dangerouslySetInnerHTML={{ __html: highlightMentions(msg.text) }}
-                      />
+                      <p className="text-white p-3 text-sm">{renderMessageText(msg.text)}</p>
                     </div>
                     {msg.reactions?.thumb > 0 && (
                       <button 
