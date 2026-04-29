@@ -4826,57 +4826,76 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  {selectedPrimaryAction.href ? (
-                    <Link
-                      href={selectedPrimaryAction.href}
-                      className={selectedCommandStripClassName}
-                      aria-label={`${selectedPrimaryAction.actionLabel ?? 'Open'} for ${selectedPlace.name}`}
-                    >
-                      {selectedCommandStripContent}
-                    </Link>
-                  ) : (
-                    <div className={selectedCommandStripClassName}>
-                      {selectedCommandStripContent}
+                  <div className="map-command-console">
+                    <div className="map-command-console-header">
+                      <div>
+                        <p>Command layer</p>
+                        <h4>Pick the next move</h4>
+                      </div>
+                      <span>
+                        {selectedVenueCommandCards.filter((card) => card.href).length} actions
+                      </span>
                     </div>
-                  )}
 
-                  <div className="map-venue-command-grid mt-3">
-                    {selectedVenueCommandCards.map((card) => {
-                      const cardContent = (
-                        <>
-                          <div className="map-venue-command-card-top">
-                            <span>{card.eyebrow}</span>
-                            <span>{card.meta}</span>
-                          </div>
-                          <p className="map-venue-command-card-value">{card.value}</p>
-                          <p className="map-venue-command-card-detail">{card.detail}</p>
-                          {card.actionLabel ? (
-                            <span className="map-venue-command-card-action">
-                              {card.actionLabel}
-                              <ArrowLeft className="h-3 w-3 rotate-180" />
+                    {selectedPrimaryAction.href ? (
+                      <Link
+                        href={selectedPrimaryAction.href}
+                        className={`${selectedCommandStripClassName} map-command-strip--primary`}
+                        aria-label={`${selectedPrimaryAction.actionLabel ?? 'Open'} for ${selectedPlace.name}`}
+                      >
+                        {selectedCommandStripContent}
+                      </Link>
+                    ) : (
+                      <div className={`${selectedCommandStripClassName} map-command-strip--primary`}>
+                        {selectedCommandStripContent}
+                      </div>
+                    )}
+
+                    <div className="map-command-actions">
+                      {selectedVenueCommandCards.map((card) => {
+                        const actionTitle = card.actionLabel ?? card.value;
+                        const rowTitle =
+                          card.id === 'reward' && card.value === 'Fund' ? 'First challenge slot' : card.value;
+                        const cardContent = (
+                          <>
+                            <span
+                              className={`map-command-action-dot map-command-action-dot--${card.tone}`}
+                              aria-hidden="true"
+                            />
+                            <div className="map-command-action-copy">
+                              <div className="map-command-action-top">
+                                <span>{card.eyebrow}</span>
+                                <span>{card.meta}</span>
+                              </div>
+                              <p className="map-command-action-title">{rowTitle}</p>
+                              <p className="map-command-action-detail">{card.detail}</p>
+                            </div>
+                            <span className="map-command-action-button">
+                              {actionTitle}
+                              {card.href ? <ArrowLeft className="h-3 w-3 rotate-180" /> : null}
                             </span>
-                          ) : null}
-                        </>
-                      );
-                      const className = `map-venue-command-card map-venue-command-card--${card.tone} ${
-                        card.href ? 'map-venue-command-card--clickable' : 'map-venue-command-card--static'
-                      }`;
+                          </>
+                        );
+                        const className = `map-command-action map-command-action--${card.tone} ${
+                          card.href ? 'map-command-action--clickable' : 'map-command-action--static'
+                        }`;
 
-                      return card.href ? (
-                        <Link
-                          key={`venue-command-${card.id}`}
-                          href={card.href}
-                          className={className}
-                          aria-label={`${card.actionLabel ?? 'Open'} ${card.eyebrow} for ${selectedPlace.name}`}
-                        >
-                          {cardContent}
-                        </Link>
-                      ) : (
-                        <div key={`venue-command-${card.id}`} className={className}>
-                          {cardContent}
-                        </div>
-                      );
-                    })}
+                        return card.href ? (
+                          <Link
+                            key={`venue-command-${card.id}`}
+                            href={card.href}
+                            className={className}
+                            aria-label={`${actionTitle} ${card.eyebrow} for ${selectedPlace.name}`}
+                          >
+                            {cardContent}
+                          </Link>
+                        ) : (
+                          <div key={`venue-command-${card.id}`} className={className}>
+                            {cardContent}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="map-mobile-stats mt-4 grid grid-cols-2 gap-3">
@@ -6258,6 +6277,293 @@ export default function RealWorldMap() {
             0 0 22px rgba(34, 211, 238, 0.32);
         }
 
+        .map-command-console {
+          position: relative;
+          isolation: isolate;
+          margin-top: 0.95rem;
+          overflow: hidden;
+          border-radius: 1.45rem;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background:
+            radial-gradient(circle at 12% 0%, rgba(34, 211, 238, 0.1), transparent 30%),
+            radial-gradient(circle at 92% 18%, rgba(184, 127, 255, 0.12), transparent 34%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.94));
+          padding: 0.72rem;
+          box-shadow:
+            0 20px 42px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -16px 24px rgba(0, 0, 0, 0.22);
+        }
+
+        .map-command-console::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 38%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent);
+          pointer-events: none;
+        }
+
+        .map-command-console-header {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.85rem;
+          padding: 0.15rem 0.18rem 0;
+        }
+
+        .map-command-console-header p {
+          color: rgba(103, 232, 249, 0.72);
+          font-size: 0.56rem;
+          font-weight: 900;
+          letter-spacing: 0.22em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .map-command-console-header h4 {
+          margin-top: 0.34rem;
+          color: rgba(255, 255, 255, 0.94);
+          font-size: 0.92rem;
+          font-weight: 950;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+
+        .map-command-console-header > span {
+          flex: 0 0 auto;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.13);
+          background: rgba(255, 255, 255, 0.055);
+          padding: 0.38rem 0.54rem;
+          color: rgba(255, 255, 255, 0.52);
+          font-size: 0.55rem;
+          font-weight: 850;
+          letter-spacing: 0.14em;
+          line-height: 1;
+          text-transform: uppercase;
+          white-space: nowrap;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .map-command-console .map-command-strip {
+          margin-top: 0.7rem;
+        }
+
+        .map-command-actions {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          gap: 0.52rem;
+          margin-top: 0.62rem;
+        }
+
+        .map-command-action {
+          position: relative;
+          isolation: isolate;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 0.68rem;
+          overflow: hidden;
+          border-radius: 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.09), transparent 34%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(4, 6, 13, 0.92));
+          padding: 0.72rem;
+          color: white;
+          text-decoration: none;
+          box-shadow:
+            0 12px 26px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.07),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.18);
+          transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            filter 180ms ease;
+        }
+
+        .map-command-action::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 46%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent);
+          pointer-events: none;
+        }
+
+        .map-command-action--clickable {
+          cursor: pointer;
+        }
+
+        .map-command-action--static {
+          opacity: 0.72;
+        }
+
+        .map-command-action--gold {
+          border-color: rgba(245, 197, 24, 0.2);
+          background:
+            radial-gradient(circle at 10% 0%, rgba(245, 197, 24, 0.14), transparent 36%),
+            linear-gradient(180deg, rgba(245, 197, 24, 0.075), rgba(5, 6, 13, 0.94));
+        }
+
+        .map-command-action--cyan {
+          border-color: rgba(34, 211, 238, 0.19);
+          background:
+            radial-gradient(circle at 10% 0%, rgba(34, 211, 238, 0.13), transparent 36%),
+            linear-gradient(180deg, rgba(34, 211, 238, 0.07), rgba(5, 6, 13, 0.94));
+        }
+
+        .map-command-action--purple {
+          border-color: rgba(184, 127, 255, 0.21);
+          background:
+            radial-gradient(circle at 10% 0%, rgba(184, 127, 255, 0.14), transparent 36%),
+            linear-gradient(180deg, rgba(184, 127, 255, 0.075), rgba(5, 6, 13, 0.94));
+        }
+
+        a.map-command-action:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.2);
+          filter: saturate(1.08);
+          box-shadow:
+            0 16px 32px rgba(0, 0, 0, 0.26),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        a.map-command-action:focus-visible {
+          outline: 2px solid rgba(245, 197, 24, 0.72);
+          outline-offset: 3px;
+        }
+
+        .map-command-action-dot {
+          position: relative;
+          z-index: 1;
+          height: 0.72rem;
+          width: 0.72rem;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          box-shadow:
+            0 0 0 5px rgba(255, 255, 255, 0.035),
+            0 0 18px rgba(255, 255, 255, 0.16);
+        }
+
+        .map-command-action-dot--gold {
+          background: #f5c518;
+          box-shadow:
+            0 0 0 5px rgba(245, 197, 24, 0.09),
+            0 0 20px rgba(245, 197, 24, 0.34);
+        }
+
+        .map-command-action-dot--cyan {
+          background: #67e8f9;
+          box-shadow:
+            0 0 0 5px rgba(34, 211, 238, 0.09),
+            0 0 20px rgba(34, 211, 238, 0.34);
+        }
+
+        .map-command-action-dot--purple {
+          background: #b87fff;
+          box-shadow:
+            0 0 0 5px rgba(184, 127, 255, 0.1),
+            0 0 20px rgba(184, 127, 255, 0.34);
+        }
+
+        .map-command-action-copy {
+          position: relative;
+          z-index: 1;
+          min-width: 0;
+        }
+
+        .map-command-action-top {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.58rem;
+          color: rgba(255, 255, 255, 0.42);
+          font-size: 0.52rem;
+          font-weight: 850;
+          letter-spacing: 0.14em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .map-command-action-top span:last-child {
+          max-width: 7rem;
+          overflow: hidden;
+          text-align: right;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .map-command-action-title {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          gap: 0.44rem;
+          margin-top: 0.38rem;
+          color: rgba(255, 255, 255, 0.94);
+          font-size: 0.95rem;
+          font-weight: 950;
+          letter-spacing: -0.015em;
+          line-height: 1.02;
+        }
+
+        .map-command-action-title > span {
+          flex: 0 0 auto;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.055);
+          padding: 0.25rem 0.42rem;
+          color: rgba(255, 255, 255, 0.58);
+          font-size: 0.53rem;
+          font-weight: 850;
+          letter-spacing: 0.08em;
+          line-height: 1;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        .map-command-action-detail {
+          display: -webkit-box;
+          margin-top: 0.3rem;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+          color: rgba(255, 255, 255, 0.58);
+          font-size: 0.66rem;
+          line-height: 1.38;
+        }
+
+        .map-command-action-button {
+          position: relative;
+          z-index: 1;
+          display: inline-flex;
+          width: fit-content;
+          align-items: center;
+          justify-content: center;
+          gap: 0.3rem;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.055));
+          padding: 0.4rem 0.56rem;
+          color: rgba(255, 255, 255, 0.86);
+          font-size: 0.54rem;
+          font-weight: 850;
+          letter-spacing: 0.13em;
+          line-height: 1;
+          text-transform: uppercase;
+          white-space: nowrap;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        }
+
         .map-venue-command-grid {
           display: grid;
           grid-template-columns: minmax(0, 1fr);
@@ -6421,6 +6727,25 @@ export default function RealWorldMap() {
         }
 
         @media (max-width: 767px) {
+          .map-command-console {
+            margin-top: 0.82rem;
+            border-radius: 1.25rem;
+            padding: 0.62rem;
+          }
+
+          .map-command-console-header {
+            padding: 0.12rem 0.12rem 0;
+          }
+
+          .map-command-console-header h4 {
+            font-size: 0.86rem;
+          }
+
+          .map-command-console-header > span {
+            padding: 0.34rem 0.46rem;
+            font-size: 0.5rem;
+          }
+
           .map-command-strip {
             margin-top: 0.85rem;
             border-radius: 1.15rem;
@@ -6439,6 +6764,35 @@ export default function RealWorldMap() {
 
           .map-command-strip-orb {
             display: none;
+          }
+
+          .map-command-console .map-command-strip {
+            margin-top: 0.62rem;
+          }
+
+          .map-command-actions {
+            gap: 0.5rem;
+            margin-top: 0.56rem;
+          }
+
+          .map-command-action {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+            gap: 0.56rem;
+            border-radius: 0.95rem;
+            padding: 0.66rem;
+          }
+
+          .map-command-action-detail {
+            -webkit-line-clamp: 2;
+          }
+
+          .map-command-action-button {
+            grid-column: 2;
+            justify-self: start;
+            margin-top: -0.18rem;
+            padding: 0.36rem 0.5rem;
+            font-size: 0.5rem;
           }
 
           .map-venue-command-grid {
