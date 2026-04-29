@@ -21,6 +21,7 @@ import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 import type {
   FounderLedgerEvent,
   FounderScoreboardReport,
@@ -69,7 +70,7 @@ function eventIcon(event: FounderLedgerEvent) {
 export default function FounderScoreboardPage() {
   const { address, isConnected } = useAccount();
   const [report, setReport] = useState<FounderScoreboardReport | null>(null);
-  const [adminSecret, setAdminSecret] = useState('');
+  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
   const [periodDays, setPeriodDays] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +180,18 @@ export default function FounderScoreboardPage() {
               placeholder="Optional: paste ADMIN_SECRET"
               className="mt-2 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-yellow-300/45"
             />
+            <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+              Session-only, reused across admin ops links
+              {hasSessionAdminSecret && (
+                <button
+                  type="button"
+                  onClick={clearAdminSecret}
+                  className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
+                >
+                  Forget
+                </button>
+              )}
+            </span>
           </label>
 
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/35 p-1">

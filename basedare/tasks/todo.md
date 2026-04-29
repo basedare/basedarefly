@@ -6,13 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Add admin deep links so Daily Command Loop actions open the exact execution queue and target record.
+- Goal: Keep admin-secret fallback sessions alive across Admin ops pages without exposing secrets in URLs or permanent storage.
 
 ### Plan
-- [x] Parse `?tab=` and target params in the admin dashboard.
-- [x] Auto-select targeted moderation, claim, venue claim, creator tag, place mark, report lead, and place records.
-- [x] Update Daily Command Loop action links to exact admin tab/item URLs.
-- [x] Add a return link when arriving in Admin from the Daily Command Loop.
+- [x] Add a shared session-only admin secret hook backed by `sessionStorage`.
+- [x] Wire the hook into Daily Command Loop, Admin Dashboard, Founder Scoreboard, Production Safety, Venue Scout Command, and Appeals.
+- [x] Add visible session-only copy plus a manual forget action.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Daily Command Loop actions now open the right admin tab and preselect the highest-priority available record when one exists.
-- Follow-ups: If admin-secret fallback should persist across admin pages, add a safer local-session secret handoff rather than putting secrets in URLs.
+- Outcome: Production build and static safety pass. Admin-secret fallback now survives admin ops navigation in the same browser tab without leaking into URLs.
+- Follow-ups: If this becomes a frequent solo-founder flow, consider replacing manual admin-secret fallback with a short-lived signed admin session cookie.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

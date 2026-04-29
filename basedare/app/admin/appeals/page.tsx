@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Loader2, Eye, ExternalLink } from 'lucide-react';
 import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
+import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 
 interface Appeal {
   id: string;
@@ -36,7 +37,7 @@ export default function AdminAppealsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
-  const [adminSecret, setAdminSecret] = useState('');
+  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedAppeal, setSelectedAppeal] = useState<Appeal | null>(null);
@@ -157,6 +158,21 @@ export default function AdminAppealsPage() {
                   placeholder="Enter admin secret..."
                   className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono"
                 />
+                <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                  Session-only, reused across admin ops links
+                  {hasSessionAdminSecret && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearAdminSecret();
+                        setIsAuthenticated(false);
+                      }}
+                      className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
+                    >
+                      Forget
+                    </button>
+                  )}
+                </span>
               </div>
 
               {error && (

@@ -20,6 +20,7 @@ import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 import type {
   DailyCommandItem,
   DailyCommandLoopReport,
@@ -76,7 +77,7 @@ export default function DailyCommandLoopPage() {
   const [report, setReport] = useState<DailyCommandLoopReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [adminSecret, setAdminSecret] = useState('');
+  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
 
   const adminSecretTrimmed = adminSecret.trim();
   const hasAdminAuth = Boolean(address || adminSecretTrimmed);
@@ -218,6 +219,18 @@ export default function DailyCommandLoopPage() {
               placeholder="Optional: paste ADMIN_SECRET"
               className="mt-2 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-yellow-300/45"
             />
+            <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+              Session-only, reused across admin ops links
+              {hasSessionAdminSecret && (
+                <button
+                  type="button"
+                  onClick={clearAdminSecret}
+                  className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
+                >
+                  Forget
+                </button>
+              )}
+            </span>
           </label>
           <button
             type="button"

@@ -29,6 +29,7 @@ import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import SentinelBadge from '@/components/SentinelBadge';
 import { formatSentinelPausedMessage } from '@/lib/sentinel';
 import { getPlaceTagReviewState, type PlaceTagReviewTone } from '@/lib/place-tag-review-sla';
+import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 
 interface DareForModeration {
   id: string;
@@ -589,7 +590,7 @@ export default function AdminPage() {
   const [processingTag, setProcessingTag] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<PendingTag | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [adminSecret, setAdminSecret] = useState('');
+  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
   const [isTagsAuthorized, setIsTagsAuthorized] = useState(false);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTag[]>([]);
   const [placeTagsLoading, setPlaceTagsLoading] = useState(false);
@@ -1892,6 +1893,18 @@ export default function AdminPage() {
                 placeholder="Optional: paste ADMIN_SECRET"
                 className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm font-bold text-white outline-none transition focus:border-yellow-400/45"
               />
+              <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                Session-only, never added to links
+                {hasSessionAdminSecret && (
+                  <button
+                    type="button"
+                    onClick={clearAdminSecret}
+                    className="text-yellow-200/80 underline-offset-4 hover:text-yellow-100 hover:underline"
+                  >
+                    Forget
+                  </button>
+                )}
+              </span>
             </label>
             <button
               type="button"
