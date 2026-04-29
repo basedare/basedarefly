@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Fix the desktop notifications bell dropdown and upgrade it to a slick liquid-glass summary surface.
+- Goal: Show user-selected creator profile pictures in the Active Creators grid instead of falling back to initials.
 
 ### Plan
-- [x] Portal the notifications dropdown out of the glass navbar so desktop clicks are not clipped.
-- [x] Add a visible summary area for live actions, unread alerts, push state, and the next best item.
-- [x] Preserve the mobile full-height scrollable panel.
+- [x] Include creator avatar URL and crop fields in `/api/creators`.
+- [x] Render uploaded profile photos before static fallback images or initials.
+- [x] Preserve saved avatar scale and offset on the grid card.
 - [x] Verify with targeted lint/type checks, production build, and graphify rebuild.
 
 ### Verification
@@ -20,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Desktop bell now opens a body-portaled liquid-glass dropdown with a summary header instead of being hidden inside the navbar glass container.
-- Follow-ups: Browser-smoke the bell on production after deploy with a connected wallet.
+- Outcome: Active Creators now uses the selected creator profile photo when available, with the same crop framing used on creator profiles.
+- Follow-ups: Browser-smoke `/creators` after deploy using `lizardlarry7` as the check case.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

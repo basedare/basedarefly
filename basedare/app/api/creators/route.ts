@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
                 completedDares: true,
                 walletAddress: true,
                 tags: true,
+                pfpUrl: true,
+                pfpScale: true,
+                pfpOffsetX: true,
+                pfpOffsetY: true,
             },
         });
 

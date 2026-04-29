@@ -16,6 +16,10 @@ type Creator = {
   completedDares: number;
   status: string;
   tags?: string[];
+  pfpUrl?: string | null;
+  pfpScale?: number | null;
+  pfpOffsetX?: number | null;
+  pfpOffsetY?: number | null;
   reviews?: {
     count: number;
     averageRating: number | null;
@@ -48,6 +52,22 @@ const insetCardClass =
 
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getCreatorAvatarStyle(creator: Creator): React.CSSProperties {
+  const scale = clamp(creator.pfpScale ?? 1, 1, 2.5);
+  const offsetX = clamp(creator.pfpOffsetX ?? 50, 0, 100);
+  const offsetY = clamp(creator.pfpOffsetY ?? 50, 0, 100);
+
+  return {
+    objectPosition: `${offsetX}% ${offsetY}%`,
+    transform: `scale(${scale})`,
+    transformOrigin: "center center",
+  };
+}
 
 export default function CreatorsPage() {
   const [creators, setCreators] = React.useState<Creator[]>([]);
@@ -275,7 +295,8 @@ export default function CreatorsPage() {
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                       {filteredCreators.map((creator, index) => {
                         const plainTag = creator.tag.replace("@", "").toLowerCase();
-                        const avatarImg = STREAMER_IMAGES[plainTag];
+                        const profileAvatar = creator.pfpUrl?.trim() || null;
+                        const avatarImg = profileAvatar || STREAMER_IMAGES[plainTag];
 
                         return (
                           <motion.div
@@ -293,7 +314,17 @@ export default function CreatorsPage() {
 
                               <div className="relative z-10">
                                 <div className="mb-4 mx-auto relative w-16 h-16">
-                                  {avatarImg ? (
+                                  {profileAvatar ? (
+                                    <div className="h-full w-full overflow-hidden rounded-full border-2 border-white/10 shadow-[0_14px_26px_rgba(0,0,0,0.3)] transition-colors group-hover:border-purple-500/45">
+                                      {/* eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways. */}
+                                      <img
+                                        src={profileAvatar}
+                                        alt={creator.tag}
+                                        className="h-full w-full object-cover"
+                                        style={getCreatorAvatarStyle(creator)}
+                                      />
+                                    </div>
+                                  ) : avatarImg ? (
                                     <Image
                                       src={avatarImg}
                                       alt={creator.tag}
