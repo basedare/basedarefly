@@ -649,7 +649,17 @@ export function buildVenueHandshakeValue(input: {
   expiresAt: Date;
 }) {
   const scope = input.scope ?? 'VENUE_CHECKIN';
-  return `basedare://handshake?scope=${encodeURIComponent(scope)}&venue=${encodeURIComponent(input.venueSlug)}&venueId=${encodeURIComponent(input.venueId)}&session=${encodeURIComponent(input.sessionId)}&token=${encodeURIComponent(input.token)}&exp=${input.expiresAt.getTime()}`;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://basedare.xyz').replace(/\/$/, '');
+  const params = new URLSearchParams({
+    scope,
+    venue: input.venueSlug,
+    venueId: input.venueId,
+    session: input.sessionId,
+    token: input.token,
+    exp: String(input.expiresAt.getTime()),
+  });
+
+  return `${baseUrl}/handshake?${params.toString()}`;
 }
 
 export async function getVenueById(id: string) {

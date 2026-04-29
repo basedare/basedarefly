@@ -11,6 +11,7 @@ import {
   validateVenueHandshakeToken,
 } from '@/lib/venues';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 const VenueCheckInSchema = z.object({
   venueId: z.string().min(1),
@@ -37,6 +38,10 @@ function getUtcDayWindow(now: Date) {
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 1);
   return { start, end };
+}
+
+function getVenueCheckInAuthResource(venueId: string, sessionId: string) {
+  return `venue:${venueId}:session:${sessionId}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -74,22 +79,25 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      const authHeader = request.headers.get('authorization');
-      const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-      if (session?.token && (!bearerToken || bearerToken !== session.token)) {
+      const requestedWallet =
+        parsed.data.walletAddress ??
+        session?.walletAddress ??
+        session?.user?.walletAddress ??
+        null;
+      const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+        walletAddress: requestedWallet,
+        action: 'venue-check-in',
+        resource: getVenueCheckInAuthResource(parsed.data.venueId, parsed.data.sessionId),
+      });
+
+      if (!authorizedWallet) {
         return NextResponse.json(
-          { success: false, error: 'Invalid session token' },
+          { success: false, error: 'Wallet authorization required. Connect and sign the venue check-in request.' },
           { status: 401 }
         );
       }
 
-      walletAddress = (session?.walletAddress ?? session?.user?.walletAddress ?? '').toLowerCase();
-      if (!walletAddress || !isAddress(walletAddress)) {
-        return NextResponse.json(
-          { success: false, error: 'Wallet session is missing. Reconnect and sign in again.' },
-          { status: 401 }
-        );
-      }
+      walletAddress = authorizedWallet;
     }
 
     const [venue, handshake] = await Promise.all([
