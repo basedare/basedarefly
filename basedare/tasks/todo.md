@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Turn venue logbooks into richer proof/reward timelines that show both approved marks and completed dare moments.
+- Goal: Let users leave verified place marks directly from public venue pages instead of forcing the action through the map sheet.
 
 ### Plan
-- [x] Add typed venue timeline moments to the venue detail payload.
-- [x] Query completed, paid, and payout-queued venue dares alongside approved marks.
-- [x] Replace the venue logbook with a mixed proof/reward timeline that links completed dare moments back to their dare page.
+- [x] Reuse the existing `TagPlaceButton` composer with a configurable label.
+- [x] Add a primary `Leave mark` CTA to the venue hero next-move card.
+- [x] Add a `Leave first mark` CTA to the empty venue logbook state.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Venue logbooks now read more like place history: marks, rewards, proof media, and completed challenge links in one feed.
-- Follow-ups: Next venue ROI is adding lightweight timeline filters once enough proof/reward density exists.
+- Outcome: Production build and static safety pass. Venue pages now expose the core place-memory action directly.
+- Follow-ups: Next venue ROI is making successful mark submissions refresh the public venue timeline without a full page reload.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

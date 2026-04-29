@@ -14,6 +14,7 @@ import {
 } from '@/lib/venue-launch';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
+import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 
 const raisedPanelClass =
@@ -24,6 +25,9 @@ const softCardClass =
 
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+const venueMarkButtonClass =
+  'inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full border border-cyan-300/28 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.16),transparent_34%),linear-gradient(180deg,rgba(34,211,238,0.18)_0%,rgba(8,13,22,0.94)_100%)] px-4 py-3 text-[0.78rem] font-black uppercase tracking-[0.12em] text-cyan-50 shadow-[0_16px_30px_rgba(0,0,0,0.28),0_0_24px_rgba(34,211,238,0.10),inset_0_1px_0_rgba(255,255,255,0.13),inset_0_-12px_18px_rgba(0,0,0,0.26)] transition hover:-translate-y-[1px] hover:border-cyan-200/42 hover:bg-cyan-400/[0.16] touch-manipulation';
 
 function getVenueActivationState(dare: {
   streamerHandle: string | null;
@@ -290,11 +294,22 @@ export default async function VenueDetailPage(
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Fund a challenge here</h2>
+                    <h2 className="mt-2 text-2xl font-black text-white">Leave a mark here</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Challenges can run before a venue is activated. Activation is the premium visibility layer.
+                      Verified marks are the fastest way to make this place feel alive. Funded challenges can stack on top.
                     </p>
                     <div className="mt-5 grid gap-2">
+                      <TagPlaceButton
+                        placeId={venue.id}
+                        placeName={venue.name}
+                        latitude={venue.latitude}
+                        longitude={venue.longitude}
+                        address={venue.address}
+                        city={venue.city}
+                        country={venue.country}
+                        buttonLabel="Leave mark"
+                        buttonClassName={venueMarkButtonClass}
+                      />
                       <SquircleLink
                         href={fundChallengeHref}
                         label="Fund dare"
@@ -1151,6 +1166,19 @@ export default async function VenueDetailPage(
                         No verified marks yet. The first approved tag here will start the place-memory timeline.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="w-full max-w-xs">
+                          <TagPlaceButton
+                            placeId={venue.id}
+                            placeName={venue.name}
+                            latitude={venue.latitude}
+                            longitude={venue.longitude}
+                            address={venue.address}
+                            city={venue.city}
+                            country={venue.country}
+                            buttonLabel="Leave first mark"
+                            buttonClassName={venueMarkButtonClass}
+                          />
+                        </div>
                         <SquircleLink
                           href={fundChallengeHref}
                           label="Start dare"

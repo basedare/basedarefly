@@ -24,6 +24,7 @@ type TagPlaceButtonProps = {
   externalPlaceId?: string | null;
   buttonClassName?: string;
   buttonVariant?: 'default' | 'jelly';
+  buttonLabel?: string;
   onPlaceResolved?: (place: {
     id: string;
     slug: string;
@@ -79,6 +80,7 @@ export default function TagPlaceButton({
   externalPlaceId,
   buttonClassName,
   buttonVariant = 'default',
+  buttonLabel = 'Mark',
   onPlaceResolved,
   onTagSubmitted,
 }: TagPlaceButtonProps) {
@@ -404,7 +406,7 @@ export default function TagPlaceButton({
       {buttonVariant === 'jelly' ? (
         <SquircleButton
           tone="teal"
-          label="Mark"
+          label={buttonLabel}
           fullWidth
           height={42}
           onClick={openComposer}
@@ -412,7 +414,7 @@ export default function TagPlaceButton({
         >
           <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-white sm:text-[0.82rem]">
             <Sparkles className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
-            Mark
+            {buttonLabel}
           </span>
         </SquircleButton>
       ) : (
@@ -423,7 +425,7 @@ export default function TagPlaceButton({
         >
           <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
           <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
-            Mark
+            {buttonLabel}
           </span>
         </button>
       )}
