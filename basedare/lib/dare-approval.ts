@@ -17,6 +17,7 @@ import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { buildCreatorHandleVariants } from '@/lib/creator-stats';
+import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
@@ -442,13 +443,9 @@ async function markDarePendingPayout(
 ) {
   const existingDare = await prisma.dare.findUnique({
     where: { id: dareId },
-    select: {
-      requireSentinel: true,
-      sentinelVerified: true,
-    },
   });
 
-  await prisma.dare.update({
+  const queuedDare = await prisma.dare.update({
     where: { id: dareId },
     data: {
       status: 'PENDING_PAYOUT',
@@ -457,6 +454,18 @@ async function markDarePendingPayout(
       proofHash: input.proofHash ?? undefined,
       manualReviewNeeded: false,
       sentinelVerified: existingDare?.requireSentinel ? true : existingDare?.sentinelVerified,
+    },
+  });
+
+  await recordDareFounderEventSafe({
+    eventType: 'payout_queued',
+    source: 'dare-approval',
+    dare: queuedDare,
+    status: 'PENDING_PAYOUT',
+    metadata: {
+      sourceContext: 'approve-dare-with-payout',
+      verifyConfidence: input.verifyConfidence ?? null,
+      proofHash: input.proofHash ?? null,
     },
   });
 }
@@ -544,6 +553,20 @@ export async function finalizeVerifiedDare(
     }
 
     return nextDare;
+  });
+
+  await recordDareFounderEventSafe({
+    eventType: 'dare_settled',
+    source: input.sourceContext,
+    dare: updatedDare,
+    status: 'VERIFIED',
+    metadata: {
+      verifyTxHash: input.verifyTxHash ?? null,
+      verifyConfidence: input.verifyConfidence ?? null,
+      proofHash,
+      sentinel: updatedDare.requireSentinel,
+    },
+    occurredAt: verifiedAt,
   });
 
   alertVerification({

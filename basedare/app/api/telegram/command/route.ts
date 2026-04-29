@@ -7,11 +7,11 @@ import {
   reviewTelegramPlaceTag,
   searchTelegramPlaces,
 } from '@/lib/telegram-place-memory';
+import { forbiddenTelegramAdminResponse, hasValidTelegramAdminSecret } from '@/lib/telegram-admin-auth';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
-const TELEGRAM_ADMIN_SECRET = process.env.TELEGRAM_ADMIN_SECRET;
 
 async function sendMessage(text: string) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) return;
@@ -32,31 +32,8 @@ async function sendMessage(text: string) {
   }
 }
 
-function hasValidTelegramAdminSecret(req: NextRequest): boolean {
-  if (!TELEGRAM_ADMIN_SECRET || TELEGRAM_ADMIN_SECRET.length < 32) {
-    return false;
-  }
-
-  const authHeader = req.headers.get('authorization');
-  const bearerToken = authHeader?.startsWith('Bearer ')
-    ? authHeader.slice('Bearer '.length).trim()
-    : null;
-  const headerSecret = req.headers.get('x-telegram-admin-secret');
-  const candidate = bearerToken || headerSecret;
-
-  if (!candidate || candidate.length !== TELEGRAM_ADMIN_SECRET.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < candidate.length; i++) {
-    result |= candidate.charCodeAt(i) ^ TELEGRAM_ADMIN_SECRET.charCodeAt(i);
-  }
-  return result === 0;
-}
-
 function forbiddenResponse() {
-  return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  return forbiddenTelegramAdminResponse();
 }
 
 function methodNotAllowedResponse() {

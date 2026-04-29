@@ -44,6 +44,7 @@ ALTER TABLE "PlaceTag"                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueCheckIn"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueMemory"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueQrSession"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "FounderEvent"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VoterPoints"              ENABLE ROW LEVEL SECURITY;
@@ -158,6 +159,11 @@ DROP POLICY IF EXISTS "service_role_all_VenueQrSession" ON "VenueQrSession";
 CREATE POLICY "service_role_all_VenueQrSession" ON "VenueQrSession"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- FounderEvent
+DROP POLICY IF EXISTS "service_role_all_FounderEvent" ON "FounderEvent";
+CREATE POLICY "service_role_all_FounderEvent" ON "FounderEvent"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- Comment
 DROP POLICY IF EXISTS "service_role_all_Comment" ON "Comment";
 CREATE POLICY "service_role_all_Comment" ON "Comment"
@@ -229,7 +235,7 @@ BEGIN
     'User', 'Dare', 'Referral', 'StreamerTag', 'Brand', 'Campaign',
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
     'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
-    'VenueMemory', 'VenueQrSession', 'Comment', 'Vote', 'VoterPoints',
+    'VenueMemory', 'VenueQrSession', 'FounderEvent', 'Comment', 'Vote', 'VoterPoints',
     'Notification', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
     'AppSettings', 'WebPushSubscription', 'WebPushDelivery', '_prisma_migrations'
   ]

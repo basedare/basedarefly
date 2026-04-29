@@ -11,6 +11,7 @@ import { alertError, alertSentinelReviewRequired, alertVerification } from '@/li
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { recordDareFounderEventSafe, type FounderDareEventLike } from '@/lib/founder-events';
 import { createWalletNotification } from '@/lib/notifications';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
@@ -330,7 +331,7 @@ async function markProofPendingPayoutFallback({
   proofVideoUrl,
 }: {
   dareId: string;
-  dare: {
+  dare: FounderDareEventLike & {
     requireSentinel?: boolean | null;
     sentinelVerified?: boolean | null;
     videoUrl?: string | null;
@@ -341,7 +342,7 @@ async function markProofPendingPayoutFallback({
   };
   proofVideoUrl?: string | null;
 }) {
-  await prisma.dare.update({
+  const queuedDare = await prisma.dare.update({
     where: { id: dareId },
     data: {
       status: 'PENDING_PAYOUT',
@@ -350,6 +351,18 @@ async function markProofPendingPayoutFallback({
       proofHash: verification.proofHash,
       manualReviewNeeded: false,
       sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified ?? false,
+    },
+  });
+
+  await recordDareFounderEventSafe({
+    eventType: 'payout_queued',
+    source: 'verify-proof',
+    dare: queuedDare,
+    status: 'PENDING_PAYOUT',
+    metadata: {
+      confidence: verification.confidence,
+      proofHash: verification.proofHash,
+      fallback: true,
     },
   });
 }
@@ -524,7 +537,7 @@ export async function POST(req: NextRequest) {
         : 'High-value bounty requires manual verification';
 
       // Update dare with proof info, set to PENDING_REVIEW status
-      await prisma.dare.update({
+      const queuedDare = await prisma.dare.update({
         where: { id: dareId },
         data: {
           status: 'PENDING_REVIEW',
@@ -535,6 +548,21 @@ export async function POST(req: NextRequest) {
           appealStatus: 'PENDING', // Use appeal system for manual review
           appealReason: reviewReason,
           appealedAt: new Date(),
+        },
+      });
+
+      await recordDareFounderEventSafe({
+        eventType: 'proof_submitted',
+        source: 'verify-proof',
+        dare: queuedDare,
+        status: 'PENDING_REVIEW',
+        actor: authorizedWallet,
+        metadata: {
+          confidence: verification.confidence,
+          proofHash: verification.proofHash,
+          reason: verification.reason,
+          sentinelReviewRequested,
+          manualReview: true,
         },
       });
 
@@ -606,6 +634,20 @@ export async function POST(req: NextRequest) {
       let blockNumber: string | null = null;
       const completedAt = new Date();
       const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
+
+      await recordDareFounderEventSafe({
+        eventType: 'proof_submitted',
+        source: 'verify-proof',
+        dare,
+        actor: authorizedWallet,
+        metadata: {
+          confidence: verification.confidence,
+          proofHash: verification.proofHash,
+          reason: verification.reason,
+          autoApproved: true,
+          proofMedia,
+        },
+      });
 
       // Calculate fee splits
       const totalBounty = dare.bounty;
@@ -774,7 +816,7 @@ export async function POST(req: NextRequest) {
         mockSunderReputation(dare.streamerHandle);
       }
 
-      await prisma.dare.update({
+      const failedDare = await prisma.dare.update({
         where: { id: dareId },
         data: {
           status: 'FAILED',
@@ -788,6 +830,19 @@ export async function POST(req: NextRequest) {
       await syncLinkedCampaignForDareState({
         dareId,
         status: 'FAILED',
+      });
+
+      await recordDareFounderEventSafe({
+        eventType: 'dare_failed',
+        source: 'verify-proof',
+        dare: failedDare,
+        status: 'FAILED',
+        actor: authorizedWallet,
+        metadata: {
+          confidence: verification.confidence,
+          proofHash: verification.proofHash,
+          reason: verification.reason,
+        },
       });
 
       // Notify Creator of Failure

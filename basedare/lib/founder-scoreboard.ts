@@ -1,6 +1,11 @@
 import 'server-only';
 
 import { FEE_CONFIG } from '@/lib/fee-splitter';
+import {
+  founderLedgerDedupeKey,
+  isFounderLedgerEventType,
+  isMissingFounderEventStorage,
+} from '@/lib/founder-events';
 import { prisma } from '@/lib/prisma';
 import type {
   FounderLedgerEvent,
@@ -64,6 +69,25 @@ type DareLedgerRow = {
   linkedCampaign: {
     id: string;
     title: string;
+  } | null;
+};
+
+type FounderEventLedgerRow = {
+  id: string;
+  eventType: string;
+  subjectId: string | null;
+  dedupeKey: string;
+  title: string | null;
+  amount: number | null;
+  status: string | null;
+  actor: string | null;
+  href: string | null;
+  venueSlug: string | null;
+  occurredAt: Date;
+  venue: {
+    name: string;
+    slug: string;
+    city: string | null;
   } | null;
 };
 
@@ -146,6 +170,111 @@ function eventTone(type: FounderLedgerEventType): FounderScoreboardTone {
   }
   if (type === 'proof_submitted' || type === 'dare_funded') return 'active';
   return 'neutral';
+}
+
+function durableEventDetail(type: FounderLedgerEventType) {
+  switch (type) {
+    case 'dare_created':
+      return 'Dare creation was captured by the founder event ledger.';
+    case 'dare_funded':
+      return 'Funding cleared and the dare moved past funding state.';
+    case 'proof_submitted':
+      return 'Proof submission was captured for review and settlement tracking.';
+    case 'dare_settled':
+      return 'Dare settlement was captured by the founder event ledger.';
+    case 'payout_queued':
+      return 'Proof cleared, but settlement is queued for operator follow-up.';
+    case 'dare_refunded':
+      return 'Refunded volume is not revenue and should be treated as friction.';
+    case 'dare_failed':
+      return 'Failed proof or funding should be reviewed for avoidable friction.';
+    case 'campaign_slot_paid':
+      return 'Campaign slot payout was captured by the founder event ledger.';
+    case 'venue_check_in':
+      return 'Venue check-in was captured as place-utility proof.';
+    case 'place_tag_submitted':
+      return 'Place-memory submission was captured by the founder event ledger.';
+  }
+}
+
+function buildDurableLedgerEvent(row: FounderEventLedgerRow): FounderLedgerEvent | null {
+  if (!isFounderLedgerEventType(row.eventType)) {
+    return null;
+  }
+
+  const type = row.eventType;
+  const fallbackId = row.subjectId ? founderLedgerDedupeKey(type, row.subjectId) : `founder-event-${row.id}`;
+  const venue = row.venue ?? (row.venueSlug
+    ? {
+        name: row.title ?? row.venueSlug,
+        slug: row.venueSlug,
+        city: null,
+      }
+    : null);
+
+  return event({
+    id: row.dedupeKey || fallbackId,
+    type,
+    label: eventLabel(type),
+    title: row.title ?? eventLabel(type),
+    occurredAt: row.occurredAt.toISOString(),
+    amount: row.amount,
+    detail: durableEventDetail(type),
+    href: row.href ?? (venue ? `/venues/${venue.slug}` : '/admin'),
+    status: row.status,
+    actor: row.actor,
+    venue,
+    tone: eventTone(type),
+  });
+}
+
+function dedupeLedgerEvents(events: FounderLedgerEvent[]) {
+  const seen = new Set<string>();
+  return events.filter((ledgerEvent) => {
+    if (seen.has(ledgerEvent.id)) return false;
+    seen.add(ledgerEvent.id);
+    return true;
+  });
+}
+
+async function fetchFounderEventLedgerRows(periodStart: Date, ledgerLimit: number): Promise<FounderEventLedgerRow[]> {
+  try {
+    return await prisma.founderEvent.findMany({
+      where: {
+        occurredAt: { gte: periodStart },
+      },
+      orderBy: [{ occurredAt: 'desc' }],
+      take: Math.max(ledgerLimit * 3, 80),
+      select: {
+        id: true,
+        eventType: true,
+        subjectId: true,
+        dedupeKey: true,
+        title: true,
+        amount: true,
+        status: true,
+        actor: true,
+        href: true,
+        venueSlug: true,
+        occurredAt: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    if (isMissingFounderEventStorage(error)) {
+      console.warn('[FOUNDER_SCOREBOARD] FounderEvent storage unavailable; using synthesized ledger only');
+      return [];
+    }
+
+    console.warn('[FOUNDER_SCOREBOARD] Durable ledger query failed; using synthesized ledger only:', error);
+    return [];
+  }
 }
 
 function buildDareLedgerEvents(dare: DareLedgerRow, periodStart: Date): FounderLedgerEvent[] {
@@ -536,6 +665,7 @@ export async function buildFounderScoreboardReport(
     placeTagRows,
     venueLeadRows,
     creatorTagRows,
+    founderEventRows,
   ] = await Promise.all([
     prisma.dare.findMany({
       where: {
@@ -698,6 +828,7 @@ export async function buildFounderScoreboardReport(
         createdAt: true,
       },
     }),
+    fetchFounderEventLedgerRows(periodStart, ledgerLimit),
   ]);
 
   const createdDares = dareRows.filter((dare) => dare.createdAt >= periodStart);
@@ -868,7 +999,10 @@ export async function buildFounderScoreboardReport(
     }),
   ];
 
-  const ledger = [
+  const ledger = dedupeLedgerEvents([
+    ...founderEventRows
+      .map(buildDurableLedgerEvent)
+      .filter((ledgerEvent): ledgerEvent is FounderLedgerEvent => Boolean(ledgerEvent)),
     ...recentDares.flatMap((dare) => buildDareLedgerEvents(dare, periodStart)),
     ...recentCheckIns.map((checkIn) =>
       event({
@@ -918,7 +1052,7 @@ export async function buildFounderScoreboardReport(
         tone: eventTone('campaign_slot_paid'),
       })
     ),
-  ]
+  ])
     .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
     .slice(0, ledgerLimit);
 

@@ -17,6 +17,7 @@ require('dotenv').config({ path: '.env.local' });
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
+const TELEGRAM_ADMIN_SECRET = process.env.TELEGRAM_ADMIN_SECRET;
 const API_BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 if (!TELEGRAM_BOT_TOKEN) {
@@ -26,6 +27,11 @@ if (!TELEGRAM_BOT_TOKEN) {
 
 if (!TELEGRAM_ADMIN_CHAT_ID) {
   console.error('❌ TELEGRAM_ADMIN_CHAT_ID not set in .env.local');
+  process.exit(1);
+}
+
+if (!TELEGRAM_ADMIN_SECRET || TELEGRAM_ADMIN_SECRET.length < 32) {
+  console.error('❌ TELEGRAM_ADMIN_SECRET must be set in .env.local and at least 32 characters');
   process.exit(1);
 }
 
@@ -63,7 +69,11 @@ async function callCommandAPI(cmd, params = {}) {
   });
 
   try {
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${TELEGRAM_ADMIN_SECRET}`,
+      },
+    });
     return await res.json();
   } catch (err) {
     console.error(`API call failed: ${err.message}`);
@@ -79,7 +89,11 @@ async function callQueryAPI(query) {
   url.searchParams.set('q', query);
 
   try {
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${TELEGRAM_ADMIN_SECRET}`,
+      },
+    });
     return await res.json();
   } catch (err) {
     console.error(`Query API failed: ${err.message}`);

@@ -23,6 +23,16 @@ const sensitiveRoutes = [
     file: 'app/api/telegram/test/route.ts',
     required: ['authorizeAdminRequest(request)'],
   },
+  {
+    label: 'Telegram command endpoint',
+    file: 'app/api/telegram/command/route.ts',
+    required: ['hasValidTelegramAdminSecret(req)'],
+  },
+  {
+    label: 'Telegram query endpoint',
+    file: 'app/api/telegram/query/route.ts',
+    required: ['hasValidTelegramAdminSecret(req)'],
+  },
 ];
 
 const failures = [];

@@ -17,6 +17,7 @@
   "VenueCheckIn",
   "VenueMemory",
   "VenueQrSession",
+  "FounderEvent",
   "Comment",
   "Vote",
   "VoterPoints",

@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { alertError } from '@/lib/telegram';
 
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
       try {
         // Simulation mode - just update status
         if (!isContractDeployed || FORCE_SIMULATION || dare.isSimulated) {
-          await prisma.dare.update({
+          const refundedDare = await prisma.dare.update({
             where: { id: dare.id },
             data: {
               status: 'REFUNDED',
@@ -102,6 +103,16 @@ export async function POST(request: NextRequest) {
           await syncLinkedCampaignForDareState({
             dareId: dare.id,
             status: 'REFUNDED',
+          });
+          await recordDareFounderEventSafe({
+            eventType: 'dare_refunded',
+            source: 'refund-expired',
+            dare: refundedDare,
+            status: 'REFUNDED',
+            metadata: {
+              simulated: true,
+              claimDeadline: dare.claimDeadline?.toISOString() ?? null,
+            },
           });
 
           results.push({
@@ -117,16 +128,12 @@ export async function POST(request: NextRequest) {
         const { publicClient, walletClient } = getServerClients();
 
         if (!dare.onChainDareId) {
-          console.warn(`[REFUND] No onChainDareId for dare ${dare.id} — skipping on-chain refund`);
-          await prisma.dare.update({
-            where: { id: dare.id },
-            data: { status: 'REFUNDED' },
-          });
-          await syncLinkedCampaignForDareState({
+          console.error(`[REFUND] Live dare ${dare.id} is missing onChainDareId — not marking refunded`);
+          results.push({
             dareId: dare.id,
-            status: 'REFUNDED',
+            status: 'failed',
+            error: 'Live refund missing onChainDareId',
           });
-          results.push({ dareId: dare.id, status: 'simulated' });
           continue;
         }
         const bountyId = BigInt(dare.onChainDareId);
@@ -146,7 +153,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Update database
-        await prisma.dare.update({
+        const refundedDare = await prisma.dare.update({
           where: { id: dare.id },
           data: {
             status: 'REFUNDED',
@@ -155,6 +162,18 @@ export async function POST(request: NextRequest) {
         await syncLinkedCampaignForDareState({
           dareId: dare.id,
           status: 'REFUNDED',
+        });
+        await recordDareFounderEventSafe({
+          eventType: 'dare_refunded',
+          source: 'refund-expired',
+          dare: refundedDare,
+          status: 'REFUNDED',
+          metadata: {
+            simulated: false,
+            txHash,
+            onChainDareId: dare.onChainDareId,
+            claimDeadline: dare.claimDeadline?.toISOString() ?? null,
+          },
         });
 
         results.push({
@@ -179,13 +198,25 @@ export async function POST(request: NextRequest) {
             });
 
             if (settlement.type === 'REFUND') {
-              await prisma.dare.update({
+              const refundedDare = await prisma.dare.update({
                 where: { id: dare.id },
                 data: { status: 'REFUNDED' },
               });
               await syncLinkedCampaignForDareState({
                 dareId: dare.id,
                 status: 'REFUNDED',
+              });
+              await recordDareFounderEventSafe({
+                eventType: 'dare_refunded',
+                source: 'refund-expired-reconcile',
+                dare: refundedDare,
+                status: 'REFUNDED',
+                metadata: {
+                  simulated: false,
+                  txHash: settlement.txHash,
+                  onChainDareId: dare.onChainDareId,
+                  reconciled: true,
+                },
               });
 
               results.push({

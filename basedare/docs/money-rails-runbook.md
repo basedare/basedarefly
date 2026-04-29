@@ -1,6 +1,6 @@
 # BaseDare Money Rails Runbook
 
-Updated: 2026-04-25
+Updated: 2026-04-29
 
 ## Purpose
 
@@ -62,6 +62,9 @@ The workflow can also be run manually with `workflow_dispatch` for `all`, `retry
 - If `CRON_SECRET` is missing, cron routes reject requests.
 - If the referee hot wallet is missing, on-chain settlement routes fail closed.
 - If Telegram env vars are missing, alerts degrade to server logs only.
+- If a live payout or refund is missing `onChainDareId`, automation must fail loud and alert instead of marking the dare paid/refunded.
+- Simulated payout retries are allowed to finalize without a configured contract, but live payout retries require a valid bounty contract address and referee wallet.
+- Telegram command/query APIs require `TELEGRAM_ADMIN_SECRET`; the polling bot must send it as a bearer token.
 
 ## Pre-Deploy Checks
 

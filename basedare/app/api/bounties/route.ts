@@ -21,6 +21,7 @@ import { getAuthorizedBountyWallet } from '@/lib/bounty-create-auth-server';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
+import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { sendNearbyDarePush } from '@/lib/web-push';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import {
@@ -547,6 +548,40 @@ export async function POST(request: NextRequest) {
 
       console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
 
+      await recordDareFounderEventSafe({
+        eventType: 'dare_created',
+        source: 'bounty-create',
+        dare: dbDare,
+        status: dareStatus,
+        metadata: {
+          simulated: true,
+          missionMode: normalizedMissionMode,
+          missionTag: normalizedMissionTag,
+          isOpenBounty,
+          tagVerified,
+          tagSimulated,
+          requireSentinel: effectiveRequireSentinel,
+          creationContext: creationContext ?? null,
+        },
+      });
+
+      await recordDareFounderEventSafe({
+        eventType: 'dare_funded',
+        source: 'bounty-create',
+        dare: dbDare,
+        status: dareStatus,
+        metadata: {
+          simulated: true,
+          missionMode: normalizedMissionMode,
+          missionTag: normalizedMissionTag,
+          isOpenBounty,
+          tagVerified,
+          tagSimulated,
+          requireSentinel: effectiveRequireSentinel,
+          creationContext: creationContext ?? null,
+        },
+      });
+
       // Send Telegram alert (fire and forget - don't block response)
       alertNewDare({
         dareId: dbDare.id,
@@ -747,6 +782,23 @@ export async function POST(request: NextRequest) {
     });
     precreatedDareId = dbDarePreCreate.id;
 
+    await recordDareFounderEventSafe({
+      eventType: 'dare_created',
+      source: 'bounty-create',
+      dare: dbDarePreCreate,
+      status: 'FUNDING',
+      metadata: {
+        simulated: false,
+        missionMode: normalizedMissionMode,
+        missionTag: normalizedMissionTag,
+        isOpenBounty,
+        tagVerified,
+        tagSimulated,
+        requireSentinel: effectiveRequireSentinel,
+        creationContext: creationContext ?? null,
+      },
+    });
+
     const finalDareId = generateOnChainDareId(dbDarePreCreate.id);
     precreatedOnChainDareId = finalDareId.toString();
 
@@ -805,6 +857,38 @@ export async function POST(request: NextRequest) {
     console.log(
       `[AUDIT] Bounty staked - dbId: ${dbDare.id}, dareId: ${finalDareId}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, amount: ${amount} USDC, status: ${dareStatus}, txHash: ${txHash}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`
     );
+
+    await recordDareFounderEventSafe({
+      eventType: 'dare_created',
+      source: 'bounty-create',
+      dare: dbDare,
+      status: dareStatus,
+      metadata: {
+        simulated: false,
+        missionMode: normalizedMissionMode,
+        missionTag: normalizedMissionTag,
+        isOpenBounty,
+        tagVerified,
+        tagSimulated,
+        requireSentinel: effectiveRequireSentinel,
+        creationContext: creationContext ?? null,
+        txHash,
+        onChainDareId: finalDareId.toString(),
+      },
+    });
+
+    await recordDareFounderEventSafe({
+      eventType: receipt.status === 'success' ? 'dare_funded' : 'dare_failed',
+      source: 'bounty-create',
+      dare: dbDare,
+      status: dareStatus,
+      metadata: {
+        simulated: false,
+        receiptStatus: receipt.status,
+        txHash,
+        onChainDareId: finalDareId.toString(),
+      },
+    });
 
     // Send Telegram alert (fire and forget - don't block response)
     alertNewDare({
@@ -910,10 +994,21 @@ export async function POST(request: NextRequest) {
 
     if (precreatedDareId) {
       try {
-        await prisma.dare.update({
+        const failedDare = await prisma.dare.update({
           where: { id: precreatedDareId },
           data: {
             status: 'FAILED',
+            txHash: pendingTxHash,
+            onChainDareId: precreatedOnChainDareId,
+          },
+        });
+        await recordDareFounderEventSafe({
+          eventType: 'dare_failed',
+          source: 'bounty-create',
+          dare: failedDare,
+          status: 'FAILED',
+          metadata: {
+            reason: message,
             txHash: pendingTxHash,
             onChainDareId: precreatedOnChainDareId,
           },

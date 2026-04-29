@@ -163,6 +163,7 @@ model Venue {
   qrSessions          VenueQrSession[]
   reportEvents        VenueReportEvent[]
   reportLeads         VenueReportLead[]
+  founderEvents       FounderEvent[]
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -170,6 +171,32 @@ model Venue {
   @@index([city, status])
   @@index([claimRequestStatus])
   @@index([claimedBy])
+}
+
+model FounderEvent {
+  id           String   @id @default(cuid())
+  eventType    String
+  source       String   @default("server")
+  subjectType  String?
+  subjectId    String?
+  dedupeKey    String   @unique
+  title        String?
+  amount       Float?
+  status       String?
+  actor        String?
+  href         String?
+  venueId      String?
+  venueSlug    String?
+  metadataJson Json?
+  occurredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  venue        Venue?   @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, occurredAt])
+  @@index([subjectType, subjectId])
+  @@index([venueId, occurredAt])
+  @@index([occurredAt])
 }
 
 model VenueReportEvent {

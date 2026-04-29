@@ -5,6 +5,7 @@ import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
+import { founderLedgerDedupeKey, recordFounderEventSafe } from '@/lib/founder-events';
 import {
   getVenueById,
   hashHandshakeToken,
@@ -282,6 +283,28 @@ export async function POST(request: NextRequest) {
       });
 
       return { checkIn, memory };
+    });
+
+    await recordFounderEventSafe({
+      eventType: 'venue_check_in',
+      source: 'venue-check-in',
+      subjectType: 'VenueCheckIn',
+      subjectId: result.checkIn.id,
+      dedupeKey: founderLedgerDedupeKey('venue_check_in', result.checkIn.id),
+      title: venue.name,
+      status: 'CONFIRMED',
+      actor: parsed.data.tag?.trim() || walletAddress,
+      href: `/venues/${venue.slug}`,
+      venueId: venue.id,
+      venueSlug: venue.slug,
+      metadata: {
+        proofLevel,
+        geoDistanceMeters,
+        dareId: parsed.data.dareId ?? null,
+        source: 'VENUE_QR',
+        internalAuthorized: isInternalAuthorized,
+      },
+      occurredAt: result.checkIn.scannedAt,
     });
 
     return NextResponse.json({

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { forbiddenTelegramAdminResponse, hasValidTelegramAdminSecret } from '@/lib/telegram-admin-auth';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 
 async function sendMessage(text: string) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) return;
@@ -197,6 +197,10 @@ async function executeQuery(intent: QueryIntent): Promise<string> {
  * GET /api/telegram/query?q=show me dares over $100
  */
 export async function GET(req: NextRequest) {
+  if (!hasValidTelegramAdminSecret(req)) {
+    return forbiddenTelegramAdminResponse();
+  }
+
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q');
 

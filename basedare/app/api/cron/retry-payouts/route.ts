@@ -8,6 +8,7 @@ import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bount
 import { alertError } from '@/lib/telegram';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { getRefereeAccount } from '@/lib/referee-wallet';
+import { isBountySimulationMode } from '@/lib/bounty-mode';
 
 // Network config
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -15,10 +16,10 @@ const activeChain = IS_MAINNET ? base : baseSepolia;
 const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
+const FORCE_SIMULATION = isBountySimulationMode();
 
 // Safety limits
 const MAX_RETRIES_PER_RUN = 5;
-const MAX_DARE_AGE_HOURS = 72;
 const REFEREE_MAX_BALANCE_ETH = '0.05';
 const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
@@ -91,19 +92,9 @@ async function handleRetryPayouts(req: NextRequest) {
   if (authError) return authError;
 
   try {
-    if (!isAddress(BOUNTY_CONTRACT_ADDRESS)) {
-      return NextResponse.json(
-        { success: false, error: 'Bounty contract not configured' },
-        { status: 503 }
-      );
-    }
-
-    const cutoff = new Date(Date.now() - MAX_DARE_AGE_HOURS * 60 * 60 * 1000);
-
     const stuckDares = await prisma.dare.findMany({
       where: {
         status: 'PENDING_PAYOUT',
-        updatedAt: { gte: cutoff },
       },
       orderBy: { updatedAt: 'asc' },
       take: MAX_RETRIES_PER_RUN,
@@ -118,6 +109,22 @@ async function handleRetryPayouts(req: NextRequest) {
 
     console.log(`[CRON] Found ${stuckDares.length} dares in PENDING_PAYOUT`);
 
+    const liveDares = stuckDares.filter((dare) => !FORCE_SIMULATION && !dare.isSimulated);
+    const needsChain = liveDares.length > 0;
+
+    if (needsChain && !isAddress(BOUNTY_CONTRACT_ADDRESS)) {
+      await alertError({
+        type: 'CONTRACT_ERROR',
+        error: 'Bounty contract not configured',
+        context: `retry-payouts cron found ${liveDares.length} live payout item(s) but NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS is invalid`,
+      });
+
+      return NextResponse.json(
+        { success: false, error: 'Bounty contract not configured' },
+        { status: 503 }
+      );
+    }
+
     const results: Array<{
       dareId: string;
       status: 'paid' | 'failed' | 'skipped' | 'refunded';
@@ -125,38 +132,35 @@ async function handleRetryPayouts(req: NextRequest) {
       error?: string;
     }> = [];
 
-    const { publicClient, walletClient, account } = getRefereeClient();
-    const balanceCheck = await enforceRefereeBalanceCap(
-      publicClient,
-      account.address,
-      'retry-payouts cron'
-    );
+    const chainClients = needsChain ? getRefereeClient() : null;
 
-    if (!balanceCheck.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Payouts paused: referee hot wallet balance (${balanceCheck.balanceEth} ETH) exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap`,
-          code: 'REFEREE_BALANCE_CAP_EXCEEDED',
-          data: {
-            paused: true,
-            processed: 0,
-            balanceEth: balanceCheck.balanceEth,
-            capEth: REFEREE_MAX_BALANCE_ETH,
-          },
-        },
-        { status: 503 }
+    if (chainClients) {
+      const balanceCheck = await enforceRefereeBalanceCap(
+        chainClients.publicClient,
+        chainClients.account.address,
+        'retry-payouts cron'
       );
+
+      if (!balanceCheck.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Payouts paused: referee hot wallet balance (${balanceCheck.balanceEth} ETH) exceeds ${REFEREE_MAX_BALANCE_ETH} ETH cap`,
+            code: 'REFEREE_BALANCE_CAP_EXCEEDED',
+            data: {
+              paused: true,
+              processed: 0,
+              balanceEth: balanceCheck.balanceEth,
+              capEth: REFEREE_MAX_BALANCE_ETH,
+            },
+          },
+          { status: 503 }
+        );
+      }
     }
 
     for (const dare of stuckDares) {
-      if (!dare.onChainDareId) {
-        console.error(`[CRON] Dare ${dare.id} missing onChainDareId — skipping`);
-        results.push({ dareId: dare.id, status: 'skipped', error: 'Missing onChainDareId' });
-        continue;
-      }
-
-      if (dare.isSimulated) {
+      if (FORCE_SIMULATION || dare.isSimulated) {
         // Simulated dares don't need on-chain payout — just mark verified
         await finalizeVerifiedDare({
           dareId: dare.id,
@@ -171,7 +175,18 @@ async function handleRetryPayouts(req: NextRequest) {
         continue;
       }
 
+      if (!dare.onChainDareId) {
+        console.error(`[CRON] Live dare ${dare.id} missing onChainDareId — payout blocked`);
+        results.push({ dareId: dare.id, status: 'failed', error: 'Live payout missing onChainDareId' });
+        continue;
+      }
+
       try {
+        if (!chainClients) {
+          throw new Error('Chain clients unavailable for live payout retry');
+        }
+
+        const { publicClient, walletClient } = chainClients;
         const onChainDareId = BigInt(dare.onChainDareId);
 
         // Check if bounty still exists on-chain before attempting payout
