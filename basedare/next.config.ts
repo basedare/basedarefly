@@ -1,8 +1,44 @@
+import { existsSync, lstatSync, symlinkSync } from "node:fs";
+import path from "node:path";
 import type { NextConfig } from "next";
+
+const isVercelBuild =
+  process.env.VERCEL === "1" ||
+  Boolean(process.env.VERCEL_ENV) ||
+  Boolean(process.env.NOW_BUILDER);
+const appRoot = process.cwd();
+const isNestedAppRoot = path.basename(appRoot) === "basedare";
+
+function ensureVercelParentAlias(name: string, type: "dir" | "file" = "dir") {
+  const parentPath = path.resolve(appRoot, "..", name);
+  const targetPath = path.resolve(appRoot, name);
+
+  try {
+    if (lstatSync(parentPath, { throwIfNoEntry: false })) {
+      return;
+    }
+
+    const relativeTarget = path.relative(path.dirname(parentPath), targetPath);
+    symlinkSync(relativeTarget, parentPath, type);
+    console.log(`[next-config] Linked parent ${name} to ${relativeTarget} for Vercel output collection`);
+  } catch (error) {
+    console.warn(`[next-config] Could not prepare parent ${name} alias for Vercel`, error);
+  }
+}
+
+if (isVercelBuild && isNestedAppRoot) {
+  ensureVercelParentAlias(".next");
+  ensureVercelParentAlias("node_modules");
+  ensureVercelParentAlias("package.json", "file");
+
+  if (existsSync(path.join(appRoot, ".env.mainnet.example"))) {
+    ensureVercelParentAlias(".env.mainnet.example", "file");
+  }
+}
 
 const nextConfig: NextConfig = {
   turbopack: {},
-  outputFileTracingRoot: process.cwd(),
+  outputFileTracingRoot: appRoot,
   async redirects() {
     return [
       {
