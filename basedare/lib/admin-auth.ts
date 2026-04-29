@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { createHmac } from 'node:crypto';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
@@ -17,13 +18,23 @@ type WalletSession = {
 export type AdminAuthorization =
   | {
       authorized: true;
-      via: 'admin-secret' | 'moderator-session' | 'dev-moderator-header';
+      via: 'admin-secret' | 'admin-session' | 'moderator-session' | 'dev-moderator-header';
       walletAddress: string;
     }
   | {
       authorized: false;
       reason: 'missing-secret' | 'invalid-secret' | 'missing-session' | 'not-moderator' | 'wallet-mismatch';
     };
+
+export const ADMIN_SESSION_COOKIE_NAME = 'bd_admin_session';
+export const ADMIN_SESSION_TTL_SECONDS = 4 * 60 * 60;
+
+type AdminSessionPayload = {
+  v: 1;
+  sub: 'admin';
+  iat: number;
+  exp: number;
+};
 
 function timingSafeEqualStrings(left: string, right: string): boolean {
   if (left.length !== right.length) return false;
@@ -33,6 +44,64 @@ function timingSafeEqualStrings(left: string, right: string): boolean {
     mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
   }
   return mismatch === 0;
+}
+
+function getAdminSecret() {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret || adminSecret.length < 32) return null;
+  return adminSecret;
+}
+
+function getAdminSessionSigningSecret() {
+  const signingSecret = process.env.ADMIN_SESSION_SECRET || process.env.INTERNAL_API_SECRET || process.env.ADMIN_SECRET;
+  if (!signingSecret || signingSecret.length < 32) return null;
+  return signingSecret;
+}
+
+function signAdminSessionPayload(encodedPayload: string) {
+  const signingSecret = getAdminSessionSigningSecret();
+  if (!signingSecret) return null;
+
+  return createHmac('sha256', signingSecret).update(encodedPayload).digest('base64url');
+}
+
+export function isValidAdminSecretCandidate(candidate: string | null | undefined) {
+  const adminSecret = getAdminSecret();
+  if (!adminSecret || !candidate) return false;
+  return timingSafeEqualStrings(candidate, adminSecret);
+}
+
+export function createAdminSessionCookieValue() {
+  const now = Math.floor(Date.now() / 1000);
+  const payload: AdminSessionPayload = {
+    v: 1,
+    sub: 'admin',
+    iat: now,
+    exp: now + ADMIN_SESSION_TTL_SECONDS,
+  };
+  const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const signature = signAdminSessionPayload(encodedPayload);
+  if (!signature) return null;
+
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyAdminSessionCookieValue(value: string | null | undefined) {
+  if (!value) return false;
+
+  const [encodedPayload, signature, extra] = value.split('.');
+  if (!encodedPayload || !signature || extra !== undefined) return false;
+
+  const expectedSignature = signAdminSessionPayload(encodedPayload);
+  if (!expectedSignature || !timingSafeEqualStrings(signature, expectedSignature)) return false;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as Partial<AdminSessionPayload>;
+    const now = Math.floor(Date.now() / 1000);
+    return payload.v === 1 && payload.sub === 'admin' && typeof payload.exp === 'number' && payload.exp > now;
+  } catch {
+    return false;
+  }
 }
 
 function getModeratorWallets() {
@@ -54,16 +123,15 @@ function getSessionWallet(session: WalletSession | null): string | null {
 }
 
 export async function authorizeAdminRequest(request: NextRequest): Promise<AdminAuthorization> {
-  const adminSecret = process.env.ADMIN_SECRET;
   const secretCandidate = request.headers.get('x-admin-secret');
   const moderatorWallets = getModeratorWallets();
 
   if (secretCandidate) {
-    if (!adminSecret || adminSecret.length < 32) {
+    if (!getAdminSecret()) {
       return { authorized: false, reason: 'missing-secret' };
     }
 
-    if (timingSafeEqualStrings(secretCandidate, adminSecret)) {
+    if (isValidAdminSecretCandidate(secretCandidate)) {
       return {
         authorized: true,
         via: 'admin-secret',
@@ -72,6 +140,14 @@ export async function authorizeAdminRequest(request: NextRequest): Promise<Admin
     }
 
     return { authorized: false, reason: 'invalid-secret' };
+  }
+
+  if (verifyAdminSessionCookieValue(request.cookies.get(ADMIN_SESSION_COOKIE_NAME)?.value)) {
+    return {
+      authorized: true,
+      via: 'admin-session',
+      walletAddress: 'admin',
+    };
   }
 
   const walletHeader = request.headers.get('x-moderator-wallet')?.toLowerCase() ?? null;

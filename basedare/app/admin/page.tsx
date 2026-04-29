@@ -590,7 +590,14 @@ export default function AdminPage() {
   const [processingTag, setProcessingTag] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<PendingTag | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
+  const {
+    adminSecret,
+    setAdminSecret,
+    ensureAdminSession,
+    clearAdminSecret,
+    hasAdminSession,
+    hasSessionAdminSecret,
+  } = useSessionAdminSecret();
   const [isTagsAuthorized, setIsTagsAuthorized] = useState(false);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTag[]>([]);
   const [placeTagsLoading, setPlaceTagsLoading] = useState(false);
@@ -651,19 +658,20 @@ export default function AdminPage() {
   const [reportLeadUpdating, setReportLeadUpdating] = useState<string | null>(null);
   const [leadInboxFilter, setLeadInboxFilter] = useState<LeadInboxFilter>('needsOwner');
   const adminSecretTrimmed = adminSecret.trim();
-  const hasAdminAuth = Boolean(address || adminSecretTrimmed);
+  const hasAdminAuth = Boolean(address || hasAdminSession || adminSecretTrimmed);
+  const hasReadyAdminAuth = Boolean(address || hasAdminSession);
   const adminAuthHeaders = useMemo<Record<string, string>>(() => {
     const headers: Record<string, string> = {};
-    if (adminSecretTrimmed) {
-      headers['x-admin-secret'] = adminSecretTrimmed;
-      return headers;
-    }
     if (address) {
       headers['x-moderator-wallet'] = address;
       return headers;
     }
     return headers;
-  }, [address, adminSecretTrimmed]);
+  }, [address]);
+  const ensureAdminAccess = useCallback(async () => {
+    if (address || hasAdminSession) return true;
+    return ensureAdminSession();
+  }, [address, ensureAdminSession, hasAdminSession]);
   const placeTagQueueSummary = useMemo(
     () => derivePlaceTagQueueSummary(pendingPlaceTags),
     [pendingPlaceTags]
@@ -723,6 +731,12 @@ export default function AdminPage() {
       setLoading(true);
       setError(null);
 
+      if (!(await ensureAdminAccess())) {
+        setIsAuthorized(false);
+        setError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/moderate', {
         headers: adminAuthHeaders,
       });
@@ -763,13 +777,15 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [adminAuthHeaders, adminRoute.targetDareId, adminSecretTrimmed, hasAdminAuth]);
+  }, [adminAuthHeaders, adminRoute.targetDareId, adminSecretTrimmed, ensureAdminAccess, hasAdminAuth]);
 
   const fetchAdminSettings = useCallback(async () => {
     if (!hasAdminAuth) return;
 
     try {
       setSettingsLoading(true);
+      if (!(await ensureAdminAccess())) return;
+
       const res = await fetch('/api/admin/settings', {
         headers: adminAuthHeaders,
       });
@@ -793,16 +809,16 @@ export default function AdminPage() {
     } finally {
       setSettingsLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [adminAuthHeaders, ensureAdminAccess, hasAdminAuth]);
 
   useEffect(() => {
-    if (hasAdminAuth) {
+    if (hasReadyAdminAuth) {
       fetchQueue();
       fetchAdminSettings();
     } else {
       setLoading(false);
     }
-  }, [fetchAdminSettings, fetchQueue, hasAdminAuth]);
+  }, [fetchAdminSettings, fetchQueue, hasReadyAdminAuth]);
 
   const handleSentinelToggle = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -1004,16 +1020,20 @@ export default function AdminPage() {
 
   // Fetch pending tags
   const fetchPendingTags = useCallback(async () => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setTagsLoading(true);
     setTagsError(null);
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setIsTagsAuthorized(false);
+        setTagsError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/tags?status=PENDING', {
-        headers: {
-          'x-admin-secret': adminSecret,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1042,20 +1062,25 @@ export default function AdminPage() {
     } finally {
       setTagsLoading(false);
     }
-  }, [adminRoute.targetTagId, adminSecret]);
+  }, [adminAuthHeaders, adminRoute.targetTagId, ensureAdminAccess, hasAdminAuth]);
 
   // Handle tag verification
   const handleTagAction = async (tagId: string, action: 'VERIFY_MANUAL' | 'REJECT_MANUAL') => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setProcessingTag(tagId);
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setTagsError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/tags', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           tagId,
@@ -1083,22 +1108,26 @@ export default function AdminPage() {
 
   // Load tags when tab switches or secret changes
   useEffect(() => {
-    if (activeTab === 'tags' && adminSecret && (!isTagsAuthorized || pendingTags.length === 0)) {
+    if (activeTab === 'tags' && hasReadyAdminAuth && (!isTagsAuthorized || pendingTags.length === 0)) {
       fetchPendingTags();
     }
-  }, [activeTab, adminSecret, isTagsAuthorized, pendingTags.length, fetchPendingTags]);
+  }, [activeTab, hasReadyAdminAuth, isTagsAuthorized, pendingTags.length, fetchPendingTags]);
 
   const fetchPendingPlaceTags = useCallback(async () => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setPlaceTagsLoading(true);
     setPlaceTagsError(null);
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setIsTagsAuthorized(false);
+        setPlaceTagsError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/place-tags?status=PENDING', {
-        headers: {
-          'x-admin-secret': adminSecret,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1126,14 +1155,14 @@ export default function AdminPage() {
     } finally {
       setPlaceTagsLoading(false);
     }
-  }, [adminRoute.targetPlaceTagId, adminSecret]);
+  }, [adminAuthHeaders, adminRoute.targetPlaceTagId, ensureAdminAccess, hasAdminAuth]);
 
   const handlePlaceTagAction = useCallback(async (
     tagId: string,
     action: 'APPROVE' | 'REJECT' | 'FLAG',
     options?: { openNext?: boolean }
   ) => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setProcessingPlaceTag(tagId);
     const openNext = options?.openNext ?? false;
@@ -1146,11 +1175,16 @@ export default function AdminPage() {
     const normalizedNextTag = nextTagCandidate ?? null;
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setPlaceTagsError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/place-tags', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           tagId,
@@ -1173,7 +1207,7 @@ export default function AdminPage() {
     } finally {
       setProcessingPlaceTag(null);
     }
-  }, [adminSecret, pendingPlaceTags, placeTagRejectReason]);
+  }, [adminAuthHeaders, ensureAdminAccess, hasAdminAuth, pendingPlaceTags, placeTagRejectReason]);
 
   const focusPlaceTagRejectReason = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -1303,21 +1337,25 @@ export default function AdminPage() {
   }, [populatePlaceForm, selectedPlaceRecord]);
 
   const fetchPlaces = useCallback(async (query?: string) => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setPlacesLoading(true);
     setPlacesError(null);
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setIsTagsAuthorized(false);
+        setPlacesError('Invalid admin secret');
+        return;
+      }
+
       const url = new URL('/api/admin/places', window.location.origin);
       if (query?.trim()) {
         url.searchParams.set('q', query.trim());
       }
 
       const res = await fetch(url.toString(), {
-        headers: {
-          'x-admin-secret': adminSecret,
-        },
+        headers: adminAuthHeaders,
       });
 
       const data = await res.json();
@@ -1351,20 +1389,25 @@ export default function AdminPage() {
     } finally {
       setPlacesLoading(false);
     }
-  }, [adminRoute.targetPlaceId, adminSecret]);
+  }, [adminAuthHeaders, adminRoute.targetPlaceId, ensureAdminAccess, hasAdminAuth]);
 
   const handleSavePlace = async () => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setSavingPlace(true);
     setPlacesError(null);
 
     try {
+      if (!(await ensureAdminAccess())) {
+        setPlacesError('Invalid admin secret');
+        return;
+      }
+
       const res = await fetch('/api/admin/places', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
+          ...adminAuthHeaders,
         },
         body: JSON.stringify({
           id: placeForm.id || undefined,
@@ -1407,16 +1450,16 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'placeTags' && adminSecret && (!isTagsAuthorized || pendingPlaceTags.length === 0)) {
+    if (activeTab === 'placeTags' && hasReadyAdminAuth && (!isTagsAuthorized || pendingPlaceTags.length === 0)) {
       fetchPendingPlaceTags();
     }
-  }, [activeTab, adminSecret, isTagsAuthorized, pendingPlaceTags.length, fetchPendingPlaceTags]);
+  }, [activeTab, hasReadyAdminAuth, isTagsAuthorized, pendingPlaceTags.length, fetchPendingPlaceTags]);
 
   useEffect(() => {
-    if (activeTab === 'places' && adminSecret && (!isTagsAuthorized || places.length === 0)) {
+    if (activeTab === 'places' && hasReadyAdminAuth && (!isTagsAuthorized || places.length === 0)) {
       fetchPlaces(placesSearchQuery);
     }
-  }, [activeTab, adminSecret, isTagsAuthorized, places.length, placesSearchQuery, fetchPlaces]);
+  }, [activeTab, hasReadyAdminAuth, isTagsAuthorized, places.length, placesSearchQuery, fetchPlaces]);
 
   // Fetch pending claims (uses moderator wallet auth, same as moderation queue)
   const fetchPendingClaims = useCallback(async () => {
@@ -1898,7 +1941,7 @@ export default function AdminPage() {
                 {hasSessionAdminSecret && (
                   <button
                     type="button"
-                    onClick={clearAdminSecret}
+                    onClick={() => void clearAdminSecret()}
                     className="text-yellow-200/80 underline-offset-4 hover:text-yellow-100 hover:underline"
                   >
                     Forget
@@ -2068,9 +2111,11 @@ export default function AdminPage() {
             <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Not Authorized</h3>
             <p className="text-gray-400 text-sm mb-4">
-              {adminSecretTrimmed
-                ? 'The admin secret was not accepted.'
-                : `Your wallet (${address && formatAddress(address)}) is not registered as a moderator.`}
+              {adminSecretTrimmed || hasSessionAdminSecret
+                ? 'The admin secret or admin session was not accepted.'
+                : address
+                  ? `Your wallet (${formatAddress(address)}) is not registered as a moderator.`
+                  : 'Connect a moderator wallet or enter the production admin secret.'}
             </p>
             <p className="text-gray-500 text-xs font-mono">
               Use a signed moderator wallet session or the production ADMIN_SECRET.
@@ -2857,7 +2902,7 @@ export default function AdminPage() {
                   />
                   <button
                     onClick={fetchPendingTags}
-                    disabled={!adminSecret || tagsLoading}
+                    disabled={!hasAdminAuth || tagsLoading}
                     className="w-full py-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-400 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                   >
                     {tagsLoading ? (
@@ -3649,7 +3694,7 @@ export default function AdminPage() {
                   />
                   <button
                     onClick={fetchPendingPlaceTags}
-                    disabled={!adminSecret || placeTagsLoading}
+                    disabled={!hasAdminAuth || placeTagsLoading}
                     className="w-full py-3 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                   >
                     {placeTagsLoading ? (
@@ -4060,7 +4105,7 @@ export default function AdminPage() {
                   />
                   <button
                     onClick={() => fetchPlaces(placesSearchQuery)}
-                    disabled={!adminSecret || placesLoading}
+                    disabled={!hasAdminAuth || placesLoading}
                     className="w-full py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 font-bold text-sm uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
                   >
                     {placesLoading ? (

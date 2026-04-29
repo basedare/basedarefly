@@ -70,24 +70,28 @@ function eventIcon(event: FounderLedgerEvent) {
 export default function FounderScoreboardPage() {
   const { address, isConnected } = useAccount();
   const [report, setReport] = useState<FounderScoreboardReport | null>(null);
-  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
+  const {
+    adminSecret,
+    setAdminSecret,
+    ensureAdminSession,
+    clearAdminSecret,
+    hasAdminSession,
+    hasSessionAdminSecret,
+  } = useSessionAdminSecret();
   const [periodDays, setPeriodDays] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const adminSecretTrimmed = adminSecret.trim();
-  const hasAdminAuth = Boolean(address || adminSecretTrimmed);
+  const hasAdminAuth = Boolean(address || hasAdminSession || adminSecretTrimmed);
+  const hasReadyAdminAuth = Boolean(address || hasAdminSession);
   const adminAuthHeaders = useMemo<Record<string, string>>(() => {
     const headers: Record<string, string> = {};
-    if (adminSecretTrimmed) {
-      headers['x-admin-secret'] = adminSecretTrimmed;
-      return headers;
-    }
     if (address) {
       headers['x-moderator-wallet'] = address;
     }
     return headers;
-  }, [address, adminSecretTrimmed]);
+  }, [address]);
 
   const loadReport = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -96,6 +100,10 @@ export default function FounderScoreboardPage() {
     setError(null);
 
     try {
+      if (!address && !(await ensureAdminSession())) {
+        throw new Error('Invalid admin secret');
+      }
+
       const response = await fetch(`/api/admin/founder-scoreboard?periodDays=${periodDays}`, {
         headers: adminAuthHeaders,
       });
@@ -112,12 +120,12 @@ export default function FounderScoreboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth, periodDays]);
+  }, [address, adminAuthHeaders, ensureAdminSession, hasAdminAuth, periodDays]);
 
   useEffect(() => {
-    if (!hasAdminAuth) return;
+    if (!hasReadyAdminAuth) return;
     void loadReport();
-  }, [hasAdminAuth, loadReport]);
+  }, [hasReadyAdminAuth, loadReport]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-10 text-white sm:px-6 lg:px-10">
@@ -185,7 +193,7 @@ export default function FounderScoreboardPage() {
               {hasSessionAdminSecret && (
                 <button
                   type="button"
-                  onClick={clearAdminSecret}
+                  onClick={() => void clearAdminSecret()}
                   className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
                 >
                   Forget

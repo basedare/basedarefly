@@ -34,25 +34,37 @@ interface AppealCounts {
 export default function AdminAppealsPage() {
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [counts, setCounts] = useState<AppealCounts>({ pending: 0, approved: 0, rejected: 0, none: 0 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
-  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
+  const {
+    adminSecret,
+    setAdminSecret,
+    ensureAdminSession,
+    clearAdminSecret,
+    hasAdminSession,
+    hasSessionAdminSecret,
+  } = useSessionAdminSecret();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedAppeal, setSelectedAppeal] = useState<Appeal | null>(null);
+  const hasAdminAuth = Boolean(adminSecret.trim() || hasAdminSession);
 
   const fetchAppeals = async () => {
-    if (!adminSecret) return;
+    if (!hasAdminAuth) return;
 
     setLoading(true);
     setError(null);
 
     try {
+      if (!(await ensureAdminSession())) {
+        setIsAuthenticated(false);
+        setError('Invalid admin secret');
+        return;
+      }
+
       const response = await fetch(`/api/admin/appeals?status=${filter}`, {
-        headers: {
-          'x-admin-secret': adminSecret,
-        },
+        headers: {},
       });
 
       const data = await response.json();
@@ -83,6 +95,12 @@ export default function AdminAppealsPage() {
     }
   }, [filter, isAuthenticated]);
 
+  useEffect(() => {
+    if (hasAdminSession && !isAuthenticated) {
+      fetchAppeals();
+    }
+  }, [hasAdminSession, isAuthenticated]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     fetchAppeals();
@@ -96,7 +114,6 @@ export default function AdminAppealsPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': adminSecret,
         },
         body: JSON.stringify({ dareId, decision }),
       });
@@ -164,7 +181,7 @@ export default function AdminAppealsPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        clearAdminSecret();
+                        void clearAdminSecret();
                         setIsAuthenticated(false);
                       }}
                       className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
@@ -184,7 +201,7 @@ export default function AdminAppealsPage() {
 
               <button
                 type="submit"
-                disabled={!adminSecret || loading}
+                disabled={!hasAdminAuth || loading}
                 className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (

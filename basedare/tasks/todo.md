@@ -6,12 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Keep admin-secret fallback sessions alive across Admin ops pages without exposing secrets in URLs or permanent storage.
+- Goal: Replace repeated raw admin-secret fetches with a short-lived HttpOnly admin session.
 
 ### Plan
-- [x] Add a shared session-only admin secret hook backed by `sessionStorage`.
-- [x] Wire the hook into Daily Command Loop, Admin Dashboard, Founder Scoreboard, Production Safety, Venue Scout Command, and Appeals.
-- [x] Add visible session-only copy plus a manual forget action.
+- [x] Add a signed admin session cookie accepted by shared admin authorization.
+- [x] Add `/api/admin/session` to create and clear the HttpOnly admin session after validating `ADMIN_SECRET`.
+- [x] Update admin ops pages to use the secret once, then rely on the cookie instead of sending `x-admin-secret` on every request.
+- [x] Keep a visible manual forget action and update static safety allowlisting for the intentionally different session route.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. Admin-secret fallback now survives admin ops navigation in the same browser tab without leaking into URLs.
-- Follow-ups: If this becomes a frequent solo-founder flow, consider replacing manual admin-secret fallback with a short-lived signed admin session cookie.
+- Outcome: Production build and static safety pass. Admin-secret fallback now creates a signed HttpOnly session cookie and stops sending the raw secret on admin API calls.
+- Follow-ups: Add a visible expiry/refresh indicator if the 4-hour session timeout becomes confusing during longer ops sessions.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

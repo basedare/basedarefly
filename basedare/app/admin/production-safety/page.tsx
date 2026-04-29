@@ -241,22 +241,26 @@ export default function ProductionSafetyPage() {
   const [report, setReport] = useState<ProductionSafetyReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { adminSecret, setAdminSecret, clearAdminSecret, hasSessionAdminSecret } = useSessionAdminSecret();
+  const {
+    adminSecret,
+    setAdminSecret,
+    ensureAdminSession,
+    clearAdminSecret,
+    hasAdminSession,
+    hasSessionAdminSecret,
+  } = useSessionAdminSecret();
 
   const adminSecretTrimmed = adminSecret.trim();
-  const hasAdminAuth = Boolean(address || adminSecretTrimmed);
+  const hasAdminAuth = Boolean(address || hasAdminSession || adminSecretTrimmed);
+  const hasReadyAdminAuth = Boolean(address || hasAdminSession);
   const adminAuthHeaders = useMemo<Record<string, string>>(() => {
     const headers: Record<string, string> = {};
-    if (adminSecretTrimmed) {
-      headers['x-admin-secret'] = adminSecretTrimmed;
-      return headers;
-    }
     if (address) {
       headers['x-moderator-wallet'] = address;
       return headers;
     }
     return headers;
-  }, [address, adminSecretTrimmed]);
+  }, [address]);
 
   const loadReport = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -265,6 +269,10 @@ export default function ProductionSafetyPage() {
     setError(null);
 
     try {
+      if (!address && !(await ensureAdminSession())) {
+        throw new Error('Invalid admin secret');
+      }
+
       const response = await fetch('/api/admin/production-safety', {
         headers: adminAuthHeaders,
       });
@@ -281,10 +289,10 @@ export default function ProductionSafetyPage() {
     } finally {
       setLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [address, adminAuthHeaders, ensureAdminSession, hasAdminAuth]);
 
   useEffect(() => {
-    if (!hasAdminAuth) return;
+    if (!hasReadyAdminAuth) return;
     let cancelled = false;
 
     async function loadReport() {
@@ -321,7 +329,7 @@ export default function ProductionSafetyPage() {
     return () => {
       cancelled = true;
     };
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [adminAuthHeaders, hasReadyAdminAuth]);
 
   const statusCopy = useMemo(() => {
     if (!report) return 'Connect a moderator wallet or enter the admin secret to scan production safety.';
@@ -394,7 +402,7 @@ export default function ProductionSafetyPage() {
               {hasSessionAdminSecret && (
                 <button
                   type="button"
-                  onClick={clearAdminSecret}
+                  onClick={() => void clearAdminSecret()}
                   className="text-yellow-100/75 underline-offset-4 hover:text-yellow-100 hover:underline"
                 >
                   Forget

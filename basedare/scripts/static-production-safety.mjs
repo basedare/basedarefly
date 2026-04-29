@@ -8,7 +8,23 @@ const root = process.cwd();
 const adminAllowlist = new Map([
   [
     'app/api/admin/approve-tag/route.ts',
-    'Uses TELEGRAM_ADMIN_SECRET for Telegram inline admin actions.',
+    {
+      reason: 'Uses TELEGRAM_ADMIN_SECRET for Telegram inline admin actions.',
+      required: ['TELEGRAM_ADMIN_SECRET', 'x-telegram-admin-secret', 'hasValidAdminSecret'],
+    },
+  ],
+  [
+    'app/api/admin/session/route.ts',
+    {
+      reason: 'Creates short-lived HttpOnly admin sessions after validating ADMIN_SECRET.',
+      required: [
+        'isValidAdminSecretCandidate',
+        'createAdminSessionCookieValue',
+        'ADMIN_SESSION_COOKIE_NAME',
+        'httpOnly: true',
+        "sameSite: 'strict'",
+      ],
+    },
   ],
 ]);
 
@@ -72,19 +88,16 @@ async function checkAdminRoutes() {
 
   for (const file of files) {
     const content = await read(file);
-    const allowReason = adminAllowlist.get(file);
+    const allowRule = adminAllowlist.get(file);
 
-    if (allowReason) {
-      const hasTelegramSecret =
-        content.includes('TELEGRAM_ADMIN_SECRET') &&
-        content.includes('x-telegram-admin-secret') &&
-        content.includes('hasValidAdminSecret');
-
-      if (!hasTelegramSecret) {
-        failures.push(`Admin route allowlist drift: ${file} no longer matches "${allowReason}"`);
-      } else {
-        warnings.push(`Allowlisted admin route: ${file} (${allowReason})`);
+    if (allowRule) {
+      for (const needle of allowRule.required) {
+        if (!content.includes(needle)) {
+          failures.push(`Admin route allowlist drift: ${file} no longer matches "${allowRule.reason}"`);
+          break;
+        }
       }
+      warnings.push(`Allowlisted admin route: ${file} (${allowRule.reason})`);
       continue;
     }
 
