@@ -139,11 +139,11 @@ function HomeContent() {
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
-      <LiquidBackground veilOpacity={view === 'FAN' ? 0.48 : 0.65} />
+      <LiquidBackground veilOpacity={0.65} />
       {view === 'FAN' ? (
-        <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-[0.65] md:block" aria-hidden="true">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.22),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.08),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.08),transparent_22%)] mix-blend-screen" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04)_0%,rgba(0,0,0,0)_34%,rgba(0,0,0,0.10)_100%)]" />
+        <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-90 md:block" aria-hidden="true">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.10),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.04),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.04),transparent_22%)] mix-blend-soft-light" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.30)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.40)_100%)]" />
         </div>
       ) : null}
       <div className="fixed inset-0 z-10 pointer-events-none">
