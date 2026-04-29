@@ -6,13 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Surface place-memory moderation pressure inside the Daily Command Loop so overdue venue marks become an operator priority.
+- Goal: Add admin deep links so Daily Command Loop actions open the exact execution queue and target record.
 
 ### Plan
-- [x] Add shared place-tag review SLA helpers used by venue pages, admin inbox, and the Daily Command Loop.
-- [x] Extend the Daily Command Loop report with pending, overdue, due-soon, first-mark, and oldest place-mark pressure.
-- [x] Add a place-memory review pressure card to the Daily Command Loop UI.
-- [x] Promote overdue place marks into command stack, review queue, scorecard, learnings, and watchouts.
+- [x] Parse `?tab=` and target params in the admin dashboard.
+- [x] Auto-select targeted moderation, claim, venue claim, creator tag, place mark, report lead, and place records.
+- [x] Update Daily Command Loop action links to exact admin tab/item URLs.
+- [x] Add a return link when arriving in Admin from the Daily Command Loop.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Production build and static safety pass. The Daily Command Loop now sees venue mark SLA pressure instead of only a raw pending count.
-- Follow-ups: Next ROI is a direct deep link from Daily Command Loop into the Chaos Inbox tab once admin routing supports tab params.
+- Outcome: Production build and static safety pass. Daily Command Loop actions now open the right admin tab and preselect the highest-priority available record when one exists.
+- Follow-ups: If admin-secret fallback should persist across admin pages, add a safer local-session secret handoff rather than putting secrets in URLs.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

@@ -345,7 +345,11 @@ export default function DailyCommandLoopPage() {
                   </p>
                 </div>
                 <Link
-                  href="/admin"
+                  href={`/admin?tab=placeTags&from=daily-command-loop${
+                    report.placeTagReview.topVenue
+                      ? `&placeTagId=${encodeURIComponent(report.placeTagReview.topVenue.placeTagId)}`
+                      : ''
+                  }`}
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-current/25 bg-black/20 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition hover:bg-black/30"
                 >
                   Open Chaos Inbox

@@ -42,12 +42,28 @@ function riskLabel(riskTier: DailyCommandRiskTier) {
   return 'Auto-safe';
 }
 
+function adminHref(tab: string, params: Record<string, string | null | undefined> = {}) {
+  const query = new URLSearchParams({
+    tab,
+    from: 'daily-command-loop',
+  });
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      query.set(key, value);
+    }
+  });
+
+  return `/admin?${query.toString()}`;
+}
+
 function compactWalletLabel(walletAddress: string) {
   return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
 }
 
 function buildPlaceTagReviewPressure(
   tags: Array<{
+    id: string;
     creatorTag: string | null;
     walletAddress: string;
     firstMark: boolean;
@@ -75,6 +91,7 @@ function buildPlaceTagReviewPressure(
     oldestQueuedLabel: top?.review.elapsedLabel ?? 'clear',
     topVenue: top
       ? {
+          placeTagId: top.tag.id,
           name: top.tag.venue.name,
           slug: top.tag.venue.slug,
           city: top.tag.venue.city,
@@ -173,6 +190,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     pendingVenueClaims,
     pendingCreatorTags,
     pendingPlaceTags,
+    topPendingClaim,
+    topPendingVenueClaim,
+    topPendingCreatorTag,
     pendingPlaceTagRows,
     activeCampaigns,
     openCampaignSlots,
@@ -281,11 +301,36 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     prisma.venue.count({ where: { claimRequestStatus: 'PENDING' } }),
     prisma.streamerTag.count({ where: { status: 'PENDING' } }),
     prisma.placeTag.count({ where: { status: 'PENDING' } }),
+    prisma.dare.findFirst({
+      where: { claimRequestStatus: 'PENDING' },
+      orderBy: [{ claimRequestedAt: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        shortId: true,
+      },
+    }),
+    prisma.venue.findFirst({
+      where: { claimRequestStatus: 'PENDING' },
+      orderBy: [{ claimRequestedAt: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        slug: true,
+      },
+    }),
+    prisma.streamerTag.findFirst({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        tag: true,
+      },
+    }),
     prisma.placeTag.findMany({
       where: { status: 'PENDING' },
       orderBy: { submittedAt: 'asc' },
       take: 80,
       select: {
+        id: true,
         creatorTag: true,
         walletAddress: true,
         firstMark: true,
@@ -361,6 +406,15 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
   const topScoutLead = venueScoutReport.leads[0] ?? null;
   const topSeedCandidate = venueScoutReport.seedCandidates[0] ?? null;
   const placeTagReview = buildPlaceTagReviewPressure(pendingPlaceTagRows, pendingPlaceTags);
+  const topPendingClaimTarget = topPendingClaim?.id ?? topPendingClaim?.shortId;
+  const topPendingVenueClaimTarget = topPendingVenueClaim?.id ?? topPendingVenueClaim?.slug;
+  const topPendingCreatorTagTarget = topPendingCreatorTag?.id ?? topPendingCreatorTag?.tag;
+  const identityGateHref =
+    pendingClaims > 0
+      ? adminHref('claims', { claimId: topPendingClaimTarget })
+      : pendingVenueClaims > 0
+        ? adminHref('venueClaims', { venueClaimId: topPendingVenueClaimTarget })
+        : adminHref('tags', { tagId: topPendingCreatorTagTarget });
 
   const pendingTrustItems =
     pendingClaims + pendingVenueClaims + pendingCreatorTags + pendingPlaceTags + moderationReady.length;
@@ -417,7 +471,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           payoutMissingOnChainId > 0
             ? 'Inspect missing on-chain IDs first, then retry settlement only after funding sync is understood.'
             : 'Check retry worker health and confirm the oldest queued payout is moving.',
-        href: '/admin',
+        href: adminHref('moderation'),
         evidence: [
           plural(payoutBacklog.length, 'payout queued'),
           `${payoutBacklogOldestHours}h oldest queue age`,
@@ -440,7 +494,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           moderationReady.length > 0
             ? 'Review ready proofs in priority order, starting with campaign-backed and oldest proofs.'
             : 'Check aging community proofs and decide whether any should be escalated.',
-        href: '/admin',
+        href: adminHref('moderation', {
+          dareId: moderationReady[0]?.id ?? moderationDares[0]?.id,
+        }),
         evidence: [
           plural(moderationReady.length, 'ready proof'),
           `${campaignBackedReviews} campaign-backed`,
@@ -469,7 +525,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           : topLead
             ? `Start with ${topLead.lead.venue.name}; ${topLead.priority.reasons.join(', ') || 'active'} signal needs ownership.`
           : 'Rank active leads, assign owners, then prepare the smallest useful follow-up drafts.',
-        href: '/admin/venue-scout-command',
+        href: topLead
+          ? adminHref('reportLeads', { reportLeadId: topLead.lead.id })
+          : '/admin/venue-scout-command',
         evidence: [
           plural(venueLeads.length, 'active lead'),
           `${overdueVenueLeads} overdue`,
@@ -523,7 +581,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         nextAction: placeTagReview.topVenue
           ? `Open Chaos Inbox and start with ${placeTagReview.topVenue.name}; ${placeTagReview.topVenue.reviewLabel.toLowerCase()} from ${placeTagReview.topVenue.creatorLabel}.`
           : 'Open Chaos Inbox and clear pending place-memory tags oldest first.',
-        href: '/admin',
+        href: adminHref('placeTags', {
+          placeTagId: placeTagReview.topVenue?.placeTagId,
+        }),
         evidence: [
           plural(placeTagReview.totalPending, 'pending mark'),
           `${placeTagReview.overdue} overdue`,
@@ -544,7 +604,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         priority: 82 + pendingClaims * 5 + pendingVenueClaims * 6 + pendingCreatorTags,
         why: 'Creators and venues cannot become real operators if claim and identity approvals stall.',
         nextAction: 'Resolve pending claims first, then creator identity tags.',
-        href: '/admin',
+        href: identityGateHref,
         evidence: [
           `${pendingClaims} dare claims`,
           `${pendingVenueClaims} venue claims`,
@@ -605,7 +665,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       nextAction: venueScoutReport.summary.seedCandidates > 0
         ? venueScoutReport.currentCommand.nextAction
         : 'Build a small ranked list: 5 creators, 3 venues, 2 sponsor prospects, with one outreach angle each.',
-      href: venueScoutReport.summary.seedCandidates > 0 ? '/admin/venue-scout-command' : '/admin',
+      href: venueScoutReport.summary.seedCandidates > 0 ? '/admin/venue-scout-command' : adminHref('reportLeads'),
       evidence: ['Safe research only', 'No external send without review', 'Optimized for qualified replies'],
     })
   );
@@ -628,7 +688,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         priority: 35,
         why: 'The loop can safely improve operator clarity without sending anything externally.',
         nextAction: 'Consolidate duplicate leads, stale follow-ups, and missing owners into one review queue.',
-        href: '/admin',
+        href: adminHref('reportLeads'),
         evidence: ['Read-only preparation', riskLabel('auto'), 'Improves tomorrow\'s loop'],
       })
     );
@@ -643,7 +703,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           owner: 'Moderator',
           riskTier: 'review',
           nextAction: 'Approve, reject, or hold proofs with campaign-backed items first.',
-          href: '/admin',
+          href: adminHref('moderation', {
+            dareId: moderationReady[0]?.id,
+          }),
         })
       : null,
     payoutBacklog.length > 0
@@ -654,7 +716,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           owner: 'Founder',
           riskTier: 'human',
           nextAction: 'Check money rails before retrying or promising new settlement timing.',
-          href: '/admin',
+          href: adminHref('moderation'),
         })
       : null,
     venueLeads.length > 0
@@ -665,7 +727,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           owner: 'Ops',
           riskTier: 'review',
           nextAction: 'Approve the top follow-ups before anything is sent externally.',
-          href: '/admin',
+          href: adminHref('reportLeads', {
+            reportLeadId: topLead?.lead.id,
+          }),
         })
       : null,
     pendingClaims + pendingVenueClaims > 0
@@ -676,7 +740,10 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           owner: 'Moderator',
           riskTier: 'review',
           nextAction: 'Resolve ownership gates so operators can move.',
-          href: '/admin',
+          href:
+            pendingClaims > 0
+              ? adminHref('claims', { claimId: topPendingClaimTarget })
+              : adminHref('venueClaims', { venueClaimId: topPendingVenueClaimTarget }),
         })
       : null,
     pendingCreatorTags > 0
@@ -687,7 +754,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           owner: 'Moderator',
           riskTier: 'review',
           nextAction: 'Approve clean identity signals and reject noisy ones.',
-          href: '/admin',
+          href: adminHref('tags', { tagId: topPendingCreatorTagTarget }),
         })
       : null,
     placeTagReview.totalPending > 0
@@ -701,7 +768,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
             placeTagReview.overdue > 0
               ? 'Clear overdue place marks first, then due-soon first marks.'
               : 'Review pending place marks oldest first.',
-          href: '/admin',
+          href: adminHref('placeTags', {
+            placeTagId: placeTagReview.topVenue?.placeTagId,
+          }),
         })
       : null,
   ].filter((item): item is DailyReviewItem => item !== null);

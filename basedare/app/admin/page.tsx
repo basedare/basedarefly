@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAccount } from 'wagmi';
 import {
   Shield,
+  ArrowRight,
   CheckCircle,
   XCircle,
   Loader2,
@@ -453,6 +454,76 @@ type AdminTab =
   | 'places'
   | 'push';
 
+const ADMIN_TABS: AdminTab[] = [
+  'moderation',
+  'claims',
+  'venueClaims',
+  'reportLeads',
+  'tags',
+  'placeTags',
+  'places',
+  'push',
+];
+
+type AdminRouteState = {
+  tab: AdminTab;
+  fromDailyCommandLoop: boolean;
+  targetDareId: string | null;
+  targetClaimId: string | null;
+  targetVenueClaimId: string | null;
+  targetReportLeadId: string | null;
+  targetTagId: string | null;
+  targetPlaceTagId: string | null;
+  targetPlaceId: string | null;
+};
+
+const DEFAULT_ADMIN_ROUTE: AdminRouteState = {
+  tab: 'moderation',
+  fromDailyCommandLoop: false,
+  targetDareId: null,
+  targetClaimId: null,
+  targetVenueClaimId: null,
+  targetReportLeadId: null,
+  targetTagId: null,
+  targetPlaceTagId: null,
+  targetPlaceId: null,
+};
+
+function isAdminTab(value: string | null): value is AdminTab {
+  return Boolean(value && ADMIN_TABS.includes(value as AdminTab));
+}
+
+function readAdminRouteFromSearch(search: string): AdminRouteState {
+  const params = new URLSearchParams(search);
+  const tab = params.get('tab');
+  const from = params.get('from');
+
+  return {
+    tab: isAdminTab(tab) ? tab : 'moderation',
+    fromDailyCommandLoop: from === 'daily-command-loop' || from === 'command-loop',
+    targetDareId: params.get('dareId') ?? params.get('shortId'),
+    targetClaimId: params.get('claimId'),
+    targetVenueClaimId: params.get('venueClaimId') ?? params.get('venueId') ?? params.get('venueSlug'),
+    targetReportLeadId: params.get('reportLeadId') ?? params.get('leadId'),
+    targetTagId: params.get('tagId'),
+    targetPlaceTagId: params.get('placeTagId') ?? (tab === 'placeTags' ? params.get('tagId') : null),
+    targetPlaceId: params.get('placeId') ?? params.get('venueId') ?? params.get('venueSlug'),
+  };
+}
+
+function writeAdminRouteToHistory(route: AdminRouteState) {
+  if (typeof window === 'undefined') return;
+
+  const params = new URLSearchParams();
+  params.set('tab', route.tab);
+  if (route.fromDailyCommandLoop) {
+    params.set('from', 'daily-command-loop');
+  }
+
+  const nextUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+  window.history.replaceState(null, '', nextUrl);
+}
+
 const EMPTY_PLACE_FORM: AdminPlaceForm = {
   slug: '',
   name: '',
@@ -473,6 +544,7 @@ const EMPTY_PLACE_FORM: AdminPlaceForm = {
 export default function AdminPage() {
   const { address } = useAccount();
   const placeTagRejectReasonRef = useRef<HTMLTextAreaElement | null>(null);
+  const [adminRoute, setAdminRoute] = useState<AdminRouteState>(DEFAULT_ADMIN_ROUTE);
   const [activeTab, setActiveTab] = useState<AdminTab>('moderation');
   const [dares, setDares] = useState<DareForModeration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -623,6 +695,25 @@ export default function AdminPage() {
     [dares, selectedDare]
   );
 
+  const selectAdminTab = useCallback((tab: AdminTab) => {
+    const nextRoute: AdminRouteState = {
+      ...DEFAULT_ADMIN_ROUTE,
+      tab,
+      fromDailyCommandLoop: adminRoute.fromDailyCommandLoop,
+    };
+    setAdminRoute(nextRoute);
+    setActiveTab(tab);
+    writeAdminRouteToHistory(nextRoute);
+  }, [adminRoute.fromDailyCommandLoop]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const nextRoute = readAdminRouteFromSearch(window.location.search);
+    setAdminRoute(nextRoute);
+    setActiveTab(nextRoute.tab);
+  }, []);
+
   // Fetch moderation queue
   const fetchQueue = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -651,6 +742,12 @@ export default function AdminPage() {
         });
         setSelectedDare((current) => {
           if (!nextDares.length) return null;
+          const targetedDare = adminRoute.targetDareId
+            ? nextDares.find((dare: DareForModeration) =>
+                dare.id === adminRoute.targetDareId || dare.shortId === adminRoute.targetDareId
+              )
+            : null;
+          if (targetedDare) return targetedDare;
           if (!current) return nextDares[0];
           return nextDares.find((dare: DareForModeration) => dare.id === current.id) || nextDares[0];
         });
@@ -665,7 +762,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [adminAuthHeaders, adminSecretTrimmed, hasAdminAuth]);
+  }, [adminAuthHeaders, adminRoute.targetDareId, adminSecretTrimmed, hasAdminAuth]);
 
   const fetchAdminSettings = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -921,8 +1018,18 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
+        const tags = data.data.tags as PendingTag[];
         setIsTagsAuthorized(true);
-        setPendingTags(data.data.tags);
+        setPendingTags(tags);
+        setSelectedTag((current) => {
+          if (!tags.length) return null;
+          const targetedTag = adminRoute.targetTagId
+            ? tags.find((tag) => tag.id === adminRoute.targetTagId || tag.tag === adminRoute.targetTagId)
+            : null;
+          if (targetedTag) return targetedTag;
+          if (!current) return tags[0];
+          return tags.find((tag) => tag.id === current.id) ?? tags[0];
+        });
       } else if (res.status === 401) {
         setIsTagsAuthorized(false);
         setTagsError('Invalid admin secret');
@@ -934,7 +1041,7 @@ export default function AdminPage() {
     } finally {
       setTagsLoading(false);
     }
-  }, [adminSecret]);
+  }, [adminRoute.targetTagId, adminSecret]);
 
   // Handle tag verification
   const handleTagAction = async (tagId: string, action: 'VERIFY_MANUAL' | 'REJECT_MANUAL') => {
@@ -999,9 +1106,14 @@ export default function AdminPage() {
         const tags = data.data.tags as PendingPlaceTag[];
         setIsTagsAuthorized(true);
         setPendingPlaceTags(tags);
-        setSelectedPlaceTag((current) =>
-          current && tags.some((tag) => tag.id === current.id) ? current : tags[0] ?? null
-        );
+        setSelectedPlaceTag((current) => {
+          if (!tags.length) return null;
+          const targetedTag = adminRoute.targetPlaceTagId
+            ? tags.find((tag) => tag.id === adminRoute.targetPlaceTagId)
+            : null;
+          if (targetedTag) return targetedTag;
+          return current && tags.some((tag) => tag.id === current.id) ? current : tags[0] ?? null;
+        });
       } else if (res.status === 401) {
         setIsTagsAuthorized(false);
         setPlaceTagsError('Invalid admin secret');
@@ -1013,7 +1125,7 @@ export default function AdminPage() {
     } finally {
       setPlaceTagsLoading(false);
     }
-  }, [adminSecret]);
+  }, [adminRoute.targetPlaceTagId, adminSecret]);
 
   const handlePlaceTagAction = useCallback(async (
     tagId: string,
@@ -1185,6 +1297,10 @@ export default function AdminPage() {
     });
   }, []);
 
+  useEffect(() => {
+    populatePlaceForm(selectedPlaceRecord);
+  }, [populatePlaceForm, selectedPlaceRecord]);
+
   const fetchPlaces = useCallback(async (query?: string) => {
     if (!adminSecret) return;
 
@@ -1206,8 +1322,23 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
+        const nextPlaces = data.data.places as AdminPlace[];
         setIsTagsAuthorized(true);
-        setPlaces(data.data.places);
+        setPlaces(nextPlaces);
+        setSelectedPlaceRecord((current) => {
+          if (!nextPlaces.length) return null;
+          const targetedPlace = adminRoute.targetPlaceId
+            ? nextPlaces.find((place) =>
+                place.id === adminRoute.targetPlaceId || place.slug === adminRoute.targetPlaceId
+              )
+            : null;
+          if (targetedPlace) return targetedPlace;
+          if (current) {
+            const preservedPlace = nextPlaces.find((place) => place.id === current.id);
+            if (preservedPlace) return preservedPlace;
+          }
+          return nextPlaces[0];
+        });
       } else if (res.status === 401) {
         setIsTagsAuthorized(false);
         setPlacesError('Invalid admin secret');
@@ -1219,7 +1350,7 @@ export default function AdminPage() {
     } finally {
       setPlacesLoading(false);
     }
-  }, [adminSecret]);
+  }, [adminRoute.targetPlaceId, adminSecret]);
 
   const handleSavePlace = async () => {
     if (!adminSecret) return;
@@ -1301,7 +1432,17 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
-        setPendingClaims(data.data.claims);
+        const claims = data.data.claims as ClaimRequest[];
+        setPendingClaims(claims);
+        setSelectedClaim((current) => {
+          if (!claims.length) return null;
+          const targetedClaim = adminRoute.targetClaimId
+            ? claims.find((claim) => claim.id === adminRoute.targetClaimId || claim.shortId === adminRoute.targetClaimId)
+            : null;
+          if (targetedClaim) return targetedClaim;
+          if (!current) return claims[0];
+          return claims.find((claim) => claim.id === current.id) ?? claims[0];
+        });
       } else {
         setClaimsError(data.error || 'Failed to load pending claims');
       }
@@ -1310,7 +1451,7 @@ export default function AdminPage() {
     } finally {
       setClaimsLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [adminAuthHeaders, adminRoute.targetClaimId, hasAdminAuth]);
 
   const fetchPendingVenueClaims = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -1326,7 +1467,19 @@ export default function AdminPage() {
       const data = await res.json();
 
       if (data.success) {
-        setPendingVenueClaims(data.data.claims);
+        const claims = data.data.claims as VenueClaimRequest[];
+        setPendingVenueClaims(claims);
+        setSelectedVenueClaim((current) => {
+          if (!claims.length) return null;
+          const targetedClaim = adminRoute.targetVenueClaimId
+            ? claims.find((claim) =>
+                claim.id === adminRoute.targetVenueClaimId || claim.slug === adminRoute.targetVenueClaimId
+              )
+            : null;
+          if (targetedClaim) return targetedClaim;
+          if (!current) return claims[0];
+          return claims.find((claim) => claim.id === current.id) ?? claims[0];
+        });
       } else {
         setVenueClaimsError(data.error || 'Failed to load pending venue claims');
       }
@@ -1335,7 +1488,7 @@ export default function AdminPage() {
     } finally {
       setVenueClaimsLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [adminAuthHeaders, adminRoute.targetVenueClaimId, hasAdminAuth]);
 
   const fetchPushDiagnostics = useCallback(async () => {
     if (!hasAdminAuth) return;
@@ -1394,6 +1547,10 @@ export default function AdminPage() {
         setReportLeads(nextLeads);
         setSelectedReportLead((current) => {
           if (!nextLeads.length) return null;
+          const targetedLead = adminRoute.targetReportLeadId
+            ? nextLeads.find((lead: VenueReportLeadEntry) => lead.id === adminRoute.targetReportLeadId)
+            : null;
+          if (targetedLead) return targetedLead;
           if (!current) return nextLeads[0];
           return nextLeads.find((lead: VenueReportLeadEntry) => lead.id === current.id) || nextLeads[0];
         });
@@ -1405,7 +1562,7 @@ export default function AdminPage() {
     } finally {
       setReportLeadsLoading(false);
     }
-  }, [adminAuthHeaders, hasAdminAuth]);
+  }, [adminAuthHeaders, adminRoute.targetReportLeadId, hasAdminAuth]);
 
   const handleReportLeadUpdate = useCallback(async (
     leadId: string,
@@ -1752,7 +1909,7 @@ export default function AdminPage() {
           {hasAdminAuth && isAuthorized && (
             <div className="flex justify-center gap-2 mt-6 flex-wrap">
               <button
-                onClick={() => setActiveTab('moderation')}
+                onClick={() => selectAdminTab('moderation')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'moderation'
                     ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
@@ -1763,7 +1920,7 @@ export default function AdminPage() {
                 Moderation ({dares.length})
               </button>
               <button
-                onClick={() => setActiveTab('claims')}
+                onClick={() => selectAdminTab('claims')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'claims'
                     ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400'
@@ -1774,7 +1931,7 @@ export default function AdminPage() {
                 Claims {pendingClaims.length > 0 && `(${pendingClaims.length})`}
               </button>
               <button
-                onClick={() => setActiveTab('venueClaims')}
+                onClick={() => selectAdminTab('venueClaims')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'venueClaims'
                     ? 'bg-fuchsia-500/20 border border-fuchsia-500/50 text-fuchsia-300'
@@ -1785,7 +1942,7 @@ export default function AdminPage() {
                 Venue Claims {pendingVenueClaims.length > 0 && `(${pendingVenueClaims.length})`}
               </button>
               <button
-                onClick={() => setActiveTab('reportLeads')}
+                onClick={() => selectAdminTab('reportLeads')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'reportLeads'
                     ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
@@ -1796,7 +1953,7 @@ export default function AdminPage() {
                 Lead Inbox {reportLeadSummary.totalLeads > 0 && `(${reportLeadSummary.totalLeads})`}
               </button>
               <button
-                onClick={() => setActiveTab('tags')}
+                onClick={() => selectAdminTab('tags')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'tags'
                     ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
@@ -1807,7 +1964,7 @@ export default function AdminPage() {
                 Tags {pendingTags.length > 0 && `(${pendingTags.length})`}
               </button>
               <button
-                onClick={() => setActiveTab('placeTags')}
+                onClick={() => selectAdminTab('placeTags')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'placeTags'
                     ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
@@ -1818,7 +1975,7 @@ export default function AdminPage() {
                 Chaos Inbox {pendingPlaceTags.length > 0 && `(${pendingPlaceTags.length})`}
               </button>
               <button
-                onClick={() => setActiveTab('places')}
+                onClick={() => selectAdminTab('places')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'places'
                     ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
@@ -1829,7 +1986,7 @@ export default function AdminPage() {
                 Places
               </button>
               <button
-                onClick={() => setActiveTab('push')}
+                onClick={() => selectAdminTab('push')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   activeTab === 'push'
                     ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
@@ -1868,6 +2025,16 @@ export default function AdminPage() {
                 Venue Scout Command
               </Link>
             </div>
+          )}
+
+          {adminRoute.fromDailyCommandLoop && (
+            <Link
+              href="/admin/daily-command-loop"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-500/15"
+            >
+              <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+              Back to Daily Command Loop
+            </Link>
           )}
         </div>
 

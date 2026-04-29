@@ -83,6 +83,7 @@ export type DailyPlaceTagReviewPressure = {
   firstMarks: number;
   oldestQueuedLabel: string;
   topVenue: {
+    placeTagId: string;
     name: string;
     slug: string;
     city: string | null;
