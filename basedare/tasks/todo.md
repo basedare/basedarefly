@@ -6,12 +6,12 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Turn selected map venues into richer activation cards with proof, reward, and creator-routing context.
+- Goal: Upgrade public venue pages so map traffic lands on a live place-memory destination with clear proof, lift, creator routing, and Secure Handshake context.
 
 ### Plan
-- [x] Add a compact reward card that surfaces live USDC and opens the active brief when unlocked.
-- [x] Add a proof-memory card that summarizes approved sparks, pending marks, and recent proof.
-- [x] Add a creator-routing card that exposes match fit, campaigns, or wallet-gated routing state.
+- [x] Add a mobile-visible place-memory command band near the top of venue pages.
+- [x] Surface current pulse, seven-day lift, repeat-activation insight, and memory sparkline from existing venue data.
+- [x] Surface best creator route and Secure Handshake readiness without adding new backend dependencies.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -20,8 +20,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: The selected venue sheet now has a faster first-glance command layer for money, proof, and creator fit.
-- Follow-ups: Next map ROI is turning venue memory into richer public venue pages and venue-level proof/reward timelines.
+- Outcome: Venue pages now expose the venue memory and creator-routing story much earlier in the page.
+- Follow-ups: Next venue ROI is turning the logbook into a richer proof/reward timeline with completed-dare moments, not just approved marks.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

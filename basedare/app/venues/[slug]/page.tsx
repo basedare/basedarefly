@@ -113,6 +113,25 @@ function formatCompactAudience(value: number | null) {
   return `${value}+`;
 }
 
+function formatCompactVenueMetric(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 10_000) return `${Math.round(value / 1_000)}K`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}
+
+function formatMetricDelta(value: number) {
+  if (value > 0) return `+${formatCompactVenueMetric(value)}`;
+  if (value < 0) return `-${formatCompactVenueMetric(Math.abs(value))}`;
+  return 'flat';
+}
+
+function getMetricDeltaClass(value: number) {
+  if (value > 0) return 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-100';
+  if (value < 0) return 'border-rose-400/18 bg-rose-500/[0.08] text-rose-100';
+  return 'border-white/10 bg-white/[0.04] text-white/48';
+}
+
 export default async function VenueDetailPage(
   {
     params,
@@ -187,6 +206,56 @@ export default async function VenueDetailPage(
       creatorTag: creator.creatorTag,
     }),
   }));
+  const bestCreatorRoute = topCreatorRoutes[0] ?? null;
+  const last7DayWindow = venue.roiSnapshot.windows.last7Days;
+  const memoryLiftCards = [
+    {
+      label: 'Check-ins',
+      value: last7DayWindow.checkIns,
+      delta: last7DayWindow.checkInsDelta,
+    },
+    {
+      label: 'Visitors',
+      value: last7DayWindow.uniqueVisitors,
+      delta: last7DayWindow.uniqueVisitorsDelta,
+    },
+    {
+      label: 'Proofs',
+      value: last7DayWindow.proofs,
+      delta: last7DayWindow.proofsDelta,
+    },
+    {
+      label: 'Outcomes',
+      value: last7DayWindow.verifiedOutcomes,
+      delta: last7DayWindow.verifiedOutcomesDelta,
+    },
+  ];
+  const memorySparklineBuckets = venue.memoryHistory.slice(0, 7).reverse();
+  const maxMemorySparklineValue = Math.max(
+    1,
+    ...memorySparklineBuckets.map(
+      (bucket) => bucket.checkInCount + bucket.proofCount + bucket.completedDareCount
+    )
+  );
+  const memorySparklineLabel =
+    memorySparklineBuckets.length > 0
+      ? `${formatVenueLogbookDate(memorySparklineBuckets[0].bucketStartAt)} to ${formatVenueLogbookDate(memorySparklineBuckets[memorySparklineBuckets.length - 1].bucketStartAt)}`
+      : 'Waiting for first venue memory';
+  const repeatSignalHref = repeatActivationHref ?? fundChallengeHref;
+  const repeatSignalCta = venue.activationInsight.repeatReady ? 'Repeat winner' : 'Create signal';
+  const handshakeStatusLabel =
+    venue.liveSession?.status === 'LIVE'
+      ? 'Live'
+      : venue.commandCenter.consoleUrl
+        ? 'Console ready'
+        : 'Claim to unlock';
+  const handshakeHref =
+    venue.commandCenter.consoleUrl ?? (venue.commandCenter.claimState === 'unclaimed' ? venueReportHref : mapHref);
+  const handshakeCta = venue.commandCenter.consoleUrl
+    ? 'Open console'
+    : venue.commandCenter.claimState === 'unclaimed'
+      ? 'Start claim'
+      : 'Open map';
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -323,6 +392,171 @@ export default async function VenueDetailPage(
                 <div className={`${insetCardClass} px-4 py-4`}>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Verified marks</p>
                   <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${raisedPanelClass} px-4 py-4 sm:px-5 sm:py-5`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(245,197,24,0.10),transparent_30%),radial-gradient(circle_at_95%_20%,rgba(34,211,238,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_42%,rgba(0,0,0,0.18)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+            <div className="relative grid gap-3 lg:grid-cols-[1.05fr_1.25fr_0.9fr]">
+              <div className={`${insetCardClass} px-4 py-4`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">Place memory</p>
+                    <p className={`mt-2 text-3xl font-black ${currentPulseState.className}`}>
+                      {currentPulseState.label}
+                    </p>
+                  </div>
+                  <span className={`rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] ${currentPulseState.accentClassName}`}>
+                    Pulse {venue.tagSummary.heatScore}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-white/62">
+                  {venue.activationInsight.summary}
+                </p>
+                <div className="mt-4 flex items-end gap-1.5" aria-label={`Venue memory activity from ${memorySparklineLabel}`}>
+                  {memorySparklineBuckets.length > 0 ? (
+                    memorySparklineBuckets.map((bucket) => {
+                      const value = bucket.checkInCount + bucket.proofCount + bucket.completedDareCount;
+                      const height = Math.max(16, Math.round((value / maxMemorySparklineValue) * 52));
+                      return (
+                        <span
+                          key={bucket.bucketStartAt}
+                          className="flex-1 rounded-full border border-cyan-200/10 bg-[linear-gradient(180deg,rgba(34,211,238,0.72)_0%,rgba(184,127,255,0.38)_62%,rgba(255,255,255,0.07)_100%)] shadow-[0_0_16px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.18)]"
+                          style={{ height }}
+                          title={`${formatVenueLogbookDate(bucket.bucketStartAt)} · ${value} signal${value === 1 ? '' : 's'}`}
+                        />
+                      );
+                    })
+                  ) : (
+                    Array.from({ length: 7 }).map((_, index) => (
+                      <span
+                        key={`empty-memory-${index}`}
+                        className="h-4 flex-1 rounded-full border border-white/8 bg-white/[0.035]"
+                      />
+                    ))
+                  )}
+                </div>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-white/35">
+                  {memorySparklineLabel}
+                </p>
+              </div>
+
+              <div className={`${insetCardClass} px-4 py-4`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">7-day lift</p>
+                    <p className="mt-2 text-xl font-black text-white">
+                      {venue.activationInsight.timeframeLabel}
+                    </p>
+                  </div>
+                  <Link
+                    href={repeatSignalHref}
+                    className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                  >
+                    {repeatSignalCta}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {memoryLiftCards.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[18px] border border-white/8 bg-white/[0.035] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{item.label}</p>
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        <p className="text-xl font-black text-white">{formatCompactVenueMetric(item.value)}</p>
+                        <span className={`rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] ${getMetricDeltaClass(item.delta)}`}>
+                          {formatMetricDelta(item.delta)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {venue.activationInsight.reasons.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {venue.activationInsight.reasons.slice(0, 3).map((reason) => (
+                      <span
+                        key={reason}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-white/48"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className={`${insetCardClass} px-4 py-4`}>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">Fast route</p>
+                {bestCreatorRoute ? (
+                  <>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-2xl font-black text-white">{bestCreatorRoute.creatorTag}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-cyan-100/72">
+                          {bestCreatorRoute.trustLabel} · L{bestCreatorRoute.trustLevel}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100">
+                        {bestCreatorRoute.trustScore} trust
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-white/62">
+                      {bestCreatorRoute.marksHere} mark{bestCreatorRoute.marksHere === 1 ? '' : 's'} here,
+                      {' '}{bestCreatorRoute.firstMarksHere} first spark{bestCreatorRoute.firstMarksHere === 1 ? '' : 's'},
+                      {' '}${Math.round(bestCreatorRoute.totalEarned)} earned.
+                    </p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                      <Link
+                        href={bestCreatorRoute.href}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
+                      >
+                        Route creator
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href={handshakeHref}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08]"
+                      >
+                        {handshakeCta}
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-2xl font-black text-white">No local legend yet</p>
+                    <p className="mt-2 text-sm leading-relaxed text-white/62">
+                      Fund the next challenge and the creator-routing layer starts ranking who can own this place.
+                    </p>
+                    <div className="mt-4">
+                      <SquircleLink
+                        href={fundChallengeHref}
+                        label="Fund dare"
+                        tone="yellow"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.72rem] tracking-[0.1em]"
+                      >
+                        Fund dare
+                        <ArrowRight className="h-4 w-4" />
+                      </SquircleLink>
+                    </div>
+                  </>
+                )}
+                <div className="mt-4 rounded-[18px] border border-white/8 bg-black/20 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/34">Secure Handshake</span>
+                    <span className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-emerald-100">
+                      {handshakeStatusLabel}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-white/52">
+                    QR + GPS presence rail · {venue.checkInRadiusMeters}m radius · {venue.qrRotationSeconds}s rotation.
+                  </p>
                 </div>
               </div>
             </div>
