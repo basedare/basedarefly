@@ -1,4 +1,4 @@
-import { copyFile, stat } from 'node:fs/promises';
+import { copyFile, lstat, stat, symlink } from 'node:fs/promises';
 import path from 'node:path';
 
 const nextDir = path.join(process.cwd(), '.next');
@@ -18,7 +18,40 @@ async function exists(filePath) {
   }
 }
 
-if ((await exists(routesManifestPath)) && !(await exists(deterministicRoutesManifestPath))) {
-  await copyFile(routesManifestPath, deterministicRoutesManifestPath);
-  console.log('[postbuild] Created .next/routes-manifest-deterministic.json fallback');
+async function ensureDeterministicRoutesManifest(targetNextDir = nextDir) {
+  const sourcePath = path.join(targetNextDir, 'routes-manifest.json');
+  const targetPath = path.join(targetNextDir, 'routes-manifest-deterministic.json');
+
+  if ((await exists(sourcePath)) && !(await exists(targetPath))) {
+    await copyFile(sourcePath, targetPath);
+    console.log(`[postbuild] Created ${path.relative(process.cwd(), targetPath)} fallback`);
+  }
 }
+
+async function ensureVercelParentNextAlias() {
+  const isVercelBuild = process.env.VERCEL === '1' && Boolean(process.env.VERCEL_ENV);
+  const isNestedAppRoot = path.basename(process.cwd()) === 'basedare';
+
+  if (!isVercelBuild || !isNestedAppRoot) {
+    return;
+  }
+
+  const parentNextDir = path.resolve(process.cwd(), '..', '.next');
+
+  try {
+    await lstat(parentNextDir);
+    await ensureDeterministicRoutesManifest(parentNextDir);
+    return;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  const relativeTarget = path.relative(path.dirname(parentNextDir), nextDir);
+  await symlink(relativeTarget, parentNextDir, 'dir');
+  console.log(`[postbuild] Linked parent .next to ${relativeTarget} for Vercel output collection`);
+}
+
+await ensureDeterministicRoutesManifest();
+await ensureVercelParentNextAlias();
