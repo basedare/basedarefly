@@ -373,7 +373,7 @@ type SelectedPlaceActiveDare = {
 };
 
 type PulseState = 'blazing' | 'igniting' | 'simmering' | 'cold';
-type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'unmarked';
+type PulseFilter = 'all' | 'blazing' | 'igniting' | 'simmering' | 'verified' | 'unmarked';
 type MapPreset = 'classic' | 'noir';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type CeremonyState =
@@ -2923,6 +2923,7 @@ export default function RealWorldMap() {
   const filteredNearbyPlaces = useMemo(() => {
     return nearbyPlaces.filter((place) => {
       if (pulseFilter === 'all') return true;
+      if (pulseFilter === 'verified') return place.tagSummary.approvedCount > 0;
       if (pulseFilter === 'unmarked') return place.tagSummary.approvedCount <= 0;
 
       return (
@@ -3013,6 +3014,7 @@ export default function RealWorldMap() {
       blazing: 0,
       igniting: 0,
       simmering: 0,
+      verified: 0,
       unmarked: 0,
     };
 
@@ -3023,6 +3025,7 @@ export default function RealWorldMap() {
         return;
       }
 
+      counts.verified += 1;
       const pulse = getPulse(approvedCount, place.tagSummary.lastTaggedAt);
       if (pulse === 'blazing' || pulse === 'igniting' || pulse === 'simmering') {
         counts[pulse] += 1;
@@ -3240,6 +3243,11 @@ export default function RealWorldMap() {
       accentClass: 'data-[active=true]:border-amber-300/45 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
     },
     {
+      value: 'verified',
+      label: 'Verified',
+      accentClass: 'data-[active=true]:border-emerald-300/45 data-[active=true]:bg-emerald-500/[0.14] data-[active=true]:text-emerald-100',
+    },
+    {
       value: 'unmarked',
       label: 'Unmarked',
       accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
@@ -3347,6 +3355,126 @@ export default function RealWorldMap() {
 
     return 'Open the venue card for the three real moves: mark, fund, or inspect the command view.';
   }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
+  const selectedPrimaryAction = useMemo(() => {
+    if ((selectedPlace?.activeDareCount ?? 0) > 0) {
+      return {
+        label: proximityAccess.canReveal ? 'Open the live challenge' : 'Move closer to unlock',
+        detail: proximityAccess.canReveal
+          ? 'A funded mission is already active here.'
+          : `Full brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`,
+        tone: 'gold' as const,
+      };
+    }
+
+    if ((selectedPlace?.approvedCount ?? 0) <= 0) {
+      return {
+        label: 'Wake this venue up',
+        detail: 'Mark it or fund the first challenge.',
+        tone: 'purple' as const,
+      };
+    }
+
+    return {
+      label: selectedCommandCenter ? 'Use the command layer' : 'Build the next signal',
+      detail: selectedCommandCenter
+        ? 'This venue has enough structure for repeat activations.'
+        : 'Add a mark or fund a challenge to make the memory loop obvious.',
+      tone: 'cyan' as const,
+    };
+  }, [proximityAccess.canReveal, selectedCommandCenter, selectedPlace]);
+  const signalRailOptions = useMemo(
+    () => [
+      {
+        id: 'live',
+        label: 'Live',
+        count: nearbyDareCounts.all,
+        detail: `${nearbyDareRadiusKm}km`,
+        active: !nearbyDarePanelCollapsed && nearbyDareFilter === 'all',
+        disabled: false,
+        className:
+          'data-[active=true]:border-[#f5c518]/42 data-[active=true]:bg-[#f5c518]/[0.13] data-[active=true]:text-[#f8dd72]',
+        onClick: () => {
+          setNearbyDareFilter('all');
+          setNearbyDarePanelCollapsed(false);
+          triggerHaptic('selection');
+        },
+      },
+      {
+        id: 'hot',
+        label: 'Hot',
+        count: filterCounts.blazing,
+        detail: 'venues',
+        active: pulseFilter === 'blazing',
+        disabled: false,
+        className:
+          'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
+        onClick: () => {
+          setPulseFilter('blazing');
+          triggerHaptic('selection');
+        },
+      },
+      {
+        id: 'verified',
+        label: 'Verified',
+        count: filterCounts.verified,
+        detail: 'proof',
+        active: pulseFilter === 'verified',
+        disabled: false,
+        className:
+          'data-[active=true]:border-emerald-300/45 data-[active=true]:bg-emerald-500/[0.14] data-[active=true]:text-emerald-100',
+        onClick: () => {
+          setPulseFilter('verified');
+          triggerHaptic('selection');
+        },
+      },
+      {
+        id: 'open',
+        label: 'Open',
+        count: filterCounts.unmarked,
+        detail: 'firsts',
+        active: pulseFilter === 'unmarked',
+        disabled: false,
+        className:
+          'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
+        onClick: () => {
+          setPulseFilter('unmarked');
+          triggerHaptic('selection');
+        },
+      },
+      {
+        id: 'matched',
+        label: 'Matched',
+        count: matchedVenueIndex.size,
+        detail: isConnected ? 'you' : 'login',
+        active: showMatchedLayer,
+        disabled: !isConnected,
+        className:
+          'data-[active=true]:border-cyan-300/45 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
+        onClick: () => {
+          if (!isConnected) {
+            triggerHaptic('warning');
+            return;
+          }
+
+          setShowMatchedLayer((current) => !current);
+          triggerHaptic('selection');
+        },
+      },
+    ],
+    [
+      filterCounts.blazing,
+      filterCounts.unmarked,
+      filterCounts.verified,
+      isConnected,
+      matchedVenueIndex.size,
+      nearbyDareCounts.all,
+      nearbyDareFilter,
+      nearbyDarePanelCollapsed,
+      nearbyDareRadiusKm,
+      pulseFilter,
+      showMatchedLayer,
+    ]
+  );
 
   const easeMapCamera = useCallback(
     ({
@@ -3797,6 +3925,31 @@ export default function RealWorldMap() {
 
             <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-col gap-2.5">
+                <div className="map-signal-rail">
+                  <div className="map-signal-rail-label">
+                    <span className="h-px w-4 rounded-full bg-cyan-200/70" />
+                    <span>Signals</span>
+                  </div>
+                  <div className="map-signal-rail-scroll">
+                    {signalRailOptions.map((option) => (
+                      <button
+                        key={`map-signal:${option.id}`}
+                        type="button"
+                        data-active={option.active}
+                        disabled={option.disabled}
+                        onClick={option.onClick}
+                        className={`map-signal-pill ${option.className}`}
+                      >
+                        <span className="map-signal-pill-count">{option.count}</span>
+                        <span className="map-signal-pill-main">
+                          <span>{option.label}</span>
+                          <span>{option.detail}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   {filterOptions.map((option) => (
                     <button
@@ -4036,7 +4189,7 @@ export default function RealWorldMap() {
                   </div>
                 </div>
                 {!nearbyDarePanelCollapsed ? (
-                <div className={`px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
+                <div className={`nearby-dare-tray-list px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
                   {nearbyDaresLoading ? (
                     <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
                       Scanning nearby dares...
@@ -4251,7 +4404,7 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[78dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[82dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -4349,6 +4502,31 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-sm text-white/78">{ceremonyState.body}</p>
                     </div>
                   ) : null}
+
+                  <div
+                    className={`map-command-strip mt-3 ${
+                      selectedPrimaryAction.tone === 'gold'
+                        ? 'map-command-strip--gold'
+                        : selectedPrimaryAction.tone === 'purple'
+                          ? 'map-command-strip--purple'
+                          : 'map-command-strip--cyan'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
+                        What can I do here?
+                      </p>
+                      <p className="mt-1 text-sm font-black uppercase tracking-[0.08em] text-white">
+                        {selectedPrimaryAction.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-white/60">
+                        {selectedPrimaryAction.detail}
+                      </p>
+                    </div>
+                    <div className="map-command-strip-orb" aria-hidden="true">
+                      <span />
+                    </div>
+                  </div>
 
                   <div className="map-mobile-stats mt-4 grid grid-cols-2 gap-3">
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
@@ -5273,14 +5451,59 @@ export default function RealWorldMap() {
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
             bottom: calc(0.75rem + env(safe-area-inset-bottom));
-            max-height: min(78dvh, calc(100% - 1.5rem));
+            max-height: min(82dvh, calc(100% - 1.5rem));
           }
 
           .selected-place-panel-content {
             padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem) !important;
             scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem);
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+            overscroll-behavior-y: auto;
+            touch-action: pan-y;
+          }
+
+          .nearby-dare-tray-list {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: auto;
+            touch-action: pan-y;
+          }
+
+          .map-signal-rail {
+            align-items: flex-start;
+            gap: 0.4rem;
+          }
+
+          .map-signal-rail-label {
+            padding-top: 0.68rem;
+            font-size: 8px;
+            letter-spacing: 0.2em;
+          }
+
+          .map-signal-rail-scroll {
+            margin-right: -1rem;
+            padding-right: 1rem;
+          }
+
+          .map-signal-pill {
+            min-width: 6.35rem;
+            padding: 0.42rem 0.62rem 0.42rem 0.42rem;
+          }
+
+          .map-signal-pill-count {
+            min-width: 1.85rem;
+            height: 1.85rem;
+            font-size: 0.72rem;
+          }
+
+          .map-command-strip {
+            margin-top: 0.85rem;
+            border-radius: 1.15rem;
+            padding: 0.82rem 0.82rem 0.82rem 0.9rem;
+          }
+
+          .map-command-strip-orb {
+            height: 2.55rem;
+            width: 2.55rem;
           }
 
           .map-mobile-priority {
@@ -5351,6 +5574,223 @@ export default function RealWorldMap() {
             0 -2px 4px rgba(0, 0, 0, 0.6);
           outline: 3px solid rgba(255, 255, 255, 0.04);
           outline-offset: -3px;
+        }
+
+        .map-signal-rail {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          max-width: 100%;
+        }
+
+        .map-signal-rail-label {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: 0.5rem;
+          padding-inline: 0.35rem;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
+          color: rgba(202, 248, 255, 0.78);
+        }
+
+        .map-signal-rail-scroll {
+          display: flex;
+          min-width: 0;
+          gap: 0.5rem;
+          overflow-x: auto;
+          padding: 0.15rem 0.15rem 0.35rem;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .map-signal-rail-scroll::-webkit-scrollbar {
+          display: none;
+        }
+
+        .map-signal-pill {
+          position: relative;
+          isolation: isolate;
+          display: inline-flex;
+          min-width: 7.25rem;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: 0.55rem;
+          overflow: hidden;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), transparent 36%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
+          padding: 0.48rem 0.72rem 0.48rem 0.5rem;
+          color: rgba(255, 255, 255, 0.58);
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.2);
+          transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            background 180ms ease,
+            color 180ms ease;
+        }
+
+        .map-signal-pill::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 48%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent);
+          opacity: 0.72;
+          pointer-events: none;
+        }
+
+        .map-signal-pill:hover:not(:disabled) {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.18);
+          color: white;
+        }
+
+        .map-signal-pill:disabled {
+          cursor: not-allowed;
+          opacity: 0.48;
+        }
+
+        .map-signal-pill-count {
+          position: relative;
+          z-index: 1;
+          display: inline-flex;
+          min-width: 2.1rem;
+          height: 2.1rem;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(0, 0, 0, 0.26);
+          color: white;
+          font-size: 0.82rem;
+          font-weight: 950;
+          letter-spacing: -0.04em;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .map-signal-pill-main {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.12rem;
+          white-space: nowrap;
+        }
+
+        .map-signal-pill-main span:first-child {
+          font-size: 0.66rem;
+          font-weight: 900;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
+
+        .map-signal-pill-main span:last-child {
+          font-size: 0.58rem;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.38);
+        }
+
+        .map-command-strip {
+          position: relative;
+          isolation: isolate;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          overflow: hidden;
+          border-radius: 1.35rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 0.95rem 0.95rem 0.95rem 1rem;
+          box-shadow:
+            0 18px 38px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -14px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .map-command-strip::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 46%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent);
+          pointer-events: none;
+        }
+
+        .map-command-strip--gold {
+          border-color: rgba(245, 197, 24, 0.24);
+          background:
+            radial-gradient(circle at 86% 20%, rgba(245, 197, 24, 0.18), transparent 34%),
+            linear-gradient(180deg, rgba(245, 197, 24, 0.12), rgba(10, 9, 16, 0.94));
+        }
+
+        .map-command-strip--purple {
+          border-color: rgba(184, 127, 255, 0.26);
+          background:
+            radial-gradient(circle at 86% 20%, rgba(184, 127, 255, 0.2), transparent 34%),
+            linear-gradient(180deg, rgba(184, 127, 255, 0.13), rgba(10, 9, 16, 0.94));
+        }
+
+        .map-command-strip--cyan {
+          border-color: rgba(34, 211, 238, 0.24);
+          background:
+            radial-gradient(circle at 86% 20%, rgba(34, 211, 238, 0.18), transparent 34%),
+            linear-gradient(180deg, rgba(34, 211, 238, 0.11), rgba(10, 9, 16, 0.94));
+        }
+
+        .map-command-strip-orb {
+          position: relative;
+          flex: 0 0 auto;
+          display: flex;
+          height: 3.15rem;
+          width: 3.15rem;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background:
+            radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.28), transparent 34%),
+            radial-gradient(circle, rgba(255, 255, 255, 0.08), rgba(5, 6, 12, 0.92));
+          box-shadow:
+            0 12px 24px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .map-command-strip-orb span {
+          height: 1.1rem;
+          width: 1.1rem;
+          border-radius: 999px;
+          background: #f5c518;
+          box-shadow:
+            0 0 0 7px rgba(245, 197, 24, 0.1),
+            0 0 22px rgba(245, 197, 24, 0.32);
+        }
+
+        .map-command-strip--purple .map-command-strip-orb span {
+          background: #b87fff;
+          box-shadow:
+            0 0 0 7px rgba(184, 127, 255, 0.1),
+            0 0 22px rgba(184, 127, 255, 0.32);
+        }
+
+        .map-command-strip--cyan .map-command-strip-orb span {
+          background: #67e8f9;
+          box-shadow:
+            0 0 0 7px rgba(34, 211, 238, 0.1),
+            0 0 22px rgba(34, 211, 238, 0.32);
         }
 
         .map-activation-legend {
