@@ -6,13 +6,13 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Increase push alert opt-in discovery without adding another global popup.
+- Goal: Double down on monetization with a public paid-activation buyer path.
 
 ### Plan
-- [x] Extract wallet push subscription state/actions into a reusable client hook.
-- [x] Keep the notification bell push controls working from the shared hook.
-- [x] Add a dismissible, wallet-scoped Live Alerts opt-in card to Dashboard and Action Center.
-- [x] Make push subscription reads endpoint-aware so the UI reflects the current device.
+- [x] Add a public `/activations` page that packages BaseDare as verified creator activations.
+- [x] Add pilot pricing tiers and the proof/reporting loop buyers are paying for.
+- [x] Add a qualified activation intake form and route it into internal founder events plus Telegram alerts.
+- [x] Route serious buyers from nav, sitemap, and Control Mode homepage into the monetization page.
 - [x] Verify production build, static safety, and Graphify rebuild.
 
 ### Verification
@@ -21,8 +21,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Added a wallet-scoped, dismissible Live Alerts opt-in on Dashboard and Action Center while keeping the notification bell controls on shared, current-device push subscription logic.
-- Follow-ups: Watch opt-in conversion once VAPID keys are configured in production.
+- Outcome: Added a public paid-activation offer page, qualified intake endpoint, internal founder-event capture, and Telegram alerting for buyer leads.
+- Follow-ups: Add conversion tracking once analytics is wired so we can measure activation page views, form starts, and qualified submissions.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

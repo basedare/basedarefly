@@ -345,7 +345,7 @@ function HomeContent() {
             <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto px-6 relative z-10">
               {/* Brand Portal Card - Ferrofluid/Venom Black */}
               <div
-                onClick={() => router.push('/brands/portal')}
+                onClick={() => router.push('/activations')}
                 className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
               >
                 {/* Ferrofluid Border Effect - organic black liquid metal */}
@@ -390,17 +390,17 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <div className="text-4xl mb-4">🏢</div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Paid Activations</h2>
                     <p className="text-zinc-500 mb-4">
-                      Fund venue activations, set creator payouts, and prove what changed after spend.
+                      Package a venue or brand budget into verified creator output, proof, and repeatable reporting.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Pilot Pricing</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Venue Activation</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">ROI Proof</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">USDC Settlement</span>
                     </div>
                     <div className="mt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
-                      Enter Portal
+                      View Packages
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>

@@ -527,6 +527,66 @@ ${htmlLink(appUrl('/admin'), 'Open lead inbox')} · ${htmlLink(appUrl('/brands/p
   return sendMessage(message);
 }
 
+export async function alertActivationIntake(data: {
+  leadId: string;
+  company: string;
+  contactName: string;
+  email: string;
+  buyerType: string;
+  city: string;
+  venue?: string | null;
+  budgetRange: string;
+  timeline: string;
+  goal: string;
+  packageId?: string | null;
+  website?: string | null;
+  notes?: string | null;
+}): Promise<boolean> {
+  const budgetLabels: Record<string, string> = {
+    '500_1500': '$500-$1.5k',
+    '1500_5000': '$1.5k-$5k',
+    '5000_15000': '$5k-$15k',
+    '15000_plus': '$15k+',
+  };
+  const timelineLabels: Record<string, string> = {
+    this_week: 'this week',
+    this_month: 'this month',
+    next_90_days: 'next 90 days',
+    exploring: 'exploring',
+  };
+  const goalLabels: Record<string, string> = {
+    foot_traffic: 'foot traffic',
+    ugc: 'verified content',
+    launch: 'launch push',
+    event: 'event activation',
+    repeat_visits: 'repeat visits',
+    other: 'other',
+  };
+
+  const details = [
+    `Contact: ${escapeHtml(data.contactName)} &lt;${escapeHtml(data.email)}&gt;`,
+    `Type: ${escapeHtml(data.buyerType)} · Budget: ${escapeHtml(budgetLabels[data.budgetRange] || data.budgetRange)}`,
+    `City: ${escapeHtml(data.city)}${data.venue ? ` · Venue: ${escapeHtml(data.venue)}` : ''}`,
+    `Timeline: ${escapeHtml(timelineLabels[data.timeline] || data.timeline)} · Goal: ${escapeHtml(goalLabels[data.goal] || data.goal)}`,
+    data.packageId ? `Package: ${escapeHtml(data.packageId)}` : null,
+    data.website ? `Website: ${escapeHtml(data.website)}` : null,
+  ].filter(Boolean);
+  const notes = compactText(data.notes, 260);
+
+  const message = `
+💸 <b>PAID ACTIVATION INTAKE</b>
+
+<b>${escapeHtml(data.company)}</b>
+${details.join('\n')}
+${notes ? `\nNote: ${escapeHtml(notes)}` : ''}
+Lead: <code>${escapeHtml(data.leadId)}</code>
+
+${htmlLink(appUrl('/admin/daily-command-loop'), 'Open command loop')} · ${htmlLink(appUrl('/activations'), 'View offer page')} · ${htmlLink(appUrl('/brands/portal'), 'Open brand portal')}
+`.trim();
+
+  return sendMessage(message);
+}
+
 /**
  * Alert: Creator submitted a claim request for an open activation
  */
