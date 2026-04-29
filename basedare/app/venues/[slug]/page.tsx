@@ -304,6 +304,20 @@ export default async function VenueDetailPage(
     memorySparklineBuckets.length > 0
       ? `${formatVenueLogbookDate(memorySparklineBuckets[0].bucketStartAt)} to ${formatVenueLogbookDate(memorySparklineBuckets[memorySparklineBuckets.length - 1].bucketStartAt)}`
       : 'Waiting for first venue memory';
+  const memorySparklineSlots = Array.from({ length: 7 }, (_, index) => {
+    const bucketIndex = index - (7 - memorySparklineBuckets.length);
+    const bucket = bucketIndex >= 0 ? memorySparklineBuckets[bucketIndex] : null;
+    const value = bucket
+      ? bucket.checkInCount + bucket.proofCount + bucket.completedDareCount
+      : 0;
+
+    return {
+      id: bucket?.bucketStartAt ?? `empty-memory-${index}`,
+      bucket,
+      value,
+      height: bucket ? Math.max(16, Math.round((Math.max(1, value) / maxMemorySparklineValue) * 58)) : 12,
+    };
+  });
   const repeatSignalHref = repeatActivationHref ?? fundChallengeHref;
   const repeatSignalCta = venue.activationInsight.repeatReady ? 'Repeat winner' : 'Create signal';
   const handshakeStatusLabel =
@@ -514,28 +528,38 @@ export default async function VenueDetailPage(
                 <p className="mt-3 text-sm leading-relaxed text-white/62">
                   {venue.activationInsight.summary}
                 </p>
-                <div className="mt-4 flex items-end gap-1.5" aria-label={`Venue memory activity from ${memorySparklineLabel}`}>
-                  {memorySparklineBuckets.length > 0 ? (
-                    memorySparklineBuckets.map((bucket) => {
-                      const value = bucket.checkInCount + bucket.proofCount + bucket.completedDareCount;
-                      const height = Math.max(16, Math.round((value / maxMemorySparklineValue) * 52));
-                      return (
-                        <span
-                          key={bucket.bucketStartAt}
-                          className="flex-1 rounded-full border border-cyan-200/10 bg-[linear-gradient(180deg,rgba(34,211,238,0.72)_0%,rgba(184,127,255,0.38)_62%,rgba(255,255,255,0.07)_100%)] shadow-[0_0_16px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.18)]"
-                          style={{ height }}
-                          title={`${formatVenueLogbookDate(bucket.bucketStartAt)} · ${value} signal${value === 1 ? '' : 's'}`}
-                        />
-                      );
-                    })
-                  ) : (
-                    Array.from({ length: 7 }).map((_, index) => (
+                <div className="mt-5 grid grid-cols-7 gap-2" aria-label={`Venue memory activity from ${memorySparklineLabel}`}>
+                  {memorySparklineSlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      className="flex h-20 items-end justify-center [perspective:720px]"
+                      title={
+                        slot.bucket
+                          ? `${formatVenueLogbookDate(slot.bucket.bucketStartAt)} · ${slot.value} signal${slot.value === 1 ? '' : 's'}`
+                          : 'No venue memory yet'
+                      }
+                    >
                       <span
-                        key={`empty-memory-${index}`}
-                        className="h-4 flex-1 rounded-full border border-white/8 bg-white/[0.035]"
-                      />
-                    ))
-                  )}
+                        className="relative block w-full max-w-[2.4rem] rounded-[12px]"
+                        style={{
+                          height: slot.height,
+                          transform: 'rotateX(58deg)',
+                          transformOrigin: '50% 78%',
+                          transformStyle: 'preserve-3d',
+                        }}
+                      >
+                        <span
+                          className={`absolute inset-0 rounded-[12px] border ${
+                            slot.bucket
+                              ? 'border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.74)_0%,rgba(184,127,255,0.44)_66%,rgba(255,255,255,0.08)_100%)] shadow-[0_0_18px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-10px_14px_rgba(16,8,40,0.36)]'
+                              : 'border-white/8 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.24)]'
+                          }`}
+                        />
+                        <span className="absolute inset-x-1.5 top-1 h-1 rounded-full bg-white/45 opacity-70" />
+                        <span className="absolute inset-x-1 bottom-[-0.4rem] h-2 rounded-full bg-black/45 blur-[4px]" />
+                      </span>
+                    </div>
+                  ))}
                 </div>
                 <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-white/35">
                   {memorySparklineLabel}

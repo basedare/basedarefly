@@ -3999,12 +3999,6 @@ export default function RealWorldMap() {
     'map-panel-section bd-dent-surface bd-dent-surface--soft rounded-[24px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(4,5,12,0.84)_0%,rgba(9,10,19,0.94)_48%,rgba(3,4,10,0.985)_100%)] px-4 py-4 shadow-[inset_8px_10px_22px_rgba(0,0,0,0.34),inset_-5px_-6px_14px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-16px_22px_rgba(0,0,0,0.34)]';
   const mapPanelInsetChipClass =
     'rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.14)]';
-  const selectedPrimaryButtonTone =
-    selectedPrimaryAction.tone === 'gold'
-      ? 'yellow'
-      : selectedPrimaryAction.tone === 'purple'
-        ? 'purple'
-        : 'teal';
   const selectedCommandStripClassName = `map-command-strip mt-3 ${
     selectedPrimaryAction.tone === 'gold'
       ? 'map-command-strip--gold'
@@ -4024,32 +4018,28 @@ export default function RealWorldMap() {
         <p className="mt-1 text-xs leading-relaxed text-white/60">
           {selectedPrimaryAction.detail}
         </p>
-      </div>
-      <div className="map-command-strip-side">
         {selectedPrimaryAction.href && selectedPrimaryAction.actionLabel ? (
-          <span className="map-command-strip-jelly-shell">
-            <SquircleLink
+          <div className="map-command-strip-action-row">
+            <Link
               href={selectedPrimaryAction.href}
-              tone={selectedPrimaryButtonTone}
-              label={selectedPrimaryAction.actionLabel}
-              fullWidth
-              height={42}
-              className="map-command-strip-jelly"
-              labelClassName="text-[0.62rem] tracking-[0.08em] sm:text-[0.7rem]"
+              className={`map-command-strip-jelly-button map-command-strip-jelly-button--${selectedPrimaryAction.tone}`}
+              aria-label={`${selectedPrimaryAction.actionLabel} for ${selectedPlace?.name ?? 'this venue'}`}
             >
               <span className="map-command-strip-jelly-label">
                 {selectedPrimaryAction.actionLabel}
                 <ArrowLeft className="h-3 w-3 rotate-180" />
               </span>
-            </SquircleLink>
-          </span>
+            </Link>
+          </div>
         ) : null}
-        {!selectedPrimaryAction.actionLabel ? (
+      </div>
+      {!selectedPrimaryAction.actionLabel ? (
+        <div className="map-command-strip-side">
           <span className="map-command-strip-orb" aria-hidden="true">
             <span />
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </>
   );
 
@@ -6261,19 +6251,110 @@ export default function RealWorldMap() {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
         }
 
-        .map-command-strip-jelly-shell {
-          position: relative;
-          z-index: 1;
-          display: block;
-          flex: 0 0 auto;
-          width: clamp(6.4rem, 22vw, 7.35rem);
+        .map-command-strip-action-row {
+          display: flex;
+          margin-top: 0.72rem;
         }
 
-        .map-command-strip-jelly-shell :global(.map-command-strip-jelly) {
-          width: 100%;
+        .map-command-strip-jelly-button {
+          position: relative;
+          isolation: isolate;
+          z-index: 1;
+          display: inline-flex;
+          min-height: 2.32rem;
+          width: 5.7rem;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.24);
+          color: white;
+          text-decoration: none;
+          box-shadow:
+            0 12px 24px rgba(0, 0, 0, 0.26),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.22);
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            filter 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .map-command-strip-jelly-button::before {
+          content: '';
+          position: absolute;
+          inset: 0.18rem 0.72rem auto;
+          height: 0.3rem;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.5);
+          opacity: 0.62;
+          pointer-events: none;
+        }
+
+        .map-command-strip-jelly-button::after {
+          content: '';
+          position: absolute;
+          inset: auto 0.42rem 0.2rem;
+          height: 0.48rem;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.2);
+          filter: blur(6px);
+          opacity: 0.48;
+          pointer-events: none;
+        }
+
+        .map-command-strip-jelly-button:hover {
+          transform: translateY(-1px);
+          filter: saturate(1.08);
+          border-color: rgba(255, 255, 255, 0.34);
+        }
+
+        .map-command-strip-jelly-button:focus-visible {
+          outline: 2px solid rgba(245, 197, 24, 0.72);
+          outline-offset: 3px;
+        }
+
+        .map-command-strip-jelly-button--gold {
+          color: #15120c;
+          border-color: rgba(255, 236, 153, 0.58);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.6), transparent 38%),
+            linear-gradient(180deg, rgba(255, 230, 126, 0.98), rgba(245, 197, 24, 0.92) 54%, rgba(138, 90, 0, 0.98));
+          box-shadow:
+            0 13px 24px rgba(0, 0, 0, 0.28),
+            0 0 20px rgba(245, 197, 24, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.38),
+            inset 0 -13px 18px rgba(138, 90, 0, 0.28);
+        }
+
+        .map-command-strip-jelly-button--cyan {
+          border-color: rgba(125, 249, 255, 0.48);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.5), transparent 38%),
+            linear-gradient(180deg, rgba(103, 232, 249, 0.96), rgba(20, 184, 166, 0.86) 54%, rgba(12, 74, 110, 0.98));
+          box-shadow:
+            0 13px 24px rgba(0, 0, 0, 0.28),
+            0 0 20px rgba(34, 211, 238, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            inset 0 -13px 18px rgba(8, 47, 73, 0.32);
+        }
+
+        .map-command-strip-jelly-button--purple {
+          border-color: rgba(245, 208, 254, 0.5);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.52), transparent 38%),
+            linear-gradient(180deg, rgba(217, 70, 239, 0.96), rgba(147, 51, 234, 0.88) 54%, rgba(67, 20, 108, 0.98));
+          box-shadow:
+            0 13px 24px rgba(0, 0, 0, 0.28),
+            0 0 20px rgba(217, 70, 239, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            inset 0 -13px 18px rgba(59, 7, 100, 0.34);
         }
 
         .map-command-strip-jelly-label {
+          position: relative;
+          z-index: 1;
           display: inline-flex;
           min-width: 0;
           align-items: center;
@@ -6281,6 +6362,12 @@ export default function RealWorldMap() {
           gap: 0.36rem;
           overflow: hidden;
           text-overflow: ellipsis;
+          color: inherit;
+          font-size: 0.62rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          line-height: 1;
+          text-transform: uppercase;
           white-space: nowrap;
         }
 
@@ -6802,8 +6889,13 @@ export default function RealWorldMap() {
             font-size: 0.52rem;
           }
 
-          .map-command-strip-jelly-shell {
-            width: min(8.25rem, 100%);
+          .map-command-strip-action-row {
+            margin-top: 0.68rem;
+          }
+
+          .map-command-strip-jelly-button {
+            width: 5.55rem;
+            min-height: 2.25rem;
           }
 
           .map-command-strip-orb {
