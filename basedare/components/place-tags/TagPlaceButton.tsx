@@ -410,7 +410,7 @@ export default function TagPlaceButton({
           onClick={openComposer}
           className={buttonClassName}
         >
-          <span className="flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-white sm:text-[0.82rem]">
+          <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-white sm:text-[0.82rem]">
             <Sparkles className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
             Mark
           </span>

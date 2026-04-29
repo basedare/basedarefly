@@ -6,14 +6,14 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Tighten the homepage, Creator Pool, notifications, dare detail, and map venue action UI polish.
+- Goal: Replace the boring Leaflet map surface with a MapLibre-powered dark 3D city grid.
 
 ### Plan
-- [x] Stop the homepage `INITIATE` jelly button from expanding on hover.
-- [x] Replace the Creator Pool popup top grey bar with a proper glass edge.
-- [x] Keep desktop notification dropdown reads silent instead of prompting Coinbase signing.
-- [x] Improve dare detail title contrast against creator-tag backgrounds.
-- [x] Replace map venue action buttons with shared jelly buttons.
+- [x] Swap the map canvas from Leaflet/react-leaflet to MapLibre GL JS.
+- [x] Use OpenFreeMap vector styling as the base map source.
+- [x] Add BaseDare-owned layers for chaos zones, heat, live dare signals, proof nodes, selected venue pulse, footprint trail, and user aura.
+- [x] Preserve existing venue selection, dropped pins, nearby scanning, filters, panels, and jelly actions.
+- [x] Remove unused direct Leaflet packages and CSS import.
 - [x] Verify with targeted lint/type checks, production build, and graphify rebuild.
 
 ### Verification
@@ -22,8 +22,8 @@ Use this section for active non-trivial tasks.
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Shared UI primitives now support stable homepage hover, venue actions use the jelly system, and notification dropdown opens without forcing wallet signing.
-- Follow-ups: Browser-smoke `/`, `/map`, and a live dare detail URL after deploy.
+- Outcome: `/map` now runs on a MapLibre 3D grid with dark BaseDare styling, live signal overlays, and existing BaseDare marker interactions.
+- Follow-ups: Browser-smoke `/map` against live tile loading and tune the final dark style once real production venue density is visible.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

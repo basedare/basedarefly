@@ -411,7 +411,7 @@ export default function CreatePlaceChallengeButton({
           onClick={openComposer}
           className={buttonClassName}
         >
-          <span className="flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#15120c] sm:text-[0.78rem]">
+          <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#15120c] sm:text-[0.78rem]">
             <Zap className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
             Fund dare
           </span>

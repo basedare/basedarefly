@@ -6,7 +6,7 @@ import "@fontsource/figtree/700.css";
 import "@fontsource/figtree/800.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/700.css";
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import localFont from "next/font/local";
 import "./global.css";
 import { Providers } from "@/components/Providers";

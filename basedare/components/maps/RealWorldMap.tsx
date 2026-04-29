@@ -4,15 +4,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  MapContainer,
-  Marker,
-  Polyline,
-  TileLayer,
-  useMap,
-  useMapEvents,
-} from 'react-leaflet';
-import { CRS, divIcon, latLng, type LatLngExpression, type Map as LeafletMap } from 'leaflet';
+import maplibregl, {
+  type GeoJSONSource,
+  type LayerSpecification,
+  type Map as MapLibreMap,
+  type MapLayerMouseEvent,
+  type Marker as MapLibreMarker,
+  type PositionAnchor,
+} from 'maplibre-gl';
+import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
   ArrowLeft,
   ChevronDown,
@@ -400,9 +400,9 @@ type ClusteredNearbyMarker =
       challengeLiveCount: number;
     };
 
-const markerIconCache = new Map<string, ReturnType<typeof divIcon>>();
-const footprintMarkerIconCache = new Map<string, ReturnType<typeof divIcon>>();
-const placeClusterIconCache = new Map<string, ReturnType<typeof divIcon>>();
+const markerIconCache = new Map<string, string>();
+const footprintMarkerIconCache = new Map<string, string>();
+const placeClusterIconCache = new Map<string, string>();
 
 const MAP_PRESET_OPTIONS: Array<{
   value: MapPreset;
@@ -425,6 +425,22 @@ const MAP_PRESET_OPTIONS: Array<{
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
+const DEFAULT_MAP_BEARING = -18;
+const DEFAULT_MAP_PITCH = 62;
+const OPENFREEMAP_LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const MAPLIBRE_VENUE_SOURCE_ID = 'basedare-venue-signals';
+const MAPLIBRE_CHAOS_SOURCE_ID = 'basedare-chaos-zones';
+const MAPLIBRE_FOOTPRINT_SOURCE_ID = 'basedare-footprint-trail';
+const MAPLIBRE_SELECTED_SOURCE_ID = 'basedare-selected-signal';
+const MAPLIBRE_USER_SOURCE_ID = 'basedare-user-position';
+const MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID = 'basedare-live-signal-halo';
+const MAPLIBRE_PROOF_NODE_LAYER_ID = 'basedare-proof-nodes';
+const MAPLIBRE_SIGNAL_LABEL_LAYER_ID = 'basedare-signal-labels';
+const MAPLIBRE_INTERACTIVE_SIGNAL_LAYER_IDS = [
+  MAPLIBRE_SIGNAL_LABEL_LAYER_ID,
+  MAPLIBRE_PROOF_NODE_LAYER_ID,
+  MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID,
+];
 const CURRENT_LOCATION_CENTERED_ICON_PATH = '/assets/current-location-bear-pin.png';
 const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
   {
@@ -448,7 +464,7 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 ];
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
-const currentLocationIconCache = new Map<string, ReturnType<typeof divIcon>>();
+const currentLocationIconCache = new Map<string, string>();
 
 function getRadiusMetersForZoom(zoom: number) {
   if (zoom >= 15) return 2000;
@@ -470,6 +486,726 @@ function getClusterCellSize(zoom: number) {
   if (zoom >= 13) return 62;
   if (zoom >= 12) return 72;
   return 84;
+}
+
+function projectLatLngToWorldPoint(latitude: number, longitude: number, zoom: number) {
+  const sin = Math.sin((latitude * Math.PI) / 180);
+  const scale = 256 * 2 ** zoom;
+
+  return {
+    x: ((longitude + 180) / 360) * scale,
+    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
+  };
+}
+
+function createMarkerElement(html: string, className: string) {
+  const element = document.createElement('div');
+  element.className = className;
+  element.innerHTML = html;
+  return element;
+}
+
+function emptyPointCollection(): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: [],
+  };
+}
+
+function emptyPolygonCollection(): FeatureCollection<Polygon> {
+  return {
+    type: 'FeatureCollection',
+    features: [],
+  };
+}
+
+function emptyLineCollection(): FeatureCollection<LineString> {
+  return {
+    type: 'FeatureCollection',
+    features: [],
+  };
+}
+
+function setGeoJsonSourceData(
+  map: MapLibreMap,
+  sourceId: string,
+  data: FeatureCollection<Point | Polygon | LineString>
+) {
+  const source = map.getSource(sourceId) as GeoJSONSource | undefined;
+  source?.setData(data);
+}
+
+function getMapLibreFirstSymbolLayerId(map: MapLibreMap) {
+  return map.getStyle().layers?.find((layer) => layer.type === 'symbol')?.id;
+}
+
+function getMapLibreVectorSourceId(map: MapLibreMap) {
+  const sources = map.getStyle().sources as Record<string, { type?: string }> | undefined;
+  if (!sources) return null;
+
+  return (
+    Object.entries(sources).find(
+      ([sourceId, source]) =>
+        source.type === 'vector' &&
+        (sourceId.includes('openmaptiles') ||
+          sourceId.includes('openfreemap') ||
+          sourceId.includes('versatiles') ||
+          sourceId.includes('osm'))
+    )?.[0] ??
+    Object.entries(sources).find(([, source]) => source.type === 'vector')?.[0] ??
+    null
+  );
+}
+
+function createCirclePolygonFeature({
+  latitude,
+  longitude,
+  radiusMeters,
+  properties,
+}: {
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  properties: Record<string, string | number | boolean | null>;
+}): Feature<Polygon> {
+  const steps = 48;
+  const latitudeRadians = (latitude * Math.PI) / 180;
+  const metersPerDegreeLatitude = 111_320;
+  const metersPerDegreeLongitude = Math.max(1, 111_320 * Math.cos(latitudeRadians));
+  const coordinates: Array<[number, number]> = [];
+
+  for (let index = 0; index <= steps; index += 1) {
+    const angle = (index / steps) * Math.PI * 2;
+    const dx = Math.cos(angle) * radiusMeters;
+    const dy = Math.sin(angle) * radiusMeters;
+    coordinates.push([
+      longitude + dx / metersPerDegreeLongitude,
+      latitude + dy / metersPerDegreeLatitude,
+    ]);
+  }
+
+  return {
+    type: 'Feature',
+    properties,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coordinates],
+    },
+  };
+}
+
+function getMapLibrePulseColor(pulse: PulseState, visualState: PlaceVisualState) {
+  if (visualState === 'hot' || pulse === 'blazing') return '#ff2d55';
+  if (visualState === 'active' || pulse === 'igniting') return '#22d3ee';
+  if (visualState === 'first-mark' || pulse === 'simmering') return '#f8dd72';
+  if (visualState === 'pending') return '#f59e0b';
+  return '#b87fff';
+}
+
+function getMapLibreSignalLabel({
+  activeDareCount,
+  approvedCount,
+  matched,
+  visualState,
+}: {
+  activeDareCount: number;
+  approvedCount: number;
+  matched: boolean;
+  visualState: PlaceVisualState;
+}) {
+  if (activeDareCount > 1) return `${activeDareCount} live`;
+  if (activeDareCount === 1) return 'live dare';
+  if (matched) return 'matched';
+  if (approvedCount > 1) return `${approvedCount} marks`;
+  if (approvedCount === 1) return 'first mark';
+  if (visualState === 'pending') return 'pending';
+  return 'wake spot';
+}
+
+function getChaosLevelForPlace(place: NearbyPlace) {
+  const approvedCount = place.tagSummary.approvedCount;
+  const heatScore = place.tagSummary.heatScore;
+  const liveSignal = place.activeDareCount * 22;
+  const memorySignal = approvedCount * 7;
+
+  return Math.min(100, Math.max(8, heatScore + liveSignal + memorySignal));
+}
+
+function buildVenueSignalCollection({
+  places,
+  matchedVenueIndex,
+  showMatchedLayer,
+  selectedPlace,
+}: {
+  places: NearbyPlace[];
+  matchedVenueIndex: Map<string, unknown>;
+  showMatchedLayer: boolean;
+  selectedPlace: SelectedPlace | null;
+}): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: places.map((place): Feature<Point> => {
+      const visualState = getPlaceVisualState({
+        approvedCount: place.tagSummary.approvedCount,
+        lastTaggedAt: place.tagSummary.lastTaggedAt,
+      });
+      const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+      const matched = showMatchedLayer && matchedVenueIndex.has(place.slug);
+      const selected =
+        Boolean(selectedPlace?.placeId && selectedPlace.placeId === place.id) ||
+        Boolean(selectedPlace?.slug && selectedPlace.slug === place.slug);
+      const chaosLevel = getChaosLevelForPlace(place);
+
+      return {
+        type: 'Feature',
+        properties: {
+          id: place.id,
+          slug: place.slug,
+          name: place.name,
+          pulse,
+          visualState,
+          approvedCount: place.tagSummary.approvedCount,
+          heatScore: place.tagSummary.heatScore,
+          activeDareCount: place.activeDareCount,
+          liveSignal: place.activeDareCount > 0 ? Math.min(9, place.activeDareCount) : 0,
+          chaosLevel,
+          matched,
+          selected,
+          activated: isVenueActivated(place.commandCenter),
+          pulseColor: getMapLibrePulseColor(pulse, visualState),
+          signalLabel: getMapLibreSignalLabel({
+            activeDareCount: place.activeDareCount,
+            approvedCount: place.tagSummary.approvedCount,
+            matched,
+            visualState,
+          }),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [place.longitude, place.latitude],
+        },
+      };
+    }),
+  };
+}
+
+function buildChaosZoneCollection({
+  places,
+  matchedVenueIndex,
+  showMatchedLayer,
+}: {
+  places: NearbyPlace[];
+  matchedVenueIndex: Map<string, unknown>;
+  showMatchedLayer: boolean;
+}): FeatureCollection<Polygon> {
+  return {
+    type: 'FeatureCollection',
+    features: places
+      .map((place) => {
+        const visualState = getPlaceVisualState({
+          approvedCount: place.tagSummary.approvedCount,
+          lastTaggedAt: place.tagSummary.lastTaggedAt,
+        });
+        const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+        const matched = showMatchedLayer && matchedVenueIndex.has(place.slug);
+        const chaosLevel = getChaosLevelForPlace(place);
+        const hasZone =
+          chaosLevel >= 22 ||
+          place.activeDareCount > 0 ||
+          matched ||
+          visualState === 'hot' ||
+          visualState === 'active';
+
+        if (!hasZone) return null;
+
+        return createCirclePolygonFeature({
+          latitude: place.latitude,
+          longitude: place.longitude,
+          radiusMeters: Math.min(720, 130 + chaosLevel * 5.8 + place.activeDareCount * 90),
+          properties: {
+            id: place.id,
+            slug: place.slug,
+            pulse,
+            visualState,
+            matched,
+            chaosLevel,
+            activeDareCount: place.activeDareCount,
+            pulseColor: getMapLibrePulseColor(pulse, visualState),
+          },
+        });
+      })
+      .filter((feature): feature is Feature<Polygon> => Boolean(feature)),
+  };
+}
+
+function buildSelectedSignalCollection(selectedPlace: SelectedPlace | null): FeatureCollection<Point> {
+  if (!selectedPlace) return emptyPointCollection();
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {
+          id: selectedPlace.placeId ?? selectedPlace.slug ?? 'dropped-pin',
+          name: selectedPlace.name,
+          activeDareCount: selectedPlace.activeDareCount ?? 0,
+          heatScore: selectedPlace.heatScore ?? 0,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [selectedPlace.longitude, selectedPlace.latitude],
+        },
+      },
+    ],
+  };
+}
+
+function buildUserPositionCollection(
+  userLocation: { latitude: number; longitude: number } | null
+): FeatureCollection<Point> {
+  if (!userLocation) return emptyPointCollection();
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {
+          id: 'current-user',
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [userLocation.longitude, userLocation.latitude],
+        },
+      },
+    ],
+  };
+}
+
+function buildFootprintLineCollection({
+  marks,
+  enabled,
+}: {
+  marks: FootprintMark[];
+  enabled: boolean;
+}): FeatureCollection<LineString> {
+  if (!enabled || marks.length < 2) return emptyLineCollection();
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {
+          id: 'creator-footprint',
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: marks.map((mark) => [mark.venue.longitude, mark.venue.latitude]),
+        },
+      },
+    ],
+  };
+}
+
+function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
+  const layers = map.getStyle().layers ?? [];
+  const muted = preset === 'noir';
+
+  layers.forEach((layer) => {
+    try {
+      if (layer.type === 'background') {
+        map.setPaintProperty(layer.id, 'background-color', muted ? '#030407' : '#040611');
+        return;
+      }
+
+      const layerId = layer.id.toLowerCase();
+
+      if (layer.type === 'fill') {
+        if (layerId.includes('water')) {
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#05070d' : '#071224');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.72 : 0.86);
+          return;
+        }
+
+        if (layerId.includes('park') || layerId.includes('landcover') || layerId.includes('wood')) {
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#070908' : '#07120f');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.38 : 0.48);
+          return;
+        }
+
+        map.setPaintProperty(layer.id, 'fill-color', muted ? '#08090f' : '#0a0d18');
+        map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.52 : 0.68);
+      }
+
+      if (layer.type === 'line') {
+        const roadColor = muted ? '#2a2d38' : '#273150';
+        const arterialColor = muted ? '#393b45' : '#4c3d71';
+        map.setPaintProperty(
+          layer.id,
+          'line-color',
+          layerId.includes('major') || layerId.includes('primary') || layerId.includes('motorway')
+            ? arterialColor
+            : roadColor
+        );
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.46 : 0.58);
+      }
+
+      if (layer.type === 'symbol') {
+        if (layerId.includes('place') || layerId.includes('label') || layerId.includes('name')) {
+          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#d9d6ff');
+          map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#030407' : '#070611');
+          map.setPaintProperty(layer.id, 'text-halo-width', 1.2);
+        }
+
+        if (layerId.includes('poi')) {
+          map.setPaintProperty(layer.id, 'text-opacity', muted ? 0.32 : 0.42);
+          map.setPaintProperty(layer.id, 'icon-opacity', muted ? 0.18 : 0.26);
+        }
+      }
+    } catch {
+      // Some OpenFreeMap layers intentionally omit paint properties; skip those safely.
+    }
+  });
+}
+
+function ensureMapLibreSource(map: MapLibreMap, sourceId: string, data: FeatureCollection<Point | Polygon | LineString>) {
+  if (map.getSource(sourceId)) return;
+
+  map.addSource(sourceId, {
+    type: 'geojson',
+    data,
+  });
+}
+
+function addMapLibreLayer(map: MapLibreMap, layer: LayerSpecification, beforeId?: string) {
+  if (map.getLayer(layer.id)) return;
+  map.addLayer(layer, beforeId);
+}
+
+function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
+  tuneMapLibreBaseStyle(map, preset);
+
+  ensureMapLibreSource(map, MAPLIBRE_CHAOS_SOURCE_ID, emptyPolygonCollection());
+  ensureMapLibreSource(map, MAPLIBRE_VENUE_SOURCE_ID, emptyPointCollection());
+  ensureMapLibreSource(map, MAPLIBRE_SELECTED_SOURCE_ID, emptyPointCollection());
+  ensureMapLibreSource(map, MAPLIBRE_USER_SOURCE_ID, emptyPointCollection());
+  ensureMapLibreSource(map, MAPLIBRE_FOOTPRINT_SOURCE_ID, emptyLineCollection());
+
+  const firstSymbolLayerId = getMapLibreFirstSymbolLayerId(map);
+
+  const vectorSourceId = getMapLibreVectorSourceId(map);
+  if (vectorSourceId) {
+    try {
+      addMapLibreLayer(
+        map,
+        {
+          id: 'basedare-3d-city-mass',
+          type: 'fill-extrusion',
+          source: vectorSourceId,
+          'source-layer': 'building',
+          minzoom: 13,
+          paint: {
+            'fill-extrusion-color': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              13,
+              preset === 'noir' ? '#11131a' : '#16162a',
+              16,
+              preset === 'noir' ? '#272936' : '#31234f',
+            ],
+            'fill-extrusion-height': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              13,
+              0,
+              15,
+              ['to-number', ['coalesce', ['get', 'render_height'], ['get', 'height'], 28]],
+            ],
+            'fill-extrusion-base': ['to-number', ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
+            'fill-extrusion-opacity': preset === 'noir' ? 0.42 : 0.64,
+            'fill-extrusion-vertical-gradient': true,
+          },
+        },
+        firstSymbolLayerId
+      );
+    } catch {
+      // OpenFreeMap-compatible styles do not all expose building vectors under the same source-layer.
+    }
+  }
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-chaos-zones-fill',
+      type: 'fill',
+      source: MAPLIBRE_CHAOS_SOURCE_ID,
+      paint: {
+        'fill-color': [
+          'match',
+          ['get', 'visualState'],
+          'hot',
+          '#ff2d55',
+          'active',
+          '#22d3ee',
+          'first-mark',
+          '#f8dd72',
+          'pending',
+          '#f59e0b',
+          '#b87fff',
+        ],
+        'fill-opacity': [
+          'interpolate',
+          ['linear'],
+          ['get', 'chaosLevel'],
+          0,
+          0.02,
+          35,
+          preset === 'noir' ? 0.08 : 0.13,
+          100,
+          preset === 'noir' ? 0.16 : 0.24,
+        ],
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-chaos-zones-edge',
+      type: 'line',
+      source: MAPLIBRE_CHAOS_SOURCE_ID,
+      paint: {
+        'line-color': [
+          'match',
+          ['get', 'visualState'],
+          'hot',
+          '#ff6f91',
+          'active',
+          '#67e8f9',
+          'first-mark',
+          '#f8dd72',
+          'pending',
+          '#fbbf24',
+          '#c084fc',
+        ],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 1.8],
+        'line-opacity': ['interpolate', ['linear'], ['get', 'chaosLevel'], 0, 0.08, 100, 0.42],
+        'line-blur': 1.6,
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-live-heat',
+      type: 'heatmap',
+      source: MAPLIBRE_VENUE_SOURCE_ID,
+      maxzoom: 16,
+      paint: {
+        'heatmap-weight': [
+          'interpolate',
+          ['linear'],
+          ['get', 'chaosLevel'],
+          0,
+          0.04,
+          100,
+          1,
+        ],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 15, 1.8],
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 46],
+        'heatmap-opacity': preset === 'noir' ? 0.34 : 0.48,
+        'heatmap-color': [
+          'interpolate',
+          ['linear'],
+          ['heatmap-density'],
+          0,
+          'rgba(0,0,0,0)',
+          0.18,
+          'rgba(184,127,255,0.18)',
+          0.42,
+          'rgba(34,211,238,0.34)',
+          0.72,
+          'rgba(245,197,24,0.42)',
+          1,
+          'rgba(255,45,85,0.58)',
+        ],
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID,
+      type: 'circle',
+      source: MAPLIBRE_VENUE_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          10,
+          ['+', 12, ['*', ['get', 'liveSignal'], 3]],
+          15,
+          ['+', 26, ['*', ['get', 'liveSignal'], 7]],
+        ],
+        'circle-color': [
+          'match',
+          ['get', 'visualState'],
+          'hot',
+          '#ff2d55',
+          'active',
+          '#22d3ee',
+          'first-mark',
+          '#f8dd72',
+          'pending',
+          '#f59e0b',
+          '#b87fff',
+        ],
+        'circle-opacity': [
+          'interpolate',
+          ['linear'],
+          ['get', 'chaosLevel'],
+          0,
+          0.06,
+          100,
+          preset === 'noir' ? 0.22 : 0.34,
+        ],
+        'circle-blur': 0.74,
+        'circle-stroke-width': ['case', ['>', ['get', 'activeDareCount'], 0], 1.2, 0],
+        'circle-stroke-color': '#f8dd72',
+        'circle-stroke-opacity': ['case', ['>', ['get', 'activeDareCount'], 0], 0.32, 0],
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: MAPLIBRE_PROOF_NODE_LAYER_ID,
+      type: 'circle',
+      source: MAPLIBRE_VENUE_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2.5, 15, 7],
+        'circle-color': [
+          'case',
+          ['>', ['get', 'approvedCount'], 0],
+          '#f8dd72',
+          ['>', ['get', 'activeDareCount'], 0],
+          '#22d3ee',
+          '#b87fff',
+        ],
+        'circle-opacity': ['case', ['>', ['get', 'approvedCount'], 0], 0.9, 0.34],
+        'circle-stroke-width': 1,
+        'circle-stroke-color': 'rgba(255,255,255,0.72)',
+        'circle-stroke-opacity': 0.42,
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(map, {
+    id: MAPLIBRE_SIGNAL_LABEL_LAYER_ID,
+    type: 'symbol',
+    source: MAPLIBRE_VENUE_SOURCE_ID,
+    minzoom: 12.25,
+    filter: [
+      'any',
+      ['>', ['get', 'activeDareCount'], 0],
+      ['>', ['get', 'approvedCount'], 0],
+      ['==', ['get', 'matched'], true],
+      ['==', ['get', 'selected'], true],
+    ],
+    layout: {
+      'text-field': ['upcase', ['get', 'signalLabel']],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 8.5, 16, 11.5],
+      'text-letter-spacing': 0.08,
+      'text-offset': [0, 1.9],
+      'text-anchor': 'top',
+      'text-allow-overlap': false,
+      'text-ignore-placement': false,
+      'text-optional': true,
+    },
+    paint: {
+      'text-color': [
+        'case',
+        ['>', ['get', 'activeDareCount'], 0],
+        '#f8dd72',
+        ['==', ['get', 'matched'], true],
+        '#67e8f9',
+        '#f4e8ff',
+      ],
+      'text-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13.25, 0.86, 16, 1],
+      'text-halo-color': 'rgba(2,4,10,0.92)',
+      'text-halo-width': 1.4,
+      'text-halo-blur': 0.6,
+    },
+  });
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-selected-pulse',
+      type: 'circle',
+      source: MAPLIBRE_SELECTED_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 34, 16, 92],
+        'circle-color': '#f8dd72',
+        'circle-opacity': 0.2,
+        'circle-blur': 0.82,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#f8dd72',
+        'circle-stroke-opacity': 0.34,
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-footprint-line',
+      type: 'line',
+      source: MAPLIBRE_FOOTPRINT_SOURCE_ID,
+      paint: {
+        'line-color': '#b87fff',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.6, 15, 3],
+        'line-opacity': 0.44,
+        'line-blur': 1.2,
+        'line-dasharray': [1.6, 2.4],
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: 'basedare-user-aura',
+      type: 'circle',
+      source: MAPLIBRE_USER_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 26, 15, 58],
+        'circle-color': '#22d3ee',
+        'circle-opacity': 0.18,
+        'circle-blur': 0.68,
+      },
+    },
+    firstSymbolLayerId
+  );
 }
 
 function getPulse(approvedCount: number, lastTaggedAt: string | null): PulseState {
@@ -842,7 +1578,7 @@ function renderPulseLegend(
   );
 }
 
-function createPeebearMarkerIcon({
+function createPeebearMarkerHtml({
   pulse,
   approvedCount,
   heatScore,
@@ -888,41 +1624,35 @@ function createPeebearMarkerIcon({
   const showActivatedMarkerChrome = activated && (!compact || active);
   const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
 
-  const cachedIcon = markerIconCache.get(cacheKey);
-  if (cachedIcon) {
-    return cachedIcon;
+  const cachedHtml = markerIconCache.get(cacheKey);
+  if (cachedHtml) {
+    return cachedHtml;
   }
 
-  const icon = divIcon({
-    className: 'peebear-leaflet-icon',
-    iconSize: compact ? [76, showActivatedMarkerChrome ? 112 : 92] : [92, showActivatedMarkerChrome ? 148 : 132],
-    iconAnchor: compact ? [38, showActivatedMarkerChrome ? 64 : 44] : [44, showActivatedMarkerChrome ? 86 : 68],
-    popupAnchor: compact ? [0, showActivatedMarkerChrome ? -54 : -38] : [0, showActivatedMarkerChrome ? -70 : -54],
-    html: `
-      <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
-        ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
-        ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
-        ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
-        ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-        ${showActivatedMarkerChrome ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
-        ${showActivatedMarkerChrome && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
-        <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
-          <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
-        </div>
-        <div class="peebear-meta">
-          ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
-          <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
-        </div>
-        <div class="peebear-shadow"></div>
+  const html = `
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
+      ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
+      ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
+      ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
+      ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+      ${showActivatedMarkerChrome ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
+      ${showActivatedMarkerChrome && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
+      <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
+        <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
       </div>
-    `,
-  });
+      <div class="peebear-meta">
+        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
+        <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
+      </div>
+      <div class="peebear-shadow"></div>
+    </div>
+  `;
 
-  markerIconCache.set(cacheKey, icon);
-  return icon;
+  markerIconCache.set(cacheKey, html);
+  return html;
 }
 
-function createCurrentLocationIcon({
+function createCurrentLocationMarkerHtml({
   centered,
   heading,
 }: {
@@ -931,34 +1661,28 @@ function createCurrentLocationIcon({
 }) {
   const headingBucket = heading === null ? 'none' : String(Math.round(heading / 5) * 5);
   const cacheKey = `${centered ? 'centered' : 'dot'}:${headingBucket}`;
-  const cachedIcon = currentLocationIconCache.get(cacheKey);
-  if (cachedIcon) {
-    return cachedIcon;
+  const cachedHtml = currentLocationIconCache.get(cacheKey);
+  if (cachedHtml) {
+    return cachedHtml;
   }
 
-  const icon = divIcon({
-    className: 'current-location-leaflet-icon',
-    iconSize: centered ? [72, 88] : [56, 56],
-    iconAnchor: centered ? [36, 88] : [28, 28],
-    popupAnchor: [0, -28],
-    html: `
-      <div class="current-location-marker ${centered ? 'is-centered' : 'is-dot'}">
-        ${heading !== null ? `<span class="current-location-heading" style="transform: translateX(-50%) rotate(${heading}deg);"></span>` : ''}
-        <span class="current-location-pulse"></span>
-        ${
-          centered
-            ? `<img src="${CURRENT_LOCATION_CENTERED_ICON_PATH}" alt="Current location" class="current-location-bear" />`
-            : `<span class="current-location-dot-ring"></span><span class="current-location-dot-core"></span>`
-        }
-      </div>
-    `,
-  });
+  const html = `
+    <div class="current-location-marker ${centered ? 'is-centered' : 'is-dot'}">
+      ${heading !== null ? `<span class="current-location-heading" style="transform: translateX(-50%) rotate(${heading}deg);"></span>` : ''}
+      <span class="current-location-pulse"></span>
+      ${
+        centered
+          ? `<img src="${CURRENT_LOCATION_CENTERED_ICON_PATH}" alt="Current location" class="current-location-bear" />`
+          : `<span class="current-location-dot-ring"></span><span class="current-location-dot-core"></span>`
+      }
+    </div>
+  `;
 
-  currentLocationIconCache.set(cacheKey, icon);
-  return icon;
+  currentLocationIconCache.set(cacheKey, html);
+  return html;
 }
 
-function createFootprintMarkerIcon({
+function createFootprintMarkerHtml({
   firstMark,
   latest,
 }: {
@@ -966,29 +1690,23 @@ function createFootprintMarkerIcon({
   latest: boolean;
 }) {
   const cacheKey = `${firstMark ? 'first' : 'mark'}:${latest ? 'latest' : 'history'}`;
-  const cachedIcon = footprintMarkerIconCache.get(cacheKey);
-  if (cachedIcon) {
-    return cachedIcon;
+  const cachedHtml = footprintMarkerIconCache.get(cacheKey);
+  if (cachedHtml) {
+    return cachedHtml;
   }
 
-  const icon = divIcon({
-    className: 'peebear-footprint-icon',
-    iconSize: [108, 44],
-    iconAnchor: [54, 22],
-    popupAnchor: [0, -18],
-    html: `
-      <div class="peebear-footprint ${firstMark ? 'is-first' : ''} ${latest ? 'is-latest' : ''}">
-        <span class="peebear-footprint-dot"></span>
-        <span class="peebear-footprint-label">${firstMark ? 'YOUR WIN' : 'YOUR MARK'}</span>
-      </div>
-    `,
-  });
+  const html = `
+    <div class="peebear-footprint ${firstMark ? 'is-first' : ''} ${latest ? 'is-latest' : ''}">
+      <span class="peebear-footprint-dot"></span>
+      <span class="peebear-footprint-label">${firstMark ? 'YOUR WIN' : 'YOUR MARK'}</span>
+    </div>
+  `;
 
-  footprintMarkerIconCache.set(cacheKey, icon);
-  return icon;
+  footprintMarkerIconCache.set(cacheKey, html);
+  return html;
 }
 
-function createPlaceClusterIcon({
+function createPlaceClusterMarkerHtml({
   count,
   pulse,
   visualState,
@@ -1002,32 +1720,26 @@ function createPlaceClusterIcon({
   challengeLiveCount: number;
 }) {
   const cacheKey = `${count > 9 ? '9+' : count}:${pulse}:${visualState}:${matched ? 'matched' : 'neutral'}:${challengeLiveCount > 0 ? 'live' : 'quiet'}`;
-  const cachedIcon = placeClusterIconCache.get(cacheKey);
-  if (cachedIcon) {
-    return cachedIcon;
+  const cachedHtml = placeClusterIconCache.get(cacheKey);
+  if (cachedHtml) {
+    return cachedHtml;
   }
 
-  const icon = divIcon({
-    className: 'place-cluster-leaflet-icon',
-    iconSize: [88, 88],
-    iconAnchor: [44, 44],
-    popupAnchor: [0, -28],
-    html: `
-      <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}">
-        <span class="place-cluster-aura"></span>
-        ${matched ? '<span class="place-cluster-match">MATCH</span>' : ''}
-        ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
-        <span class="place-cluster-core">
-          <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
-          <span class="place-cluster-label">${count > 4 ? 'HUB' : 'NODE'}</span>
-        </span>
-        <span class="place-cluster-shadow"></span>
-      </div>
-    `,
-  });
+  const html = `
+    <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}">
+      <span class="place-cluster-aura"></span>
+      ${matched ? '<span class="place-cluster-match">MATCH</span>' : ''}
+      ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
+      <span class="place-cluster-core">
+        <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
+        <span class="place-cluster-label">${count > 4 ? 'HUB' : 'NODE'}</span>
+      </span>
+      <span class="place-cluster-shadow"></span>
+    </div>
+  `;
 
-  placeClusterIconCache.set(cacheKey, icon);
-  return icon;
+  placeClusterIconCache.set(cacheKey, html);
+  return html;
 }
 
 function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) {
@@ -1086,50 +1798,13 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
   );
 }
 
-function MapController({
-  targetCenter,
-  targetZoom,
-  onReady,
-  onViewportChange,
-  onMapClick,
-}: {
-  targetCenter: LatLngExpression | null;
-  targetZoom: number | null;
-  onReady: (map: LeafletMap) => void;
-  onViewportChange: (latitude: number, longitude: number, zoom: number) => void;
-  onMapClick: (latitude: number, longitude: number) => void;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    onReady(map);
-    const center = map.getCenter();
-    onViewportChange(center.lat, center.lng, map.getZoom());
-  }, [map, onReady, onViewportChange]);
-
-  useEffect(() => {
-    if (!targetCenter || targetZoom === null) return;
-    map.flyTo(targetCenter, targetZoom, { duration: 0.9 });
-  }, [map, targetCenter, targetZoom]);
-
-  useMapEvents({
-    moveend() {
-      const center = map.getCenter();
-      onViewportChange(center.lat, center.lng, map.getZoom());
-    },
-    click(event) {
-      onMapClick(event.latlng.lat, event.latlng.lng);
-    },
-  });
-
-  return null;
-}
-
 export default function RealWorldMap() {
   const { address, isConnected } = useAccount();
   const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const mapCanvasRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<MapLibreMap | null>(null);
+  const mapMarkersRef = useRef<MapLibreMarker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -1147,7 +1822,7 @@ export default function RealWorldMap() {
   const [creatorOpportunities, setCreatorOpportunities] = useState<MapCreatorOpportunity[]>([]);
   const [showFootprintLayer, setShowFootprintLayer] = useState(false);
   const [showMatchedLayer, setShowMatchedLayer] = useState(false);
-  const [targetCenter, setTargetCenter] = useState<LatLngExpression | null>(null);
+  const [targetCenter, setTargetCenter] = useState<[number, number] | null>(null);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [sprayBurst, setSprayBurst] = useState(false);
@@ -1186,6 +1861,7 @@ export default function RealWorldMap() {
     syncedAt: number;
   } | null>(null);
   const skipNextSearchRef = useRef(false);
+  const skipNextMapClickRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
   const hasUserLocation = Boolean(userLocation);
@@ -1686,11 +2362,6 @@ export default function RealWorldMap() {
     };
   }, [address, nearbyDareRadiusKm, userLocation]);
 
-  const handleMapReady = useCallback((map: LeafletMap) => {
-    mapInstanceRef.current = map;
-    setMapReady(true);
-  }, []);
-
   useEffect(() => {
     if (!mapReady || bootstrappedDefaultPins || nearbyPlaces.length > 0 || hasDeepLinkedPlace) {
       return;
@@ -1720,6 +2391,107 @@ export default function RealWorldMap() {
       mapModes: DEFAULT_VENUE_MAP_MODES,
     });
   }, []);
+
+  const handleViewportChangeRef = useRef(handleViewportChange);
+  const handleMapClickRef = useRef(handleMapClick);
+  const mapPresetRef = useRef(mapPreset);
+
+  useEffect(() => {
+    handleViewportChangeRef.current = handleViewportChange;
+  }, [handleViewportChange]);
+
+  useEffect(() => {
+    handleMapClickRef.current = handleMapClick;
+  }, [handleMapClick]);
+
+  useEffect(() => {
+    mapPresetRef.current = mapPreset;
+  }, [mapPreset]);
+
+  useEffect(() => {
+    const container = mapCanvasRef.current;
+    if (!container || mapInstanceRef.current) return undefined;
+
+    const map = new maplibregl.Map({
+      container,
+      style: OPENFREEMAP_LIBERTY_STYLE_URL,
+      center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
+      zoom: DEFAULT_ZOOM,
+      pitch: DEFAULT_MAP_PITCH,
+      bearing: DEFAULT_MAP_BEARING,
+      attributionControl: { compact: true },
+      dragRotate: true,
+      touchZoomRotate: true,
+      maxPitch: 75,
+    });
+
+    mapInstanceRef.current = map;
+    map.dragRotate.enable();
+    map.touchZoomRotate.enableRotation();
+
+    const syncViewport = () => {
+      const center = map.getCenter();
+      handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
+    };
+
+    const handleLoad = () => {
+      ensureMapLibreDareLayers(map, mapPresetRef.current);
+      syncViewport();
+      setMapReady(true);
+    };
+
+    const handleStyleData = () => {
+      if (!map.isStyleLoaded()) return;
+      ensureMapLibreDareLayers(map, mapPresetRef.current);
+    };
+
+    const handleClick = (event: maplibregl.MapMouseEvent) => {
+      if (skipNextMapClickRef.current) {
+        skipNextMapClickRef.current = false;
+        return;
+      }
+
+      handleMapClickRef.current(event.lngLat.lat, event.lngLat.lng);
+    };
+
+    map.on('load', handleLoad);
+    map.on('styledata', handleStyleData);
+    map.on('moveend', syncViewport);
+    map.on('click', handleClick);
+
+    return () => {
+      map.off('load', handleLoad);
+      map.off('styledata', handleStyleData);
+      map.off('moveend', syncViewport);
+      map.off('click', handleClick);
+      mapMarkersRef.current.forEach((marker) => marker.remove());
+      mapMarkersRef.current = [];
+      map.remove();
+      mapInstanceRef.current = null;
+      setMapReady(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady) return;
+
+    ensureMapLibreDareLayers(map, mapPreset);
+  }, [mapPreset, mapReady]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady || !targetCenter) return;
+
+    map.flyTo({
+      center: [targetCenter[1], targetCenter[0]],
+      zoom: targetZoom ?? map.getZoom(),
+      pitch: isMobileViewport ? 54 : DEFAULT_MAP_PITCH,
+      bearing: map.getBearing() || DEFAULT_MAP_BEARING,
+      duration: 900,
+      essential: true,
+    });
+  }, [isMobileViewport, mapReady, targetCenter, targetZoom]);
 
   const focusExistingPlace = useCallback((place: NearbyPlace) => {
     triggerHaptic('selection');
@@ -2113,6 +2885,48 @@ export default function RealWorldMap() {
     return index;
   }, [nearbyPlaces]);
 
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady || !map.isStyleLoaded()) return;
+
+    const activeLayerIds = MAPLIBRE_INTERACTIVE_SIGNAL_LAYER_IDS.filter((layerId) => map.getLayer(layerId));
+    if (activeLayerIds.length === 0) return;
+
+    const handleSignalClick = (event: MapLayerMouseEvent) => {
+      const slug = event.features?.[0]?.properties?.slug;
+      if (typeof slug !== 'string') return;
+
+      const place = nearbyPlaceBySlug.get(slug);
+      if (!place) return;
+
+      skipNextMapClickRef.current = true;
+      window.setTimeout(() => {
+        skipNextMapClickRef.current = false;
+      }, 0);
+      focusExistingPlace(place);
+    };
+    const handleSignalEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleSignalLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    activeLayerIds.forEach((layerId) => {
+      map.on('click', layerId, handleSignalClick);
+      map.on('mouseenter', layerId, handleSignalEnter);
+      map.on('mouseleave', layerId, handleSignalLeave);
+    });
+
+    return () => {
+      activeLayerIds.forEach((layerId) => {
+        map.off('click', layerId, handleSignalClick);
+        map.off('mouseenter', layerId, handleSignalEnter);
+        map.off('mouseleave', layerId, handleSignalLeave);
+      });
+    };
+  }, [focusExistingPlace, mapReady, nearbyPlaceBySlug]);
+
   const nearbyDaresInRange = useMemo(
     () => nearbyDares.filter((dare) => dare.distanceKm <= nearbyDareRadiusKm),
     [nearbyDareRadiusKm, nearbyDares]
@@ -2163,12 +2977,6 @@ export default function RealWorldMap() {
 
     return counts;
   }, [nearbyPlaces]);
-
-  const footprintTrail = useMemo(
-    () =>
-      footprintMarks.map((mark) => [mark.venue.latitude, mark.venue.longitude] as [number, number]),
-    [footprintMarks]
-  );
 
   const matchedVenueIndex = useMemo(() => {
     const index = new Map<
@@ -2235,7 +3043,7 @@ export default function RealWorldMap() {
     const buckets = new Map<string, NearbyPlace[]>();
 
     filteredNearbyPlaces.forEach((place) => {
-      const point = CRS.EPSG3857.latLngToPoint(latLng(place.latitude, place.longitude), roundedZoom);
+      const point = projectLatLngToWorldPoint(place.latitude, place.longitude, roundedZoom);
       const bucketX = Math.floor(point.x / cellSize);
       const bucketY = Math.floor(point.y / cellSize);
       const bucketKey = `${bucketX}:${bucketY}`;
@@ -2494,12 +3302,12 @@ export default function RealWorldMap() {
     });
   };
 
-  const selectedPlaceMarkerIcon = useMemo(() => {
+  const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
       return null;
     }
 
-    return createPeebearMarkerIcon({
+    return createPeebearMarkerHtml({
       pulse: selectedPulse,
       approvedCount: selectedPlace.approvedCount ?? 0,
       heatScore: selectedPlace.heatScore ?? 0,
@@ -2511,10 +3319,237 @@ export default function RealWorldMap() {
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
     });
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVisualState, showMatchedLayer]);
-  const currentLocationMarkerIcon = useMemo(
-    () => createCurrentLocationIcon({ centered: isUserCentered, heading: userHeading }),
+  const currentLocationMarkerHtml = useMemo(
+    () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
   );
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady || !map.isStyleLoaded()) return;
+
+    setGeoJsonSourceData(
+      map,
+      MAPLIBRE_VENUE_SOURCE_ID,
+      buildVenueSignalCollection({
+        places: filteredNearbyPlaces,
+        matchedVenueIndex,
+        showMatchedLayer,
+        selectedPlace,
+      })
+    );
+    setGeoJsonSourceData(
+      map,
+      MAPLIBRE_CHAOS_SOURCE_ID,
+      buildChaosZoneCollection({
+        places: filteredNearbyPlaces,
+        matchedVenueIndex,
+        showMatchedLayer,
+      })
+    );
+    setGeoJsonSourceData(map, MAPLIBRE_SELECTED_SOURCE_ID, buildSelectedSignalCollection(selectedPlace));
+    setGeoJsonSourceData(map, MAPLIBRE_USER_SOURCE_ID, buildUserPositionCollection(userLocation));
+    setGeoJsonSourceData(
+      map,
+      MAPLIBRE_FOOTPRINT_SOURCE_ID,
+      buildFootprintLineCollection({
+        marks: footprintMarks,
+        enabled: showFootprintLayer,
+      })
+    );
+  }, [
+    filteredNearbyPlaces,
+    footprintMarks,
+    mapReady,
+    matchedVenueIndex,
+    selectedPlace,
+    showFootprintLayer,
+    showMatchedLayer,
+    userLocation,
+  ]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady) return;
+
+    mapMarkersRef.current.forEach((marker) => marker.remove());
+    mapMarkersRef.current = [];
+    const nextMarkers: MapLibreMarker[] = [];
+
+    const addMarker = ({
+      latitude,
+      longitude,
+      html,
+      className,
+      anchor,
+      onClick,
+    }: {
+      latitude: number;
+      longitude: number;
+      html: string;
+      className: string;
+      anchor: PositionAnchor;
+      onClick: () => void;
+    }) => {
+      const element = createMarkerElement(html, className);
+      element.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick();
+      });
+
+      const marker = new maplibregl.Marker({
+        element,
+        anchor,
+        pitchAlignment: 'viewport',
+        rotationAlignment: 'viewport',
+        subpixelPositioning: true,
+      })
+        .setLngLat([longitude, latitude])
+        .addTo(map);
+
+      nextMarkers.push(marker);
+    };
+
+    clusteredNearbyMarkers.forEach((marker) => {
+      if (marker.kind === 'cluster') {
+        addMarker({
+          latitude: marker.latitude,
+          longitude: marker.longitude,
+          html: createPlaceClusterMarkerHtml({
+            count: marker.count,
+            pulse: marker.pulse,
+            visualState: marker.visualState,
+            matched: marker.matched,
+            challengeLiveCount: marker.challengeLiveCount,
+          }),
+          className: 'basedare-maplibre-marker basedare-maplibre-marker--cluster',
+          anchor: 'center',
+          onClick: () => {
+            setTargetCenter([marker.latitude, marker.longitude]);
+            setTargetZoom(Math.min(Math.max(Math.round(mapZoom) + 2, 14), 16));
+          },
+        });
+        return;
+      }
+
+      const place = marker.place;
+      const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+      const visualState = getPlaceVisualState({
+        approvedCount: place.tagSummary.approvedCount,
+        lastTaggedAt: place.tagSummary.lastTaggedAt,
+      });
+      const isActive = selectedPlace?.placeId === place.id;
+      const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
+      const activatedVenue = isVenueActivated(place.commandCenter);
+      const compact = !isActive && (mapZoom < compactMarkerZoomThreshold || activatedVenue);
+
+      addMarker({
+        latitude: place.latitude,
+        longitude: place.longitude,
+        html: createPeebearMarkerHtml({
+          pulse,
+          approvedCount: place.tagSummary.approvedCount,
+          heatScore: place.tagSummary.heatScore,
+          active: isActive,
+          visualState,
+          challengeLiveCount: place.activeDareCount,
+          matched: isMatchedVenue,
+          compact,
+          activated: activatedVenue,
+          activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
+        }),
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
+        anchor: 'bottom',
+        onClick: () => focusExistingPlace(place),
+      });
+    });
+
+    if (showFootprintLayer) {
+      footprintMarks.forEach((mark, index) => {
+        addMarker({
+          latitude: mark.venue.latitude,
+          longitude: mark.venue.longitude,
+          html: createFootprintMarkerHtml({
+            firstMark: mark.firstMark,
+            latest: index === footprintMarks.length - 1,
+          }),
+          className: 'basedare-maplibre-marker basedare-maplibre-marker--footprint',
+          anchor: 'center',
+          onClick: () => {
+            focusExistingPlace({
+              id: mark.venue.id,
+              slug: mark.venue.slug,
+              name: mark.venue.name,
+              description: mark.venue.address,
+              city: mark.venue.city,
+              country: mark.venue.country,
+              latitude: mark.venue.latitude,
+              longitude: mark.venue.longitude,
+              categories: mark.venue.categories,
+              distanceDisplay: '',
+              tagSummary: {
+                approvedCount: 0,
+                heatScore: 0,
+                lastTaggedAt: mark.submittedAt,
+              },
+              activeDareCount: 0,
+            });
+          },
+        });
+      });
+    }
+
+    if (userLocation) {
+      addMarker({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        html: currentLocationMarkerHtml,
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--user',
+        anchor: isUserCentered ? 'bottom' : 'center',
+        onClick: () => {
+          setTargetCenter([userLocation.latitude, userLocation.longitude]);
+          setTargetZoom(Math.max(Math.round(mapZoom), 14));
+        },
+      });
+    }
+
+    if (selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerHtml) {
+      addMarker({
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+        html: selectedPlaceMarkerHtml,
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--selected',
+        anchor: 'bottom',
+        onClick: () => {
+          setTargetCenter([selectedPlace.latitude, selectedPlace.longitude]);
+          setTargetZoom(15);
+        },
+      });
+    }
+
+    mapMarkersRef.current = nextMarkers;
+
+    return () => {
+      nextMarkers.forEach((marker) => marker.remove());
+    };
+  }, [
+    clusteredNearbyMarkers,
+    compactMarkerZoomThreshold,
+    currentLocationMarkerHtml,
+    focusExistingPlace,
+    footprintMarks,
+    isUserCentered,
+    mapReady,
+    mapZoom,
+    matchedVenueIndex,
+    selectedPlace,
+    selectedPlaceMarkerHtml,
+    selectedPlaceNeedsDedicatedMarker,
+    showFootprintLayer,
+    showMatchedLayer,
+    userLocation,
+  ]);
 
   const mapPanelShellClass =
     'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[36px]';
@@ -2755,163 +3790,17 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
-            className={`map-container-wrapper basedare-leaflet-map basedare-leaflet-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
+            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
           >
-            <MapContainer
-              center={DEFAULT_CENTER}
-              zoom={DEFAULT_ZOOM}
-              zoomControl={false}
-              attributionControl={true}
+            <div
+              ref={mapCanvasRef}
               className="absolute inset-0 z-0"
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              <MapController
-                targetCenter={targetCenter}
-                targetZoom={targetZoom}
-                onReady={handleMapReady}
-                onViewportChange={handleViewportChange}
-                onMapClick={handleMapClick}
-              />
-
-              {clusteredNearbyMarkers.map((marker) => {
-                if (marker.kind === 'cluster') {
-                  return (
-                    <Marker
-                      key={marker.key}
-                      position={[marker.latitude, marker.longitude]}
-                      icon={createPlaceClusterIcon({
-                        count: marker.count,
-                        pulse: marker.pulse,
-                        visualState: marker.visualState,
-                        matched: marker.matched,
-                        challengeLiveCount: marker.challengeLiveCount,
-                      })}
-                      zIndexOffset={280}
-                      eventHandlers={{
-                        click: () => {
-                          setTargetCenter([marker.latitude, marker.longitude]);
-                          setTargetZoom(Math.min(Math.max(Math.round(mapZoom) + 2, 14), 16));
-                        },
-                      }}
-                    />
-                  );
-                }
-
-                const place = marker.place;
-                const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
-                const visualState = getPlaceVisualState({
-                  approvedCount: place.tagSummary.approvedCount,
-                  lastTaggedAt: place.tagSummary.lastTaggedAt,
-                });
-                const isActive = selectedPlace?.placeId === place.id;
-                const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
-                const activatedVenue = isVenueActivated(place.commandCenter);
-                const compact = !isActive && (mapZoom < compactMarkerZoomThreshold || activatedVenue);
-
-                return (
-                  <Marker
-                    key={place.id}
-                    position={[place.latitude, place.longitude]}
-                    icon={createPeebearMarkerIcon({
-                      pulse,
-                      approvedCount: place.tagSummary.approvedCount,
-                      heatScore: place.tagSummary.heatScore,
-                      active: isActive,
-                      visualState,
-                      challengeLiveCount: place.activeDareCount,
-                      matched: isMatchedVenue,
-                      compact,
-                      activated: activatedVenue,
-                      activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
-                    })}
-                    zIndexOffset={isActive ? 600 : activatedVenue ? 360 : 240}
-                    eventHandlers={{
-                      click: () => focusExistingPlace(place),
-                    }}
-                  />
-                );
-              })}
-
-              {showFootprintLayer && footprintTrail.length > 1 ? (
-                <Polyline
-                  positions={footprintTrail}
-                  pathOptions={{
-                    color: '#b87fff',
-                    weight: 3,
-                    opacity: 0.28,
-                    dashArray: '8 12',
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              ) : null}
-
-              {showFootprintLayer && footprintMarks.map((mark, index) => (
-                <Marker
-                  key={mark.id}
-                  position={[mark.venue.latitude, mark.venue.longitude]}
-                  icon={createFootprintMarkerIcon({
-                    firstMark: mark.firstMark,
-                    latest: index === footprintMarks.length - 1,
-                  })}
-                  zIndexOffset={index === footprintMarks.length - 1 ? 380 : 260}
-                  eventHandlers={{
-                    click: () => {
-                      focusExistingPlace({
-                        id: mark.venue.id,
-                        slug: mark.venue.slug,
-                        name: mark.venue.name,
-                        description: mark.venue.address,
-                        city: mark.venue.city,
-                        country: mark.venue.country,
-                        latitude: mark.venue.latitude,
-                        longitude: mark.venue.longitude,
-                        categories: mark.venue.categories,
-                        distanceDisplay: '',
-                        tagSummary: {
-                          approvedCount: 0,
-                          heatScore: 0,
-                          lastTaggedAt: mark.submittedAt,
-                        },
-                        activeDareCount: 0,
-                      });
-                    },
-                  }}
-                />
-              ))}
-
-              {userLocation ? (
-                <Marker
-                  position={[userLocation.latitude, userLocation.longitude]}
-                  icon={currentLocationMarkerIcon}
-                  zIndexOffset={680}
-                  eventHandlers={{
-                    click: () => {
-                      setTargetCenter([userLocation.latitude, userLocation.longitude]);
-                      setTargetZoom(Math.max(Math.round(mapZoom), 14));
-                    },
-                  }}
-                />
-              ) : null}
-
-              {selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerIcon ? (
-                <Marker
-                  position={[selectedPlace.latitude, selectedPlace.longitude]}
-                  icon={selectedPlaceMarkerIcon}
-                  zIndexOffset={720}
-                  eventHandlers={{
-                    click: () => {
-                      setTargetCenter([selectedPlace.latitude, selectedPlace.longitude]);
-                      setTargetZoom(15);
-                    },
-                  }}
-                />
-              ) : null}
-            </MapContainer>
+              aria-label="BaseDare MapLibre 3D city grid"
+            />
+            <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
+            <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
+              MapLibre 3D Grid · Live Chaos Layer
+            </div>
 
             <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
             <div className="network-mesh pointer-events-none absolute inset-0 z-[3]" />
@@ -4227,7 +5116,7 @@ export default function RealWorldMap() {
                         className="map-jelly-action"
                         labelClassName="text-[0.66rem] tracking-[0.1em] sm:text-[0.82rem]"
                       >
-                        <span>Open venue</span>
+                        <span className="map-jelly-action-label">Open venue</span>
                       </SquircleLink>
                     ) : null}
                   </div>
@@ -4611,8 +5500,34 @@ export default function RealWorldMap() {
           width: 100%;
         }
 
-        .venue-action-rail :global(.map-jelly-action svg) {
+        .venue-action-rail :global(.map-jelly-action > svg) {
           display: block;
+        }
+
+        .venue-action-rail :global(.map-jelly-action > div) {
+          padding-left: 0.42rem !important;
+          padding-right: 0.42rem !important;
+        }
+
+        .venue-action-rail :global(.map-jelly-action > div svg) {
+          display: none !important;
+        }
+
+        .venue-action-rail :global(.map-jelly-action-label) {
+          max-width: 100%;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-size: clamp(0.58rem, 0.74vw, 0.68rem) !important;
+          letter-spacing: 0.055em !important;
+          line-height: 1;
+        }
+
+        @media (min-width: 1180px) {
+          .venue-action-rail :global(.map-jelly-action-label) {
+            font-size: 0.72rem !important;
+            letter-spacing: 0.065em !important;
+          }
         }
 
         @media (min-width: 640px) {
@@ -4704,7 +5619,7 @@ export default function RealWorldMap() {
           }
         }
 
-        .basedare-leaflet-map {
+        .basedare-maplibre-map {
           --tile-filter: brightness(0.34) saturate(0.72) contrast(1.22) hue-rotate(14deg) sepia(0.16);
           --preset-atmosphere:
             radial-gradient(ellipse 45% 38% at 24% 18%, rgba(245, 197, 24, 0.1) 0%, transparent 58%),
@@ -4717,7 +5632,7 @@ export default function RealWorldMap() {
           --haze-opacity: 1;
         }
 
-        .basedare-leaflet-map[data-map-preset='crt'] {
+        .basedare-maplibre-map[data-map-preset='crt'] {
           --tile-filter: brightness(0.36) saturate(0.74) contrast(1.34) hue-rotate(6deg) sepia(0.22);
           --preset-atmosphere:
             radial-gradient(ellipse 45% 38% at 24% 18%, rgba(184, 127, 255, 0.14) 0%, transparent 58%),
@@ -4730,7 +5645,7 @@ export default function RealWorldMap() {
           --haze-opacity: 0.85;
         }
 
-        .basedare-leaflet-map[data-map-preset='heat'] {
+        .basedare-maplibre-map[data-map-preset='heat'] {
           --tile-filter: brightness(0.38) saturate(0.95) contrast(1.3) hue-rotate(-8deg) sepia(0.24);
           --preset-atmosphere:
             radial-gradient(ellipse 48% 42% at 24% 18%, rgba(245, 197, 24, 0.16) 0%, transparent 58%),
@@ -4743,7 +5658,7 @@ export default function RealWorldMap() {
           --haze-opacity: 0.92;
         }
 
-        .basedare-leaflet-map[data-map-preset='noir'] {
+        .basedare-maplibre-map[data-map-preset='noir'] {
           --tile-filter: brightness(0.25) saturate(0.08) contrast(1.4);
           --preset-atmosphere:
             linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, transparent 28%),
@@ -4755,7 +5670,7 @@ export default function RealWorldMap() {
           --haze-opacity: 0.65;
         }
 
-        .basedare-leaflet-map[data-map-preset='night'] {
+        .basedare-maplibre-map[data-map-preset='night'] {
           --tile-filter: brightness(0.32) saturate(0.88) contrast(1.28) hue-rotate(32deg);
           --preset-atmosphere:
             radial-gradient(ellipse 42% 38% at 24% 18%, rgba(34, 211, 238, 0.12) 0%, transparent 58%),
@@ -4973,7 +5888,9 @@ export default function RealWorldMap() {
           }
         }
 
-        .basedare-leaflet-map :global(.leaflet-container) {
+        .basedare-maplibre-map :global(.maplibregl-map),
+        .basedare-maplibre-map :global(.maplibregl-canvas-container),
+        .basedare-maplibre-map :global(.maplibregl-canvas) {
           height: 100%;
           width: 100%;
           border-radius: 17px;
@@ -4983,44 +5900,104 @@ export default function RealWorldMap() {
           font-family: inherit;
         }
 
-        .basedare-leaflet-map :global(.leaflet-pane),
-        .basedare-leaflet-map :global(.leaflet-control-container) {
+        .basedare-maplibre-map :global(.maplibregl-canvas) {
+          filter: brightness(0.66) saturate(1.28) contrast(1.24) hue-rotate(16deg);
+          outline: none;
+        }
+
+        .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
+          filter: brightness(0.48) saturate(0.42) contrast(1.38);
+        }
+
+        .maplibre-depth-vignette {
+          background:
+            radial-gradient(ellipse 80% 62% at 50% 36%, transparent 0%, rgba(2, 4, 10, 0.08) 56%, rgba(0, 0, 0, 0.54) 100%),
+            linear-gradient(180deg, rgba(7, 4, 20, 0.18) 0%, transparent 22%, rgba(0, 0, 0, 0.2) 100%);
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-marker) {
+          z-index: 8;
+          will-change: transform;
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker) {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          transform-origin: 50% 100%;
+          transition: filter 180ms ease;
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker:hover) {
+          filter:
+            drop-shadow(0 0 18px rgba(245, 197, 24, 0.18))
+            drop-shadow(0 0 24px rgba(34, 211, 238, 0.12));
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker--cluster) {
+          transform-origin: 50% 50%;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-ctrl-bottom-left),
+        .basedare-maplibre-map :global(.maplibregl-ctrl-bottom-right) {
+          z-index: 9;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-ctrl-attrib) {
+          border: 1px solid rgba(107, 33, 255, 0.2);
+          border-radius: 999px;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(6, 7, 15, 0.88)) !important;
+          color: rgba(255, 255, 255, 0.54);
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-ctrl-attrib a) {
+          color: rgba(248, 221, 114, 0.78);
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-canvas),
+        .basedare-maplibre-map :global(.maplibregl-control-container) {
           z-index: 1;
         }
 
-        .basedare-leaflet-map :global(.peebear-leaflet-icon) {
+        .basedare-maplibre-map :global(.peebear-maplibre-icon) {
           background: transparent;
           border: 0;
         }
 
-        .basedare-leaflet-map :global(.current-location-leaflet-icon) {
+        .basedare-maplibre-map :global(.current-location-maplibre-icon) {
           background: transparent;
           border: 0;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-leaflet-icon) {
+        .basedare-maplibre-map :global(.place-cluster-maplibre-icon) {
           background: transparent;
           border: 0;
         }
 
-        .basedare-leaflet-map :global(.current-location-marker) {
+        .basedare-maplibre-map :global(.current-location-marker) {
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .basedare-leaflet-map :global(.current-location-marker.is-dot) {
+        .basedare-maplibre-map :global(.current-location-marker.is-dot) {
           width: 56px;
           height: 56px;
         }
 
-        .basedare-leaflet-map :global(.current-location-marker.is-centered) {
+        .basedare-maplibre-map :global(.current-location-marker.is-centered) {
           width: 72px;
           height: 88px;
         }
 
-        .basedare-leaflet-map :global(.current-location-pulse) {
+        .basedare-maplibre-map :global(.current-location-pulse) {
           position: absolute;
           inset: 10px;
           border-radius: 9999px;
@@ -5029,7 +6006,7 @@ export default function RealWorldMap() {
           animation: currentLocationPulse 2.4s ease-in-out infinite;
         }
 
-        .basedare-leaflet-map :global(.current-location-heading) {
+        .basedare-maplibre-map :global(.current-location-heading) {
           position: absolute;
           left: 50%;
           bottom: 50%;
@@ -5044,7 +6021,7 @@ export default function RealWorldMap() {
           opacity: 0.82;
         }
 
-        .basedare-leaflet-map :global(.current-location-dot-ring) {
+        .basedare-maplibre-map :global(.current-location-dot-ring) {
           position: absolute;
           z-index: 1;
           width: 30px;
@@ -5058,7 +6035,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
-        .basedare-leaflet-map :global(.current-location-dot-core) {
+        .basedare-maplibre-map :global(.current-location-dot-core) {
           position: absolute;
           z-index: 2;
           width: 14px;
@@ -5068,7 +6045,7 @@ export default function RealWorldMap() {
           box-shadow: 0 0 12px rgba(95, 230, 255, 0.4);
         }
 
-        .basedare-leaflet-map :global(.current-location-bear) {
+        .basedare-maplibre-map :global(.current-location-bear) {
           position: relative;
           z-index: 2;
           display: block;
@@ -5083,7 +6060,7 @@ export default function RealWorldMap() {
           -webkit-user-drag: none;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker) {
+        .basedare-maplibre-map :global(.place-cluster-marker) {
           position: relative;
           width: 88px;
           height: 88px;
@@ -5092,7 +6069,7 @@ export default function RealWorldMap() {
           justify-content: center;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-aura) {
+        .basedare-maplibre-map :global(.place-cluster-aura) {
           position: absolute;
           inset: 10px;
           border-radius: 9999px;
@@ -5102,7 +6079,7 @@ export default function RealWorldMap() {
           opacity: 0.95;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-core) {
           position: relative;
           z-index: 2;
           display: flex;
@@ -5124,7 +6101,7 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-count) {
+        .basedare-maplibre-map :global(.place-cluster-count) {
           font-size: 22px;
           font-weight: 900;
           line-height: 1;
@@ -5133,7 +6110,7 @@ export default function RealWorldMap() {
           text-shadow: 0 4px 16px rgba(0, 0, 0, 0.42);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-label) {
+        .basedare-maplibre-map :global(.place-cluster-label) {
           font-size: 8px;
           font-weight: 900;
           line-height: 1;
@@ -5141,7 +6118,7 @@ export default function RealWorldMap() {
           color: rgba(255, 255, 255, 0.6);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-shadow) {
+        .basedare-maplibre-map :global(.place-cluster-shadow) {
           position: absolute;
           bottom: 10px;
           left: 50%;
@@ -5154,7 +6131,7 @@ export default function RealWorldMap() {
           filter: blur(10px);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-match) {
+        .basedare-maplibre-map :global(.place-cluster-match) {
           position: absolute;
           top: -2px;
           left: 50%;
@@ -5177,7 +6154,7 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-live) {
+        .basedare-maplibre-map :global(.place-cluster-live) {
           position: absolute;
           right: 0;
           bottom: 8px;
@@ -5199,7 +6176,7 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker--blazing .place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-marker--blazing .place-cluster-core) {
           border-color: rgba(255, 95, 130, 0.74);
           box-shadow:
             0 0 0 4px rgba(255, 45, 85, 0.12),
@@ -5209,7 +6186,7 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker--igniting .place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-marker--igniting .place-cluster-core) {
           border-color: rgba(34, 211, 238, 0.72);
           box-shadow:
             0 0 0 4px rgba(34, 211, 238, 0.12),
@@ -5219,8 +6196,8 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker--simmering .place-cluster-core),
-        .basedare-leaflet-map :global(.place-cluster-marker--first-mark .place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-marker--simmering .place-cluster-core),
+        .basedare-maplibre-map :global(.place-cluster-marker--first-mark .place-cluster-core) {
           border-color: rgba(245, 197, 24, 0.74);
           box-shadow:
             0 0 0 4px rgba(245, 197, 24, 0.12),
@@ -5230,7 +6207,7 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker--pending .place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-marker--pending .place-cluster-core) {
           border-color: rgba(251, 191, 36, 0.74);
           box-shadow:
             0 0 0 4px rgba(251, 191, 36, 0.12),
@@ -5240,7 +6217,7 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.place-cluster-marker.is-matched .place-cluster-core) {
+        .basedare-maplibre-map :global(.place-cluster-marker.is-matched .place-cluster-core) {
           box-shadow:
             0 0 0 4px rgba(34, 211, 238, 0.12),
             0 0 24px rgba(34, 211, 238, 0.18),
@@ -5249,7 +6226,7 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker) {
+        .basedare-maplibre-map :global(.peebear-marker) {
           position: relative;
           width: 92px;
           height: 132px;
@@ -5259,20 +6236,20 @@ export default function RealWorldMap() {
           justify-content: flex-start;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-compact) {
+        .basedare-maplibre-map :global(.peebear-marker.is-compact) {
           width: 76px;
           height: 92px;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue) {
           height: 148px;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact) {
           height: 112px;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-core) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-core) {
           margin-top: 46px;
           border-color: rgba(245, 197, 24, 0.74);
           background:
@@ -5287,13 +6264,13 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.26);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-core) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-core) {
           margin-top: 38px;
           height: 50px;
           width: 50px;
         }
 
-        .basedare-leaflet-map :global(.venue-building-badge) {
+        .basedare-maplibre-map :global(.venue-building-badge) {
           position: absolute;
           left: 50%;
           top: 4px;
@@ -5308,7 +6285,7 @@ export default function RealWorldMap() {
           transition: transform 180ms ease, filter 180ms ease;
         }
 
-        .basedare-leaflet-map :global(.venue-building-roof) {
+        .basedare-maplibre-map :global(.venue-building-roof) {
           position: absolute;
           left: 6px;
           top: 2px;
@@ -5323,7 +6300,7 @@ export default function RealWorldMap() {
             inset 0 -5px 8px rgba(82, 49, 0, 0.28);
         }
 
-        .basedare-leaflet-map :global(.venue-building-body) {
+        .basedare-maplibre-map :global(.venue-building-body) {
           position: absolute;
           left: 9px;
           top: 18px;
@@ -5343,14 +6320,14 @@ export default function RealWorldMap() {
             0 0 0 2px rgba(245, 197, 24, 0.1);
         }
 
-        .basedare-leaflet-map :global(.venue-building-body span) {
+        .basedare-maplibre-map :global(.venue-building-body span) {
           border-radius: 2px;
           background:
             linear-gradient(180deg, rgba(254, 240, 138, 0.96), rgba(245, 197, 24, 0.78));
           box-shadow: 0 0 8px rgba(245, 197, 24, 0.3);
         }
 
-        .basedare-leaflet-map :global(.venue-building-base) {
+        .basedare-maplibre-map :global(.venue-building-base) {
           position: absolute;
           left: 5px;
           bottom: 2px;
@@ -5361,7 +6338,7 @@ export default function RealWorldMap() {
           box-shadow: 0 0 12px rgba(245, 197, 24, 0.24);
         }
 
-        .basedare-leaflet-map :global(.venue-activation-pill) {
+        .basedare-maplibre-map :global(.venue-activation-pill) {
           position: absolute;
           left: 50%;
           top: 68px;
@@ -5387,13 +6364,13 @@ export default function RealWorldMap() {
           transition: opacity 160ms ease, transform 160ms ease;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue:hover .venue-activation-pill),
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-active .venue-activation-pill) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue:hover .venue-activation-pill),
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-active .venue-activation-pill) {
           opacity: 1;
           transform: translateX(-50%) translateY(-2px);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue .peebear-count) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-count) {
           left: auto;
           right: 5px;
           top: 0;
@@ -5401,24 +6378,24 @@ export default function RealWorldMap() {
           transform: scale(0.84);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-count) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-count) {
           right: -2px;
           top: 0;
           transform: scale(0.74);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
           top: 5px;
           transform: translateX(-50%) scale(0.86);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),
-        .basedare-leaflet-map :global(.peebear-marker.is-activated-venue.is-active .venue-building-badge) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-active .venue-building-badge) {
           transform: translateX(-50%) translateY(-3px) scale(1.04);
           filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(245, 197, 24, 0.36));
         }
 
-        .basedare-leaflet-map :global(.peebear-match-badge) {
+        .basedare-maplibre-map :global(.peebear-match-badge) {
           position: absolute;
           left: 50%;
           top: -1px;
@@ -5442,7 +6419,7 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
-        .basedare-leaflet-map :global(.peebear-challenge-aura) {
+        .basedare-maplibre-map :global(.peebear-challenge-aura) {
           position: absolute;
           top: 2px;
           left: 50%;
@@ -5458,7 +6435,7 @@ export default function RealWorldMap() {
           animation: peebearChallengeAura 2.8s ease-in-out infinite;
         }
 
-        .basedare-leaflet-map :global(.peebear-challenge-ring) {
+        .basedare-maplibre-map :global(.peebear-challenge-ring) {
           position: absolute;
           top: 7px;
           left: 50%;
@@ -5478,7 +6455,7 @@ export default function RealWorldMap() {
           animation: peebearChallengePulse 2.8s ease-in-out infinite;
         }
 
-        .basedare-leaflet-map :global(.peebear-challenge-pill) {
+        .basedare-maplibre-map :global(.peebear-challenge-pill) {
           position: absolute;
           right: -4px;
           top: 10px;
@@ -5501,7 +6478,7 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
-        .basedare-leaflet-map :global(.peebear-meta) {
+        .basedare-maplibre-map :global(.peebear-meta) {
           margin-top: 6px;
           display: flex;
           flex-direction: column;
@@ -5509,16 +6486,16 @@ export default function RealWorldMap() {
           gap: 4px;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-meta),
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-match-badge),
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-aura),
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-ring),
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-challenge-pill),
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-ripple) {
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-meta),
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-match-badge),
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-challenge-aura),
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-challenge-ring),
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-challenge-pill),
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-ripple) {
           display: none;
         }
 
-        .basedare-leaflet-map :global(.peebear-pulse-pill) {
+        .basedare-maplibre-map :global(.peebear-pulse-pill) {
           position: relative;
           z-index: 4;
           border-radius: 9999px;
@@ -5538,7 +6515,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-pulse-pill--blazing) {
+        .basedare-maplibre-map :global(.peebear-pulse-pill--blazing) {
           border-color: rgba(255, 95, 130, 0.44);
           color: #fff1f4;
           box-shadow:
@@ -5547,7 +6524,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-pulse-pill--igniting) {
+        .basedare-maplibre-map :global(.peebear-pulse-pill--igniting) {
           border-color: rgba(34, 211, 238, 0.42);
           color: #d8fbff;
           box-shadow:
@@ -5556,7 +6533,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-pulse-pill--simmering) {
+        .basedare-maplibre-map :global(.peebear-pulse-pill--simmering) {
           border-color: rgba(245, 197, 24, 0.46);
           color: #fff2b7;
           box-shadow:
@@ -5565,12 +6542,12 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-pulse-pill--cold) {
+        .basedare-maplibre-map :global(.peebear-pulse-pill--cold) {
           border-color: rgba(255, 255, 255, 0.16);
           color: rgba(255, 255, 255, 0.78);
         }
 
-        .basedare-leaflet-map :global(.peebear-state) {
+        .basedare-maplibre-map :global(.peebear-state) {
           border-radius: 9999px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(7, 10, 18, 0.82);
@@ -5585,32 +6562,32 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
 
-        .basedare-leaflet-map :global(.peebear-state--pending) {
+        .basedare-maplibre-map :global(.peebear-state--pending) {
           border-color: rgba(251, 191, 36, 0.28);
           color: rgba(254, 240, 138, 0.9);
         }
 
-        .basedare-leaflet-map :global(.peebear-state--first-mark) {
+        .basedare-maplibre-map :global(.peebear-state--first-mark) {
           border-color: rgba(245, 197, 24, 0.35);
           color: rgba(248, 221, 114, 0.94);
         }
 
-        .basedare-leaflet-map :global(.peebear-state--active) {
+        .basedare-maplibre-map :global(.peebear-state--active) {
           border-color: rgba(34, 211, 238, 0.28);
           color: rgba(165, 243, 252, 0.88);
         }
 
-        .basedare-leaflet-map :global(.peebear-state--hot) {
+        .basedare-maplibre-map :global(.peebear-state--hot) {
           border-color: rgba(251, 113, 133, 0.34);
           color: rgba(255, 228, 230, 0.92);
         }
 
-        .basedare-leaflet-map :global(.peebear-state--unmarked) {
+        .basedare-maplibre-map :global(.peebear-state--unmarked) {
           border-color: rgba(245, 197, 24, 0.24);
           color: rgba(248, 221, 114, 0.9);
         }
 
-        .basedare-leaflet-map :global(.peebear-core) {
+        .basedare-maplibre-map :global(.peebear-core) {
           position: relative;
           display: flex;
           height: 60px;
@@ -5633,7 +6610,7 @@ export default function RealWorldMap() {
           transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-core) {
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-core) {
           height: 54px;
           width: 54px;
           box-shadow:
@@ -5644,7 +6621,7 @@ export default function RealWorldMap() {
           animation: none;
         }
 
-        .basedare-leaflet-map :global(.map-pin-marker) {
+        .basedare-maplibre-map :global(.map-pin-marker) {
           background:
             radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18) 0%, transparent 55%),
             radial-gradient(circle at 70% 75%, rgba(0, 0, 0, 0.6) 0%, transparent 50%),
@@ -5656,7 +6633,7 @@ export default function RealWorldMap() {
           border-radius: 50%;
         }
 
-        .basedare-leaflet-map :global(.map-pin-marker--active) {
+        .basedare-maplibre-map :global(.map-pin-marker--active) {
           box-shadow:
             5px 5px 12px rgba(0, 0, 0, 0.85),
             -3px -3px 8px rgba(255, 255, 255, 0.07),
@@ -5664,14 +6641,14 @@ export default function RealWorldMap() {
             0 0 20px rgba(245, 197, 24, 0.3);
         }
 
-        .basedare-leaflet-map :global(.map-pin-marker--unmarked) {
+        .basedare-maplibre-map :global(.map-pin-marker--unmarked) {
           box-shadow:
             5px 5px 12px rgba(0, 0, 0, 0.85),
             -3px -3px 8px rgba(255, 255, 255, 0.07),
             0 0 0 3px rgba(34, 211, 238, 0.4);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-active .map-pin-marker) {
+        .basedare-maplibre-map :global(.peebear-marker.is-active .map-pin-marker) {
           transform: scale(1.1) translateY(-3px);
           box-shadow:
             8px 10px 20px rgba(0, 0, 0, 0.9),
@@ -5680,7 +6657,7 @@ export default function RealWorldMap() {
             0 0 30px rgba(245, 197, 24, 0.45);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--blazing) {
+        .basedare-maplibre-map :global(.peebear-core--blazing) {
           border-color: rgba(255, 95, 130, 0.75);
           box-shadow:
             0 0 0 3px rgba(255, 45, 85, 0.18),
@@ -5690,7 +6667,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--igniting) {
+        .basedare-maplibre-map :global(.peebear-core--igniting) {
           border-color: rgba(34, 211, 238, 0.72);
           box-shadow:
             0 0 0 3px rgba(34, 211, 238, 0.16),
@@ -5700,7 +6677,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--simmering) {
+        .basedare-maplibre-map :global(.peebear-core--simmering) {
           border-color: rgba(245, 197, 24, 0.72);
           box-shadow:
             0 0 0 3px rgba(245, 197, 24, 0.14),
@@ -5710,12 +6687,12 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--cold) {
+        .basedare-maplibre-map :global(.peebear-core--cold) {
           border-color: rgba(255, 255, 255, 0.22);
           filter: saturate(0.82);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--unmarked) {
+        .basedare-maplibre-map :global(.peebear-core--unmarked) {
           border-style: dashed;
           border-color: rgba(245, 197, 24, 0.36);
           box-shadow:
@@ -5727,7 +6704,7 @@ export default function RealWorldMap() {
           filter: saturate(0.78) brightness(0.97);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--pending) {
+        .basedare-maplibre-map :global(.peebear-core--pending) {
           border-color: rgba(251, 191, 36, 0.7);
           box-shadow:
             0 0 0 3px rgba(251, 191, 36, 0.12),
@@ -5737,7 +6714,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--first-mark) {
+        .basedare-maplibre-map :global(.peebear-core--first-mark) {
           border-color: rgba(245, 197, 24, 0.84);
           box-shadow:
             0 0 0 3px rgba(245, 197, 24, 0.18),
@@ -5747,7 +6724,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--active) {
+        .basedare-maplibre-map :global(.peebear-core--active) {
           box-shadow:
             4px 6px 14px rgba(0, 0, 0, 0.78),
             -2px -2px 6px rgba(255, 255, 255, 0.06),
@@ -5758,7 +6735,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-core--hot) {
+        .basedare-maplibre-map :global(.peebear-core--hot) {
           box-shadow:
             0 0 0 4px rgba(255, 45, 85, 0.22),
             0 0 34px rgba(255, 45, 85, 0.34),
@@ -5767,7 +6744,7 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-active .peebear-core) {
+        .basedare-maplibre-map :global(.peebear-marker.is-active .peebear-core) {
           box-shadow:
             6px 8px 16px rgba(0, 0, 0, 0.9),
             -2px -2px 6px rgba(255, 255, 255, 0.08),
@@ -5779,7 +6756,7 @@ export default function RealWorldMap() {
           transform: scale(1.08) translateY(-2px);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-matched .peebear-core) {
+        .basedare-maplibre-map :global(.peebear-marker.is-matched .peebear-core) {
           box-shadow:
             0 0 0 3px rgba(34, 211, 238, 0.16),
             0 0 22px rgba(34, 211, 238, 0.22),
@@ -5788,12 +6765,12 @@ export default function RealWorldMap() {
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-matched .peebear-state) {
+        .basedare-maplibre-map :global(.peebear-marker.is-matched .peebear-state) {
           border-color: rgba(34, 211, 238, 0.2);
           color: rgba(202, 248, 255, 0.92);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-ring) {
+        .basedare-maplibre-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-ring) {
           border-color: rgba(248, 221, 114, 0.92);
           box-shadow:
             0 0 0 5px rgba(245, 197, 24, 0.18),
@@ -5802,14 +6779,14 @@ export default function RealWorldMap() {
             inset 0 0 20px rgba(245, 197, 24, 0.1);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-pill) {
+        .basedare-maplibre-map :global(.peebear-marker.has-challenge-live.is-active .peebear-challenge-pill) {
           box-shadow:
             0 10px 18px rgba(0, 0, 0, 0.3),
             0 0 22px rgba(245, 197, 24, 0.24),
             inset 0 1px 0 rgba(255, 255, 255, 0.12);
         }
 
-        .basedare-leaflet-map :global(.peebear-head) {
+        .basedare-maplibre-map :global(.peebear-head) {
           position: relative;
           z-index: 1;
           width: 88%;
@@ -5820,7 +6797,7 @@ export default function RealWorldMap() {
           -webkit-user-drag: none;
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint) {
+        .basedare-maplibre-map :global(.peebear-footprint) {
           display: inline-flex;
           align-items: center;
           gap: 0.38rem;
@@ -5837,7 +6814,7 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint.is-first) {
+        .basedare-maplibre-map :global(.peebear-footprint.is-first) {
           border-color: rgba(245, 197, 24, 0.28);
           background:
             linear-gradient(180deg, rgba(245, 197, 24, 0.18), rgba(27, 18, 6, 0.92)),
@@ -5848,11 +6825,11 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint.is-latest) {
+        .basedare-maplibre-map :global(.peebear-footprint.is-latest) {
           transform: scale(1.04);
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint-dot) {
+        .basedare-maplibre-map :global(.peebear-footprint-dot) {
           display: inline-flex;
           height: 9px;
           width: 9px;
@@ -5861,12 +6838,12 @@ export default function RealWorldMap() {
           box-shadow: 0 0 0 3px rgba(184, 127, 255, 0.12), 0 0 12px rgba(184, 127, 255, 0.26);
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint.is-first .peebear-footprint-dot) {
+        .basedare-maplibre-map :global(.peebear-footprint.is-first .peebear-footprint-dot) {
           background: #f5c518;
           box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.12), 0 0 12px rgba(245, 197, 24, 0.26);
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint-label) {
+        .basedare-maplibre-map :global(.peebear-footprint-label) {
           font-size: 7px;
           font-weight: 900;
           line-height: 1;
@@ -5874,7 +6851,7 @@ export default function RealWorldMap() {
           color: rgba(237, 216, 255, 0.96);
         }
 
-        .basedare-leaflet-map :global(.peebear-footprint.is-first .peebear-footprint-label) {
+        .basedare-maplibre-map :global(.peebear-footprint.is-first .peebear-footprint-label) {
           color: rgba(255, 240, 188, 0.96);
         }
 
@@ -5901,7 +6878,7 @@ export default function RealWorldMap() {
           }
         }
 
-        .basedare-leaflet-map :global(.peebear-count) {
+        .basedare-maplibre-map :global(.peebear-count) {
           position: absolute;
           left: 50%;
           top: -16px;
@@ -5927,7 +6904,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-marker.is-compact .peebear-count) {
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-count) {
           top: -10px;
           min-width: 24px;
           height: 22px;
@@ -5938,7 +6915,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-count--blazing) {
+        .basedare-maplibre-map :global(.peebear-count--blazing) {
           border-color: rgba(255, 95, 130, 0.8);
           color: #fff1f4;
           box-shadow:
@@ -5947,7 +6924,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-count--igniting) {
+        .basedare-maplibre-map :global(.peebear-count--igniting) {
           border-color: rgba(34, 211, 238, 0.8);
           color: #d8fbff;
           box-shadow:
@@ -5956,7 +6933,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-count--simmering) {
+        .basedare-maplibre-map :global(.peebear-count--simmering) {
           border-color: rgba(245, 197, 24, 0.82);
           color: #fff2b7;
           box-shadow:
@@ -5965,12 +6942,12 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-count--cold) {
+        .basedare-maplibre-map :global(.peebear-count--cold) {
           border-color: rgba(255, 255, 255, 0.22);
           color: rgba(255, 255, 255, 0.92);
         }
 
-        .basedare-leaflet-map :global(.peebear-count--first-mark) {
+        .basedare-maplibre-map :global(.peebear-count--first-mark) {
           border-color: rgba(245, 197, 24, 0.9);
           color: #fff2b7;
           box-shadow:
@@ -5979,7 +6956,7 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
-        .basedare-leaflet-map :global(.peebear-ripple) {
+        .basedare-maplibre-map :global(.peebear-ripple) {
           position: absolute;
           left: 50%;
           top: 30px;
@@ -5990,12 +6967,12 @@ export default function RealWorldMap() {
           animation: peebearRipple 2s infinite;
         }
 
-        .basedare-leaflet-map :global(.peebear-ripple--blazing) {
+        .basedare-maplibre-map :global(.peebear-ripple--blazing) {
           border: 1.5px solid rgba(255, 45, 85, 0.88);
         }
 
         @media (max-width: 767px) {
-          .basedare-leaflet-map {
+          .basedare-maplibre-map {
             --mesh-opacity: 0.06;
             --links-opacity: 0.08;
             --star-opacity: 0.12;
@@ -6003,7 +6980,7 @@ export default function RealWorldMap() {
             --haze-opacity: 0.72;
           }
 
-          .basedare-leaflet-map[data-map-preset='crt'] {
+          .basedare-maplibre-map[data-map-preset='crt'] {
             --mesh-opacity: 0.08;
             --links-opacity: 0.1;
             --star-opacity: 0.1;
@@ -6011,7 +6988,7 @@ export default function RealWorldMap() {
             --haze-opacity: 0.7;
           }
 
-          .basedare-leaflet-map[data-map-preset='heat'] {
+          .basedare-maplibre-map[data-map-preset='heat'] {
             --mesh-opacity: 0.06;
             --links-opacity: 0.08;
             --star-opacity: 0.11;
@@ -6019,7 +6996,7 @@ export default function RealWorldMap() {
             --haze-opacity: 0.76;
           }
 
-          .basedare-leaflet-map[data-map-preset='night'] {
+          .basedare-maplibre-map[data-map-preset='night'] {
             --mesh-opacity: 0.06;
             --links-opacity: 0.08;
             --star-opacity: 0.14;
@@ -6027,13 +7004,13 @@ export default function RealWorldMap() {
             --haze-opacity: 0.66;
           }
 
-          .basedare-leaflet-map :global(.place-cluster-aura),
-          .basedare-leaflet-map :global(.peebear-challenge-aura) {
+          .basedare-maplibre-map :global(.place-cluster-aura),
+          .basedare-maplibre-map :global(.peebear-challenge-aura) {
             filter: blur(4px);
             opacity: 0.7;
           }
 
-          .basedare-leaflet-map :global(.place-cluster-core) {
+          .basedare-maplibre-map :global(.place-cluster-core) {
             box-shadow:
               0 14px 22px rgba(0, 0, 0, 0.3),
               0 0 0 2px rgba(255, 255, 255, 0.04),
@@ -6042,19 +7019,19 @@ export default function RealWorldMap() {
           }
         }
 
-        .basedare-leaflet-map :global(.peebear-ripple--igniting) {
+        .basedare-maplibre-map :global(.peebear-ripple--igniting) {
           border: 1.5px solid rgba(34, 211, 238, 0.84);
         }
 
-        .basedare-leaflet-map :global(.peebear-ripple--simmering) {
+        .basedare-maplibre-map :global(.peebear-ripple--simmering) {
           border: 1.5px solid rgba(245, 197, 24, 0.84);
         }
 
-        .basedare-leaflet-map :global(.peebear-ripple--pending) {
+        .basedare-maplibre-map :global(.peebear-ripple--pending) {
           border: 1.5px dashed rgba(251, 191, 36, 0.76);
         }
 
-        .basedare-leaflet-map :global(.peebear-shadow) {
+        .basedare-maplibre-map :global(.peebear-shadow) {
           margin-top: 5px;
           height: 5px;
           width: 18px;
@@ -6063,12 +7040,8 @@ export default function RealWorldMap() {
           filter: blur(2px);
         }
 
-        .basedare-leaflet-map :global(.leaflet-tile-pane) {
-          filter: var(--tile-filter);
-        }
-
-        .basedare-leaflet-map :global(.leaflet-control-zoom),
-        .basedare-leaflet-map :global(.leaflet-control-attribution) {
+        .basedare-maplibre-map :global(.maplibregl-ctrl-group),
+        .basedare-maplibre-map :global(.maplibregl-ctrl-attrib) {
           border: 1px solid rgba(107, 33, 255, 0.24);
           border-radius: 16px;
           background:
@@ -6079,18 +7052,18 @@ export default function RealWorldMap() {
           overflow: hidden;
         }
 
-        .basedare-leaflet-map :global(.leaflet-control-zoom a),
-        .basedare-leaflet-map :global(.leaflet-control-attribution a),
-        .basedare-leaflet-map :global(.leaflet-control-attribution) {
+        .basedare-maplibre-map :global(.maplibregl-ctrl-group a),
+        .basedare-maplibre-map :global(.maplibregl-ctrl-attrib a),
+        .basedare-maplibre-map :global(.maplibregl-ctrl-attrib) {
           color: rgba(255, 255, 255, 0.62) !important;
         }
 
-        .basedare-leaflet-map :global(.leaflet-control-zoom a) {
+        .basedare-maplibre-map :global(.maplibregl-ctrl-group a) {
           border-bottom-color: rgba(255, 255, 255, 0.06) !important;
           background: transparent !important;
         }
 
-        .basedare-leaflet-map :global(.leaflet-control-zoom a:hover) {
+        .basedare-maplibre-map :global(.maplibregl-ctrl-group a:hover) {
           color: #f5c518 !important;
           background: rgba(255, 255, 255, 0.05) !important;
         }

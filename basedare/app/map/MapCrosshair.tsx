@@ -16,7 +16,7 @@ export default function MapCrosshair({
   containerRef,
   horizontalColor = 'rgba(184, 127, 255, 0.7)',
   verticalColor = 'rgba(245, 197, 24, 0.7)',
-  reactiveSelector = 'a, button, .leaflet-marker-icon, .peebear-marker',
+  reactiveSelector = 'a, button, .maplibregl-marker, .basedare-maplibre-marker, .peebear-marker',
 }: MapCrosshairProps) {
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
