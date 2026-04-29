@@ -3999,9 +3999,13 @@ export default function RealWorldMap() {
     'map-panel-section rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(9,11,18,0.93)_18%,rgba(5,6,12,0.985)_100%)] px-4 py-4 shadow-[0_18px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]';
   const mapPanelInsetChipClass =
     'rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.14)]';
+  const selectedPrimaryButtonTone =
+    selectedPrimaryAction.tone === 'gold'
+      ? 'yellow'
+      : selectedPrimaryAction.tone === 'purple'
+        ? 'purple'
+        : 'teal';
   const selectedCommandStripClassName = `map-command-strip mt-3 ${
-    selectedPrimaryAction.href ? 'map-command-strip--clickable' : ''
-  } ${
     selectedPrimaryAction.tone === 'gold'
       ? 'map-command-strip--gold'
       : selectedPrimaryAction.tone === 'purple'
@@ -4022,15 +4026,29 @@ export default function RealWorldMap() {
         </p>
       </div>
       <div className="map-command-strip-side">
-        {selectedPrimaryAction.actionLabel ? (
-          <span className="map-command-strip-cta">
-            {selectedPrimaryAction.actionLabel}
-            <ArrowLeft className="h-3 w-3 rotate-180" />
+        {selectedPrimaryAction.href && selectedPrimaryAction.actionLabel ? (
+          <span className="map-command-strip-jelly-shell">
+            <SquircleLink
+              href={selectedPrimaryAction.href}
+              tone={selectedPrimaryButtonTone}
+              label={selectedPrimaryAction.actionLabel}
+              fullWidth
+              height={42}
+              className="map-command-strip-jelly"
+              labelClassName="text-[0.62rem] tracking-[0.08em] sm:text-[0.7rem]"
+            >
+              <span className="map-command-strip-jelly-label">
+                {selectedPrimaryAction.actionLabel}
+                <ArrowLeft className="h-3 w-3 rotate-180" />
+              </span>
+            </SquircleLink>
           </span>
         ) : null}
-        <span className="map-command-strip-orb" aria-hidden="true">
-          <span />
-        </span>
+        {!selectedPrimaryAction.actionLabel ? (
+          <span className="map-command-strip-orb" aria-hidden="true">
+            <span />
+          </span>
+        ) : null}
       </div>
     </>
   );
@@ -4837,19 +4855,9 @@ export default function RealWorldMap() {
                       </span>
                     </div>
 
-                    {selectedPrimaryAction.href ? (
-                      <Link
-                        href={selectedPrimaryAction.href}
-                        className={`${selectedCommandStripClassName} map-command-strip--primary`}
-                        aria-label={`${selectedPrimaryAction.actionLabel ?? 'Open'} for ${selectedPlace.name}`}
-                      >
-                        {selectedCommandStripContent}
-                      </Link>
-                    ) : (
-                      <div className={`${selectedCommandStripClassName} map-command-strip--primary`}>
-                        {selectedCommandStripContent}
-                      </div>
-                    )}
+                    <div className={`${selectedCommandStripClassName} map-command-strip--primary`}>
+                      {selectedCommandStripContent}
+                    </div>
 
                     <div className="map-command-actions">
                       {selectedVenueCommandCards.map((card) => {
@@ -6253,6 +6261,29 @@ export default function RealWorldMap() {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
         }
 
+        .map-command-strip-jelly-shell {
+          position: relative;
+          z-index: 1;
+          display: block;
+          flex: 0 0 auto;
+          width: clamp(9.5rem, 30vw, 10.8rem);
+        }
+
+        .map-command-strip-jelly-shell :global(.map-command-strip-jelly) {
+          width: 100%;
+        }
+
+        .map-command-strip-jelly-label {
+          display: inline-flex;
+          min-width: 0;
+          align-items: center;
+          justify-content: center;
+          gap: 0.36rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         .map-command-strip-orb span {
           height: 1.1rem;
           width: 1.1rem;
@@ -6747,19 +6778,32 @@ export default function RealWorldMap() {
           }
 
           .map-command-strip {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.72rem;
             margin-top: 0.85rem;
             border-radius: 1.15rem;
             padding: 0.82rem 0.82rem 0.82rem 0.9rem;
           }
 
+          .map-command-strip-copy {
+            width: 100%;
+          }
+
           .map-command-strip-side {
+            width: 100%;
             gap: 0.42rem;
+            justify-content: flex-start;
           }
 
           .map-command-strip-cta {
             display: inline-flex;
             padding: 0.38rem 0.52rem;
             font-size: 0.52rem;
+          }
+
+          .map-command-strip-jelly-shell {
+            width: min(12.25rem, 100%);
           }
 
           .map-command-strip-orb {
