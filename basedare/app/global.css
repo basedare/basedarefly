@@ -2182,9 +2182,14 @@ svg.w-0.h-0 {
     /* 1. REPLACE HEAVY PARTICLES WITH STATIC CYBER-GRID
        Instead of a black void, we use a CSS pattern that looks like a grid.
        Zero download size, instant render. */
-    #particles-js, canvas:not(.lightning-canvas), .video-background-container {
+    #particles-js, canvas:not(.lightning-canvas):not(.maplibregl-canvas), .video-background-container {
         display: none !important;
         visibility: hidden !important;
+    }
+
+    .basedare-maplibre-map .maplibregl-canvas {
+        display: block !important;
+        visibility: visible !important;
     }
 
     body {

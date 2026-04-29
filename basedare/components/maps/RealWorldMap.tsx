@@ -2493,6 +2493,32 @@ export default function RealWorldMap() {
     });
   }, [isMobileViewport, mapReady, targetCenter, targetZoom]);
 
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const container = mapViewportRef.current;
+    if (!map || !mapReady || !container) return undefined;
+
+    const resizeMap = () => {
+      map.resize();
+    };
+
+    resizeMap();
+    const animationFrameId = window.requestAnimationFrame(resizeMap);
+    const settleTimeoutId = window.setTimeout(resizeMap, 320);
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resizeMap) : null;
+    resizeObserver?.observe(container);
+    window.addEventListener('resize', resizeMap);
+    window.addEventListener('orientationchange', resizeMap);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(settleTimeoutId);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', resizeMap);
+      window.removeEventListener('orientationchange', resizeMap);
+    };
+  }, [isMobileViewport, mapReady]);
+
   const focusExistingPlace = useCallback((place: NearbyPlace) => {
     triggerHaptic('selection');
     setSelectedPlace({
@@ -5901,6 +5927,8 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas) {
+          display: block !important;
+          visibility: visible !important;
           filter: brightness(0.66) saturate(1.28) contrast(1.24) hue-rotate(16deg);
           outline: none;
         }
