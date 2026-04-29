@@ -6,24 +6,22 @@ Use this section for active non-trivial tasks.
 
 ### Task
 - Owner: Codex
-- Goal: Wire Venue Scout output into the Daily Command Loop so operators see the top route, lead, and seed candidate from one daily surface.
+- Goal: Fix the desktop notifications bell dropdown and upgrade it to a slick liquid-glass summary surface.
 
 ### Plan
-- [x] Add a venue scout brief to the daily command report.
-- [x] Route venue follow-up commands to the Venue Scout Command Center.
-- [x] Surface the top route, active lead, and seed candidate in the daily admin UI.
-- [x] Verify with targeted lint/build checks and rebuild graphify.
+- [x] Portal the notifications dropdown out of the glass navbar so desktop clicks are not clipped.
+- [x] Add a visible summary area for live actions, unread alerts, push state, and the next best item.
+- [x] Preserve the mobile full-height scrollable panel.
+- [x] Verify with targeted lint/type checks, production build, and graphify rebuild.
 
 ### Verification
 - [x] Targeted lint/type check for touched files
 - [x] `npm run build`
-- [x] `npm run safety:static`
-- [x] `npm run safety:rls`
 - [x] Graphify rebuild
 
 ### Review
-- Outcome: Daily Command Loop now includes a venue scout brief, sends venue follow-up work to the scout cockpit, and shows the top route, lead, and seed candidate from the same daily surface.
-- Follow-ups: Consider route-level bulk lead capture/import after the daily loop can direct operators to the right venue route.
+- Outcome: Desktop bell now opens a body-portaled liquid-glass dropdown with a summary header instead of being hidden inside the navbar glass container.
+- Follow-ups: Browser-smoke the bell on production after deploy with a connected wallet.
 
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.

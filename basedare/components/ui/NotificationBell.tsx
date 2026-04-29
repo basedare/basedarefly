@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useSignMessage } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 interface Notification {
@@ -73,11 +74,40 @@ export function NotificationBell() {
     const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
     const [nearbyRadiusKm, setNearbyRadiusKm] = useState<number>(5);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [mounted, setMounted] = useState(false);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
 
     const unreadCount = notifications.length;
     const attentionCount = Math.max(unreadCount, actionSummary?.total ?? 0);
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+    const primaryAction = actionItems[0] ?? null;
+    const primaryNotification = notifications[0] ?? null;
+
+    const formatNotificationTime = (value: string) =>
+        new Date(value).toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric',
+        });
+
+    const updateDropdownPosition = useCallback(() => {
+        if (typeof window === 'undefined') return;
+
+        if (window.innerWidth < 768) {
+            setDropdownPosition(null);
+            return;
+        }
+
+        const rect = buttonRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        setDropdownPosition({
+            top: Math.round(rect.bottom + 14),
+            right: Math.max(16, Math.round(window.innerWidth - rect.right)),
+        });
+    }, []);
 
     const getWalletAuthHeaders = useCallback(
         async (action: string, allowSignPrompt = false) => {
@@ -95,6 +125,10 @@ export function NotificationBell() {
         },
         [address, sessionToken, sessionWallet, signMessageAsync]
     );
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const fetchNotifications = useCallback(async (allowSignPrompt = false) => {
         if (!address) return;
@@ -148,7 +182,8 @@ export function NotificationBell() {
     useEffect(() => {
         if (!isOpen || !address) return;
         void fetchNotifications(true);
-    }, [address, fetchNotifications, isOpen]);
+        void fetchActionCenter();
+    }, [address, fetchActionCenter, fetchNotifications, isOpen]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -191,15 +226,30 @@ export function NotificationBell() {
     // Click outside to close
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
+            const target = event.target as Node;
+            if (dropdownRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+            setIsOpen(false);
         };
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        updateDropdownPosition();
+
+        const handleReposition = () => updateDropdownPosition();
+        window.addEventListener('resize', handleReposition);
+        window.addEventListener('scroll', handleReposition, true);
+
+        return () => {
+            window.removeEventListener('resize', handleReposition);
+            window.removeEventListener('scroll', handleReposition, true);
+        };
+    }, [isOpen, updateDropdownPosition]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -452,10 +502,16 @@ export function NotificationBell() {
     return (
         <div className="relative z-[200]" ref={dropdownRef}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                ref={buttonRef}
+                onClick={() => {
+                    updateDropdownPosition();
+                    setIsOpen((current) => !current);
+                }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="relative p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                className="relative p-2 rounded-full border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.22)] transition-colors hover:bg-white/10"
+                aria-expanded={isOpen}
+                aria-label="Open notifications"
             >
                 <Bell className={`w-5 h-5 text-gray-300 transition-transform ${isHovered && attentionCount > 0 ? 'animate-wiggle' : ''}`} />
 
@@ -472,17 +528,21 @@ export function NotificationBell() {
             </button>
 
             {/* Dropdown */}
+            {mounted && createPortal(
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[220] isolate flex h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(24,23,34,0.92)_0%,rgba(8,9,18,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 md:h-auto md:max-h-[80vh] md:w-96"
+                        ref={panelRef}
+                        initial={{ opacity: 0, y: -6, scale: 0.96, filter: 'blur(10px)' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, y: -6, scale: 0.96, filter: 'blur(10px)' }}
+                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        style={dropdownPosition ? { top: dropdownPosition.top, right: dropdownPosition.right } : undefined}
+                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[1200] isolate flex h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(30,32,46,0.72)_0%,rgba(12,14,24,0.78)_46%,rgba(5,6,13,0.9)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-28px_42px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
                     >
-                        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.22),transparent_42%),radial-gradient(circle_at_86%_14%,rgba(34,211,238,0.16),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_38%)]" />
-                        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+                        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_-5%,rgba(255,255,255,0.2),transparent_28%),radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.22),transparent_38%),radial-gradient(circle_at_86%_10%,rgba(250,204,21,0.16),transparent_28%),radial-gradient(circle_at_80%_74%,rgba(168,85,247,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.11),transparent_34%)]" />
+                        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                        <div className="pointer-events-none absolute left-6 right-16 top-3 h-10 rounded-full bg-white/10 blur-2xl" />
                         {/* Header */}
                         <div className="shrink-0 flex flex-col gap-3 border-b border-white/8 bg-white/[0.055] p-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
@@ -515,6 +575,91 @@ export function NotificationBell() {
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.025))] px-4 py-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.055] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
+                                        Actions
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-white">
+                                        {actionSummary?.total ?? 0}
+                                    </p>
+                                </div>
+                                <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.055] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
+                                        Unread
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-white">
+                                        {unreadCount}
+                                    </p>
+                                </div>
+                                <div className="rounded-[1.15rem] border border-cyan-200/15 bg-cyan-300/[0.07] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100/50">
+                                        Push
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-black text-cyan-50">
+                                        {pushSupported ? (pushEnabled ? 'Armed' : 'Off') : 'N/A'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                                {primaryAction ? (
+                                    <Link
+                                        href={primaryAction.href}
+                                        className="block p-3 transition hover:bg-white/[0.04]"
+                                        onClick={() => setIsOpen(false)}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100/75">
+                                                    Next best action
+                                                </p>
+                                                <h4 className="mt-1 truncate text-sm font-black text-white">
+                                                    {primaryAction.title}
+                                                </h4>
+                                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/48">
+                                                    {primaryAction.detail}
+                                                </p>
+                                            </div>
+                                            <span className="shrink-0 rounded-full border border-yellow-200/20 bg-yellow-300/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-yellow-100/70">
+                                                {primaryAction.cta}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ) : primaryNotification ? (
+                                    <div className="p-3">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/72">
+                                            Latest alert
+                                        </p>
+                                        <h4 className="mt-1 truncate text-sm font-black text-white">
+                                            {primaryNotification.title}
+                                        </h4>
+                                        <div className="mt-1 flex items-start justify-between gap-3">
+                                            <p className="line-clamp-2 text-xs leading-relaxed text-white/48">
+                                                {primaryNotification.message}
+                                            </p>
+                                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-white/34">
+                                                {formatNotificationTime(primaryNotification.createdAt)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 p-3">
+                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-emerald-200/20 bg-emerald-300/10 text-emerald-100">
+                                            <Check className="h-4 w-4" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-black text-white">All clear</p>
+                                            <p className="text-xs leading-relaxed text-white/45">
+                                                No urgent alerts or action-center items are waiting.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -735,7 +880,9 @@ export function NotificationBell() {
                         </div>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>,
+            document.body
+            )}
         </div>
     );
 }
