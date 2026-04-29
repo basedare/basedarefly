@@ -29,7 +29,10 @@ async function ensureParentAlias(name) {
   console.log(`[prebuild] Linked parent ${name} to ${relativeTarget} for Vercel output collection`);
 }
 
-const isVercelBuild = process.env.VERCEL === '1' && Boolean(process.env.VERCEL_ENV);
+const isVercelBuild =
+  process.env.VERCEL === '1' ||
+  Boolean(process.env.VERCEL_ENV) ||
+  Boolean(process.env.NOW_BUILDER);
 const isNestedAppRoot = path.basename(cwd) === 'basedare';
 
 if (isVercelBuild && isNestedAppRoot) {
