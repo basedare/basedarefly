@@ -164,7 +164,7 @@ export default function CreatorsPage() {
 
               <h1 className="mt-5 text-4xl md:text-6xl font-black text-white tracking-tight">
                 Turn Dares Into{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500">
+                <span className="mt-1 block whitespace-nowrap text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.2)] sm:mt-0 sm:inline sm:bg-gradient-to-r sm:from-yellow-300 sm:via-yellow-400 sm:to-amber-500 sm:bg-clip-text sm:text-transparent sm:drop-shadow-none">
                   Dollars
                 </span>
               </h1>
@@ -376,7 +376,9 @@ export default function CreatorsPage() {
 
                                 <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
                                   <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-green-400">${creator.totalEarned.toLocaleString()}</span>
+                                    <span className="whitespace-nowrap text-[11px] font-black leading-none text-green-400 tabular-nums sm:text-[10px]">
+                                      ${creator.totalEarned.toLocaleString()}
+                                    </span>
                                     <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Earned</span>
                                   </div>
                                   <div className="flex flex-col">

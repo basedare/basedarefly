@@ -213,7 +213,9 @@ export default function SquircleButton({
         width: fullWidth ? '100%' : `${svgWidth * scale}px`,
         height: `${svgHeight * scale}px`,
         transform: isDown
-          ? 'translateY(1px) scale(0.992)'
+          ? stableHover
+            ? 'translateY(1px) scale(1)'
+            : 'translateY(1px) scale(0.992)'
           : isHovering && !stableHover
             ? 'translateY(-1px) scale(1.012)'
             : 'translateY(0) scale(1)',

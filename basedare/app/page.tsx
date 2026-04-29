@@ -234,7 +234,7 @@ function HomeContent() {
                   </div>
                   <div className="w-full md:w-auto">
                     <InitProtocolButton
-                      className="w-full md:w-auto"
+                      className="w-full md:w-auto after:pointer-events-none after:absolute after:inset-[-6px] after:rounded-full after:border after:border-[#f5c518]/0 after:opacity-0 after:content-[''] after:transition-all after:duration-300 hover:after:border-[#f5c518]/20 hover:after:opacity-100 active:after:border-[#f5c518]/42 active:after:opacity-100 active:after:shadow-[0_0_34px_rgba(245,197,24,0.34)]"
                       stableHover
                       onClick={handleInitiateProtocol}
                     />

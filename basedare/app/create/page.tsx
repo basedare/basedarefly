@@ -671,7 +671,7 @@ function CreateDareContent() {
           </div>
 
           <h1 className="mb-3 text-4xl font-display font-black uppercase italic tracking-tighter md:mb-4 md:text-7xl">
-            INIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FACC15] to-[#FACC15]/70">PROTOCOL</span>
+            INIT <span className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.22)]">PROTOCOL</span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
             Deploy a new smart contract dare on Base L2
