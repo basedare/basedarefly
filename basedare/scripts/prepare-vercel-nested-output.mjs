@@ -20,6 +20,11 @@ async function ensureParentAlias(name, type = 'dir') {
   const parentPath = path.resolve(cwd, '..', name);
   const targetPath = path.resolve(cwd, name);
 
+  if (!(await pathExists(targetPath))) {
+    console.warn(`[prebuild] Skipped parent ${name} alias because ${path.relative(cwd, targetPath)} is missing`);
+    return;
+  }
+
   if (await pathExists(parentPath)) {
     return;
   }

@@ -2,6 +2,9 @@
   "name": "basedare",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x || 22.x"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbo",
@@ -102,9 +105,16 @@
   "overrides": {
     "axios": "1.15.2",
     "lodash": "4.18.1",
-    "postcss": "8.5.10"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "postcss": "8.5.10",
+    "cookie": "0.7.2",
+    "serialize-javascript": "7.0.5",
+    "tmp": "0.2.5",
+    "undici": "6.25.0",
+    "ethjs-unit": {
+      "bn.js": "4.12.3"
+    },
+    "number-to-bn": {
+      "bn.js": "4.12.3"
+    }
   }
 }

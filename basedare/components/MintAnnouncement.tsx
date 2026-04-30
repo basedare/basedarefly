@@ -16,7 +16,7 @@ export default function MintAnnouncement() {
                   ⚠️ INCOMING MINT: GENESIS PASS
                </span>
                <span className="text-lg font-mono font-bold opacity-70">
-                  // MINT DATE: [REDACTED] //
+                  {'// MINT DATE: [REDACTED] //'}
                </span>
                <div className="w-3 h-3 bg-black rotate-45" />
             </div>
@@ -35,5 +35,4 @@ export default function MintAnnouncement() {
     </section>
   );
 }
-
 

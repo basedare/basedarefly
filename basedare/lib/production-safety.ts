@@ -274,11 +274,19 @@ async function checkRls(checks: ProductionSafetyCheck[]) {
 
 async function checkRlsCoverage(checks: ProductionSafetyCheck[]) {
   try {
-    const schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
-    const schema = await fs.readFile(schemaPath, 'utf8');
-    const modelNames = Array.from(schema.matchAll(/^model\s+(\w+)\s+\{/gm))
-      .map((match) => match[1])
-      .filter(Boolean);
+    const dmmfModelNames = Prisma.dmmf?.datamodel?.models
+      ?.map((model) => model.name)
+      .filter(Boolean) ?? [];
+    let modelNames = dmmfModelNames;
+
+    if (modelNames.length === 0) {
+      const schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
+      const schema = await fs.readFile(schemaPath, 'utf8');
+      modelNames = Array.from(schema.matchAll(/^model\s+(\w+)\s+\{/gm))
+        .map((match) => match[1])
+        .filter(Boolean);
+    }
+
     const missingModels = modelNames.filter((modelName) => !RLS_TABLES.includes(modelName));
     const extraTables = RLS_TABLES.filter((tableName) => !modelNames.includes(tableName));
 

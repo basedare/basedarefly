@@ -108,7 +108,13 @@ async function checkCronWithSecret() {
     });
 
     if (!response.ok || !json?.success) {
-      record('block', 'Authenticated cron smoke', `venue lead cron failed with HTTP ${response.status}`);
+      const detail =
+        response.status === 401
+          ? 'production rejected the configured cron secret with HTTP 401; align Vercel CRON_SECRET with BASEDARE_CRON_SECRET/CRON_SECRET before relying on scheduled jobs.'
+          : response.status === 503
+            ? 'production cron route is fail-closed because CRON_SECRET is missing in the deployed environment.'
+            : `venue lead cron failed with HTTP ${response.status}`;
+      record('block', 'Authenticated cron smoke', detail);
       return;
     }
 
