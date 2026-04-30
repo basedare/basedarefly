@@ -26,9 +26,6 @@ const softCardClass =
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
 
-const venueMarkButtonClass =
-  'inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-full border border-cyan-300/28 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.16),transparent_34%),linear-gradient(180deg,rgba(34,211,238,0.18)_0%,rgba(8,13,22,0.94)_100%)] px-4 py-3 text-[0.78rem] font-black uppercase tracking-[0.12em] text-cyan-50 shadow-[0_16px_30px_rgba(0,0,0,0.28),0_0_24px_rgba(34,211,238,0.10),inset_0_1px_0_rgba(255,255,255,0.13),inset_0_-12px_18px_rgba(0,0,0,0.26)] transition hover:-translate-y-[1px] hover:border-cyan-200/42 hover:bg-cyan-400/[0.16] touch-manipulation';
-
 function getVenueActivationState(dare: {
   streamerHandle: string | null;
   targetWalletAddress: string | null;
@@ -381,14 +378,14 @@ export default async function VenueDetailPage(
                         city={venue.city}
                         country={venue.country}
                         buttonLabel="Leave mark"
-                        buttonClassName={venueMarkButtonClass}
+                        buttonVariant="jelly"
                       />
                       <SquircleLink
                         href={fundChallengeHref}
                         label="Fund dare"
                         tone="yellow"
                         fullWidth
-                        height={50}
+                        height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
                         Fund dare
@@ -399,7 +396,7 @@ export default async function VenueDetailPage(
                         label="Activate"
                         tone="purple"
                         fullWidth
-                        height={46}
+                        height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
                         Activate
@@ -1307,7 +1304,7 @@ export default async function VenueDetailPage(
                             city={venue.city}
                             country={venue.country}
                             buttonLabel="Leave first mark"
-                            buttonClassName={venueMarkButtonClass}
+                            buttonVariant="jelly"
                           />
                         </div>
                         <SquircleLink

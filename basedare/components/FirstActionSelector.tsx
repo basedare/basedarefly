@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import BorderGlow from '@/components/ui/BorderGlow';
 
 type RoleRoute = {
   id: string;
@@ -12,8 +13,8 @@ type RoleRoute = {
   href: string;
   move: string;
   accent: string;
-  edgeColor: string;
-  glowColor: string;
+  glowHsl: string;
+  glowColors: string[];
   lineColor: string;
 };
 
@@ -26,8 +27,8 @@ const ROLE_ROUTES: RoleRoute[] = [
     href: '/create',
     move: 'Brief • Fund • Launch',
     accent: 'border-[#f0b90b]/18 bg-[#f0b90b]/[0.08] text-[#ffe27a]',
-    edgeColor: 'rgba(245,197,24,0.3)',
-    glowColor: 'rgba(245,197,24,0.16)',
+    glowHsl: '45 92 72',
+    glowColors: ['rgba(245,197,24,0.2)', 'rgba(251,191,36,0.11)', 'rgba(255,255,255,0.07)'],
     lineColor: 'rgba(245,197,24,0.64)',
   },
   {
@@ -38,8 +39,8 @@ const ROLE_ROUTES: RoleRoute[] = [
     href: '/map',
     move: 'Scan • Claim • Submit',
     accent: 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-100',
-    edgeColor: 'rgba(103,232,249,0.26)',
-    glowColor: 'rgba(34,211,238,0.14)',
+    glowHsl: '188 92 72',
+    glowColors: ['rgba(34,211,238,0.18)', 'rgba(56,189,248,0.12)', 'rgba(192,132,252,0.08)'],
     lineColor: 'rgba(103,232,249,0.58)',
   },
   {
@@ -50,8 +51,8 @@ const ROLE_ROUTES: RoleRoute[] = [
     href: '/dashboard',
     move: 'Review • Accept • Deliver',
     accent: 'border-fuchsia-300/18 bg-fuchsia-500/[0.08] text-fuchsia-100',
-    edgeColor: 'rgba(244,114,182,0.26)',
-    glowColor: 'rgba(244,114,182,0.13)',
+    glowHsl: '320 88 72',
+    glowColors: ['rgba(244,114,182,0.16)', 'rgba(217,70,239,0.1)', 'rgba(255,255,255,0.06)'],
     lineColor: 'rgba(244,114,182,0.58)',
   },
   {
@@ -62,8 +63,8 @@ const ROLE_ROUTES: RoleRoute[] = [
     href: '/brands/portal',
     move: 'Pick venue • Set spend • Launch',
     accent: 'border-[#f5c518]/24 bg-[#f5c518]/[0.09] text-[#ffe27a]',
-    edgeColor: 'rgba(192,132,252,0.3)',
-    glowColor: 'rgba(168,85,247,0.16)',
+    glowHsl: '270 90 74',
+    glowColors: ['rgba(168,85,247,0.2)', 'rgba(245,197,24,0.1)', 'rgba(56,189,248,0.09)'],
     lineColor: 'rgba(192,132,252,0.62)',
   },
 ];
@@ -101,49 +102,55 @@ export default function FirstActionSelector() {
 
         <div className="grid gap-3 md:grid-cols-2">
           {ROLE_ROUTES.map((route) => (
-            <div
+            <BorderGlow
               key={route.id}
-              className="group relative overflow-hidden rounded-[28px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(10,10,18,0.92)_16%,rgba(7,8,15,0.99)_100%)] p-4 transition duration-200 hover:-translate-y-[1px]"
-              style={{
-                borderColor: route.edgeColor,
-                boxShadow: `0 16px 28px rgba(0,0,0,0.18), 0 0 24px ${route.glowColor}, inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -12px 18px rgba(0,0,0,0.22)`,
-              }}
+              glowColor={route.glowHsl}
+              colors={route.glowColors}
+              borderRadius={28}
+              glowRadius={32}
+              edgeSensitivity={38}
+              coneSpread={26}
+              backgroundColor="#080914"
+              fillOpacity={0.62}
+              className="group transition duration-200 hover:-translate-y-[1px]"
             >
-              <div
-                className="pointer-events-none absolute inset-x-5 top-0 h-px"
-                style={{ background: `linear-gradient(90deg, transparent, ${route.lineColor}, transparent)` }}
-              />
-              <div className="flex items-start justify-between gap-3">
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${route.accent}`}>
-                  <span aria-hidden="true">{route.emoji}</span>
-                  {route.audience}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    {route.id}
+              <div className="relative overflow-hidden rounded-[27px] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(10,10,18,0.92)_16%,rgba(7,8,15,0.99)_100%)] p-4 shadow-[0_16px_28px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
+                <div
+                  className="pointer-events-none absolute inset-x-5 top-0 h-px"
+                  style={{ background: `linear-gradient(90deg, transparent, ${route.lineColor}, transparent)` }}
+                />
+                <div className="flex items-start justify-between gap-3">
+                  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${route.accent}`}>
+                    <span aria-hidden="true">{route.emoji}</span>
+                    {route.audience}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      {route.id}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-3 text-[1.34rem] font-black leading-none text-white">
-                {route.title}
-              </div>
-
-              <div className="mt-3 rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(5,6,12,0.78)_0%,rgba(10,10,16,0.98)_100%)] px-4 py-3 shadow-[inset_10px_10px_18px_rgba(0,0,0,0.36),inset_-4px_-4px_10px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.04)]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/30">
-                  First move
+                <div className="mt-3 text-[1.34rem] font-black leading-none text-white">
+                  {route.title}
                 </div>
-                <div className="mt-1 text-[14px] font-semibold text-white/88">{route.move}</div>
-              </div>
 
-              <Link
-                href={route.href}
-                className="relative mt-3 inline-flex w-full items-center justify-between overflow-hidden rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(16,16,28,0.18)_100%)] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/88 shadow-[0_12px_20px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.16)] transition hover:-translate-y-[1px] hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(16,16,28,0.24)_100%)]"
-              >
-                <span>Open route</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+                <div className="mt-3 rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(5,6,12,0.78)_0%,rgba(10,10,16,0.98)_100%)] px-4 py-3 shadow-[inset_10px_10px_18px_rgba(0,0,0,0.36),inset_-4px_-4px_10px_rgba(255,255,255,0.02),inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                    First move
+                  </div>
+                  <div className="mt-1 text-[14px] font-semibold text-white/88">{route.move}</div>
+                </div>
+
+                <Link
+                  href={route.href}
+                  className="relative mt-3 inline-flex w-full items-center justify-between overflow-hidden rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(16,16,28,0.18)_100%)] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/88 shadow-[0_12px_20px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.16)] transition hover:-translate-y-[1px] hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,rgba(16,16,28,0.24)_100%)]"
+                >
+                  <span>Open route</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </BorderGlow>
           ))}
         </div>
 

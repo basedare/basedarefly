@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Loader2, Send } from 'lucide-react';
+import SquircleButton from '@/components/ui/SquircleButton';
 
 type IntakeState = {
   company: string;
@@ -266,14 +267,20 @@ export default function ActivationIntakeForm() {
         </div>
       ) : null}
 
-      <button
+      <SquircleButton
         type="submit"
         disabled={submitting}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-yellow-200/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.95)_0%,rgba(202,138,4,0.96)_100%)] px-6 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_16px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.38)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+        tone="yellow"
+        label={submitting ? 'Routing request' : 'Route activation request'}
+        fullWidth
+        height={48}
+        className="w-full"
       >
-        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        Route activation request
-      </button>
+        <span className="flex items-center justify-center gap-2 text-[0.76rem] font-black uppercase tracking-[0.1em] text-[#15120c] sm:text-[0.82rem]">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {submitting ? 'Routing request' : 'Route activation request'}
+        </span>
+      </SquircleButton>
     </form>
   );
 }

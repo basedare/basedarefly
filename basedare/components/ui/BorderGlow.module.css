@@ -1,0 +1,102 @@
+.card {
+  --card-bg: #120f17;
+  --border-radius: 28px;
+  --glow-padding: 40px;
+  --cursor-angle: 120deg;
+  --edge-proximity: 34;
+  --cone-start: 154deg;
+  --cone-mid: 180deg;
+  --cone-end: 206deg;
+  --fill-opacity: 0.5;
+  --glow-color: hsl(40deg 80% 80% / 70%);
+  --glow-color-60: hsl(40deg 80% 80% / 42%);
+  --glow-color-50: hsl(40deg 80% 80% / 35%);
+  --glow-color-40: hsl(40deg 80% 80% / 28%);
+  --glow-color-30: hsl(40deg 80% 80% / 21%);
+  --glow-color-20: hsl(40deg 80% 80% / 14%);
+  --glow-color-10: hsl(40deg 80% 80% / 7%);
+  --gradient-base: linear-gradient(#120f17 0 100%);
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border-radius: var(--border-radius);
+  padding: 1px;
+  background:
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    conic-gradient(
+      from var(--cursor-angle),
+      var(--glow-color-10),
+      var(--glow-color-50),
+      var(--glow-color),
+      var(--glow-color-40),
+      var(--glow-color-10)
+    ) border-box;
+  border: 1px solid transparent;
+  transform: translateZ(0);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: calc(var(--border-radius) - 1px);
+  background:
+    var(--gradient-one),
+    var(--gradient-two),
+    var(--gradient-three),
+    var(--gradient-four),
+    var(--gradient-base);
+  opacity: var(--fill-opacity);
+  pointer-events: none;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--glow-color) 46%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.2),
+    0 0 18px var(--glow-color-20);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.edgeLight {
+  position: absolute;
+  inset: calc(var(--glow-padding) * -0.55);
+  z-index: -1;
+  border-radius: calc(var(--border-radius) + var(--glow-padding));
+  background:
+    conic-gradient(
+      from var(--cursor-angle),
+      transparent 0deg,
+      transparent var(--cone-start),
+      var(--glow-color-20) var(--cone-start),
+      var(--glow-color-60) var(--cone-mid),
+      var(--glow-color-20) var(--cone-end),
+      transparent var(--cone-end),
+      transparent 360deg
+    );
+  filter: blur(calc(var(--glow-padding) * 0.34));
+  opacity: calc((var(--edge-proximity) / 100) * 0.82);
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  border-radius: calc(var(--border-radius) - 2px);
+}
+
+@media (hover: hover) {
+  .card:hover .edgeLight {
+    opacity: calc((var(--edge-proximity) / 100) * 1);
+  }
+}
