@@ -1,6 +1,6 @@
 'use client';
 
-import RotatingText from "@/components/RotatingText";
+import Link from "next/link";
 import HowItWorksSignalWires from "@/components/HowItWorksSignalWires";
 import FirstActionSelector from "@/components/FirstActionSelector";
 import './HowItWorksSignalWires.css';
@@ -116,90 +116,40 @@ export default function HowItWorks() {
           </div>
         </div>
 
-        <div className="mb-10 flex justify-center md:mb-12">
+        <div className="mb-12 flex justify-center md:mb-14">
           <FirstActionSelector />
         </div>
 
-        {/* Desktop Animated Text Strip */}
-        <div className="hidden md:block">
-          <div className="parallax bd-dent-surface rounded-[2rem] border border-white/[0.08] px-4 py-4">
-            <div className="scroller text-white">
-              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
-              <span>Wherever You Go. Someone Will Pay You To Do It.&nbsp;&nbsp;&nbsp;</span>
+        <div className="mx-auto mt-2 max-w-5xl text-center md:mt-4">
+          <div className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.08] bg-[radial-gradient(circle_at_20%_0%,rgba(245,197,24,0.11),transparent_32%),radial-gradient(circle_at_80%_18%,rgba(168,85,247,0.13),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(6,7,14,0.82))] px-5 py-8 shadow-[18px_24px_70px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.08)] md:px-10 md:py-11">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#f5c518]/55 to-transparent" />
+            <p className="mb-4 text-[0.68rem] font-black uppercase tracking-[0.36em] text-white/42">
+              Real dares. Real proof. Real payouts.
+            </p>
+            <h3 className="text-[clamp(2.35rem,7.4vw,5.7rem)] font-black italic uppercase leading-[0.9] tracking-[-0.06em] text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.16)]">
+              Wherever You Go.
+              <span className="mt-2 block bg-gradient-to-r from-[#f5c518] via-[#e879f9] to-[#67e8f9] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.28)]">
+                Someone Will Pay You To Do It.
+              </span>
+            </h3>
+            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/map"
+                className="bd-dent-surface group inline-flex w-full items-center justify-center rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.95),rgba(171,111,0,0.92))] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.16),inset_0_1px_0_rgba(255,255,255,0.36),inset_0_-8px_16px_rgba(77,45,0,0.34)] transition hover:-translate-y-[1px] sm:w-auto"
+              >
+                Browse Active Dares
+              </Link>
+              <Link
+                href="/brands/portal"
+                className="inline-flex w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.045] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-white/86 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-purple-300/30 hover:text-white sm:w-auto"
+              >
+                Run a Venue Activation
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Mobile Bounded Banner */}
-        <div className="mt-4 text-center md:hidden">
-          <div className="bd-dent-surface bd-dent-surface--soft rounded-[1.75rem] border border-white/[0.08] px-4 py-4">
-            <p className="px-2 text-[1.15rem] font-black italic leading-tight tracking-tight text-white">
-              Wherever You Go. Someone Will Pay You To Do It.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 md:mt-12 text-center px-2">
-          <div className="bd-dent-surface bd-dent-surface--soft inline-flex max-w-full flex-wrap justify-center items-baseline gap-x-2 gap-y-1 rounded-full border border-purple-400/35 px-5 py-3 sm:px-8 sm:py-4 md:px-16 md:py-7">
-            <span className="font-black italic uppercase tracking-wide leading-none text-white text-2xl sm:text-3xl md:text-6xl">Real</span>
-            <RotatingText
-              texts={["Dares.", "Crypto.", "Chaos."]}
-              rotationInterval={2200}
-              staggerDuration={0.012}
-              splitBy="characters"
-              activeTextClassNames={["text-[#F5C518]", "text-[#3BA7FF]", "text-[#A855F7]"]}
-              mainClassName="inline-block w-auto min-w-0 font-black italic uppercase tracking-wide leading-none text-left text-2xl sm:text-3xl md:text-6xl"
-              elementLevelClassName="inline-block"
-            />
-          </div>
-          <p className="sr-only">Real dares. Real crypto. Real chaos.</p>
-        </div>
-
       </div>
-
-      <style jsx>{`
-        .parallax {
-          position: relative;
-          overflow: hidden;
-          margin-top: 1rem;
-        }
-
-        .scroller {
-          display: flex;
-          white-space: nowrap;
-          text-align: center;
-          font-family: sans-serif;
-          font-size: 1.75rem;
-          font-weight: bold;
-          font-style: italic;
-          letter-spacing: -0.02em;
-          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
-          animation: marquee 26s linear infinite;
-          will-change: transform;
-        }
-
-        .scroller span {
-          flex-shrink: 0;
-        }
-
-        @media (min-width: 768px) {
-          .scroller {
-            font-size: 5rem;
-            line-height: 5rem;
-          }
-        }
-
-        @keyframes marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-      `}</style>
     </section>
   );
 }

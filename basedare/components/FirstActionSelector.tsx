@@ -12,6 +12,7 @@ type RoleRoute = {
   href: string;
   move: string;
   accent: string;
+  featured?: boolean;
 };
 
 const ROLE_ROUTES: RoleRoute[] = [
@@ -49,7 +50,8 @@ const ROLE_ROUTES: RoleRoute[] = [
     emoji: '🏁',
     href: '/brands/portal',
     move: 'Pick venue • Set spend • Launch',
-    accent: 'border-white/12 bg-white/[0.05] text-white/72',
+    accent: 'border-[#f5c518]/24 bg-[#f5c518]/[0.09] text-[#ffe27a]',
+    featured: true,
   },
 ];
 
@@ -68,11 +70,11 @@ export default function FirstActionSelector() {
         </div>
 
         <div className="mb-6 flex flex-col items-center">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/34">
-            Protocol Routes
+          <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#f5c518]/70">
+            Four Ways In
           </div>
           <h2
-            className="mt-4 font-black italic uppercase tracking-[0.2em] text-lg md:text-xl"
+            className="mt-3 font-black italic uppercase tracking-[0.2em] text-lg md:text-xl"
             style={{
               color: '#c084fc',
               textShadow:
@@ -88,15 +90,29 @@ export default function FirstActionSelector() {
           {ROLE_ROUTES.map((route) => (
             <div
               key={route.id}
-              className="group rounded-[28px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(10,10,18,0.92)_16%,rgba(7,8,15,0.99)_100%)] p-4 shadow-[0_16px_28px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.22)]"
+              className={`group relative overflow-hidden rounded-[28px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(10,10,18,0.92)_16%,rgba(7,8,15,0.99)_100%)] p-4 shadow-[0_16px_28px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.22)] ${
+                route.featured
+                  ? 'border-[#f5c518]/22 ring-1 ring-[#f5c518]/10'
+                  : 'border-white/[0.08]'
+              }`}
             >
+              {route.featured ? (
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#f5c518]/55 to-transparent" />
+              ) : null}
               <div className="flex items-start justify-between gap-3">
                 <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${route.accent}`}>
                   <span aria-hidden="true">{route.emoji}</span>
                   {route.audience}
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  {route.id}
+                <div className="flex items-center gap-2">
+                  {route.featured ? (
+                    <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#ffe27a] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                      Featured
+                    </div>
+                  ) : null}
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    {route.id}
+                  </div>
                 </div>
               </div>
 

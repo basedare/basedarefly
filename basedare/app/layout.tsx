@@ -70,7 +70,7 @@ const alphaLyrae = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL("https://basedare.xyz"),
   title: "BaseDare — Own the Grid",
-  description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+  description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
   applicationName: "BaseDare",
   manifest: "/manifest.webmanifest",
   formatDetection: {
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "BaseDare — Own the Grid",
-    description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+    description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
     url: "https://basedare.xyz",
     siteName: "BaseDare",
     images: [
@@ -97,7 +97,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "BaseDare — Own the Grid",
-    description: "Get paid to complete IRL dares at real venues near you. Real crypto stakes. On-chain proof. Every pin is a legend.",
+    description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
     images: ["/assets/basedarenew.png"],
   },
 };
