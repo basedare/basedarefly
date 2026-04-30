@@ -21,6 +21,7 @@ type BorderGlowProps = {
   animated?: boolean;
   colors?: string[];
   fillOpacity?: number;
+  hoverOnly?: boolean;
 };
 
 function parseHsl(input: string) {
@@ -91,6 +92,7 @@ export default function BorderGlow({
   animated = false,
   colors = ['rgba(192,132,252,0.18)', 'rgba(244,114,182,0.1)', 'rgba(56,189,248,0.12)'],
   fillOpacity = 0.55,
+  hoverOnly = false,
 }: BorderGlowProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -148,7 +150,7 @@ export default function BorderGlow({
     <div
       ref={cardRef}
       onPointerMove={(event) => setPointerVars(event.clientX, event.clientY)}
-      className={cn(styles.card, className)}
+      className={cn(styles.card, hoverOnly && styles.hoverOnly, className)}
       style={style}
     >
       <span className={styles.edgeLight} />

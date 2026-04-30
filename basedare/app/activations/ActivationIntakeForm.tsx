@@ -351,12 +351,32 @@ export default function ActivationIntakeForm() {
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">Activation brief preview</p>
           <p className="mt-2 text-sm font-black leading-6 text-white">{storyBrief.positioningLine}</p>
           <p className="mt-2 text-xs leading-5 text-white/52">{storyBrief.creatorBrief}</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-[18px] border border-cyan-200/[0.1] bg-cyan-300/[0.045] p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/62">Proof logic</p>
+              <p className="mt-2 text-xs leading-5 text-white/54">{storyBrief.proofLogic}</p>
+            </div>
+            <div className="rounded-[18px] border border-yellow-200/[0.1] bg-yellow-300/[0.045] p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-100/66">Repeat trigger</p>
+              <p className="mt-2 text-xs leading-5 text-white/54">{storyBrief.repeatMetric}</p>
+            </div>
+          </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             {storyBrief.missionIdeas.map((mission) => (
               <div key={mission.title} className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] p-3">
                 <p className="text-xs font-black text-white">{mission.title}</p>
                 <p className="mt-2 text-xs leading-5 text-white/50">{mission.detail}</p>
               </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {storyBrief.proofChecklist.slice(0, 4).map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/42"
+              >
+                {item}
+              </span>
             ))}
           </div>
         </div>

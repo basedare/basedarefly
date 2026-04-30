@@ -33,6 +33,9 @@
     ) border-box;
   border: 1px solid transparent;
   transform: translateZ(0);
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
 }
 
 .card::before {
@@ -88,6 +91,63 @@
   transition: opacity 180ms ease;
 }
 
+.hoverOnly {
+  background:
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.045)) border-box;
+}
+
+.hoverOnly::before {
+  opacity: calc(var(--fill-opacity) * 0.28);
+  transition: opacity 180ms ease;
+}
+
+.hoverOnly::after {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.2),
+    0 0 0 transparent;
+  opacity: 0.72;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+}
+
+.hoverOnly .edgeLight {
+  opacity: 0;
+}
+
+.hoverOnly:hover,
+.hoverOnly:focus-within {
+  background:
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    conic-gradient(
+      from var(--cursor-angle),
+      var(--glow-color-10),
+      var(--glow-color-50),
+      var(--glow-color),
+      var(--glow-color-40),
+      var(--glow-color-10)
+    ) border-box;
+}
+
+.hoverOnly:hover::before,
+.hoverOnly:focus-within::before {
+  opacity: var(--fill-opacity);
+}
+
+.hoverOnly:hover::after,
+.hoverOnly:focus-within::after {
+  border-color: color-mix(in srgb, var(--glow-color) 46%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.2),
+    0 0 18px var(--glow-color-20);
+  opacity: 0.86;
+}
+
 .inner {
   position: relative;
   z-index: 1;
@@ -98,5 +158,9 @@
 @media (hover: hover) {
   .card:hover .edgeLight {
     opacity: calc((var(--edge-proximity) / 100) * 1);
+  }
+
+  .hoverOnly:not(:hover):not(:focus-within) .edgeLight {
+    opacity: 0;
   }
 }

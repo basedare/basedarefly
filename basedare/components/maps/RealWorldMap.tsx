@@ -4375,39 +4375,48 @@ export default function RealWorldMap() {
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             {!selectedPlace ? (
               <>
-                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[14rem] rounded-[22px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,11,20,0.92)_24%,rgba(4,5,12,0.97)_100%)] px-4 py-3 shadow-[0_20px_42px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.18)] backdrop-blur md:block">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/38">
-                    Map Legend
-                  </p>
-                  <div className="mt-3 space-y-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="legend-building-mini" aria-hidden="true">
-                        <span className="legend-building-mini-roof" />
-                        <span className="legend-building-mini-body" />
+                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[26px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
+                  <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/42 to-transparent" />
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.26em] text-cyan-100/55">
+                        Signal legend
+                      </p>
+                      <p className="mt-1 text-[10px] font-bold text-white/38">Read the venue layer fast</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.18em] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                      Live grid
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="map-legend-row map-legend-row--activated">
+                      <span className="map-legend-icon-well map-legend-icon-well--activated" aria-hidden="true">
+                        <span className="legend-building-mini" aria-hidden="true">
+                          <span className="legend-building-mini-roof" />
+                          <span className="legend-building-mini-body" />
+                        </span>
                       </span>
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
-                          Activated venue
-                        </p>
-                        <p className="mt-0.5 text-[10px] text-white/42">Paid command layer visible</p>
+                      <div className="min-w-0">
+                        <p className="map-legend-title text-[#f8dd72]">Activated venue</p>
+                        <p className="map-legend-detail">Paid command layer visible</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="legend-live-dot" aria-hidden="true" />
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100">
-                          Live challenge
-                        </p>
-                        <p className="mt-0.5 text-[10px] text-white/42">Open money is moving</p>
+                    <div className="map-legend-row map-legend-row--live">
+                      <span className="map-legend-icon-well map-legend-icon-well--live" aria-hidden="true">
+                        <span className="legend-live-dot" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="map-legend-title text-cyan-100">Live challenge</p>
+                        <p className="map-legend-detail">Open money is moving</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="legend-open-dot" aria-hidden="true" />
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/72">
-                          Open venue
-                        </p>
-                        <p className="mt-0.5 text-[10px] text-white/42">Claim or fund the first move</p>
+                    <div className="map-legend-row map-legend-row--open">
+                      <span className="map-legend-icon-well map-legend-icon-well--open" aria-hidden="true">
+                        <span className="legend-open-dot" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="map-legend-title text-white/78">Open venue</p>
+                        <p className="map-legend-detail">Claim or fund the first move</p>
                       </div>
                     </div>
                   </div>
@@ -7019,6 +7028,95 @@ export default function RealWorldMap() {
           animation: mapLegendSettle 220ms ease-out;
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
+        }
+
+        .map-legend-row {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 0.72rem;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.085);
+          border-radius: 18px;
+          padding: 0.62rem 0.68rem;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 38%, rgba(4, 5, 12, 0.56));
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.07),
+            inset 0 -8px 14px rgba(0, 0, 0, 0.18),
+            0 12px 22px rgba(0, 0, 0, 0.14);
+        }
+
+        .map-legend-row::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.74;
+        }
+
+        .map-legend-row--activated::before {
+          background: radial-gradient(circle at 8% 12%, rgba(245, 197, 24, 0.15), transparent 42%);
+        }
+
+        .map-legend-row--live::before {
+          background: radial-gradient(circle at 8% 12%, rgba(34, 211, 238, 0.16), transparent 42%);
+        }
+
+        .map-legend-row--open::before {
+          background: radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.08), transparent 42%);
+        }
+
+        .map-legend-icon-well {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          height: 2.35rem;
+          width: 2.35rem;
+          flex: 0 0 auto;
+          place-items: center;
+          border-radius: 15px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.18));
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .map-legend-icon-well--activated {
+          border-color: rgba(245, 197, 24, 0.22);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.18),
+            0 0 18px rgba(245, 197, 24, 0.1);
+        }
+
+        .map-legend-icon-well--live {
+          border-color: rgba(34, 211, 238, 0.22);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.18),
+            0 0 18px rgba(34, 211, 238, 0.1);
+        }
+
+        .map-legend-title {
+          position: relative;
+          z-index: 1;
+          font-size: 0.66rem;
+          font-weight: 950;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          line-height: 1.1;
+        }
+
+        .map-legend-detail {
+          position: relative;
+          z-index: 1;
+          margin-top: 0.18rem;
+          font-size: 0.63rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.42);
+          line-height: 1.2;
         }
 
         .legend-building-mini {

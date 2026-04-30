@@ -112,6 +112,7 @@ export default function FirstActionSelector() {
               coneSpread={26}
               backgroundColor="#080914"
               fillOpacity={0.62}
+              hoverOnly
               className="group transition duration-200 hover:-translate-y-[1px]"
             >
               <div className="relative overflow-hidden rounded-[27px] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(10,10,18,0.92)_16%,rgba(7,8,15,0.99)_100%)] p-4 shadow-[0_16px_28px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.22)]">
