@@ -140,7 +140,7 @@ export default function HowItWorks() {
                 Browse Active Dares
               </Link>
               <Link
-                href="/brands/portal"
+                href="/activations"
                 className="inline-flex w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.045] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-white/86 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-purple-300/30 hover:text-white sm:w-auto"
               >
                 Run a Venue Activation

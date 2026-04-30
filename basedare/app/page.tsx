@@ -342,10 +342,19 @@ function HomeContent() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto px-6 relative z-10">
+            <div className="relative z-10 mx-auto mb-6 max-w-3xl px-6 text-center">
+              <div className="inline-flex rounded-full border border-zinc-300/70 bg-white/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur">
+                Start with one move
+              </div>
+              <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-zinc-600">
+                If you are unsure, plan one activation first. If you already have a buyer wallet, open the Brand Portal.
+              </p>
+            </div>
+
+            <div className="grid gap-6 px-6 md:grid-cols-2 xl:grid-cols-3 max-w-7xl mx-auto relative z-10">
               {/* Brand Portal Card - Ferrofluid/Venom Black */}
               <div
-                onClick={() => router.push('/activations')}
+                onClick={() => router.push('/brands/portal')}
                 className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
               >
                 {/* Ferrofluid Border Effect - organic black liquid metal */}
@@ -390,17 +399,77 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <div className="text-4xl mb-4">🏢</div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Grid Activation OS</h2>
+                    <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                      Already operating
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
                     <p className="text-zinc-500 mb-4">
-                      Turn venue or fan budgets into creator missions, QR/check-in signal, owned content, and proof receipts.
+                      The black/white console for registered brands: fund campaigns, see recommended creators, route the best fit, and track proof.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Smart Dares</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">QR Check-ins</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Spark Receipt</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Campaigns</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Recommended Creators</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Proof Tracking</span>
                     </div>
                     <div className="mt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
-                      Launch Spark
+                      Open Brand Portal
+                      <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid Activation OS - public intake / sales path */}
+              <div
+                onClick={() => router.push('/activations')}
+                className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
+              >
+                <div
+                  className="absolute inset-0 rounded-3xl opacity-100 transition-all duration-700 group-hover:opacity-100"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(245,197,24,0.42), rgba(255,255,255,0.74), rgba(10,10,10,0.82), rgba(245,197,24,0.34))',
+                    backgroundSize: '320% 320%',
+                    animation: 'ferrofluidShift 4s ease infinite',
+                  }}
+                />
+                <div
+                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{
+                    background: 'conic-gradient(from 90deg at 50% 50%, transparent 0deg, rgba(245,197,24,0.18) 70deg, transparent 140deg, rgba(255,255,255,0.13) 220deg, transparent 360deg)',
+                    animation: 'spin 7s linear infinite',
+                  }}
+                />
+
+                <div className="relative p-8 rounded-[21px] text-left overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(165deg, #15120a 0%, #070707 42%, #0d0b05 74%, #141006 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 30px 60px -15px rgba(0,0,0,0.62)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity duration-700"
+                    style={{
+                      background: 'radial-gradient(circle at 12% 0%, rgba(245,197,24,0.18), transparent 34%), linear-gradient(125deg, transparent 0%, rgba(255,255,255,0.04) 28%, transparent 58%, rgba(245,197,24,0.08) 100%)',
+                    }}
+                  />
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-200/40 to-transparent" />
+
+                  <div className="relative z-10">
+                    <div className="text-4xl mb-4">⚡</div>
+                    <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
+                      Start here
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Plan Activation</h2>
+                    <p className="text-zinc-400 mb-4">
+                      One guided request: buyer, place, story, proof target, budget. No console setup required.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Story</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Proof</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Budget</span>
+                    </div>
+                    <div className="mt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
+                      Plan Grid Activation
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>
@@ -454,9 +523,12 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <div className="text-4xl mb-4">🕵️</div>
-                    <h2 className="text-2xl font-bold mb-2 text-zinc-900">Shadow Army</h2>
+                    <div className="mb-3 inline-flex rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                      Creator supply
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-zinc-900">Scout Creators</h2>
                     <p className="text-zinc-600 mb-4">
-                      Hunt creators, claim bounty slots, and earn permanent rake on every win.
+                      Build supply only when you need it: scout creators, claim bounty slots, and route credible operators.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       <span className="px-2 py-1 bg-zinc-100 border border-zinc-300/50 text-zinc-700 rounded">Bounty Board</span>

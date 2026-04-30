@@ -396,7 +396,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
                   Create
                 </Link>
                 <Link
-                  href="/brands/portal"
+                  href="/activations"
                   onClick={() => setIsOpen(false)}
                   className="rounded-full border border-purple-300/32 bg-purple-300/14 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-purple-100 transition hover:bg-purple-300/20"
                 >

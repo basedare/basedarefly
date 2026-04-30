@@ -122,7 +122,7 @@ export default function ActivationsPage() {
                   href="/brands/portal"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
-                  Fund a challenge
+                  Open Brand Portal
                 </Link>
               </div>
             </div>

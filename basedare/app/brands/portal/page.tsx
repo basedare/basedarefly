@@ -2372,15 +2372,15 @@ export default function BrandPortalPage() {
                 {formData.type === 'PLACE' ? (
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
                     <div>
-                      <div className="text-sm font-semibold text-zinc-900">Recommended creators</div>
+                      <div className="text-sm font-semibold text-zinc-900">Creator speed dial</div>
                       <div className="mt-1 hidden text-sm text-zinc-600 md:block">
-                        We rank creators by venue fit, proof history, and audience signal. Launching will assign the creator you pick here.
+                        Best-fit creators for this venue, ranked by venue fit, proof history, and audience signal. Pick one instead of browsing.
                       </div>
                     </div>
 
                     {!selectedPlace ? (
                       <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-4 text-sm text-zinc-500">
-                        Choose a target venue first to see the best-fit creators.
+                        Choose a target venue first and BaseDare will surface the best-fit creators here.
                       </div>
                     ) : recommendedCreatorsLoading ? (
                       <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-500">
