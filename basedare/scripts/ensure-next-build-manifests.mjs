@@ -80,8 +80,12 @@ async function ensureVercelParentNextAlias() {
   }
 
   const relativeTarget = path.relative(path.dirname(parentNextDir), nextDir);
-  await symlink(relativeTarget, parentNextDir, 'dir');
-  console.log(`[postbuild] Linked parent .next to ${relativeTarget} for Vercel output collection`);
+  try {
+    await symlink(relativeTarget, parentNextDir, 'dir');
+    console.log(`[postbuild] Linked parent .next to ${relativeTarget} for Vercel output collection`);
+  } catch (error) {
+    console.warn('[postbuild] Could not prepare parent .next alias for Vercel output collection', error);
+  }
 }
 
 async function rewriteNestedVercelTraceManifests() {
