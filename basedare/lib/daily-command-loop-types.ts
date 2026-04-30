@@ -146,6 +146,10 @@ export type DailyCommandLoopReport = {
     openCampaignSlots: number;
     recentDares: number;
     recentVenueLeads: number;
+    recentActivationIntakes: number;
+    activeActivationIntakes: number;
+    overdueActivationIntakes: number;
+    readyActivationIntakes: number;
     recentPlaceTags: number;
     recentCheckIns: number;
     venueScoutRoutes: number;

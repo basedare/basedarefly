@@ -15,6 +15,7 @@ import type {
 } from '@/lib/daily-command-loop-types';
 
 const ACTIVE_VENUE_LEAD_STATUSES = ['NEW', 'FOLLOWING_UP', 'WAITING'];
+const ACTIVE_ACTIVATION_INTAKE_STATUSES = ['NEW', 'QUALIFIED', 'NEEDS_INFO', 'READY_TO_INVOICE'];
 const ACTIVE_CAMPAIGN_STATUSES = ['FUNDING', 'RECRUITING', 'LIVE', 'ACTIVE', 'VERIFYING'];
 const OPEN_CAMPAIGN_SLOT_STATUSES = ['OPEN', 'CLAIMED', 'SUBMITTED'];
 const COMPLETED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
@@ -40,6 +41,22 @@ function riskLabel(riskTier: DailyCommandRiskTier) {
   if (riskTier === 'human') return 'Human-only';
   if (riskTier === 'review') return 'Needs review';
   return 'Auto-safe';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function normalizeActivationIntakeStatus(value: string | null | undefined) {
+  return ACTIVE_ACTIVATION_INTAKE_STATUSES.includes(value || '') ? value || 'NEW' : 'NEW';
 }
 
 function adminHref(tab: string, params: Record<string, string | null | undefined> = {}) {
@@ -160,6 +177,72 @@ function buildVenueLeadPriority(input: {
   };
 }
 
+function buildActivationIntakePriority(input: {
+  status: string;
+  amount: number | null;
+  assignedCreator: string;
+  assignedVenue: string;
+  nextActionAt: Date | null;
+  occurredAt: Date;
+}) {
+  let score = 0;
+  const reasons: string[] = [];
+  const staleHours = hoursSince(input.occurredAt);
+  const isOverdue = Boolean(input.nextActionAt && input.nextActionAt.getTime() < Date.now());
+
+  if (input.status === 'READY_TO_INVOICE') {
+    score += 45;
+    reasons.push('ready-to-invoice');
+  } else if (input.status === 'QUALIFIED') {
+    score += 34;
+    reasons.push('qualified');
+  } else if (input.status === 'NEW') {
+    score += 26;
+    reasons.push('new buyer intent');
+  } else if (input.status === 'NEEDS_INFO') {
+    score += 18;
+    reasons.push('needs-info');
+  }
+
+  if (isOverdue) {
+    score += 32;
+    reasons.push('overdue');
+  }
+
+  if (!input.assignedVenue) {
+    score += 12;
+    reasons.push('venue unassigned');
+  }
+
+  if (!input.assignedCreator) {
+    score += 10;
+    reasons.push('creator unassigned');
+  }
+
+  if ((input.amount ?? 0) >= 5000) {
+    score += 18;
+    reasons.push('high-budget lane');
+  } else if ((input.amount ?? 0) >= 1500) {
+    score += 10;
+    reasons.push('paid pilot lane');
+  }
+
+  if (staleHours >= 48) {
+    score += 16;
+    reasons.push('stale');
+  } else if (staleHours >= 24) {
+    score += 9;
+    reasons.push('aging');
+  }
+
+  return {
+    score,
+    reasons,
+    staleHours,
+    isOverdue,
+  };
+}
+
 function buildMetric(
   id: string,
   label: string,
@@ -199,6 +282,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     recentDares,
     recentCompletedDares,
     recentVenueLeads,
+    activationIntakes,
+    recentActivationIntakes,
     recentPlaceTags,
     recentCheckIns,
     venueScoutReport,
@@ -358,6 +443,30 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       },
     }),
     prisma.venueReportLead.count({ where: { createdAt: { gte: periodStart } } }),
+    prisma.founderEvent.findMany({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: { in: ACTIVE_ACTIVATION_INTAKE_STATUSES },
+      },
+      orderBy: [{ occurredAt: 'desc' }],
+      take: 80,
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        status: true,
+        actor: true,
+        metadataJson: true,
+        occurredAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        occurredAt: { gte: periodStart },
+      },
+    }),
     prisma.placeTag.count({ where: { submittedAt: { gte: periodStart } } }),
     prisma.venueCheckIn.count({ where: { scannedAt: { gte: periodStart } } }),
     buildVenueScoutCommandReport(),
@@ -402,6 +511,55 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
   const sponsorLeads = venueLeads.filter((lead) => lead.audience === 'sponsor').length;
   const venueAudienceLeads = venueLeads.filter((lead) => lead.audience === 'venue').length;
   const topLead = leadPriorities[0] ?? null;
+  const activationIntakeSignals = activationIntakes
+    .map((intake) => {
+      const metadata = asRecord(intake.metadataJson);
+      const operator = asRecord(metadata.operator);
+      const status = normalizeActivationIntakeStatus(intake.status);
+      const company = stringValue(metadata.company);
+      const venue = stringValue(metadata.venue);
+      const city = stringValue(metadata.city);
+      const assignedVenue = stringValue(operator.assignedVenue) || venue;
+      const assignedCreator = stringValue(operator.assignedCreator);
+      const nextActionAtRaw = stringValue(operator.nextActionAt);
+      const nextActionAtCandidate = nextActionAtRaw ? new Date(nextActionAtRaw) : null;
+      const nextActionAt =
+        nextActionAtCandidate && !Number.isNaN(nextActionAtCandidate.getTime()) ? nextActionAtCandidate : null;
+      const priority = buildActivationIntakePriority({
+        status,
+        amount: intake.amount,
+        assignedCreator,
+        assignedVenue,
+        nextActionAt,
+        occurredAt: intake.occurredAt,
+      });
+
+      return {
+        id: intake.id,
+        title: intake.title,
+        company,
+        venue,
+        assignedVenue,
+        assignedCreator,
+        city,
+        status,
+        amount: intake.amount,
+        actor: intake.actor,
+        occurredAt: intake.occurredAt,
+        nextActionAt,
+        priority,
+      };
+    })
+    .sort((left, right) => {
+      if (right.priority.score !== left.priority.score) return right.priority.score - left.priority.score;
+      return left.occurredAt.getTime() - right.occurredAt.getTime();
+    });
+  const activeActivationIntakes = activationIntakeSignals.length;
+  const overdueActivationIntakes = activationIntakeSignals.filter((item) => item.priority.isOverdue).length;
+  const readyActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'READY_TO_INVOICE').length;
+  const needsInfoActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'NEEDS_INFO').length;
+  const newActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'NEW').length;
+  const topActivationIntake = activationIntakeSignals[0] ?? null;
   const topScoutRoute = venueScoutReport.routeClusters[0] ?? null;
   const topScoutLead = venueScoutReport.leads[0] ?? null;
   const topSeedCandidate = venueScoutReport.seedCandidates[0] ?? null;
@@ -501,6 +659,42 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           plural(moderationReady.length, 'ready proof'),
           `${campaignBackedReviews} campaign-backed`,
           `${oldestProofHours}h oldest proof`,
+        ],
+      })
+    );
+  }
+
+  if (activeActivationIntakes > 0) {
+    commands.push(
+      command({
+        id: 'activation-intake-conversion',
+        title: 'Convert paid activation intent into a buyer reply',
+        workstream: 'growth',
+        riskTier: 'review',
+        priority:
+          104 +
+          readyActivationIntakes * 9 +
+          overdueActivationIntakes * 8 +
+          newActivationIntakes * 4 +
+          Math.min(20, Math.round((topActivationIntake?.priority.score ?? 0) / 3)),
+        why: 'Paid activation intakes are warmer than cold scouting. The fastest revenue move is turning the top buyer signal into a Spark Route, invoice memo, or clarifying reply.',
+        nextAction: topActivationIntake
+          ? topActivationIntake.status === 'READY_TO_INVOICE'
+            ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the invoice memo.`
+            : topActivationIntake.status === 'NEEDS_INFO'
+              ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the clarifying reply.`
+              : !topActivationIntake.assignedVenue || !topActivationIntake.assignedCreator
+                ? `Assign venue and creator route for ${topActivationIntake.company || topActivationIntake.venue || 'top intake'}, then copy the Spark Route packet.`
+                : `Copy the Spark Route packet for ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and move it toward invoice.`
+          : 'Open the activation intake queue and work the highest-priority buyer signal.',
+        href: topActivationIntake
+          ? `/admin/activation-intakes?leadId=${encodeURIComponent(topActivationIntake.id)}`
+          : '/admin/activation-intakes',
+        evidence: [
+          plural(activeActivationIntakes, 'active intake'),
+          `${readyActivationIntakes} ready invoice`,
+          `${overdueActivationIntakes} overdue`,
+          topActivationIntake ? `Top: ${topActivationIntake.priority.reasons.slice(0, 2).join(', ') || 'buyer intent'}` : 'Queue ready',
         ],
       })
     );
@@ -732,6 +926,22 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           }),
         })
       : null,
+    activeActivationIntakes > 0
+      ? reviewItem({
+          id: 'activation-intakes',
+          title: 'Paid activation intake replies',
+          count: activeActivationIntakes,
+          owner: 'Ops',
+          riskTier: readyActivationIntakes > 0 ? 'human' : 'review',
+          nextAction:
+            readyActivationIntakes > 0
+              ? 'Send invoice memo for ready buyers, then mark launched only after scope and payment are confirmed.'
+              : 'Approve the top Spark Route packet or clarifying reply before sending externally.',
+          href: topActivationIntake
+            ? `/admin/activation-intakes?leadId=${encodeURIComponent(topActivationIntake.id)}`
+            : '/admin/activation-intakes',
+        })
+      : null,
     pendingClaims + pendingVenueClaims > 0
       ? reviewItem({
           id: 'claim-gates',
@@ -805,6 +1015,19 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       toneForQueue(overdueVenueLeads + unownedVenueLeads, 1, 6)
     ),
     buildMetric(
+      'activation-intakes',
+      'Paid intakes',
+      activeActivationIntakes,
+      `${readyActivationIntakes} ready invoice, ${overdueActivationIntakes} overdue, ${needsInfoActivationIntakes} needs info, ${newActivationIntakes} new`,
+      readyActivationIntakes > 0
+        ? 'active'
+        : overdueActivationIntakes > 0
+          ? 'warning'
+          : activeActivationIntakes > 0
+            ? 'active'
+            : 'neutral'
+    ),
+    buildMetric(
       'venue-scout',
       'Venue scout',
       venueScoutReport.summary.seedCandidates,
@@ -866,6 +1089,12 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
               detail: `$${founderScoreboard.money.liveGmv.toLocaleString()} live GMV is waiting on proof, review, or payout before it becomes settled GMV.`,
               tone: 'warning' as DailyCommandTone,
             }
+        : readyActivationIntakes + overdueActivationIntakes > 0
+          ? {
+              title: 'Paid activation intent needs a same-day reply',
+              detail: `${plural(activeActivationIntakes, 'activation intake')} active, with ${readyActivationIntakes} ready to invoice and ${overdueActivationIntakes} overdue. Buyer intent should outrank cold scouting today.`,
+              tone: overdueActivationIntakes > 0 ? 'warning' as DailyCommandTone : 'active' as DailyCommandTone,
+            }
         : overdueVenueLeads + unownedVenueLeads > 0
           ? {
               title: 'Follow-up discipline is the highest ROI',
@@ -896,6 +1125,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       : 'Founder Scoreboard shows no settled GMV in the current 7-day window; today should identify the bottleneck before increasing external promises.',
     recentVenueLeads > 0
       ? `${plural(recentVenueLeads, 'venue/sponsor lead')} arrived in the last 24h, so the loop should prioritize conversion before new sourcing.`
+      : recentActivationIntakes > 0
+        ? `${plural(recentActivationIntakes, 'paid activation intake')} arrived in the last 24h; package the buyer route before opening colder loops.`
       : venueScoutReport.summary.seedCandidates > 0
         ? `${plural(venueScoutReport.summary.seedCandidates, 'warm venue')} is ready to convert from scout seed into a tracked lead.`
         : 'No new venue lead arrived in the last 24h; today needs either targeted scouting or a stronger inbound prompt.',
@@ -920,6 +1151,11 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
     overdueVenueLeads > 0
       ? `${plural(overdueVenueLeads, 'lead')} overdue; repeated missed follow-up weakens the memory loop.`
       : null,
+    overdueActivationIntakes > 0
+      ? `${plural(overdueActivationIntakes, 'paid activation intake')} overdue; this is the highest-risk place to lose revenue through slow response.`
+      : readyActivationIntakes > 0
+        ? `${plural(readyActivationIntakes, 'activation intake')} ready to invoice; keep the buyer path human-approved before launch.`
+        : null,
     pendingCreatorTags + pendingPlaceTags > 8
       ? 'Tag queues are large enough to pollute identity/place trust if left stale.'
       : null,
@@ -1012,6 +1248,9 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       activeVenueLeads: venueLeads.length,
       overdueVenueLeads,
       unownedVenueLeads,
+      activeActivationIntakes,
+      overdueActivationIntakes,
+      readyActivationIntakes,
       pendingClaims,
       pendingVenueClaims,
       pendingCreatorTags,
@@ -1022,6 +1261,7 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       openCampaignSlots,
       recentDares,
       recentVenueLeads,
+      recentActivationIntakes,
       recentPlaceTags,
       recentCheckIns,
       venueScoutRoutes: venueScoutReport.summary.activeRoutes,
