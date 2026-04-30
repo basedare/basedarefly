@@ -9,6 +9,7 @@ const STORAGE_KEY = 'basedare_sound_enabled';
 type FeedbackType =
   | 'click'
   | 'hover'
+  | 'ignite'
   | 'success'
   | 'error'
   | 'fund'
@@ -20,6 +21,7 @@ type FeedbackType =
 const FEEDBACK_MAP: Record<FeedbackType, { sound: SoundEffect; haptic: HapticPattern }> = {
   click: { sound: 'click', haptic: 'tap' },
   hover: { sound: 'hover', haptic: 'tap' },
+  ignite: { sound: 'fund', haptic: 'launch' },
   success: { sound: 'success', haptic: 'success' },
   error: { sound: 'error', haptic: 'error' },
   fund: { sound: 'fund', haptic: 'heavy' },

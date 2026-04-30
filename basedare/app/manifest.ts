@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "BaseDare",
     short_name: "BaseDare",
     description: "Own the grid. Discover real IRL dares, live venues, and on-chain proof.",
@@ -57,6 +58,12 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Dashboard",
         description: "Open your command base",
         url: "/dashboard",
+      },
+      {
+        name: "Action Center",
+        short_name: "Actions",
+        description: "Open alerts, Signal Room, and activation routes",
+        url: "/action-center",
       },
     ],
   };

@@ -38,13 +38,15 @@ export default function InitProtocolButton({
   type = 'button',
 }: InitProtocolButtonProps) {
   const { ignitionActive, triggerIgnition } = useIgnition();
-  const { trigger } = useFeedback();
+  const { trigger, sound } = useFeedback();
   const isActive = !disabled && (active ?? ignitionActive);
   const liquidRadius = height / 2;
 
   const handleAction = () => {
     if (disabled) return;
-    trigger('fund');
+    trigger('ignite');
+    window.setTimeout(() => sound('whoosh'), 90);
+    window.setTimeout(() => sound('pop'), 310);
     triggerIgnition();
     if (onClick) onClick();
   };
@@ -53,7 +55,7 @@ export default function InitProtocolButton({
     return (
       <div
         className={cn(
-          'relative group overflow-hidden p-[1.5px] transition-all duration-500',
+          'relative group overflow-visible p-[1.5px] transition-all duration-500',
           disabled && 'opacity-60 saturate-50',
           className
         )}
@@ -68,6 +70,19 @@ export default function InitProtocolButton({
           )}
           aria-hidden="true"
         />
+
+        <AnimatePresence>
+          {isActive && (
+            <motion.span
+              initial={{ scale: 0.86, opacity: 0.72 }}
+              animate={{ scale: 2.4, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.78, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-12px] rounded-full border border-[#f5c518]/55 shadow-[0_0_34px_rgba(245,197,24,0.35)]"
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
 
         <motion.button
           whileTap={{ scale: disabled ? 1 : 0.985 }}
@@ -130,32 +145,56 @@ export default function InitProtocolButton({
   }
 
   return (
-    <SquircleButton
-      tone="yellow"
-      label={isActive ? activeLabel : idleLabel}
-      fullWidth
-      height={height}
-      active={isActive}
-      stableHover={stableHover}
-      disabled={disabled}
-      onClick={handleAction}
-      type={type}
-      className={cn(disabled && 'saturate-50', className)}
-      buttonClassName={buttonClassName}
-    >
-      {isActive ? (
-        activeContent ?? (
+    <div className={cn('relative overflow-visible', disabled && 'saturate-50', className)}>
+      <SquircleButton
+        tone="yellow"
+        label={isActive ? activeLabel : idleLabel}
+        fullWidth
+        height={height}
+        active={isActive}
+        stableHover={stableHover}
+        disabled={disabled}
+        onClick={handleAction}
+        type={type}
+        className="w-full"
+        buttonClassName={buttonClassName}
+      >
+        {isActive ? (
+          activeContent ?? (
+            <span className="relative z-10 font-black uppercase tracking-[0.08em] text-[0.95rem] text-black/82">
+              {activeLabel}
+            </span>
+          )
+        ) : children ? (
+          <div className="relative z-10">{children}</div>
+        ) : (
           <span className="relative z-10 font-black uppercase tracking-[0.08em] text-[0.95rem] text-black/82">
-            {activeLabel}
+            {idleLabel}
           </span>
-        )
-      ) : children ? (
-        <div className="relative z-10">{children}</div>
-      ) : (
-        <span className="relative z-10 font-black uppercase tracking-[0.08em] text-[0.95rem] text-black/82">
-          {idleLabel}
-        </span>
-      )}
-    </SquircleButton>
+        )}
+      </SquircleButton>
+      <AnimatePresence>
+        {isActive && (
+          <>
+            <motion.span
+              initial={{ scale: 0.7, opacity: 0.76 }}
+              animate={{ scale: 2.1, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.72, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-8px] rounded-full border border-[#f5c518]/50 shadow-[0_0_26px_rgba(245,197,24,0.35)]"
+              aria-hidden="true"
+            />
+            <motion.span
+              initial={{ scale: 0.82, opacity: 0.44 }}
+              animate={{ scale: 2.85, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.92, delay: 0.08, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-14px] rounded-full border border-[#f8dd72]/35"
+              aria-hidden="true"
+            />
+          </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

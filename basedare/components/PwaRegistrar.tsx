@@ -10,7 +10,11 @@ export default function PwaRegistrar() {
 
     const register = async () => {
       try {
-        await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
       } catch (error) {
         console.error('[PWA] Service worker registration failed:', error);
       }

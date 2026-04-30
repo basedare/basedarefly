@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/toaster";
 import MobileLightningFlash from "@/components/MobileLightningFlash";
 import PwaRegistrar from "@/components/PwaRegistrar";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
+import MobileIgnitionField from "@/components/MobileIgnitionField";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -130,7 +131,8 @@ export default function RootLayout({
           <Providers>
             <ViewProvider>
               <IgnitionProvider>
-                <div className="relative z-10 flex min-h-screen flex-col">
+                <MobileIgnitionField />
+                <div className="bd-app-shell relative z-10 flex min-h-screen flex-col">
                   <Navbar />
                   <main className="pt-24">
                     {children}

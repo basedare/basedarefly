@@ -3,7 +3,7 @@
  * Uses Web Vibration API (mobile only)
  */
 
-export type HapticPattern = 'tap' | 'success' | 'error' | 'warning' | 'heavy' | 'heartbeat';
+export type HapticPattern = 'tap' | 'success' | 'error' | 'warning' | 'heavy' | 'heartbeat' | 'launch' | 'spark';
 
 const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
   tap: 10,
@@ -12,6 +12,8 @@ const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
   warning: [30, 20, 30],
   heavy: 50,
   heartbeat: [100, 100, 100, 100, 100, 300, 100, 100, 100, 100, 100],
+  launch: [16, 28, 18, 46, 26],
+  spark: [8, 18, 8],
 };
 
 /**
