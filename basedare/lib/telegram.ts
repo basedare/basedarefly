@@ -592,6 +592,9 @@ export async function alertActivationIntake(data: {
   packageId?: string | null;
   website?: string | null;
   notes?: string | null;
+  routedCreator?: string | null;
+  routedVenueSlug?: string | null;
+  routedSource?: string | null;
   brandMemory?: ActivationBrandMemoryInput | null;
   activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
@@ -623,6 +626,8 @@ export async function alertActivationIntake(data: {
     `Timeline: ${escapeHtml(timelineLabels[data.timeline] || data.timeline)} · Goal: ${escapeHtml(goalLabels[data.goal] || data.goal)}`,
     data.packageId ? `Package: ${escapeHtml(data.packageId)}` : null,
     data.website ? `Website: ${escapeHtml(data.website)}` : null,
+    data.routedSource ? `Source: ${escapeHtml(data.routedSource)}` : null,
+    data.routedCreator ? `Creator route: ${escapeHtml(data.routedCreator)}` : null,
   ].filter(Boolean);
   const notes = compactText(data.notes, 260);
   const brandMemory = data.brandMemory;
@@ -650,7 +655,37 @@ ${activationBrief ? `\n<b>Activation Brief</b>\n${escapeHtml(compactText(activat
 ${missionPreview ? `\n${missionPreview}` : ''}
 Lead: <code>${escapeHtml(data.leadId)}</code>
 
-${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.leadId)}`), 'Open intake queue')} · ${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')} · ${htmlLink(appUrl('/brands/portal'), 'Brand portal')}
+${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.leadId)}`), 'Open intake queue')} · ${data.routedVenueSlug ? `${htmlLink(appUrl(`/venues/${encodeURIComponent(data.routedVenueSlug)}`), 'Open venue')} · ` : ''}${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')} · ${htmlLink(appUrl('/brands/portal'), 'Brand portal')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertActivationIntakeStatusUpdate(data: {
+  leadId: string;
+  company: string;
+  status: string;
+  assignedVenue?: string | null;
+  assignedCreator?: string | null;
+  operatorNote?: string | null;
+  updatedBy?: string | null;
+}): Promise<boolean> {
+  const routeLines = [
+    data.assignedVenue ? `Venue: ${escapeHtml(data.assignedVenue)}` : null,
+    data.assignedCreator ? `Creator: ${escapeHtml(data.assignedCreator)}` : null,
+    data.operatorNote ? `Note: ${escapeHtml(compactText(data.operatorNote, 220))}` : null,
+    data.updatedBy ? `By: <code>${escapeHtml(data.updatedBy)}</code>` : null,
+  ].filter(Boolean);
+
+  const message = `
+✅ <b>ACTIVATION INTAKE UPDATED</b>
+
+<b>${escapeHtml(data.company || 'Activation lead')}</b>
+Status: <b>${escapeHtml(data.status)}</b>
+Lead: <code>${escapeHtml(data.leadId)}</code>
+${routeLines.length ? `\n${routeLines.join('\n')}` : ''}
+
+${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.leadId)}`), 'Open intake queue')} · ${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')}
 `.trim();
 
   return sendMessage(message);

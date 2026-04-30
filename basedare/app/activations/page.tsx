@@ -86,8 +86,14 @@ type ActivationsPageProps = {
     streamer?: string;
     venue?: string;
     venueName?: string;
+    venueId?: string;
+    venueSlug?: string;
     city?: string;
     source?: string;
+    budgetRange?: string;
+    packageId?: string;
+    goal?: string;
+    buyerType?: string;
   }>;
 };
 
@@ -95,6 +101,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const resolvedSearchParams = await searchParams;
   const routedCreator = resolvedSearchParams.creator || resolvedSearchParams.streamer || null;
   const routedVenue = resolvedSearchParams.venueName || resolvedSearchParams.venue || null;
+  const routedVenueId = resolvedSearchParams.venueId || null;
+  const routedVenueSlug = resolvedSearchParams.venueSlug || null;
   const routedCity = resolvedSearchParams.city || null;
   const routedSource = resolvedSearchParams.source || null;
 
@@ -309,8 +317,14 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             <ActivationIntakeForm
               routedCreator={routedCreator}
               routedVenue={routedVenue}
+              routedVenueId={routedVenueId}
+              routedVenueSlug={routedVenueSlug}
               routedCity={routedCity}
               routedSource={routedSource}
+              routedBudgetRange={resolvedSearchParams.budgetRange || null}
+              routedPackageId={resolvedSearchParams.packageId || null}
+              routedGoal={resolvedSearchParams.goal || null}
+              routedBuyerType={resolvedSearchParams.buyerType || null}
             />
           </div>
         </section>

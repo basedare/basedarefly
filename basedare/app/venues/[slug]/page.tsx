@@ -8,7 +8,7 @@ import { getVenueDetailBySlug } from '@/lib/venues';
 import {
   buildActivationReplayComposerHref,
   buildRepeatActivationComposerHref,
-  buildVenueActivationCreateHref,
+  buildVenueActivationIntakeHref,
   buildVenueChallengeCreateHref,
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
@@ -239,11 +239,16 @@ export default async function VenueDetailPage(
     venueName: venue.name,
     payout: 60,
   });
-  const activateVenueHref = buildVenueActivationCreateHref({
+  const activateVenueHref = buildVenueActivationIntakeHref({
     venueId: venue.id,
     venueSlug: venue.slug,
     venueName: venue.name,
+    city: venue.city,
     payout: 120,
+    goal: 'foot_traffic',
+    buyerType: 'venue',
+    packageId: 'pilot-drop',
+    source: 'venue',
   });
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
   const creatorContribution = venue.creatorContribution;

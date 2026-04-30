@@ -10,7 +10,7 @@ import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { NETWORK_CONFIG } from '@/lib/contracts';
-import { buildVenueActivationCreateHref } from '@/lib/venue-launch';
+import { buildVenueActivationIntakeHref } from '@/lib/venue-launch';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -391,15 +391,25 @@ function formatVenueRadarLocation(venue: Pick<BrandVenueRadarItem, 'city' | 'cou
 
 function buildBrandPortalActivationHref(venue?: BrandVenueRadarItem | null, creatorTag?: string | null) {
   if (!venue) {
-    return '/create?mode=venue-activation&source=brand-portal&title=Launch+a+paid+venue+activation&amount=120';
+    return buildVenueActivationIntakeHref({
+      source: 'brand-portal',
+      buyerType: 'venue',
+      goal: 'foot_traffic',
+      packageId: 'pilot-drop',
+      payout: 120,
+    });
   }
 
-  return buildVenueActivationCreateHref({
+  return buildVenueActivationIntakeHref({
     venueId: venue.id,
     venueSlug: venue.slug,
     venueName: venue.name,
+    city: venue.city,
     payout: 120,
     creatorTag,
+    goal: 'foot_traffic',
+    buyerType: 'venue',
+    packageId: 'pilot-drop',
     source: 'brand-portal',
   });
 }

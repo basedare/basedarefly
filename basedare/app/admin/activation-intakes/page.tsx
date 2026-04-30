@@ -49,6 +49,14 @@ type ActivationIntake = {
   packageId: string;
   website: string;
   notes: string;
+  routeContext: {
+    source: string;
+    creator: string;
+    venueId: string;
+    venueSlug: string;
+    venueHref: string | null;
+    mapHref: string | null;
+  };
   amount: number | null;
   ageHours: number;
   occurredAt: string;
@@ -677,6 +685,37 @@ export default function ActivationIntakesPage() {
                             </div>
                           ))}
                         </div>
+
+                        {(intake.routeContext.source || intake.routeContext.creator || intake.routeContext.venueHref || intake.routeContext.mapHref) ? (
+                          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200/12 bg-cyan-300/[0.045] p-3">
+                            {intake.routeContext.source ? (
+                              <span className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
+                                Source: {intake.routeContext.source}
+                              </span>
+                            ) : null}
+                            {intake.routeContext.creator ? (
+                              <span className="rounded-full border border-fuchsia-200/14 bg-fuchsia-300/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100/72">
+                                Routed: {intake.routeContext.creator}
+                              </span>
+                            ) : null}
+                            {intake.routeContext.venueHref ? (
+                              <Link
+                                href={intake.routeContext.venueHref}
+                                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                              >
+                                Open venue
+                              </Link>
+                            ) : null}
+                            {intake.routeContext.mapHref ? (
+                              <Link
+                                href={intake.routeContext.mapHref}
+                                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                              >
+                                Open map pin
+                              </Link>
+                            ) : null}
+                          </div>
+                        ) : null}
 
                         {intake.missionIdeas.length > 0 && (
                           <div className="mt-5 rounded-[1.5rem] border border-yellow-200/12 bg-yellow-300/[0.05] p-4">

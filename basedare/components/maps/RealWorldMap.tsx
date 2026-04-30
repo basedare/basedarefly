@@ -35,7 +35,7 @@ import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
-import { buildVenueChallengeCreateHref } from '@/lib/venue-launch';
+import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import SquircleLink from '@/components/ui/SquircleLink';
@@ -1540,18 +1540,6 @@ function getVenueActivationActionCopy(commandCenter: VenueCommandCenter) {
     label: 'Activate venue',
     detail: 'Make this pin visibly sponsored',
   };
-}
-
-function getVenueActivationHref(venueSlug?: string | null) {
-  if (!venueSlug) return '/brands/portal';
-
-  const params = new URLSearchParams({
-    venue: venueSlug,
-    compose: '1',
-    source: 'map',
-  });
-
-  return `/brands/portal?${params.toString()}`;
 }
 
 function formatMapUsd(amount: number) {
@@ -3411,7 +3399,20 @@ export default function RealWorldMap() {
   const selectedActivationActionCopy = selectedCommandCenter
     ? getVenueActivationActionCopy(selectedCommandCenter)
     : null;
-  const selectedActivationHref = selectedCommandCenter ? getVenueActivationHref(selectedPlace?.slug) : null;
+  const selectedActivationHref =
+    selectedCommandCenter && selectedPlace?.slug
+      ? buildVenueActivationIntakeHref({
+          venueId: selectedPlace.placeId,
+          venueSlug: selectedPlace.slug,
+          venueName: selectedPlace.name,
+          city: selectedPlace.city,
+          payout: 120,
+          buyerType: 'venue',
+          goal: 'foot_traffic',
+          packageId: 'pilot-drop',
+          source: 'map',
+        })
+      : null;
   const selectedVenueHref = selectedPlace?.slug
     ? `/venues/${selectedPlace.slug}${
         isCreatorSource

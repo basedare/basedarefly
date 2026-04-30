@@ -6,6 +6,7 @@ import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-au
 import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { prisma } from '@/lib/prisma';
+import { alertActivationIntakeStatusUpdate } from '@/lib/telegram';
 
 const INTAKE_STATUSES = [
   'NEW',
@@ -627,6 +628,10 @@ function mapIntakeEvent(event: {
   const packageId = stringValue(metadata.packageId);
   const website = stringValue(metadata.website);
   const notes = stringValue(metadata.notes);
+  const routedCreator = stringValue(metadata.routedCreator);
+  const routedVenueId = stringValue(metadata.routedVenueId);
+  const routedVenueSlug = stringValue(metadata.routedVenueSlug);
+  const routedSource = stringValue(metadata.routedSource);
   const assignedCreator = stringValue(operator.assignedCreator);
   const assignedVenue = stringValue(operator.assignedVenue) || venue;
   const operatorNote = stringValue(operator.operatorNote);
@@ -653,6 +658,14 @@ function mapIntakeEvent(event: {
   const positioningLine = stringValue(activationBrief.positioningLine);
   const proofLogic = stringValue(activationBrief.proofLogic);
   const repeatMetric = stringValue(activationBrief.repeatMetric);
+  const routeContext = {
+    source: routedSource,
+    creator: routedCreator,
+    venueId: routedVenueId,
+    venueSlug: routedVenueSlug,
+    venueHref: routedVenueSlug ? `/venues/${routedVenueSlug}` : null,
+    mapHref: routedVenueSlug ? `/map?place=${encodeURIComponent(routedVenueSlug)}` : null,
+  };
   const creatorRecommendations = buildCreatorRecommendations({
     candidates,
     id: event.id,
@@ -715,6 +728,7 @@ function mapIntakeEvent(event: {
     packageId,
     website,
     notes,
+    routeContext,
     amount,
     ageHours,
     occurredAt: event.occurredAt.toISOString(),
@@ -901,10 +915,25 @@ export async function PUT(request: NextRequest) {
     });
 
     const creatorCandidates = await fetchCreatorCandidates();
+    const mappedIntake = mapIntakeEvent(updated, creatorCandidates);
+
+    if (input.status && input.status !== event.status) {
+      void alertActivationIntakeStatusUpdate({
+        leadId: mappedIntake.id,
+        company: mappedIntake.company,
+        status: mappedIntake.statusLabel,
+        assignedVenue: mappedIntake.assignedVenue,
+        assignedCreator: mappedIntake.assignedCreator,
+        operatorNote: mappedIntake.operatorNote,
+        updatedBy: auth.walletAddress,
+      }).catch((error) => {
+        console.error('[ADMIN_ACTIVATION_INTAKES] Status Telegram alert failed:', error);
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      data: mapIntakeEvent(updated, creatorCandidates),
+      data: mappedIntake,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

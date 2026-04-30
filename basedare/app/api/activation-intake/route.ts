@@ -44,6 +44,10 @@ const ActivationIntakeSchema = z.object({
   website: z.string().max(240).optional().default(''),
   notes: z.string().max(1200).optional().default(''),
   companyWebsite: z.string().max(240).optional().default(''),
+  routedCreator: z.string().max(120).optional().default(''),
+  routedVenueId: z.string().max(120).optional().default(''),
+  routedVenueSlug: z.string().max(180).optional().default(''),
+  routedSource: z.string().max(80).optional().default(''),
   brandMemory: ActivationBrandMemorySchema,
 });
 
@@ -94,6 +98,10 @@ export async function POST(request: NextRequest) {
     const city = normalizeText(input.city);
     const venue = normalizeText(input.venue || '');
     const website = normalizeText(input.website || '');
+    const routedCreator = normalizeText(input.routedCreator || '');
+    const routedVenueId = normalizeText(input.routedVenueId || '');
+    const routedVenueSlug = normalizeText(input.routedVenueSlug || '');
+    const routedSource = normalizeText(input.routedSource || '');
     const notes = input.notes.trim();
     const brandMemory = normalizeActivationBrandMemory(input.brandMemory);
     const activationBrief = buildActivationStoryBrief({
@@ -133,6 +141,10 @@ export async function POST(request: NextRequest) {
           packageId: input.packageId,
           website,
           notes,
+          routedCreator,
+          routedVenueId,
+          routedVenueSlug,
+          routedSource,
           brandMemory,
           activationBrief,
           clientIp,
@@ -157,6 +169,9 @@ export async function POST(request: NextRequest) {
       packageId: input.packageId,
       website,
       notes,
+      routedCreator,
+      routedVenueSlug,
+      routedSource,
       brandMemory,
       activationBrief,
     }).catch((error) => {

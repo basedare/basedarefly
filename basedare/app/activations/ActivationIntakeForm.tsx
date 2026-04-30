@@ -20,6 +20,10 @@ type IntakeState = {
   website: string;
   notes: string;
   companyWebsite: string;
+  routedCreator: string;
+  routedVenueId: string;
+  routedVenueSlug: string;
+  routedSource: string;
   brandMemory: Required<ActivationBrandMemoryInput>;
 };
 
@@ -37,6 +41,10 @@ const INITIAL_STATE: IntakeState = {
   website: '',
   notes: '',
   companyWebsite: '',
+  routedCreator: '',
+  routedVenueId: '',
+  routedVenueSlug: '',
+  routedSource: '',
   brandMemory: {
     originStory: '',
     audience: '',
@@ -51,18 +59,46 @@ const inputClass =
   'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
 const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
 
+function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
+  return value === '500_1500' || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
+}
+
+function isPackageId(value: string | null | undefined): value is IntakeState['packageId'] {
+  return value === 'pilot-drop' || value === 'local-signal' || value === 'city-takeover';
+}
+
+function isGoal(value: string | null | undefined): value is IntakeState['goal'] {
+  return value === 'foot_traffic' || value === 'ugc' || value === 'launch' || value === 'event' || value === 'repeat_visits' || value === 'other';
+}
+
+function isBuyerType(value: string | null | undefined): value is IntakeState['buyerType'] {
+  return value === 'venue' || value === 'brand' || value === 'agency' || value === 'event' || value === 'other';
+}
+
 type ActivationIntakeFormProps = {
   routedCreator?: string | null;
   routedVenue?: string | null;
+  routedVenueId?: string | null;
+  routedVenueSlug?: string | null;
   routedCity?: string | null;
   routedSource?: string | null;
+  routedBudgetRange?: string | null;
+  routedPackageId?: string | null;
+  routedGoal?: string | null;
+  routedBuyerType?: string | null;
 };
 
 export default function ActivationIntakeForm({
   routedCreator,
   routedVenue,
+  routedVenueId,
+  routedVenueSlug,
   routedCity,
   routedSource,
+  routedBudgetRange,
+  routedPackageId,
+  routedGoal,
+  routedBuyerType,
 }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +107,18 @@ export default function ActivationIntakeForm({
   const routedContextRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!routedCreator && !routedVenue && !routedCity && !routedSource) return;
+    if (
+      !routedCreator &&
+      !routedVenue &&
+      !routedVenueId &&
+      !routedVenueSlug &&
+      !routedCity &&
+      !routedSource &&
+      !routedBudgetRange &&
+      !routedPackageId &&
+      !routedGoal &&
+      !routedBuyerType
+    ) return;
 
     const normalizedCreator = routedCreator
       ? routedCreator.startsWith('@')
@@ -79,9 +126,26 @@ export default function ActivationIntakeForm({
         : `@${routedCreator}`
       : null;
     const normalizedVenue = routedVenue?.trim() || null;
+    const normalizedVenueId = routedVenueId?.trim() || null;
+    const normalizedVenueSlug = routedVenueSlug?.trim() || null;
     const normalizedCity = routedCity?.trim() || null;
     const normalizedSource = routedSource?.trim() || null;
-    const contextKey = [normalizedCreator, normalizedVenue, normalizedCity, normalizedSource].filter(Boolean).join('|');
+    const budgetRange = isBudgetRange(routedBudgetRange) ? routedBudgetRange : null;
+    const packageId = isPackageId(routedPackageId) ? routedPackageId : null;
+    const goal = isGoal(routedGoal) ? routedGoal : null;
+    const buyerType = isBuyerType(routedBuyerType) ? routedBuyerType : null;
+    const contextKey = [
+      normalizedCreator,
+      normalizedVenue,
+      normalizedVenueId,
+      normalizedVenueSlug,
+      normalizedCity,
+      normalizedSource,
+      budgetRange,
+      packageId,
+      goal,
+      buyerType,
+    ].filter(Boolean).join('|');
     if (routedContextRef.current === contextKey) return;
 
     routedContextRef.current = contextKey;
@@ -96,8 +160,16 @@ export default function ActivationIntakeForm({
 
       return {
         ...current,
+        buyerType: buyerType ?? current.buyerType,
         city: current.city || normalizedCity || '',
         venue: current.venue || normalizedVenue || '',
+        budgetRange: budgetRange ?? current.budgetRange,
+        packageId: packageId ?? current.packageId,
+        goal: goal ?? current.goal,
+        routedCreator: normalizedCreator ?? current.routedCreator,
+        routedVenueId: normalizedVenueId ?? current.routedVenueId,
+        routedVenueSlug: normalizedVenueSlug ?? current.routedVenueSlug,
+        routedSource: normalizedSource ?? current.routedSource,
         notes: [
           current.notes.trim(),
           normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
@@ -109,7 +181,18 @@ export default function ActivationIntakeForm({
           .join('\n'),
       };
     });
-  }, [routedCity, routedCreator, routedSource, routedVenue]);
+  }, [
+    routedBudgetRange,
+    routedBuyerType,
+    routedCity,
+    routedCreator,
+    routedGoal,
+    routedPackageId,
+    routedSource,
+    routedVenue,
+    routedVenueId,
+    routedVenueSlug,
+  ]);
 
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));

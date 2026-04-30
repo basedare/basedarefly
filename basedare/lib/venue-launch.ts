@@ -13,11 +13,50 @@ type LaunchPrefillInput = {
   tier?: CampaignTier | null;
 };
 
+type ActivationIntakePrefillInput = {
+  venueId?: string;
+  venueSlug?: string;
+  venueName?: string;
+  city?: string | null;
+  creatorTag?: string | null;
+  source?: 'venue' | 'brand-portal' | 'map' | 'venue-console' | 'control' | 'scout';
+  payout?: number | null;
+  packageId?: 'pilot-drop' | 'local-signal' | 'city-takeover';
+  goal?: 'foot_traffic' | 'ugc' | 'launch' | 'event' | 'repeat_visits' | 'other';
+  buyerType?: 'venue' | 'brand' | 'agency' | 'event' | 'other';
+};
+
 function inferCampaignTierByPayout(payout: number): CampaignTier {
   if (payout >= 1000) return 'APEX';
   if (payout >= 250) return 'CHALLENGE';
   if (payout >= 100) return 'SIP_SHILL';
   return 'SIP_MENTION';
+}
+
+function inferActivationBudgetRange(payout: number | null | undefined) {
+  const safePayout = Math.max(0, Math.round(payout ?? 0));
+  if (safePayout >= 15000) return '15000_plus';
+  if (safePayout >= 5000) return '5000_15000';
+  if (safePayout >= 1500) return '1500_5000';
+  return '500_1500';
+}
+
+export function buildVenueActivationIntakeHref(input: ActivationIntakePrefillInput = {}) {
+  const params = new URLSearchParams({
+    source: input.source ?? 'control',
+  });
+
+  if (input.venueName) params.set('venueName', input.venueName);
+  if (input.venueSlug) params.set('venueSlug', input.venueSlug);
+  if (input.venueId) params.set('venueId', input.venueId);
+  if (input.city) params.set('city', input.city);
+  if (input.creatorTag) params.set('creator', input.creatorTag);
+  if (input.packageId) params.set('packageId', input.packageId);
+  if (input.goal) params.set('goal', input.goal);
+  if (input.buyerType) params.set('buyerType', input.buyerType);
+  if (input.payout) params.set('budgetRange', inferActivationBudgetRange(input.payout));
+
+  return `/activations?${params.toString()}#activation-intake`;
 }
 
 export function buildVenueActivationComposerHref(input: LaunchPrefillInput) {
