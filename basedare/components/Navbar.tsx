@@ -19,7 +19,6 @@ const NAV_LINKS = [
   { name: "DASHBOARD", href: "/dashboard" },
   { name: "CREATORS", href: "/creators" },
   { name: "FAQ", href: "/faq" },
-  { name: "ACTIVATE", href: "/activations" },
   { name: "VERIFY", href: "/verify" },
 ];
 

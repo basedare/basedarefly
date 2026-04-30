@@ -85,8 +85,8 @@ const CREATOR_POINTS = [
 const BRAND_POINTS = [
   {
     icon: Target,
-    title: "Launch campaigns at real venues",
-    description: "Pick a venue, set a challenge budget, and tie creator content to a real-world location your audience visits.",
+    title: "Flip to Control first",
+    description: "Venue and brand workflows live behind the Control switch: activation planning, creator routing, and proof receipts.",
   },
   {
     icon: Users,
@@ -195,6 +195,49 @@ export default function HowItWorksPage() {
             ))}
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className={`${softCardClass} mb-10 p-5 md:p-6`}
+          >
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+            <div className="grid gap-4 md:grid-cols-[1fr_190px_1fr] md:items-center">
+              <div className={`${insetDentClass} p-5`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-purple-200/70">
+                  Creators / Fans
+                </p>
+                <h3 className="mt-2 text-2xl font-black uppercase italic text-white">Chaos side</h3>
+                <p className="mt-2 font-mono text-xs leading-6 text-gray-400">
+                  Create, claim, complete, verify, and browse the public grid.
+                </p>
+              </div>
+
+              <div className="mx-auto w-full max-w-[190px]">
+                <div className="mb-2 text-center font-mono text-[10px] uppercase tracking-[0.26em] text-gray-500">
+                  Use the switch
+                </div>
+                <div className="relative h-12 overflow-hidden rounded-full border border-white/12 bg-black/70 p-1 shadow-[inset_7px_7px_14px_rgba(0,0,0,0.72),inset_-4px_-4px_10px_rgba(255,255,255,0.04)]">
+                  <motion.div
+                    className="absolute left-1 top-1 h-[calc(100%-0.5rem)] w-[45%] rounded-full bg-[linear-gradient(145deg,#f8fafc,#9ca3af)] shadow-[0_8px_18px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.72)]"
+                    animate={{ x: ['0%', '115%', '0%'] }}
+                    transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
+              </div>
+
+              <div className={`${insetDentClass} p-5 grayscale`}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gray-300/70">
+                  Venues / Brands
+                </p>
+                <h3 className="mt-2 text-2xl font-black uppercase italic text-white">Control side</h3>
+                <p className="mt-2 font-mono text-xs leading-6 text-gray-400">
+                  Plan activations, operate the Brand Portal, and read measurable proof.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
           {/* ════════════════════════════════════════════
               FOR CREATORS
           ════════════════════════════════════════════ */}
@@ -268,7 +311,7 @@ export default function HowItWorksPage() {
                 <Target className="h-5 w-5 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]" />
               </div>
               <h2 className="text-2xl font-black uppercase italic tracking-tight text-white md:text-3xl">
-                For <span className="text-yellow-400">Brands</span>
+                For <span className="text-yellow-400">Brands + Venues</span>
               </h2>
             </div>
 
@@ -326,13 +369,13 @@ export default function HowItWorksPage() {
                 </div>
                 <div className={`${insetDentClass} px-4 py-4`}>
                   <CosmicButton
-                    href="/brands/portal"
+                    href="/?mode=control"
                     variant="blue"
                     size="lg"
                     className="min-w-[200px]"
                   >
                     <Target className="h-5 w-5" />
-                    Brand Portal
+                    Open Control
                   </CosmicButton>
                 </div>
               </div>

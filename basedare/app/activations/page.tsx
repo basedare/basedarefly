@@ -84,7 +84,7 @@ const sparkReceipt = [
 
 export default function ActivationsPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 py-24 sm:px-6 lg:py-28">
+    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 py-24 grayscale saturate-0 contrast-125 sm:px-6 lg:py-28">
       <LiquidBackground veilOpacity={0.66} />
       <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
         <GradualBlurOverlay />

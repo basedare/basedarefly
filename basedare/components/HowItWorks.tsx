@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import HowItWorksSignalWires from "@/components/HowItWorksSignalWires";
 import FirstActionSelector from "@/components/FirstActionSelector";
 import './HowItWorksSignalWires.css';
@@ -64,6 +65,52 @@ export default function HowItWorks() {
               <p className="text-sm uppercase tracking-[0.32em] text-white/55 md:text-[0.84rem]">
                 Fund it. Trigger it. Verify it.
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto mb-14 max-w-5xl md:mb-20">
+          <div className="relative overflow-hidden rounded-[2.25rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(7,8,15,0.86))] px-5 py-5 shadow-[18px_24px_70px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] md:px-7 md:py-6">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+            <div className="grid gap-4 md:grid-cols-[1fr_220px_1fr] md:items-center">
+              <div className="rounded-[1.5rem] border border-purple-300/14 bg-purple-400/[0.045] px-5 py-4">
+                <p className="font-mono text-[0.68rem] uppercase tracking-[0.32em] text-purple-200/80">
+                  For fans + creators
+                </p>
+                <h4 className="mt-2 text-2xl font-black uppercase italic text-white">Stay in Chaos</h4>
+                <p className="mt-2 text-sm leading-6 text-white/58">
+                  Browse dares, create missions, complete proof, verify outcomes, and move around the map.
+                </p>
+              </div>
+
+              <div className="mx-auto w-full max-w-[220px]">
+                <div className="mb-2 text-center font-mono text-[0.62rem] uppercase tracking-[0.32em] text-white/44">
+                  The switch separates the product
+                </div>
+                <div className="relative h-14 overflow-hidden rounded-full border border-white/12 bg-black/70 p-1 shadow-[inset_8px_8px_16px_rgba(0,0,0,0.75),inset_-5px_-5px_12px_rgba(255,255,255,0.04)]">
+                  <div className="absolute inset-y-0 left-5 flex items-center font-mono text-[0.64rem] font-black uppercase tracking-[0.22em] text-purple-200/70">
+                    Chaos
+                  </div>
+                  <div className="absolute inset-y-0 right-4 flex items-center font-mono text-[0.64rem] font-black uppercase tracking-[0.22em] text-yellow-100/70">
+                    Control
+                  </div>
+                  <motion.div
+                    className="absolute left-1 top-1 h-[calc(100%-0.5rem)] w-[45%] rounded-full bg-[linear-gradient(145deg,#f8fafc,#9ca3af)] shadow-[0_10px_22px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.72)]"
+                    animate={{ x: ['0%', '115%', '0%'] }}
+                    transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.045] px-5 py-4 grayscale">
+                <p className="font-mono text-[0.68rem] uppercase tracking-[0.32em] text-white/58">
+                  For venues + brands
+                </p>
+                <h4 className="mt-2 text-2xl font-black uppercase italic text-white">Flip to Control</h4>
+                <p className="mt-2 text-sm leading-6 text-white/58">
+                  Plan activations, open the Brand Portal, route creators, and read proof receipts in one operator layer.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 
 type ViewMode = 'FAN' | 'BUSINESS';
@@ -14,7 +14,7 @@ interface ViewContextType {
 const ViewContext = createContext<ViewContextType | undefined>(undefined);
 
 // Routes that are always Control mode (B2B pages)
-const CONTROL_MODE_ROUTES = ['/brands/portal', '/scouts/dashboard'];
+const CONTROL_MODE_ROUTES = ['/activations', '/brands/portal', '/scouts/dashboard'];
 
 export function ViewProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -22,11 +22,12 @@ export function ViewProvider({ children }: { children: ReactNode }) {
 
   // Auto-detect Control mode from route
   const isControlRoute = CONTROL_MODE_ROUTES.some(route => pathname?.startsWith(route));
+  const isVenueOpsRoute = pathname ? /^\/venues\/[^/]+\/(console|report)/.test(pathname) : false;
 
   // Control mode is active if either:
   // 1. User toggled to BUSINESS view
   // 2. User is on a Control mode route
-  const isControlMode = view === 'BUSINESS' || isControlRoute;
+  const isControlMode = view === 'BUSINESS' || isControlRoute || isVenueOpsRoute;
 
   return (
     <ViewContext.Provider value={{ view, setView, isControlMode }}>
