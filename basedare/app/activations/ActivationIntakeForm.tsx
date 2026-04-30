@@ -59,6 +59,37 @@ const inputClass =
   'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
 const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
 
+const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
+  '500_1500': '$500-$1.5k',
+  '1500_5000': '$1.5k-$5k',
+  '5000_15000': '$5k-$15k',
+  '15000_plus': '$15k+',
+};
+
+const PACKAGE_LABELS: Record<IntakeState['packageId'], string> = {
+  'pilot-drop': 'Venue Spark Pilot',
+  'local-signal': 'Always-On Spark',
+  'city-takeover': 'Global Challenge Drop',
+};
+
+const GOAL_LABELS: Record<IntakeState['goal'], string> = {
+  foot_traffic: 'Move people',
+  ugc: 'Creator content',
+  launch: 'Launch push',
+  event: 'Event energy',
+  repeat_visits: 'Repeat visits',
+  other: 'Custom goal',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  venue: 'Venue page',
+  'brand-portal': 'Brand portal',
+  map: 'Map pin',
+  'venue-console': 'Venue console',
+  control: 'Control room',
+  scout: 'Creator radar',
+};
+
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
   return value === '500_1500' || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
 }
@@ -105,6 +136,18 @@ export default function ActivationIntakeForm({
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(null);
+  const hasRoutedContext = Boolean(
+    form.routedCreator ||
+    form.routedVenueId ||
+    form.routedVenueSlug ||
+    form.routedSource ||
+    routedVenue ||
+    routedCity ||
+    routedBudgetRange ||
+    routedPackageId ||
+    routedGoal ||
+    routedBuyerType
+  );
 
   useEffect(() => {
     if (
@@ -212,6 +255,19 @@ export default function ActivationIntakeForm({
   };
 
   const storyBrief = useMemo(() => buildActivationStoryBrief(form), [form]);
+  const routeReceiptItems = useMemo(
+    () =>
+      [
+        form.venue ? ['Target', form.venue] : null,
+        form.city ? ['City', form.city] : null,
+        form.routedCreator ? ['Creator route', form.routedCreator] : null,
+        form.routedSource ? ['Source', SOURCE_LABELS[form.routedSource] || form.routedSource] : null,
+        ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
+        ['Package', PACKAGE_LABELS[form.packageId]],
+        ['Goal', GOAL_LABELS[form.goal]],
+      ].filter((item): item is [string, string] => Boolean(item)),
+    [form.budgetRange, form.city, form.goal, form.packageId, form.routedCreator, form.routedSource, form.venue]
+  );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -271,6 +327,33 @@ export default function ActivationIntakeForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      {hasRoutedContext ? (
+        <div className="rounded-[28px] border border-yellow-200/16 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_45px_rgba(0,0,0,0.24)] sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Route receipt</p>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">We already know where this should go.</h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/58">
+                Confirm the buyer details below. BaseDare keeps the inferred venue, source, and activation lane attached to the operator queue.
+              </p>
+            </div>
+            <div className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/76">
+              Prefilled
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {routeReceiptItems.map(([label, value]) => (
+              <span
+                key={`${label}-${value}`}
+                className="rounded-full border border-white/[0.09] bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58"
+              >
+                <span className="text-white/32">{label}:</span> {value}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Company / venue</label>
