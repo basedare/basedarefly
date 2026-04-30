@@ -15,9 +15,11 @@ import { GlobalSearch } from './ui/GlobalSearch';
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
   { name: "CREATE", href: "/create" },
-  { name: "MAP", href: "/map" },
+  { name: "Map", href: "/map" },
   { name: "DASHBOARD", href: "/dashboard" },
-  { name: "CONTROL", href: "/?mode=control" },
+  { name: "CREATORS", href: "/creators" },
+  { name: "FAQ", href: "/faq" },
+  { name: "ACTIVATE", href: "/activations" },
   { name: "VERIFY", href: "/verify" },
 ];
 
@@ -78,10 +80,7 @@ export default function Navbar() {
             >
               <div className="p-1.5 flex items-center gap-1">
                 {NAV_LINKS.map((link) => {
-                  const isActive =
-                    pathname === link.href ||
-                    (link.name === 'CONTROL' &&
-                      ['/activations', '/brands/portal', '/scouts/dashboard'].includes(pathname));
+                  const isActive = pathname === link.href;
                   return (
                     <Link
                       key={link.name}
@@ -153,10 +152,7 @@ export default function Navbar() {
             {/* Mobile Links - Liquid Metal Chrome */}
             <div className="flex flex-col gap-4">
               {NAV_LINKS.map((link, i) => {
-                const isActive =
-                  pathname === link.href ||
-                  (link.name === 'CONTROL' &&
-                    ['/activations', '/brands/portal', '/scouts/dashboard'].includes(pathname));
+                const isActive = pathname === link.href;
                 return (
                   <motion.div
                     key={link.name}

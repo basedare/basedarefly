@@ -351,17 +351,17 @@ function HomeContent() {
               </p>
             </div>
 
-            <div className="grid gap-6 px-6 md:grid-cols-2 xl:grid-cols-3 max-w-7xl mx-auto relative z-10">
+            <div className="grid max-w-7xl items-stretch gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 mx-auto relative z-10">
               {/* Brand Portal Card - Ferrofluid/Venom Black */}
               <div
                 onClick={() => router.push('/brands/portal')}
-                className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
+                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
               >
                 {/* Ferrofluid Border Effect - organic black liquid metal */}
                 <div
-                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"
+                  className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700"
                   style={{
-                    background: 'linear-gradient(135deg, #0a0a0a, #1a1a1a, #000, #2a2a2a, #0a0a0a)',
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.88), rgba(255,255,255,0.42), rgba(0,0,0,0.78), rgba(255,255,255,0.18))',
                     backgroundSize: '400% 400%',
                     animation: 'ferrofluidShift 3s ease infinite',
                   }}
@@ -376,10 +376,10 @@ function HomeContent() {
                 />
 
                 {/* Deep Black Glossy Panel - Venom aesthetic */}
-                <div className="relative p-8 rounded-[21px] text-left overflow-hidden"
+                <div className="relative flex h-full min-h-[316px] flex-col p-8 rounded-[26px] text-left overflow-hidden"
                   style={{
-                    background: 'linear-gradient(165deg, #0d0d0d 0%, #000000 40%, #080808 70%, #0a0a0a 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -2px 10px rgba(0,0,0,0.8), 0 30px 60px -15px rgba(0,0,0,0.7)',
+                    background: 'linear-gradient(165deg, #101012 0%, #050506 42%, #09090b 72%, #111113 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 28px 52px -18px rgba(0,0,0,0.52)',
                   }}
                 >
                   {/* Ferrofluid surface sheen - mimics oil slick */}
@@ -397,21 +397,21 @@ function HomeContent() {
                     style={{ background: 'radial-gradient(circle, rgba(100,100,100,0.4) 0%, transparent 70%)' }}
                   />
 
-                  <div className="relative z-10">
+                  <div className="relative z-10 flex h-full flex-col">
                     <div className="text-4xl mb-4">🏢</div>
                     <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
                       Already operating
                     </div>
                     <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
-                    <p className="text-zinc-500 mb-4">
+                    <p className="text-zinc-400 mb-4">
                       The black/white console for registered brands: fund campaigns, see recommended creators, route the best fit, and track proof.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Campaigns</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Recommended Creators</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Proof Tracking</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Creators</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Proof</span>
                     </div>
-                    <div className="mt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
+                    <div className="mt-auto pt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
                       Open Brand Portal
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
@@ -422,12 +422,12 @@ function HomeContent() {
               {/* Grid Activation OS - public intake / sales path */}
               <div
                 onClick={() => router.push('/activations')}
-                className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
+                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
               >
                 <div
-                  className="absolute inset-0 rounded-3xl opacity-100 transition-all duration-700 group-hover:opacity-100"
+                  className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700 group-hover:opacity-100"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(245,197,24,0.42), rgba(255,255,255,0.74), rgba(10,10,10,0.82), rgba(245,197,24,0.34))',
+                    background: 'linear-gradient(135deg, rgba(245,197,24,0.58), rgba(255,255,255,0.44), rgba(0,0,0,0.82), rgba(245,197,24,0.32))',
                     backgroundSize: '320% 320%',
                     animation: 'ferrofluidShift 4s ease infinite',
                   }}
@@ -440,10 +440,10 @@ function HomeContent() {
                   }}
                 />
 
-                <div className="relative p-8 rounded-[21px] text-left overflow-hidden"
+                <div className="relative flex h-full min-h-[316px] flex-col p-8 rounded-[26px] text-left overflow-hidden"
                   style={{
-                    background: 'linear-gradient(165deg, #15120a 0%, #070707 42%, #0d0b05 74%, #141006 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 30px 60px -15px rgba(0,0,0,0.62)',
+                    background: 'linear-gradient(165deg, #101012 0%, #050506 42%, #09090b 72%, #111113 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 28px 52px -18px rgba(0,0,0,0.52)',
                   }}
                 >
                   <div
@@ -454,7 +454,7 @@ function HomeContent() {
                   />
                   <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-200/40 to-transparent" />
 
-                  <div className="relative z-10">
+                  <div className="relative z-10 flex h-full flex-col">
                     <div className="text-4xl mb-4">⚡</div>
                     <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
                       Start here
@@ -468,7 +468,7 @@ function HomeContent() {
                       <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Proof</span>
                       <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Budget</span>
                     </div>
-                    <div className="mt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
+                    <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
                       Plan Grid Activation
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
@@ -479,13 +479,13 @@ function HomeContent() {
               {/* Shadow Army Card - Inverted Ferrofluid (Chrome/Mercury) */}
               <div
                 onClick={() => router.push('/scouts/dashboard')}
-                className="group relative p-[3px] rounded-3xl overflow-hidden cursor-pointer transition-all duration-700"
+                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
               >
                 {/* Chrome/Mercury Border Effect */}
                 <div
-                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"
+                  className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700"
                   style={{
-                    background: 'linear-gradient(135deg, #e0e0e0, #f5f5f5, #d0d0d0, #fafafa, #e5e5e5)',
+                    background: 'linear-gradient(135deg, rgba(34,211,238,0.42), rgba(255,255,255,0.38), rgba(0,0,0,0.78), rgba(34,211,238,0.24))',
                     backgroundSize: '400% 400%',
                     animation: 'ferrofluidShift 3s ease infinite',
                   }}
@@ -500,17 +500,17 @@ function HomeContent() {
                 />
 
                 {/* Glossy Chrome Panel */}
-                <div className="relative p-8 rounded-[21px] text-left overflow-hidden"
+                <div className="relative flex h-full min-h-[316px] flex-col p-8 rounded-[26px] text-left overflow-hidden"
                   style={{
-                    background: 'linear-gradient(165deg, #fafafa 0%, #f0f0f0 40%, #f5f5f5 70%, #ffffff 100%)',
-                    boxShadow: 'inset 0 2px 0 rgba(255,255,255,1), inset 0 -2px 10px rgba(0,0,0,0.03), 0 30px 60px -15px rgba(0,0,0,0.12)',
+                    background: 'linear-gradient(165deg, #101012 0%, #050506 42%, #09090b 72%, #111113 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 28px 52px -18px rgba(0,0,0,0.52)',
                   }}
                 >
                   {/* Chrome surface sheen */}
                   <div
                     className="absolute inset-0 pointer-events-none opacity-40 group-hover:opacity-70 transition-opacity duration-700"
                     style={{
-                      background: 'linear-gradient(125deg, transparent 0%, rgba(0,0,0,0.02) 25%, transparent 50%, rgba(0,0,0,0.03) 75%, transparent 100%)',
+                      background: 'linear-gradient(125deg, transparent 0%, rgba(255,255,255,0.035) 25%, transparent 50%, rgba(34,211,238,0.06) 75%, transparent 100%)',
                     }}
                   />
                   {/* Metallic edge highlight */}
@@ -518,25 +518,25 @@ function HomeContent() {
                   {/* Chrome shine blob */}
                   <div
                     className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-0 group-hover:opacity-20 transition-all duration-1000 blur-2xl"
-                    style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.15) 0%, transparent 70%)' }}
+                    style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.22) 0%, transparent 70%)' }}
                   />
 
-                  <div className="relative z-10">
+                  <div className="relative z-10 flex h-full flex-col">
                     <div className="text-4xl mb-4">🕵️</div>
-                    <div className="mb-3 inline-flex rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                    <div className="mb-3 inline-flex rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">
                       Creator supply
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-zinc-900">Scout Creators</h2>
-                    <p className="text-zinc-600 mb-4">
+                    <h2 className="text-2xl font-bold mb-2 text-white">Scout Creators</h2>
+                    <p className="text-zinc-400 mb-4">
                       Build supply only when you need it: scout creators, claim bounty slots, and route credible operators.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-100 border border-zinc-300/50 text-zinc-700 rounded">Bounty Board</span>
-                      <span className="px-2 py-1 bg-zinc-100 border border-zinc-300/50 text-zinc-700 rounded">0.5% Discovery</span>
-                      <span className="px-2 py-1 bg-zinc-100 border border-zinc-300/50 text-zinc-700 rounded">0.5% Active</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-cyan-200/20 text-cyan-100/80 rounded">Bounty Board</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Discovery</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Active</span>
                     </div>
-                    <div className="mt-6 flex items-center gap-2 text-zinc-700 font-semibold group-hover:text-zinc-900 transition-colors duration-500">
-                      Join the Army
+                    <div className="mt-auto pt-6 flex items-center gap-2 text-cyan-100 font-semibold group-hover:text-white transition-colors duration-500">
+                      Open Scout Layer
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>
