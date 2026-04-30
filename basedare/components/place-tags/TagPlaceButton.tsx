@@ -405,14 +405,14 @@ export default function TagPlaceButton({
     <>
       {buttonVariant === 'jelly' ? (
         <SquircleButton
-          tone="teal"
+          tone="white"
           label={buttonLabel}
           fullWidth
-          height={42}
+          height={44}
           onClick={openComposer}
           className={buttonClassName}
         >
-          <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-white sm:text-[0.82rem]">
+          <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.66rem] font-black uppercase tracking-[0.1em] text-[#101522] sm:text-[0.82rem]">
             <Sparkles className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
             {buttonLabel}
           </span>
@@ -421,7 +421,7 @@ export default function TagPlaceButton({
         <button
           type="button"
           onClick={openComposer}
-          className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200'}
+          className={buttonClassName ?? 'inline-flex items-center justify-center gap-2 rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100'}
         >
           <Sparkles className="hidden h-4 w-4 sm:block" aria-hidden="true" />
           <span className="max-w-[7rem] text-balance leading-[1.04] sm:max-w-none">
@@ -433,7 +433,7 @@ export default function TagPlaceButton({
       {open && mounted
         ? createPortal(
         <div
-          className="fixed inset-0 z-[120] bg-[rgba(2,4,10,0.56)] backdrop-blur-lg sm:flex sm:items-center sm:justify-center sm:bg-[rgba(2,4,10,0.82)] sm:px-4 sm:py-6 sm:backdrop-blur-xl"
+          className="bd-mobile-modal-backdrop fixed inset-0 z-[120] bg-[rgba(2,4,10,0.56)] backdrop-blur-lg sm:flex sm:items-center sm:justify-center sm:bg-[rgba(2,4,10,0.82)] sm:px-4 sm:py-6 sm:backdrop-blur-xl"
           onClick={() => setOpen(false)}
         >
           <div
@@ -441,9 +441,9 @@ export default function TagPlaceButton({
           >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="relative mt-auto flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/12 border-b-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(7,9,18,0.96)_58%,rgba(5,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] sm:mt-0 sm:max-h-[92dvh] sm:max-w-xl sm:rounded-[30px] sm:border-b"
+            className="bd-mobile-render-stable relative mt-auto flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/12 border-b-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(12,9,22,0.96)_58%,rgba(5,5,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(168,85,247,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] sm:mt-0 sm:max-h-[92dvh] sm:max-w-xl sm:rounded-[30px] sm:border-b"
           >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.12),transparent_36%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(168,85,247,0.2),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%)]" />
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
 
             <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -451,7 +451,7 @@ export default function TagPlaceButton({
                 <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-white/15 sm:hidden" />
                 <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-200">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-purple-100">
                     <Crosshair className="h-3.5 w-3.5" />
                     Leave your mark
                   </div>
@@ -500,7 +500,7 @@ export default function TagPlaceButton({
                         setSubmitState('idle');
                         setSubmittedFirstMark(false);
                       }}
-                      className="rounded-full border border-cyan-400/24 bg-cyan-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200"
+                      className="rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100"
                     >
                       Submit another
                     </button>
@@ -509,10 +509,10 @@ export default function TagPlaceButton({
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
+                    <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
-                      <label className="bd-puncture-well mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center transition hover:border-cyan-400/30 hover:bg-cyan-500/[0.04]">
-                        <Upload className="h-6 w-6 text-cyan-200" />
+                      <label className="bd-puncture-well mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center transition hover:border-purple-300/34 hover:bg-purple-500/[0.06]">
+                        <Upload className="h-6 w-6 text-purple-100" />
                         <p className="mt-3 text-sm font-semibold text-white">
                           {file ? file.name : 'Upload image or video'}
                         </p>
@@ -527,31 +527,31 @@ export default function TagPlaceButton({
                     </div>
 
                     <div className="space-y-4">
-                      <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
+                      <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Caption</p>
                         <textarea
                           value={caption}
                           onChange={(event) => setCaption(event.target.value)}
                           placeholder="What happened here?"
-                          className="bd-puncture-well mt-3 h-24 w-full rounded-[18px] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
+                          className="bd-puncture-well mt-3 h-24 w-full rounded-[18px] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/28 focus:border-purple-300/34 focus:outline-none"
                         />
                       </div>
 
-                      <div className="bd-puncture-surface bd-puncture-surface--cyan rounded-[24px] border border-white/10 p-4">
+                      <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Vibe Tags</p>
                         <input
                           value={vibeTags}
                           onChange={(event) => setVibeTags(event.target.value)}
                           placeholder="hidden, nightlife, chaos"
-                          className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm text-white placeholder:text-white/28 focus:border-cyan-400/28 focus:outline-none"
+                          className="bd-puncture-well mt-3 h-12 w-full rounded-[18px] border border-white/10 px-4 text-sm text-white placeholder:text-white/28 focus:border-purple-300/34 focus:outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bd-puncture-surface bd-puncture-surface--cyan mt-5 rounded-[22px] border border-white/10 px-4 py-4">
+                  <div className="bd-puncture-surface bd-puncture-surface--purple mt-5 rounded-[22px] border border-white/10 px-4 py-4">
                     <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-4 w-4 text-cyan-200" />
+                      <MapPin className="mt-0.5 h-4 w-4 text-purple-100" />
                       <div>
                         <p className="text-xs uppercase tracking-[0.24em] text-white/40">Location Check</p>
                         <p className="mt-2 text-sm text-white/68">{locationStatus}</p>
@@ -603,7 +603,7 @@ export default function TagPlaceButton({
                       type="button"
                       onClick={handleSubmit}
                       disabled={submitting || authChecking}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300/26 bg-purple-500/[0.12] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100 disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                       Submit mark

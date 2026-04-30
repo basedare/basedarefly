@@ -442,7 +442,7 @@ export function inferPlaceChallengeArchetype(
 ): PlaceArchetype {
   const haystack = normalizeParts(input);
 
-  for (const archetype of ['nightlife', 'surf', 'food', 'wellness', 'stay', 'beach', 'landmark', 'street'] as const) {
+  for (const archetype of ['surf', 'food', 'wellness', 'stay', 'nightlife', 'beach', 'landmark', 'street'] as const) {
     const matched = ARCHETYPE_KEYWORDS[archetype].some((keyword) => haystack.includes(keyword));
     if (matched) {
       return archetype;

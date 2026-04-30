@@ -30,8 +30,12 @@ async function ensureParentAlias(name, type = 'dir') {
   }
 
   const relativeTarget = path.relative(path.dirname(parentPath), targetPath);
-  await symlink(relativeTarget, parentPath, type);
-  console.log(`[prebuild] Linked parent ${name} to ${relativeTarget} for Vercel output collection`);
+  try {
+    await symlink(relativeTarget, parentPath, type);
+    console.log(`[prebuild] Linked parent ${name} to ${relativeTarget} for Vercel output collection`);
+  } catch (error) {
+    console.warn(`[prebuild] Could not prepare parent ${name} alias for Vercel output collection`, error);
+  }
 }
 
 const isVercelBuild =

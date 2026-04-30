@@ -656,6 +656,29 @@ const SEEDED_PLACES: SeededPlaceInput[] = [
       },
     ],
   },
+  {
+    slug: 'the-cat-and-gun',
+    name: 'The Cat & Gun',
+    description: 'Catangnan coffee and sports-bar stop with an obvious creator rail for food, match-night, and island hangout dares.',
+    address: 'R555+PWX, Catangnan',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.8093625,
+    longitude: 126.1598594,
+    timezone: 'Asia/Manila',
+    categories: ['cafe', 'coffee', 'sports-bar', 'food', 'siargao'],
+    featuredLabel: 'simmering',
+    seededTags: [
+      {
+        ...SEEDED_CREATORS[2],
+        caption: 'Coffee, match-night energy, and a clean Catangnan signal.',
+        vibeTags: ['catangnan', 'coffee', 'sports-bar'],
+        proofMediaUrl: '/assets/basedarenew.png',
+        proofType: 'IMAGE',
+        minutesAgo: 185,
+      },
+    ],
+  },
 ];
 
 function minutesAgoDate(minutesAgo: number) {

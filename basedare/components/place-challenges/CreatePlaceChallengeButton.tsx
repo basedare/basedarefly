@@ -407,7 +407,7 @@ export default function CreatePlaceChallengeButton({
           tone="yellow"
           label="Fund dare"
           fullWidth
-          height={42}
+          height={44}
           onClick={openComposer}
           className={buttonClassName}
         >
@@ -435,13 +435,13 @@ export default function CreatePlaceChallengeButton({
       {open && mounted
         ? createPortal(
             <div
-              className="fixed inset-0 z-[125] bg-[rgba(2,4,10,0.56)] backdrop-blur-lg sm:flex sm:items-center sm:justify-center sm:bg-[rgba(2,4,10,0.82)] sm:px-4 sm:py-6 sm:backdrop-blur-xl"
+              className="bd-mobile-modal-backdrop fixed inset-0 z-[125] bg-[rgba(2,4,10,0.56)] backdrop-blur-lg sm:flex sm:items-center sm:justify-center sm:bg-[rgba(2,4,10,0.82)] sm:px-4 sm:py-6 sm:backdrop-blur-xl"
               onClick={() => setOpen(false)}
             >
               <div className="relative flex h-full w-full items-end sm:items-center sm:justify-center">
                 <div
                   onClick={(event) => event.stopPropagation()}
-                  className="relative mt-auto flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/12 border-b-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(10,8,18,0.97)_58%,rgba(6,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] sm:mt-0 sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-[30px] sm:border-b"
+                  className="bd-mobile-render-stable relative mt-auto flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/12 border-b-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_10%,rgba(14,10,18,0.97)_58%,rgba(7,6,14,0.98)_100%)] shadow-[0_30px_100px_rgba(0,0,0,0.55),0_0_34px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-14px_24px_rgba(0,0,0,0.24)] sm:mt-0 sm:max-h-[92dvh] sm:max-w-2xl sm:rounded-[30px] sm:border-b"
                 >
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(245,197,24,0.16),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.12),transparent_36%)]" />
                   <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />

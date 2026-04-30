@@ -5658,7 +5658,7 @@ export default function RealWorldMap() {
 
                   <div
                     className={`venue-action-rail mt-3 grid gap-2 sm:mt-4 sm:gap-3 ${
-                      selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'
+                      selectedPlace.slug ? 'grid-cols-[0.86fr_1fr_1.18fr]' : 'grid-cols-2'
                     }`}
                   >
                     <TagPlaceButton
@@ -5788,9 +5788,9 @@ export default function RealWorldMap() {
                         tone="purple"
                         label="Open venue"
                         fullWidth
-                        height={42}
+                        height={44}
                         className="map-jelly-action"
-                        labelClassName="text-[0.66rem] tracking-[0.1em] sm:text-[0.82rem]"
+                        labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
                       >
                         <span className="map-jelly-action-label">Open venue</span>
                       </SquircleLink>
@@ -5942,7 +5942,10 @@ export default function RealWorldMap() {
               inset 0 -10px 18px rgba(0, 0, 0, 0.34);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
+            backface-visibility: hidden;
             touch-action: manipulation;
+            transform: translateZ(0);
+            will-change: transform;
           }
 
           .venue-action-rail::before {
@@ -5954,6 +5957,10 @@ export default function RealWorldMap() {
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent);
             opacity: 0.75;
             pointer-events: none;
+          }
+
+          .venue-action-rail :global(.map-jelly-action) {
+            transform: translateZ(0);
           }
         }
 
@@ -7251,8 +7258,8 @@ export default function RealWorldMap() {
         }
 
         .venue-action-rail :global(.map-jelly-action > div) {
-          padding-left: 0.42rem !important;
-          padding-right: 0.42rem !important;
+          padding-left: 0.36rem !important;
+          padding-right: 0.36rem !important;
         }
 
         .venue-action-rail :global(.map-jelly-action > div svg) {
@@ -7265,7 +7272,7 @@ export default function RealWorldMap() {
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: clamp(0.58rem, 0.74vw, 0.68rem) !important;
-          letter-spacing: 0.055em !important;
+          letter-spacing: 0.045em !important;
           line-height: 1;
         }
 
