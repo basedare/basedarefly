@@ -55,7 +55,7 @@ export default function InitProtocolButton({
     return (
       <div
         className={cn(
-          'relative group overflow-visible p-[1.5px] transition-all duration-500',
+          'relative isolate group overflow-hidden p-[1.5px] transition-all duration-500',
           disabled && 'opacity-60 saturate-50',
           className
         )}
