@@ -527,6 +527,12 @@ export default function CreatePlaceChallengeButton({
                                     <p className="mt-3 text-sm font-semibold text-white">
                                       {template.title}
                                     </p>
+                                    <p className="mt-2 text-xs leading-5 text-white/48">
+                                      {template.creatorAngle}
+                                    </p>
+                                    <p className="mt-3 rounded-[14px] border border-white/8 bg-white/[0.035] px-3 py-2 text-[10px] font-semibold uppercase leading-4 tracking-[0.14em] text-white/42">
+                                      Proof: {template.proofMetric}
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/48">
                                         {template.missionTag}

@@ -7,9 +7,9 @@ import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 
 export const metadata: Metadata = {
-  title: 'Venue Spark Activations | BaseDare',
+  title: 'Grid Activation OS | BaseDare',
   description:
-    'Launch global real-world creator activations with venue visibility, QR check-ins, proof receipts, payout rails, and repeatable reporting.',
+    'Connect venues, creators, fans, and brands with venue-aware dares, proof verification, QR check-ins, payout rails, and ROI analytics.',
 };
 
 const raisedPanelClass =
@@ -25,8 +25,8 @@ const packages = [
     name: 'Venue Spark Pilot',
     price: '$749+',
     bestFor: 'First venue proof',
-    detail: 'One real venue, one tight creator brief, QR/check-in tracking, proof media, and a simple result receipt.',
-    includes: ['global venue target', '3-5 creator missions', 'QR + proof tracking', 'Spark receipt'],
+    detail: 'One real venue, venue-aware creator missions, QR/check-in tracking, proof media, and a simple result receipt.',
+    includes: ['global venue target', '3-5 creator missions', 'smart dare generator', 'Spark receipt'],
   },
   {
     id: 'local-signal',
@@ -34,7 +34,7 @@ const packages = [
     price: '$1.5k-$5k/mo',
     bestFor: 'Recurring venue spend',
     detail: 'Ongoing creator missions, venue memory, map visibility, monthly proof receipts, and repeat recommendations.',
-    includes: ['priority venue visibility', 'creator routing', 'monthly receipt', 'repeat playbook'],
+    includes: ['priority venue visibility', 'creator routing', 'QR + proof tracking', 'repeat playbook'],
     featured: true,
   },
   {
@@ -74,7 +74,7 @@ const buyerMetrics = [
 ];
 
 const sparkReceipt = [
-  ['Creator output', 'Approved proof clips, photos, and captions the venue can repost.'],
+  ['Creator output', 'Venue-aware dare prompts become approved proof clips, photos, and captions the venue can repost.'],
   ['Presence signal', 'QR scans, check-ins, proof timestamps, and venue memory activity.'],
   ['Map visibility', 'The venue lights up as an active place instead of a passive pin.'],
   ['Repeat decision', 'A clear next move: repeat, route creator, increase reward, or sponsor a bigger drop.'],
@@ -97,15 +97,14 @@ export default function ActivationsPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
                 <BadgeDollarSign className="h-4 w-4" />
-                Global venue spark
+                Grid Activation OS
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
-                Real people. Real places. Real proof.
+                Own the grid. Prove the movement.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/64 sm:text-lg">
-                BaseDare turns creator marketing into a verified venue activation: creators show up, fans or
-                buyers fund the mission, proof gets checked, and the venue gets a Spark Receipt instead of vague
-                influencer promises.
+                BaseDare connects venues, creators, fans, and brands through smart dares, proof verification,
+                payout rails, and analytics that show whether real-world action actually happened.
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -113,7 +112,7 @@ export default function ActivationsPage() {
                   href="#activation-intake"
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-yellow-200/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.95)_0%,rgba(202,138,4,0.96)_100%)] px-6 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_16px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.38)] transition hover:-translate-y-0.5"
                 >
-                  Launch Venue Spark
+                  Launch Grid Activation
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <Link

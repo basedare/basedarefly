@@ -338,7 +338,7 @@ function HomeContent() {
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
               <p className="text-zinc-600 text-lg max-w-md mx-auto -mt-16 md:-mt-32 lg:-mt-40">
-                Real people, real places, real proof. Venue visibility and fan-funded creator dares on one grid.
+                Real people, real places, real proof. Venues, creators, fans, and brands on one activation grid.
               </p>
             </div>
 
@@ -390,12 +390,12 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <div className="text-4xl mb-4">🏢</div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Venue Spark</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Grid Activation OS</h2>
                     <p className="text-zinc-500 mb-4">
-                      Turn a venue or brand budget into creator visits, QR/check-in signal, owned content, and a proof receipt.
+                      Turn venue or fan budgets into creator missions, QR/check-in signal, owned content, and proof receipts.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Global Pilot</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Smart Dares</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">QR Check-ins</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Spark Receipt</span>
                     </div>

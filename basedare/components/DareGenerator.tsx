@@ -110,39 +110,39 @@ const SUGGESTIONS = {
 
 const IRL_SUGGESTIONS = {
   nightlife: [
-    "Convince a stranger you're their long-lost cousin — get a hug or a drink",
-    "Order a round for the bar but make the bartender guess your star sign first",
-    "Start a slow clap that turns into the entire bar doing the Macarena",
-    "Tell the bartender you're a drink critic and rate their cocktail out loud",
-    "Ask a stranger to dramatically introduce you to someone across the bar"
+    "Film a 15-second first-impression walkthrough of the venue",
+    "Capture the signature drink or ritual that makes this spot memorable",
+    "Ask the bartender for one local recommendation and film the answer",
+    "Record the cleanest crowd-energy moment without disturbing anyone",
+    "Find the best corner, table, or view and explain why it works"
   ],
   gym: [
-    "Challenge the biggest person in the room to a plank-off — loser buys protein shakes",
-    "Do 20 reps yelling motivational quotes in a bad Arnold Schwarzenegger accent",
-    "Ask someone mid-set if they accept Venmo for spotting you",
-    "Announce your last rep like a sports commentator — crowd has to react",
-    "Tell a stranger their form is perfect and keep a straight face the whole time"
+    "Complete a safe 60-second form challenge and explain the movement",
+    "Film a before-and-after energy check from warm-up to finish",
+    "Ask staff for one beginner-friendly tip and show it on camera",
+    "Capture the cleanest recovery, stretch, or cooldown ritual here",
+    "Show the one piece of equipment or class someone should try first"
   ],
   cafe: [
-    "Order a drink with 12 custom modifications without breaking eye contact",
-    "Convince the barista your name is Batman and wait for them to shout it",
-    "Sit next to a stranger and mirror everything they do for 60 seconds",
-    "Ask the barista for a chef's special and accept whatever they make you",
-    "Stand up and announce the WiFi password like you own the place"
+    "Order the most photogenic item and give a 15-second verdict",
+    "Ask the barista what regulars order and film the recommendation",
+    "Find the best seat for working, reading, or people-watching",
+    "Capture the first-sip reaction and the venue atmosphere in one clip",
+    "Show the menu item someone should buy if they only have one shot"
   ],
   beach: [
-    "Ask 5 strangers to help you rehearse a wedding proposal — film their reactions",
-    "Convince someone to trade their towel for your sunglasses — no money allowed",
-    "Announce you're a professional sandcastle judge and critique a random one",
-    "Get 5 strangers to do a synchronised jump photo — you direct it like a film shoot",
-    "Tell someone you just spotted a celebrity and watch the crowd turn to look"
+    "Film the best golden-hour angle and include one recognizable local anchor",
+    "Record a 15-second beach condition report for someone deciding whether to come",
+    "Capture a clean boardwalk, swim, sunset, or surf-side ritual",
+    "Show the hidden angle most visitors miss without blocking anyone",
+    "Make a fast local guide: where to stand, what to bring, and when to go"
   ],
   street: [
-    "Get 3 strangers to pose for a fake album cover — you direct the whole shoot",
-    "Ask someone for directions to a place you're already standing in front of",
-    "Pretend to be a tour guide and give 3 strangers completely made-up historical facts",
-    "Start beatboxing and point at a stranger to rap — they have to do something",
-    "Tell a stranger your name is a celebrity's name and see how long before they realise"
+    "Film a clean street-level intro that shows movement, sound, and signs",
+    "Ask one person for a local recommendation and keep it respectful",
+    "Capture the route from the nearest landmark to the venue entrance",
+    "Show the detail that makes this block feel different from a normal map pin",
+    "Create a 10-second micro-guide for someone arriving here for the first time"
   ]
 };
 
