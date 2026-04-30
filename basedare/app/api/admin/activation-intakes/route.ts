@@ -163,6 +163,15 @@ function buildReplyDraft(input: {
   ].join('\n');
 }
 
+function formatPackageLabel(value: string) {
+  const labels: Record<string, string> = {
+    'pilot-drop': 'Venue Spark Pilot',
+    'local-signal': 'Always-On Spark',
+    'city-takeover': 'Global Challenge Drop',
+  };
+  return labels[value] || value || 'Activation package';
+}
+
 function getMissionIdeas(metadata: MetadataRecord) {
   const activationBrief = asRecord(metadata.activationBrief);
   const ideas = Array.isArray(activationBrief.missionIdeas) ? activationBrief.missionIdeas : [];
@@ -311,6 +320,104 @@ function buildCreatorRecommendations(input: {
     })
     .sort((left, right) => right.score - left.score)
     .slice(0, 4);
+}
+
+type MissionIdea = ReturnType<typeof getMissionIdeas>[number];
+type CreatorRecommendation = ReturnType<typeof buildCreatorRecommendations>[number];
+
+function buildSparkRoutePacket(input: {
+  company: string;
+  contactName: string;
+  venue: string;
+  city: string;
+  budgetLabel: string;
+  timelineLabel: string;
+  packageId: string;
+  positioningLine: string;
+  proofLogic: string;
+  repeatMetric: string;
+  missionIdeas: MissionIdea[];
+  creatorRecommendations: CreatorRecommendation[];
+}) {
+  const target = input.venue || input.company || 'the target venue';
+  const cityLine = input.city ? ` in ${input.city}` : '';
+  const missionLines = input.missionIdeas.length
+    ? input.missionIdeas
+        .slice(0, 3)
+        .map((mission, index) => `${index + 1}. ${mission.title}: ${mission.detail}`)
+    : ['1. Signature ritual proof: film the moment that makes this place non-interchangeable.'];
+  const creatorLines = input.creatorRecommendations.length
+    ? input.creatorRecommendations.slice(0, 3).map((creator, index) => {
+        const reasons = creator.reasons.length ? ` (${creator.reasons.join(', ')})` : '';
+        return `${index + 1}. ${creator.tag} - fit ${creator.score}, trust ${creator.trustScore}${reasons}`;
+      })
+    : ['1. Creator shortlist will be confirmed after route approval.'];
+
+  return [
+    `BaseDare Spark Route - ${target}`,
+    '',
+    `Hi ${input.contactName || 'there'},`,
+    '',
+    `Here is the clean activation route for ${target}${cityLine}.`,
+    input.positioningLine ? `Positioning: ${input.positioningLine}` : null,
+    `Package: ${formatPackageLabel(input.packageId)}`,
+    `Budget lane: ${input.budgetLabel}`,
+    `Timeline: ${input.timelineLabel}`,
+    '',
+    'What you are buying:',
+    '- Creator missions routed to a real place, not generic influencer posting.',
+    '- Venue-aware prompts so the content feels like your story.',
+    '- Proof receipt: submitted proof, creator output, place signal, and next-step recommendation.',
+    '- Human review before money moves or public commitments are made.',
+    '',
+    'Suggested first missions:',
+    ...missionLines,
+    '',
+    'Creator shortlist:',
+    ...creatorLines,
+    '',
+    'Proof logic:',
+    input.proofLogic || 'Creators must show the place, action, story cue, and one timestamp-worthy proof signal.',
+    '',
+    'Repeat decision:',
+    input.repeatMetric || 'Repeat if the proof receipt shows real output worth compounding.',
+    '',
+    'Next step:',
+    'Approve the route, confirm budget, then BaseDare launches the funded mission inside the app so proof, creator routing, and review stay trackable.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+}
+
+function buildInvoiceMemo(input: {
+  id: string;
+  company: string;
+  venue: string;
+  city: string;
+  budgetLabel: string;
+  packageId: string;
+  creatorRecommendations: CreatorRecommendation[];
+}) {
+  const target = input.venue || input.company || 'activation target';
+  const firstCreator = input.creatorRecommendations[0]?.tag || 'creator shortlist pending';
+
+  return [
+    'BaseDare activation payment memo',
+    '',
+    `Lead ID: ${input.id}`,
+    `Buyer: ${input.company || 'TBD'}`,
+    `Target: ${target}${input.city ? `, ${input.city}` : ''}`,
+    `Package: ${formatPackageLabel(input.packageId)}`,
+    `Budget lane: ${input.budgetLabel}`,
+    `Initial creator route: ${firstCreator}`,
+    '',
+    'Use of funds:',
+    '- Creator reward pool for approved proof.',
+    '- BaseDare activation setup, route design, review, and proof receipt.',
+    '- No autonomous launch: payment and scope are confirmed by a human operator first.',
+    '',
+    'Internal next step: mark intake READY_TO_INVOICE after buyer confirms scope.',
+  ].join('\n');
 }
 
 async function fetchCreatorCandidates(): Promise<CreatorCandidate[]> {
@@ -530,6 +637,21 @@ function mapIntakeEvent(event: {
     venue: assignedVenue,
     city,
   });
+  const missionIdeas = getMissionIdeas(metadata);
+  const activationBrief = asRecord(metadata.activationBrief);
+  const positioningLine = stringValue(activationBrief.positioningLine);
+  const proofLogic = stringValue(activationBrief.proofLogic);
+  const repeatMetric = stringValue(activationBrief.repeatMetric);
+  const creatorRecommendations = buildCreatorRecommendations({
+    candidates,
+    id: event.id,
+    company,
+    venue: assignedVenue,
+    city,
+    goal,
+    notes,
+    amount,
+  });
 
   return {
     id: event.id,
@@ -558,20 +680,11 @@ function mapIntakeEvent(event: {
     assignedVenue,
     operatorNote,
     nextActionAt,
-    missionIdeas: getMissionIdeas(metadata),
-    positioningLine: stringValue(asRecord(metadata.activationBrief).positioningLine),
-    proofLogic: stringValue(asRecord(metadata.activationBrief).proofLogic),
-    repeatMetric: stringValue(asRecord(metadata.activationBrief).repeatMetric),
-    creatorRecommendations: buildCreatorRecommendations({
-      candidates,
-      id: event.id,
-      company,
-      venue: assignedVenue,
-      city,
-      goal,
-      notes,
-      amount,
-    }),
+    missionIdeas,
+    positioningLine,
+    proofLogic,
+    repeatMetric,
+    creatorRecommendations,
     replyDraft: buildReplyDraft({
       contactName,
       company,
@@ -579,6 +692,29 @@ function mapIntakeEvent(event: {
       city,
       budgetLabel,
       timelineLabel,
+    }),
+    sparkRoutePacket: buildSparkRoutePacket({
+      company,
+      contactName,
+      venue: assignedVenue,
+      city,
+      budgetLabel,
+      timelineLabel,
+      packageId,
+      positioningLine,
+      proofLogic,
+      repeatMetric,
+      missionIdeas,
+      creatorRecommendations,
+    }),
+    invoiceMemo: buildInvoiceMemo({
+      id: event.id,
+      company,
+      venue: assignedVenue,
+      city,
+      budgetLabel,
+      packageId,
+      creatorRecommendations,
     }),
     links: {
       createHref,

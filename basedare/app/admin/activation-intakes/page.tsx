@@ -9,6 +9,7 @@ import {
   Clipboard,
   Clock3,
   DollarSign,
+  FileText,
   Loader2,
   Lock,
   Mail,
@@ -57,6 +58,8 @@ type ActivationIntake = {
   proofLogic: string;
   repeatMetric: string;
   replyDraft: string;
+  sparkRoutePacket: string;
+  invoiceMemo: string;
   missionIdeas: Array<{
     title: string;
     detail: string;
@@ -302,13 +305,13 @@ export default function ActivationIntakesPage() {
     });
   };
 
-  const copyReply = async (intake: ActivationIntake) => {
+  const copyText = async (copyKey: string, text: string) => {
     try {
-      await navigator.clipboard.writeText(intake.replyDraft);
-      setCopiedId(intake.id);
+      await navigator.clipboard.writeText(text);
+      setCopiedId(copyKey);
       window.setTimeout(() => setCopiedId(null), 1800);
     } catch {
-      setError('Clipboard permission failed. Select and copy the reply manually.');
+      setError('Clipboard permission failed. Select and copy the text manually.');
     }
   };
 
@@ -615,7 +618,7 @@ export default function ActivationIntakesPage() {
                           />
                         </label>
 
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                           <button
                             type="button"
                             onClick={() => void saveOps(intake)}
@@ -627,11 +630,27 @@ export default function ActivationIntakesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void copyReply(intake)}
+                            onClick={() => void copyText(`${intake.id}:reply`, intake.replyDraft)}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-300/15"
                           >
                             <Clipboard className="h-4 w-4" />
-                            {copiedId === intake.id ? 'Copied' : 'Copy reply'}
+                            {copiedId === `${intake.id}:reply` ? 'Copied' : 'Reply'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyText(`${intake.id}:packet`, intake.sparkRoutePacket)}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/20 bg-yellow-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-yellow-300/15"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {copiedId === `${intake.id}:packet` ? 'Copied' : 'Packet'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyText(`${intake.id}:invoice`, intake.invoiceMemo)}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            {copiedId === `${intake.id}:invoice` ? 'Copied' : 'Invoice'}
                           </button>
                         </div>
 
