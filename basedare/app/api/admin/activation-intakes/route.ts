@@ -163,6 +163,17 @@ function buildReplyDraft(input: {
   ].join('\n');
 }
 
+function buildMailtoHref(input: { email: string; subject: string; body: string }) {
+  if (!input.email) return null;
+
+  const query = new URLSearchParams({
+    subject: input.subject,
+    body: input.body,
+  });
+
+  return `mailto:${encodeURIComponent(input.email)}?${query.toString()}`;
+}
+
 function formatPackageLabel(value: string) {
   const labels: Record<string, string> = {
     'pilot-drop': 'Venue Spark Pilot',
@@ -652,6 +663,38 @@ function mapIntakeEvent(event: {
     notes,
     amount,
   });
+  const replyDraft = buildReplyDraft({
+    contactName,
+    company,
+    venue: assignedVenue,
+    city,
+    budgetLabel,
+    timelineLabel,
+  });
+  const sparkRoutePacket = buildSparkRoutePacket({
+    company,
+    contactName,
+    venue: assignedVenue,
+    city,
+    budgetLabel,
+    timelineLabel,
+    packageId,
+    positioningLine,
+    proofLogic,
+    repeatMetric,
+    missionIdeas,
+    creatorRecommendations,
+  });
+  const invoiceMemo = buildInvoiceMemo({
+    id: event.id,
+    company,
+    venue: assignedVenue,
+    city,
+    budgetLabel,
+    packageId,
+    creatorRecommendations,
+  });
+  const subjectTarget = company || assignedVenue || 'activation';
 
   return {
     id: event.id,
@@ -685,43 +728,27 @@ function mapIntakeEvent(event: {
     proofLogic,
     repeatMetric,
     creatorRecommendations,
-    replyDraft: buildReplyDraft({
-      contactName,
-      company,
-      venue: assignedVenue,
-      city,
-      budgetLabel,
-      timelineLabel,
-    }),
-    sparkRoutePacket: buildSparkRoutePacket({
-      company,
-      contactName,
-      venue: assignedVenue,
-      city,
-      budgetLabel,
-      timelineLabel,
-      packageId,
-      positioningLine,
-      proofLogic,
-      repeatMetric,
-      missionIdeas,
-      creatorRecommendations,
-    }),
-    invoiceMemo: buildInvoiceMemo({
-      id: event.id,
-      company,
-      venue: assignedVenue,
-      city,
-      budgetLabel,
-      packageId,
-      creatorRecommendations,
-    }),
+    replyDraft,
+    sparkRoutePacket,
+    invoiceMemo,
     links: {
       createHref,
       scoutHref,
-      mailtoHref: email
-        ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`BaseDare activation: ${company || assignedVenue || 'next steps'}`)}`
-        : null,
+      replyMailtoHref: buildMailtoHref({
+        email,
+        subject: `BaseDare activation: ${subjectTarget} next steps`,
+        body: replyDraft,
+      }),
+      packetMailtoHref: buildMailtoHref({
+        email,
+        subject: `BaseDare Spark Route: ${subjectTarget}`,
+        body: sparkRoutePacket,
+      }),
+      invoiceMailtoHref: buildMailtoHref({
+        email,
+        subject: `BaseDare activation payment memo: ${subjectTarget}`,
+        body: invoiceMemo,
+      }),
     },
   };
 }

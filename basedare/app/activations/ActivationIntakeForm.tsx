@@ -66,7 +66,7 @@ export default function ActivationIntakeForm({
 }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(null);
 
@@ -149,7 +149,7 @@ export default function ActivationIntakeForm({
         throw new Error(payload.error || 'Failed to route activation request');
       }
 
-      setSubmitted(true);
+      setSubmittedId(payload.data?.id || 'received');
       setForm(INITIAL_STATE);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to route activation request');
@@ -158,7 +158,7 @@ export default function ActivationIntakeForm({
     }
   };
 
-  if (submitted) {
+  if (submittedId) {
     return (
       <div className="rounded-[30px] border border-emerald-300/18 bg-emerald-400/[0.07] p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-emerald-200/22 bg-emerald-300/[0.12] text-2xl font-black text-emerald-100">
@@ -172,9 +172,12 @@ export default function ActivationIntakeForm({
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
           BaseDare will reply with the cleanest activation route after review.
         </p>
+        <p className="mx-auto mt-3 max-w-md rounded-2xl border border-emerald-200/12 bg-emerald-300/[0.06] px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
+          Reference: {submittedId === 'received' ? 'received' : submittedId}
+        </p>
         <button
           type="button"
-          onClick={() => setSubmitted(false)}
+          onClick={() => setSubmittedId(null)}
           className="mt-5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:bg-white/[0.08]"
         >
           Submit another

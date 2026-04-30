@@ -82,7 +82,9 @@ type ActivationIntake = {
   links: {
     createHref: string;
     scoutHref: string;
-    mailtoHref: string | null;
+    replyMailtoHref: string | null;
+    packetMailtoHref: string | null;
+    invoiceMailtoHref: string | null;
   };
 };
 
@@ -668,7 +670,7 @@ export default function ActivationIntakesPage() {
                           ))}
                         </div>
 
-                        <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                           <Link
                             href={intake.links.createHref}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
@@ -683,17 +685,30 @@ export default function ActivationIntakesPage() {
                             <UserRoundSearch className="h-4 w-4" />
                             Scout
                           </Link>
-                          {intake.links.mailtoHref ? (
+                          {intake.links.replyMailtoHref ? (
                             <a
-                              href={intake.links.mailtoHref}
+                              href={intake.links.replyMailtoHref}
                               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.1]"
                             >
                               <Mail className="h-4 w-4" />
-                              Email
+                              Email reply
                             </a>
                           ) : (
                             <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
                               No email
+                            </span>
+                          )}
+                          {intake.links.invoiceMailtoHref ? (
+                            <a
+                              href={intake.links.invoiceMailtoHref}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                            >
+                              <DollarSign className="h-4 w-4" />
+                              Email invoice
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                              No invoice
                             </span>
                           )}
                         </div>
