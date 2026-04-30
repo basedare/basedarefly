@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "20.x || 22.x"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev --webpack",
@@ -118,6 +118,7 @@
     }
   },
   "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",
     "lightningcss-linux-x64-gnu": "1.30.2"
   }
 }
