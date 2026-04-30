@@ -1521,13 +1521,7 @@ export default function BrandPortalPage() {
   const showDashboard = mounted && isConnected && !loading && !showRegister;
 
   return (
-    <div
-      className="control-glass-room fixed inset-0 z-[100] overflow-auto bg-[#030305] text-white"
-      style={{
-        filter: 'grayscale(1) contrast(1.05)',
-        WebkitFilter: 'grayscale(1) contrast(1.05)',
-      }}
-    >
+    <div className="control-glass-room fixed inset-0 z-[100] overflow-auto bg-[#030305] text-white">
       <style>{`
         .control-glass-room {
           background:
@@ -1535,6 +1529,8 @@ export default function BrandPortalPage() {
             radial-gradient(circle at 20% 0%, rgba(255,255,255,0.08), transparent 32%),
             radial-gradient(circle at 82% 12%, rgba(255,255,255,0.06), transparent 30%),
             linear-gradient(180deg, #050506 0%, #030305 54%, #000 100%);
+          filter: grayscale(1) contrast(1.05);
+          -webkit-filter: grayscale(1) contrast(1.05);
         }
 
         .control-glass-room header,
@@ -1600,6 +1596,26 @@ export default function BrandPortalPage() {
         .control-glass-room input::placeholder,
         .control-glass-room textarea::placeholder {
           color: rgba(255,255,255,0.32) !important;
+        }
+
+        @media (max-width: 767px) {
+          .control-glass-room {
+            filter: none;
+            -webkit-filter: none;
+          }
+
+          .control-glass-room header,
+          .control-glass-room [class*="bg-white"],
+          .control-glass-room [class*="bg-zinc-50"],
+          .control-glass-room [class*="bg-zinc-100"],
+          .control-glass-room [class*="bg-yellow"],
+          .control-glass-room [class*="bg-purple"],
+          .control-glass-room [class*="bg-cyan"],
+          .control-glass-room [class*="bg-green"],
+          .control-glass-room [class*="bg-emerald"] {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
         }
       `}</style>
       {/* VHS Scan Lines Overlay - old film aesthetic */}

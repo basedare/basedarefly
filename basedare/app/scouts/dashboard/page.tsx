@@ -226,10 +226,10 @@ export default function CreatorRadarPage() {
   ];
 
   return (
-    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 text-white grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
+    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 text-white contrast-110 sm:px-6 md:grayscale md:saturate-0 md:contrast-125 lg:py-12">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_15%_8%,rgba(255,255,255,0.12),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.025),rgba(0,0,0,0.74))]" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.06] bg-black/55 backdrop-blur-2xl" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
 
       <div className="relative z-20 mx-auto max-w-7xl">
         <div className="mb-5 flex items-center justify-between gap-3">

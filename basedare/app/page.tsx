@@ -139,16 +139,22 @@ function HomeContent() {
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
-      <LiquidBackground veilOpacity={0.65} />
+      {view === 'FAN' ? <LiquidBackground veilOpacity={0.65} /> : null}
       {view === 'FAN' ? (
         <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-90 md:block" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.10),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.04),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.04),transparent_22%)] mix-blend-soft-light" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.30)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.40)_100%)]" />
         </div>
       ) : null}
-      <div className="fixed inset-0 z-10 pointer-events-none">
-        <GradualBlurOverlay intensity={view === 'BUSINESS' ? 'light' : 'full'} />
-      </div>
+      {view === 'FAN' ? (
+        <div className="fixed inset-0 z-10 pointer-events-none">
+          <GradualBlurOverlay intensity="full" />
+        </div>
+      ) : (
+        <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
+          <GradualBlurOverlay intensity="light" />
+        </div>
+      )}
       {showViewToggle ? <ViewToggle view={view} setView={handleViewChange} /> : null}
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
@@ -295,8 +301,22 @@ function HomeContent() {
             key="business-view"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            className="w-full min-h-screen flex flex-col items-center -mt-32 pb-24 relative"
+            className="control-mobile-stable w-full min-h-screen flex flex-col items-center -mt-20 pb-20 relative md:-mt-32 md:pb-24"
           >
+            <style jsx global>{`
+              @media (max-width: 767px) {
+                .control-mobile-stable [style*="ferrofluidShift"],
+                .control-mobile-stable [style*="spin"] {
+                  animation: none !important;
+                }
+
+                .control-card-shell {
+                  contain: paint;
+                  transform: translateZ(0);
+                  backface-visibility: hidden;
+                }
+              }
+            `}</style>
             {/* Light Background with Particle Network */}
             <motion.div
               className="fixed inset-0 z-0"
@@ -310,7 +330,7 @@ function HomeContent() {
 
               {/* Particle Network - fades in with delay for hypnotic effect */}
               <motion.div
-                className="absolute inset-0"
+                className="absolute inset-0 hidden md:block"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -334,10 +354,13 @@ function HomeContent() {
 
             {/* Control Mode Selection */}
             <div className="text-center mb-8 relative z-10">
-              <div className="w-full max-w-7xl mx-auto h-[300px] md:h-[500px] lg:h-[600px]">
+              <div className="hidden w-full max-w-7xl mx-auto md:block md:h-[500px] lg:h-[600px]">
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
-              <p className="text-zinc-600 text-lg max-w-md mx-auto -mt-16 md:-mt-32 lg:-mt-40">
+              <h1 className="px-6 pt-32 text-5xl font-black uppercase italic leading-[0.9] tracking-[-0.08em] text-zinc-900 md:hidden">
+                Control Mode
+              </h1>
+              <p className="mx-auto mt-5 max-w-md px-6 text-base font-semibold leading-7 text-zinc-600 md:-mt-32 md:px-0 md:text-lg lg:-mt-40">
                 Real people, real places, real proof. Venues, creators, fans, and brands on one activation grid.
               </p>
             </div>
@@ -355,7 +378,7 @@ function HomeContent() {
               {/* Brand Portal Card - Ferrofluid/Venom Black */}
               <div
                 onClick={() => router.push('/brands/portal')}
-                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
+                className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
               >
                 {/* Ferrofluid Border Effect - organic black liquid metal */}
                 <div
@@ -422,7 +445,7 @@ function HomeContent() {
               {/* Grid Activation OS - public intake / sales path */}
               <div
                 onClick={() => router.push('/activations')}
-                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
+                className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
               >
                 <div
                   className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700 group-hover:opacity-100"
@@ -479,7 +502,7 @@ function HomeContent() {
               {/* Shadow Army Card - Inverted Ferrofluid (Chrome/Mercury) */}
               <div
                 onClick={() => router.push('/scouts/dashboard')}
-                className="group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1"
+                className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
               >
                 {/* Chrome/Mercury Border Effect */}
                 <div
