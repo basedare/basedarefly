@@ -1522,12 +1522,86 @@ export default function BrandPortalPage() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto"
+      className="control-glass-room fixed inset-0 z-[100] overflow-auto bg-[#030305] text-white"
       style={{
         filter: 'grayscale(1) contrast(1.05)',
         WebkitFilter: 'grayscale(1) contrast(1.05)',
       }}
     >
+      <style>{`
+        .control-glass-room {
+          background:
+            radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0) 0 0 / 112px 112px,
+            radial-gradient(circle at 20% 0%, rgba(255,255,255,0.08), transparent 32%),
+            radial-gradient(circle at 82% 12%, rgba(255,255,255,0.06), transparent 30%),
+            linear-gradient(180deg, #050506 0%, #030305 54%, #000 100%);
+        }
+
+        .control-glass-room header,
+        .control-glass-room [class*="bg-white"],
+        .control-glass-room [class*="bg-zinc-50"],
+        .control-glass-room [class*="bg-zinc-100"],
+        .control-glass-room [class*="bg-yellow"],
+        .control-glass-room [class*="bg-purple"],
+        .control-glass-room [class*="bg-cyan"],
+        .control-glass-room [class*="bg-green"],
+        .control-glass-room [class*="bg-emerald"] {
+          background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.026) 18%, rgba(7,7,10,0.84) 100%) !important;
+          border-color: rgba(255,255,255,0.1) !important;
+          box-shadow:
+            0 18px 42px rgba(0,0,0,0.24),
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            inset 0 -12px 18px rgba(0,0,0,0.22) !important;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .control-glass-room [class*="bg-zinc-950"],
+        .control-glass-room [class*="bg-zinc-900"] {
+          background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.86)) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+        }
+
+        .control-glass-room [class*="border-zinc"],
+        .control-glass-room [class*="border-yellow"],
+        .control-glass-room [class*="border-purple"],
+        .control-glass-room [class*="border-cyan"],
+        .control-glass-room [class*="border-green"],
+        .control-glass-room [class*="border-emerald"] {
+          border-color: rgba(255,255,255,0.12) !important;
+        }
+
+        .control-glass-room [class*="text-zinc-950"],
+        .control-glass-room [class*="text-zinc-900"],
+        .control-glass-room [class*="text-zinc-800"],
+        .control-glass-room [class*="text-yellow"],
+        .control-glass-room [class*="text-purple"],
+        .control-glass-room [class*="text-cyan"],
+        .control-glass-room [class*="text-green"],
+        .control-glass-room [class*="text-emerald"] {
+          color: rgba(255,255,255,0.94) !important;
+        }
+
+        .control-glass-room [class*="text-zinc-700"],
+        .control-glass-room [class*="text-zinc-600"],
+        .control-glass-room [class*="text-zinc-500"],
+        .control-glass-room [class*="text-zinc-400"] {
+          color: rgba(255,255,255,0.58) !important;
+        }
+
+        .control-glass-room input,
+        .control-glass-room textarea,
+        .control-glass-room select {
+          background: rgba(0,0,0,0.34) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+          color: rgba(255,255,255,0.94) !important;
+        }
+
+        .control-glass-room input::placeholder,
+        .control-glass-room textarea::placeholder {
+          color: rgba(255,255,255,0.32) !important;
+        }
+      `}</style>
       {/* VHS Scan Lines Overlay - old film aesthetic */}
       <div
         className="fixed inset-0 z-[200] pointer-events-none opacity-[0.03]"
@@ -1547,7 +1621,7 @@ export default function BrandPortalPage() {
 
       {/* Control mode particle background - rendered once, persists across all states */}
       <div className="fixed inset-0 z-0">
-        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(255, 255, 255, 0.42)" lineColor="rgba(255, 255, 255," speed={0.25} />
       </div>
 
       {/* Pre-hydration skeleton */}
