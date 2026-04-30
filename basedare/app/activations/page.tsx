@@ -7,9 +7,9 @@ import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 
 export const metadata: Metadata = {
-  title: 'Paid Creator Activations | BaseDare',
+  title: 'Venue Spark Activations | BaseDare',
   description:
-    'Launch verified creator activations for venues, brands, and events with bounty-funded proof, payout rails, and repeatable reporting.',
+    'Launch global real-world creator activations with venue visibility, QR check-ins, proof receipts, payout rails, and repeatable reporting.',
 };
 
 const raisedPanelClass =
@@ -22,55 +22,62 @@ const insetCardClass =
 const packages = [
   {
     id: 'pilot-drop',
-    name: 'Pilot Drop',
-    price: '$500-$1.5k',
-    bestFor: 'First paid test',
-    detail: 'One venue or event, one clear creator brief, one proof loop, and a compact result readout.',
-    includes: ['1 venue target', '1-2 creator attempts', 'verified proof', 'operator recap'],
+    name: 'Venue Spark Pilot',
+    price: '$749+',
+    bestFor: 'First venue proof',
+    detail: 'One real venue, one tight creator brief, QR/check-in tracking, proof media, and a simple result receipt.',
+    includes: ['global venue target', '3-5 creator missions', 'QR + proof tracking', 'Spark receipt'],
   },
   {
     id: 'local-signal',
-    name: 'Local Signal',
-    price: '$1.5k-$5k',
-    bestFor: 'Repeatable local activation',
-    detail: 'A stronger activation sprint with creator routing, venue memory, proof clips, and next-campaign recommendation.',
-    includes: ['3-6 creator attempts', 'venue signal tracking', 'proof and payout ops', 'repeat playbook'],
+    name: 'Always-On Spark',
+    price: '$1.5k-$5k/mo',
+    bestFor: 'Recurring venue spend',
+    detail: 'Ongoing creator missions, venue memory, map visibility, monthly proof receipts, and repeat recommendations.',
+    includes: ['priority venue visibility', 'creator routing', 'monthly receipt', 'repeat playbook'],
     featured: true,
   },
   {
     id: 'city-takeover',
-    name: 'City Takeover',
+    name: 'Global Challenge Drop',
     price: '$5k+',
-    bestFor: 'Launches and event pushes',
-    detail: 'Multi-creator or multi-venue activation design for bigger moments where the result needs to be visible.',
-    includes: ['custom challenge design', 'district or event route', 'creator shortlist', 'campaign report'],
+    bestFor: 'Brands, fans, events',
+    detail: 'A bigger funded challenge across one venue, creator, island, district, event, or online community.',
+    includes: ['custom challenge design', 'fan or sponsor funding', 'creator shortlist', 'campaign report'],
   },
 ];
 
 const proofLoop = [
   {
-    title: 'Fund the challenge',
-    detail: 'A venue, brand, or sponsor funds creator payouts plus the BaseDare activation fee.',
+    title: 'Fund the signal',
+    detail: 'A venue, brand, sponsor, or fan funds creator payouts plus the BaseDare activation fee.',
   },
   {
-    title: 'Route the creator',
-    detail: 'BaseDare matches the brief to creator identity, venue fit, and proof history.',
+    title: 'Move real people',
+    detail: 'Creators get routed toward a place, brief, product moment, or fan-funded mission.',
   },
   {
-    title: 'Verify the output',
-    detail: 'Proof, location context, moderation, and payout state live in the same loop.',
+    title: 'Verify the action',
+    detail: 'Proof, QR/check-in signal, location context, moderation, and payout state live in the same loop.',
   },
   {
-    title: 'Sell the repeat',
-    detail: 'The buyer gets a result receipt: creators, proofs, check-ins, spend, and next move.',
+    title: 'Show the receipt',
+    detail: 'The buyer gets a Spark Receipt: creators, proofs, check-ins, spend, content, and next move.',
   },
 ];
 
 const buyerMetrics = [
-  { label: 'Creator payout pool', value: '$500+' },
-  { label: 'BaseDare fee', value: '25-35%' },
-  { label: 'Best wedge', value: 'Venues' },
-  { label: 'Output', value: 'Verified content' },
+  { label: 'Global surface', value: 'Any city' },
+  { label: 'Best paid wedge', value: 'Venues' },
+  { label: 'Other buyers', value: 'Fans + brands' },
+  { label: 'Output', value: 'Proof receipt' },
+];
+
+const sparkReceipt = [
+  ['Creator output', 'Approved proof clips, photos, and captions the venue can repost.'],
+  ['Presence signal', 'QR scans, check-ins, proof timestamps, and venue memory activity.'],
+  ['Map visibility', 'The venue lights up as an active place instead of a passive pin.'],
+  ['Repeat decision', 'A clear next move: repeat, route creator, increase reward, or sponsor a bigger drop.'],
 ];
 
 export default function ActivationsPage() {
@@ -90,14 +97,15 @@ export default function ActivationsPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
                 <BadgeDollarSign className="h-4 w-4" />
-                Revenue mode
+                Global venue spark
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
-                Paid creator activations with proof attached.
+                Real people. Real places. Real proof.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/64 sm:text-lg">
-                BaseDare turns a marketing budget into verified creator dares: people show up, create proof,
-                get paid, and the buyer gets a repeatable result receipt instead of a vague influencer post.
+                BaseDare turns creator marketing into a verified venue activation: creators show up, fans or
+                buyers fund the mission, proof gets checked, and the venue gets a Spark Receipt instead of vague
+                influencer promises.
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -105,14 +113,14 @@ export default function ActivationsPage() {
                   href="#activation-intake"
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-yellow-200/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.95)_0%,rgba(202,138,4,0.96)_100%)] px-6 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_16px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.38)] transition hover:-translate-y-0.5"
                 >
-                  Start paid activation
+                  Launch Venue Spark
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <Link
                   href="/brands/portal"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
-                  Open brand portal
+                  Fund a challenge
                 </Link>
               </div>
             </div>
@@ -130,11 +138,11 @@ export default function ActivationsPage() {
               <div className={`${insetCardClass} mt-4 px-4 py-4`}>
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/70">
                   <ShieldCheck className="h-4 w-4" />
-                  Buyer receipt
+                  Venue Spark Receipt
                 </div>
                 <p className="mt-3 text-sm leading-6 text-white/62">
-                  Every paid activation should end with the same core receipt: spend, creator output,
-                  verified proof, venue or audience signal, payout state, and the next activation recommendation.
+                  This is the killer product for venues: proof that people came in, creators made usable content,
+                  the map created visible signal, and the next marketing spend has a reason to exist.
                 </p>
               </div>
             </div>
@@ -175,18 +183,20 @@ export default function ActivationsPage() {
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/70">
               <BarChart3 className="h-4 w-4" />
-              Monetization loop
+              Venue ROI layer
             </div>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">What we sell.</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">The wedge is venues. The network stays open.</h2>
             <p className="mt-3 text-sm leading-6 text-white/58">
-              Not impressions. Not generic creator access. BaseDare sells a funded challenge loop where
-              buyer spend becomes verified action, proof media, and a reason to run the next activation.
+              We are not shrinking BaseDare into a local venue SaaS. The global challenge network stays open:
+              fans can fund creators, brands can sponsor missions, and venues are the cleanest recurring buyer
+              because they need proof their marketing moved real-world behavior.
             </p>
             <div className="mt-5 grid gap-3">
               {[
-                ['Venues', 'Measurable foot traffic, creator visits, repeat night energy.'],
-                ['Brands', 'Competitive creator output tied to a product, event, or launch.'],
-                ['Agencies', 'A proof-and-payout rail for local creator campaigns.'],
+                ['Venues', 'Buy measurable creator visits, QR/check-in signal, owned UGC, and repeat traffic.'],
+                ['Fans', 'Fund creator dares and make favorite creators move, film, compete, or prove something.'],
+                ['Brands', 'Sponsor real-world creator output tied to a product, event, launch, or territory.'],
+                ['Creators', 'Earn from approved proof and build a venue reputation graph that follows them globally.'],
               ].map(([label, detail]) => (
                 <div key={label} className={`${insetCardClass} px-4 py-4`}>
                   <div className="text-sm font-black text-white">{label}</div>
@@ -200,22 +210,35 @@ export default function ActivationsPage() {
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
             <div className="inline-flex items-center gap-2 rounded-full border border-purple-200/18 bg-purple-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-purple-100/70">
               <Sparkles className="h-4 w-4" />
-              Activation proof loop
+              What venues actually receive
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {proofLoop.map((step, index) => (
-                <div key={step.title} className={`${insetCardClass} px-4 py-4`}>
+              {sparkReceipt.map(([label, detail], index) => (
+                <div key={label} className={`${insetCardClass} px-4 py-4`}>
                   <div className="flex items-center gap-2">
                     <div className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black text-white">
                       {index + 1}
                     </div>
-                    <div className="text-sm font-black text-white">{step.title}</div>
+                    <div className="text-sm font-black text-white">{label}</div>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-white/54">{step.detail}</p>
+                  <p className="mt-3 text-sm leading-6 text-white/54">{detail}</p>
                 </div>
               ))}
             </div>
           </div>
+        </section>
+
+        <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {proofLoop.map((step, index) => (
+            <div key={step.title} className={`${softCardClass} p-5`}>
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <div className="grid h-9 w-9 place-items-center rounded-full border border-yellow-200/16 bg-yellow-300/[0.08] text-xs font-black text-yellow-100">
+                {index + 1}
+              </div>
+              <h3 className="mt-4 text-lg font-black text-white">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/54">{step.detail}</p>
+            </div>
+          ))}
         </section>
 
         <section id="activation-intake" className="mt-8 grid gap-6 lg:grid-cols-[0.84fr_1.16fr]">
@@ -223,12 +246,13 @@ export default function ActivationsPage() {
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/78">
               <Users className="h-4 w-4" />
-              Buyer qualification
+              Pilot qualification
             </div>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">Tell us what should happen.</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">Tell us what should happen anywhere.</h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
               The fastest paid path is a narrow pilot: one buyer, one venue or event, one proof target,
-              one budget, and one repeat decision after the receipt.
+              one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the
+              model is the same.
             </p>
             <div className="mt-5 space-y-3">
               {[

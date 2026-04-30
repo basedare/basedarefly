@@ -338,7 +338,7 @@ function HomeContent() {
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
               <p className="text-zinc-600 text-lg max-w-md mx-auto -mt-16 md:-mt-32 lg:-mt-40">
-                Venue activations, creator routing, and proof you can sell.
+                Real people, real places, real proof. Venue visibility and fan-funded creator dares on one grid.
               </p>
             </div>
 
@@ -390,17 +390,17 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <div className="text-4xl mb-4">🏢</div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Paid Activations</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Venue Spark</h2>
                     <p className="text-zinc-500 mb-4">
-                      Package a venue or brand budget into verified creator output, proof, and repeatable reporting.
+                      Turn a venue or brand budget into creator visits, QR/check-in signal, owned content, and a proof receipt.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Pilot Pricing</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Venue Activation</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">ROI Proof</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Global Pilot</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">QR Check-ins</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Spark Receipt</span>
                     </div>
                     <div className="mt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
-                      View Packages
+                      Launch Spark
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>

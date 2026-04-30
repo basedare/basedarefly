@@ -86,7 +86,7 @@ export default function ActivationIntakeForm() {
         </div>
         <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">Activation signal received.</h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
-          We routed this into the operator loop. Next step is qualifying the venue, budget, creator fit, and proof target.
+          We routed this into the operator loop. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt.
         </p>
         <button
           type="button"
@@ -178,7 +178,7 @@ export default function ActivationIntakeForm() {
             value={form.city}
             onChange={(event) => updateField('city', event.target.value)}
             className={inputClass}
-            placeholder="Sydney, Siargao, London"
+            placeholder="Siargao, London, NYC, Sydney"
           />
         </div>
       </div>
@@ -227,9 +227,9 @@ export default function ActivationIntakeForm() {
             onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="pilot-drop">Pilot Drop</option>
-            <option className="bg-[#080814]" value="local-signal">Local Signal</option>
-            <option className="bg-[#080814]" value="city-takeover">City Takeover</option>
+            <option className="bg-[#080814]" value="pilot-drop">Venue Spark Pilot</option>
+            <option className="bg-[#080814]" value="local-signal">Always-On Spark</option>
+            <option className="bg-[#080814]" value="city-takeover">Global Challenge Drop</option>
           </select>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function ActivationIntakeForm() {
           value={form.notes}
           onChange={(event) => updateField('notes', event.target.value)}
           className={`${inputClass} min-h-32 resize-none leading-6`}
-          placeholder="Example: We want 3 creators to visit Friday night, post proof, and show whether BaseDare can move local traffic."
+          placeholder="Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity."
         />
       </div>
 
