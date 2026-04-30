@@ -600,7 +600,7 @@ ${activationBrief ? `\n<b>Activation Brief</b>\n${escapeHtml(compactText(activat
 ${missionPreview ? `\n${missionPreview}` : ''}
 Lead: <code>${escapeHtml(data.leadId)}</code>
 
-${htmlLink(appUrl('/admin/daily-command-loop'), 'Open command loop')} · ${htmlLink(appUrl('/activations'), 'View offer page')} · ${htmlLink(appUrl('/brands/portal'), 'Open brand portal')}
+${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.leadId)}`), 'Open intake queue')} · ${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')} · ${htmlLink(appUrl('/brands/portal'), 'Brand portal')}
 `.trim();
 
   return sendMessage(message);

@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         amount,
         status: 'NEW',
         actor: input.email.toLowerCase(),
-        href: '/admin/daily-command-loop',
+        href: '/admin/activation-intakes',
         metadataJson: {
           company,
           contactName,

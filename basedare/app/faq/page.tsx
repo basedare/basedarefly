@@ -94,7 +94,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is Pilot Qualification a real feature or just a contact form?",
-    a: "It is a real intake route. Submitting Pilot Qualification creates an **ACTIVATION_INTAKE** ops event, stores the Brand Memory and activation brief, and sends a Telegram alert to the BaseDare operator loop. It does **not** auto-approve spend or launch a paid campaign by itself yet. Human approval still happens before money moves."
+    a: "It is a real intake route. Submitting Pilot Qualification creates an **ACTIVATION_INTAKE** ops event, stores the Brand Memory and activation brief, sends a Telegram alert, and drops the lead into the admin activation queue for qualification. It does **not** auto-approve spend or launch a paid campaign by itself yet. Human approval still happens before money moves."
   },
   {
     q: "Can brands start campaigns inside Telegram?",

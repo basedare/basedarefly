@@ -166,7 +166,11 @@ export default function ActivationIntakeForm({
         </div>
         <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">Activation signal received.</h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
-          We routed this into the operator loop. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt.
+          We routed this into the operator queue. Next step is qualifying the city, venue, creator fit,
+          proof target, and Spark Receipt before any paid campaign moves.
+        </p>
+        <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
+          BaseDare will reply with the cleanest activation route after review.
         </p>
         <button
           type="button"
