@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Loader2, Send, Sparkles } from 'lucide-react';
-import SquircleButton from '@/components/ui/SquircleButton';
 import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
 
 type IntakeState = {
@@ -49,14 +47,42 @@ const INITIAL_STATE: IntakeState = {
 };
 
 const inputClass =
-  'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
-const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
+  'w-full rounded-[14px] border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-500 focus:bg-white';
+const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500';
 
-export default function ActivationIntakeForm() {
+type ActivationIntakeFormProps = {
+  routedCreator?: string | null;
+};
+
+export default function ActivationIntakeForm({ routedCreator }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const routedCreatorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!routedCreator) return;
+
+    const normalizedCreator = routedCreator.startsWith('@') ? routedCreator : `@${routedCreator}`;
+    if (routedCreatorRef.current === normalizedCreator) return;
+
+    routedCreatorRef.current = normalizedCreator;
+    setForm((current) => {
+      if (current.notes.includes(normalizedCreator)) return current;
+
+      return {
+        ...current,
+        notes: [
+          current.notes.trim(),
+          `Preferred creator: ${normalizedCreator}`,
+          'Source: Creator Radar',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      };
+    });
+  }, [routedCreator]);
 
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -107,18 +133,18 @@ export default function ActivationIntakeForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-[30px] border border-emerald-300/18 bg-emerald-400/[0.07] p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-emerald-200/22 bg-emerald-300/[0.12] text-2xl font-black text-emerald-100">
+      <div className="rounded-[24px] border border-zinc-200 bg-white p-6 text-center shadow-[0_18px_50px_rgba(12,12,16,0.06)]">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-zinc-300 bg-zinc-100 text-2xl font-black text-zinc-800">
           OK
         </div>
-        <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">Activation signal received.</h3>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
+        <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-zinc-950">Activation signal received.</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">
           We routed this into the operator loop. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt.
         </p>
         <button
           type="button"
           onClick={() => setSubmitted(false)}
-          className="mt-5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:bg-white/[0.08]"
+          className="mt-5 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-700 transition hover:border-zinc-400"
         >
           Submit another
         </button>
@@ -191,11 +217,11 @@ export default function ActivationIntakeForm() {
             onChange={(event) => updateField('buyerType', event.target.value as IntakeState['buyerType'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="venue">Venue / local business</option>
-            <option className="bg-[#080814]" value="brand">Brand</option>
-            <option className="bg-[#080814]" value="agency">Agency</option>
-            <option className="bg-[#080814]" value="event">Event organizer</option>
-            <option className="bg-[#080814]" value="other">Other</option>
+            <option className="bg-white" value="venue">Venue / local business</option>
+            <option className="bg-white" value="brand">Brand</option>
+            <option className="bg-white" value="agency">Agency</option>
+            <option className="bg-white" value="event">Event organizer</option>
+            <option className="bg-white" value="other">Other</option>
           </select>
         </div>
         <div>
@@ -228,10 +254,10 @@ export default function ActivationIntakeForm() {
             onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="500_1500">$500-$1.5k</option>
-            <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k</option>
-            <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
-            <option className="bg-[#080814]" value="15000_plus">$15k+</option>
+            <option className="bg-white" value="500_1500">$500-$1.5k</option>
+            <option className="bg-white" value="1500_5000">$1.5k-$5k</option>
+            <option className="bg-white" value="5000_15000">$5k-$15k</option>
+            <option className="bg-white" value="15000_plus">$15k+</option>
           </select>
         </div>
         <div>
@@ -241,10 +267,10 @@ export default function ActivationIntakeForm() {
             onChange={(event) => updateField('timeline', event.target.value as IntakeState['timeline'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="this_week">This week</option>
-            <option className="bg-[#080814]" value="this_month">This month</option>
-            <option className="bg-[#080814]" value="next_90_days">Next 90 days</option>
-            <option className="bg-[#080814]" value="exploring">Exploring</option>
+            <option className="bg-white" value="this_week">This week</option>
+            <option className="bg-white" value="this_month">This month</option>
+            <option className="bg-white" value="next_90_days">Next 90 days</option>
+            <option className="bg-white" value="exploring">Exploring</option>
           </select>
         </div>
         <div>
@@ -254,9 +280,9 @@ export default function ActivationIntakeForm() {
             onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="pilot-drop">Venue Spark Pilot</option>
-            <option className="bg-[#080814]" value="local-signal">Always-On Spark</option>
-            <option className="bg-[#080814]" value="city-takeover">Global Challenge Drop</option>
+            <option className="bg-white" value="pilot-drop">Venue Spark Pilot</option>
+            <option className="bg-white" value="local-signal">Always-On Spark</option>
+            <option className="bg-white" value="city-takeover">Global Challenge Drop</option>
           </select>
         </div>
       </div>
@@ -268,23 +294,23 @@ export default function ActivationIntakeForm() {
           onChange={(event) => updateField('goal', event.target.value as IntakeState['goal'])}
           className={inputClass}
         >
-          <option className="bg-[#080814]" value="foot_traffic">Move people to a place</option>
-          <option className="bg-[#080814]" value="ugc">Get verified creator content</option>
-          <option className="bg-[#080814]" value="launch">Launch product / venue</option>
-          <option className="bg-[#080814]" value="event">Drive event energy</option>
-          <option className="bg-[#080814]" value="repeat_visits">Increase repeat visits</option>
-          <option className="bg-[#080814]" value="other">Other</option>
+          <option className="bg-white" value="foot_traffic">Move people to a place</option>
+          <option className="bg-white" value="ugc">Get verified creator content</option>
+          <option className="bg-white" value="launch">Launch product / venue</option>
+          <option className="bg-white" value="event">Drive event energy</option>
+          <option className="bg-white" value="repeat_visits">Increase repeat visits</option>
+          <option className="bg-white" value="other">Other</option>
         </select>
       </div>
 
-      <div className="rounded-[28px] border border-purple-200/14 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_16%,rgba(7,6,14,0.78))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.22)] sm:p-5">
+      <div className="rounded-[24px] border border-zinc-200 bg-zinc-50/86 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)] sm:p-5">
         <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-purple-200/18 bg-purple-300/[0.1] text-purple-100">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-zinc-300 bg-white text-zinc-700">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-purple-100/70">Brand Memory</p>
-            <p className="mt-1 text-sm leading-6 text-white/58">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Brand Memory</p>
+            <p className="mt-1 text-sm leading-6 text-zinc-600">
               Give the activation a human story. AI proposes the brief, humans approve it, creators perform it, and the Grid remembers.
             </p>
           </div>
@@ -347,25 +373,25 @@ export default function ActivationIntakeForm() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-[22px] border border-white/[0.08] bg-black/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">Activation brief preview</p>
-          <p className="mt-2 text-sm font-black leading-6 text-white">{storyBrief.positioningLine}</p>
-          <p className="mt-2 text-xs leading-5 text-white/52">{storyBrief.creatorBrief}</p>
+        <div className="mt-4 rounded-[18px] border border-zinc-200 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Activation brief preview</p>
+          <p className="mt-2 text-sm font-black leading-6 text-zinc-950">{storyBrief.positioningLine}</p>
+          <p className="mt-2 text-xs leading-5 text-zinc-600">{storyBrief.creatorBrief}</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <div className="rounded-[18px] border border-cyan-200/[0.1] bg-cyan-300/[0.045] p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/62">Proof logic</p>
-              <p className="mt-2 text-xs leading-5 text-white/54">{storyBrief.proofLogic}</p>
+            <div className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Proof logic</p>
+              <p className="mt-2 text-xs leading-5 text-zinc-600">{storyBrief.proofLogic}</p>
             </div>
-            <div className="rounded-[18px] border border-yellow-200/[0.1] bg-yellow-300/[0.045] p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-100/66">Repeat trigger</p>
-              <p className="mt-2 text-xs leading-5 text-white/54">{storyBrief.repeatMetric}</p>
+            <div className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">Repeat trigger</p>
+              <p className="mt-2 text-xs leading-5 text-zinc-600">{storyBrief.repeatMetric}</p>
             </div>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             {storyBrief.missionIdeas.map((mission) => (
-              <div key={mission.title} className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] p-3">
-                <p className="text-xs font-black text-white">{mission.title}</p>
-                <p className="mt-2 text-xs leading-5 text-white/50">{mission.detail}</p>
+              <div key={mission.title} className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
+                <p className="text-xs font-black text-zinc-950">{mission.title}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-600">{mission.detail}</p>
               </div>
             ))}
           </div>
@@ -373,7 +399,7 @@ export default function ActivationIntakeForm() {
             {storyBrief.proofChecklist.slice(0, 4).map((item) => (
               <span
                 key={item}
-                className="rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/42"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500"
               >
                 {item}
               </span>
@@ -393,25 +419,21 @@ export default function ActivationIntakeForm() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-300/18 bg-red-500/[0.08] px-4 py-3 text-sm font-bold text-red-100">
+        <div className="rounded-2xl border border-zinc-400 bg-zinc-100 px-4 py-3 text-sm font-bold text-zinc-900">
           {error}
         </div>
       ) : null}
 
-      <SquircleButton
+      <button
         type="submit"
         disabled={submitting}
-        tone="yellow"
-        label={submitting ? 'Routing request' : 'Route activation request'}
-        fullWidth
-        height={48}
-        className="w-full"
+        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-zinc-950 px-5 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_18px_34px_rgba(15,23,42,0.18)] transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className="flex items-center justify-center gap-2 text-[0.76rem] font-black uppercase tracking-[0.1em] text-[#15120c] sm:text-[0.82rem]">
+        <span className="flex items-center justify-center gap-2 text-[0.76rem] font-black uppercase tracking-[0.1em] sm:text-[0.82rem]">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {submitting ? 'Routing request' : 'Route activation request'}
         </span>
-      </SquircleButton>
+      </button>
     </form>
   );
 }

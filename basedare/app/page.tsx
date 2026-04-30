@@ -524,19 +524,19 @@ function HomeContent() {
                   <div className="relative z-10 flex h-full flex-col">
                     <div className="text-4xl mb-4">🕵️</div>
                     <div className="mb-3 inline-flex rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">
-                      Creator supply
+                      Creator radar
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Scout Creators</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Creator Radar</h2>
                     <p className="text-zinc-400 mb-4">
-                      Build supply only when you need it: scout creators, claim bounty slots, and route credible operators.
+                      Compare creator trust, reviews, venue reach, first marks, and proof history before routing a campaign.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-cyan-200/20 text-cyan-100/80 rounded">Bounty Board</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Discovery</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Active</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-cyan-200/20 text-cyan-100/80 rounded">Trust</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Reviews</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-300 rounded">Venue Reach</span>
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-cyan-100 font-semibold group-hover:text-white transition-colors duration-500">
-                      Open Scout Layer
+                      Open Creator Radar
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>

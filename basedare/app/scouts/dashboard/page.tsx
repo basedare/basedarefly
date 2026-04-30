@@ -1,732 +1,495 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAccount, useConnect } from 'wagmi';
-import { getPreferredWalletConnector } from '@/lib/wallet-connect';
+import type { CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import ParticleNetwork from '@/components/ParticleNetwork';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  DollarSign,
+  MapPin,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Trophy,
+  Users,
+} from 'lucide-react';
+import LiquidBackground from '@/components/LiquidBackground';
+import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 
-// ============================================================================
-// SHADOW ARMY - SCOUT DASHBOARD
-// The Bounty Board for Archons to hunt and claim slots
-// ============================================================================
-
-interface Scout {
-  id: string;
-  walletAddress: string;
-  handle: string | null;
-  reputationScore: number;
-  totalCampaigns: number;
-  successfulSlots: number;
-  failedSlots: number;
-  tier: string;
-  totalDiscoveryRake: number;
-  totalActiveRake: number;
-  discoveredCreators: ScoutCreator[];
-  activeCreators: ScoutCreator[];
-  slots: ScoutSlot[];
-}
-
-interface ScoutCreator {
-  id: string;
-  creatorAddress: string;
-  creatorHandle: string | null;
-  lastActiveAt: string;
-  totalCompletions: number;
-  bindingStatus: string;
-}
-
-interface ScoutSlot {
-  id: string;
-  creatorHandle: string | null;
+type Creator = {
+  tag: string;
+  totalEarned: number;
+  completedDares: number;
   status: string;
-  totalPayout: number | null;
-  campaign: {
-    title: string;
-    tier: string;
-    status: string;
-    syncTime: string | null;
+  tags?: string[];
+  pfpUrl?: string | null;
+  pfpScale?: number | null;
+  pfpOffsetX?: number | null;
+  pfpOffsetY?: number | null;
+  reviews?: {
+    count: number;
+    averageRating: number | null;
+  };
+  trust?: {
+    level: number;
+    label: string;
+    score: number;
+  };
+  stats?: {
+    approved: number;
+    payoutQueued: number;
+    live: number;
+    acceptRate: number;
+  };
+  businessMetrics?: {
+    venueReach: number;
+    firstMarks: number;
+  };
+};
+
+type FilterMode = 'all' | 'verified' | 'venue' | 'reviewed';
+type SortMode = 'trust' | 'venue' | 'reviews' | 'earned' | 'dares';
+
+const raisedPanelClass =
+  'relative overflow-hidden rounded-[32px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,10,13,0.93)_58%,rgba(4,4,6,0.98)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
+
+const softCardClass =
+  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,13,0.94)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
+
+const insetCardClass =
+  'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,8,0.74)_0%,rgba(11,11,14,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+function plainCreatorTag(tag: string): string {
+  return tag.replace(/^@/, '').trim().toLowerCase();
+}
+
+function displayCreatorTag(tag: string): string {
+  const trimmed = tag.trim();
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getAvatarStyle(creator: Creator): CSSProperties {
+  const scale = clamp(creator.pfpScale ?? 1, 1, 2.5);
+  const offsetX = clamp(creator.pfpOffsetX ?? 50, 0, 100);
+  const offsetY = clamp(creator.pfpOffsetY ?? 50, 0, 100);
+
+  return {
+    objectPosition: `${offsetX}% ${offsetY}%`,
+    transform: `scale(${scale})`,
+    transformOrigin: 'center center',
   };
 }
 
-interface Campaign {
-  id: string;
-  shortId: string;
-  tier: string;
-  title: string;
-  description: string | null;
-  budgetUsdc: number;
-  creatorCountTarget: number;
-  payoutPerCreator: number;
-  status: string;
-  syncTime: string | null;
-  windowHours: number;
-  strikeWindowMinutes: number;
-  precisionMultiplier: number;
-  targetingCriteria: string;
-  brand: {
-    name: string;
-    logo: string | null;
-  };
-  slotCounts: {
-    total: number;
-    open: number;
-    claimed: number;
-    assigned: number;
-    completed: number;
-  };
+function formatUsd(value: number): string {
+  if (value >= 1000) return `$${Math.round(value / 100) / 10}k`;
+  return `$${Math.round(value)}`;
 }
 
-const TIER_COLORS = {
-  BLOODHOUND: 'from-zinc-500 to-zinc-600',
-  ARBITER: 'from-blue-500 to-blue-600',
-  ARCHON: 'from-purple-500 to-pink-500',
-};
-
-const TIER_BADGES = {
-  BLOODHOUND: '🐕',
-  ARBITER: '⚖️',
-  ARCHON: '👑',
-};
-
-const CAMPAIGN_TIER_COLORS = {
-  SIP_MENTION: 'bg-zinc-600',
-  SIP_SHILL: 'bg-blue-600',
-  CHALLENGE: 'bg-purple-600',
-  APEX: 'bg-amber-500',
-};
-
-export default function ScoutDashboardPage() {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-
-  // Hydration guard to prevent SSR/client mismatch flickering
-  const [mounted, setMounted] = useState(false);
-
-  const [scout, setScout] = useState<Scout | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'bounties' | 'creators' | 'activity'>('bounties');
-  const [claimingSlot, setClaimingSlot] = useState<string | null>(null);
-
-  // Claim form state
-  const [claimForm, setClaimForm] = useState({
-    creatorAddress: '',
-    creatorHandle: '',
-    creatorFollowers: 10000,
-    claimRationale: '',
+function buildCreateHref(creator: Creator): string {
+  const params = new URLSearchParams({
+    streamer: displayCreatorTag(creator.tag),
+    source: 'control',
   });
+  return `/create?${params.toString()}`;
+}
 
-  // Mark as mounted after hydration
+function buildActivationHref(creator: Creator): string {
+  const params = new URLSearchParams({
+    creator: displayCreatorTag(creator.tag),
+    source: 'creator-radar',
+  });
+  return `/activations?${params.toString()}#activation-intake`;
+}
+
+function creatorScore(creator: Creator): number {
+  return (
+    (creator.trust?.score ?? 0) +
+    (creator.businessMetrics?.venueReach ?? 0) * 9 +
+    (creator.businessMetrics?.firstMarks ?? 0) * 6 +
+    (creator.reviews?.count ?? 0) * 3 +
+    Math.min(creator.completedDares, 20) * 2
+  );
+}
+
+export default function CreatorRadarPage() {
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('trust');
+
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    let cancelled = false;
 
-  // Fetch scout and open campaigns
-  useEffect(() => {
-    if (!isConnected || !address) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
+    async function loadCreators() {
       try {
-        // Fetch or create scout
-        let scoutRes = await fetch(`/api/scouts?wallet=${address}`);
-        let scoutData = await scoutRes.json();
+        const response = await fetch('/api/creators', { cache: 'no-store' });
+        const payload = await response.json();
 
-        if (!scoutData.success && scoutData.code === 'NOT_FOUND') {
-          // Auto-register scout
-          scoutRes = await fetch('/api/scouts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ walletAddress: address }),
-          });
-          scoutData = await scoutRes.json();
-        }
-
-        if (scoutData.success) {
-          setScout(scoutData.data);
-        }
-
-        // Fetch open campaigns (recruiting)
-        const campaignsRes = await fetch('/api/campaigns?forScouts=true');
-        const campaignsData = await campaignsRes.json();
-
-        if (campaignsData.success) {
-          setCampaigns(campaignsData.data);
+        if (!cancelled && payload.success) {
+          setCreators(payload.data ?? []);
         }
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Failed to load creator radar', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
+    }
+
+    void loadCreators();
+
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    fetchData();
-  }, [isConnected, address]);
+  const visibleCreators = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
 
-  const handleClaimSlot = async (campaignId: string) => {
-    if (!address || !claimForm.creatorAddress || !claimForm.creatorHandle) {
-      alert('Please fill in creator details');
-      return;
-    }
+    const filtered = creators.filter((creator) => {
+      const tag = creator.tag.toLowerCase();
+      const tags = creator.tags?.map((item) => item.toLowerCase()) ?? [];
+      const matchesQuery =
+        !normalizedQuery ||
+        tag.includes(normalizedQuery) ||
+        tags.some((item) => item.includes(normalizedQuery));
 
-    try {
-      const res = await fetch(`/api/campaigns/${campaignId}/slots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scoutWallet: address,
-          ...claimForm,
-        }),
-      });
+      if (!matchesQuery) return false;
+      if (filterMode === 'verified') return creator.status === 'VERIFIED';
+      if (filterMode === 'venue') return (creator.businessMetrics?.venueReach ?? 0) > 0;
+      if (filterMode === 'reviewed') return (creator.reviews?.count ?? 0) > 0;
+      return true;
+    });
 
-      const data = await res.json();
-
-      if (data.success) {
-        alert(data.data.message);
-        setClaimingSlot(null);
-        setClaimForm({
-          creatorAddress: '',
-          creatorHandle: '',
-          creatorFollowers: 10000,
-          claimRationale: '',
-        });
-
-        // Refresh campaigns
-        const campaignsRes = await fetch('/api/campaigns?forScouts=true');
-        const campaignsData = await campaignsRes.json();
-        if (campaignsData.success) {
-          setCampaigns(campaignsData.data);
-        }
-      } else {
-        alert(data.error);
+    return [...filtered].sort((left, right) => {
+      if (sortMode === 'venue') {
+        return (
+          (right.businessMetrics?.venueReach ?? 0) - (left.businessMetrics?.venueReach ?? 0) ||
+          creatorScore(right) - creatorScore(left)
+        );
       }
-    } catch (error) {
-      console.error('Failed to claim slot:', error);
-    }
-  };
 
-  const tierColor = TIER_COLORS[scout?.tier as keyof typeof TIER_COLORS] || TIER_COLORS.BLOODHOUND;
-  const tierBadge = TIER_BADGES[scout?.tier as keyof typeof TIER_BADGES] || '🐕';
+      if (sortMode === 'reviews') {
+        return (
+          (right.reviews?.count ?? 0) - (left.reviews?.count ?? 0) ||
+          (right.reviews?.averageRating ?? 0) - (left.reviews?.averageRating ?? 0)
+        );
+      }
 
-  // Determine current view state
-  const showNotConnected = mounted && !isConnected;
-  const showLoading = mounted && isConnected && loading;
-  const showDashboard = mounted && isConnected && !loading;
+      if (sortMode === 'earned') {
+        return right.totalEarned - left.totalEarned || creatorScore(right) - creatorScore(left);
+      }
+
+      if (sortMode === 'dares') {
+        return right.completedDares - left.completedDares || creatorScore(right) - creatorScore(left);
+      }
+
+      return creatorScore(right) - creatorScore(left);
+    });
+  }, [creators, filterMode, query, sortMode]);
+
+  const verifiedCount = creators.filter((creator) => creator.status === 'VERIFIED').length;
+  const venueProvenCount = creators.filter((creator) => (creator.businessMetrics?.venueReach ?? 0) > 0).length;
+  const averageTrust =
+    creators.length > 0
+      ? Math.round(creators.reduce((total, creator) => total + (creator.trust?.score ?? 0), 0) / creators.length)
+      : 0;
+
+  const filters: Array<{ value: FilterMode; label: string }> = [
+    { value: 'all', label: 'All' },
+    { value: 'verified', label: 'Verified' },
+    { value: 'venue', label: 'Venue Proven' },
+    { value: 'reviewed', label: 'Reviewed' },
+  ];
+
+  const sortOptions: Array<{ value: SortMode; label: string }> = [
+    { value: 'trust', label: 'Best Fit' },
+    { value: 'venue', label: 'Venue Reach' },
+    { value: 'reviews', label: 'Reviews' },
+    { value: 'earned', label: 'Earned' },
+    { value: 'dares', label: 'Dares' },
+  ];
+
+  const summaryMetrics: Array<{ label: string; value: string; icon: LucideIcon }> = [
+    { label: 'Creators', value: creators.length.toString(), icon: Users },
+    { label: 'Verified', value: verifiedCount.toString(), icon: BadgeCheck },
+    { label: 'Avg trust', value: `${averageTrust}`, icon: ShieldCheck },
+    { label: 'Venue proven', value: venueProvenCount.toString(), icon: MapPin },
+  ];
 
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-gradient-to-b from-zinc-100 via-zinc-50 to-white text-zinc-900 overflow-auto"
-      style={{
-        filter: 'grayscale(1) contrast(1.05)',
-        WebkitFilter: 'grayscale(1) contrast(1.05)',
-      }}
-    >
-      {/* VHS Scan Lines Overlay - old film aesthetic */}
-      <div
-        className="fixed inset-0 z-[200] pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
-          backgroundSize: '100% 4px',
-        }}
-      />
-
-      {/* Subtle film grain noise */}
-      <div
-        className="fixed inset-0 z-[199] pointer-events-none opacity-[0.015] mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Control mode particle background - rendered once, persists across all states */}
-      <div className="fixed inset-0 z-0">
-        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(0, 0, 0, 0.5)" lineColor="rgba(0, 0, 0," speed={0.25} />
+    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 py-10 text-white grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
+      <LiquidBackground veilOpacity={0.72} />
+      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
+        <GradualBlurOverlay />
       </div>
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_15%_8%,rgba(255,255,255,0.13),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.3))]" />
 
-      {/* Pre-hydration skeleton */}
-      {!mounted && (
-        <div className="flex items-center justify-center h-full relative z-10">
-          <div className="animate-pulse text-zinc-400">Loading...</div>
-        </div>
-      )}
-
-      {/* Not connected state */}
-      {showNotConnected && (
-        <div className="flex items-center justify-center h-full relative z-10">
+      <div className="relative z-20 mx-auto max-w-7xl">
+        <div className="mb-5 flex items-center justify-between gap-3">
           <Link
             href="/?mode=control"
-            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to Home</span>
+            <ArrowLeft className="h-4 w-4" />
+            Control
           </Link>
-
-          <div className="text-center space-y-6">
-            <div className="text-6xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🕵️</div>
-            <h1 className="text-3xl font-bold text-zinc-900">
-              SHADOW ARMY
-            </h1>
-            <p className="text-zinc-600 max-w-md">
-              The Scout Dashboard for hunting creators and claiming bounties.
-              Connect your wallet to join the Army.
-            </p>
-            <button
-              onClick={() => {
-                const preferredConnector = getPreferredWalletConnector(connectors);
-                if (preferredConnector) connect({ connector: preferredConnector });
-              }}
-              className="px-6 py-4 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition touch-manipulation select-none cursor-pointer active:scale-95"
-              style={{
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: '52px',
-              }}
-            >
-              Connect Wallet
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Loading state */}
-      {showLoading && (
-        <div className="flex items-center justify-center h-full relative z-10">
-          <div className="animate-pulse text-zinc-500">Initializing Shadow Army...</div>
-        </div>
-      )}
-
-      {/* Main dashboard */}
-      {showDashboard && (
-        <>
-
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 px-4 md:px-6 py-3 md:py-4 bg-white/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Back button */}
-            <Link
-              href="/?mode=control"
-              className="flex items-center gap-2 px-2 md:px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div className="text-lg md:text-2xl font-bold text-zinc-900">
-              SHADOW ARMY
-            </div>
-            <div className="hidden md:block px-2 py-1 bg-purple-100 border border-purple-400 rounded text-xs text-purple-700 font-semibold">
-              SCOUT DASHBOARD
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4">
-            <div
-              className={`px-2 md:px-3 py-1 bg-gradient-to-r ${tierColor} rounded-lg text-xs md:text-sm font-semibold flex items-center gap-1 md:gap-2 text-white`}
-            >
-              <span style={{ filter: 'grayscale(1)' }}>{tierBadge}</span>
-              <span className="hidden md:inline">{scout?.tier}</span>
-            </div>
-            <div className="text-right">
-              <div className="font-semibold text-zinc-900 text-sm md:text-base">{scout?.handle || 'Anonymous Scout'}</div>
-              <div className="text-xs text-zinc-500 font-mono">
-                {address?.slice(0, 6)}...{address?.slice(-4)}
-              </div>
-            </div>
-
-            {/* Mode Switch - Go to Chaos with Reality Shift */}
-            <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
-              <Link
-                href="/?from=control"
-                className="flex items-center gap-1 md:gap-2 px-3 md:px-3 py-3 md:py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 active:scale-95 transition text-xs md:text-sm font-semibold"
-                style={{ minHeight: '44px' }}
-              >
-                <span className="text-purple-400">CHAOS</span>
-                <span className="text-zinc-500">→</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        {/* Scout Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Reputation</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900 flex items-center gap-1 md:gap-2">
-              {scout?.reputationScore || 50}
-              <span
-                className={`text-xs md:text-sm ${(scout?.reputationScore || 50) >= 70 ? 'text-green-600' : 'text-zinc-400'}`}
-              >
-                {(scout?.reputationScore || 50) >= 70 ? '✓' : ''}
-              </span>
-            </div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Campaigns</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">{scout?.totalCampaigns || 0}</div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Success Rate</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">
-              {scout && scout.successfulSlots + scout.failedSlots > 0
-                ? Math.round(
-                    (scout.successfulSlots / (scout.successfulSlots + scout.failedSlots)) * 100
-                  )
-                : 0}
-              %
-            </div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Discovery Rake</div>
-            <div className="text-xl md:text-2xl font-bold text-green-600">
-              ${scout?.totalDiscoveryRake.toFixed(2) || '0.00'}
-            </div>
-          </div>
-          <div className="col-span-2 md:col-span-1 bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Active Rake</div>
-            <div className="text-xl md:text-2xl font-bold text-purple-600">
-              ${scout?.totalActiveRake.toFixed(2) || '0.00'}
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 md:gap-4 mb-6 border-b border-zinc-200 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('bounties')}
-            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
-              activeTab === 'bounties'
-                ? 'text-purple-600 border-b-2 border-purple-600'
-                : 'text-zinc-400 hover:text-zinc-600'
-            }`}
+          <Link
+            href="/creators"
+            className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
           >
-            <span style={{ filter: 'grayscale(1)' }}>🎯</span> <span className="hidden md:inline">Bounty </span>Board
-          </button>
-          <button
-            onClick={() => setActiveTab('creators')}
-            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
-              activeTab === 'creators'
-                ? 'text-purple-600 border-b-2 border-purple-600'
-                : 'text-zinc-400 hover:text-zinc-600'
-            }`}
-          >
-            <span style={{ filter: 'grayscale(1)' }}>👥</span> Creators ({scout?.discoveredCreators.length || 0})
-          </button>
-          <button
-            onClick={() => setActiveTab('activity')}
-            className={`pb-3 px-2 font-semibold transition whitespace-nowrap text-sm md:text-base ${
-              activeTab === 'activity'
-                ? 'text-purple-600 border-b-2 border-purple-600'
-                : 'text-zinc-400 hover:text-zinc-600'
-            }`}
-          >
-            <span style={{ filter: 'grayscale(1)' }}>📊</span> Activity
-          </button>
+            Public creators
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
-        {/* Bounty Board Tab */}
-        {activeTab === 'bounties' && (
-          <div className="space-y-4">
-            {campaigns.length === 0 ? (
-              <div className="text-center py-12 text-zinc-400">
-                No open campaigns right now. Check back soon for new bounties.
+        <section className={`${raisedPanelClass} px-5 py-7 sm:px-8 lg:px-10 lg:py-10`}>
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_32%,rgba(0,0,0,0.28)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+          <div className="relative grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
+                <SlidersHorizontal className="h-4 w-4" />
+                Control Creator Layer
               </div>
-            ) : (
-              campaigns.map((campaign) => {
-                const targeting = JSON.parse(campaign.targetingCriteria || '{}');
-                const isClaimingThis = claimingSlot === campaign.id;
+              <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
+                Creator Radar
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/62 sm:text-lg">
+                A noir operator board for venues and brands. Sort creators by proof history, trust,
+                reviews, venue reach, and ability to move real people into real places.
+              </p>
+            </div>
 
-                return (
-                  <div
-                    key={campaign.id}
-                    className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl overflow-hidden"
-                  >
-                    {/* Campaign Header */}
-                    <div className="p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 md:gap-4">
-                        <div
-                          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-semibold ${
-                            CAMPAIGN_TIER_COLORS[campaign.tier as keyof typeof CAMPAIGN_TIER_COLORS]
-                          }`}
-                        >
-                          {campaign.tier.replace('_', ' ')}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-sm md:text-base">{campaign.title}</div>
-                          <div className="text-xs md:text-sm text-zinc-500">by {campaign.brand.name}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
-                        <div className="text-center md:text-right">
-                          <div className="text-base md:text-lg font-bold text-green-600">
-                            ${campaign.payoutPerCreator}
-                          </div>
-                          <div className="text-xs text-zinc-500">per creator</div>
-                        </div>
-
-                        <div className="text-center md:text-right">
-                          <div className="text-base md:text-lg font-bold text-zinc-900">
-                            {campaign.slotCounts.open}/{campaign.slotCounts.total}
-                          </div>
-                          <div className="text-xs text-zinc-500">slots</div>
-                        </div>
-
-                        {campaign.syncTime && (
-                          <div className="hidden md:block text-right">
-                            <div className="text-sm font-semibold text-purple-600">
-                              {campaign.precisionMultiplier}x Bonus
-                            </div>
-                            <div className="text-xs text-zinc-500">
-                              ±{campaign.strikeWindowMinutes}min
-                            </div>
-                          </div>
-                        )}
-
-                        <button
-                          onClick={() => setClaimingSlot(isClaimingThis ? null : campaign.id)}
-                          disabled={campaign.slotCounts.open === 0}
-                          className={`px-3 md:px-4 py-2 rounded-lg font-semibold transition text-sm ${
-                            campaign.slotCounts.open === 0
-                              ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                              : isClaimingThis
-                                ? 'bg-zinc-300 text-zinc-700'
-                                : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                          }`}
-                        >
-                          {isClaimingThis ? 'Cancel' : 'Claim'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Targeting Info */}
-                    <div className="px-3 md:px-4 pb-2 flex flex-wrap gap-2 md:gap-4 text-xs text-zinc-500">
-                      {targeting.niche && (
-                        <span className="px-2 py-1 bg-zinc-800 rounded"><span style={{ filter: 'grayscale(1)' }}>📍</span> {targeting.niche}</span>
-                      )}
-                      {targeting.minFollowers && (
-                        <span className="px-2 py-1 bg-zinc-800 rounded">
-                          <span style={{ filter: 'grayscale(1)' }}>👥</span> {targeting.minFollowers.toLocaleString()}+
-                        </span>
-                      )}
-                      <span className="px-2 py-1 bg-zinc-800 rounded">
-                        <span style={{ filter: 'grayscale(1)' }}>⏰</span> {campaign.windowHours}h
-                      </span>
-                    </div>
-
-                    {/* Claim Form */}
-                    {isClaimingThis && (
-                      <div className="border-t border-zinc-200 p-3 md:p-4 bg-zinc-50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
-                          <div>
-                            <label className="block text-xs text-zinc-600 mb-1">
-                              Creator Wallet
-                            </label>
-                            <input
-                              type="text"
-                              value={claimForm.creatorAddress}
-                              onChange={(e) =>
-                                setClaimForm({ ...claimForm, creatorAddress: e.target.value })
-                              }
-                              placeholder="0x..."
-                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-zinc-600 mb-1">
-                              Creator Handle
-                            </label>
-                            <input
-                              type="text"
-                              value={claimForm.creatorHandle}
-                              onChange={(e) =>
-                                setClaimForm({ ...claimForm, creatorHandle: e.target.value })
-                              }
-                              placeholder="@username"
-                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-zinc-600 mb-1">Followers</label>
-                            <input
-                              type="number"
-                              value={claimForm.creatorFollowers}
-                              onChange={(e) =>
-                                setClaimForm({
-                                  ...claimForm,
-                                  creatorFollowers: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-zinc-600 mb-1">
-                              Why This Creator?
-                            </label>
-                            <input
-                              type="text"
-                              value={claimForm.claimRationale}
-                              onChange={(e) =>
-                                setClaimForm({ ...claimForm, claimRationale: e.target.value })
-                              }
-                              placeholder="Great engagement..."
-                              className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleClaimSlot(campaign.id)}
-                          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
-                        >
-                          <span style={{ filter: 'grayscale(1)' }}>🎯</span> Claim This Slot
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* Creators Tab */}
-        {activeTab === 'creators' && (
-          <div className="space-y-4">
-            {!scout?.discoveredCreators.length ? (
-              <div className="text-center py-12 text-zinc-500">
-                No bound creators yet. Start claiming slots to build your roster.
-              </div>
-            ) : (
-              scout.discoveredCreators.map((creator) => {
-                const daysSinceActive = Math.floor(
-                  (Date.now() - new Date(creator.lastActiveAt).getTime()) / (1000 * 60 * 60 * 24)
-                );
-                const decayWarning = daysSinceActive > 76; // 14 days before 90-day decay
-
-                return (
-                  <div
-                    key={creator.id}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl" style={{ filter: 'grayscale(1)' }}>
-                        👤
-                      </div>
-                      <div>
-                        <div className="font-semibold">{creator.creatorHandle || 'Unknown'}</div>
-                        <div className="text-xs text-zinc-500 font-mono">
-                          {creator.creatorAddress.slice(0, 8)}...{creator.creatorAddress.slice(-6)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <div className="font-semibold">{creator.totalCompletions}</div>
-                        <div className="text-xs text-zinc-500">completions</div>
-                      </div>
-
-                      <div className="text-right">
-                        <div
-                          className={`font-semibold ${decayWarning ? 'text-yellow-400' : 'text-zinc-400'}`}
-                        >
-                          {daysSinceActive}d ago
-                        </div>
-                        <div className="text-xs text-zinc-500">last active</div>
-                      </div>
-
-                      <div
-                        className={`px-3 py-1 rounded-lg text-sm ${
-                          creator.bindingStatus === 'BOUND'
-                            ? decayWarning
-                              ? 'bg-yellow-500/20 text-yellow-400'
-                              : 'bg-green-500/20 text-green-400'
-                            : 'bg-zinc-500/20 text-zinc-400'
-                        }`}
-                      >
-                        {creator.bindingStatus === 'BOUND'
-                          ? decayWarning
-                            ? <><span style={{ filter: 'grayscale(1)' }}>⚠️</span> Decay Soon</>
-                            : '✓ Bound'
-                          : 'Unbound'}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* Activity Tab */}
-        {activeTab === 'activity' && (
-          <div className="space-y-4">
-            {!scout?.slots.length ? (
-              <div className="text-center py-12 text-zinc-500">
-                No activity yet. Start claiming slots to see your history.
-              </div>
-            ) : (
-              scout.slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        CAMPAIGN_TIER_COLORS[
-                          slot.campaign.tier as keyof typeof CAMPAIGN_TIER_COLORS
-                        ]
-                      }`}
-                    >
-                      {slot.campaign.tier.replace('_', ' ')}
-                    </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {summaryMetrics.map(({ label, value, icon: Icon }) => (
+                <div key={label} className={`${insetCardClass} px-4 py-4`}>
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="font-semibold">{slot.campaign.title}</div>
-                      <div className="text-sm text-zinc-500">
-                        Creator: {slot.creatorHandle || 'Unknown'}
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                        {label}
                       </div>
+                      <div className="mt-2 text-3xl font-black text-white">{value}</div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    {slot.totalPayout && (
-                      <div className="text-right">
-                        <div className="font-semibold text-green-400">
-                          ${slot.totalPayout.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-zinc-500">payout</div>
-                      </div>
-                    )}
-
-                    <div
-                      className={`px-3 py-1 rounded-lg text-sm ${
-                        slot.status === 'PAID'
-                          ? 'bg-green-500/20 text-green-400'
-                          : slot.status === 'VERIFIED'
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : slot.status === 'SUBMITTED'
-                              ? 'bg-yellow-500/20 text-yellow-400'
-                              : slot.status === 'VETOED'
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-zinc-500/20 text-zinc-400'
-                      }`}
-                    >
-                      {slot.status}
-                    </div>
+                    <Icon className="h-5 w-5 text-white/42" />
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        )}
-      </main>
-      </>
-      )}
-    </div>
+        </section>
+
+        <section className={`${softCardClass} mt-6 p-4 sm:p-5`}>
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+          <div className="relative grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <label className={`${insetCardClass} flex items-center gap-3 px-4 py-3`}>
+              <Search className="h-4 w-4 shrink-0 text-white/42" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/28"
+                placeholder="Search creator, niche, vibe, or tag"
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              {filters.map((filter) => (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => setFilterMode(filter.value)}
+                  className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                    filterMode === filter.value
+                      ? 'border-white/34 bg-white/14 text-white'
+                      : 'border-white/10 bg-white/[0.035] text-white/46 hover:text-white'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative mt-4 flex flex-wrap gap-2">
+            {sortOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSortMode(option.value)}
+                className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                  sortMode === option.value
+                    ? 'border-white/28 bg-white/12 text-white'
+                    : 'border-white/10 bg-black/20 text-white/42 hover:text-white'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <div key={item} className={`${softCardClass} h-[330px] animate-pulse`} />
+              ))}
+            </div>
+          ) : visibleCreators.length === 0 ? (
+            <div className={`${raisedPanelClass} px-5 py-12 text-center sm:px-8`}>
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-white/12 bg-white/[0.06]">
+                <Sparkles className="h-7 w-7 text-white/64" />
+              </div>
+              <h2 className="mt-5 text-3xl font-black tracking-[-0.04em] text-white">
+                Creator graph is warming up.
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/54">
+                No matching creators are available for this filter yet. Start with a public creator list,
+                route an activation request, or invite a specific operator into the grid.
+              </p>
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link
+                  href="/creators"
+                  className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/72 transition hover:text-white"
+                >
+                  Open public creators
+                </Link>
+                <Link
+                  href="/activations#activation-intake"
+                  className="inline-flex items-center justify-center rounded-full border border-white/18 bg-white text-black px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition hover:bg-white/86"
+                >
+                  Plan activation
+                </Link>
+                <Link
+                  href="/contact?topic=creator-routing"
+                  className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/[0.035] px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/58 transition hover:text-white"
+                >
+                  Invite creator
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 flex items-center justify-between gap-4 px-1 text-[11px] font-mono uppercase tracking-[0.18em] text-white/38">
+                <span>{visibleCreators.length} visible creators</span>
+                <span className="hidden sm:inline">Sorted for venue / brand fit</span>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {visibleCreators.map((creator) => {
+                  const plainTag = plainCreatorTag(creator.tag);
+                  const displayTag = displayCreatorTag(creator.tag);
+                  const averageRating = creator.reviews?.averageRating ?? null;
+                  const reviewLabel =
+                    averageRating !== null
+                      ? `${averageRating.toFixed(1)} / ${creator.reviews?.count ?? 0}`
+                      : `${creator.reviews?.count ?? 0} reviews`;
+                  const cardMetrics: Array<{ label: string; value: string | number; icon: LucideIcon }> = [
+                    { label: 'Trust', value: creator.trust?.score ?? 0, icon: ShieldCheck },
+                    { label: 'Reviews', value: reviewLabel, icon: Star },
+                    { label: 'Dares', value: creator.completedDares, icon: Trophy },
+                    { label: 'Earned', value: formatUsd(creator.totalEarned), icon: DollarSign },
+                    { label: 'Venue reach', value: creator.businessMetrics?.venueReach ?? 0, icon: MapPin },
+                    { label: 'First marks', value: creator.businessMetrics?.firstMarks ?? 0, icon: CheckCircle2 },
+                  ];
+
+                  return (
+                    <article key={creator.tag} className={`${softCardClass} flex min-h-[360px] flex-col p-5`}>
+                      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                      <div className="relative flex items-start gap-4">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] shadow-[0_14px_26px_rgba(0,0,0,0.3)]">
+                          {creator.pfpUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways.
+                            <img
+                              src={creator.pfpUrl}
+                              alt={displayTag}
+                              className="h-full w-full object-cover"
+                              style={getAvatarStyle(creator)}
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center text-2xl font-black text-white/70">
+                              {displayTag.replace('@', '').slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h2 className="truncate text-2xl font-black tracking-[-0.04em] text-white">
+                              {displayTag}
+                            </h2>
+                            {creator.status === 'VERIFIED' ? <BadgeCheck className="h-4 w-4 shrink-0 text-white/72" /> : null}
+                          </div>
+                          <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white/36">
+                            {creator.trust?.label ?? 'Unranked'} · fit {creatorScore(creator)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="relative mt-5 grid grid-cols-2 gap-3">
+                        {cardMetrics.map(({ label, value, icon: Icon }) => (
+                          <div key={label} className={`${insetCardClass} px-3 py-3`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
+                                {label}
+                              </div>
+                              <Icon className="h-3.5 w-3.5 text-white/34" />
+                            </div>
+                            <div className="mt-1 text-lg font-black text-white">{value}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {(creator.tags?.length ? creator.tags : ['creator']).slice(0, 4).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
+                        <Link
+                          href={buildActivationHref(creator)}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-white/86"
+                        >
+                          Put in bid
+                        </Link>
+                        <Link
+                          href={buildCreateHref(creator)}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white"
+                        >
+                          Fund direct dare
+                        </Link>
+                        <Link
+                          href={`/creator/${plainTag}`}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-black/24 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:text-white sm:col-span-2"
+                        >
+                          View profile
+                          <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
