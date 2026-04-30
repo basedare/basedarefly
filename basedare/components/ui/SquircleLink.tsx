@@ -142,11 +142,21 @@ export default function SquircleLink({
   const isDown = pressed;
   const isHovering = hovered && !isDown;
   const faceY = isDown ? 8 : isHovering ? 5 : 6;
-  const shadowY = isDown ? 11 : isHovering ? 12 : 13;
-  const dy = floating ? (isDown ? 10 : isHovering ? 22 : 18) : isDown ? 1.5 : isHovering ? 5 : 4;
-  const std = floating ? (isDown ? 6 : isHovering ? 13 : 11) : isDown ? 1.6 : isHovering ? 4.5 : 3.6;
-  const opacity = floating ? (isHovering ? 0.18 : 0.14) : isHovering ? 0.36 : 0.28;
-  const shadowOpacity = isDown ? 0.42 : 0.72;
+  const shadowY = isDown ? 10 : isHovering ? 10.8 : 11.4;
+  const dy = floating ? (isDown ? 8 : isHovering ? 17 : 14) : isDown ? 1.2 : isHovering ? 3.6 : 2.8;
+  const std = floating ? (isDown ? 5 : isHovering ? 10 : 8) : isDown ? 1.2 : isHovering ? 3.1 : 2.6;
+  const opacity = floating ? (isHovering ? 0.14 : 0.1) : isHovering ? 0.24 : 0.18;
+  const shadowOpacity = white
+    ? isDown
+      ? 0.22
+      : isHovering
+        ? 0.34
+        : 0.32
+    : isDown
+      ? 0.3
+      : isHovering
+        ? 0.5
+        : 0.46;
   const dropOpacity = opacity;
   const svgHeight = 56;
   const labelText = label.toUpperCase();

@@ -5,6 +5,7 @@ import { ArrowRight, BadgeDollarSign, BarChart3, CheckCircle2, MapPin, ShieldChe
 import ActivationIntakeForm from './ActivationIntakeForm';
 import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
+import SquircleLink from '@/components/ui/SquircleLink';
 
 export const metadata: Metadata = {
   title: 'Grid Activation OS | BaseDare',
@@ -108,13 +109,14 @@ export default function ActivationsPage() {
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#activation-intake"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-yellow-200/30 bg-[linear-gradient(180deg,rgba(250,204,21,0.95)_0%,rgba(202,138,4,0.96)_100%)] px-6 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_16px_34px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.38)] transition hover:-translate-y-0.5"
-                >
-                  Launch Grid Activation
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+                <div className="w-full sm:w-[284px]">
+                  <SquircleLink href="#activation-intake" tone="yellow" label="Launch Grid Activation" fullWidth height={44}>
+                    <span className="flex items-center justify-center gap-2 text-[0.78rem] tracking-[0.08em] text-[#15120c]">
+                      Launch Grid Activation
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </SquircleLink>
+                </div>
                 <Link
                   href="/brands/portal"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"

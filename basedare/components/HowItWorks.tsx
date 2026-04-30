@@ -128,14 +128,14 @@ export default function HowItWorks() {
             </p>
             <h3 className="text-[clamp(2.35rem,7.4vw,5.7rem)] font-black italic uppercase leading-[0.9] tracking-[-0.06em] text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.16)]">
               Wherever You Go.
-              <span className="mt-2 block bg-gradient-to-r from-[#f5c518] via-[#e879f9] to-[#67e8f9] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.28)]">
+              <span className="mt-2 block bg-gradient-to-r from-[#f8dd72] via-[#ff7adf] to-[#a5b4fc] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.28)] max-sm:bg-none max-sm:text-[#f8dd72] max-sm:drop-shadow-[0_0_18px_rgba(245,197,24,0.2)]">
                 Someone Will Pay You To Do It.
               </span>
             </h3>
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/map"
-                className="bd-dent-surface group inline-flex w-full items-center justify-center rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.95),rgba(171,111,0,0.92))] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.16),inset_0_1px_0_rgba(255,255,255,0.36),inset_0_-8px_16px_rgba(77,45,0,0.34)] transition hover:-translate-y-[1px] sm:w-auto"
+                className="group inline-flex w-full items-center justify-center rounded-full border border-[#f5c518]/34 bg-[linear-gradient(180deg,rgba(255,226,122,0.98),rgba(245,197,24,0.94)_48%,rgba(171,111,0,0.95))] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-[#15120c] shadow-[0_14px_26px_rgba(245,197,24,0.15),inset_0_1px_0_rgba(255,255,255,0.38),inset_0_-7px_13px_rgba(77,45,0,0.28)] transition hover:-translate-y-[1px] sm:w-auto"
               >
                 Browse Active Dares
               </Link>

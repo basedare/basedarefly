@@ -6278,9 +6278,9 @@ export default function RealWorldMap() {
           color: white;
           text-decoration: none;
           box-shadow:
-            0 12px 24px rgba(0, 0, 0, 0.26),
+            0 9px 17px rgba(0, 0, 0, 0.22),
             inset 0 1px 0 rgba(255, 255, 255, 0.22),
-            inset 0 -12px 16px rgba(0, 0, 0, 0.22);
+            inset 0 -9px 12px rgba(0, 0, 0, 0.18);
           transition:
             transform 160ms ease,
             border-color 160ms ease,
@@ -6292,22 +6292,22 @@ export default function RealWorldMap() {
           content: '';
           position: absolute;
           inset: 0.18rem 0.72rem auto;
-          height: 0.3rem;
+          height: 0.24rem;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.5);
-          opacity: 0.62;
+          opacity: 0.48;
           pointer-events: none;
         }
 
         .map-command-strip-jelly-button::after {
           content: '';
           position: absolute;
-          inset: auto 0.42rem 0.2rem;
-          height: 0.48rem;
+          inset: auto 0.46rem 0.2rem;
+          height: 0.34rem;
           border-radius: 999px;
-          background: rgba(0, 0, 0, 0.2);
-          filter: blur(6px);
-          opacity: 0.48;
+          background: rgba(0, 0, 0, 0.18);
+          filter: blur(4px);
+          opacity: 0.26;
           pointer-events: none;
         }
 
@@ -6329,10 +6329,10 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.6), transparent 38%),
             linear-gradient(180deg, rgba(255, 230, 126, 0.98), rgba(245, 197, 24, 0.92) 54%, rgba(138, 90, 0, 0.98));
           box-shadow:
-            0 13px 24px rgba(0, 0, 0, 0.28),
-            0 0 20px rgba(245, 197, 24, 0.18),
+            0 10px 18px rgba(0, 0, 0, 0.23),
+            0 0 14px rgba(245, 197, 24, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.38),
-            inset 0 -13px 18px rgba(138, 90, 0, 0.28);
+            inset 0 -10px 14px rgba(138, 90, 0, 0.24);
         }
 
         .map-command-strip-jelly-button--cyan {
@@ -6341,10 +6341,10 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.5), transparent 38%),
             linear-gradient(180deg, rgba(103, 232, 249, 0.96), rgba(20, 184, 166, 0.86) 54%, rgba(12, 74, 110, 0.98));
           box-shadow:
-            0 13px 24px rgba(0, 0, 0, 0.28),
-            0 0 20px rgba(34, 211, 238, 0.18),
+            0 10px 18px rgba(0, 0, 0, 0.23),
+            0 0 14px rgba(34, 211, 238, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.32),
-            inset 0 -13px 18px rgba(8, 47, 73, 0.32);
+            inset 0 -10px 14px rgba(8, 47, 73, 0.27);
         }
 
         .map-command-strip-jelly-button--purple {
@@ -6353,10 +6353,10 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.52), transparent 38%),
             linear-gradient(180deg, rgba(217, 70, 239, 0.96), rgba(147, 51, 234, 0.88) 54%, rgba(67, 20, 108, 0.98));
           box-shadow:
-            0 13px 24px rgba(0, 0, 0, 0.28),
-            0 0 20px rgba(217, 70, 239, 0.18),
+            0 10px 18px rgba(0, 0, 0, 0.23),
+            0 0 14px rgba(217, 70, 239, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.32),
-            inset 0 -13px 18px rgba(59, 7, 100, 0.34);
+            inset 0 -10px 14px rgba(59, 7, 100, 0.29);
         }
 
         .map-command-strip-jelly-label {
