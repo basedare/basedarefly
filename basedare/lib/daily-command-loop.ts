@@ -15,7 +15,14 @@ import type {
 } from '@/lib/daily-command-loop-types';
 
 const ACTIVE_VENUE_LEAD_STATUSES = ['NEW', 'FOLLOWING_UP', 'WAITING'];
-const ACTIVE_ACTIVATION_INTAKE_STATUSES = ['NEW', 'QUALIFIED', 'NEEDS_INFO', 'READY_TO_INVOICE'];
+const ACTIVE_ACTIVATION_INTAKE_STATUSES = [
+  'NEW',
+  'QUALIFIED',
+  'NEEDS_INFO',
+  'READY_TO_INVOICE',
+  'PAYMENT_SENT',
+  'PAID_CONFIRMED',
+];
 const ACTIVE_CAMPAIGN_STATUSES = ['FUNDING', 'RECRUITING', 'LIVE', 'ACTIVE', 'VERIFYING'];
 const OPEN_CAMPAIGN_SLOT_STATUSES = ['OPEN', 'CLAIMED', 'SUBMITTED'];
 const COMPLETED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
@@ -190,7 +197,13 @@ function buildActivationIntakePriority(input: {
   const staleHours = hoursSince(input.occurredAt);
   const isOverdue = Boolean(input.nextActionAt && input.nextActionAt.getTime() < Date.now());
 
-  if (input.status === 'READY_TO_INVOICE') {
+  if (input.status === 'PAID_CONFIRMED') {
+    score += 62;
+    reasons.push('paid-confirmed');
+  } else if (input.status === 'PAYMENT_SENT') {
+    score += 54;
+    reasons.push('payment-sent');
+  } else if (input.status === 'READY_TO_INVOICE') {
     score += 45;
     reasons.push('ready-to-invoice');
   } else if (input.status === 'QUALIFIED') {
@@ -557,6 +570,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
   const activeActivationIntakes = activationIntakeSignals.length;
   const overdueActivationIntakes = activationIntakeSignals.filter((item) => item.priority.isOverdue).length;
   const readyActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'READY_TO_INVOICE').length;
+  const paymentSentActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'PAYMENT_SENT').length;
+  const paidConfirmedActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'PAID_CONFIRMED').length;
   const needsInfoActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'NEEDS_INFO').length;
   const newActivationIntakes = activationIntakeSignals.filter((item) => item.status === 'NEW').length;
   const topActivationIntake = activationIntakeSignals[0] ?? null;
@@ -673,19 +688,25 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         riskTier: 'review',
         priority:
           104 +
+          paidConfirmedActivationIntakes * 18 +
+          paymentSentActivationIntakes * 13 +
           readyActivationIntakes * 9 +
           overdueActivationIntakes * 8 +
           newActivationIntakes * 4 +
           Math.min(20, Math.round((topActivationIntake?.priority.score ?? 0) / 3)),
-        why: 'Paid activation intakes are warmer than cold scouting. The fastest revenue move is turning the top buyer signal into a Spark Route, invoice memo, or clarifying reply.',
+        why: 'Paid activation intakes are warmer than cold scouting. The fastest revenue move is moving the top buyer signal through route, payment, paid confirmation, and launch.',
         nextAction: topActivationIntake
-          ? topActivationIntake.status === 'READY_TO_INVOICE'
-            ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the invoice memo.`
-            : topActivationIntake.status === 'NEEDS_INFO'
-              ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the clarifying reply.`
-              : !topActivationIntake.assignedVenue || !topActivationIntake.assignedCreator
-                ? `Assign venue and creator route for ${topActivationIntake.company || topActivationIntake.venue || 'top intake'}, then copy the Spark Route packet.`
-                : `Copy the Spark Route packet for ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and move it toward invoice.`
+          ? topActivationIntake.status === 'PAID_CONFIRMED'
+            ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and launch the paid activation.`
+            : topActivationIntake.status === 'PAYMENT_SENT'
+              ? `Follow up ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} for payment confirmation.`
+              : topActivationIntake.status === 'READY_TO_INVOICE'
+                ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the payment packet.`
+                : topActivationIntake.status === 'NEEDS_INFO'
+                  ? `Open ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and send the clarifying reply.`
+                  : !topActivationIntake.assignedVenue || !topActivationIntake.assignedCreator
+                    ? `Assign venue and creator route for ${topActivationIntake.company || topActivationIntake.venue || 'top intake'}, then copy the Spark Route packet.`
+                    : `Copy the Spark Route packet for ${topActivationIntake.company || topActivationIntake.assignedVenue || 'top intake'} and move it toward payment.`
           : 'Open the activation intake queue and work the highest-priority buyer signal.',
         href: topActivationIntake
           ? `/admin/activation-intakes?leadId=${encodeURIComponent(topActivationIntake.id)}`
@@ -693,6 +714,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
         evidence: [
           plural(activeActivationIntakes, 'active intake'),
           `${readyActivationIntakes} ready invoice`,
+          `${paymentSentActivationIntakes} payment sent`,
+          `${paidConfirmedActivationIntakes} paid confirmed`,
           `${overdueActivationIntakes} overdue`,
           topActivationIntake ? `Top: ${topActivationIntake.priority.reasons.slice(0, 2).join(', ') || 'buyer intent'}` : 'Queue ready',
         ],
@@ -932,11 +955,15 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
           title: 'Paid activation intake replies',
           count: activeActivationIntakes,
           owner: 'Ops',
-          riskTier: readyActivationIntakes > 0 ? 'human' : 'review',
+          riskTier: paidConfirmedActivationIntakes > 0 || readyActivationIntakes > 0 ? 'human' : 'review',
           nextAction:
-            readyActivationIntakes > 0
-              ? 'Send invoice memo for ready buyers, then mark launched only after scope and payment are confirmed.'
-              : 'Approve the top Spark Route packet or clarifying reply before sending externally.',
+            paidConfirmedActivationIntakes > 0
+              ? 'Open paid-confirmed buyers and launch only the approved funded activation.'
+              : paymentSentActivationIntakes > 0
+                ? 'Follow up payment-sent buyers and confirm funds before launch.'
+                : readyActivationIntakes > 0
+                  ? 'Send payment packets for ready buyers; do not launch until paid confirmed.'
+                  : 'Approve the top Spark Route packet or clarifying reply before sending externally.',
           href: topActivationIntake
             ? `/admin/activation-intakes?leadId=${encodeURIComponent(topActivationIntake.id)}`
             : '/admin/activation-intakes',
@@ -1018,8 +1045,8 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       'activation-intakes',
       'Paid intakes',
       activeActivationIntakes,
-      `${readyActivationIntakes} ready invoice, ${overdueActivationIntakes} overdue, ${needsInfoActivationIntakes} needs info, ${newActivationIntakes} new`,
-      readyActivationIntakes > 0
+      `${readyActivationIntakes} ready pay, ${paymentSentActivationIntakes} payment sent, ${paidConfirmedActivationIntakes} paid, ${overdueActivationIntakes} overdue`,
+      paidConfirmedActivationIntakes + readyActivationIntakes > 0
         ? 'active'
         : overdueActivationIntakes > 0
           ? 'warning'
@@ -1089,10 +1116,10 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
               detail: `$${founderScoreboard.money.liveGmv.toLocaleString()} live GMV is waiting on proof, review, or payout before it becomes settled GMV.`,
               tone: 'warning' as DailyCommandTone,
             }
-        : readyActivationIntakes + overdueActivationIntakes > 0
+        : paidConfirmedActivationIntakes + paymentSentActivationIntakes + readyActivationIntakes + overdueActivationIntakes > 0
           ? {
-              title: 'Paid activation intent needs a same-day reply',
-              detail: `${plural(activeActivationIntakes, 'activation intake')} active, with ${readyActivationIntakes} ready to invoice and ${overdueActivationIntakes} overdue. Buyer intent should outrank cold scouting today.`,
+              title: paidConfirmedActivationIntakes > 0 ? 'Paid activation needs launch' : 'Paid activation intent needs close-loop follow-up',
+              detail: `${plural(activeActivationIntakes, 'activation intake')} active, with ${paidConfirmedActivationIntakes} paid confirmed, ${paymentSentActivationIntakes} payment sent, and ${readyActivationIntakes} ready to pay.`,
               tone: overdueActivationIntakes > 0 ? 'warning' as DailyCommandTone : 'active' as DailyCommandTone,
             }
         : overdueVenueLeads + unownedVenueLeads > 0
@@ -1153,9 +1180,13 @@ export async function buildDailyCommandLoopReport(): Promise<DailyCommandLoopRep
       : null,
     overdueActivationIntakes > 0
       ? `${plural(overdueActivationIntakes, 'paid activation intake')} overdue; this is the highest-risk place to lose revenue through slow response.`
-      : readyActivationIntakes > 0
-        ? `${plural(readyActivationIntakes, 'activation intake')} ready to invoice; keep the buyer path human-approved before launch.`
-        : null,
+      : paidConfirmedActivationIntakes > 0
+        ? `${plural(paidConfirmedActivationIntakes, 'activation intake')} paid confirmed; launch the approved route before opening colder work.`
+        : paymentSentActivationIntakes > 0
+          ? `${plural(paymentSentActivationIntakes, 'activation intake')} has payment sent; confirm funds before launch.`
+          : readyActivationIntakes > 0
+            ? `${plural(readyActivationIntakes, 'activation intake')} ready for payment packet; keep launch blocked until paid confirmed.`
+            : null,
     pendingCreatorTags + pendingPlaceTags > 8
       ? 'Tag queues are large enough to pollute identity/place trust if left stale.'
       : null,

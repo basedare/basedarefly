@@ -29,7 +29,15 @@ import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 
-type IntakeStatus = 'NEW' | 'QUALIFIED' | 'NEEDS_INFO' | 'READY_TO_INVOICE' | 'LAUNCHED' | 'REJECTED';
+type IntakeStatus =
+  | 'NEW'
+  | 'QUALIFIED'
+  | 'NEEDS_INFO'
+  | 'READY_TO_INVOICE'
+  | 'PAYMENT_SENT'
+  | 'PAID_CONFIRMED'
+  | 'LAUNCHED'
+  | 'REJECTED';
 type StatusFilter = IntakeStatus | 'ALL';
 
 type ActivationIntake = {
@@ -65,12 +73,15 @@ type ActivationIntake = {
   assignedVenue: string;
   operatorNote: string;
   nextActionAt: string;
+  paymentLink: string;
+  paymentReference: string;
   positioningLine: string;
   proofLogic: string;
   repeatMetric: string;
   replyDraft: string;
   sparkRoutePacket: string;
   invoiceMemo: string;
+  paymentPacket: string;
   missionIdeas: Array<{
     title: string;
     detail: string;
@@ -96,6 +107,7 @@ type ActivationIntake = {
     replyMailtoHref: string | null;
     packetMailtoHref: string | null;
     invoiceMailtoHref: string | null;
+    paymentMailtoHref: string | null;
   };
 };
 
@@ -104,6 +116,8 @@ type IntakePayload = {
     total: number;
     active: number;
     readyToInvoice: number;
+    paymentSent: number;
+    paidConfirmed: number;
     needsInfo: number;
     launched: number;
     byStatus: Record<IntakeStatus, number>;
@@ -116,6 +130,8 @@ type IntakeDraft = {
   assignedVenue?: string;
   operatorNote?: string;
   nextActionAt?: string;
+  paymentLink?: string;
+  paymentReference?: string;
 };
 
 const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
@@ -124,6 +140,8 @@ const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
   { key: 'QUALIFIED', label: 'Qualified' },
   { key: 'NEEDS_INFO', label: 'Needs info' },
   { key: 'READY_TO_INVOICE', label: 'Ready invoice' },
+  { key: 'PAYMENT_SENT', label: 'Payment sent' },
+  { key: 'PAID_CONFIRMED', label: 'Paid' },
   { key: 'LAUNCHED', label: 'Launched' },
   { key: 'REJECTED', label: 'Rejected' },
 ];
@@ -133,6 +151,8 @@ function statusClass(status: IntakeStatus) {
   if (status === 'QUALIFIED') return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
   if (status === 'NEEDS_INFO') return 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100';
   if (status === 'READY_TO_INVOICE') return 'border-fuchsia-300/25 bg-fuchsia-300/10 text-fuchsia-100';
+  if (status === 'PAYMENT_SENT') return 'border-orange-300/25 bg-orange-300/10 text-orange-100';
+  if (status === 'PAID_CONFIRMED') return 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100';
   if (status === 'LAUNCHED') return 'border-white/15 bg-white/10 text-white';
   return 'border-red-300/25 bg-red-400/10 text-red-100';
 }
@@ -232,6 +252,28 @@ function buildLaunchHref(intake: ActivationIntake, assignedVenue: string, assign
   return `/create?${params.toString()}`;
 }
 
+function buildBrandPortalLaunchHref(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
+  if (!intake.routeContext.venueSlug) {
+    return buildLaunchHref(intake, assignedVenue, assignedCreator);
+  }
+
+  const venueName = assignedVenue || intake.venue || intake.company;
+  const firstMission = intake.missionIdeas[0]?.title || `Activate ${venueName || 'this venue'}`;
+  const params = new URLSearchParams();
+  params.set('venue', intake.routeContext.venueSlug);
+  params.set('compose', '1');
+  params.set('reportSource', 'activation-intake');
+  params.set('reportSessionKey', intake.id);
+  params.set('reportIntent', 'activation');
+  params.set('title', firstMission);
+  if (assignedCreator) params.set('creator', assignedCreator);
+  if (intake.amount) params.set('payout', String(intake.amount));
+  if (intake.proofLogic || intake.missionIdeas[0]?.detail) {
+    params.set('objective', intake.missionIdeas[0]?.detail || intake.proofLogic);
+  }
+  return `/brands/portal?${params.toString()}`;
+}
+
 function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
   const target = assignedVenue || intake.venue || intake.company || 'Activation target';
   const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'Creator shortlist pending';
@@ -255,7 +297,7 @@ function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string,
     '',
     'Human gates before launch:',
     '- Buyer confirmed route and budget.',
-    '- Invoice/payment path sent or confirmed.',
+    '- Payment is confirmed, not just invoice sent.',
     '- Venue and creator route are assigned.',
     '- Funded dare is launched inside BaseDare so proof and review stay trackable.',
   ].join('\n');
@@ -264,7 +306,7 @@ function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string,
 function buildLaunchOperatorNote(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
   const target = assignedVenue || intake.venue || intake.company || 'activation target';
   const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'creator pending';
-  return `Launch handoff confirmed: ${target} / ${creator} / ${intake.budgetLabel}. Buyer scope, route, and funding path require human confirmation before public commitments.`;
+  return `Launch handoff confirmed: ${target} / ${creator} / ${intake.budgetLabel}. Payment was marked confirmed before launch handoff.`;
 }
 
 export default function ActivationIntakesPage() {
@@ -363,6 +405,8 @@ export default function ActivationIntakesPage() {
           QUALIFIED: 0,
           NEEDS_INFO: 0,
           READY_TO_INVOICE: 0,
+          PAYMENT_SENT: 0,
+          PAID_CONFIRMED: 0,
           LAUNCHED: 0,
           REJECTED: 0,
         } as Record<IntakeStatus, number>
@@ -372,6 +416,8 @@ export default function ActivationIntakesPage() {
           total: nextIntakes.length,
           active: nextIntakes.filter((intake) => !['LAUNCHED', 'REJECTED'].includes(intake.status)).length,
           readyToInvoice: byStatus.READY_TO_INVOICE,
+          paymentSent: byStatus.PAYMENT_SENT,
+          paidConfirmed: byStatus.PAID_CONFIRMED,
           needsInfo: byStatus.NEEDS_INFO,
           launched: byStatus.LAUNCHED,
           byStatus,
@@ -422,6 +468,8 @@ export default function ActivationIntakesPage() {
       assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
       operatorNote: draft.operatorNote ?? intake.operatorNote,
       nextActionAt: toIsoFromLocal(draft.nextActionAt ?? formatNextActionInput(intake.nextActionAt)),
+      paymentLink: draft.paymentLink ?? intake.paymentLink,
+      paymentReference: draft.paymentReference ?? intake.paymentReference,
     });
   };
 
@@ -444,6 +492,11 @@ export default function ActivationIntakesPage() {
   };
 
   const completeLaunchHandoff = async (intake: ActivationIntake) => {
+    if (intake.status !== 'PAID_CONFIRMED' && intake.status !== 'LAUNCHED') {
+      setError('Confirm payment before marking an activation launched.');
+      return;
+    }
+
     const draft = drafts[intake.id] ?? {};
     const assignedCreator = draft.assignedCreator ?? intake.assignedCreator;
     const assignedVenue = draft.assignedVenue ?? intake.assignedVenue;
@@ -456,6 +509,38 @@ export default function ActivationIntakesPage() {
       operatorNote: appendOperatorNote(
         draft.operatorNote ?? intake.operatorNote,
         buildLaunchOperatorNote(intake, assignedVenue, assignedCreator)
+      ),
+    });
+  };
+
+  const markPaymentSent = async (intake: ActivationIntake) => {
+    const draft = drafts[intake.id] ?? {};
+    await updateIntake(intake.id, {
+      assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
+      assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
+      paymentLink: draft.paymentLink ?? intake.paymentLink,
+      paymentReference: draft.paymentReference ?? intake.paymentReference,
+      status: 'PAYMENT_SENT',
+      nextActionAt: addDaysIso(1),
+      operatorNote: appendOperatorNote(
+        draft.operatorNote ?? intake.operatorNote,
+        'Payment packet sent. Follow up tomorrow if payment is not confirmed.'
+      ),
+    });
+  };
+
+  const confirmPaid = async (intake: ActivationIntake) => {
+    const draft = drafts[intake.id] ?? {};
+    await updateIntake(intake.id, {
+      assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
+      assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
+      paymentLink: draft.paymentLink ?? intake.paymentLink,
+      paymentReference: draft.paymentReference ?? intake.paymentReference,
+      status: 'PAID_CONFIRMED',
+      nextActionAt: null,
+      operatorNote: appendOperatorNote(
+        draft.operatorNote ?? intake.operatorNote,
+        'Payment confirmed. Open Brand Portal launch with the assigned venue and creator prefilled.'
       ),
     });
   };
@@ -561,12 +646,13 @@ export default function ActivationIntakesPage() {
 
         {payload && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
               {[
                 { label: 'Total leads', value: payload.summary.total, icon: Search },
                 { label: 'Active', value: payload.summary.active, icon: ShieldCheck },
                 { label: 'Needs info', value: payload.summary.needsInfo, icon: Clock3 },
                 { label: 'Ready invoice', value: payload.summary.readyToInvoice, icon: DollarSign },
+                { label: 'Paid', value: payload.summary.paidConfirmed, icon: CheckCircle2 },
                 { label: 'Launched', value: payload.summary.launched, icon: CheckCircle2 },
               ].map((item) => {
                 const Icon = item.icon;
@@ -608,9 +694,12 @@ export default function ActivationIntakesPage() {
                 const assignedVenue = draft.assignedVenue ?? intake.assignedVenue;
                 const operatorNote = draft.operatorNote ?? intake.operatorNote;
                 const nextActionAt = draft.nextActionAt ?? formatNextActionInput(intake.nextActionAt);
+                const paymentLink = draft.paymentLink ?? intake.paymentLink;
+                const paymentReference = draft.paymentReference ?? intake.paymentReference;
                 const actionState = nextActionState(nextActionAt || intake.nextActionAt);
-                const launchHref = buildLaunchHref(intake, assignedVenue, assignedCreator);
+                const launchHref = buildBrandPortalLaunchHref(intake, assignedVenue, assignedCreator);
                 const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
+                const canLaunch = intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED';
                 const launchChecklist = [
                   {
                     label: 'Buyer',
@@ -629,13 +718,17 @@ export default function ActivationIntakesPage() {
                   },
                   {
                     label: 'Money',
-                    ready: ['READY_TO_INVOICE', 'LAUNCHED'].includes(intake.status),
+                    ready: canLaunch,
                     detail:
                       intake.status === 'LAUNCHED'
                         ? 'launch confirmed'
-                        : intake.status === 'READY_TO_INVOICE'
-                          ? 'invoice lane'
-                          : 'send invoice memo',
+                        : intake.status === 'PAID_CONFIRMED'
+                          ? 'payment confirmed'
+                          : intake.status === 'PAYMENT_SENT'
+                            ? 'awaiting payment'
+                            : intake.status === 'READY_TO_INVOICE'
+                              ? 'send payment packet'
+                              : 'not invoiced',
                   },
                 ];
                 const isUpdating = updatingId === intake.id;
@@ -872,16 +965,99 @@ export default function ActivationIntakesPage() {
                                   void applyFollowUpPreset(intake, {
                                     status: 'READY_TO_INVOICE',
                                     nextActionAt: addDaysIso(1),
-                                    note: 'Invoice memo sent. Follow up tomorrow if payment or scope confirmation is still missing.',
+                                    note: 'Buyer route approved. Payment packet is ready to send.',
                                   })
                                 }
                                 disabled={isUpdating}
                                 className="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15 disabled:opacity-45"
                               >
                                 <DollarSign className="h-3.5 w-3.5" />
-                                Invoice sent
+                                Ready pay
                               </button>
                             </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-[1.55rem] border border-orange-300/16 bg-[linear-gradient(135deg,rgba(251,146,60,0.11),rgba(0,0,0,0.38)_45%,rgba(34,197,94,0.08))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                            <div>
+                              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/18 bg-orange-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-orange-100">
+                                <DollarSign className="h-3.5 w-3.5" />
+                                Payment close loop
+                              </div>
+                              <p className="mt-3 text-sm font-black text-white">
+                                Send one buyer-ready packet, then unlock launch only after funds are confirmed.
+                              </p>
+                              <p className="mt-1 max-w-xl text-xs font-bold leading-5 text-white/50">
+                                The payment link can come from env or be pasted per lead. Keep public launch blocked until the status is paid confirmed.
+                              </p>
+                            </div>
+                            <span className={`w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${statusClass(intake.status)}`}>
+                              {intake.statusLabel}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-[1.25fr_0.75fr]">
+                            <label>
+                              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Payment link</span>
+                              <input
+                                value={paymentLink}
+                                onChange={(event) => updateDraft(intake.id, { paymentLink: event.target.value })}
+                                placeholder="Stripe, invoice, or USDC payment URL"
+                                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25 focus:border-orange-300/35"
+                              />
+                            </label>
+                            <label>
+                              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Reference</span>
+                              <input
+                                value={paymentReference}
+                                onChange={(event) => updateDraft(intake.id, { paymentReference: event.target.value })}
+                                placeholder="BD-..."
+                                className="mt-2 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25 focus:border-orange-300/35"
+                              />
+                            </label>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                            <button
+                              type="button"
+                              onClick={() => void copyText(`${intake.id}:payment`, intake.paymentPacket)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-300/20 bg-orange-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-orange-100 transition hover:bg-orange-300/15"
+                            >
+                              <Clipboard className="h-4 w-4" />
+                              {copiedId === `${intake.id}:payment` ? 'Copied' : 'Copy packet'}
+                            </button>
+                            {intake.links.paymentMailtoHref ? (
+                              <a
+                                href={intake.links.paymentMailtoHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                              >
+                                <Mail className="h-4 w-4" />
+                                Email payment
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No email
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => void markPaymentSent(intake)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-300/20 bg-orange-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-orange-100 transition hover:bg-orange-300/15 disabled:opacity-45"
+                            >
+                              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                              Payment sent
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void confirmPaid(intake)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
+                            >
+                              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              Paid confirmed
+                            </button>
                           </div>
                         </div>
 
@@ -896,8 +1072,8 @@ export default function ActivationIntakesPage() {
                                 One clean operator packet before funding.
                               </p>
                               <p className="mt-1 max-w-xl text-xs font-bold leading-5 text-white/50">
-                                Open the prefilled mission, send the invoice memo, then mark launched only after the
-                                buyer confirms scope and payment path. No autonomous promises.
+                                Open the prefilled Brand Portal launch only after the buyer has paid. Payment sent is
+                                not enough; launch unlocks at paid confirmed.
                               </p>
                             </div>
 
@@ -955,13 +1131,20 @@ export default function ActivationIntakesPage() {
                               <Clipboard className="h-4 w-4" />
                               {copiedId === `${intake.id}:handoff` ? 'Copied' : 'Copy handoff'}
                             </button>
-                            <Link
-                              href={launchHref}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Open launch
-                            </Link>
+                            {canLaunch ? (
+                              <Link
+                                href={launchHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Open Brand launch
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+                                <Lock className="h-4 w-4" />
+                                Pay first
+                              </span>
+                            )}
                             {intake.links.invoiceMailtoHref ? (
                               <a
                                 href={intake.links.invoiceMailtoHref}
@@ -978,7 +1161,7 @@ export default function ActivationIntakesPage() {
                             <button
                               type="button"
                               onClick={() => void completeLaunchHandoff(intake)}
-                              disabled={isUpdating}
+                              disabled={isUpdating || !canLaunch}
                               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                             >
                               {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -1095,7 +1278,7 @@ export default function ActivationIntakesPage() {
                           <button
                             type="button"
                             onClick={() => void completeLaunchHandoff(intake)}
-                            disabled={isUpdating}
+                            disabled={isUpdating || !canLaunch}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                           >
                             <CheckCircle2 className="h-4 w-4" />

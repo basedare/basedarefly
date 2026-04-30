@@ -89,6 +89,8 @@ export type PaidActivationSmokeSnapshot = {
     recentIntakes: number;
     qualifiedIntakes: number;
     readyToInvoiceIntakes: number;
+    paymentSentIntakes: number;
+    paidConfirmedIntakes: number;
     launchedIntakes: number;
     venueCampaigns: number;
     liveVenueCampaigns: number;
@@ -647,6 +649,8 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
     recentIntakes,
     qualifiedIntakes,
     readyToInvoiceIntakes,
+    paymentSentIntakes,
+    paidConfirmedIntakes,
     launchedIntakes,
     venueCampaigns,
     liveVenueCampaigns,
@@ -672,6 +676,18 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
       where: {
         eventType: 'ACTIVATION_INTAKE',
         status: 'READY_TO_INVOICE',
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: 'PAYMENT_SENT',
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: 'PAID_CONFIRMED',
       },
     }),
     prisma.founderEvent.count({
@@ -749,7 +765,7 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
     }),
   ]);
 
-  const activeActivationIntakes = qualifiedIntakes + readyToInvoiceIntakes;
+  const activeActivationIntakes = qualifiedIntakes + readyToInvoiceIntakes + paymentSentIntakes + paidConfirmedIntakes;
   const checks = [
     buildActivationCheck({
       id: 'activation.contracts',
@@ -807,7 +823,7 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
       id: 'activation.intake-ops',
       label: 'Buyer intake ops',
       severity: recentIntakes > 0 || activeActivationIntakes > 0 || launchedIntakes > 0 ? 'pass' : 'warn',
-      detail: `${recentIntakes} intake(s) arrived in the last 7 days; ${readyToInvoiceIntakes} ready to invoice; ${launchedIntakes} marked launched.`,
+      detail: `${recentIntakes} intake(s) arrived in the last 7 days; ${readyToInvoiceIntakes} ready to invoice; ${paymentSentIntakes} payment sent; ${paidConfirmedIntakes} paid confirmed; ${launchedIntakes} marked launched.`,
       nextAction:
         recentIntakes > 0 || activeActivationIntakes > 0 || launchedIntakes > 0
           ? undefined
@@ -876,6 +892,8 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
       recentIntakes,
       qualifiedIntakes,
       readyToInvoiceIntakes,
+      paymentSentIntakes,
+      paidConfirmedIntakes,
       launchedIntakes,
       venueCampaigns,
       liveVenueCampaigns,

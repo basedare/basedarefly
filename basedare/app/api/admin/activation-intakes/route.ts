@@ -13,6 +13,8 @@ const INTAKE_STATUSES = [
   'QUALIFIED',
   'NEEDS_INFO',
   'READY_TO_INVOICE',
+  'PAYMENT_SENT',
+  'PAID_CONFIRMED',
   'LAUNCHED',
   'REJECTED',
 ] as const;
@@ -26,6 +28,8 @@ const IntakeUpdateSchema = z.object({
   assignedVenue: z.string().max(180).nullable().optional(),
   operatorNote: z.string().max(1200).nullable().optional(),
   nextActionAt: z.string().datetime().nullable().optional(),
+  paymentLink: z.string().max(500).nullable().optional(),
+  paymentReference: z.string().max(180).nullable().optional(),
 });
 
 type IntakeStatus = (typeof INTAKE_STATUSES)[number];
@@ -63,6 +67,8 @@ const STATUS_LABELS: Record<IntakeStatus, string> = {
   QUALIFIED: 'Qualified',
   NEEDS_INFO: 'Needs info',
   READY_TO_INVOICE: 'Ready to invoice',
+  PAYMENT_SENT: 'Payment sent',
+  PAID_CONFIRMED: 'Paid confirmed',
   LAUNCHED: 'Launched',
   REJECTED: 'Rejected',
 };
@@ -182,6 +188,21 @@ function formatPackageLabel(value: string) {
     'city-takeover': 'Global Challenge Drop',
   };
   return labels[value] || value || 'Activation package';
+}
+
+function defaultPaymentLink() {
+  return (
+    process.env.BASEDARE_PAYMENT_LINK?.trim() ||
+    process.env.NEXT_PUBLIC_BASEDARE_PAYMENT_LINK?.trim() ||
+    ''
+  );
+}
+
+function defaultPaymentInstructions() {
+  return (
+    process.env.BASEDARE_PAYMENT_INSTRUCTIONS?.trim() ||
+    'Reply to confirm the payment path. BaseDare can use a manual invoice, Stripe/checkout link, or USDC settlement depending on the buyer.'
+  );
 }
 
 function getMissionIdeas(metadata: MetadataRecord) {
@@ -409,6 +430,8 @@ function buildInvoiceMemo(input: {
   budgetLabel: string;
   packageId: string;
   creatorRecommendations: CreatorRecommendation[];
+  paymentLink: string;
+  paymentReference: string;
 }) {
   const target = input.venue || input.company || 'activation target';
   const firstCreator = input.creatorRecommendations[0]?.tag || 'creator shortlist pending';
@@ -422,14 +445,69 @@ function buildInvoiceMemo(input: {
     `Package: ${formatPackageLabel(input.packageId)}`,
     `Budget lane: ${input.budgetLabel}`,
     `Initial creator route: ${firstCreator}`,
+    input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
+    input.paymentLink ? `Payment link: ${input.paymentLink}` : 'Payment link: add Stripe/invoice/USDC link before sending externally.',
     '',
     'Use of funds:',
     '- Creator reward pool for approved proof.',
     '- BaseDare activation setup, route design, review, and proof receipt.',
     '- No autonomous launch: payment and scope are confirmed by a human operator first.',
     '',
-    'Internal next step: mark intake READY_TO_INVOICE after buyer confirms scope.',
-  ].join('\n');
+    'Internal next step: move to PAYMENT_SENT after the payment packet is sent, then PAID_CONFIRMED only after funds are verified.',
+  ].filter((line): line is string => line !== null).join('\n');
+}
+
+function buildPaymentPacket(input: {
+  id: string;
+  company: string;
+  contactName: string;
+  venue: string;
+  city: string;
+  budgetLabel: string;
+  timelineLabel: string;
+  packageId: string;
+  paymentLink: string;
+  paymentReference: string;
+  missionIdeas: MissionIdea[];
+  creatorRecommendations: CreatorRecommendation[];
+}) {
+  const name = input.contactName || 'there';
+  const target = input.venue || input.company || 'your activation';
+  const firstCreator = input.creatorRecommendations[0]?.tag || 'creator shortlist pending';
+  const firstMission = input.missionIdeas[0];
+  const paymentLine = input.paymentLink
+    ? input.paymentLink
+    : '[Insert Stripe/manual invoice/USDC payment link here before sending]';
+
+  return [
+    `Hi ${name},`,
+    '',
+    `Here is the BaseDare payment packet for ${target}${input.city ? ` in ${input.city}` : ''}.`,
+    '',
+    `Package: ${formatPackageLabel(input.packageId)}`,
+    `Budget lane: ${input.budgetLabel}`,
+    `Timeline: ${input.timelineLabel}`,
+    `Lead ID: ${input.id}`,
+    input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
+    '',
+    'Activation route:',
+    `- Venue: ${target}`,
+    `- First creator route: ${firstCreator}`,
+    `- First proof mission: ${firstMission ? `${firstMission.title} - ${firstMission.detail}` : 'final mission brief confirmed after payment'}`,
+    '',
+    'What happens after payment:',
+    '1. BaseDare opens the funded venue activation inside the app.',
+    '2. Creator proof, place signal, review state, and payout state stay trackable.',
+    '3. You receive a proof receipt showing what happened and the recommended next move.',
+    '',
+    'Payment link:',
+    paymentLine,
+    '',
+    'Payment instructions:',
+    defaultPaymentInstructions(),
+    '',
+    'Important: BaseDare does not launch public commitments until payment and scope are confirmed.',
+  ].filter((line): line is string => line !== null).join('\n');
 }
 
 async function fetchCreatorCandidates(): Promise<CreatorCandidate[]> {
@@ -636,6 +714,8 @@ function mapIntakeEvent(event: {
   const assignedVenue = stringValue(operator.assignedVenue) || venue;
   const operatorNote = stringValue(operator.operatorNote);
   const nextActionAt = stringValue(operator.nextActionAt);
+  const paymentLink = stringValue(operator.paymentLink) || defaultPaymentLink();
+  const paymentReference = stringValue(operator.paymentReference) || `BD-${event.id.slice(0, 8).toUpperCase()}`;
   const amount = event.amount ?? numberValue(metadata.amount);
   const ageHours = hoursSince(event.occurredAt);
   const budgetLabel = BUDGET_LABELS[budgetRange] || (amount ? `$${amount.toLocaleString()}` : 'budget TBD');
@@ -706,6 +786,22 @@ function mapIntakeEvent(event: {
     budgetLabel,
     packageId,
     creatorRecommendations,
+    paymentLink,
+    paymentReference,
+  });
+  const paymentPacket = buildPaymentPacket({
+    id: event.id,
+    company,
+    contactName,
+    venue: assignedVenue,
+    city,
+    budgetLabel,
+    timelineLabel,
+    packageId,
+    paymentLink,
+    paymentReference,
+    missionIdeas,
+    creatorRecommendations,
   });
   const subjectTarget = company || assignedVenue || 'activation';
 
@@ -737,6 +833,8 @@ function mapIntakeEvent(event: {
     assignedVenue,
     operatorNote,
     nextActionAt,
+    paymentLink,
+    paymentReference,
     missionIdeas,
     positioningLine,
     proofLogic,
@@ -745,6 +843,7 @@ function mapIntakeEvent(event: {
     replyDraft,
     sparkRoutePacket,
     invoiceMemo,
+    paymentPacket,
     links: {
       createHref,
       scoutHref,
@@ -762,6 +861,11 @@ function mapIntakeEvent(event: {
         email,
         subject: `BaseDare activation payment memo: ${subjectTarget}`,
         body: invoiceMemo,
+      }),
+      paymentMailtoHref: buildMailtoHref({
+        email,
+        subject: `BaseDare activation payment packet: ${subjectTarget}`,
+        body: paymentPacket,
       }),
     },
   };
@@ -812,6 +916,8 @@ export async function GET(request: NextRequest) {
           total: intakes.length,
           active: intakes.filter((intake) => !['LAUNCHED', 'REJECTED'].includes(intake.status)).length,
           readyToInvoice: summary.READY_TO_INVOICE,
+          paymentSent: summary.PAYMENT_SENT,
+          paidConfirmed: summary.PAID_CONFIRMED,
           needsInfo: summary.NEEDS_INFO,
           launched: summary.LAUNCHED,
           byStatus: summary,
@@ -860,6 +966,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Activation intake not found' }, { status: 404 });
     }
 
+    const currentStatus = normalizeStatus(event.status);
+    if (input.status === 'LAUNCHED' && currentStatus !== 'PAID_CONFIRMED' && currentStatus !== 'LAUNCHED') {
+      return NextResponse.json(
+        { success: false, error: 'Confirm payment before marking an activation launched.' },
+        { status: 400 }
+      );
+    }
+
     const metadata = asRecord(event.metadataJson);
     const existingOperator = asRecord(metadata.operator);
     const nextOperator: MetadataRecord = {
@@ -872,9 +986,11 @@ export async function PUT(request: NextRequest) {
     if (input.assignedVenue !== undefined) nextOperator.assignedVenue = cleanOptional(input.assignedVenue);
     if (input.operatorNote !== undefined) nextOperator.operatorNote = cleanOptional(input.operatorNote);
     if (input.nextActionAt !== undefined) nextOperator.nextActionAt = input.nextActionAt;
+    if (input.paymentLink !== undefined) nextOperator.paymentLink = cleanOptional(input.paymentLink);
+    if (input.paymentReference !== undefined) nextOperator.paymentReference = cleanOptional(input.paymentReference);
 
     const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
-    const nextStatus = input.status ?? normalizeStatus(event.status);
+    const nextStatus = input.status ?? currentStatus;
     const nextMetadata = JSON.parse(
       JSON.stringify({
         ...metadata,
@@ -884,7 +1000,7 @@ export async function PUT(request: NextRequest) {
             ? [
                 ...statusHistory.slice(-12),
                 {
-                  from: normalizeStatus(event.status),
+                  from: currentStatus,
                   to: input.status,
                   at: new Date().toISOString(),
                   by: auth.walletAddress,
