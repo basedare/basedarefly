@@ -116,5 +116,8 @@
     "number-to-bn": {
       "bn.js": "4.12.3"
     }
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "1.30.2"
   }
 }
