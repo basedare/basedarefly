@@ -82,6 +82,25 @@ type ActivationIntake = {
   sparkRoutePacket: string;
   invoiceMemo: string;
   paymentPacket: string;
+  activationReceipt: {
+    status: string;
+    label: string;
+    tone: string;
+    campaignId: string | null;
+    campaignTitle: string | null;
+    campaignHref: string | null;
+    venueHref: string | null;
+    dareHref: string | null;
+    proofUrl: string | null;
+    creatorHandle: string | null;
+    nextDecision: string;
+    metrics: Array<{
+      label: string;
+      value: string;
+      hint: string;
+    }>;
+    receiptText: string;
+  };
   missionIdeas: Array<{
     title: string;
     detail: string;
@@ -108,6 +127,7 @@ type ActivationIntake = {
     packetMailtoHref: string | null;
     invoiceMailtoHref: string | null;
     paymentMailtoHref: string | null;
+    receiptMailtoHref: string | null;
   };
 };
 
@@ -155,6 +175,12 @@ function statusClass(status: IntakeStatus) {
   if (status === 'PAID_CONFIRMED') return 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100';
   if (status === 'LAUNCHED') return 'border-white/15 bg-white/10 text-white';
   return 'border-red-300/25 bg-red-400/10 text-red-100';
+}
+
+function receiptToneClass(tone: string) {
+  if (tone === 'success') return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
+  if (tone === 'warning') return 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100';
+  return 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100';
 }
 
 function formatDateTime(value: string) {
@@ -700,6 +726,7 @@ export default function ActivationIntakesPage() {
                 const launchHref = buildBrandPortalLaunchHref(intake, assignedVenue, assignedCreator);
                 const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
                 const canLaunch = intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED';
+                const receipt = intake.activationReceipt;
                 const launchChecklist = [
                   {
                     label: 'Buyer',
@@ -1167,6 +1194,117 @@ export default function ActivationIntakesPage() {
                               {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                               Confirm launch
                             </button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-[1.55rem] border border-cyan-300/16 bg-[linear-gradient(135deg,rgba(34,211,238,0.12),rgba(0,0,0,0.42)_48%,rgba(255,255,255,0.05))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                            <div>
+                              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
+                                <FileText className="h-3.5 w-3.5" />
+                                Proof receipt
+                              </div>
+                              <p className="mt-3 text-sm font-black text-white">
+                                Buyer-ready outcome recap after launch.
+                              </p>
+                              <p className="mt-1 max-w-xl text-xs font-bold leading-5 text-white/50">
+                                This ties the paid lead to its campaign, proof, creator route, spend, and repeat decision.
+                              </p>
+                            </div>
+                            <span className={`w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${receiptToneClass(receipt.tone)}`}>
+                              {receipt.label}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                            {receipt.metrics.map((metric) => (
+                              <div
+                                key={`${intake.id}-receipt-${metric.label}`}
+                                className="rounded-2xl border border-white/10 bg-black/35 p-3"
+                              >
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/34">
+                                  {metric.label}
+                                </p>
+                                <p className="mt-1 truncate text-sm font-black text-white">{metric.value}</p>
+                                <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-4 text-white/42">
+                                  {metric.hint}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-3 rounded-[1.25rem] border border-white/10 bg-black/38 p-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/36">
+                              Next decision
+                            </p>
+                            <p className="mt-1 text-xs font-bold leading-5 text-white/58">
+                              {receipt.nextDecision}
+                            </p>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                            <button
+                              type="button"
+                              onClick={() => void copyText(`${intake.id}:receipt`, receipt.receiptText)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/15"
+                            >
+                              <Clipboard className="h-4 w-4" />
+                              {copiedId === `${intake.id}:receipt` ? 'Copied' : 'Copy receipt'}
+                            </button>
+                            {intake.links.receiptMailtoHref ? (
+                              <a
+                                href={intake.links.receiptMailtoHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                              >
+                                <Mail className="h-4 w-4" />
+                                Email receipt
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No email
+                              </span>
+                            )}
+                            {receipt.campaignHref ? (
+                              <Link
+                                href={receipt.campaignHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.1]"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Campaign
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No campaign
+                              </span>
+                            )}
+                            {receipt.dareHref ? (
+                              <Link
+                                href={receipt.dareHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Dare
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No dare
+                              </span>
+                            )}
+                            {receipt.proofUrl ? (
+                              <a
+                                href={receipt.proofUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Proof
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No proof
+                              </span>
+                            )}
                           </div>
                         </div>
 

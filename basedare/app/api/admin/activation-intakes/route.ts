@@ -62,6 +62,12 @@ type CreatorCandidate = {
   };
 };
 
+type ReceiptMetric = {
+  label: string;
+  value: string;
+  hint: string;
+};
+
 const STATUS_LABELS: Record<IntakeStatus, string> = {
   NEW: 'New',
   QUALIFIED: 'Qualified',
@@ -103,6 +109,16 @@ function numberValue(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function parseJsonRecord(value: string | null | undefined): MetadataRecord {
+  if (!value) return {};
+
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return {};
+  }
+}
+
 function normalizeStatus(value: unknown): IntakeStatus {
   return INTAKE_STATUSES.includes(value as IntakeStatus) ? (value as IntakeStatus) : 'NEW';
 }
@@ -114,6 +130,11 @@ function cleanOptional(value: string | null | undefined) {
 
 function hoursSince(value: Date) {
   return Math.max(0, Math.round((Date.now() - value.getTime()) / (1000 * 60 * 60)));
+}
+
+function formatUsd(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '$0';
+  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 function buildCreateHref(input: {
@@ -680,6 +701,227 @@ async function fetchCreatorCandidates(): Promise<CreatorCandidate[]> {
     .sort((left, right) => right.trust.score - left.trust.score);
 }
 
+async function fetchActivationReceiptCampaigns() {
+  return prisma.campaign.findMany({
+    where: {
+      type: 'PLACE',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 220,
+    select: {
+      id: true,
+      shortId: true,
+      title: true,
+      status: true,
+      budgetUsdc: true,
+      payoutPerCreator: true,
+      creatorCountTarget: true,
+      targetingCriteria: true,
+      fundedAt: true,
+      liveAt: true,
+      settledAt: true,
+      createdAt: true,
+      brand: {
+        select: {
+          name: true,
+        },
+      },
+      venue: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          city: true,
+          country: true,
+        },
+      },
+      linkedDare: {
+        select: {
+          id: true,
+          shortId: true,
+          title: true,
+          status: true,
+          bounty: true,
+          streamerHandle: true,
+          claimedBy: true,
+          claimRequestTag: true,
+          videoUrl: true,
+          imageUrl: true,
+          proof_media: true,
+          proofCid: true,
+          verifiedAt: true,
+          completed_at: true,
+          updatedAt: true,
+        },
+      },
+      slots: {
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        select: {
+          status: true,
+          creatorHandle: true,
+          proofUrl: true,
+          submittedAt: true,
+          paidAt: true,
+          totalPayout: true,
+          updatedAt: true,
+        },
+      },
+    },
+  });
+}
+
+type ActivationReceiptCampaign = Awaited<ReturnType<typeof fetchActivationReceiptCampaigns>>[number];
+
+function findActivationReceiptCampaign(eventId: string, campaigns: ActivationReceiptCampaign[]) {
+  return campaigns.find((campaign) => {
+    const targeting = parseJsonRecord(campaign.targetingCriteria);
+    return (
+      stringValue(targeting.activationLeadId) === eventId ||
+      stringValue(targeting.reportSessionKey) === eventId
+    );
+  }) ?? null;
+}
+
+function buildActivationReceipt(input: {
+  eventId: string;
+  company: string;
+  contactName: string;
+  email: string;
+  assignedVenue: string;
+  city: string;
+  budgetLabel: string;
+  paymentReference: string;
+  campaign: ActivationReceiptCampaign | null;
+}) {
+  const campaign = input.campaign;
+  const buyer = input.company || input.contactName || input.email || 'Buyer';
+  const target = campaign?.venue?.name || input.assignedVenue || input.company || 'activation target';
+  const cityLine = campaign?.venue?.city || input.city;
+
+  if (!campaign) {
+    const receiptText = [
+      `BaseDare activation receipt - ${target}`,
+      '',
+      `Buyer: ${buyer}`,
+      `Lead ID: ${input.eventId}`,
+      input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
+      '',
+      'Launch state: no linked campaign found yet.',
+      'Next decision: open Brand Portal launch after payment is confirmed, then the receipt will attach to campaign, proof, and payout state automatically.',
+    ].filter((line): line is string => line !== null).join('\n');
+
+    return {
+      status: 'AWAITING_LAUNCH',
+      label: 'Awaiting launch',
+      tone: 'warning',
+      campaignId: null,
+      campaignTitle: null,
+      campaignHref: null,
+      venueHref: null,
+      dareHref: null,
+      proofUrl: null,
+      creatorHandle: null,
+      nextDecision: 'Launch the paid activation before sending the buyer receipt.',
+      metrics: [
+        { label: 'Campaign', value: 'Not linked', hint: 'Open Brand launch after paid confirmed.' },
+        { label: 'Proof', value: 'Waiting', hint: 'Proof state appears after a funded mission exists.' },
+        { label: 'Budget', value: input.budgetLabel, hint: 'Use the paid lane agreed with the buyer.' },
+      ] satisfies ReceiptMetric[],
+      receiptText,
+    };
+  }
+
+  const linkedDare = campaign.linkedDare;
+  const bestSlot = campaign.slots[0] ?? null;
+  const submittedSlot = campaign.slots.find((slot) => Boolean(slot.proofUrl || slot.submittedAt)) ?? null;
+  const paidSlot = campaign.slots.find((slot) => Boolean(slot.paidAt || slot.status === 'PAID')) ?? null;
+  const proofUrl =
+    submittedSlot?.proofUrl ||
+    linkedDare?.videoUrl ||
+    linkedDare?.imageUrl ||
+    linkedDare?.proof_media ||
+    null;
+  const proofSubmitted = Boolean(proofUrl || linkedDare?.completed_at || submittedSlot);
+  const proofVerified = Boolean(linkedDare?.verifiedAt || linkedDare?.status === 'VERIFIED');
+  const settled = Boolean(campaign.settledAt || paidSlot || campaign.status === 'SETTLED');
+  const creatorHandle =
+    bestSlot?.creatorHandle ||
+    linkedDare?.streamerHandle ||
+    linkedDare?.claimRequestTag ||
+    linkedDare?.claimedBy ||
+    null;
+
+  let status = 'LIVE';
+  let label = 'Live, proof pending';
+  let tone = 'info';
+  let nextDecision = 'Keep the creator moving until proof is submitted.';
+
+  if (settled) {
+    status = 'SETTLED';
+    label = 'Receipt settled';
+    tone = 'success';
+    nextDecision = 'Send the proof receipt, ask for repeat budget, or increase the route.';
+  } else if (proofVerified) {
+    status = 'VERIFIED';
+    label = 'Proof verified';
+    tone = 'success';
+    nextDecision = 'Send the buyer receipt and confirm payout settlement.';
+  } else if (proofSubmitted) {
+    status = 'PROOF_SUBMITTED';
+    label = 'Proof submitted';
+    tone = 'warning';
+    nextDecision = 'Review the proof, then approve, reject, or request a cleaner reshoot.';
+  }
+
+  const dareHref = linkedDare?.shortId ? `/dare/${linkedDare.shortId}` : null;
+  const campaignHref = `/brands/portal?campaign=${encodeURIComponent(campaign.id)}`;
+  const venueHref = campaign.venue?.slug ? `/venues/${campaign.venue.slug}` : null;
+  const payoutValue = paidSlot?.totalPayout ?? campaign.payoutPerCreator;
+  const receiptText = [
+    `BaseDare activation receipt - ${target}`,
+    '',
+    `Buyer: ${buyer}`,
+    `Lead ID: ${input.eventId}`,
+    input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
+    `Campaign: ${campaign.title} (${campaign.status})`,
+    `Venue: ${target}${cityLine ? `, ${cityLine}` : ''}`,
+    `Creator route: ${creatorHandle || 'creator pending'}`,
+    `Proof state: ${label}`,
+    proofUrl ? `Proof link: ${proofUrl}` : null,
+    dareHref ? `Dare link: ${dareHref}` : null,
+    `Spend tracked: ${formatUsd(campaign.budgetUsdc)}`,
+    `Creator payout lane: ${formatUsd(payoutValue)}`,
+    '',
+    `Next decision: ${nextDecision}`,
+  ].filter((line): line is string => line !== null).join('\n');
+
+  return {
+    status,
+    label,
+    tone,
+    campaignId: campaign.id,
+    campaignTitle: campaign.title,
+    campaignHref,
+    venueHref,
+    dareHref,
+    proofUrl,
+    creatorHandle,
+    nextDecision,
+    metrics: [
+      { label: 'Campaign', value: campaign.status, hint: campaign.title },
+      { label: 'Proof', value: label, hint: proofUrl ? 'Proof link is ready.' : 'No proof URL yet.' },
+      { label: 'Creator', value: creatorHandle || 'Pending', hint: bestSlot?.status || linkedDare?.status || 'No slot state.' },
+      { label: 'Spend', value: formatUsd(campaign.budgetUsdc), hint: `${campaign.creatorCountTarget} creator target.` },
+      { label: 'Payout', value: formatUsd(payoutValue), hint: paidSlot?.paidAt ? 'Payout marked paid.' : 'Payout lane.' },
+    ] satisfies ReceiptMetric[],
+    receiptText,
+  };
+}
+
 function mapIntakeEvent(event: {
   id: string;
   title: string | null;
@@ -690,7 +932,7 @@ function mapIntakeEvent(event: {
   metadataJson: Prisma.JsonValue | null;
   occurredAt: Date;
   updatedAt: Date;
-}, candidates: CreatorCandidate[] = []) {
+}, candidates: CreatorCandidate[] = [], campaigns: ActivationReceiptCampaign[] = []) {
   const metadata = asRecord(event.metadataJson);
   const operator = asRecord(metadata.operator);
   const status = normalizeStatus(event.status);
@@ -803,6 +1045,17 @@ function mapIntakeEvent(event: {
     missionIdeas,
     creatorRecommendations,
   });
+  const activationReceipt = buildActivationReceipt({
+    eventId: event.id,
+    company,
+    contactName,
+    email,
+    assignedVenue,
+    city,
+    budgetLabel,
+    paymentReference,
+    campaign: findActivationReceiptCampaign(event.id, campaigns),
+  });
   const subjectTarget = company || assignedVenue || 'activation';
 
   return {
@@ -844,6 +1097,7 @@ function mapIntakeEvent(event: {
     sparkRoutePacket,
     invoiceMemo,
     paymentPacket,
+    activationReceipt,
     links: {
       createHref,
       scoutHref,
@@ -866,6 +1120,11 @@ function mapIntakeEvent(event: {
         email,
         subject: `BaseDare activation payment packet: ${subjectTarget}`,
         body: paymentPacket,
+      }),
+      receiptMailtoHref: buildMailtoHref({
+        email,
+        subject: `BaseDare activation proof receipt: ${subjectTarget}`,
+        body: activationReceipt.receiptText,
       }),
     },
   };
@@ -899,8 +1158,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const creatorCandidates = await fetchCreatorCandidates();
-    const intakes = events.map((event) => mapIntakeEvent(event, creatorCandidates));
+    const [creatorCandidates, activationCampaigns] = await Promise.all([
+      fetchCreatorCandidates(),
+      fetchActivationReceiptCampaigns(),
+    ]);
+    const intakes = events.map((event) => mapIntakeEvent(event, creatorCandidates, activationCampaigns));
     const summary = INTAKE_STATUSES.reduce(
       (acc, status) => ({
         ...acc,
@@ -1030,8 +1292,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    const creatorCandidates = await fetchCreatorCandidates();
-    const mappedIntake = mapIntakeEvent(updated, creatorCandidates);
+    const [creatorCandidates, activationCampaigns] = await Promise.all([
+      fetchCreatorCandidates(),
+      fetchActivationReceiptCampaigns(),
+    ]);
+    const mappedIntake = mapIntakeEvent(updated, creatorCandidates, activationCampaigns);
 
     if (input.status && input.status !== event.status) {
       void alertActivationIntakeStatusUpdate({

@@ -434,6 +434,17 @@ export async function POST(request: NextRequest) {
     const grossBudget = payoutPerCreator * effectiveCreatorCountTarget;
     const platformRake = grossBudget * (tierConfig.rakePercent / 100);
     const totalBudget = grossBudget + platformRake;
+    const campaignTargetingCriteria: Record<string, unknown> = {
+      ...(targetingCriteria ?? {}),
+    };
+
+    if (reportSource) campaignTargetingCriteria.reportSource = reportSource;
+    if (reportAudience) campaignTargetingCriteria.reportAudience = reportAudience;
+    if (reportSessionKey) campaignTargetingCriteria.reportSessionKey = reportSessionKey;
+    if (reportIntent) campaignTargetingCriteria.reportIntent = reportIntent;
+    if (reportSource === 'activation-intake' && reportSessionKey) {
+      campaignTargetingCriteria.activationLeadId = reportSessionKey;
+    }
 
     // Calculate veto window (24h after campaign goes to RECRUITING)
     const vetoWindowEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -586,7 +597,7 @@ export async function POST(request: NextRequest) {
                 strikeWindowMinutes: tierConfig.strikeWindowMinutes,
                 precisionMultiplier: tierConfig.precisionMultiplier,
                 rakePercent: tierConfig.rakePercent,
-                targetingCriteria: JSON.stringify(targetingCriteria || {}),
+                targetingCriteria: JSON.stringify(campaignTargetingCriteria),
                 verificationCriteria: JSON.stringify(verificationCriteria),
                 vetoWindowEndsAt,
                 status: 'LIVE',
@@ -730,9 +741,9 @@ export async function POST(request: NextRequest) {
       `[CAMPAIGNS] Created: ${title} (${type}/${tier}) - $${totalBudget} for ${effectiveCreatorCountTarget} creator slots`
     );
 
-    if (type === 'PLACE' && venueId && reportSource === 'venue-report') {
+    if (type === 'PLACE' && venueId && (reportSource === 'venue-report' || reportSource === 'activation-intake')) {
       void recordVenueReportEvent({
-        venueId,
+        venueId: campaign.venueId ?? venueId,
         audience: reportAudience ?? 'venue',
         eventType: reportIntent === 'repeat' ? 'REPEAT_LAUNCHED' : 'ACTIVATION_LAUNCHED',
         sessionKey: reportSessionKey ?? null,
