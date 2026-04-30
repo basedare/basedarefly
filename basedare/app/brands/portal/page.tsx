@@ -10,7 +10,6 @@ import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { NETWORK_CONFIG } from '@/lib/contracts';
-import { buildVenueActivationIntakeHref } from '@/lib/venue-launch';
 
 // ============================================================================
 // CONTROL MODE - BRAND PORTAL
@@ -387,31 +386,6 @@ function getVenueRadarClaimTone(venue: BrandVenueRadarItem) {
 
 function formatVenueRadarLocation(venue: Pick<BrandVenueRadarItem, 'city' | 'country'>) {
   return [venue.city, venue.country].filter(Boolean).join(', ') || 'Venue on the grid';
-}
-
-function buildBrandPortalActivationHref(venue?: BrandVenueRadarItem | null, creatorTag?: string | null) {
-  if (!venue) {
-    return buildVenueActivationIntakeHref({
-      source: 'brand-portal',
-      buyerType: 'venue',
-      goal: 'foot_traffic',
-      packageId: 'pilot-drop',
-      payout: 120,
-    });
-  }
-
-  return buildVenueActivationIntakeHref({
-    venueId: venue.id,
-    venueSlug: venue.slug,
-    venueName: venue.name,
-    city: venue.city,
-    payout: 120,
-    creatorTag,
-    goal: 'foot_traffic',
-    buyerType: 'venue',
-    packageId: 'pilot-drop',
-    source: 'brand-portal',
-  });
 }
 
 export default function BrandPortalPage() {
@@ -1610,8 +1584,8 @@ export default function BrandPortalPage() {
 
         @media (max-width: 767px) {
           .control-glass-room {
-            filter: none;
-            -webkit-filter: none;
+            filter: grayscale(1) contrast(1.03);
+            -webkit-filter: grayscale(1) contrast(1.03);
           }
 
           .control-glass-room header,
@@ -1817,12 +1791,19 @@ export default function BrandPortalPage() {
                 Pick a real place, set the creator payout, fund the mission, then watch proof and venue lift come back into one surface.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Link
-                  href={buildBrandPortalActivationHref(selectedVenueRadar)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedVenueRadar) {
+                      openCampaignComposerForVenue(selectedVenueRadar);
+                      return;
+                    }
+                    setShowCreateCampaign(true);
+                  }}
                   className="rounded-xl bg-zinc-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
                 >
                   Launch activation
-                </Link>
+                </button>
                 <Link
                   href="/map"
                   className="rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:border-zinc-400"
@@ -2182,13 +2163,14 @@ export default function BrandPortalPage() {
                       If you want to capture this venue while the signal is fresh, fund one activation now and route the best-fit creator into the existing movement.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Link
-                        href={buildBrandPortalActivationHref(selectedVenueRadar)}
+                      <button
+                        type="button"
+                        onClick={() => openCampaignComposerForVenue(selectedVenueRadar)}
                         className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
                       >
                         <PlayCircle className="h-4 w-4" />
                         Fund activation here
-                      </Link>
+                      </button>
                       <Link
                         href={`/venues/${selectedVenueRadar.slug}`}
                         className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"

@@ -1154,12 +1154,12 @@ export async function getBrandVenueRadar(input: {
       let summary = 'Fresh movement is building, but this venue still needs more campaign pressure to become a reliable anchor.';
 
       if (liveBrandCampaigns > 0) {
-        priorityLabel = 'Active with your brand';
-        strategyLabel = 'Double down';
+        priorityLabel = 'Already funded';
+        strategyLabel = 'Repeat or scale';
         summary = 'You already have live spend here, so this venue is the cleanest place to tighten creator routing and repeat traffic.';
       } else if (brandCampaigns.length > 0) {
-        priorityLabel = 'Warm brand history';
-        strategyLabel = 'Re-ignite';
+        priorityLabel = 'Past buyer signal';
+        strategyLabel = 'Rebook this venue';
         summary = 'Your brand has already touched this venue. Re-opening it should be cheaper than activating somewhere cold.';
       } else if (commandCenter.claimState === 'claimed') {
         priorityLabel = 'Claimed + sponsor ready';

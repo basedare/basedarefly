@@ -748,18 +748,20 @@ export default async function VenueDetailPage(
                         {claimedActivationCount} creator attached
                       </div>
                     ) : null}
-                    <div className="w-full max-w-xs sm:w-48">
-                      <SquircleLink
-                        href={fundChallengeHref}
-                        label="Fund dare"
-                        tone="yellow"
-                        fullWidth
-                        height={48}
-                        labelClassName="text-[0.74rem] tracking-[0.1em]"
-                      >
-                        Fund dare
-                      </SquircleLink>
-                    </div>
+                    {venue.activeDares.length > 0 ? (
+                      <div className="w-full max-w-xs sm:w-48">
+                        <SquircleLink
+                          href={fundChallengeHref}
+                          label="Fund another"
+                          tone="yellow"
+                          fullWidth
+                          height={48}
+                          labelClassName="text-[0.74rem] tracking-[0.1em]"
+                        >
+                          Fund another
+                        </SquircleLink>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 {isCreatorContext && focusedActivation ? (
@@ -1012,13 +1014,13 @@ export default async function VenueDetailPage(
                       <div className="mt-4 max-w-xs">
                         <SquircleLink
                           href={fundChallengeHref}
-                          label="Start dare"
+                          label="Fund dare"
                           tone="yellow"
                           fullWidth
                           height={46}
                           labelClassName="text-[0.7rem] tracking-[0.1em] sm:text-[0.76rem]"
                         >
-                          Start dare
+                          Fund dare
                           <ArrowRight className="h-4 w-4" />
                         </SquircleLink>
                       </div>
@@ -1338,12 +1340,12 @@ export default async function VenueDetailPage(
                         </div>
                         <SquircleLink
                           href={fundChallengeHref}
-                          label="Start dare"
+                          label="Fund dare"
                           tone="yellow"
                           height={46}
                           labelClassName="text-[0.7rem] tracking-[0.1em]"
                         >
-                          Start dare
+                          Fund dare
                           <ArrowRight className="h-4 w-4" />
                         </SquircleLink>
                         <Link

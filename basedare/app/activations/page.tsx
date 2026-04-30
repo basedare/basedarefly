@@ -107,7 +107,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const routedSource = resolvedSearchParams.source || null;
 
   return (
-    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 contrast-110 sm:px-6 md:grayscale md:saturate-0 md:contrast-125 lg:py-12">
+    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.06),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0)_26%,rgba(0,0,0,0.82)_100%)]" />
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-44 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
