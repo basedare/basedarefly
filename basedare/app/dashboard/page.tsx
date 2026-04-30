@@ -9,6 +9,7 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import PushActivationCard from "@/components/PushActivationCard";
+import SignalRoomCard from "@/components/SignalRoomCard";
 import CosmicButton from "@/components/ui/CosmicButton";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import SquircleButton from "@/components/ui/SquircleButton";
@@ -1161,6 +1162,7 @@ export default function Dashboard() {
           </div>
 
           {isConnected ? <PushActivationCard className="mb-4" compact /> : null}
+          <SignalRoomCard className="mb-4" compact />
 
           {!isConnected ? (
             <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>

@@ -15,6 +15,7 @@ import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/act
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
+const TELEGRAM_SIGNAL_CHAT_ID = process.env.TELEGRAM_SIGNAL_CHAT_ID || process.env.TELEGRAM_PUBLIC_CHAT_ID;
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 const EXPLORER_URL = process.env.NEXT_PUBLIC_NETWORK === 'mainnet'
@@ -32,17 +33,21 @@ const TELEGRAM_HTTPS_AGENT = new HttpsAgent({
 });
 
 /**
- * Send a message to the admin Telegram chat
+ * Send a message to a specific Telegram chat.
  */
-async function sendMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'): Promise<boolean> {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+async function sendMessageToChat(
+  chatId: string,
+  text: string,
+  parseMode: 'HTML' | 'Markdown' = 'HTML'
+): Promise<boolean> {
+  if (!TELEGRAM_BOT_TOKEN || !chatId) {
     console.warn('[TELEGRAM] Bot token or chat ID not configured');
     return false;
   }
 
   try {
     const payload = JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
+      chat_id: chatId,
       text,
       parse_mode: parseMode,
       disable_web_page_preview: true,
@@ -99,6 +104,18 @@ async function sendMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'
     console.error('[TELEGRAM] Error sending message:', error);
     return false;
   }
+}
+
+/**
+ * Send a message to the admin Telegram chat.
+ */
+async function sendMessage(text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'): Promise<boolean> {
+  if (!TELEGRAM_CHAT_ID) {
+    console.warn('[TELEGRAM] Admin chat ID not configured');
+    return false;
+  }
+
+  return sendMessageToChat(TELEGRAM_CHAT_ID, text, parseMode);
 }
 
 /**
@@ -190,6 +207,39 @@ export async function alertNewDare(data: {
   stakerAddress?: string | null;
 }): Promise<void> {
   await sendDareCreatedAlert(data);
+}
+
+/**
+ * Public Signal Room alert: only send information already safe for public discovery.
+ */
+export async function alertSignalRoomDare(data: {
+  shortId: string;
+  title: string;
+  amount: number;
+  streamerTag: string | null;
+  isOpenBounty: boolean;
+  missionMode?: string | null;
+  locationLabel?: string | null;
+}): Promise<boolean> {
+  if (!TELEGRAM_SIGNAL_CHAT_ID) {
+    return false;
+  }
+
+  const target = data.isOpenBounty ? 'open to anyone' : data.streamerTag || 'targeted creator';
+  const locationLine = data.locationLabel ? `\n📍 ${escapeHtml(compactText(data.locationLabel, 80))}` : '';
+  const modeLine = data.missionMode ? `\n🎛 ${escapeHtml(data.missionMode)}` : '';
+  const message = [
+    '⚡ <b>LIVE BASEDARE SIGNAL</b>',
+    '',
+    `<b>${escapeHtml(compactText(data.title, 140))}</b>`,
+    `💰 ${formatUSDC(data.amount)}`,
+    `🎯 ${escapeHtml(target)}`,
+    `${modeLine}${locationLine}`,
+    '',
+    htmlLink(appUrl(`/dare/${encodeURIComponent(data.shortId)}`), 'Open the dare'),
+  ].join('\n');
+
+  return sendMessageToChat(TELEGRAM_SIGNAL_CHAT_ID, message);
 }
 
 /**

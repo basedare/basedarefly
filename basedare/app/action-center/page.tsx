@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, BellRing, Loader2 } from 'lucide-react';
 
 import PushActivationCard from '@/components/PushActivationCard';
+import SignalRoomCard from '@/components/SignalRoomCard';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 
@@ -176,6 +177,7 @@ export default function ActionCenterPage() {
               </div>
 
               <PushActivationCard className="mt-6" />
+              <SignalRoomCard className="mt-4" />
 
               {items.length === 0 ? (
                 <div className="mt-6 flex flex-col items-center justify-center rounded-[24px] border border-white/8 bg-black/20 px-5 py-12 text-center">

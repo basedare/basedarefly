@@ -680,6 +680,23 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     detailWhenMissing: 'TELEGRAM_ADMIN_CHAT_ID is missing, so ops alerts degrade to logs.',
     nextAction: 'Set TELEGRAM_ADMIN_CHAT_ID for the admin alert channel.',
   });
+  const hasSignalRoomUrl = hasEnv('NEXT_PUBLIC_TELEGRAM_SIGNAL_URL') || hasEnv('NEXT_PUBLIC_TELEGRAM_COMMUNITY_URL');
+  const hasSignalRoomChat = hasEnv('TELEGRAM_SIGNAL_CHAT_ID') || hasEnv('TELEGRAM_PUBLIC_CHAT_ID');
+  checks.push({
+    id: 'env.telegram-signal-room',
+    label: 'Telegram Signal Room',
+    severity: hasSignalRoomUrl && hasSignalRoomChat ? 'pass' : 'warn',
+    detail:
+      hasSignalRoomUrl && hasSignalRoomChat
+        ? 'Public Signal Room URL and broadcast chat are configured.'
+        : `Signal URL ${hasSignalRoomUrl ? 'configured' : 'missing'}; broadcast chat ${
+            hasSignalRoomChat ? 'configured' : 'missing'
+          }.`,
+    nextAction:
+      hasSignalRoomUrl && hasSignalRoomChat
+        ? undefined
+        : 'Set NEXT_PUBLIC_TELEGRAM_SIGNAL_URL and TELEGRAM_SIGNAL_CHAT_ID to enable public community CTAs and safe broadcasts.',
+  });
 
   const hasVapidPublicKey = hasEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY') || hasEnv('VAPID_PUBLIC_KEY');
   const hasVapidPrivateKey = hasEnv('VAPID_PRIVATE_KEY');

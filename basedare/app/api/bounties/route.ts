@@ -13,7 +13,7 @@ import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
-import { alertNewDare, alertBigPledge, alertFlaggedContent } from '@/lib/telegram';
+import { alertNewDare, alertBigPledge, alertFlaggedContent, alertSignalRoomDare } from '@/lib/telegram';
 import { moderateDare, getModerationStatus } from '@/lib/moderation';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { getAppSettings } from '@/lib/app-settings';
@@ -593,6 +593,18 @@ export async function POST(request: NextRequest) {
         stakerAddress,
       }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
 
+      if (isOpenBounty || isNearbyDare) {
+        alertSignalRoomDare({
+          shortId,
+          title,
+          amount,
+          streamerTag: isOpenBounty ? null : streamerTag || null,
+          isOpenBounty,
+          missionMode: normalizedMissionMode,
+          locationLabel,
+        }).catch(err => console.error('[TELEGRAM] Signal room alert failed:', err));
+      }
+
       // Flagged content alert for moderation
       if (moderation.flagged) {
         alertFlaggedContent({
@@ -896,10 +908,22 @@ export async function POST(request: NextRequest) {
       shortId,
       title,
       amount,
+      streamerTag: isOpenBounty ? null : streamerTag || null,
+      isOpenBounty,
+      stakerAddress,
+    }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
+
+    if (isOpenBounty || isNearbyDare) {
+      alertSignalRoomDare({
+        shortId,
+        title,
+        amount,
         streamerTag: isOpenBounty ? null : streamerTag || null,
         isOpenBounty,
-        stakerAddress,
-    }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
+        missionMode: normalizedMissionMode,
+        locationLabel,
+      }).catch(err => console.error('[TELEGRAM] Signal room alert failed:', err));
+    }
 
     // Big pledge alert for high-value dares
     if (amount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {
