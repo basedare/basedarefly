@@ -10,7 +10,7 @@ import SquircleLink from '@/components/ui/SquircleLink';
 export const metadata: Metadata = {
   title: 'Grid Activation OS | BaseDare',
   description:
-    'Connect venues, creators, fans, and brands with venue-aware dares, proof verification, QR check-ins, payout rails, and ROI analytics.',
+    'Connect venues, creators, fans, and brands with Brand Memory, venue-aware dares, proof verification, QR check-ins, payout rails, and ROI analytics.',
 };
 
 const raisedPanelClass =
@@ -26,16 +26,16 @@ const packages = [
     name: 'Venue Spark Pilot',
     price: '$749+',
     bestFor: 'First venue proof',
-    detail: 'One real venue, venue-aware creator missions, QR/check-in tracking, proof media, and a simple result receipt.',
-    includes: ['global venue target', '3-5 creator missions', 'smart dare generator', 'Spark receipt'],
+    detail: 'One real venue, Brand Memory brief, venue-aware creator missions, QR/check-in tracking, proof media, and a simple result receipt.',
+    includes: ['global venue target', 'Brand Memory brief', '3-5 creator missions', 'Spark receipt'],
   },
   {
     id: 'local-signal',
     name: 'Always-On Spark',
     price: '$1.5k-$5k/mo',
     bestFor: 'Recurring venue spend',
-    detail: 'Ongoing creator missions, venue memory, map visibility, monthly proof receipts, and repeat recommendations.',
-    includes: ['priority venue visibility', 'creator routing', 'QR + proof tracking', 'repeat playbook'],
+    detail: 'Ongoing creator missions, Brand Memory refinement, map visibility, monthly proof receipts, and repeat recommendations.',
+    includes: ['priority venue visibility', 'creator routing', 'Brand Memory refinement', 'repeat playbook'],
     featured: true,
   },
   {
@@ -44,7 +44,7 @@ const packages = [
     price: '$5k+',
     bestFor: 'Brands, fans, events',
     detail: 'A bigger funded challenge across one venue, creator, island, district, event, or online community.',
-    includes: ['custom challenge design', 'fan or sponsor funding', 'creator shortlist', 'campaign report'],
+    includes: ['custom challenge design', 'brand story layer', 'creator shortlist', 'campaign report'],
   },
 ];
 
@@ -75,6 +75,7 @@ const buyerMetrics = [
 ];
 
 const sparkReceipt = [
+  ['Brand Memory', 'The buyer defines story, audience, rituals, forbidden vibes, and the feeling the activation should create.'],
   ['Creator output', 'Venue-aware dare prompts become approved proof clips, photos, and captions the venue can repost.'],
   ['Presence signal', 'QR scans, check-ins, proof timestamps, and venue memory activity.'],
   ['Map visibility', 'The venue lights up as an active place instead of a passive pin.'],
@@ -104,8 +105,8 @@ export default function ActivationsPage() {
                 Own the grid. Prove the movement.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/64 sm:text-lg">
-                BaseDare connects venues, creators, fans, and brands through smart dares, proof verification,
-                payout rails, and analytics that show whether real-world action actually happened.
+                BaseDare connects venues, creators, fans, and brands through Brand Memory, smart dares,
+                proof verification, payout rails, and analytics that show whether real-world action actually happened.
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -142,8 +143,8 @@ export default function ActivationsPage() {
                   Venue Spark Receipt
                 </div>
                 <p className="mt-3 text-sm leading-6 text-white/62">
-                  This is the killer product for venues: proof that people came in, creators made usable content,
-                  the map created visible signal, and the next marketing spend has a reason to exist.
+                  This is the killer product for venues: their story turns into real creator missions, people come in,
+                  proof gets captured, and the next marketing spend has a reason to exist.
                 </p>
               </div>
             </div>
@@ -251,7 +252,7 @@ export default function ActivationsPage() {
             </div>
             <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">Tell us what should happen anywhere.</h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
-              The fastest paid path is a narrow pilot: one buyer, one venue or event, one proof target,
+              The fastest paid path is a narrow pilot: one buyer, one venue or event, one Brand Memory, one proof target,
               one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the
               model is the same.
             </p>
@@ -259,8 +260,8 @@ export default function ActivationsPage() {
               {[
                 ['Budget', 'Creator payout pool plus BaseDare activation fee.'],
                 ['Place', 'A venue, district, event, or launch moment.'],
+                ['Brand Memory', 'Story, audience, rituals, vibe, and what creators should avoid.'],
                 ['Proof target', 'What action or content should be verified.'],
-                ['Repeat trigger', 'The metric that makes the buyer fund the next one.'],
               ].map(([label, detail]) => (
                 <div key={label} className="flex gap-3">
                   <MapPin className="mt-1 h-4 w-4 shrink-0 text-yellow-200" />

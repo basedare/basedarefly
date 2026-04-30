@@ -11,6 +11,7 @@
 
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
+import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/activation-brand-memory';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -541,6 +542,8 @@ export async function alertActivationIntake(data: {
   packageId?: string | null;
   website?: string | null;
   notes?: string | null;
+  brandMemory?: ActivationBrandMemoryInput | null;
+  activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
   const budgetLabels: Record<string, string> = {
     '500_1500': '$500-$1.5k',
@@ -572,6 +575,19 @@ export async function alertActivationIntake(data: {
     data.website ? `Website: ${escapeHtml(data.website)}` : null,
   ].filter(Boolean);
   const notes = compactText(data.notes, 260);
+  const brandMemory = data.brandMemory;
+  const memoryPreview = [
+    brandMemory?.originStory ? `Story: ${compactText(brandMemory.originStory, 120)}` : null,
+    brandMemory?.audience ? `Audience: ${compactText(brandMemory.audience, 80)}` : null,
+    brandMemory?.vibe ? `Vibe: ${compactText(brandMemory.vibe, 80)}` : null,
+    brandMemory?.rituals ? `Rituals: ${compactText(brandMemory.rituals, 90)}` : null,
+    brandMemory?.avoid ? `Avoid: ${compactText(brandMemory.avoid, 80)}` : null,
+  ].filter(Boolean);
+  const activationBrief = data.activationBrief;
+  const missionPreview = activationBrief?.missionIdeas
+    ?.slice(0, 3)
+    .map((mission) => `• ${escapeHtml(mission.title)} - ${escapeHtml(compactText(mission.detail, 100))}`)
+    .join('\n');
 
   const message = `
 💸 <b>PAID ACTIVATION INTAKE</b>
@@ -579,6 +595,9 @@ export async function alertActivationIntake(data: {
 <b>${escapeHtml(data.company)}</b>
 ${details.join('\n')}
 ${notes ? `\nNote: ${escapeHtml(notes)}` : ''}
+${memoryPreview.length ? `\n<b>Brand Memory</b>\n${memoryPreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
+${activationBrief ? `\n<b>Activation Brief</b>\n${escapeHtml(compactText(activationBrief.positioningLine, 160))}` : ''}
+${missionPreview ? `\n${missionPreview}` : ''}
 Lead: <code>${escapeHtml(data.leadId)}</code>
 
 ${htmlLink(appUrl('/admin/daily-command-loop'), 'Open command loop')} · ${htmlLink(appUrl('/activations'), 'View offer page')} · ${htmlLink(appUrl('/brands/portal'), 'Open brand portal')}

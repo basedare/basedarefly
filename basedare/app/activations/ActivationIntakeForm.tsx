@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useMemo } from 'react';
 import type { FormEvent } from 'react';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Sparkles } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
+import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
 
 type IntakeState = {
   company: string;
@@ -19,6 +21,7 @@ type IntakeState = {
   website: string;
   notes: string;
   companyWebsite: string;
+  brandMemory: Required<ActivationBrandMemoryInput>;
 };
 
 const INITIAL_STATE: IntakeState = {
@@ -35,6 +38,14 @@ const INITIAL_STATE: IntakeState = {
   website: '',
   notes: '',
   companyWebsite: '',
+  brandMemory: {
+    originStory: '',
+    audience: '',
+    vibe: '',
+    avoid: '',
+    rituals: '',
+    desiredFeeling: '',
+  },
 };
 
 const inputClass =
@@ -50,6 +61,21 @@ export default function ActivationIntakeForm() {
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
+
+  const updateBrandMemory = <Key extends keyof IntakeState['brandMemory']>(
+    key: Key,
+    value: IntakeState['brandMemory'][Key]
+  ) => {
+    setForm((current) => ({
+      ...current,
+      brandMemory: {
+        ...current.brandMemory,
+        [key]: value,
+      },
+    }));
+  };
+
+  const storyBrief = useMemo(() => buildActivationStoryBrief(form), [form]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -249,6 +275,91 @@ export default function ActivationIntakeForm() {
           <option className="bg-[#080814]" value="repeat_visits">Increase repeat visits</option>
           <option className="bg-[#080814]" value="other">Other</option>
         </select>
+      </div>
+
+      <div className="rounded-[28px] border border-purple-200/14 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_16%,rgba(7,6,14,0.78))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.22)] sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-purple-200/18 bg-purple-300/[0.1] text-purple-100">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-purple-100/70">Brand Memory</p>
+            <p className="mt-1 text-sm leading-6 text-white/58">
+              Give the activation a human story. AI proposes the brief, humans approve it, creators perform it, and the Grid remembers.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={labelClass}>Origin / positioning</label>
+            <textarea
+              value={form.brandMemory.originStory}
+              onChange={(event) => updateBrandMemory('originStory', event.target.value)}
+              className={`${inputClass} min-h-24 resize-none leading-6`}
+              placeholder="What should people understand about this venue or brand that generic UGC would miss?"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Audience / tribe</label>
+            <input
+              value={form.brandMemory.audience}
+              onChange={(event) => updateBrandMemory('audience', event.target.value)}
+              className={inputClass}
+              placeholder="surfers, founders, food obsessives, night crowd"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Vibe words</label>
+            <input
+              value={form.brandMemory.vibe}
+              onChange={(event) => updateBrandMemory('vibe', event.target.value)}
+              className={inputClass}
+              placeholder="warm, rebellious, premium, island, chaotic"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Signature rituals / products</label>
+            <input
+              value={form.brandMemory.rituals}
+              onChange={(event) => updateBrandMemory('rituals', event.target.value)}
+              className={inputClass}
+              placeholder="sunset shot, secret menu, surf check, first drink"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>What to avoid</label>
+            <input
+              value={form.brandMemory.avoid}
+              onChange={(event) => updateBrandMemory('avoid', event.target.value)}
+              className={inputClass}
+              placeholder="tourist cliches, cheap stunts, cold AI captions"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>Feeling to create</label>
+            <input
+              value={form.brandMemory.desiredFeeling}
+              onChange={(event) => updateBrandMemory('desiredFeeling', event.target.value)}
+              className={inputClass}
+              placeholder="People should feel like they discovered a place worth returning to."
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[22px] border border-white/[0.08] bg-black/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">Activation brief preview</p>
+          <p className="mt-2 text-sm font-black leading-6 text-white">{storyBrief.positioningLine}</p>
+          <p className="mt-2 text-xs leading-5 text-white/52">{storyBrief.creatorBrief}</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {storyBrief.missionIdeas.map((mission) => (
+              <div key={mission.title} className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] p-3">
+                <p className="text-xs font-black text-white">{mission.title}</p>
+                <p className="mt-2 text-xs leading-5 text-white/50">{mission.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div>

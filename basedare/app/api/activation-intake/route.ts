@@ -6,6 +6,29 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { alertActivationIntake } from '@/lib/telegram';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
+import {
+  buildActivationStoryBrief,
+  normalizeActivationBrandMemory,
+} from '@/lib/activation-brand-memory';
+
+const ActivationBrandMemorySchema = z
+  .object({
+    originStory: z.string().max(900).optional().default(''),
+    audience: z.string().max(220).optional().default(''),
+    vibe: z.string().max(220).optional().default(''),
+    avoid: z.string().max(220).optional().default(''),
+    rituals: z.string().max(260).optional().default(''),
+    desiredFeeling: z.string().max(260).optional().default(''),
+  })
+  .optional()
+  .default({
+    originStory: '',
+    audience: '',
+    vibe: '',
+    avoid: '',
+    rituals: '',
+    desiredFeeling: '',
+  });
 
 const ActivationIntakeSchema = z.object({
   company: z.string().min(2).max(140),
@@ -21,6 +44,7 @@ const ActivationIntakeSchema = z.object({
   website: z.string().max(240).optional().default(''),
   notes: z.string().max(1200).optional().default(''),
   companyWebsite: z.string().max(240).optional().default(''),
+  brandMemory: ActivationBrandMemorySchema,
 });
 
 const BUDGET_FLOORS: Record<z.infer<typeof ActivationIntakeSchema>['budgetRange'], number> = {
@@ -71,6 +95,17 @@ export async function POST(request: NextRequest) {
     const venue = normalizeText(input.venue || '');
     const website = normalizeText(input.website || '');
     const notes = input.notes.trim();
+    const brandMemory = normalizeActivationBrandMemory(input.brandMemory);
+    const activationBrief = buildActivationStoryBrief({
+      company,
+      buyerType: input.buyerType,
+      city,
+      venue,
+      goal: input.goal,
+      packageId: input.packageId,
+      notes,
+      brandMemory,
+    });
     const amount = BUDGET_FLOORS[input.budgetRange];
 
     const event = await prisma.founderEvent.create({
@@ -98,6 +133,8 @@ export async function POST(request: NextRequest) {
           packageId: input.packageId,
           website,
           notes,
+          brandMemory,
+          activationBrief,
           clientIp,
         } satisfies Prisma.InputJsonValue,
       },
@@ -120,6 +157,8 @@ export async function POST(request: NextRequest) {
       packageId: input.packageId,
       website,
       notes,
+      brandMemory,
+      activationBrief,
     }).catch((error) => {
       console.error('[ACTIVATION_INTAKE] Telegram alert failed:', error);
     });
