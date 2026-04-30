@@ -1,3 +1,7 @@
+import type { VenueProfileSummary } from '@/lib/venue-profile';
+
+export type { VenueLegend, VenueProfileSummary } from '@/lib/venue-profile';
+
 export type VenueMemorySummary = {
   bucketType: string;
   bucketStartAt: string;
@@ -263,6 +267,7 @@ export type NearbyVenueItem = {
   distanceKm: number;
   distanceDisplay: string;
   memorySummary: VenueMemorySummary | null;
+  profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
@@ -290,6 +295,7 @@ export type VenueDetail = {
   qrRotationSeconds: number;
   checkInRadiusMeters: number;
   memorySummary: VenueMemorySummary | null;
+  profile: VenueProfileSummary;
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
   liveSession: VenueSessionSummary | null;

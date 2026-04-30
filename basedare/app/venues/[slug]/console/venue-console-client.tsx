@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
 import { Activity, BarChart3, CheckCircle2, Flame, Loader2, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
 import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
+import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import {
@@ -53,6 +54,28 @@ const activationPresets = [
       `Run a sharper, time-boxed branded challenge at ${venueName}. The proof should feel unmistakably tied to the venue.`,
   },
 ] as const;
+
+const venueLegendOptions: Array<{ key: VenueLegendKey; label: string; emoji: string }> = [
+  { key: 'beach', label: 'Beach', emoji: '🏖️' },
+  { key: 'water', label: 'Water', emoji: '🌊' },
+  { key: 'surf', label: 'Surf', emoji: '🏄' },
+  { key: 'bar', label: 'Bar', emoji: '🍺' },
+  { key: 'food', label: 'Food', emoji: '🍴' },
+  { key: 'coffee', label: 'Cafe', emoji: '☕' },
+  { key: 'nightlife', label: 'Nightlife', emoji: '💃' },
+  { key: 'music', label: 'Music', emoji: '🎵' },
+  { key: 'hotel', label: 'Hotel', emoji: '🛎️' },
+  { key: 'park', label: 'Park', emoji: '🌿' },
+  { key: 'landmark', label: 'Landmark', emoji: '📍' },
+];
+
+type VenueProfileDraft = {
+  bio: string;
+  tagline: string;
+  profileImageUrl: string;
+  coverImageUrl: string;
+  legendKeys: VenueLegendKey[];
+};
 
 function formatCompactAudience(value: number | null) {
   if (typeof value !== 'number' || value <= 0) return 'Building';
@@ -148,6 +171,17 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     payout: number;
     tier: string;
   } | null>(null);
+  const [profileDraft, setProfileDraft] = useState<VenueProfileDraft>({
+    bio: venue.profile.bio,
+    tagline: venue.profile.tagline,
+    profileImageUrl: venue.profile.profileImageUrl ?? '',
+    coverImageUrl: venue.profile.coverImageUrl ?? '',
+    legendKeys: venue.profile.legends.map((legend) => legend.key),
+  });
+  const [savedVenueProfile, setSavedVenueProfile] = useState<VenueProfileSummary>(venue.profile);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -301,6 +335,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     Boolean(address) &&
     Boolean(sessionToken) &&
     Boolean(confirmedLaunch.creatorTag);
+  const canEditVenueProfile = venue.commandCenter.claimState === 'claimed';
 
   const directLaunchLabel =
     approvalStatus === 'approving'
@@ -310,6 +345,62 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
         : approvalStatus === 'verifying'
           ? 'Finalizing launch'
           : 'Confirm & fund now';
+
+  function toggleLegendKey(key: VenueLegendKey) {
+    setProfileDraft((current) => {
+      const exists = current.legendKeys.includes(key);
+      if (exists) {
+        return {
+          ...current,
+          legendKeys: current.legendKeys.filter((item) => item !== key),
+        };
+      }
+
+      return {
+        ...current,
+        legendKeys: [...current.legendKeys, key].slice(0, 4),
+      };
+    });
+  }
+
+  async function handleSaveVenueProfile() {
+    if (savingProfile) return;
+
+    if (venue.commandCenter.claimState !== 'claimed') {
+      setProfileError('Claim this venue before editing its public identity.');
+      return;
+    }
+
+    setSavingProfile(true);
+    setProfileError(null);
+    setProfileMessage(null);
+
+    try {
+      const response = await fetch(`/api/venues/${encodeURIComponent(venue.slug)}/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify(profileDraft),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to save venue identity');
+      }
+
+      if (payload.data?.profile) {
+        setSavedVenueProfile(payload.data.profile);
+      }
+
+      setProfileMessage('Venue identity saved. The map and public venue page now use this profile.');
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : 'Unable to save venue identity');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function handleDirectLaunch() {
     if (creatingCampaign) return;
@@ -470,6 +561,129 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 </Link>
               </div>
             </div>
+            </div>
+          </div>
+
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <div className="relative grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Identity</p>
+                <h2 className="mt-2 text-xl font-bold tracking-tight">Tell creators what this place is</h2>
+                <p className="mt-2 text-sm leading-6 text-white/58">
+                  This powers the emoji legend on the map, the public venue bio, and future venue-aware dare prompts. Keep it specific enough that creators know what to film.
+                </p>
+                <div className={`${insetCardClass} mt-4 flex items-start gap-3 px-4 py-4`}>
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-white/12 bg-black/35 text-2xl">
+                    {savedVenueProfile.profileImageUrl ? (
+                      <img src={savedVenueProfile.profileImageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span aria-hidden="true">{savedVenueProfile.primaryLegend.emoji}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f8dd72]">{savedVenueProfile.tagline}</p>
+                    <p className="mt-1.5 line-clamp-3 text-sm leading-6 text-white/62">{savedVenueProfile.bio}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {savedVenueProfile.legends.map((legend) => (
+                        <span
+                          key={`saved:${legend.key}`}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60"
+                        >
+                          <span aria-hidden="true">{legend.emoji}</span> {legend.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <label className="block">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">Positioning line</span>
+                  <input
+                    value={profileDraft.tagline}
+                    onChange={(event) => setProfileDraft((current) => ({ ...current, tagline: event.target.value }))}
+                    maxLength={96}
+                    disabled={!canEditVenueProfile || savingProfile}
+                    className="mt-2 w-full rounded-[18px] border border-white/10 bg-black/35 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-fuchsia-300/32 disabled:cursor-not-allowed disabled:opacity-55"
+                    placeholder="Beach club for sunset proof, local rituals, and creator arrivals"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">Brief bio</span>
+                  <textarea
+                    value={profileDraft.bio}
+                    onChange={(event) => setProfileDraft((current) => ({ ...current, bio: event.target.value }))}
+                    maxLength={220}
+                    rows={3}
+                    disabled={!canEditVenueProfile || savingProfile}
+                    className="mt-2 w-full resize-none rounded-[20px] border border-white/10 bg-black/35 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/28 focus:border-fuchsia-300/32 disabled:cursor-not-allowed disabled:opacity-55"
+                    placeholder="What should creators understand before they film here?"
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">Profile photo URL</span>
+                    <input
+                      value={profileDraft.profileImageUrl}
+                      onChange={(event) => setProfileDraft((current) => ({ ...current, profileImageUrl: event.target.value }))}
+                      disabled={!canEditVenueProfile || savingProfile}
+                      className="mt-2 w-full rounded-[18px] border border-white/10 bg-black/35 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-fuchsia-300/32 disabled:cursor-not-allowed disabled:opacity-55"
+                      placeholder="https://..."
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">Cover photo URL</span>
+                    <input
+                      value={profileDraft.coverImageUrl}
+                      onChange={(event) => setProfileDraft((current) => ({ ...current, coverImageUrl: event.target.value }))}
+                      disabled={!canEditVenueProfile || savingProfile}
+                      className="mt-2 w-full rounded-[18px] border border-white/10 bg-black/35 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-fuchsia-300/32 disabled:cursor-not-allowed disabled:opacity-55"
+                      placeholder="https://..."
+                    />
+                  </label>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">Map legends</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {venueLegendOptions.map((option) => {
+                      const active = profileDraft.legendKeys.includes(option.key);
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => toggleLegendKey(option.key)}
+                          disabled={!canEditVenueProfile || savingProfile}
+                          className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            active
+                              ? 'border-[#f5c518]/28 bg-[#f5c518]/[0.12] text-[#f8dd72]'
+                              : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-white/18 hover:text-white/75'
+                          }`}
+                        >
+                          <span aria-hidden="true">{option.emoji}</span> {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveVenueProfile()}
+                    disabled={!canEditVenueProfile || savingProfile}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.12] px-4 py-2.5 text-sm font-semibold text-[#f8dd72] shadow-[0_14px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/36 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    Save venue identity
+                  </button>
+                  {!canEditVenueProfile ? (
+                    <span className="text-xs text-white/42">Claimed venue wallet required.</span>
+                  ) : null}
+                </div>
+                {profileMessage ? <p className="text-sm text-emerald-200/86">{profileMessage}</p> : null}
+                {profileError ? <p className="text-sm text-rose-200/86">{profileError}</p> : null}
+              </div>
             </div>
           </div>
 

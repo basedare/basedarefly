@@ -34,6 +34,7 @@ import { useAccount } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
+import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
 import { buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
@@ -107,6 +108,7 @@ type NearbyPlace = {
   };
   commandCenter?: VenueCommandCenter;
   mapModes?: VenueMapMode[];
+  profile?: VenueProfileSummary;
   activeDareCount: number;
 };
 
@@ -128,6 +130,7 @@ type SelectedPlace = {
   activeDareCount?: number;
   commandCenter?: VenueCommandCenter;
   mapModes?: VenueMapMode[];
+  profile?: VenueProfileSummary;
 };
 
 type NearbyResponse = {
@@ -287,6 +290,7 @@ type VenueDetailResponse = {
       latitude: number;
       longitude: number;
       categories: string[];
+      profile: VenueProfileSummary;
       tagSummary: {
         approvedCount: number;
         heatScore: number;
@@ -1612,6 +1616,14 @@ function renderPulseLegend(
   );
 }
 
+function escapeMarkerAttribute(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function createPeebearMarkerHtml({
   pulse,
   approvedCount,
@@ -1623,6 +1635,7 @@ function createPeebearMarkerHtml({
   compact = false,
   activated = false,
   activationLabel,
+  legends,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -1634,6 +1647,7 @@ function createPeebearMarkerHtml({
   compact?: boolean;
   activated?: boolean;
   activationLabel?: string;
+  legends?: VenueLegend[];
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
@@ -1656,7 +1670,9 @@ function createPeebearMarkerHtml({
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
   const showActivatedMarkerChrome = activated && (!compact || active);
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}`;
+  const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
+  const legendKey = visibleLegends.map((legend) => legend.key).join(',');
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -1669,6 +1685,16 @@ function createPeebearMarkerHtml({
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+      ${
+        visibleLegends.length > 0
+          ? `<span class="venue-legend-stack" aria-label="Venue type">${visibleLegends
+              .map(
+                (legend) =>
+                  `<span class="venue-legend-chip venue-legend-chip--${escapeMarkerAttribute(legend.key)}" title="${escapeMarkerAttribute(legend.label)}">${legend.emoji}</span>`
+              )
+              .join('')}</span>`
+          : ''
+      }
       ${showActivatedMarkerChrome ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
       ${showActivatedMarkerChrome && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
       <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
@@ -2182,6 +2208,7 @@ export default function RealWorldMap() {
           activeDareCount: venue.activeDares.length,
           commandCenter: venue.commandCenter,
           mapModes: venue.mapModes,
+          profile: venue.profile,
         });
         setSelectedPlaceActiveDares(venue.activeDares);
         setTargetCenter([venue.latitude, venue.longitude]);
@@ -2581,6 +2608,7 @@ export default function RealWorldMap() {
       activeDareCount: place.activeDareCount,
       commandCenter: place.commandCenter,
       mapModes: place.mapModes ?? DEFAULT_VENUE_MAP_MODES,
+      profile: place.profile,
     });
     setTargetCenter([place.latitude, place.longitude]);
     setTargetZoom(15);
@@ -2626,6 +2654,7 @@ export default function RealWorldMap() {
             activeDareCount: venue.activeDares.length,
             commandCenter: venue.commandCenter,
             mapModes: venue.mapModes,
+            profile: venue.profile,
           };
         });
       } catch (error) {
@@ -3377,6 +3406,7 @@ export default function RealWorldMap() {
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
+  const selectedVenueProfile = selectedPlace?.profile ?? null;
   const selectedVenueActivated = isVenueActivated(selectedCommandCenter);
   const selectedActivationActionCopy = selectedCommandCenter
     ? getVenueActivationActionCopy(selectedCommandCenter)
@@ -3757,8 +3787,9 @@ export default function RealWorldMap() {
       matched: Boolean(showMatchedLayer && selectedPlaceMatch),
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
+      legends: selectedVenueProfile?.legends,
     });
-  }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVisualState, showMatchedLayer]);
+  }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -3898,6 +3929,7 @@ export default function RealWorldMap() {
           compact,
           activated: activatedVenue,
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
+          legends: place.profile?.legends,
         }),
         className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
         anchor: 'bottom',
@@ -4768,6 +4800,41 @@ export default function RealWorldMap() {
                       <h3 className="text-[1.55rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
                         {selectedPlace.name}
                       </h3>
+                      {selectedVenueProfile ? (
+                        <div className="mt-3 flex items-start gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.025)_46%,rgba(7,9,18,0.72)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
+                          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/12 bg-black/35 text-xl shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                            {selectedVenueProfile.profileImageUrl ? (
+                              <img
+                                src={selectedVenueProfile.profileImageUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span aria-hidden="true">{selectedVenueProfile.primaryLegend.emoji}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f8dd72]">
+                              {selectedVenueProfile.tagline}
+                            </p>
+                            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-white/62">
+                              {selectedVenueProfile.bio}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {selectedVenueProfile.legends.map((legend) => (
+                                <span
+                                  key={`${selectedPlace.name}:${legend.key}`}
+                                  className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/62"
+                                >
+                                  <span aria-hidden="true">{legend.emoji}</span>
+                                  {legend.label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {firstMarkState ? (
                           <span
@@ -8002,6 +8069,57 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact) {
           height: 112px;
+        }
+
+        .basedare-maplibre-map :global(.venue-legend-stack) {
+          position: absolute;
+          left: 50%;
+          top: 31px;
+          z-index: 8;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          transform: translateX(26px);
+          pointer-events: none;
+        }
+
+        .basedare-maplibre-map :global(.venue-legend-chip) {
+          display: inline-flex;
+          height: 21px;
+          min-width: 21px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background:
+            radial-gradient(circle at 34% 20%, rgba(255, 255, 255, 0.2), transparent 52%),
+            linear-gradient(180deg, rgba(19, 22, 35, 0.94), rgba(5, 6, 12, 0.94));
+          box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.36),
+            0 0 16px rgba(245, 197, 24, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -6px 9px rgba(0, 0, 0, 0.22);
+          font-size: 11px;
+          line-height: 1;
+          backdrop-filter: blur(10px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .venue-legend-stack) {
+          top: 25px;
+          gap: 2px;
+          transform: translateX(22px) scale(0.9);
+          transform-origin: top left;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .venue-legend-stack) {
+          top: 50px;
+          transform: translateX(27px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .venue-legend-stack) {
+          top: 42px;
+          transform: translateX(24px) scale(0.86);
+          transform-origin: top left;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-core) {

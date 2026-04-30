@@ -210,6 +210,7 @@ export default async function VenueDetailPage(
     notFound();
   }
 
+  const venueProfile = venue.profile;
   const totalActiveChallengeFunding = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
   const paidActivationCount = venue.activeDares.filter((dare) => Boolean(dare.brandName)).length;
   const pendingActivationCount = venue.activeDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length;
@@ -346,8 +347,31 @@ export default async function VenueDetailPage(
                     <ShieldCheck className="h-4 w-4" />
                     {venue.isPartner ? 'Partner Venue' : 'Venue Beacon'}
                   </div>
-                  <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:mt-4 sm:text-base">{venue.description ?? 'This venue is now part of the BaseDare memory layer.'}</p>
+                  <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.035)_38%,rgba(8,8,16,0.92)_100%)] text-3xl shadow-[0_24px_48px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.24)]">
+                      {venueProfile.profileImageUrl ? (
+                        <img src={venueProfile.profileImageUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span aria-hidden="true">{venueProfile.primaryLegend.emoji}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f8dd72]">{venueProfile.tagline}</p>
+                      <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
+                    </div>
+                  </div>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:mt-4 sm:text-base">{venueProfile.bio}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {venueProfile.legends.map((legend) => (
+                      <span
+                        key={`${venue.slug}:${legend.key}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      >
+                        <span aria-hidden="true">{legend.emoji}</span>
+                        {legend.label}
+                      </span>
+                    ))}
+                  </div>
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-white/55">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       <MapPin className="h-4 w-4 text-amber-300" />

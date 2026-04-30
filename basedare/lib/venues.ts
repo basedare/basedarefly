@@ -18,6 +18,7 @@ import { getVenueReportPipelineSummary } from '@/lib/venue-report-pipeline';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
+import { buildVenueProfile } from '@/lib/venue-profile';
 import type {
   VenueActivationInsight,
   VenueRoiSnapshot,
@@ -1272,6 +1273,7 @@ export async function getNearbyVenues(input: {
       slug: true,
       name: true,
       description: true,
+      metadataJson: true,
       city: true,
       country: true,
       latitude: true,
@@ -1358,6 +1360,14 @@ export async function getNearbyVenues(input: {
         slug: venue.slug,
         name: venue.name,
         description: venue.description,
+        profile: buildVenueProfile({
+          name: venue.name,
+          description: venue.description,
+          categories: venue.categories,
+          city: venue.city,
+          country: venue.country,
+          metadataJson: venue.metadataJson,
+        }),
         city: venue.city,
         country: venue.country,
         latitude: venue.latitude,
@@ -1403,6 +1413,7 @@ export async function getVenueDetailBySlug(
       name: true,
       description: true,
       address: true,
+      metadataJson: true,
       city: true,
       country: true,
       latitude: true,
@@ -1670,6 +1681,14 @@ export async function getVenueDetailBySlug(
     slug: venue.slug,
     name: venue.name,
     description: venue.description,
+    profile: buildVenueProfile({
+      name: venue.name,
+      description: venue.description,
+      categories: venue.categories,
+      city: venue.city,
+      country: venue.country,
+      metadataJson: venue.metadataJson,
+    }),
     address: venue.address,
     city: venue.city,
     country: venue.country,
