@@ -144,7 +144,7 @@ export default function WaitlistClient({
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-start overflow-hidden bg-transparent px-4 py-24 md:py-28">
+    <main className="relative flex flex-col items-center justify-start overflow-hidden bg-transparent px-4 pb-14 pt-6 md:pb-16 md:pt-8">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
         <GradualBlurOverlay />

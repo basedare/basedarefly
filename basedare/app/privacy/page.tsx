@@ -13,10 +13,10 @@ export default function PrivacyPolicy() {
   const sectionClass = `${raisedPanelClass} p-6 md:p-8`;
 
   return (
-    <main className="min-h-screen bg-transparent text-white selection:bg-cyan-500/30 font-sans relative overflow-hidden">
+    <main className="relative overflow-hidden bg-transparent font-sans text-white selection:bg-cyan-500/30">
       <LiquidBackground />
       
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-24">
+      <div className="relative z-10 mx-auto max-w-4xl px-6 pb-14 pt-8 md:pb-16 md:pt-10">
         {/* NAV BACK */}
         <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors mb-12 font-mono text-sm uppercase tracking-widest group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />

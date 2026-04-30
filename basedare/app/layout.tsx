@@ -132,7 +132,7 @@ export default function RootLayout({
               <IgnitionProvider>
                 <div className="relative z-10 flex min-h-screen flex-col">
                   <Navbar />
-                  <main className="flex-grow pt-24">
+                  <main className="pt-24">
                     {children}
                   </main>
                   <Footer />
