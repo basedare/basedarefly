@@ -9,11 +9,14 @@ import {
   Clipboard,
   Clock3,
   DollarSign,
+  ExternalLink,
   FileText,
+  ListChecks,
   Loader2,
   Lock,
   Mail,
   RefreshCw,
+  Rocket,
   Search,
   Send,
   ShieldCheck,
@@ -158,7 +161,8 @@ function appendOperatorNote(existing: string, nextLine: string) {
   const cleanNext = nextLine.trim();
   if (!cleanExisting) return cleanNext;
   if (cleanExisting.includes(cleanNext)) return cleanExisting;
-  return `${cleanExisting}\n${cleanNext}`;
+  const combined = `${cleanExisting}\n${cleanNext}`;
+  return combined.length > 1180 ? `${combined.slice(0, 1177)}...` : combined;
 }
 
 function nextActionState(value: string) {
@@ -203,6 +207,56 @@ function nextActionState(value: string) {
     label: `Next ${formatDateTime(date.toISOString())}`,
     className: 'border-emerald-300/18 bg-emerald-300/8 text-emerald-100/72',
   };
+}
+
+function buildLaunchHref(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
+  const venueName = assignedVenue || intake.venue || intake.company;
+  const firstMission = intake.missionIdeas[0]?.title || `Activate ${venueName || 'this venue'}`;
+  const params = new URLSearchParams();
+  params.set('mode', 'venue-activation');
+  params.set('source', 'activation-intake-launch');
+  params.set('activationLeadId', intake.id);
+  params.set('title', firstMission);
+  if (venueName) params.set('venueName', venueName);
+  if (intake.city) params.set('city', intake.city);
+  if (intake.amount) params.set('amount', String(intake.amount));
+  if (assignedCreator) params.set('streamer', assignedCreator);
+  return `/create?${params.toString()}`;
+}
+
+function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
+  const target = assignedVenue || intake.venue || intake.company || 'Activation target';
+  const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'Creator shortlist pending';
+  const mission = intake.missionIdeas[0];
+
+  return [
+    `BaseDare launch handoff - ${target}`,
+    '',
+    `Buyer: ${intake.company || 'TBD'}${intake.contactName ? ` / ${intake.contactName}` : ''}`,
+    `Contact: ${intake.email || 'no email on file'}`,
+    `Venue: ${target}${intake.city ? `, ${intake.city}` : ''}`,
+    `Creator route: ${creator}`,
+    `Budget lane: ${intake.budgetLabel}`,
+    `Timeline: ${intake.timelineLabel}`,
+    '',
+    'Launch mission:',
+    mission ? `${mission.title}: ${mission.detail}` : 'Use the venue-aware mission generator before funding.',
+    '',
+    'Proof target:',
+    mission?.proofMetric || intake.proofLogic || 'Creator proof must show the place, action, story cue, and timestamp-worthy signal.',
+    '',
+    'Human gates before launch:',
+    '- Buyer confirmed route and budget.',
+    '- Invoice/payment path sent or confirmed.',
+    '- Venue and creator route are assigned.',
+    '- Funded dare is launched inside BaseDare so proof and review stay trackable.',
+  ].join('\n');
+}
+
+function buildLaunchOperatorNote(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
+  const target = assignedVenue || intake.venue || intake.company || 'activation target';
+  const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'creator pending';
+  return `Launch handoff confirmed: ${target} / ${creator} / ${intake.budgetLabel}. Buyer scope, route, and funding path require human confirmation before public commitments.`;
 }
 
 export default function ActivationIntakesPage() {
@@ -381,6 +435,23 @@ export default function ActivationIntakesPage() {
     });
   };
 
+  const completeLaunchHandoff = async (intake: ActivationIntake) => {
+    const draft = drafts[intake.id] ?? {};
+    const assignedCreator = draft.assignedCreator ?? intake.assignedCreator;
+    const assignedVenue = draft.assignedVenue ?? intake.assignedVenue;
+
+    await updateIntake(intake.id, {
+      assignedCreator,
+      assignedVenue,
+      status: 'LAUNCHED',
+      nextActionAt: null,
+      operatorNote: appendOperatorNote(
+        draft.operatorNote ?? intake.operatorNote,
+        buildLaunchOperatorNote(intake, assignedVenue, assignedCreator)
+      ),
+    });
+  };
+
   const copyText = async (copyKey: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -530,6 +601,35 @@ export default function ActivationIntakesPage() {
                 const operatorNote = draft.operatorNote ?? intake.operatorNote;
                 const nextActionAt = draft.nextActionAt ?? formatNextActionInput(intake.nextActionAt);
                 const actionState = nextActionState(nextActionAt || intake.nextActionAt);
+                const launchHref = buildLaunchHref(intake, assignedVenue, assignedCreator);
+                const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
+                const launchChecklist = [
+                  {
+                    label: 'Buyer',
+                    ready: Boolean(intake.email),
+                    detail: intake.email ? 'contact ready' : 'missing buyer email',
+                  },
+                  {
+                    label: 'Venue',
+                    ready: Boolean(assignedVenue || intake.venue),
+                    detail: assignedVenue || intake.venue || 'assign a venue',
+                  },
+                  {
+                    label: 'Creator',
+                    ready: Boolean(assignedCreator || intake.creatorRecommendations[0]?.tag),
+                    detail: assignedCreator || intake.creatorRecommendations[0]?.tag || 'route a creator',
+                  },
+                  {
+                    label: 'Money',
+                    ready: ['READY_TO_INVOICE', 'LAUNCHED'].includes(intake.status),
+                    detail:
+                      intake.status === 'LAUNCHED'
+                        ? 'launch confirmed'
+                        : intake.status === 'READY_TO_INVOICE'
+                          ? 'invoice lane'
+                          : 'send invoice memo',
+                  },
+                ];
                 const isUpdating = updatingId === intake.id;
                 const isHighlighted = highlightId === intake.id;
 
@@ -746,6 +846,108 @@ export default function ActivationIntakesPage() {
                           </div>
                         </div>
 
+                        <div className="rounded-[1.55rem] border border-emerald-300/16 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(0,0,0,0.38)_48%,rgba(250,204,21,0.08))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                            <div>
+                              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/18 bg-emerald-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
+                                <Rocket className="h-3.5 w-3.5" />
+                                Launch handoff
+                              </div>
+                              <p className="mt-3 text-sm font-black text-white">
+                                One clean operator packet before funding.
+                              </p>
+                              <p className="mt-1 max-w-xl text-xs font-bold leading-5 text-white/50">
+                                Open the prefilled mission, send the invoice memo, then mark launched only after the
+                                buyer confirms scope and payment path. No autonomous promises.
+                              </p>
+                            </div>
+
+                            <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[21rem]">
+                              {launchChecklist.map((item) => (
+                                <div
+                                  key={`${intake.id}-${item.label}`}
+                                  className={`rounded-2xl border p-3 ${
+                                    item.ready
+                                      ? 'border-emerald-200/18 bg-emerald-300/8'
+                                      : 'border-yellow-200/18 bg-yellow-300/8'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {item.ready ? (
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-100" />
+                                    ) : (
+                                      <Clock3 className="h-3.5 w-3.5 text-yellow-100" />
+                                    )}
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/42">
+                                      {item.label}
+                                    </p>
+                                  </div>
+                                  <p className="mt-1 truncate text-xs font-black text-white/78">{item.detail}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/38 p-3">
+                            <div className="flex items-start gap-3">
+                              <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-yellow-100/80" />
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/36">
+                                  First funded mission
+                                </p>
+                                <p className="mt-1 text-sm font-black leading-5 text-white">
+                                  {intake.missionIdeas[0]?.title || `Activate ${assignedVenue || intake.venue || intake.company || 'this venue'}`}
+                                </p>
+                                <p className="mt-1 text-xs font-bold leading-5 text-white/48">
+                                  {intake.missionIdeas[0]?.proofMetric ||
+                                    intake.proofLogic ||
+                                    'Proof must show place, action, story cue, and a timestamp-worthy signal.'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                            <button
+                              type="button"
+                              onClick={() => void copyText(`${intake.id}:handoff`, launchMemo)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15"
+                            >
+                              <Clipboard className="h-4 w-4" />
+                              {copiedId === `${intake.id}:handoff` ? 'Copied' : 'Copy handoff'}
+                            </button>
+                            <Link
+                              href={launchHref}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              Open launch
+                            </Link>
+                            {intake.links.invoiceMailtoHref ? (
+                              <a
+                                href={intake.links.invoiceMailtoHref}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                              >
+                                <DollarSign className="h-4 w-4" />
+                                Send invoice
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                No invoice
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => void completeLaunchHandoff(intake)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
+                            >
+                              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              Confirm launch
+                            </button>
+                          </div>
+                        </div>
+
                         <label className="block">
                           <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Operator note</span>
                           <textarea
@@ -853,12 +1055,12 @@ export default function ActivationIntakesPage() {
                         <div className="grid gap-2 sm:grid-cols-2">
                           <button
                             type="button"
-                            onClick={() => void updateIntake(intake.id, { status: 'LAUNCHED' })}
+                            onClick={() => void completeLaunchHandoff(intake)}
                             disabled={isUpdating}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                           >
                             <CheckCircle2 className="h-4 w-4" />
-                            Mark launched
+                            Confirm launch
                           </button>
                           <button
                             type="button"

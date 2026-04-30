@@ -119,7 +119,7 @@ function buildCreateHref(input: {
 }) {
   const params = new URLSearchParams();
   const venueName = input.venue || input.company;
-  params.set('mode', 'venue_activation');
+  params.set('mode', 'venue-activation');
   params.set('source', 'activation-intake');
   params.set('activationLeadId', input.id);
   if (venueName) {
@@ -273,7 +273,7 @@ function buildCreatorCreateHref(input: {
   const params = new URLSearchParams();
   const venueName = input.venue || input.company;
   params.set('streamer', input.creatorTag.startsWith('@') ? input.creatorTag : `@${input.creatorTag}`);
-  params.set('mode', 'venue_activation');
+  params.set('mode', 'venue-activation');
   params.set('source', 'activation-intake-creator-match');
   params.set('activationLeadId', input.id);
   if (venueName) {

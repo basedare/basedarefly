@@ -290,6 +290,7 @@ function CreateDareContent() {
     const amount = searchParams.get('amount');
     const venueId = searchParams.get('venueId');
     const venueName = searchParams.get('venueName');
+    const venueLabel = venueName || searchParams.get('venue') || '';
     const mode = searchParams.get('mode');
     if (streamer) setValue('streamerTag', streamer);
     if (title) setValue('title', title);
@@ -299,14 +300,16 @@ function CreateDareContent() {
         setValue('amount', Math.max(5, parsedAmount));
       }
     }
-    if (venueId) {
-      setValue('venueId', venueId);
+    if (venueId || venueLabel) {
+      if (venueId) {
+        setValue('venueId', venueId);
+      }
       setValue('isNearbyDare', true);
-      setValue('locationLabel', venueName || searchParams.get('venue') || 'Selected venue');
-      setValue('discoveryRadiusKm', 0.5);
+      setValue('locationLabel', venueLabel || 'Selected venue');
+      setValue('discoveryRadiusKm', venueId ? 0.5 : 1);
       setVenuePrefill({
-        id: venueId,
-        name: venueName || searchParams.get('venue') || 'Selected venue',
+        id: venueId || 'venue-name-prefill',
+        name: venueLabel || 'Selected venue',
         mode,
       });
     } else {
