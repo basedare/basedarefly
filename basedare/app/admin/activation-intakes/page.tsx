@@ -62,6 +62,20 @@ type ActivationIntake = {
     detail: string;
     proofMetric: string;
   }>;
+  creatorRecommendations: Array<{
+    tag: string;
+    score: number;
+    trustScore: number;
+    trustLabel: string;
+    status: string;
+    totalEarned: number;
+    completedDares: number;
+    venueReach: number;
+    firstMarks: number;
+    reviews: number;
+    reasons: string[];
+    createHref: string;
+  }>;
   links: {
     createHref: string;
     scoutHref: string;
@@ -519,6 +533,66 @@ export default function ActivationIntakesPage() {
                             />
                           </label>
                         </div>
+
+                        {intake.creatorRecommendations.length > 0 && (
+                          <div className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
+                                  Creator match
+                                </p>
+                                <p className="mt-1 text-sm font-black text-white">
+                                  Best routes for this activation
+                                </p>
+                              </div>
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+                                {intake.creatorRecommendations.length} ranked
+                              </span>
+                            </div>
+                            <div className="mt-4 grid gap-2">
+                              {intake.creatorRecommendations.slice(0, 3).map((creator) => (
+                                <div
+                                  key={`${intake.id}-${creator.tag}`}
+                                  className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <p className="text-sm font-black text-white">{creator.tag}</p>
+                                      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
+                                        Fit {creator.score} / Trust {creator.trustScore} / {creator.trustLabel}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => updateDraft(intake.id, { assignedCreator: creator.tag })}
+                                        className="rounded-full border border-white/10 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-white/85"
+                                      >
+                                        Assign
+                                      </button>
+                                      <Link
+                                        href={creator.createHref}
+                                        className="rounded-full border border-yellow-300/25 bg-yellow-300/12 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
+                                      >
+                                        Route
+                                      </Link>
+                                    </div>
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {creator.reasons.map((reason) => (
+                                      <span
+                                        key={reason}
+                                        className="rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/45"
+                                      >
+                                        {reason}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <label className="block">
                           <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Next action</span>

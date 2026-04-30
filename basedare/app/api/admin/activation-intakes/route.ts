@@ -3,6 +3,8 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+import { normalizeCreatorHandle } from '@/lib/creator-stats';
+import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { prisma } from '@/lib/prisma';
 
 const INTAKE_STATUSES = [
@@ -27,6 +29,33 @@ const IntakeUpdateSchema = z.object({
 
 type IntakeStatus = (typeof INTAKE_STATUSES)[number];
 type MetadataRecord = Record<string, unknown>;
+type CreatorCandidate = {
+  tag: string;
+  normalizedTag: string;
+  status: string;
+  totalEarned: number;
+  completedDares: number;
+  tags: string[];
+  trust: {
+    level: number;
+    label: string;
+    score: number;
+  };
+  stats: {
+    approved: number;
+    payoutQueued: number;
+    live: number;
+    acceptRate: number;
+  };
+  businessMetrics: {
+    venueReach: number;
+    firstMarks: number;
+  };
+  reviews: {
+    count: number;
+    averageRating: number | null;
+  };
+};
 
 const STATUS_LABELS: Record<IntakeStatus, string> = {
   NEW: 'New',
@@ -148,6 +177,312 @@ function getMissionIdeas(metadata: MetadataRecord) {
   }).filter((idea) => idea.title || idea.detail);
 }
 
+function buildCreatorScore(input: {
+  creator: CreatorCandidate;
+  searchText: string;
+  venue: string;
+  city: string;
+  goal: string;
+}) {
+  const creator = input.creator;
+  const reasons: string[] = [];
+  let score =
+    creator.trust.score +
+    creator.businessMetrics.venueReach * 9 +
+    creator.businessMetrics.firstMarks * 7 +
+    creator.reviews.count * 4 +
+    Math.min(creator.completedDares, 20) * 2 +
+    Math.min(creator.totalEarned / 50, 20);
+
+  if (creator.status === 'VERIFIED') {
+    score += 14;
+    reasons.push('verified creator');
+  }
+
+  if (creator.businessMetrics.venueReach > 0) {
+    reasons.push(`${creator.businessMetrics.venueReach} venue ${creator.businessMetrics.venueReach === 1 ? 'touch' : 'touches'}`);
+  }
+
+  if (creator.businessMetrics.firstMarks > 0) {
+    reasons.push(`${creator.businessMetrics.firstMarks} first ${creator.businessMetrics.firstMarks === 1 ? 'spark' : 'sparks'}`);
+  }
+
+  if (creator.completedDares > 0) {
+    reasons.push(`${creator.completedDares} completed ${creator.completedDares === 1 ? 'dare' : 'dares'}`);
+  }
+
+  if (creator.reviews.count > 0) {
+    reasons.push(`${creator.reviews.count} buyer ${creator.reviews.count === 1 ? 'review' : 'reviews'}`);
+  }
+
+  const contextTokens = `${input.searchText} ${input.venue} ${input.city} ${input.goal}`
+    .toLowerCase()
+    .split(/[^a-z0-9@]+/)
+    .filter((token) => token.length >= 3);
+  const matchingTags = creator.tags.filter((tag) => contextTokens.includes(tag.toLowerCase()));
+
+  if (matchingTags.length > 0) {
+    score += matchingTags.length * 8;
+    reasons.push(`context fit: ${matchingTags.slice(0, 2).join(', ')}`);
+  }
+
+  if (input.goal === 'foot_traffic' && creator.businessMetrics.venueReach > 0) {
+    score += 8;
+    reasons.push('venue traffic signal');
+  }
+
+  if (input.goal === 'ugc' && (creator.completedDares > 0 || creator.reviews.count > 0)) {
+    score += 7;
+    reasons.push('proof output signal');
+  }
+
+  return {
+    score: Math.round(score),
+    reasons: reasons.slice(0, 4),
+  };
+}
+
+function buildCreatorCreateHref(input: {
+  creatorTag: string;
+  id: string;
+  company: string;
+  venue: string;
+  city: string;
+  amount: number | null;
+}) {
+  const params = new URLSearchParams();
+  const venueName = input.venue || input.company;
+  params.set('streamer', input.creatorTag.startsWith('@') ? input.creatorTag : `@${input.creatorTag}`);
+  params.set('mode', 'venue_activation');
+  params.set('source', 'activation-intake-creator-match');
+  params.set('activationLeadId', input.id);
+  if (venueName) {
+    params.set('venueName', venueName);
+    params.set('title', `Activate ${venueName}`);
+  }
+  if (input.city) params.set('city', input.city);
+  if (input.amount) params.set('amount', String(input.amount));
+  return `/create?${params.toString()}`;
+}
+
+function buildCreatorRecommendations(input: {
+  candidates: CreatorCandidate[];
+  id: string;
+  company: string;
+  venue: string;
+  city: string;
+  goal: string;
+  notes: string;
+  amount: number | null;
+}) {
+  const searchText = `${input.company} ${input.venue} ${input.city} ${input.goal} ${input.notes}`;
+
+  return input.candidates
+    .map((creator) => {
+      const fit = buildCreatorScore({
+        creator,
+        searchText,
+        venue: input.venue,
+        city: input.city,
+        goal: input.goal,
+      });
+
+      return {
+        tag: creator.tag,
+        score: fit.score,
+        trustScore: creator.trust.score,
+        trustLabel: creator.trust.label,
+        status: creator.status,
+        totalEarned: creator.totalEarned,
+        completedDares: creator.completedDares,
+        venueReach: creator.businessMetrics.venueReach,
+        firstMarks: creator.businessMetrics.firstMarks,
+        reviews: creator.reviews.count,
+        reasons: fit.reasons.length ? fit.reasons : ['fresh creator to test'],
+        createHref: buildCreatorCreateHref({
+          creatorTag: creator.tag,
+          id: input.id,
+          company: input.company,
+          venue: input.venue,
+          city: input.city,
+          amount: input.amount,
+        }),
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 4);
+}
+
+async function fetchCreatorCandidates(): Promise<CreatorCandidate[]> {
+  const streamers = await prisma.streamerTag.findMany({
+    where: {
+      status: { in: ['ACTIVE', 'VERIFIED'] },
+    },
+    orderBy: {
+      totalEarned: 'desc',
+    },
+    take: 60,
+    select: {
+      tag: true,
+      status: true,
+      totalEarned: true,
+      completedDares: true,
+      tags: true,
+    },
+  });
+
+  const creatorDares = await prisma.dare.findMany({
+    where: {
+      OR: [{ streamerHandle: { not: null } }, { claimRequestTag: { not: null } }],
+    },
+    select: {
+      streamerHandle: true,
+      claimRequestTag: true,
+      bounty: true,
+      status: true,
+    },
+  });
+
+  const dareMetrics = new Map<string, {
+    totalEarned: number;
+    completedDares: number;
+    approvedMissions: number;
+    payoutQueued: number;
+    live: number;
+    total: number;
+  }>();
+
+  for (const entry of creatorDares) {
+    const normalizedHandle = normalizeCreatorHandle(entry.streamerHandle ?? entry.claimRequestTag);
+    if (!normalizedHandle) continue;
+
+    const current = dareMetrics.get(normalizedHandle) || {
+      totalEarned: 0,
+      completedDares: 0,
+      approvedMissions: 0,
+      payoutQueued: 0,
+      live: 0,
+      total: 0,
+    };
+    current.total += 1;
+    if (entry.status === 'VERIFIED') {
+      current.totalEarned += entry.bounty || 0;
+      current.completedDares += 1;
+      current.approvedMissions += 1;
+    } else if (entry.status === 'PENDING_PAYOUT') {
+      current.approvedMissions += 1;
+      current.payoutQueued += 1;
+    } else if (['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'PENDING_ACCEPTANCE'].includes(entry.status)) {
+      current.live += 1;
+    }
+    dareMetrics.set(normalizedHandle, current);
+  }
+
+  const contributionMetrics = new Map<string, { uniqueVenues: number; firstMarks: number }>();
+  try {
+    const approvedMarks = await prisma.placeTag.findMany({
+      where: {
+        status: 'APPROVED',
+        creatorTag: { not: null },
+      },
+      select: {
+        creatorTag: true,
+        venueId: true,
+        firstMark: true,
+      },
+    });
+
+    const venueSets = new Map<string, Set<string>>();
+    for (const entry of approvedMarks) {
+      const normalizedHandle = normalizeCreatorHandle(entry.creatorTag);
+      if (!normalizedHandle) continue;
+
+      const venues = venueSets.get(normalizedHandle) || new Set<string>();
+      venues.add(entry.venueId);
+      venueSets.set(normalizedHandle, venues);
+
+      const current = contributionMetrics.get(normalizedHandle) || { uniqueVenues: 0, firstMarks: 0 };
+      if (entry.firstMark) current.firstMarks += 1;
+      contributionMetrics.set(normalizedHandle, current);
+    }
+
+    for (const [handle, venues] of venueSets.entries()) {
+      const current = contributionMetrics.get(handle) || { uniqueVenues: 0, firstMarks: 0 };
+      current.uniqueVenues = venues.size;
+      contributionMetrics.set(handle, current);
+    }
+  } catch {
+    // Place memory is additive; creator matching should still work if the table is unavailable.
+  }
+
+  const reviewMetrics = new Map<string, { count: number; ratingTotal: number }>();
+  try {
+    const reviews = await prisma.creatorReview.findMany({
+      select: {
+        creatorTag: true,
+        rating: true,
+      },
+    });
+
+    for (const entry of reviews) {
+      const normalizedHandle = normalizeCreatorHandle(entry.creatorTag);
+      if (!normalizedHandle) continue;
+
+      const current = reviewMetrics.get(normalizedHandle) || { count: 0, ratingTotal: 0 };
+      current.count += 1;
+      current.ratingTotal += entry.rating;
+      reviewMetrics.set(normalizedHandle, current);
+    }
+  } catch {
+    // Reviews are optional for early operators.
+  }
+
+  return streamers
+    .map((streamer) => {
+      const normalizedTag = normalizeCreatorHandle(streamer.tag) || '';
+      const metrics = dareMetrics.get(normalizedTag);
+      const contribution = contributionMetrics.get(normalizedTag);
+      const review = reviewMetrics.get(normalizedTag);
+      const totalEarned = Math.max(streamer.totalEarned, metrics?.totalEarned ?? 0);
+      const completedDares = Math.max(streamer.completedDares, metrics?.completedDares ?? 0);
+      const approvedMissions = Math.max(completedDares + (metrics?.payoutQueued ?? 0), metrics?.approvedMissions ?? 0);
+      const trust = deriveCreatorTrustProfile({
+        approvedMissions,
+        settledMissions: completedDares,
+        totalEarned,
+        uniqueVenues: contribution?.uniqueVenues ?? 0,
+        firstMarks: contribution?.firstMarks ?? 0,
+      });
+
+      return {
+        tag: streamer.tag,
+        normalizedTag,
+        status: streamer.status,
+        totalEarned,
+        completedDares,
+        tags: streamer.tags ?? [],
+        trust,
+        stats: {
+          approved: approvedMissions,
+          payoutQueued: metrics?.payoutQueued ?? 0,
+          live: metrics?.live ?? 0,
+          acceptRate: (metrics?.total ?? 0) > 0 ? Math.round((approvedMissions / (metrics?.total ?? 1)) * 100) : 0,
+        },
+        businessMetrics: {
+          venueReach: contribution?.uniqueVenues ?? 0,
+          firstMarks: contribution?.firstMarks ?? 0,
+        },
+        reviews: {
+          count: review?.count ?? 0,
+          averageRating:
+            review && review.count > 0 ? Math.round((review.ratingTotal / review.count) * 10) / 10 : null,
+        },
+      };
+    })
+    .filter((creator) => creator.normalizedTag)
+    .sort((left, right) => right.trust.score - left.trust.score);
+}
+
 function mapIntakeEvent(event: {
   id: string;
   title: string | null;
@@ -158,7 +493,7 @@ function mapIntakeEvent(event: {
   metadataJson: Prisma.JsonValue | null;
   occurredAt: Date;
   updatedAt: Date;
-}) {
+}, candidates: CreatorCandidate[] = []) {
   const metadata = asRecord(event.metadataJson);
   const operator = asRecord(metadata.operator);
   const status = normalizeStatus(event.status);
@@ -227,6 +562,16 @@ function mapIntakeEvent(event: {
     positioningLine: stringValue(asRecord(metadata.activationBrief).positioningLine),
     proofLogic: stringValue(asRecord(metadata.activationBrief).proofLogic),
     repeatMetric: stringValue(asRecord(metadata.activationBrief).repeatMetric),
+    creatorRecommendations: buildCreatorRecommendations({
+      candidates,
+      id: event.id,
+      company,
+      venue: assignedVenue,
+      city,
+      goal,
+      notes,
+      amount,
+    }),
     replyDraft: buildReplyDraft({
       contactName,
       company,
@@ -273,7 +618,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const intakes = events.map(mapIntakeEvent);
+    const creatorCandidates = await fetchCreatorCandidates();
+    const intakes = events.map((event) => mapIntakeEvent(event, creatorCandidates));
     const summary = INTAKE_STATUSES.reduce(
       (acc, status) => ({
         ...acc,
@@ -391,9 +737,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    const creatorCandidates = await fetchCreatorCandidates();
+
     return NextResponse.json({
       success: true,
-      data: mapIntakeEvent(updated),
+      data: mapIntakeEvent(updated, creatorCandidates),
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
