@@ -48,6 +48,28 @@ try {
     }
   }
 
+  if (report.activationSmoke) {
+    const smoke = report.activationSmoke;
+    console.log(`\nPaid activation smoke: ${smoke.modeLabel}`);
+    console.log(
+      `Activation rail: ${smoke.summary.linkedVenueCampaigns} linked venue campaigns, ${smoke.summary.liveVenueDares} live venue dares, ${smoke.summary.readyToInvoiceIntakes} ready invoices, ${smoke.summary.staleFundingVenueDares} stale funding`
+    );
+
+    for (const check of smoke.checks) {
+      const marker =
+        check.severity === 'block'
+          ? 'BLOCK'
+          : check.severity === 'warn'
+            ? 'WARN'
+            : 'PASS';
+      console.log(`\n[${marker}] ${check.label}`);
+      console.log(check.detail);
+      if (check.nextAction) {
+        console.log(`Next: ${check.nextAction}`);
+      }
+    }
+  }
+
   if (report.summary.blockers > 0) {
     process.exit(1);
   }

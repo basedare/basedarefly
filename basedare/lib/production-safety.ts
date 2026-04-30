@@ -68,6 +68,65 @@ export type MoneyRailsSettlementSnapshot = {
   }>;
 };
 
+export type PaidActivationSmokeStep = {
+  id: string;
+  label: string;
+  severity: ProductionSafetySeverity;
+  detail: string;
+  nextAction?: string;
+  href?: string;
+};
+
+export type PaidActivationSmokeSnapshot = {
+  generatedAt: string;
+  modeLabel: string;
+  severity: ProductionSafetySeverity;
+  canAttemptPaidSmoke: boolean;
+  summary: {
+    blockers: number;
+    warnings: number;
+    passes: number;
+    recentIntakes: number;
+    qualifiedIntakes: number;
+    readyToInvoiceIntakes: number;
+    launchedIntakes: number;
+    venueCampaigns: number;
+    liveVenueCampaigns: number;
+    linkedVenueCampaigns: number;
+    liveVenueDares: number;
+    staleFundingVenueDares: number;
+  };
+  checks: PaidActivationSmokeStep[];
+  runbook: PaidActivationSmokeStep[];
+  links: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
+  latestIntake: {
+    id: string;
+    title: string | null;
+    status: string | null;
+    amount: number | null;
+    actor: string | null;
+    venueSlug: string | null;
+    occurredAt: string;
+    href: string | null;
+  } | null;
+  latestCampaign: {
+    id: string;
+    title: string;
+    status: string;
+    budgetUsdc: number;
+    venueName: string | null;
+    venueSlug: string | null;
+    linkedDareShortId: string | null;
+    linkedDareStatus: string | null;
+    linkedDareIsSimulated: boolean | null;
+    createdAt: string;
+  } | null;
+};
+
 export type ProductionSafetyReport = {
   generatedAt: string;
   environment: {
@@ -82,12 +141,15 @@ export type ProductionSafetyReport = {
   };
   checks: ProductionSafetyCheck[];
   settlement: MoneyRailsSettlementSnapshot | null;
+  activationSmoke: PaidActivationSmokeSnapshot | null;
 };
 
 const RLS_TABLES = rlsTables;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const STUCK_FUNDING_AFTER_MS = 15 * 60 * 1000;
 const QUEUE_ITEM_LIMIT = 8;
+const LIVE_VENUE_CAMPAIGN_STATUSES = ['LIVE', 'RECRUITING', 'ACTIVE'];
+const LIVE_VENUE_DARE_STATUSES = ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'VERIFIED', 'PENDING_PAYOUT'];
 
 const MONEY_QUEUE_SELECT = {
   id: true,
@@ -551,6 +613,368 @@ export async function buildMoneyRailsSettlementSnapshot(): Promise<MoneyRailsSet
   };
 }
 
+function buildActivationCheck(input: PaidActivationSmokeStep): PaidActivationSmokeStep {
+  return input;
+}
+
+function summarizeSmokeChecks(checks: PaidActivationSmokeStep[]) {
+  return checks.reduce(
+    (acc, check) => {
+      if (check.severity === 'block') acc.blockers += 1;
+      if (check.severity === 'warn') acc.warnings += 1;
+      if (check.severity === 'pass') acc.passes += 1;
+      return acc;
+    },
+    { blockers: 0, warnings: 0, passes: 0 }
+  );
+}
+
+export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivationSmokeSnapshot> {
+  const now = new Date();
+  const recentCutoff = new Date(now.getTime() - 7 * 24 * ONE_HOUR_MS);
+  const staleFundingCutoff = new Date(now.getTime() - STUCK_FUNDING_AFTER_MS);
+  const simulationMode = isBountySimulationMode();
+  const bountyAddress = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;
+  const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS;
+  const hasCoreContracts = isAddress(bountyAddress ?? '') && isAddress(usdcAddress ?? '');
+  const hasDatabase = hasEnv('DATABASE_URL');
+  const hasAdminSecret = hasEnv('ADMIN_SECRET');
+  const hasProofStorage = hasEnv('PINATA_JWT');
+  const hasTelegram = hasEnv('TELEGRAM_BOT_TOKEN') && hasEnv('TELEGRAM_ADMIN_CHAT_ID');
+  const hasWalletProject = hasEnv('NEXT_PUBLIC_CDP_PROJECT_ID');
+
+  const [
+    recentIntakes,
+    qualifiedIntakes,
+    readyToInvoiceIntakes,
+    launchedIntakes,
+    venueCampaigns,
+    liveVenueCampaigns,
+    linkedVenueCampaigns,
+    liveVenueDares,
+    staleFundingVenueDares,
+    latestIntakeRow,
+    latestCampaignRow,
+  ] = await Promise.all([
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        occurredAt: { gte: recentCutoff },
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: 'QUALIFIED',
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: 'READY_TO_INVOICE',
+      },
+    }),
+    prisma.founderEvent.count({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: 'LAUNCHED',
+      },
+    }),
+    prisma.campaign.count({
+      where: { type: 'PLACE' },
+    }),
+    prisma.campaign.count({
+      where: {
+        type: 'PLACE',
+        status: { in: LIVE_VENUE_CAMPAIGN_STATUSES },
+      },
+    }),
+    prisma.campaign.count({
+      where: {
+        type: 'PLACE',
+        linkedDareId: { not: null },
+      },
+    }),
+    prisma.dare.count({
+      where: {
+        missionMode: 'IRL',
+        venueId: { not: null },
+        status: { in: LIVE_VENUE_DARE_STATUSES },
+      },
+    }),
+    prisma.dare.count({
+      where: {
+        venueId: { not: null },
+        status: 'FUNDING',
+        createdAt: { lt: staleFundingCutoff },
+      },
+    }),
+    prisma.founderEvent.findFirst({
+      where: { eventType: 'ACTIVATION_INTAKE' },
+      orderBy: { occurredAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        amount: true,
+        actor: true,
+        venueSlug: true,
+        occurredAt: true,
+        href: true,
+      },
+    }),
+    prisma.campaign.findFirst({
+      where: { type: 'PLACE' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        budgetUsdc: true,
+        createdAt: true,
+        venue: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+        linkedDare: {
+          select: {
+            shortId: true,
+            status: true,
+            isSimulated: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const activeActivationIntakes = qualifiedIntakes + readyToInvoiceIntakes;
+  const checks = [
+    buildActivationCheck({
+      id: 'activation.contracts',
+      label: 'Funding contracts',
+      severity: hasCoreContracts ? (simulationMode ? 'warn' : 'pass') : 'block',
+      detail: hasCoreContracts
+        ? simulationMode
+          ? 'Bounty and USDC addresses are valid, but bounty simulation is still enabled.'
+          : 'Bounty and USDC addresses are valid and simulation is disabled.'
+        : 'Bounty or USDC contract address is missing/invalid, so a paid venue activation cannot be funded safely.',
+      nextAction: hasCoreContracts
+        ? simulationMode
+          ? 'Disable SIMULATE_BOUNTIES and NEXT_PUBLIC_SIMULATE_BOUNTIES before a real paid smoke.'
+          : undefined
+        : 'Set NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS and NEXT_PUBLIC_USDC_ADDRESS for the intended network.',
+    }),
+    buildActivationCheck({
+      id: 'activation.database',
+      label: 'Activation storage',
+      severity: hasDatabase ? 'pass' : 'block',
+      detail: hasDatabase
+        ? `${venueCampaigns} venue campaign records exist; ${linkedVenueCampaigns} are linked to funded dares.`
+        : 'DATABASE_URL is missing, so activation evidence cannot be stored or audited.',
+      nextAction: hasDatabase ? undefined : 'Set DATABASE_URL to the production Supabase Postgres connection string.',
+    }),
+    buildActivationCheck({
+      id: 'activation.funding-registration',
+      label: 'Funding registration',
+      severity: staleFundingVenueDares > 0 ? 'block' : 'pass',
+      detail:
+        staleFundingVenueDares > 0
+          ? `${staleFundingVenueDares} venue-funded dare(s) are stuck in FUNDING longer than 15 minutes.`
+          : 'No venue-funded dares are stuck in FUNDING past the 15 minute repair threshold.',
+      nextAction:
+        staleFundingVenueDares > 0
+          ? 'Repair or refund stale FUNDING records before running another paid smoke.'
+          : undefined,
+      href: '/admin/production-safety',
+    }),
+    buildActivationCheck({
+      id: 'activation.creator-routing',
+      label: 'Creator routing evidence',
+      severity: linkedVenueCampaigns > 0 ? 'pass' : 'warn',
+      detail:
+        linkedVenueCampaigns > 0
+          ? `${linkedVenueCampaigns} venue campaign(s) are linked to live dare rails; ${liveVenueDares} venue dares are currently trackable.`
+          : 'No venue campaign is linked to a funded dare yet; the first smoke must prove creator routing end-to-end.',
+      nextAction:
+        linkedVenueCampaigns > 0
+          ? undefined
+          : 'Launch one tiny controlled venue activation from Brand Portal and verify it creates both Campaign and Dare records.',
+      href: '/brands/portal',
+    }),
+    buildActivationCheck({
+      id: 'activation.intake-ops',
+      label: 'Buyer intake ops',
+      severity: recentIntakes > 0 || activeActivationIntakes > 0 || launchedIntakes > 0 ? 'pass' : 'warn',
+      detail: `${recentIntakes} intake(s) arrived in the last 7 days; ${readyToInvoiceIntakes} ready to invoice; ${launchedIntakes} marked launched.`,
+      nextAction:
+        recentIntakes > 0 || activeActivationIntakes > 0 || launchedIntakes > 0
+          ? undefined
+          : 'Submit one internal test intake from Control mode so admin follow-up and Telegram are visible.',
+      href: '/admin/activation-intakes',
+    }),
+    buildActivationCheck({
+      id: 'activation.proof-receipts',
+      label: 'Proof receipt media',
+      severity: hasProofStorage ? 'pass' : 'block',
+      detail: hasProofStorage
+        ? 'PINATA_JWT is configured; proof media can be stored for the buyer receipt.'
+        : 'PINATA_JWT is missing, so creator proof upload can fail after the buyer funds.',
+      nextAction: hasProofStorage ? undefined : 'Set PINATA_JWT before selling a paid proof-backed activation.',
+    }),
+    buildActivationCheck({
+      id: 'activation.ops-alerts',
+      label: 'Ops alerts',
+      severity: hasTelegram ? 'pass' : 'warn',
+      detail: hasTelegram
+        ? 'Telegram bot and admin chat are configured for activation intake and status alerts.'
+        : 'Telegram activation alerts degrade to logs because bot token or admin chat is missing.',
+      nextAction: hasTelegram ? undefined : 'Set TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID before relying on concierge ops.',
+      href: '/admin/activation-intakes',
+    }),
+    buildActivationCheck({
+      id: 'activation.wallet-ux',
+      label: 'Wallet funding UX',
+      severity: hasWalletProject ? 'pass' : 'warn',
+      detail: hasWalletProject
+        ? 'CDP project id is configured for the embedded wallet/get-USDC experience.'
+        : 'NEXT_PUBLIC_CDP_PROJECT_ID is missing; direct wallet funding can still work, but embedded funding UX may be degraded.',
+      nextAction: hasWalletProject ? undefined : 'Set NEXT_PUBLIC_CDP_PROJECT_ID before sending non-technical venues into the paid flow.',
+    }),
+    buildActivationCheck({
+      id: 'activation.human-approval',
+      label: 'Human approval gate',
+      severity: hasAdminSecret ? 'pass' : 'block',
+      detail: hasAdminSecret
+        ? 'ADMIN_SECRET is configured, so the human review queue can be controlled.'
+        : 'ADMIN_SECRET is missing, so the activation queue cannot be safely operated.',
+      nextAction: hasAdminSecret ? undefined : 'Set ADMIN_SECRET before routing buyer intakes or launch handoffs.',
+    }),
+  ];
+
+  const checkSummary = summarizeSmokeChecks(checks);
+  const severity: ProductionSafetySeverity =
+    checkSummary.blockers > 0 ? 'block' : checkSummary.warnings > 0 ? 'warn' : 'pass';
+  const canAttemptPaidSmoke = checkSummary.blockers === 0 && !simulationMode;
+  const modeLabel =
+    checkSummary.blockers > 0
+      ? 'Blocked before paid smoke'
+      : simulationMode
+        ? 'Simulation only'
+        : linkedVenueCampaigns > 0
+          ? 'Ready to repeat paid smoke'
+          : 'Ready for first tiny paid smoke';
+
+  return {
+    generatedAt: now.toISOString(),
+    modeLabel,
+    severity,
+    canAttemptPaidSmoke,
+    summary: {
+      ...checkSummary,
+      recentIntakes,
+      qualifiedIntakes,
+      readyToInvoiceIntakes,
+      launchedIntakes,
+      venueCampaigns,
+      liveVenueCampaigns,
+      linkedVenueCampaigns,
+      liveVenueDares,
+      staleFundingVenueDares,
+    },
+    checks,
+    runbook: [
+      {
+        id: 'smoke.1',
+        label: 'Open Control Brand Portal',
+        severity: 'pass',
+        detail: 'Use the venue activation composer, not a public fan dare, so Campaign, Brand, Venue, and Dare records stay linked.',
+        href: '/brands/portal',
+      },
+      {
+        id: 'smoke.2',
+        label: 'Pick one venue and one creator',
+        severity: 'pass',
+        detail: 'Use the smallest credible route: one real venue, one creator, one proof rule, one tiny payout.',
+        href: '/scouts/dashboard',
+      },
+      {
+        id: 'smoke.3',
+        label: 'Fund the tiny activation',
+        severity: canAttemptPaidSmoke ? 'pass' : 'warn',
+        detail: 'Approve and fund the minimum useful USDC amount, then confirm the linked dare leaves FUNDING.',
+        nextAction: canAttemptPaidSmoke
+          ? undefined
+          : 'Do not run this step until blockers are gone and simulation is off.',
+        href: '/brands/portal',
+      },
+      {
+        id: 'smoke.4',
+        label: 'Verify database receipt',
+        severity: 'pass',
+        detail: 'Campaign should be LIVE, linkedDareId should be present, and the linked Dare should be PENDING or claimable.',
+        href: '/admin/production-safety',
+      },
+      {
+        id: 'smoke.5',
+        label: 'Watch ops handoff',
+        severity: hasTelegram ? 'pass' : 'warn',
+        detail: 'Confirm Telegram/admin intake alerts are visible and the operator can explain what happened without inspecting code.',
+        href: '/admin/activation-intakes',
+      },
+    ],
+    links: [
+      {
+        label: 'Brand Portal',
+        path: '/brands/portal',
+        note: 'Launch the actual paid venue activation rail.',
+      },
+      {
+        label: 'Creator Radar',
+        path: '/scouts/dashboard',
+        note: 'Pick the strongest creator for the first buyer route.',
+      },
+      {
+        label: 'Activation Intakes',
+        path: '/admin/activation-intakes',
+        note: 'Human approval, invoice state, launch handoff, and Telegram status updates.',
+      },
+      {
+        label: 'Settlement Cockpit',
+        path: '/admin/production-safety',
+        note: 'Check stuck funding, payout retries, and refund pressure after the smoke.',
+      },
+    ],
+    latestIntake: latestIntakeRow
+      ? {
+          id: latestIntakeRow.id,
+          title: latestIntakeRow.title,
+          status: latestIntakeRow.status,
+          amount: latestIntakeRow.amount,
+          actor: latestIntakeRow.actor,
+          venueSlug: latestIntakeRow.venueSlug,
+          occurredAt: latestIntakeRow.occurredAt.toISOString(),
+          href: latestIntakeRow.href,
+        }
+      : null,
+    latestCampaign: latestCampaignRow
+      ? {
+          id: latestCampaignRow.id,
+          title: latestCampaignRow.title,
+          status: latestCampaignRow.status,
+          budgetUsdc: latestCampaignRow.budgetUsdc,
+          venueName: latestCampaignRow.venue?.name ?? null,
+          venueSlug: latestCampaignRow.venue?.slug ?? null,
+          linkedDareShortId: latestCampaignRow.linkedDare?.shortId ?? null,
+          linkedDareStatus: latestCampaignRow.linkedDare?.status ?? null,
+          linkedDareIsSimulated: latestCampaignRow.linkedDare?.isSimulated ?? null,
+          createdAt: latestCampaignRow.createdAt.toISOString(),
+        }
+      : null,
+  };
+}
+
 function addRuntimeQueuesCheck(
   checks: ProductionSafetyCheck[],
   settlement: MoneyRailsSettlementSnapshot | null
@@ -725,6 +1149,30 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
   }
   addRuntimeQueuesCheck(checks, settlement);
 
+  let activationSmoke: PaidActivationSmokeSnapshot | null = null;
+  try {
+    activationSmoke = await buildPaidActivationSmokeSnapshot();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown activation smoke error';
+    console.error('[PRODUCTION_SAFETY] Could not build paid activation smoke snapshot:', message);
+  }
+  checks.push({
+    id: 'runtime.paid-activation-smoke',
+    label: 'Paid activation smoke',
+    severity: activationSmoke
+      ? activationSmoke.severity === 'block'
+        ? 'warn'
+        : activationSmoke.severity
+      : 'warn',
+    detail: activationSmoke
+      ? `${activationSmoke.modeLabel}: ${activationSmoke.summary.linkedVenueCampaigns} linked venue campaign(s), ${activationSmoke.summary.staleFundingVenueDares} stale venue funding record(s), ${activationSmoke.summary.readyToInvoiceIntakes} intake(s) ready to invoice.`
+      : 'Could not read paid activation smoke state.',
+    nextAction:
+      activationSmoke && activationSmoke.canAttemptPaidSmoke
+        ? 'Run one tiny human-approved paid venue activation, then confirm linked Campaign and Dare records.'
+        : 'Open the paid activation smoke cockpit and clear blockers before selling or testing live spend.',
+  });
+
   await Promise.all([
     checkRlsCoverage(checks),
     checkRls(checks),
@@ -751,5 +1199,6 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     summary,
     checks,
     settlement,
+    activationSmoke,
   };
 }

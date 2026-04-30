@@ -31,6 +31,7 @@ type ProductionSafetyReport = {
     nextAction?: string;
   }>;
   settlement: MoneyRailsSettlementSnapshot | null;
+  activationSmoke: PaidActivationSmokeSnapshot | null;
 };
 
 type SettlementQueueItem = {
@@ -79,6 +80,65 @@ type MoneyRailsSettlementSnapshot = {
     path: string;
     note: string;
   }>;
+};
+
+type PaidActivationSmokeStep = {
+  id: string;
+  label: string;
+  severity: ProductionSafetySeverity;
+  detail: string;
+  nextAction?: string;
+  href?: string;
+};
+
+type PaidActivationSmokeSnapshot = {
+  generatedAt: string;
+  modeLabel: string;
+  severity: ProductionSafetySeverity;
+  canAttemptPaidSmoke: boolean;
+  summary: {
+    blockers: number;
+    warnings: number;
+    passes: number;
+    recentIntakes: number;
+    qualifiedIntakes: number;
+    readyToInvoiceIntakes: number;
+    launchedIntakes: number;
+    venueCampaigns: number;
+    liveVenueCampaigns: number;
+    linkedVenueCampaigns: number;
+    liveVenueDares: number;
+    staleFundingVenueDares: number;
+  };
+  checks: PaidActivationSmokeStep[];
+  runbook: PaidActivationSmokeStep[];
+  links: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
+  latestIntake: {
+    id: string;
+    title: string | null;
+    status: string | null;
+    amount: number | null;
+    actor: string | null;
+    venueSlug: string | null;
+    occurredAt: string;
+    href: string | null;
+  } | null;
+  latestCampaign: {
+    id: string;
+    title: string;
+    status: string;
+    budgetUsdc: number;
+    venueName: string | null;
+    venueSlug: string | null;
+    linkedDareShortId: string | null;
+    linkedDareStatus: string | null;
+    linkedDareIsSimulated: boolean | null;
+    createdAt: string;
+  } | null;
 };
 
 function severityLabel(severity: ProductionSafetySeverity) {
@@ -233,6 +293,225 @@ function SettlementQueueList({
         </div>
       )}
     </div>
+  );
+}
+
+function ActivationSmokeMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">{label}</p>
+      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+      <p className="mt-1 text-xs font-bold leading-relaxed text-white/40">{hint}</p>
+    </div>
+  );
+}
+
+function ActivationSmokeStepCard({
+  step,
+  compact = false,
+}: {
+  step: PaidActivationSmokeStep;
+  compact?: boolean;
+}) {
+  const content = (
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="rounded-full border border-current/25 bg-black/20 p-2">
+            {severityIcon(step.severity)}
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-60">
+              {compact ? step.id : severityLabel(step.severity)}
+            </p>
+            <h3 className="text-sm font-black">{step.label}</h3>
+          </div>
+        </div>
+        {!compact && (
+          <span className="rounded-full border border-current/20 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] opacity-65">
+            {step.id}
+          </span>
+        )}
+      </div>
+      <p className="mt-3 text-xs font-bold leading-relaxed opacity-80">{step.detail}</p>
+      {step.nextAction && (
+        <p className="mt-3 rounded-2xl border border-current/15 bg-black/20 p-3 text-xs font-bold leading-relaxed opacity-80">
+          Next: {step.nextAction}
+        </p>
+      )}
+    </>
+  );
+
+  const className = `rounded-[1.5rem] border p-4 ${severityClasses(step.severity)} ${
+    step.href ? 'transition hover:-translate-y-0.5 hover:shadow-[0_18px_55px_rgba(0,0,0,0.32)]' : ''
+  }`;
+
+  return step.href ? (
+    <Link href={step.href} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <article className={className}>{content}</article>
+  );
+}
+
+function ActivationSmokePanel({ smoke }: { smoke: PaidActivationSmokeSnapshot }) {
+  return (
+    <section className="rounded-[2.5rem] border border-yellow-300/15 bg-[#080711]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-yellow-200/60">
+            Revenue rail
+          </p>
+          <h2 className="mt-2 text-xl font-black uppercase tracking-[0.14em]">
+            Paid Activation Smoke
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-relaxed text-white/48">
+            Read-only proof that a buyer can fund a venue activation, route a creator, create the
+            linked campaign/dare records, and leave an auditable receipt. No money moves from this panel.
+          </p>
+        </div>
+        <div className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] ${severityClasses(smoke.severity)}`}>
+          {smoke.modeLabel}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <ActivationSmokeMetric
+          label="Linked campaigns"
+          value={smoke.summary.linkedVenueCampaigns}
+          hint={`${smoke.summary.liveVenueCampaigns} live venue campaigns`}
+        />
+        <ActivationSmokeMetric
+          label="Live venue dares"
+          value={smoke.summary.liveVenueDares}
+          hint="Trackable IRL venue rails"
+        />
+        <ActivationSmokeMetric
+          label="Ready invoices"
+          value={smoke.summary.readyToInvoiceIntakes}
+          hint={`${smoke.summary.recentIntakes} intakes in 7d`}
+        />
+        <ActivationSmokeMetric
+          label="Stale funding"
+          value={smoke.summary.staleFundingVenueDares}
+          hint="Must be zero before a paid smoke"
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">Launch readiness</h3>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+              {smoke.summary.blockers} block / {smoke.summary.warnings} warn
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {smoke.checks.map((check) => (
+              <ActivationSmokeStepCard key={check.id} step={check} />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">Tiny paid smoke runbook</h3>
+            <div className="mt-3 space-y-3">
+              {smoke.runbook.map((step) => (
+                <ActivationSmokeStepCard key={step.id} step={step} compact />
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">Operator links</h3>
+            <div className="mt-3 grid gap-2">
+              {smoke.links.map((link) => (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  className="rounded-2xl border border-white/8 bg-black/25 p-3 transition hover:border-white/18 hover:bg-white/[0.06]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-black text-white">{link.label}</p>
+                    <code className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-yellow-100/80">
+                      {link.path}
+                    </code>
+                  </div>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-white/45">{link.note}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">Latest intake</p>
+          {smoke.latestIntake ? (
+            <>
+              <h3 className="mt-2 text-lg font-black text-white">{smoke.latestIntake.title ?? smoke.latestIntake.id}</h3>
+              <p className="mt-2 text-xs font-bold leading-relaxed text-white/48">
+                {smoke.latestIntake.status ?? 'NO STATUS'} / {formatMoney(smoke.latestIntake.amount ?? 0)} /{' '}
+                {smoke.latestIntake.actor ?? 'no actor'} / {new Date(smoke.latestIntake.occurredAt).toLocaleString()}
+              </p>
+              <Link
+                href={`/admin/activation-intakes?leadId=${encodeURIComponent(smoke.latestIntake.id)}`}
+                className="mt-4 inline-flex rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:text-white"
+              >
+                Open intake
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-sm font-bold text-white/45">No activation intake has been recorded yet.</p>
+          )}
+        </div>
+
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">Latest venue campaign</p>
+          {smoke.latestCampaign ? (
+            <>
+              <h3 className="mt-2 text-lg font-black text-white">{smoke.latestCampaign.title}</h3>
+              <p className="mt-2 text-xs font-bold leading-relaxed text-white/48">
+                {smoke.latestCampaign.status} / {formatMoney(smoke.latestCampaign.budgetUsdc)} /{' '}
+                {smoke.latestCampaign.venueName ?? 'no venue'} /{' '}
+                {smoke.latestCampaign.linkedDareShortId
+                  ? `dare ${smoke.latestCampaign.linkedDareShortId} ${smoke.latestCampaign.linkedDareStatus ?? ''}`
+                  : 'no linked dare'}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`/brands/portal?campaign=${encodeURIComponent(smoke.latestCampaign.id)}`}
+                  className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:text-white"
+                >
+                  Open campaign
+                </Link>
+                {smoke.latestCampaign.linkedDareShortId && (
+                  <Link
+                    href={`/dare/${smoke.latestCampaign.linkedDareShortId}`}
+                    className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100/80 transition hover:border-yellow-300/40 hover:text-yellow-50"
+                  >
+                    Open dare
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="mt-2 text-sm font-bold text-white/45">No venue campaign has been recorded yet.</p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -458,6 +737,8 @@ export default function ProductionSafetyPage() {
                 </p>
               </div>
             </div>
+
+            {report.activationSmoke && <ActivationSmokePanel smoke={report.activationSmoke} />}
 
             {report.settlement && (
               <section className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
