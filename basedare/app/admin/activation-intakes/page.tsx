@@ -149,6 +149,62 @@ function toIsoFromLocal(value: string) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function addDaysIso(days: number) {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function appendOperatorNote(existing: string, nextLine: string) {
+  const cleanExisting = existing.trim();
+  const cleanNext = nextLine.trim();
+  if (!cleanExisting) return cleanNext;
+  if (cleanExisting.includes(cleanNext)) return cleanExisting;
+  return `${cleanExisting}\n${cleanNext}`;
+}
+
+function nextActionState(value: string) {
+  if (!value) {
+    return {
+      label: 'No next action',
+      className: 'border-white/10 bg-white/[0.04] text-white/38',
+    };
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return {
+      label: 'Invalid next action',
+      className: 'border-red-300/25 bg-red-400/10 text-red-100',
+    };
+  }
+
+  const diffHours = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60));
+  if (diffHours < 0) {
+    return {
+      label: `${Math.abs(diffHours)}h overdue`,
+      className: 'border-red-300/25 bg-red-400/10 text-red-100',
+    };
+  }
+
+  if (diffHours <= 1) {
+    return {
+      label: 'Due now',
+      className: 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100',
+    };
+  }
+
+  if (diffHours <= 24) {
+    return {
+      label: `Due in ${diffHours}h`,
+      className: 'border-yellow-300/24 bg-yellow-300/8 text-yellow-100/82',
+    };
+  }
+
+  return {
+    label: `Next ${formatDateTime(date.toISOString())}`,
+    className: 'border-emerald-300/18 bg-emerald-300/8 text-emerald-100/72',
+  };
+}
+
 export default function ActivationIntakesPage() {
   const { address, isConnected } = useAccount();
   const [payload, setPayload] = useState<IntakePayload | null>(null);
@@ -307,6 +363,24 @@ export default function ActivationIntakesPage() {
     });
   };
 
+  const applyFollowUpPreset = async (
+    intake: ActivationIntake,
+    preset: {
+      status: IntakeStatus;
+      nextActionAt: string | null;
+      note: string;
+    }
+  ) => {
+    const draft = drafts[intake.id] ?? {};
+    await updateIntake(intake.id, {
+      assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
+      assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
+      status: preset.status,
+      nextActionAt: preset.nextActionAt,
+      operatorNote: appendOperatorNote(draft.operatorNote ?? intake.operatorNote, preset.note),
+    });
+  };
+
   const copyText = async (copyKey: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -455,6 +529,7 @@ export default function ActivationIntakesPage() {
                 const assignedVenue = draft.assignedVenue ?? intake.assignedVenue;
                 const operatorNote = draft.operatorNote ?? intake.operatorNote;
                 const nextActionAt = draft.nextActionAt ?? formatNextActionInput(intake.nextActionAt);
+                const actionState = nextActionState(nextActionAt || intake.nextActionAt);
                 const isUpdating = updatingId === intake.id;
                 const isHighlighted = highlightId === intake.id;
 
@@ -476,6 +551,9 @@ export default function ActivationIntakesPage() {
                           </span>
                           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
                             {intake.budgetLabel}
+                          </span>
+                          <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${actionState.className}`}>
+                            {actionState.label}
                           </span>
                         </div>
 
@@ -608,6 +686,65 @@ export default function ActivationIntakesPage() {
                             className="mt-2 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-sm font-bold text-white outline-none focus:border-yellow-300/35"
                           />
                         </label>
+
+                        <div className="rounded-[1.35rem] border border-white/10 bg-black/32 p-3">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+                                Follow-up presets
+                              </p>
+                              <p className="mt-1 text-xs font-bold leading-5 text-white/45">
+                                Lock the next touch immediately after replying so paid intent cannot go cold.
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void applyFollowUpPreset(intake, {
+                                    status: 'QUALIFIED',
+                                    nextActionAt: addDaysIso(1),
+                                    note: 'Reply sent. Follow up tomorrow if the buyer has not confirmed scope.',
+                                  })
+                                }
+                                disabled={isUpdating}
+                                className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/15 disabled:opacity-45"
+                              >
+                                <Mail className="h-3.5 w-3.5" />
+                                Reply sent
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void applyFollowUpPreset(intake, {
+                                    status: 'NEEDS_INFO',
+                                    nextActionAt: addDaysIso(2),
+                                    note: 'Clarifying info requested. Follow up in 2 days with a tighter activation route.',
+                                  })
+                                }
+                                disabled={isUpdating}
+                                className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/15 disabled:opacity-45"
+                              >
+                                Need info
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void applyFollowUpPreset(intake, {
+                                    status: 'READY_TO_INVOICE',
+                                    nextActionAt: addDaysIso(1),
+                                    note: 'Invoice memo sent. Follow up tomorrow if payment or scope confirmation is still missing.',
+                                  })
+                                }
+                                disabled={isUpdating}
+                                className="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15 disabled:opacity-45"
+                              >
+                                <DollarSign className="h-3.5 w-3.5" />
+                                Invoice sent
+                              </button>
+                            </div>
+                          </div>
+                        </div>
 
                         <label className="block">
                           <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Operator note</span>
