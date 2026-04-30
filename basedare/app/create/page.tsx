@@ -888,6 +888,7 @@ function CreateDareContent() {
                   onSelect={(text) => setValue('title', text)}
                   shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
                   onContextChange={handleGeneratorContextChange}
+                  venueName={venuePrefill?.name ?? null}
                 />
                 <textarea
                   {...register('title')}

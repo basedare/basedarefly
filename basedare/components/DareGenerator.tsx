@@ -164,16 +164,107 @@ const STREAM_TAGS: Array<{ key: keyof typeof SUGGESTIONS; label: string; emoji: 
   { key: 'MUSIC', label: 'music', emoji: '🎵' },
 ];
 
+function inferVenueStory(venueName: string) {
+  const normalized = venueName.toLowerCase();
+
+  if (/(surf|beach|shore|coast|icebergs|bay|cloud 9|boardwalk|harbour|harbor|island|hideaway)/.test(normalized)) {
+    return {
+      type: 'shoreline',
+      anchor: 'water, light, local route, and arrival energy',
+      ritual: 'sunset, surf check, swim, dock, boardwalk, or first drink ritual',
+    };
+  }
+
+  if (/(cafe|coffee|bakery|brunch|roast|kitchen|deli)/.test(normalized)) {
+    return {
+      type: 'cafe',
+      anchor: 'menu detail, staff recommendation, best seat, and first-bite reaction',
+      ritual: 'coffee order, dish reveal, work corner, or regulars-only recommendation',
+    };
+  }
+
+  if (/(bar|club|hotel|pub|lounge|night|tavern|cantina|saloon)/.test(normalized)) {
+    return {
+      type: 'nightlife',
+      anchor: 'sound, crowd energy, signature drink, and arrival moment',
+      ritual: 'first round, bartender recommendation, dance-floor pulse, or late-night story',
+    };
+  }
+
+  if (/(gym|fitness|yoga|box|studio|training|pilates)/.test(normalized)) {
+    return {
+      type: 'fitness',
+      anchor: 'movement, effort, staff coaching, and post-session energy',
+      ritual: 'warm-up, safe challenge, class clip, form check, or recovery ritual',
+    };
+  }
+
+  return {
+    type: 'venue',
+    anchor: 'arrival route, local detail, staff recommendation, and proof people should come here',
+    ritual: 'signature moment, best angle, local tip, or first impression',
+  };
+}
+
+function buildVenueAwareSuggestions(venueName: string, category: keyof typeof IRL_SUGGESTIONS) {
+  const name = venueName.trim();
+  const story = inferVenueStory(name);
+  const base = {
+    nightlife: [
+      `Capture the ${name} arrival moment: door, sound, crowd energy, and why someone should come tonight`,
+      `Ask staff at ${name} for the signature order, film it cleanly, and give a 15-second verdict`,
+      `Find the most on-brand corner of ${name} and explain why it fits the place's story`,
+      `Film a respectful ${name} pulse check: one shot of the room, one detail, one reason to return`,
+      `Create a first-round ritual at ${name}: order, toast, proof clip, and caption the vibe in one line`,
+    ],
+    gym: [
+      `Complete a safe 60-second movement challenge at ${name} and show the setup, effort, and cooldown`,
+      `Ask staff at ${name} for one beginner tip and demonstrate it without blocking anyone`,
+      `Film the ${name} energy arc: arrival, work set, post-session reaction, and why it felt worth showing up`,
+      `Show the one class, machine, or recovery ritual at ${name} a newcomer should try first`,
+      `Create a form-check proof at ${name}: simple movement, clean angle, and one coaching takeaway`,
+    ],
+    cafe: [
+      `Order the most photogenic item at ${name}, film the reveal, and give a 15-second honest verdict`,
+      `Ask the team at ${name} what regulars order and prove whether it deserves the reputation`,
+      `Find the best seat at ${name} for working, reading, or people-watching and show why`,
+      `Capture the ${name} first-sip or first-bite ritual with one menu detail and one atmosphere shot`,
+      `Make a micro-guide for ${name}: what to order, where to sit, and what time to come`,
+    ],
+    beach: [
+      `Film the cleanest ${name} golden-hour angle with one local anchor in frame`,
+      `Create a ${name} condition report: weather, crowd, water or street energy, and whether to come now`,
+      `Show the hidden angle at ${name} most visitors miss, then explain it in one sentence`,
+      `Capture a ${name} ritual: ${story.ritual}, one proof shot, and one reason it belongs on the grid`,
+      `Make a fast local guide to ${name}: where to stand, what to bring, and when it hits best`,
+    ],
+    street: [
+      `Film the route into ${name} from the nearest landmark so a stranger could find it`,
+      `Capture one street-level detail near ${name} that makes this block feel different from a normal map pin`,
+      `Ask one respectful local recommendation near ${name} and turn it into a 15-second proof clip`,
+      `Make a ${name} arrival guide: movement, sound, sign, door, and first impression`,
+      `Show why ${name} is worth a detour using one route shot, one detail shot, and one proof caption`,
+    ],
+  } satisfies Record<keyof typeof IRL_SUGGESTIONS, string[]>;
+
+  return [
+    ...base[category],
+    `Tell the ${name} story through ${story.anchor}; keep it human, useful, and easy to verify`,
+  ];
+}
+
 interface GeneratorProps {
   onSelect: (text: string) => void;
   onContextChange?: (context: { mode: 'IRL' | 'STREAM'; tag: string }) => void;
   shouldAutoFillTitle?: boolean;
+  venueName?: string | null;
 }
 
 export default function DareGenerator({
   onSelect,
   onContextChange,
   shouldAutoFillTitle = true,
+  venueName,
 }: GeneratorProps) {
   const { trigger, haptic } = useFeedback();
   const [mode, setMode] = useState<'IRL' | 'STREAM'>('IRL');
@@ -186,8 +277,12 @@ export default function DareGenerator({
   const segmentRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const activeSuggestions = useMemo(() => {
+    if (mode === 'IRL' && venueName?.trim()) {
+      return buildVenueAwareSuggestions(venueName, irlCategory);
+    }
+
     return mode === 'IRL' ? IRL_SUGGESTIONS[irlCategory] : SUGGESTIONS[streamCategory];
-  }, [mode, irlCategory, streamCategory]);
+  }, [mode, irlCategory, streamCategory, venueName]);
 
   const currentSegments = useMemo(
     () => (mode === 'IRL' ? IRL_TAGS : STREAM_TAGS),

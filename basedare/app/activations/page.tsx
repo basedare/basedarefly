@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BadgeDollarSign, BarChart3, CheckCircle2, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeDollarSign, BarChart3, CheckCircle2, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
 
 import ActivationIntakeForm from './ActivationIntakeForm';
 import SquircleLink from '@/components/ui/SquircleLink';
@@ -84,20 +84,44 @@ type ActivationsPageProps = {
   searchParams: Promise<{
     creator?: string;
     streamer?: string;
+    venue?: string;
+    venueName?: string;
+    city?: string;
+    source?: string;
   }>;
 };
 
 export default async function ActivationsPage({ searchParams }: ActivationsPageProps) {
   const resolvedSearchParams = await searchParams;
   const routedCreator = resolvedSearchParams.creator || resolvedSearchParams.streamer || null;
+  const routedVenue = resolvedSearchParams.venueName || resolvedSearchParams.venue || null;
+  const routedCity = resolvedSearchParams.city || null;
+  const routedSource = resolvedSearchParams.source || null;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#030305] px-4 py-24 grayscale saturate-0 contrast-125 sm:px-6 lg:py-28">
+    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.06),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0)_26%,rgba(0,0,0,0.82)_100%)]" />
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-44 border-b border-white/[0.06] bg-black/55 backdrop-blur-2xl" />
 
       <div className="relative z-20 mx-auto max-w-7xl">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <Link
+            href="/?mode=control"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Control
+          </Link>
+          <Link
+            href="/brands/portal"
+            className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
+          >
+            Brand Portal
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
         <section className={`${raisedPanelClass} px-5 py-7 sm:px-8 lg:px-10 lg:py-10`}>
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_32%,rgba(0,0,0,0.22)_100%)]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
@@ -282,7 +306,12 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
 
           <div className={`${raisedPanelClass} p-5 sm:p-6`}>
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
-            <ActivationIntakeForm routedCreator={routedCreator} />
+            <ActivationIntakeForm
+              routedCreator={routedCreator}
+              routedVenue={routedVenue}
+              routedCity={routedCity}
+              routedSource={routedSource}
+            />
           </div>
         </section>
       </div>

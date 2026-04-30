@@ -53,37 +53,63 @@ const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em
 
 type ActivationIntakeFormProps = {
   routedCreator?: string | null;
+  routedVenue?: string | null;
+  routedCity?: string | null;
+  routedSource?: string | null;
 };
 
-export default function ActivationIntakeForm({ routedCreator }: ActivationIntakeFormProps) {
+export default function ActivationIntakeForm({
+  routedCreator,
+  routedVenue,
+  routedCity,
+  routedSource,
+}: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const routedCreatorRef = useRef<string | null>(null);
+  const routedContextRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!routedCreator) return;
+    if (!routedCreator && !routedVenue && !routedCity && !routedSource) return;
 
-    const normalizedCreator = routedCreator.startsWith('@') ? routedCreator : `@${routedCreator}`;
-    if (routedCreatorRef.current === normalizedCreator) return;
+    const normalizedCreator = routedCreator
+      ? routedCreator.startsWith('@')
+        ? routedCreator
+        : `@${routedCreator}`
+      : null;
+    const normalizedVenue = routedVenue?.trim() || null;
+    const normalizedCity = routedCity?.trim() || null;
+    const normalizedSource = routedSource?.trim() || null;
+    const contextKey = [normalizedCreator, normalizedVenue, normalizedCity, normalizedSource].filter(Boolean).join('|');
+    if (routedContextRef.current === contextKey) return;
 
-    routedCreatorRef.current = normalizedCreator;
+    routedContextRef.current = contextKey;
     setForm((current) => {
-      if (current.notes.includes(normalizedCreator)) return current;
+      if (
+        normalizedCreator &&
+        current.notes.includes(normalizedCreator) &&
+        (!normalizedVenue || current.venue.includes(normalizedVenue))
+      ) {
+        return current;
+      }
 
       return {
         ...current,
+        city: current.city || normalizedCity || '',
+        venue: current.venue || normalizedVenue || '',
         notes: [
           current.notes.trim(),
-          `Preferred creator: ${normalizedCreator}`,
-          'Source: Creator Radar',
+          normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
+          normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
+          normalizedCity ? `Target city: ${normalizedCity}` : null,
+          normalizedSource ? `Source: ${normalizedSource}` : 'Source: Control activation route',
         ]
           .filter(Boolean)
           .join('\n'),
       };
     });
-  }, [routedCreator]);
+  }, [routedCity, routedCreator, routedSource, routedVenue]);
 
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));

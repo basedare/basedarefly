@@ -93,6 +93,22 @@ const FAQ_ITEMS = [
     a: "Yes. Brands and venues should use **CONTROL mode**. That is where the nitty-gritty lives: activation planning, Brand Portal, creator routing, QR/check-in logic, and analytics. The public map still stays shared because everyone needs to see the grid."
   },
   {
+    q: "Is Pilot Qualification a real feature or just a contact form?",
+    a: "It is a real intake route. Submitting Pilot Qualification creates an **ACTIVATION_INTAKE** ops event, stores the Brand Memory and activation brief, and sends a Telegram alert to the BaseDare operator loop. It does **not** auto-approve spend or launch a paid campaign by itself yet. Human approval still happens before money moves."
+  },
+  {
+    q: "Can brands start campaigns inside Telegram?",
+    a: "Telegram support should start as a concierge layer: quick questions, activation requests, and operator follow-up. Full campaign creation still belongs in the web app for now because wallet funding, venue context, creator routing, and proof rules need a safer signed flow. Telegram can become a command surface after the web flow is boringly reliable."
+  },
+  {
+    q: "Does BaseDare generate venue-aware dares?",
+    a: "Yes. When a dare is launched from a venue route, the AI assist reads the venue context and suggests missions that fit the place: surf bar, beach club, cafe, gym, street spot, nightlife venue, or local landmark. The goal is not random chaos. The goal is creator prompts that match the venue story and produce useful proof."
+  },
+  {
+    q: "What is Creator Radar?",
+    a: "Creator Radar is a CONTROL-side shortlist for brands and venues. It ranks creators by trust, proof history, reviews, venue reach, first marks, completed dares, and earnings so buyers do not have to dig through the public creator page."
+  },
+  {
     q: "Can I collab or report a bug?",
     a: "Slide into the DMs. If it's a good idea, we build it. If it's a bug, we fix it."
   }
