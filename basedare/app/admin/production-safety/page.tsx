@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Clock, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BellRing, CheckCircle2, Clock, Loader2, Radio, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -139,6 +139,14 @@ type PaidActivationSmokeSnapshot = {
     linkedDareIsSimulated: boolean | null;
     createdAt: string;
   } | null;
+};
+
+type TelegramTestTarget = 'admin-alerts' | 'signal-room';
+
+type TelegramTestResult = {
+  target: TelegramTestTarget;
+  success: boolean;
+  message: string;
 };
 
 function severityLabel(severity: ProductionSafetySeverity) {
@@ -520,6 +528,8 @@ export default function ProductionSafetyPage() {
   const [report, setReport] = useState<ProductionSafetyReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [telegramTestRunning, setTelegramTestRunning] = useState<TelegramTestTarget | null>(null);
+  const [telegramTestResult, setTelegramTestResult] = useState<TelegramTestResult | null>(null);
   const {
     adminSecret,
     setAdminSecret,
@@ -569,6 +579,50 @@ export default function ProductionSafetyPage() {
       setLoading(false);
     }
   }, [address, adminAuthHeaders, ensureAdminSession, hasAdminAuth]);
+
+  const runTelegramTest = useCallback(
+    async (target: TelegramTestTarget) => {
+      if (!hasAdminAuth) return;
+
+      setTelegramTestRunning(target);
+      setTelegramTestResult(null);
+
+      try {
+        if (!address && !(await ensureAdminSession())) {
+          throw new Error('Invalid admin secret');
+        }
+
+        const response = await fetch('/api/admin/telegram-test', {
+          method: 'POST',
+          headers: {
+            ...adminAuthHeaders,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target }),
+        });
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || 'Telegram test failed');
+        }
+
+        setTelegramTestResult({
+          target,
+          success: true,
+          message: payload.message || 'Telegram test sent.',
+        });
+      } catch (testError) {
+        setTelegramTestResult({
+          target,
+          success: false,
+          message: testError instanceof Error ? testError.message : 'Telegram test failed',
+        });
+      } finally {
+        setTelegramTestRunning(null);
+      }
+    },
+    [address, adminAuthHeaders, ensureAdminSession, hasAdminAuth]
+  );
 
   useEffect(() => {
     if (!hasReadyAdminAuth) return;
@@ -698,6 +752,71 @@ export default function ProductionSafetyPage() {
             Rescan
           </button>
         </div>
+
+        <section className="rounded-[2rem] border border-cyan-200/15 bg-[linear-gradient(135deg,rgba(10,17,24,0.72),rgba(4,5,12,0.9))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_22px_80px_rgba(0,0,0,0.28)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-100/50">
+                Telegram rails
+              </p>
+              <h2 className="mt-2 text-xl font-black uppercase tracking-[0.12em] text-white">
+                Send live test pings
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-white/48">
+                This separates route health from actual Telegram receipt. Use it after changing Vercel envs or before
+                relying on support and Signal Room alerts.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void runTelegramTest('admin-alerts')}
+                disabled={!hasAdminAuth || telegramTestRunning !== null}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-200/30 bg-yellow-300 px-4 text-[11px] font-black uppercase tracking-[0.16em] text-black shadow-[0_7px_0_rgba(113,63,18,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {telegramTestRunning === 'admin-alerts' ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                Test Admin Alerts
+              </button>
+              <button
+                type="button"
+                onClick={() => void runTelegramTest('signal-room')}
+                disabled={!hasAdminAuth || telegramTestRunning !== null}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/[0.12] px-4 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_34px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {telegramTestRunning === 'signal-room' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+                Test Signal Room
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/8 bg-black/28 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/50">Private admin</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white/55">
+                Uses <code className="text-yellow-100">TELEGRAM_BOT_TOKEN</code> +{' '}
+                <code className="text-yellow-100">TELEGRAM_ADMIN_CHAT_ID</code>. This is where support inbox and ops
+                alerts should land.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/28 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/50">Public Signal Room</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white/55">
+                Uses <code className="text-cyan-100">NEXT_PUBLIC_TELEGRAM_SIGNAL_URL</code> for the join CTA and{' '}
+                <code className="text-cyan-100">TELEGRAM_SIGNAL_CHAT_ID</code> for broadcasts.
+              </p>
+            </div>
+          </div>
+          {telegramTestResult && (
+            <div
+              className={`mt-4 rounded-2xl border p-4 text-sm font-bold ${
+                telegramTestResult.success
+                  ? 'border-emerald-300/25 bg-emerald-500/10 text-emerald-100'
+                  : 'border-red-400/30 bg-red-500/10 text-red-100'
+              }`}
+            >
+              {telegramTestResult.message}
+            </div>
+          )}
+        </section>
 
         {loading && (
           <div className="flex items-center gap-3 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-sm font-black uppercase tracking-[0.22em] text-white/60">

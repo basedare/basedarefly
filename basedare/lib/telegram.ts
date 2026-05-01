@@ -935,3 +935,24 @@ export async function testBotConnection(): Promise<{ success: boolean; error?: s
   const sent = await sendMessage('🤖 <b>Clawdbot Online</b>\n\nBaseDare admin alerts connected!');
   return { success: sent, error: sent ? undefined : 'Failed to send test message' };
 }
+
+export async function testSignalRoomConnection(): Promise<{ success: boolean; error?: string }> {
+  if (!TELEGRAM_BOT_TOKEN) {
+    return { success: false, error: 'TELEGRAM_BOT_TOKEN not set' };
+  }
+  if (!TELEGRAM_SIGNAL_CHAT_ID) {
+    return { success: false, error: 'TELEGRAM_SIGNAL_CHAT_ID or TELEGRAM_PUBLIC_CHAT_ID not set' };
+  }
+
+  const sent = await sendMessageToChat(
+    TELEGRAM_SIGNAL_CHAT_ID,
+    [
+      '📡 <b>BASEDARE SIGNAL ROOM ONLINE</b>',
+      '',
+      'Public Signal Room broadcast rail is connected.',
+      `Open grid: ${htmlLink(appUrl('/map'), 'BaseDare Map')}`,
+    ].join('\n')
+  );
+
+  return { success: sent, error: sent ? undefined : 'Failed to send Signal Room test message' };
+}
