@@ -33,6 +33,11 @@ function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: 
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function asMetadataRecord(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
+  return { ...(metadata as Record<string, Prisma.JsonValue>) };
+}
+
 function normalizeWallet(value: string | null | undefined) {
   if (!value || !isAddress(value)) return null;
   return value.toLowerCase();
@@ -488,6 +493,7 @@ export async function POST(request: NextRequest) {
           },
           select: {
             id: true,
+            type: true,
             subject: true,
             participantWallets: true,
             metadataJson: true,
@@ -542,6 +548,7 @@ export async function POST(request: NextRequest) {
         },
         select: {
           id: true,
+          type: true,
           subject: true,
           participantWallets: true,
           metadataJson: true,
@@ -560,6 +567,7 @@ export async function POST(request: NextRequest) {
           metadataJson: {
             recipientTag: resolved.recipientTag ?? null,
             supportQueue: input.support ? 'ADMIN' : null,
+            supportStatus: input.support ? 'OPEN' : null,
             redactionPolicy: 'contact_block_v1',
             venueSlug: resolved.venue?.slug ?? input.venueSlug ?? null,
             venueName: resolved.venue?.name ?? null,
@@ -570,6 +578,7 @@ export async function POST(request: NextRequest) {
         },
         select: {
           id: true,
+          type: true,
           subject: true,
           participantWallets: true,
           metadataJson: true,
@@ -579,6 +588,9 @@ export async function POST(request: NextRequest) {
       recipientWallets = thread.participantWallets.filter((wallet) => wallet !== senderWallet);
     }
 
+    const isSupportThread = thread.type === 'SUPPORT' || readMetadataString(thread.metadataJson, 'supportQueue') === 'ADMIN';
+    const shouldReopenSupport =
+      isSupportThread && readMetadataString(thread.metadataJson, 'supportStatus') === 'RESOLVED';
     const createdAt = new Date();
     const message = await prisma.inboxMessage.create({
       data: {
@@ -600,11 +612,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const threadUpdateData: Prisma.InboxThreadUpdateInput = {
+      lastMessageAt: createdAt,
+    };
+
+    if (shouldReopenSupport) {
+      const metadata = asMetadataRecord(thread.metadataJson);
+      metadata.supportStatus = 'OPEN';
+      metadata.supportResolvedAt = null;
+      metadata.supportReopenedAt = createdAt.toISOString();
+      metadata.supportReopenedBy = senderWallet;
+      threadUpdateData.metadataJson = metadata as Prisma.InputJsonObject;
+    }
+
     await prisma.inboxThread.update({
       where: { id: thread.id },
-      data: {
-        lastMessageAt: createdAt,
-      },
+      data: threadUpdateData,
     });
 
     const contextLabel = thread.subject || 'BaseDare inbox';
@@ -621,7 +644,6 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    const isSupportThread = input.support || readMetadataString(thread.metadataJson, 'supportQueue') === 'ADMIN';
     if (isSupportThread) {
       await alertInboxSupportMessage({
         threadId: thread.id,

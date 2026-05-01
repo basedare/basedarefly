@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
@@ -16,7 +17,23 @@ const AdminInboxReplySchema = z.object({
   body: z.string().min(1).max(1000),
 });
 
+const AdminInboxStatusSchema = z.object({
+  threadId: z.string().cuid(),
+  action: z.enum(['RESOLVE', 'REOPEN']),
+});
+
 type SupportThreadRecord = Awaited<ReturnType<typeof fetchSupportThreads>>[number];
+
+function asMetadataRecord(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
+  return { ...(metadata as Record<string, Prisma.JsonValue>) };
+}
+
+function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
 
 function walletLabel(wallet: string) {
   if (wallet === ADMIN_INBOX_SENDER) return 'BaseDare Admin';
@@ -59,6 +76,7 @@ async function fetchSupportThreads() {
       subject: true,
       participantWallets: true,
       status: true,
+      metadataJson: true,
       lastMessageAt: true,
       createdAt: true,
       updatedAt: true,
@@ -106,6 +124,8 @@ async function buildUnreadCountMap(threadIds: string[]) {
 function mapSupportThread(thread: SupportThreadRecord, unreadCount: number) {
   const requesterWallet = thread.participantWallets[0] ?? 'unknown';
   const lastMessage = thread.messages[0] ?? null;
+  const supportStatus = readMetadataString(thread.metadataJson, 'supportStatus') === 'RESOLVED' ? 'RESOLVED' : 'OPEN';
+  const supportResolvedAt = readMetadataString(thread.metadataJson, 'supportResolvedAt');
 
   return {
     id: thread.id,
@@ -113,6 +133,8 @@ function mapSupportThread(thread: SupportThreadRecord, unreadCount: number) {
     requesterWallet,
     participantWallets: thread.participantWallets,
     status: thread.status,
+    supportStatus,
+    supportResolvedAt,
     unreadCount,
     createdAt: thread.createdAt.toISOString(),
     updatedAt: thread.updatedAt.toISOString(),
@@ -201,6 +223,7 @@ export async function GET(request: NextRequest) {
             subject: true,
             participantWallets: true,
             status: true,
+            metadataJson: true,
             lastMessageAt: true,
             createdAt: true,
             updatedAt: true,
@@ -233,6 +256,113 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ADMIN_INBOX] Fetch failed:', message);
     const apiError = getInboxApiError(error, 'Failed to load admin inbox');
+    return NextResponse.json(apiError.body, { status: apiError.status });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) return unauthorizedAdminResponse(auth);
+
+  try {
+    const body = await request.json();
+    const parsed = AdminInboxStatusSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid support action' },
+        { status: 400 }
+      );
+    }
+
+    const thread = await prisma.inboxThread.findFirst({
+      where: {
+        id: parsed.data.threadId,
+        type: 'SUPPORT',
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        subject: true,
+        participantWallets: true,
+        metadataJson: true,
+      },
+    });
+
+    if (!thread) {
+      return NextResponse.json({ success: false, error: 'Support thread not found' }, { status: 404 });
+    }
+
+    const now = new Date();
+    const nextResolved = parsed.data.action === 'RESOLVE';
+    const nextStatus = nextResolved ? 'RESOLVED' : 'OPEN';
+    const currentStatus = readMetadataString(thread.metadataJson, 'supportStatus') === 'RESOLVED' ? 'RESOLVED' : 'OPEN';
+
+    if (currentStatus !== nextStatus) {
+      const metadata = asMetadataRecord(thread.metadataJson);
+      metadata.supportStatus = nextStatus;
+
+      if (nextResolved) {
+        metadata.supportResolvedAt = now.toISOString();
+        metadata.supportResolvedBy = ADMIN_INBOX_SENDER;
+      } else {
+        metadata.supportResolvedAt = null;
+        metadata.supportReopenedAt = now.toISOString();
+        metadata.supportReopenedBy = ADMIN_INBOX_SENDER;
+      }
+
+      const statusMessage = nextResolved
+        ? 'BaseDare Support marked this thread handled. Reply here if you need it reopened.'
+        : 'BaseDare Support reopened this thread.';
+
+      await prisma.$transaction([
+        prisma.inboxThread.update({
+          where: { id: thread.id },
+          data: {
+            metadataJson: metadata as Prisma.InputJsonObject,
+            lastMessageAt: now,
+          },
+        }),
+        prisma.inboxMessage.create({
+          data: {
+            threadId: thread.id,
+            senderWallet: ADMIN_INBOX_SENDER,
+            body: statusMessage,
+            readByWallets: [ADMIN_INBOX_SENDER],
+            metadataJson: {
+              supportQueue: 'ADMIN',
+              supportStatus: nextStatus,
+              adminVia: auth.via,
+            },
+          },
+        }),
+      ]);
+
+      await Promise.all(
+        thread.participantWallets.map((wallet) =>
+          createWalletNotification({
+            wallet,
+            type: 'SUPPORT_MESSAGE',
+            title: nextResolved ? 'Support Thread Handled' : 'Support Thread Reopened',
+            message: statusMessage,
+            link: `/chat?threadId=${thread.id}`,
+            pushTopic: 'wallet',
+          }).catch(() => null)
+        )
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        threadId: thread.id,
+        supportStatus: nextStatus,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[ADMIN_INBOX] Status update failed:', message);
+    const apiError = getInboxApiError(error, 'Failed to update support thread');
     return NextResponse.json(apiError.body, { status: apiError.status });
   }
 }

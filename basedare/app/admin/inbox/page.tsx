@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BellRing, Inbox, Loader2, Lock, RefreshCw, Send, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, BellRing, CheckCircle2, Inbox, Loader2, Lock, RefreshCw, RotateCcw, Send, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -15,6 +15,8 @@ type AdminSupportThread = {
   requesterWallet: string;
   participantWallets: string[];
   status: string;
+  supportStatus: 'OPEN' | 'RESOLVED';
+  supportResolvedAt: string | null;
   unreadCount: number;
   lastMessageAt: string;
   lastMessage: {
@@ -71,6 +73,7 @@ export default function AdminInboxPage() {
   const [reply, setReply] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [resolvingThreadId, setResolvingThreadId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
@@ -78,8 +81,16 @@ export default function AdminInboxPage() {
   const hasAdminAuth = Boolean(address || hasAdminSession || adminSecretTrimmed);
   const hasReadyAdminAuth = Boolean(address || hasAdminSession);
   const activeThread = payload?.activeThread ?? null;
-  const threads = payload?.threads ?? [];
+  const threads = useMemo(() => {
+    const next = [...(payload?.threads ?? [])];
+    return next.sort((a, b) => {
+      const resolvedDelta = Number(a.supportStatus === 'RESOLVED') - Number(b.supportStatus === 'RESOLVED');
+      if (resolvedDelta !== 0) return resolvedDelta;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
+  }, [payload?.threads]);
   const messages = payload?.messages ?? [];
+  const activeThreadHandled = activeThread?.supportStatus === 'RESOLVED';
 
   const adminAuthHeaders = useMemo<Record<string, string>>(() => {
     const headers: Record<string, string> = {};
@@ -201,6 +212,40 @@ export default function AdminInboxPage() {
     }
   };
 
+  const updateThreadStatus = async (threadId: string, action: 'RESOLVE' | 'REOPEN') => {
+    setResolvingThreadId(threadId);
+    setError(null);
+
+    try {
+      if (!(await ensureAdminAccess())) {
+        throw new Error('Admin session required.');
+      }
+
+      const response = await fetch('/api/admin/inbox', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...adminAuthHeaders,
+        },
+        body: JSON.stringify({
+          threadId,
+          action,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Unable to update support thread');
+      }
+
+      await loadInbox(threadId, true);
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : 'Unable to update support thread');
+    } finally {
+      setResolvingThreadId(null);
+    }
+  };
+
   const syncLabel = lastSyncedAt
     ? `Synced ${lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
     : 'Support sync ready';
@@ -316,6 +361,7 @@ export default function AdminInboxPage() {
                 <div className="space-y-2">
                   {threads.map((thread) => {
                     const active = activeThread?.id === thread.id || activeThreadId === thread.id;
+                    const handled = thread.supportStatus === 'RESOLVED';
                     return (
                       <button
                         key={thread.id}
@@ -324,6 +370,8 @@ export default function AdminInboxPage() {
                         className={`w-full rounded-[1.35rem] border p-3 text-left transition ${
                           active
                             ? 'border-emerald-300/35 bg-emerald-300/[0.09] shadow-[0_0_24px_rgba(110,231,183,0.08)]'
+                            : handled
+                              ? 'border-white/8 bg-white/[0.025] opacity-60 hover:opacity-85'
                             : 'border-white/10 bg-white/[0.035] hover:bg-white/[0.065]'
                         }`}
                       >
@@ -334,7 +382,11 @@ export default function AdminInboxPage() {
                               {shortWallet(thread.requesterWallet)}
                             </p>
                           </div>
-                          {thread.unreadCount > 0 ? (
+                          {handled ? (
+                            <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/38">
+                              Handled
+                            </span>
+                          ) : thread.unreadCount > 0 ? (
                             <span className="grid h-6 min-w-6 place-items-center rounded-full bg-red-500 px-2 text-[10px] font-black text-white">
                               {thread.unreadCount > 9 ? '9+' : thread.unreadCount}
                             </span>
@@ -359,17 +411,56 @@ export default function AdminInboxPage() {
 
           <section className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_90px_rgba(0,0,0,0.35)]">
             <div className="shrink-0 border-b border-white/8 bg-white/[0.045] p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/55">
-                {activeThread ? shortWallet(activeThread.requesterWallet) : 'No thread selected'}
-              </p>
-              <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.04em] text-white">
-                {activeThread?.subject || 'Support queue'}
-              </h2>
-              <p className="mt-1 text-xs font-bold leading-5 text-white/42">
-                {activeThread
-                  ? `Participants: ${activeThread.participantWallets.map(shortWallet).join(' / ')}`
-                  : 'Select a support thread to reply.'}
-              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/55">
+                      {activeThread ? shortWallet(activeThread.requesterWallet) : 'No thread selected'}
+                    </p>
+                    {activeThreadHandled ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/44">
+                        Handled
+                      </span>
+                    ) : null}
+                  </div>
+                  <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.04em] text-white">
+                    {activeThread?.subject || 'Support queue'}
+                  </h2>
+                  <p className="mt-1 text-xs font-bold leading-5 text-white/42">
+                    {activeThread
+                      ? `Participants: ${activeThread.participantWallets.map(shortWallet).join(' / ')}${
+                          activeThreadHandled && activeThread.supportResolvedAt
+                            ? ` / handled ${formatTime(activeThread.supportResolvedAt)}`
+                            : ''
+                        }`
+                      : 'Select a support thread to reply.'}
+                  </p>
+                </div>
+
+                {activeThread ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateThreadStatus(activeThread.id, activeThreadHandled ? 'REOPEN' : 'RESOLVE')
+                    }
+                    disabled={resolvingThreadId === activeThread.id}
+                    className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-[0.16em] transition disabled:opacity-45 ${
+                      activeThreadHandled
+                        ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/15'
+                        : 'border-emerald-300/22 bg-emerald-300/10 text-emerald-100 hover:bg-emerald-300/15'
+                    }`}
+                  >
+                    {resolvingThreadId === activeThread.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : activeThreadHandled ? (
+                      <RotateCcw className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    {activeThreadHandled ? 'Reopen' : 'Mark handled'}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4 [-webkit-overflow-scrolling:touch]">

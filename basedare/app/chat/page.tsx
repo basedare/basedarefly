@@ -89,6 +89,12 @@ function formatTime(value: string) {
   });
 }
 
+function threadCounterpartLabel(thread: InboxThread) {
+  if (thread.type === 'SUPPORT') return 'BaseDare Support';
+  const labels = thread.counterpartWallets.map(shortWallet).filter(Boolean);
+  return labels.length ? labels.join(', ') : 'BaseDare thread';
+}
+
 function initialTarget(searchParams: URLSearchParams) {
   return (
     searchParams.get('to') ||
@@ -106,6 +112,7 @@ function ChatInbox() {
   const { data: session } = useSession();
   const { signMessageAsync } = useSignMessage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const routeTarget = initialTarget(searchParams);
 
   const [payload, setPayload] = useState<InboxPayload | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(searchParams.get('threadId'));
@@ -129,6 +136,12 @@ function ChatInbox() {
   const supportMode = searchParams.get('support') === '1' || searchParams.get('mode') === 'support';
   const activeSupportThread = activeThread?.type === 'SUPPORT';
   const hasContext = Boolean(venueSlug || dareId || campaignId || supportMode);
+  const draftMode = searchParams.get('new') === '1' || Boolean(routeTarget || hasContext);
+  const canSendMessage = Boolean(
+    normalizedAddress &&
+    message.trim() &&
+    (activeThreadId || target.trim() || hasContext)
+  );
 
   const getWalletAuthHeaders = useCallback(
     async (action: string, resource: string, allowSignPrompt = false) => {
@@ -172,9 +185,20 @@ function ChatInbox() {
           throw new Error(getApiErrorMessage(data, 'Unable to load inbox'));
         }
 
+        const nextPayload = data.data as InboxPayload;
+        const keepDraftOpen = !threadId && draftMode;
+
         setNeedsAuth(false);
-        setPayload(data.data);
-        setActiveThreadId(data.data.activeThread?.id ?? threadId ?? null);
+        setPayload(
+          keepDraftOpen
+            ? {
+                ...nextPayload,
+                activeThread: null,
+                messages: [],
+              }
+            : nextPayload
+        );
+        setActiveThreadId(keepDraftOpen ? null : nextPayload.activeThread?.id ?? threadId ?? null);
         setLastSyncedAt(new Date());
       } catch (loadError) {
         if (!quiet) {
@@ -186,7 +210,7 @@ function ChatInbox() {
         }
       }
     },
-    [activeThreadId, getWalletAuthHeaders, normalizedAddress]
+    [activeThreadId, draftMode, getWalletAuthHeaders, normalizedAddress]
   );
 
   useEffect(() => {
@@ -197,6 +221,17 @@ function ChatInbox() {
 
     void loadInbox(searchParams.get('threadId'), false);
   }, [loadInbox, normalizedAddress, searchParams]);
+
+  useEffect(() => {
+    setActiveThreadId(searchParams.get('threadId'));
+
+    const nextTarget = initialTarget(searchParams);
+    if (nextTarget) setTarget(nextTarget);
+
+    if (searchParams.has('subject')) {
+      setSubject(searchParams.get('subject') || '');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -277,7 +312,8 @@ function ChatInbox() {
     setSubject('');
     setTarget('');
     setMessage('');
-    router.replace('/chat', { scroll: false });
+    setPayload((current) => current ? { ...current, activeThread: null, messages: [] } : current);
+    router.replace('/chat?new=1', { scroll: false });
   };
 
   const startSupport = () => {
@@ -285,6 +321,7 @@ function ChatInbox() {
     setTarget('');
     setSubject('BaseDare Support');
     setMessage('');
+    setPayload((current) => current ? { ...current, activeThread: null, messages: [] } : current);
     router.replace('/chat?support=1&subject=BaseDare%20Support', { scroll: false });
   };
 
@@ -299,6 +336,11 @@ function ChatInbox() {
   const syncLabel = lastSyncedAt
     ? `Synced ${lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
     : 'Live sync ready';
+  const participantLabel = activeThread
+    ? activeThread.type === 'SUPPORT'
+      ? `${shortWallet(normalizedAddress ?? '')} / BaseDare Support`
+      : activeThread.participantWallets.map(shortWallet).join(' / ')
+    : null;
 
   return (
     <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-4 py-8 text-white sm:px-6 lg:px-10">
@@ -431,7 +473,7 @@ function ChatInbox() {
                           <div className="min-w-0">
                             <p className="line-clamp-1 text-sm font-black text-white">{thread.subject}</p>
                             <p className="mt-1 line-clamp-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/34">
-                              {thread.type} · {thread.counterpartWallets.map(shortWallet).join(', ') || 'solo'}
+                              {thread.type} · {threadCounterpartLabel(thread)}
                             </p>
                           </div>
                           {thread.unreadCount > 0 ? (
@@ -469,7 +511,7 @@ function ChatInbox() {
                   </h2>
                   <p className="mt-1 text-xs font-bold leading-5 text-white/42">
                     {activeThread
-                      ? `Participants: ${activeThread.participantWallets.map(shortWallet).join(' / ')}`
+                      ? `Participants: ${participantLabel}`
                       : 'Use @creator or wallet address. Optional venue/dare/campaign context is preserved.'}
                   </p>
                 </div>
@@ -579,7 +621,12 @@ function ChatInbox() {
                   rows={2}
                   className="min-h-14 flex-1 resize-none rounded-[1.35rem] border border-white/12 bg-black/58 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_18px_rgba(0,0,0,0.7),inset_0_-1px_0_rgba(255,255,255,0.055)] focus:border-cyan-300/40 focus:shadow-[inset_0_2px_18px_rgba(0,0,0,0.66),0_0_0_1px_rgba(103,232,249,0.12)]"
                   onKeyDown={(event) => {
-                    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                    if (
+                      event.key === 'Enter' &&
+                      !event.shiftKey &&
+                      (event.metaKey || event.ctrlKey || window.innerWidth >= 768)
+                    ) {
+                      event.preventDefault();
                       void sendMessage();
                     }
                   }}
@@ -587,7 +634,7 @@ function ChatInbox() {
                 <button
                   type="button"
                   onClick={() => void sendMessage()}
-                  disabled={!normalizedAddress || sending || !message.trim()}
+                  disabled={sending || !canSendMessage}
                   className="relative inline-flex min-h-14 items-center justify-center gap-2 overflow-hidden rounded-[1.35rem] border border-cyan-300/26 bg-[linear-gradient(180deg,rgba(125,249,255,0.26)_0%,rgba(8,145,178,0.18)_48%,rgba(3,34,45,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[0_16px_34px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-12px_18px_rgba(0,0,0,0.2)] transition hover:bg-cyan-300/[0.16] active:translate-y-px active:shadow-[0_8px_18px_rgba(0,0,0,0.28),inset_0_2px_12px_rgba(0,0,0,0.24)] disabled:cursor-not-allowed disabled:opacity-45 before:pointer-events-none before:absolute before:inset-x-4 before:top-1 before:h-px before:bg-cyan-50/45"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

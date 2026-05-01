@@ -469,10 +469,21 @@
 
 .bd-mobile-modal-backdrop,
 .bd-mobile-render-stable,
+.bd-notification-panel,
 .bd-puncture-surface,
 .bd-puncture-well {
   backface-visibility: hidden;
   transform: translateZ(0);
+}
+
+.bd-notification-panel {
+  contain: layout paint style;
+  transform: translate3d(0, 0, 0);
+}
+
+.bd-notification-scroll {
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
 }
 
 @media (max-width: 767px) {
@@ -480,6 +491,24 @@
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
     isolation: isolate;
+  }
+
+  .bd-notification-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(34, 211, 238, 0.16), transparent 30%),
+      radial-gradient(circle at 88% 4%, rgba(250, 204, 21, 0.12), transparent 26%),
+      linear-gradient(180deg, rgba(18, 20, 32, 0.98) 0%, rgba(8, 9, 18, 0.98) 52%, rgba(3, 4, 10, 0.99) 100%) !important;
+    box-shadow:
+      0 18px 58px rgba(0, 0, 0, 0.68),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -18px 30px rgba(0, 0, 0, 0.34) !important;
+  }
+
+  .bd-notification-panel::before,
+  .bd-notification-panel::after {
+    transform: translateZ(0);
   }
 
   .bd-puncture-surface::before {

@@ -37,11 +37,12 @@ async function request(path, options = {}) {
   }
 }
 
-async function expectProtected(path, options = {}) {
+async function expectProtected(path, options = {}, protectedStatuses = [401, 403, 503]) {
   try {
     const { response } = await request(path, options);
-    if (response.status === 401 || response.status === 403 || response.status === 503) {
-      record('pass', `${options.method || 'GET'} ${path}`, `protected with HTTP ${response.status}`);
+    if (protectedStatuses.includes(response.status)) {
+      const detail = response.status === 405 ? 'method unavailable with HTTP 405' : `protected with HTTP ${response.status}`;
+      record('pass', `${options.method || 'GET'} ${path}`, detail);
       return;
     }
     record('block', `${options.method || 'GET'} ${path}`, `expected protected response, got HTTP ${response.status}`);
@@ -127,6 +128,9 @@ async function checkCronWithSecret() {
 console.log(`BaseDare production endpoint smoke: ${new URL(baseUrl).origin}`);
 
 await expectProtected('/api/admin/debug');
+await expectProtected('/api/admin/inbox');
+await expectProtected('/api/admin/inbox', { method: 'POST' });
+await expectProtected('/api/admin/inbox', { method: 'PATCH' }, [401, 403, 405, 503]);
 await expectProtected('/api/admin/production-safety');
 await expectProtected('/api/telegram/test');
 await expectProtected('/api/refund/expired');

@@ -247,9 +247,14 @@ export function NotificationBell() {
 
         updateDropdownPosition();
 
-        const handleReposition = () => updateDropdownPosition();
+        const handleReposition = () => {
+            if (window.innerWidth < 768) return;
+            updateDropdownPosition();
+        };
         window.addEventListener('resize', handleReposition);
-        window.addEventListener('scroll', handleReposition, true);
+        if (window.innerWidth >= 768) {
+            window.addEventListener('scroll', handleReposition, true);
+        }
 
         return () => {
             window.removeEventListener('resize', handleReposition);
@@ -268,6 +273,21 @@ export function NotificationBell() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || typeof window === 'undefined' || window.innerWidth >= 768) return;
+
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overscrollBehavior = 'contain';
+
+        return () => {
+            document.body.style.overflow = previousBodyOverflow;
+            document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+        };
     }, [isOpen]);
 
     const markAsRead = async (ids: string[]) => {
@@ -331,12 +351,12 @@ export function NotificationBell() {
                 {isOpen && (
                     <motion.div
                         ref={panelRef}
-                        initial={{ opacity: 0, y: -6, scale: 0.96, filter: 'blur(10px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -6, scale: 0.96, filter: 'blur(10px)' }}
-                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                         style={dropdownPosition ? { top: dropdownPosition.top, right: dropdownPosition.right } : undefined}
-                        className="fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[1200] isolate flex h-[calc(100dvh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(30,32,46,0.72)_0%,rgba(12,14,24,0.78)_46%,rgba(5,6,13,0.9)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-28px_42px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
+                        className="bd-notification-panel fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[1200] isolate flex h-[calc(100svh-5.25rem)] max-h-[calc(100svh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(30,32,46,0.72)_0%,rgba(12,14,24,0.78)_46%,rgba(5,6,13,0.9)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.68),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-28px_42px_rgba(0,0,0,0.28)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
                     >
                         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_-5%,rgba(255,255,255,0.2),transparent_28%),radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.22),transparent_38%),radial-gradient(circle_at_86%_10%,rgba(250,204,21,0.16),transparent_28%),radial-gradient(circle_at_80%_74%,rgba(168,85,247,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.11),transparent_34%)]" />
                         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
@@ -471,7 +491,7 @@ export function NotificationBell() {
                             </div>
                         </div>
 
-                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-auto touch-pan-y [-webkit-overflow-scrolling:touch]">
+                        <div className="bd-notification-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
                             <div className="sticky top-0 z-10 h-4 bg-gradient-to-b from-[#151521]/90 to-transparent pointer-events-none" />
 
                             {pushSupported && (
