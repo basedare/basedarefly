@@ -2159,6 +2159,13 @@ export default function AdminPage() {
                 Activation Intakes
               </Link>
               <Link
+                href="/admin/inbox"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-emerald-500/10 border border-emerald-300/35 text-emerald-100 hover:bg-emerald-400/15"
+              >
+                <Mail className="w-4 h-4 inline mr-2" />
+                Support Inbox
+              </Link>
+              <Link
                 href="/admin/venue-scout-command"
                 className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
               >

@@ -18,6 +18,7 @@ const SendMessageSchema = z.object({
   venueSlug: z.string().max(160).optional(),
   dareId: z.string().max(120).optional(),
   campaignId: z.string().cuid().optional(),
+  support: z.boolean().optional(),
   subject: z.string().max(180).optional(),
   body: z.string().min(1).max(1000),
 });
@@ -223,9 +224,20 @@ async function resolveRecipient(input: {
   venueSlug?: string;
   dareId?: string;
   campaignId?: string;
+  support?: boolean;
 }) {
   let recipientWallet = normalizeWallet(input.recipientWallet);
   let recipientTag = normalizeTag(input.recipientTag);
+
+  if (input.support) {
+    return {
+      recipientWallet: 'basedare-admin',
+      recipientTag: 'BaseDare Support',
+      venue: null,
+      dare: null,
+      campaign: null,
+    };
+  }
 
   const [venue, dare, campaign, taggedCreator] = await Promise.all([
     input.venueSlug
@@ -499,33 +511,40 @@ export async function POST(request: NextRequest) {
         venueSlug: input.venueSlug,
         dareId: input.dareId,
         campaignId: input.campaignId,
+        support: input.support,
       });
 
-      if (!resolved.recipientWallet || resolved.recipientWallet === senderWallet) {
+      if ((!resolved.recipientWallet || resolved.recipientWallet === senderWallet) && !input.support) {
         return NextResponse.json(
           { success: false, error: 'A different creator, venue owner, brand, or wallet is required.' },
           { status: 400 }
         );
       }
 
-      const participants = Array.from(new Set([senderWallet, resolved.recipientWallet])).sort();
+      const participants = input.support
+        ? [senderWallet]
+        : Array.from(new Set([senderWallet, resolved.recipientWallet].filter(Boolean) as string[])).sort();
       const subject =
         input.subject?.trim() ||
+        (input.support ? 'BaseDare Support' : null) ||
         resolved.venue?.name ||
         resolved.campaign?.title ||
         resolved.dare?.title ||
-        `BaseDare inbox with ${walletLabel(resolved.recipientWallet)}`;
+        `BaseDare inbox with ${walletLabel(resolved.recipientWallet ?? 'basedare-admin')}`;
 
       const existingThread = await prisma.inboxThread.findFirst({
         where: {
           status: 'ACTIVE',
+          type: input.support ? 'SUPPORT' : undefined,
           participantWallets: { has: senderWallet },
-          AND: [
-            { participantWallets: { has: resolved.recipientWallet } },
-            { venueId: resolved.venue?.id ?? null },
-            { dareId: resolved.dare?.id ?? null },
-            { campaignId: resolved.campaign?.id ?? null },
-          ],
+          AND: input.support
+            ? []
+            : [
+                { participantWallets: { has: resolved.recipientWallet } },
+                { venueId: resolved.venue?.id ?? null },
+                { dareId: resolved.dare?.id ?? null },
+                { campaignId: resolved.campaign?.id ?? null },
+              ],
         },
         select: {
           id: true,
@@ -539,7 +558,7 @@ export async function POST(request: NextRequest) {
 
       thread = existingThread ?? await prisma.inboxThread.create({
         data: {
-          type: resolved.venue ? 'VENUE' : resolved.campaign ? 'CAMPAIGN' : resolved.dare ? 'DARE' : 'DIRECT',
+          type: input.support ? 'SUPPORT' : resolved.venue ? 'VENUE' : resolved.campaign ? 'CAMPAIGN' : resolved.dare ? 'DARE' : 'DIRECT',
           subject,
           participantWallets: participants,
           createdByWallet: senderWallet,
@@ -548,6 +567,7 @@ export async function POST(request: NextRequest) {
           campaignId: resolved.campaign?.id ?? null,
           metadataJson: {
             recipientTag: resolved.recipientTag ?? null,
+            supportQueue: input.support ? 'ADMIN' : null,
             redactionPolicy: 'contact_block_v1',
           } satisfies Prisma.InputJsonValue,
         },

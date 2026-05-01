@@ -117,7 +117,9 @@ function ChatInbox() {
   const venueSlug = searchParams.get('venue') || searchParams.get('venueSlug') || '';
   const dareId = searchParams.get('dareId') || searchParams.get('dare') || '';
   const campaignId = searchParams.get('campaignId') || searchParams.get('campaign') || '';
-  const hasContext = Boolean(venueSlug || dareId || campaignId);
+  const supportMode = searchParams.get('support') === '1' || searchParams.get('mode') === 'support';
+  const activeSupportThread = activeThread?.type === 'SUPPORT';
+  const hasContext = Boolean(venueSlug || dareId || campaignId || supportMode);
 
   const getWalletAuthHeaders = useCallback(
     async (action: string, resource: string, allowSignPrompt = false) => {
@@ -214,7 +216,7 @@ function ChatInbox() {
     const trimmedTarget = target.trim();
     const creatingThread = !activeThreadId;
     if (creatingThread && !trimmedTarget && !hasContext) {
-      setError('Add a wallet, creator tag, venue, dare, or campaign before starting a thread.');
+      setError('Add a wallet, creator tag, venue, dare, campaign, or support mode before starting a thread.');
       return;
     }
 
@@ -238,6 +240,7 @@ function ChatInbox() {
           venueSlug: venueSlug || undefined,
           dareId: dareId || undefined,
           campaignId: campaignId || undefined,
+          support: supportMode || activeSupportThread || undefined,
           subject: subject || undefined,
           body: message,
         }),
@@ -268,12 +271,21 @@ function ChatInbox() {
     router.replace('/chat', { scroll: false });
   };
 
+  const startSupport = () => {
+    setActiveThreadId(null);
+    setTarget('');
+    setSubject('BaseDare Support');
+    setMessage('');
+    router.replace('/chat?support=1&subject=BaseDare%20Support', { scroll: false });
+  };
+
   const targetHint = useMemo(() => {
+    if (supportMode) return 'Routes straight to BaseDare admin support';
     if (venueSlug) return `Venue context: ${venueSlug}`;
     if (dareId) return `Dare context: ${dareId}`;
     if (campaignId) return `Campaign context: ${campaignId}`;
     return 'Wallet address or @creator tag';
-  }, [campaignId, dareId, venueSlug]);
+  }, [campaignId, dareId, supportMode, venueSlug]);
 
   const syncLabel = lastSyncedAt
     ? `Synced ${lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
@@ -322,6 +334,14 @@ function ChatInbox() {
               <Plus className="h-4 w-4" />
               New
             </button>
+            <button
+              type="button"
+              onClick={startSupport}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-300/24 bg-yellow-300/12 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-300/18"
+            >
+              <Shield className="h-4 w-4" />
+              Support
+            </button>
           </div>
         </div>
 
@@ -358,8 +378,9 @@ function ChatInbox() {
               <input
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
+                disabled={supportMode}
                 placeholder={targetHint}
-                className="mt-3 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/24 focus:border-cyan-300/35"
+                className="mt-3 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/24 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:text-yellow-100/60 disabled:placeholder:text-yellow-100/42"
               />
               <input
                 value={subject}
