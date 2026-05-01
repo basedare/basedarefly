@@ -107,6 +107,7 @@ function ChatInbox() {
   const [sending, setSending] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   const sessionToken = (session as WalletSession | null)?.token ?? null;
   const normalizedAddress = address?.toLowerCase() ?? null;
@@ -136,11 +137,13 @@ function ChatInbox() {
   );
 
   const loadInbox = useCallback(
-    async (threadId = activeThreadId, allowSignPrompt = false) => {
+    async (threadId = activeThreadId, allowSignPrompt = false, quiet = false) => {
       if (!normalizedAddress) return;
 
-      setLoading(true);
-      setError(null);
+      if (!quiet) {
+        setLoading(true);
+        setError(null);
+      }
 
       try {
         const headers = await getWalletAuthHeaders('inbox:read', normalizedAddress, allowSignPrompt);
@@ -161,10 +164,15 @@ function ChatInbox() {
         setNeedsAuth(false);
         setPayload(data.data);
         setActiveThreadId(data.data.activeThread?.id ?? threadId ?? null);
+        setLastSyncedAt(new Date());
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load inbox');
+        if (!quiet) {
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load inbox');
+        }
       } finally {
-        setLoading(false);
+        if (!quiet) {
+          setLoading(false);
+        }
       }
     },
     [activeThreadId, getWalletAuthHeaders, normalizedAddress]
@@ -182,6 +190,17 @@ function ChatInbox() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
+
+  useEffect(() => {
+    if (!normalizedAddress || !activeThreadId || needsAuth) return;
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || sending) return;
+      void loadInbox(activeThreadId, false, true);
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+  }, [activeThreadId, loadInbox, needsAuth, normalizedAddress, sending]);
 
   const selectThread = (threadId: string) => {
     setActiveThreadId(threadId);
@@ -256,6 +275,10 @@ function ChatInbox() {
     return 'Wallet address or @creator tag';
   }, [campaignId, dareId, venueSlug]);
 
+  const syncLabel = lastSyncedAt
+    ? `Synced ${lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+    : 'Live sync ready';
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-8 text-white sm:px-6 lg:px-10">
       <LiquidBackground />
@@ -272,12 +295,16 @@ function ChatInbox() {
               Secure <span className="text-cyan-200">handshakes</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/55">
-              Message creators, venue owners, and brands without leaking phone numbers or emails. Keep the
-              deal, venue, proof, and payout trail inside BaseDare.
+              Live message creators, venue owners, brands, and later support without leaking phone numbers
+              or emails. Keep the deal, venue, proof, and payout trail inside BaseDare.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <div className="inline-flex min-h-11 items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-300/10 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/75">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.75)]" />
+              {syncLabel}
+            </div>
             <button
               type="button"
               onClick={() => void loadInbox(activeThreadId, true)}
@@ -502,13 +529,13 @@ function ChatInbox() {
             <div className="shrink-0 border-t border-white/8 bg-black/35 p-4">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-100/70" />
-                Wallet scoped
+                Live thread
                 <span className="text-white/18">/</span>
                 <Lock className="h-3.5 w-3.5 text-cyan-100/70" />
                 Contact details blocked
                 <span className="text-white/18">/</span>
                 <BellRing className="h-3.5 w-3.5 text-yellow-100/70" />
-                Push notification on reply
+                Support-ready rail
               </div>
               <div className="flex flex-col gap-3 md:flex-row">
                 <textarea
