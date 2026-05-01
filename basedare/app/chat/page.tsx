@@ -22,7 +22,6 @@ import {
 import { isAddress } from 'viem';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
-import LiquidBackground from '@/components/LiquidBackground';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -292,8 +291,7 @@ function ChatInbox() {
     : 'Live sync ready';
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-8 text-white sm:px-6 lg:px-10">
-      <LiquidBackground />
+    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-transparent px-4 py-8 text-white sm:px-6 lg:px-10">
       <GradualBlurOverlay />
 
       <section className="relative z-10 mx-auto flex max-w-7xl flex-col gap-6">

@@ -9,7 +9,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
     Heart, TrendingUp, Target, Award, AlertCircle,
-    Star,
+    MessageCircle, Star,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -280,6 +280,7 @@ export default function CreatorProfilePage() {
 
     const displayTag = decodedTag.startsWith('@') ? decodedTag : `@${decodedTag}`;
     const plainTag = decodedTag.replace('@', '').toLowerCase();
+    const creatorInboxHref = `/chat?creator=${encodeURIComponent(displayTag)}&subject=${encodeURIComponent(`Creator bid: ${displayTag}`)}&source=creator-profile`;
     const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
     const editorAvatarImg = profileAvatarDraft?.previewUrl || avatarImg;
     const savedAvatarFrame: AvatarFrame = {
@@ -743,8 +744,25 @@ export default function CreatorProfilePage() {
                                         ))}
                                     </div>
 
+                                    <div className="mt-5 flex flex-wrap gap-2">
+                                        <Link
+                                            href={creatorInboxHref}
+                                            className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                                        >
+                                            <MessageCircle className="h-3.5 w-3.5" />
+                                            Message / bid
+                                        </Link>
+                                        <Link
+                                            href={`/create?streamer=${encodeURIComponent(displayTag)}`}
+                                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                                        >
+                                            <Zap className="h-3.5 w-3.5" />
+                                            Dare {displayTag}
+                                        </Link>
+                                    </div>
+
                                     {isOwner ? (
-                                        <div className="mt-5 flex flex-wrap gap-2">
+                                        <div className="mt-3 flex flex-wrap gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => {

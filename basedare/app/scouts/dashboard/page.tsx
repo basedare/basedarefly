@@ -464,7 +464,7 @@ export default function CreatorRadarPage() {
                           href={buildBidHref(creator)}
                           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-white/86"
                         >
-                          Put in bid
+                          Message / bid
                         </Link>
                         <Link
                           href={buildCreateHref(creator)}

@@ -1157,6 +1157,12 @@ export default async function VenueDetailPage(
                           >
                             Profile
                           </Link>
+                          <Link
+                            href={`/chat?creator=${encodeURIComponent(creator.creatorTag)}&venue=${encodeURIComponent(venue.slug)}&subject=${encodeURIComponent(`${venue.name} creator route: ${creator.creatorTag}`)}&source=venue-profile`}
+                            className="inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-2 text-sm font-semibold text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-300/34 hover:bg-cyan-500/[0.12] sm:col-span-2"
+                          >
+                            Message / bid
+                          </Link>
                         </div>
                       </div>
                     ))}
