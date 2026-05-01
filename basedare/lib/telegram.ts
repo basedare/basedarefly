@@ -469,6 +469,30 @@ Open the admin lead inbox to assign owners and set follow-ups.
   return sendMessage(message);
 }
 
+export async function alertInboxSupportMessage(data: {
+  threadId: string;
+  senderWallet: string;
+  subject?: string | null;
+  body: string;
+  redacted?: boolean;
+}): Promise<boolean> {
+  const sender = formatOwnerWallet(data.senderWallet);
+  const body = compactText(data.body, 260);
+  const redactedLine = data.redacted ? '\nContact guard: redacted blocked contact details.' : '';
+
+  const message = `
+📥 <b>BASEDARE SUPPORT INBOX</b>
+
+From: <code>${escapeHtml(sender)}</code>
+Thread: <b>${escapeHtml(data.subject || 'BaseDare Support')}</b>
+${body ? `\n${escapeHtml(body)}` : ''}${redactedLine}
+
+${htmlLink(appUrl(`/admin/inbox?threadId=${encodeURIComponent(data.threadId)}`), 'Open admin inbox')} · ${htmlLink(appUrl(`/chat?threadId=${encodeURIComponent(data.threadId)}`), 'Open user thread')}
+`.trim();
+
+  return sendMessage(message);
+}
+
 export async function alertVenueReportHighIntentEvent(data: {
   venueName: string;
   venueSlug: string;

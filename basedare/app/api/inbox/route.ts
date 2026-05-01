@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createWalletNotification } from '@/lib/notifications';
 import { getInboxApiError } from '@/lib/inbox-errors';
 import { prisma } from '@/lib/prisma';
+import { alertInboxSupportMessage } from '@/lib/telegram';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 export const dynamic = 'force-dynamic';
@@ -619,6 +620,21 @@ export async function POST(request: NextRequest) {
         }).catch(() => null)
       )
     );
+
+    const isSupportThread = input.support || readMetadataString(thread.metadataJson, 'supportQueue') === 'ADMIN';
+    if (isSupportThread) {
+      await alertInboxSupportMessage({
+        threadId: thread.id,
+        senderWallet,
+        subject: thread.subject,
+        body: sanitized.body,
+        redacted: sanitized.redacted,
+      }).catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unknown Telegram alert error';
+        console.error('[INBOX] Support alert failed:', message);
+        return false;
+      });
+    }
 
     return NextResponse.json({
       success: true,
