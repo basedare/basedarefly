@@ -22,6 +22,7 @@ import {
 import { isAddress } from 'viem';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
+import LiquidBackground from '@/components/LiquidBackground';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -300,10 +301,15 @@ function ChatInbox() {
     : 'Live sync ready';
 
   return (
-    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-transparent px-4 py-8 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-4 py-8 text-white sm:px-6 lg:px-10">
+      <LiquidBackground veilOpacity={0.78} />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_12%,rgba(168,85,247,0.08),transparent_34%),radial-gradient(circle_at_10%_18%,rgba(34,211,238,0.035),transparent_24%),linear-gradient(180deg,rgba(0,0,0,0.54)_0%,rgba(0,0,0,0.38)_34%,rgba(0,0,0,0.66)_100%)] mix-blend-normal"
+      />
       <GradualBlurOverlay />
 
-      <section className="relative z-10 mx-auto flex max-w-7xl flex-col gap-6">
+      <section className="relative z-20 mx-auto flex max-w-7xl flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/75">
