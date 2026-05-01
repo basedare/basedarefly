@@ -292,10 +292,8 @@ function ChatInbox() {
     : 'Live sync ready';
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#05060f] px-4 py-8 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-8 text-white sm:px-6 lg:px-10">
       <LiquidBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(103,232,249,0.16),transparent_34%),radial-gradient(circle_at_78%_18%,rgba(250,204,21,0.1),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.045),transparent_42%,rgba(125,92,255,0.1))]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.24),rgba(2,6,23,0.58))]" />
       <GradualBlurOverlay />
 
       <section className="relative z-10 mx-auto flex max-w-7xl flex-col gap-6">
@@ -360,7 +358,7 @@ function ChatInbox() {
         ) : null}
 
         <div className="grid min-h-[68vh] gap-5 lg:grid-cols-[23rem_1fr]">
-          <aside className="relative flex min-h-0 flex-col gap-4 overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_90px_rgba(0,0,0,0.38)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-100/35 before:to-transparent">
+          <aside className="flex min-h-0 flex-col gap-4">
             <div className="rounded-[1.5rem] border border-cyan-300/14 bg-cyan-300/[0.075] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-cyan-100/80" />
