@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellRing, Check, Smartphone, X } from 'lucide-react';
+import { Bell, BellRing, Check, MessageCircle, Smartphone, X } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSession } from 'next-auth/react';
 import { useSignMessage } from 'wagmi';
@@ -51,6 +51,29 @@ interface ActionCenterSummary {
     counts: Record<ActionCenterCategory, number>;
 }
 
+interface InboxSummaryThread {
+    id: string;
+    type: string;
+    subject: string;
+    contextLabel: string;
+    counterpartLabel: string;
+    unreadCount: number;
+    href: string;
+    lastMessageAt: string;
+    lastMessage: {
+        body: string;
+        redacted: boolean;
+        mine: boolean;
+        createdAt: string;
+    } | null;
+}
+
+interface InboxSummary {
+    unreadTotal: number;
+    threadCount: number;
+    threads: InboxSummaryThread[];
+}
+
 export function NotificationBell() {
     const { address, sessionWallet } = useActiveWallet();
     const { data: session } = useSession();
@@ -58,6 +81,7 @@ export function NotificationBell() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
+    const [inboxSummary, setInboxSummary] = useState<InboxSummary | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,7 +91,8 @@ export function NotificationBell() {
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
 
     const unreadCount = notifications.length;
-    const attentionCount = Math.max(unreadCount, actionSummary?.total ?? 0);
+    const inboxUnreadCount = inboxSummary?.unreadTotal ?? 0;
+    const attentionCount = Math.max(unreadCount + inboxUnreadCount, actionSummary?.total ?? 0);
     const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
     const primaryAction = actionItems[0] ?? null;
     const primaryNotification = notifications[0] ?? null;
@@ -163,28 +188,46 @@ export function NotificationBell() {
         }
     }, [address]);
 
+    const fetchInboxSummary = useCallback(async (allowSignPrompt = false) => {
+        if (!address) return;
+        try {
+            const headers = await getWalletAuthHeaders('inbox:read', allowSignPrompt);
+            const res = await fetch(`/api/inbox/summary?wallet=${address}`, { headers });
+            const data = await res.json();
+            if (data.success) {
+                setInboxSummary(data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch inbox summary', err);
+        }
+    }, [address, getWalletAuthHeaders]);
+
     // Polling every 30s
     useEffect(() => {
         if (address) {
             void fetchNotifications(false);
             void fetchActionCenter();
+            void fetchInboxSummary(false);
             const intervalId = setInterval(() => {
                 void fetchNotifications(false);
                 void fetchActionCenter();
+                void fetchInboxSummary(false);
             }, 30000);
             return () => clearInterval(intervalId);
         } else {
             setNotifications([]);
             setActionItems([]);
             setActionSummary(null);
+            setInboxSummary(null);
         }
-    }, [address, fetchActionCenter, fetchNotifications]);
+    }, [address, fetchActionCenter, fetchInboxSummary, fetchNotifications]);
 
     useEffect(() => {
         if (!isOpen || !address) return;
         void fetchNotifications(false);
         void fetchActionCenter();
-    }, [address, fetchActionCenter, fetchNotifications, isOpen]);
+        void fetchInboxSummary(false);
+    }, [address, fetchActionCenter, fetchInboxSummary, fetchNotifications, isOpen]);
 
     // Click outside to close
     useEffect(() => {
@@ -303,7 +346,9 @@ export function NotificationBell() {
                             <div className="min-w-0">
                                 <h3 className="font-bold text-white">Notifications</h3>
                                 <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/36">
-                                    {actionSummary?.total ? `${actionSummary.total} live actions` : 'Alerts and push settings'}
+                                    {actionSummary?.total || inboxUnreadCount
+                                        ? `${actionSummary?.total ?? 0} actions · ${inboxUnreadCount} messages`
+                                        : 'Alerts, messages, and push settings'}
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -334,13 +379,21 @@ export function NotificationBell() {
                         </div>
 
                         <div className="shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.025))] px-4 py-3">
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                                 <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.055] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
                                     <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
                                         Actions
                                     </p>
                                     <p className="mt-1 text-2xl font-black text-white">
                                         {actionSummary?.total ?? 0}
+                                    </p>
+                                </div>
+                                <div className="rounded-[1.15rem] border border-emerald-200/15 bg-emerald-300/[0.07] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/50">
+                                        Inbox
+                                    </p>
+                                    <p className="mt-1 text-2xl font-black text-white">
+                                        {inboxUnreadCount}
                                     </p>
                                 </div>
                                 <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.055] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
@@ -540,6 +593,100 @@ export function NotificationBell() {
                             )}
 
                             <SignalRoomCard className="mx-4 my-3" compact />
+
+                            <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(16,185,129,0.06),rgba(255,255,255,0.02))] px-3 py-3">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-emerald-100/80">
+                                            <MessageCircle className="h-3.5 w-3.5" />
+                                            Messenger
+                                            {inboxUnreadCount > 0 ? (
+                                                <span className="rounded-full bg-red-500 px-2 py-0.5 text-[9px] tracking-[0.08em] text-white">
+                                                    {inboxUnreadCount > 9 ? '9+' : inboxUnreadCount}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            Creator bids, collabs, venue handshakes, and support replies.
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href="/chat"
+                                        onClick={() => setIsOpen(false)}
+                                        className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-300/15"
+                                    >
+                                        Open
+                                    </Link>
+                                </div>
+
+                                {inboxSummary?.threads.length ? (
+                                    <div className="space-y-2">
+                                        {inboxSummary.threads.slice(0, 3).map((thread) => (
+                                            <Link
+                                                key={thread.id}
+                                                href={thread.href}
+                                                onClick={() => setIsOpen(false)}
+                                                className="block rounded-2xl border border-white/8 bg-black/24 px-3 py-3 transition hover:bg-white/[0.045] active:scale-[0.99]"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="truncate text-sm font-black text-white">
+                                                                {thread.subject}
+                                                            </h4>
+                                                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
+                                                                {thread.type === 'SUPPORT' ? 'Support' : thread.type.toLowerCase()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="mt-1 line-clamp-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/45">
+                                                            {thread.counterpartLabel}
+                                                        </p>
+                                                    </div>
+                                                    {thread.unreadCount > 0 ? (
+                                                        <span className="grid h-6 min-w-6 place-items-center rounded-full bg-red-500 px-2 text-[10px] font-black text-white">
+                                                            {thread.unreadCount > 9 ? '9+' : thread.unreadCount}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                {thread.lastMessage ? (
+                                                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-400">
+                                                        {thread.lastMessage.mine ? 'You: ' : ''}
+                                                        {thread.lastMessage.body}
+                                                    </p>
+                                                ) : (
+                                                    <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                                                        No messages yet.
+                                                    </p>
+                                                )}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
+                                        <p className="text-sm font-black text-white">No active chats yet.</p>
+                                        <p className="mt-1 text-xs leading-relaxed text-white/42">
+                                            Start with a creator bid, support request, or future collab thread.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <Link
+                                        href="/chat"
+                                        onClick={() => setIsOpen(false)}
+                                        className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:bg-white/[0.09] hover:text-white"
+                                    >
+                                        Open messenger
+                                    </Link>
+                                    <Link
+                                        href="/chat?support=1&subject=BaseDare%20Support"
+                                        onClick={() => setIsOpen(false)}
+                                        className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/75 transition hover:bg-yellow-300/15"
+                                    >
+                                        Start support
+                                    </Link>
+                                </div>
+                            </div>
 
                             {actionItems.length > 0 && (
                                 <div className="border-b border-white/5 bg-white/[0.025] px-3 py-3">
