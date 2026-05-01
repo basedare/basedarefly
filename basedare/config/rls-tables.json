@@ -22,6 +22,8 @@
   "Vote",
   "VoterPoints",
   "Notification",
+  "InboxThread",
+  "InboxMessage",
   "CreatorReview",
   "VenueReportEvent",
   "VenueReportLead",
