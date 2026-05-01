@@ -534,8 +534,8 @@ function ChatInbox() {
                       <div
                         className={`max-w-[85%] rounded-[1.35rem] border px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl ${
                           entry.mine
-                            ? 'border-cyan-300/24 bg-[linear-gradient(180deg,rgba(103,232,249,0.16),rgba(8,145,178,0.1)_45%,rgba(2,6,23,0.34))] text-cyan-50 shadow-[0_16px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-12px_20px_rgba(0,0,0,0.18)]'
-                            : 'border-white/13 bg-[linear-gradient(180deg,rgba(255,255,255,0.095),rgba(255,255,255,0.045)_40%,rgba(0,0,0,0.24))] text-white shadow-[0_16px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.18)]'
+                            ? 'border-yellow-200/30 bg-[linear-gradient(145deg,rgba(250,204,21,0.25)_0%,rgba(168,85,247,0.22)_42%,rgba(38,13,64,0.46)_100%)] text-yellow-50 shadow-[0_16px_38px_rgba(0,0,0,0.28),0_0_30px_rgba(168,85,247,0.12),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-12px_20px_rgba(76,29,149,0.24)]'
+                            : 'border-purple-200/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.12),rgba(255,255,255,0.045)_40%,rgba(0,0,0,0.26))] text-white shadow-[0_16px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.18)]'
                         }`}
                       >
                         <div className="mb-2 flex flex-wrap items-center gap-2">
