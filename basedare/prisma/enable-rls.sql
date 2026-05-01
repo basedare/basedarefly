@@ -49,6 +49,8 @@ ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VoterPoints"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Notification"             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "InboxThread"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "InboxMessage"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "CreatorReview"            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueReportEvent"         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueReportLead"          ENABLE ROW LEVEL SECURITY;
@@ -184,6 +186,16 @@ DROP POLICY IF EXISTS "service_role_all_Notification" ON "Notification";
 CREATE POLICY "service_role_all_Notification" ON "Notification"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- InboxThread
+DROP POLICY IF EXISTS "service_role_all_InboxThread" ON "InboxThread";
+CREATE POLICY "service_role_all_InboxThread" ON "InboxThread"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- InboxMessage
+DROP POLICY IF EXISTS "service_role_all_InboxMessage" ON "InboxMessage";
+CREATE POLICY "service_role_all_InboxMessage" ON "InboxMessage"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- CreatorReview
 DROP POLICY IF EXISTS "service_role_all_CreatorReview" ON "CreatorReview";
 CREATE POLICY "service_role_all_CreatorReview" ON "CreatorReview"
@@ -236,7 +248,7 @@ BEGIN
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
     'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
     'VenueMemory', 'VenueQrSession', 'FounderEvent', 'Comment', 'Vote', 'VoterPoints',
-    'Notification', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
+    'Notification', 'InboxThread', 'InboxMessage', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
     'AppSettings', 'WebPushSubscription', 'WebPushDelivery', '_prisma_migrations'
   ]
   LOOP

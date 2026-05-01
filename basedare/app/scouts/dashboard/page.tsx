@@ -101,12 +101,14 @@ function buildCreateHref(creator: Creator): string {
   return `/create?${params.toString()}`;
 }
 
-function buildActivationHref(creator: Creator): string {
+function buildBidHref(creator: Creator): string {
+  const creatorTag = displayCreatorTag(creator.tag);
   const params = new URLSearchParams({
-    creator: displayCreatorTag(creator.tag),
+    creator: creatorTag,
+    subject: `Creator bid: ${creatorTag}`,
     source: 'creator-radar',
   });
-  return `/activations?${params.toString()}#activation-intake`;
+  return `/chat?${params.toString()}`;
 }
 
 function creatorScore(creator: Creator): number {
@@ -459,7 +461,7 @@ export default function CreatorRadarPage() {
 
                       <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
                         <Link
-                          href={buildActivationHref(creator)}
+                          href={buildBidHref(creator)}
                           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-white/86"
                         >
                           Put in bid

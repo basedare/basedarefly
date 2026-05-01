@@ -93,6 +93,7 @@ model Dare {
   votes               Vote[]
   comments            Comment[]
   creatorReview       CreatorReview?
+  inboxThreads        InboxThread[]
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -157,6 +158,7 @@ model Venue {
   updatedAt           DateTime         @updatedAt
   dares               Dare[]
   campaigns           Campaign[]
+  inboxThreads        InboxThread[]
   checkIns            VenueCheckIn[]
   memories            VenueMemory[]
   placeTags           PlaceTag[]
@@ -481,6 +483,7 @@ model Campaign {
   venue                Venue?         @relation(fields: [venueId], references: [id])
   linkedDare           Dare?          @relation("CampaignLinkedDare", fields: [linkedDareId], references: [id])
   slots                CampaignSlot[]
+  inboxThreads         InboxThread[]
 
   @@index([type, status])
   @@index([venueId, status])
@@ -663,6 +666,48 @@ model Notification {
 
   @@index([wallet, isRead])
   @@index([createdAt])
+}
+
+model InboxThread {
+  id                 String         @id @default(cuid())
+  type               String         @default("DIRECT")
+  subject            String?
+  participantWallets String[]       @default([])
+  createdByWallet    String
+  venueId            String?
+  dareId             String?
+  campaignId         String?
+  status             String         @default("ACTIVE")
+  metadataJson       Json?
+  lastMessageAt      DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  venue              Venue?         @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  dare               Dare?          @relation(fields: [dareId], references: [id], onDelete: SetNull)
+  campaign           Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  messages           InboxMessage[]
+
+  @@index([status])
+  @@index([venueId])
+  @@index([dareId])
+  @@index([campaignId])
+  @@index([lastMessageAt])
+  @@index([updatedAt])
+}
+
+model InboxMessage {
+  id            String      @id @default(cuid())
+  threadId      String
+  senderWallet  String
+  body          String
+  redacted      Boolean     @default(false)
+  readByWallets String[]    @default([])
+  metadataJson  Json?
+  createdAt     DateTime    @default(now())
+  thread        InboxThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([senderWallet, createdAt])
 }
 
 model WebPushSubscription {
