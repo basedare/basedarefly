@@ -105,7 +105,8 @@ function buildBidHref(creator: Creator): string {
   const creatorTag = displayCreatorTag(creator.tag);
   const params = new URLSearchParams({
     creator: creatorTag,
-    subject: `Creator bid: ${creatorTag}`,
+    subject: `Creator route: ${creatorTag}`,
+    message: `Saw your Creator Radar profile on BaseDare. Are you open to a paid venue or brand activation? Send your location, availability, and strongest content style.`,
     source: 'creator-radar',
   });
   return `/chat?${params.toString()}`;

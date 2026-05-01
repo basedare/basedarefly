@@ -286,7 +286,13 @@ export default function CreatorProfilePage() {
 
     const displayTag = decodedTag.startsWith('@') ? decodedTag : `@${decodedTag}`;
     const plainTag = decodedTag.replace('@', '').toLowerCase();
-    const creatorInboxHref = `/chat?creator=${encodeURIComponent(displayTag)}&subject=${encodeURIComponent(`Creator bid: ${displayTag}`)}&source=creator-profile`;
+    const creatorInboxParams = new URLSearchParams({
+        creator: displayTag,
+        subject: `Creator route: ${displayTag}`,
+        message: `Saw your BaseDare profile. Are you open to a paid venue or brand activation? Send your location, availability, and strongest content style.`,
+        source: 'creator-profile',
+    });
+    const creatorInboxHref = `/chat?${creatorInboxParams.toString()}`;
     const avatarImg = profile?.pfpUrl || STREAMER_IMAGES[plainTag] || null;
     const editorAvatarImg = profileAvatarDraft?.previewUrl || avatarImg;
     const savedAvatarFrame: AvatarFrame = {

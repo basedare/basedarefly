@@ -105,6 +105,10 @@ function initialTarget(searchParams: URLSearchParams) {
   );
 }
 
+function initialMessage(searchParams: URLSearchParams) {
+  return searchParams.get('message') || searchParams.get('body') || '';
+}
+
 function ChatInbox() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,7 +122,7 @@ function ChatInbox() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(searchParams.get('threadId'));
   const [target, setTarget] = useState(() => initialTarget(searchParams));
   const [subject, setSubject] = useState(() => searchParams.get('subject') || '');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(() => initialMessage(searchParams));
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -230,6 +234,10 @@ function ChatInbox() {
 
     if (searchParams.has('subject')) {
       setSubject(searchParams.get('subject') || '');
+    }
+
+    if (searchParams.has('message') || searchParams.has('body')) {
+      setMessage(initialMessage(searchParams));
     }
   }, [searchParams]);
 

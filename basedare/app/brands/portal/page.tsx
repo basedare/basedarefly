@@ -5,7 +5,7 @@ import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi
 import { useSession } from 'next-auth/react';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, PlayCircle, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageSquare, PlayCircle, Users } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
@@ -386,6 +386,22 @@ function getVenueRadarClaimTone(venue: BrandVenueRadarItem) {
 
 function formatVenueRadarLocation(venue: Pick<BrandVenueRadarItem, 'city' | 'country'>) {
   return [venue.city, venue.country].filter(Boolean).join(', ') || 'Venue on the grid';
+}
+
+function buildVenueCreatorChatHref(
+  venue: BrandVenueRadarItem,
+  creator: BrandVenueRadarItem['topCreators'][number]
+) {
+  const creatorTag = creator.creatorTag.startsWith('@') ? creator.creatorTag : `@${creator.creatorTag}`;
+  const location = formatVenueRadarLocation(venue);
+  const params = new URLSearchParams({
+    creator: creatorTag,
+    venue: venue.slug,
+    subject: `Activation route: ${venue.name} x ${creatorTag}`,
+    message: `Saw you on the ${venue.name} creator shortlist in BaseDare Control. Are you open to a paid venue activation at ${venue.name} (${location})? Send your availability, content angle, and rate expectations.`,
+    source: 'brand-portal-venue-radar',
+  });
+  return `/chat?${params.toString()}`;
 }
 
 export default function BrandPortalPage() {
@@ -2147,6 +2163,13 @@ export default function BrandPortalPage() {
                                 <PlayCircle className="h-3.5 w-3.5" />
                                 Route this creator
                               </button>
+                              <Link
+                                href={buildVenueCreatorChatHref(selectedVenueRadar, creator)}
+                                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                Message
+                              </Link>
                             </div>
                           </div>
                         ))}
