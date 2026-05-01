@@ -66,10 +66,12 @@ type WalletSession = {
 };
 
 function getApiErrorMessage(data: unknown, fallback: string) {
-  const payload = data as { error?: unknown; code?: unknown } | null;
+  const payload = data as { error?: unknown; code?: unknown; detail?: unknown } | null;
   const message = typeof payload?.error === 'string' && payload.error.trim() ? payload.error.trim() : fallback;
   const code = typeof payload?.code === 'string' && payload.code.trim() ? payload.code.trim() : null;
-  return code ? `${message} (${code})` : message;
+  const detail = typeof payload?.detail === 'string' && payload.detail.trim() ? payload.detail.trim() : null;
+  const codedMessage = code ? `${message} (${code})` : message;
+  return detail ? `${codedMessage}: ${detail}` : codedMessage;
 }
 
 function shortWallet(wallet: string) {

@@ -26,6 +26,12 @@ const SendMessageSchema = z.object({
 
 type InboxThreadRecord = Awaited<ReturnType<typeof fetchThreadsForWallet>>[number];
 
+function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function normalizeWallet(value: string | null | undefined) {
   if (!value || !isAddress(value)) return null;
   return value.toLowerCase();
@@ -91,29 +97,10 @@ async function fetchThreadsForWallet(wallet: string) {
       lastMessageAt: true,
       createdAt: true,
       updatedAt: true,
-      venue: {
-        select: {
-          slug: true,
-          name: true,
-          city: true,
-          country: true,
-        },
-      },
-      dare: {
-        select: {
-          id: true,
-          shortId: true,
-          title: true,
-          status: true,
-        },
-      },
-      campaign: {
-        select: {
-          id: true,
-          title: true,
-          status: true,
-        },
-      },
+      venueId: true,
+      dareId: true,
+      campaignId: true,
+      metadataJson: true,
       messages: {
         orderBy: {
           createdAt: 'desc',
@@ -158,10 +145,15 @@ async function buildUnreadCountMap(wallet: string, threadIds: string[]) {
 function mapThread(thread: InboxThreadRecord, wallet: string, unreadCount: number) {
   const counterpartWallets = thread.participantWallets.filter((participant) => participant !== wallet);
   const lastMessage = thread.messages[0] ?? null;
+  const venueSlug = readMetadataString(thread.metadataJson, 'venueSlug');
+  const venueName = readMetadataString(thread.metadataJson, 'venueName');
+  const dareShortId = readMetadataString(thread.metadataJson, 'dareShortId');
+  const dareTitle = readMetadataString(thread.metadataJson, 'dareTitle');
+  const campaignTitle = readMetadataString(thread.metadataJson, 'campaignTitle');
   const contextLabel =
-    thread.venue?.name ||
-    thread.campaign?.title ||
-    thread.dare?.title ||
+    venueName ||
+    campaignTitle ||
+    dareTitle ||
     thread.subject ||
     counterpartWallets.map(walletLabel).join(', ') ||
     'BaseDare thread';
@@ -188,30 +180,30 @@ function mapThread(thread: InboxThreadRecord, wallet: string, unreadCount: numbe
       : null,
     context: {
       label: contextLabel,
-      venue: thread.venue
+      venue: venueSlug
         ? {
-            slug: thread.venue.slug,
-            name: thread.venue.name,
-            city: thread.venue.city,
-            country: thread.venue.country,
-            href: `/venues/${thread.venue.slug}`,
+            slug: venueSlug,
+            name: venueName ?? contextLabel,
+            city: null,
+            country: null,
+            href: `/venues/${venueSlug}`,
           }
         : null,
-      dare: thread.dare
+      dare: thread.dareId
         ? {
-            id: thread.dare.id,
-            shortId: thread.dare.shortId,
-            title: thread.dare.title,
-            status: thread.dare.status,
-            href: `/dare/${thread.dare.shortId || thread.dare.id}`,
+            id: thread.dareId,
+            shortId: dareShortId ?? null,
+            title: dareTitle ?? contextLabel,
+            status: 'ACTIVE',
+            href: `/dare/${dareShortId || thread.dareId}`,
           }
         : null,
-      campaign: thread.campaign
+      campaign: thread.campaignId
         ? {
-            id: thread.campaign.id,
-            title: thread.campaign.title,
-            status: thread.campaign.status,
-            href: `/brands/portal?campaign=${encodeURIComponent(thread.campaign.id)}`,
+            id: thread.campaignId,
+            title: campaignTitle ?? contextLabel,
+            status: 'ACTIVE',
+            href: `/brands/portal?campaign=${encodeURIComponent(thread.campaignId)}`,
           }
         : null,
     },
@@ -419,9 +411,10 @@ export async function GET(request: NextRequest) {
               lastMessageAt: true,
               createdAt: true,
               updatedAt: true,
-              venue: { select: { slug: true, name: true, city: true, country: true } },
-              dare: { select: { id: true, shortId: true, title: true, status: true } },
-              campaign: { select: { id: true, title: true, status: true } },
+              venueId: true,
+              dareId: true,
+              campaignId: true,
+              metadataJson: true,
               messages: {
                 orderBy: { createdAt: 'desc' },
                 take: 1,
@@ -496,9 +489,7 @@ export async function POST(request: NextRequest) {
             id: true,
             subject: true,
             participantWallets: true,
-            venue: { select: { name: true } },
-            dare: { select: { title: true } },
-            campaign: { select: { title: true } },
+            metadataJson: true,
           },
         })
       : null;
@@ -552,9 +543,7 @@ export async function POST(request: NextRequest) {
           id: true,
           subject: true,
           participantWallets: true,
-          venue: { select: { name: true } },
-          dare: { select: { title: true } },
-          campaign: { select: { title: true } },
+          metadataJson: true,
         },
       });
 
@@ -571,15 +560,18 @@ export async function POST(request: NextRequest) {
             recipientTag: resolved.recipientTag ?? null,
             supportQueue: input.support ? 'ADMIN' : null,
             redactionPolicy: 'contact_block_v1',
+            venueSlug: resolved.venue?.slug ?? input.venueSlug ?? null,
+            venueName: resolved.venue?.name ?? null,
+            dareShortId: resolved.dare?.shortId ?? null,
+            dareTitle: resolved.dare?.title ?? null,
+            campaignTitle: resolved.campaign?.title ?? null,
           } satisfies Prisma.InputJsonValue,
         },
         select: {
           id: true,
           subject: true,
           participantWallets: true,
-          venue: { select: { name: true } },
-          dare: { select: { title: true } },
-          campaign: { select: { title: true } },
+          metadataJson: true,
         },
       });
 
@@ -614,7 +606,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const contextLabel = thread.venue?.name || thread.campaign?.title || thread.dare?.title || thread.subject || 'BaseDare inbox';
+    const contextLabel = thread.subject || 'BaseDare inbox';
     await Promise.all(
       recipientWallets.map((wallet) =>
         createWalletNotification({

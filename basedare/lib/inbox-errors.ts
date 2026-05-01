@@ -4,6 +4,7 @@ type InboxErrorPayload = {
     success: false;
     error: string;
     code?: string;
+    detail?: string;
   };
 };
 
@@ -15,6 +16,16 @@ function getErrorCode(error: unknown) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '';
+}
+
+function getSafeDetail(message: string) {
+  const clean = message
+    .replace(/postgres(?:ql)?:\/\/[^\s'"]+/gi, '[database-url]')
+    .replace(/(password=)[^\s'"]+/gi, '$1[redacted]')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return clean ? clean.slice(0, 360) : undefined;
 }
 
 export function getInboxApiError(error: unknown, fallback: string): InboxErrorPayload {
@@ -83,6 +94,7 @@ export function getInboxApiError(error: unknown, fallback: string): InboxErrorPa
       success: false,
       error: fallback,
       code: code || 'INBOX_QUERY_FAILED',
+      detail: getSafeDetail(message),
     },
   };
 }

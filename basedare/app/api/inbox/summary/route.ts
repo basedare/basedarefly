@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { getInboxApiError } from '@/lib/inbox-errors';
 import { prisma } from '@/lib/prisma';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
+import type { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,6 +17,12 @@ function normalizeWallet(value: string | null | undefined) {
 function walletLabel(wallet: string) {
   if (wallet === 'basedare-admin') return 'BaseDare Support';
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
+function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 async function buildUnreadCountMap(wallet: string, threadIds: string[]) {
@@ -77,25 +84,7 @@ export async function GET(request: NextRequest) {
           participantWallets: true,
           lastMessageAt: true,
           updatedAt: true,
-          venue: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-          dare: {
-            select: {
-              title: true,
-              shortId: true,
-              id: true,
-            },
-          },
-          campaign: {
-            select: {
-              title: true,
-              id: true,
-            },
-          },
+          metadataJson: true,
           messages: {
             orderBy: {
               createdAt: 'desc',
@@ -133,10 +122,13 @@ export async function GET(request: NextRequest) {
     const mappedThreads = threads.map((thread) => {
       const counterpartWallets = thread.participantWallets.filter((participant) => participant !== wallet);
       const lastMessage = thread.messages[0] ?? null;
+      const venueName = readMetadataString(thread.metadataJson, 'venueName');
+      const dareTitle = readMetadataString(thread.metadataJson, 'dareTitle');
+      const campaignTitle = readMetadataString(thread.metadataJson, 'campaignTitle');
       const contextLabel =
-        thread.venue?.name ||
-        thread.campaign?.title ||
-        thread.dare?.title ||
+        venueName ||
+        campaignTitle ||
+        dareTitle ||
         thread.subject ||
         counterpartWallets.map(walletLabel).join(', ') ||
         'BaseDare thread';
