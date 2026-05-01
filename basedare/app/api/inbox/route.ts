@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { z } from 'zod';
 
 import { createWalletNotification } from '@/lib/notifications';
+import { getInboxApiError } from '@/lib/inbox-errors';
 import { prisma } from '@/lib/prisma';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
@@ -450,7 +451,8 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[INBOX] Fetch failed:', message);
-    return NextResponse.json({ success: false, error: 'Failed to load inbox' }, { status: 500 });
+    const apiError = getInboxApiError(error, 'Failed to load inbox');
+    return NextResponse.json(apiError.body, { status: apiError.status });
   }
 }
 
@@ -643,6 +645,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[INBOX] Send failed:', message);
-    return NextResponse.json({ success: false, error: 'Failed to send message' }, { status: 500 });
+    const apiError = getInboxApiError(error, 'Failed to send message');
+    return NextResponse.json(apiError.body, { status: apiError.status });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+import { getInboxApiError } from '@/lib/inbox-errors';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 
@@ -231,7 +232,8 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ADMIN_INBOX] Fetch failed:', message);
-    return NextResponse.json({ success: false, error: 'Failed to load admin inbox' }, { status: 500 });
+    const apiError = getInboxApiError(error, 'Failed to load admin inbox');
+    return NextResponse.json(apiError.body, { status: apiError.status });
   }
 }
 
@@ -333,6 +335,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ADMIN_INBOX] Reply failed:', message);
-    return NextResponse.json({ success: false, error: 'Failed to send admin reply' }, { status: 500 });
+    const apiError = getInboxApiError(error, 'Failed to send admin reply');
+    return NextResponse.json(apiError.body, { status: apiError.status });
   }
 }
