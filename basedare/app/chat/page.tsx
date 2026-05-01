@@ -357,7 +357,7 @@ function ChatInbox() {
 
         <div className="grid min-h-[68vh] gap-5 lg:grid-cols-[23rem_1fr]">
           <aside className="flex min-h-0 flex-col gap-4">
-            <div className="rounded-[1.5rem] border border-cyan-300/14 bg-cyan-300/[0.075] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="relative overflow-hidden rounded-[1.65rem] border border-cyan-200/16 bg-[linear-gradient(180deg,rgba(125,249,255,0.14)_0%,rgba(125,249,255,0.055)_42%,rgba(3,9,18,0.54)_100%)] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-16px_24px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-100/55 before:to-transparent">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-cyan-100/80" />
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/70">
@@ -369,7 +369,7 @@ function ChatInbox() {
               </p>
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/12 bg-black/28 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+            <div className="relative overflow-hidden rounded-[1.65rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_20%,rgba(4,5,12,0.55)_100%)] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.13),inset_0_-18px_24px_rgba(0,0,0,0.26)] before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/34 before:to-transparent">
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
                 Start thread
               </p>
@@ -378,19 +378,19 @@ function ChatInbox() {
                 onChange={(event) => setTarget(event.target.value)}
                 disabled={supportMode}
                 placeholder={targetHint}
-                className="mt-3 w-full rounded-2xl border border-white/12 bg-black/46 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/28 shadow-[inset_0_1px_10px_rgba(0,0,0,0.35)] focus:border-cyan-300/40 disabled:cursor-not-allowed disabled:text-yellow-100/60 disabled:placeholder:text-yellow-100/42"
+                className="mt-3 w-full rounded-2xl border border-white/12 bg-black/55 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_12px_rgba(0,0,0,0.62),inset_0_-1px_0_rgba(255,255,255,0.05)] focus:border-cyan-300/40 focus:shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(103,232,249,0.12)] disabled:cursor-not-allowed disabled:text-yellow-100/60 disabled:placeholder:text-yellow-100/42"
               />
               <input
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
                 placeholder="Subject, venue, mission, or deal"
-                className="mt-2 w-full rounded-2xl border border-white/12 bg-black/46 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/28 shadow-[inset_0_1px_10px_rgba(0,0,0,0.35)] focus:border-cyan-300/40"
+                className="mt-2 w-full rounded-2xl border border-white/12 bg-black/55 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_12px_rgba(0,0,0,0.62),inset_0_-1px_0_rgba(255,255,255,0.05)] focus:border-cyan-300/40 focus:shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(103,232,249,0.12)]"
               />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1 [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-[1.75rem] border border-white/[0.075] bg-black/18 p-2 shadow-[inset_0_2px_18px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.04)] [-webkit-overflow-scrolling:touch]">
               {threads.length === 0 ? (
-                <div className="rounded-[1.5rem] border border-white/12 bg-black/24 p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.34))] p-5 text-center shadow-[inset_0_2px_16px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <MessageSquare className="mx-auto h-8 w-8 text-white/25" />
                   <p className="mt-3 text-sm font-black text-white/70">No inbox threads yet.</p>
                   <p className="mt-1 text-xs leading-5 text-white/38">
@@ -408,8 +408,8 @@ function ChatInbox() {
                         onClick={() => selectThread(thread.id)}
                         className={`w-full rounded-[1.35rem] border p-3 text-left transition ${
                           active
-                            ? 'border-cyan-300/35 bg-cyan-300/[0.09] shadow-[0_0_24px_rgba(34,211,238,0.08)]'
-                            : 'border-white/10 bg-black/22 hover:bg-white/[0.07]'
+                            ? 'border-cyan-300/36 bg-[linear-gradient(180deg,rgba(103,232,249,0.14),rgba(6,14,24,0.48))] shadow-[0_14px_34px_rgba(0,0,0,0.24),0_0_24px_rgba(34,211,238,0.1),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.2)]'
+                            : 'border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(0,0,0,0.28))] shadow-[0_10px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-8px_14px_rgba(0,0,0,0.18)] hover:bg-white/[0.07]'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -442,8 +442,8 @@ function ChatInbox() {
             </div>
           </aside>
 
-          <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_90px_rgba(0,0,0,0.4)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/45 before:to-transparent">
-            <div className="shrink-0 border-b border-white/10 bg-black/26 p-4">
+          <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[2.15rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.032)_9%,rgba(5,7,14,0.72)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-22px_30px_rgba(0,0,0,0.24)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/55 before:to-transparent after:pointer-events-none after:absolute after:inset-x-8 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-cyan-100/14 after:to-transparent">
+            <div className="relative shrink-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.065),rgba(0,0,0,0.24))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/55">
@@ -462,7 +462,7 @@ function ChatInbox() {
                   {activeThread?.context.venue ? (
                     <Link
                       href={activeThread.context.venue.href}
-                      className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:bg-white/[0.09] hover:text-white"
+                      className="rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.035))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_20px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.09] hover:text-white"
                     >
                       Venue
                     </Link>
@@ -470,7 +470,7 @@ function ChatInbox() {
                   {activeThread?.context.dare ? (
                     <Link
                       href={activeThread.context.dare.href}
-                      className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/80 transition hover:bg-yellow-300/15"
+                      className="rounded-full border border-yellow-300/24 bg-[linear-gradient(180deg,rgba(250,204,21,0.16),rgba(250,204,21,0.055))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_20px_rgba(0,0,0,0.16)] transition hover:bg-yellow-300/15"
                     >
                       Dare
                     </Link>
@@ -478,7 +478,7 @@ function ChatInbox() {
                   {activeThread?.context.campaign ? (
                     <Link
                       href={activeThread.context.campaign.href}
-                      className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:bg-white/[0.09] hover:text-white"
+                      className="rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.035))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_20px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.09] hover:text-white"
                     >
                       Campaign
                     </Link>
@@ -487,7 +487,7 @@ function ChatInbox() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-black/18 p-4 [-webkit-overflow-scrolling:touch]">
+            <div className="m-3 min-h-0 flex-1 overflow-y-auto rounded-[1.7rem] border border-white/[0.075] bg-black/28 p-4 shadow-[inset_0_2px_26px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.045)] [-webkit-overflow-scrolling:touch]">
               {loading && !payload ? (
                 <div className="grid h-full min-h-[24rem] place-items-center">
                   <div className="text-center">
@@ -498,7 +498,7 @@ function ChatInbox() {
               ) : messages.length === 0 ? (
                 <div className="grid h-full min-h-[24rem] place-items-center">
                   <div className="max-w-md text-center">
-                    <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.4rem] border border-cyan-300/18 bg-cyan-300/10 text-cyan-100">
+                    <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.4rem] border border-cyan-300/20 bg-[linear-gradient(180deg,rgba(103,232,249,0.18),rgba(8,145,178,0.12))] text-cyan-100 shadow-[0_16px_36px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-10px_16px_rgba(0,0,0,0.22)]">
                       <Sparkles className="h-7 w-7" />
                     </div>
                     <h3 className="mt-5 text-2xl font-black tracking-[-0.04em] text-white">
@@ -519,8 +519,8 @@ function ChatInbox() {
                       <div
                         className={`max-w-[85%] rounded-[1.35rem] border px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl ${
                           entry.mine
-                            ? 'border-cyan-300/20 bg-cyan-300/[0.11] text-cyan-50'
-                            : 'border-white/12 bg-white/[0.075] text-white'
+                            ? 'border-cyan-300/24 bg-[linear-gradient(180deg,rgba(103,232,249,0.16),rgba(8,145,178,0.1)_45%,rgba(2,6,23,0.34))] text-cyan-50 shadow-[0_16px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-12px_20px_rgba(0,0,0,0.18)]'
+                            : 'border-white/13 bg-[linear-gradient(180deg,rgba(255,255,255,0.095),rgba(255,255,255,0.045)_40%,rgba(0,0,0,0.24))] text-white shadow-[0_16px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.18)]'
                         }`}
                       >
                         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -545,7 +545,7 @@ function ChatInbox() {
               )}
             </div>
 
-            <div className="shrink-0 border-t border-white/10 bg-black/32 p-4">
+            <div className="relative shrink-0 border-t border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(0,0,0,0.34))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_16px_24px_rgba(0,0,0,0.18)]">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-100/70" />
                 Live thread
@@ -562,7 +562,7 @@ function ChatInbox() {
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder={activeThread || target || hasContext ? 'Write a BaseDare message...' : 'Add a recipient or context first...'}
                   rows={2}
-                  className="min-h-14 flex-1 resize-none rounded-[1.25rem] border border-white/12 bg-black/52 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/28 shadow-[inset_0_1px_16px_rgba(0,0,0,0.44)] focus:border-cyan-300/40"
+                  className="min-h-14 flex-1 resize-none rounded-[1.35rem] border border-white/12 bg-black/58 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_18px_rgba(0,0,0,0.7),inset_0_-1px_0_rgba(255,255,255,0.055)] focus:border-cyan-300/40 focus:shadow-[inset_0_2px_18px_rgba(0,0,0,0.66),0_0_0_1px_rgba(103,232,249,0.12)]"
                   onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                       void sendMessage();
@@ -573,7 +573,7 @@ function ChatInbox() {
                   type="button"
                   onClick={() => void sendMessage()}
                   disabled={!normalizedAddress || sending || !message.trim()}
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.25rem] border border-cyan-300/24 bg-[linear-gradient(180deg,rgba(103,232,249,0.18),rgba(8,145,178,0.16))] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_32px_rgba(0,0,0,0.3)] transition hover:bg-cyan-300/[0.16] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="relative inline-flex min-h-14 items-center justify-center gap-2 overflow-hidden rounded-[1.35rem] border border-cyan-300/26 bg-[linear-gradient(180deg,rgba(125,249,255,0.26)_0%,rgba(8,145,178,0.18)_48%,rgba(3,34,45,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[0_16px_34px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-12px_18px_rgba(0,0,0,0.2)] transition hover:bg-cyan-300/[0.16] active:translate-y-px active:shadow-[0_8px_18px_rgba(0,0,0,0.28),inset_0_2px_12px_rgba(0,0,0,0.24)] disabled:cursor-not-allowed disabled:opacity-45 before:pointer-events-none before:absolute before:inset-x-4 before:top-1 before:h-px before:bg-cyan-50/45"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   Send
