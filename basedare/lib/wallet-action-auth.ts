@@ -1,4 +1,5 @@
 export const WALLET_ACTION_AUTH_WINDOW_MS = 10 * 60 * 1000;
+export const WALLET_SESSION_AUTH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 type WalletActionMessageParams = {
   walletAddress: string;
@@ -8,6 +9,15 @@ type WalletActionMessageParams = {
 };
 
 type StoredWalletActionAuth = WalletActionMessageParams & {
+  signature: string;
+};
+
+type WalletSessionMessageParams = {
+  walletAddress: string;
+  issuedAt: string;
+};
+
+type StoredWalletSessionAuth = WalletSessionMessageParams & {
   signature: string;
 };
 
@@ -39,6 +49,22 @@ export function buildWalletActionMessage({
   ].join('\n');
 }
 
+export function buildWalletSessionMessage({
+  walletAddress,
+  issuedAt,
+}: WalletSessionMessageParams): string {
+  return [
+    'BaseDare Wallet Session',
+    '',
+    'Authorize wallet-scoped BaseDare actions from this browser session.',
+    'This does not move funds or approve tokens.',
+    '',
+    `Wallet: ${walletAddress.toLowerCase()}`,
+    'Scope: inbox, notifications, profile, creator, venue, proof, push, and social actions',
+    `Issued At: ${issuedAt}`,
+  ].join('\n');
+}
+
 export function isWalletActionFresh(issuedAt: string, now = Date.now()): boolean {
   const parsed = Date.parse(issuedAt);
   if (!Number.isFinite(parsed)) return false;
@@ -46,8 +72,49 @@ export function isWalletActionFresh(issuedAt: string, now = Date.now()): boolean
   return Math.abs(now - parsed) <= WALLET_ACTION_AUTH_WINDOW_MS;
 }
 
+export function isWalletSessionFresh(issuedAt: string, now = Date.now()): boolean {
+  const parsed = Date.parse(issuedAt);
+  if (!Number.isFinite(parsed)) return false;
+
+  return Math.abs(now - parsed) <= WALLET_SESSION_AUTH_WINDOW_MS;
+}
+
 function buildStorageKey(walletAddress: string, action: string, resource: string) {
   return `basedare:wallet-action:${walletAddress.toLowerCase()}:${action}:${resource}`;
+}
+
+function buildWalletSessionStorageKey(walletAddress: string) {
+  return `basedare:wallet-session:${walletAddress.toLowerCase()}`;
+}
+
+function readStoredWalletSession(walletAddress: string): StoredWalletSessionAuth | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw =
+      window.localStorage.getItem(buildWalletSessionStorageKey(walletAddress)) ??
+      window.sessionStorage.getItem(buildWalletSessionStorageKey(walletAddress));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<StoredWalletSessionAuth>;
+    if (
+      parsed.walletAddress?.toLowerCase() !== walletAddress.toLowerCase() ||
+      !parsed.issuedAt ||
+      !parsed.signature ||
+      !isWalletSessionFresh(parsed.issuedAt)
+    ) {
+      return null;
+    }
+
+    return parsed as StoredWalletSessionAuth;
+  } catch {
+    return null;
+  }
+}
+
+function persistStoredWalletSession(payload: StoredWalletSessionAuth) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(buildWalletSessionStorageKey(payload.walletAddress), JSON.stringify(payload));
 }
 
 function readStoredAuth(walletAddress: string, action: string, resource: string): StoredWalletActionAuth | null {
@@ -103,6 +170,37 @@ export async function buildWalletActionAuthHeaders({
   if (!normalizedWallet) return headers;
 
   if (sessionToken && normalizedSessionWallet === normalizedWallet) {
+    return headers;
+  }
+
+  const cachedWalletSession = readStoredWalletSession(normalizedWallet);
+  if (cachedWalletSession) {
+    headers['x-basedare-wallet'] = normalizedWallet;
+    headers['x-basedare-wallet-session-signature'] = cachedWalletSession.signature;
+    headers['x-basedare-wallet-session-issued-at'] = cachedWalletSession.issuedAt;
+    return headers;
+  }
+
+  if (allowSignPrompt && signMessageAsync) {
+    const issuedAt = new Date().toISOString();
+    const signature = String(
+      await signMessageAsync({
+        message: buildWalletSessionMessage({
+          walletAddress: normalizedWallet,
+          issuedAt,
+        }),
+      })
+    );
+
+    persistStoredWalletSession({
+      walletAddress: normalizedWallet,
+      issuedAt,
+      signature,
+    });
+
+    headers['x-basedare-wallet'] = normalizedWallet;
+    headers['x-basedare-wallet-session-signature'] = signature;
+    headers['x-basedare-wallet-session-issued-at'] = issuedAt;
     return headers;
   }
 

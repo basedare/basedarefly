@@ -15,7 +15,9 @@ import { base, baseSepolia } from 'viem/chains';
 import { authOptions } from '@/lib/auth-options';
 import {
   buildWalletActionMessage,
+  buildWalletSessionMessage,
   isWalletActionFresh,
+  isWalletSessionFresh,
 } from '@/lib/wallet-action-auth';
 
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
@@ -123,6 +125,56 @@ async function getVerifiedWalletSignature({
   }
 }
 
+async function getVerifiedWalletSessionSignature({
+  request,
+  walletAddress,
+}: {
+  request: NextRequest;
+  walletAddress: string;
+}): Promise<string | null> {
+  const walletHeader = normalizeWallet(request.headers.get('x-basedare-wallet')?.trim());
+  const signature = request.headers.get('x-basedare-wallet-session-signature')?.trim() ?? null;
+  const issuedAt = request.headers.get('x-basedare-wallet-session-issued-at')?.trim() ?? null;
+
+  if (!walletHeader || walletHeader !== walletAddress || !signature || !issuedAt) {
+    return null;
+  }
+
+  if (!isWalletSessionFresh(issuedAt)) {
+    return null;
+  }
+
+  try {
+    const message = buildWalletSessionMessage({
+      walletAddress,
+      issuedAt,
+    });
+    const messageHash = hashMessage(message);
+    const address = walletAddress as Address;
+
+    const bytecode = await publicClient.getBytecode({ address });
+    if (bytecode && bytecode !== '0x') {
+      const result = await publicClient.readContract({
+        address,
+        abi: ERC1271_ABI,
+        functionName: 'isValidSignature',
+        args: [messageHash, signature as Hex],
+      });
+
+      return result === ERC1271_MAGIC_VALUE ? walletAddress : null;
+    }
+
+    const recovered = await recoverMessageAddress({
+      message,
+      signature: signature as Hex,
+    });
+
+    return recovered.toLowerCase() === walletAddress ? walletAddress : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getAuthorizedWalletForRequest(
   request: NextRequest,
   {
@@ -140,6 +192,15 @@ export async function getAuthorizedWalletForRequest(
 
   const sessionWallet = await getVerifiedSessionWallet(request);
   if (sessionWallet === normalizedWallet) {
+    return normalizedWallet;
+  }
+
+  const walletSession = await getVerifiedWalletSessionSignature({
+    request,
+    walletAddress: normalizedWallet,
+  });
+
+  if (walletSession === normalizedWallet) {
     return normalizedWallet;
   }
 

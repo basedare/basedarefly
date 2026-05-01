@@ -65,6 +65,13 @@ type WalletSession = {
   token?: string | null;
 };
 
+function getApiErrorMessage(data: unknown, fallback: string) {
+  const payload = data as { error?: unknown; code?: unknown } | null;
+  const message = typeof payload?.error === 'string' && payload.error.trim() ? payload.error.trim() : fallback;
+  const code = typeof payload?.code === 'string' && payload.code.trim() ? payload.code.trim() : null;
+  return code ? `${message} (${code})` : message;
+}
+
 function shortWallet(wallet: string) {
   if (!wallet) return 'unknown';
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
@@ -159,7 +166,7 @@ function ChatInbox() {
             setNeedsAuth(true);
             throw new Error('Authorize your wallet to open the inbox.');
           }
-          throw new Error(data.error || 'Unable to load inbox');
+          throw new Error(getApiErrorMessage(data, 'Unable to load inbox'));
         }
 
         setNeedsAuth(false);
@@ -247,7 +254,7 @@ function ChatInbox() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Message failed');
+        throw new Error(getApiErrorMessage(data, 'Message failed'));
       }
 
       setMessage('');

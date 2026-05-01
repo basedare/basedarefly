@@ -14,8 +14,8 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
-import { buildCreatorProfileEditMessage } from '@/lib/creator-profile-auth';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 // Streamer images from existing assets
 const STREAMER_IMAGES: Record<string, string> = {
@@ -260,7 +260,13 @@ export default function CreatorProfilePage() {
     const { address, isConnected } = useAccount();
     const { signMessageAsync } = useSignMessage();
     const { data: session } = useSession();
-    const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+    const walletSession = session as {
+        token?: string | null;
+        walletAddress?: string | null;
+        user?: { walletAddress?: string | null } | null;
+    } | null;
+    const sessionToken = walletSession?.token ?? null;
+    const sessionWallet = walletSession?.walletAddress?.toLowerCase() ?? walletSession?.user?.walletAddress?.toLowerCase() ?? null;
 
     const [profile, setProfile] = useState<CreatorProfile | null>(null);
     const [ownedTag, setOwnedTag] = useState<OwnedTag | null>(null);
@@ -477,31 +483,23 @@ export default function CreatorProfilePage() {
         profile?.identityStatus === 'REVOKED' ||
         profile?.identityStatus === 'SUSPENDED';
     const profileEditAuthMessage = normalizedConnectedWallet
-        ? 'You will confirm a wallet signature before updating your bio or profile photo.'
+        ? 'One wallet session can authorize profile edits across BaseDare without repeated handshakes.'
         : 'Connect the wallet that owns this verified creator tag to edit your bio or photo.';
 
     const getProfileEditHeaders = async (tagId: string): Promise<Record<string, string>> => {
-        if (sessionToken) {
-            return { Authorization: `Bearer ${sessionToken}` };
-        }
-
         if (!normalizedConnectedWallet) {
             throw new Error('Connect the wallet that owns this verified creator tag to edit your profile.');
         }
 
-        const issuedAt = new Date().toISOString();
-        const message = buildCreatorProfileEditMessage({
+        return buildWalletActionAuthHeaders({
             walletAddress: normalizedConnectedWallet,
-            tagId,
-            issuedAt,
+            sessionToken,
+            sessionWallet,
+            action: 'creator-profile:update',
+            resource: tagId,
+            allowSignPrompt: true,
+            signMessageAsync,
         });
-        const signature = await signMessageAsync({ message });
-
-        return {
-            'x-basedare-profile-wallet': normalizedConnectedWallet,
-            'x-basedare-profile-issued-at': issuedAt,
-            'x-basedare-profile-signature': String(signature),
-        };
     };
 
     const handleSaveProfile = async () => {

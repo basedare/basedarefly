@@ -14,6 +14,7 @@ import {
   buildCreatorProfileEditMessage,
   isCreatorProfileEditFresh,
 } from '@/lib/creator-profile-auth';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
 const activeChain = IS_MAINNET ? base : baseSepolia;
@@ -126,6 +127,17 @@ export async function getAuthorizedCreatorProfileWallet(
 ): Promise<string | null> {
   const sessionWallet = await getVerifiedSessionWallet(request);
   if (sessionWallet) return sessionWallet;
+
+  const walletActionHeader = request.headers.get('x-basedare-wallet')?.trim();
+  if (walletActionHeader && isAddress(walletActionHeader)) {
+    const walletSession = await getAuthorizedWalletForRequest(request, {
+      walletAddress: walletActionHeader,
+      action: 'creator-profile:update',
+      resource: tagId,
+    });
+
+    if (walletSession) return walletSession;
+  }
 
   return getVerifiedWalletSignature(request, tagId);
 }
