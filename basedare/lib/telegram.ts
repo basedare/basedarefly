@@ -12,10 +12,13 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
 import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/activation-brand-memory';
+import { normalizeSignalRoomChatId } from '@/lib/signal-room';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
-const TELEGRAM_SIGNAL_CHAT_ID = process.env.TELEGRAM_SIGNAL_CHAT_ID || process.env.TELEGRAM_PUBLIC_CHAT_ID;
+const TELEGRAM_SIGNAL_CHAT_ID = normalizeSignalRoomChatId(
+  process.env.TELEGRAM_SIGNAL_CHAT_ID || process.env.TELEGRAM_PUBLIC_CHAT_ID
+);
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
 const EXPLORER_URL = process.env.NEXT_PUBLIC_NETWORK === 'mainnet'

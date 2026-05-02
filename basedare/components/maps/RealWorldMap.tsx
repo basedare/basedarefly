@@ -34,6 +34,7 @@ import { useAccount } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
+import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import MapCrosshair from '@/app/map/MapCrosshair';
@@ -410,6 +411,27 @@ type CeremonyState =
     }
   | null;
 type NearbyDareFilter = 'all' | 'open' | 'sentinel' | 'high';
+type HappeningTone = 'gold' | 'cyan' | 'purple' | 'rose';
+type HappeningWindow = {
+  key: 'morning' | 'day' | 'sunset' | 'late';
+  label: string;
+  dateLabel: string;
+  prompt: string;
+};
+type MapHappening = {
+  id: string;
+  kind: 'live-dare' | 'local-event' | 'first-spark' | 'venue-memory' | 'tourist-route';
+  eyebrow: string;
+  title: string;
+  detail: string;
+  timingLabel: string;
+  distanceLabel: string | null;
+  rewardLabel: string | null;
+  actionLabel: string;
+  href: string | null;
+  place: NearbyPlace | null;
+  tone: HappeningTone;
+};
 type ClusteredNearbyMarker =
   | {
       kind: 'place';
@@ -1588,6 +1610,356 @@ function formatMapUsd(amount: number) {
   return amount.toLocaleString(undefined, {
     maximumFractionDigits: amount >= 10 ? 0 : 2,
   });
+}
+
+function getHappeningWindow(date: Date): HappeningWindow {
+  const hour = date.getHours();
+  const dateLabel = date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  if (hour >= 5 && hour < 11) {
+    return {
+      key: 'morning',
+      label: 'Morning',
+      dateLabel,
+      prompt: 'Surf checks, coffee stops, and first-light proof.',
+    };
+  }
+
+  if (hour >= 11 && hour < 17) {
+    return {
+      key: 'day',
+      label: 'Today',
+      dateLabel,
+      prompt: 'Food, beach routes, local errands, and walkable discoveries.',
+    };
+  }
+
+  if (hour >= 17 && hour < 21) {
+    return {
+      key: 'sunset',
+      label: 'Sunset',
+      dateLabel,
+      prompt: 'Golden-hour routes, boardwalks, and venues waking up.',
+    };
+  }
+
+  return {
+    key: 'late',
+    label: 'Tonight',
+    dateLabel,
+    prompt: 'Bars, music, late food, and nightlife signals.',
+  };
+}
+
+function getVenueTimeFitScore(place: NearbyPlace, windowKey: HappeningWindow['key']) {
+  const categoryText = [...place.categories, ...(place.profile?.legends.map((legend) => legend.label) ?? [])]
+    .join(' ')
+    .toLowerCase();
+
+  if (windowKey === 'morning') {
+    if (/(surf|beach|boardwalk|coffee|cafe|breakfast|wellness|yoga)/.test(categoryText)) return 24;
+  }
+
+  if (windowKey === 'day') {
+    if (/(food|restaurant|cafe|coffee|landmark|beach|surf|retail|tourism|walk)/.test(categoryText)) return 18;
+  }
+
+  if (windowKey === 'sunset') {
+    if (/(beach|surf|boardwalk|dock|water|bar|restaurant|view|sunset)/.test(categoryText)) return 26;
+  }
+
+  if (windowKey === 'late') {
+    if (/(nightlife|bar|music|club|food|restaurant|sports)/.test(categoryText)) return 28;
+  }
+
+  return 0;
+}
+
+function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
+  const categoryText = [...place.categories, ...(place.profile?.legends.map((legend) => legend.label) ?? [])]
+    .join(' ')
+    .toLowerCase();
+  const approvedCount = place.tagSummary.approvedCount;
+
+  if (place.activeDareCount > 0) {
+    return {
+      kind: 'venue-memory' as const,
+      eyebrow: 'Live venue',
+      title: `${place.activeDareCount} mission${place.activeDareCount === 1 ? '' : 's'} moving at ${place.name}`,
+      detail: 'There is already money or proof activity here. This is the clearest user path right now.',
+      actionLabel: 'View',
+      tone: 'cyan' as HappeningTone,
+    };
+  }
+
+  if (approvedCount <= 0) {
+    return {
+      kind: 'first-spark' as const,
+      eyebrow: 'First mark open',
+      title: `Be first at ${place.name}`,
+      detail: 'No verified memory is anchored yet. A tourist or local can own the first story here.',
+      actionLabel: 'Mark',
+      tone: 'purple' as HappeningTone,
+    };
+  }
+
+  if (window.key === 'morning' && /(surf|beach|coffee|cafe|boardwalk)/.test(categoryText)) {
+    return {
+      kind: 'tourist-route' as const,
+      eyebrow: 'Morning route',
+      title: `Start at ${place.name}`,
+      detail: 'Good fit for a quick condition check, coffee stop, or first-light clip.',
+      actionLabel: 'Open',
+      tone: 'cyan' as HappeningTone,
+    };
+  }
+
+  if (window.key === 'sunset' && /(beach|surf|dock|boardwalk|bar|view)/.test(categoryText)) {
+    return {
+      kind: 'tourist-route' as const,
+      eyebrow: 'Sunset move',
+      title: `${place.name} should be checked now`,
+      detail: 'This is the right kind of venue for golden-hour proof and easy tourist discovery.',
+      actionLabel: 'Open',
+      tone: 'gold' as HappeningTone,
+    };
+  }
+
+  if (window.key === 'late' && /(nightlife|bar|music|club|sports|food)/.test(categoryText)) {
+    return {
+      kind: 'tourist-route' as const,
+      eyebrow: 'Tonight',
+      title: `${place.name} has night signal`,
+      detail: 'Good candidate for “what should we do now?” traffic, creator clips, and late venue memory.',
+      actionLabel: 'Open',
+      tone: 'rose' as HappeningTone,
+    };
+  }
+
+  return {
+    kind: 'venue-memory' as const,
+    eyebrow: approvedCount > 1 ? 'Local memory' : 'First spark',
+    title: `${place.name} is worth checking`,
+    detail:
+      approvedCount > 1
+        ? `${approvedCount} verified sparks already exist here. New users can see the story and add to it.`
+        : 'One verified spark exists here. Another mark can make the venue feel alive.',
+    actionLabel: 'Open',
+    tone: approvedCount > 1 ? ('gold' as HappeningTone) : ('purple' as HappeningTone),
+  };
+}
+
+type LocalEventTemplate = {
+  id: string;
+  windows: HappeningWindow['key'][];
+  placePatterns: RegExp[];
+  eyebrow: string;
+  title: (placeName: string) => string;
+  detail: string;
+  actionLabel: string;
+  tone: HappeningTone;
+};
+
+const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
+  {
+    id: 'cloud9-surf-check',
+    windows: ['morning', 'day'],
+    placePatterns: [/cloud\s*9/i, /surf/i, /boardwalk/i, /beach/i],
+    eyebrow: 'Local event',
+    title: (placeName) => `Surf check around ${placeName}`,
+    detail:
+      'Tourists usually need local word-of-mouth for wave, lesson, and boardwalk energy. Surface it here as a simple first stop.',
+    actionLabel: 'Open spot',
+    tone: 'cyan',
+  },
+  {
+    id: 'catangnan-coffee-food',
+    windows: ['morning', 'day'],
+    placePatterns: [/cat\s*&?\s*gun/i, /catangnan/i, /coffee/i, /cafe/i, /food/i],
+    eyebrow: 'Food route',
+    title: (placeName) => `Coffee, food, and local check-in at ${placeName}`,
+    detail:
+      'A low-friction “what do we do now?” stop for tourists before beach, surf, or nightlife plans.',
+    actionLabel: 'Open spot',
+    tone: 'gold',
+  },
+  {
+    id: 'general-luna-sunset',
+    windows: ['sunset'],
+    placePatterns: [/cloud\s*9/i, /boardwalk/i, /dock/i, /hideaway/i, /beach/i, /bar/i],
+    eyebrow: 'Sunset happening',
+    title: (placeName) => `Sunset session near ${placeName}`,
+    detail:
+      'Golden-hour plans are where tourists most often ask around. This gives them a visible route instead of guessing.',
+    actionLabel: 'Open spot',
+    tone: 'gold',
+  },
+  {
+    id: 'general-luna-nightlife',
+    windows: ['late'],
+    placePatterns: [/nightlife/i, /music/i, /bar/i, /sports/i, /beach-club/i, /hideaway/i, /cat\s*&?\s*gun/i],
+    eyebrow: 'Tonight',
+    title: (placeName) => `Night signal around ${placeName}`,
+    detail:
+      'Bars, games, music, and late food should feel discoverable from the grid, not hidden in local group chats.',
+    actionLabel: 'Open spot',
+    tone: 'rose',
+  },
+];
+
+function getPlaceSearchText(place: NearbyPlace) {
+  return [
+    place.name,
+    place.description ?? '',
+    place.city ?? '',
+    place.country ?? '',
+    ...place.categories,
+    ...(place.profile?.legends.map((legend) => legend.label) ?? []),
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
+function isSiargaoAreaPlace(place: NearbyPlace) {
+  const text = getPlaceSearchText(place);
+  return (
+    text.includes('siargao') ||
+    text.includes('general luna') ||
+    text.includes('catangnan') ||
+    (place.latitude > 9.65 && place.latitude < 9.9 && place.longitude > 126.05 && place.longitude < 126.25)
+  );
+}
+
+function findBestLocalEventPlace(input: {
+  places: NearbyPlace[];
+  template: LocalEventTemplate;
+  origin: { latitude: number; longitude: number } | null;
+  excludedSlugs: Set<string>;
+}) {
+  const candidates = input.places
+    .filter((place) => !input.excludedSlugs.has(place.slug))
+    .map((place) => {
+      const text = getPlaceSearchText(place);
+      const patternScore = input.template.placePatterns.reduce(
+        (score, pattern) => score + (pattern.test(text) ? 18 : 0),
+        0
+      );
+      const distanceKm = input.origin
+        ? calculateDistance(input.origin.latitude, input.origin.longitude, place.latitude, place.longitude)
+        : null;
+      const score =
+        patternScore +
+        place.activeDareCount * 14 +
+        place.tagSummary.approvedCount * 7 +
+        place.tagSummary.heatScore -
+        (distanceKm ? Math.min(distanceKm * 3, 22) : 0);
+
+      return { place, distanceKm, score };
+    })
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0] ?? null;
+}
+
+function getLocalEventHappenings(input: {
+  places: NearbyPlace[];
+  window: HappeningWindow;
+  origin: { latitude: number; longitude: number } | null;
+  excludedSlugs: Set<string>;
+}) {
+  const isSiargaoArea = input.places.some(isSiargaoAreaPlace);
+  if (!isSiargaoArea) return [];
+
+  const usedSlugs = new Set(input.excludedSlugs);
+  const localEvents: MapHappening[] = [];
+
+  LOCAL_SIARGAO_EVENT_TEMPLATES
+    .filter((template) => template.windows.includes(input.window.key))
+    .forEach((template) => {
+      if (localEvents.length >= 2) return;
+
+      const best = findBestLocalEventPlace({
+        places: input.places,
+        template,
+        origin: input.origin,
+        excludedSlugs: usedSlugs,
+      });
+      if (!best) return;
+
+      usedSlugs.add(best.place.slug);
+      localEvents.push({
+        id: `local-event:${template.id}:${best.place.id}`,
+        kind: 'local-event',
+        eyebrow: template.eyebrow,
+        title: template.title(best.place.name),
+        detail: template.detail,
+        timingLabel: input.window.label,
+        distanceLabel:
+          best.distanceKm !== null
+            ? formatDistanceMeters(Math.round(best.distanceKm * 1000))
+            : best.place.distanceDisplay || null,
+        rewardLabel: 'Local plan',
+        actionLabel: template.actionLabel,
+        href: null,
+        place: best.place,
+        tone: template.tone,
+      });
+    });
+
+  if (localEvents.length < 2 && SIGNAL_ROOM_URL) {
+    localEvents.push({
+      id: `local-event:signal-room:${input.window.key}`,
+      kind: 'local-event',
+      eyebrow: 'Local board',
+      title: 'Ask what is actually happening now',
+      detail:
+        'Use the Signal Room for live local tips, public activations, venue signals, and quick operator routing.',
+      timingLabel: input.window.label,
+      distanceLabel: 'Siargao',
+      rewardLabel: 'Public feed',
+      actionLabel: 'Signal Room',
+      href: SIGNAL_ROOM_URL,
+      place: null,
+      tone: 'purple',
+    });
+  }
+
+  return localEvents;
+}
+
+function getHappeningToneClasses(tone: HappeningTone) {
+  switch (tone) {
+    case 'cyan':
+      return {
+        dot: 'bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]',
+        chip: 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-100',
+        action: 'border-cyan-300/22 bg-cyan-500/[0.08] text-cyan-100 hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]',
+      };
+    case 'purple':
+      return {
+        dot: 'bg-[#b87fff] shadow-[0_0_12px_rgba(184,127,255,0.45)]',
+        chip: 'border-[#b87fff]/20 bg-[#b87fff]/[0.08] text-[#edd8ff]',
+        action: 'border-[#b87fff]/22 bg-[#b87fff]/[0.08] text-[#edd8ff] hover:border-[#b87fff]/38 hover:bg-[#b87fff]/[0.14]',
+      };
+    case 'rose':
+      return {
+        dot: 'bg-rose-300 shadow-[0_0_12px_rgba(251,113,133,0.45)]',
+        chip: 'border-rose-300/18 bg-rose-500/[0.08] text-rose-100',
+        action: 'border-rose-300/22 bg-rose-500/[0.08] text-rose-100 hover:border-rose-300/38 hover:bg-rose-500/[0.14]',
+      };
+    case 'gold':
+    default:
+      return {
+        dot: 'bg-[#f5c518] shadow-[0_0_12px_rgba(245,197,24,0.45)]',
+        chip: 'border-[#f5c518]/18 bg-[#f5c518]/[0.08] text-[#f8dd72]',
+        action: 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]',
+      };
+  }
 }
 
 function getPulseLegendPalette(pulse: PulseState) {
@@ -3190,7 +3562,100 @@ export default function RealWorldMap() {
     }),
     [nearbyDaresInRange]
   );
-  const showNearbyDarePanel = nearbyDaresLoading || nearbyDares.length > 0;
+  const happeningWindow = useMemo(() => getHappeningWindow(new Date()), []);
+  const mapHappenings = useMemo<MapHappening[]>(() => {
+    const items: MapHappening[] = [];
+    const liveVenueSlugs = new Set<string>();
+    const origin = userLocation ?? viewportCenter;
+
+    nearbyDareFeed.slice(0, 3).forEach((dare) => {
+      if (dare.venueSlug) {
+        liveVenueSlugs.add(dare.venueSlug);
+      }
+
+      const place = dare.venueSlug ? nearbyPlaceBySlug.get(dare.venueSlug) ?? null : null;
+
+      items.push({
+        id: `live-dare:${dare.id}`,
+        kind: 'live-dare',
+        eyebrow: dare.isOpenBounty ? 'Open money' : 'Live mission',
+        title: dare.title,
+        detail: place
+          ? `${place.name} is active right now. Tourists can follow the proof trail instead of guessing what to do.`
+          : dare.locationLabel
+            ? `Active near ${dare.locationLabel}.`
+            : 'A live dare is moving nearby.',
+        timingLabel: happeningWindow.label,
+        distanceLabel: dare.distanceDisplay,
+        rewardLabel: `${formatMapUsd(dare.bounty)} USDC`,
+        actionLabel: 'Open Dare',
+        href: dare.shortId ? `/dare/${dare.shortId}` : '/dares',
+        place,
+        tone: dare.bounty >= 100 ? 'gold' : 'cyan',
+      });
+    });
+
+    getLocalEventHappenings({
+      places: nearbyPlaces,
+      window: happeningWindow,
+      origin,
+      excludedSlugs: liveVenueSlugs,
+    }).forEach((event) => {
+      if (items.length >= 5) return;
+      if (event.place) {
+        liveVenueSlugs.add(event.place.slug);
+      }
+      items.push(event);
+    });
+
+    const scoredPlaces = nearbyPlaces
+      .filter((place) => !liveVenueSlugs.has(place.slug))
+      .map((place) => {
+        const distanceKm = origin
+          ? calculateDistance(origin.latitude, origin.longitude, place.latitude, place.longitude)
+          : null;
+        const activityScore =
+          place.activeDareCount * 46 +
+          place.tagSummary.approvedCount * 12 +
+          place.tagSummary.heatScore +
+          getVenueTimeFitScore(place, happeningWindow.key) -
+          (distanceKm ? Math.min(distanceKm * 4, 28) : 0);
+
+        return { place, distanceKm, activityScore };
+      })
+      .sort((a, b) => b.activityScore - a.activityScore);
+
+    scoredPlaces.slice(0, 6).forEach(({ place, distanceKm }) => {
+      if (items.length >= 5) return;
+
+      const copy = getVenueHappeningCopy(place, happeningWindow);
+      items.push({
+        id: `${copy.kind}:${place.id}`,
+        kind: copy.kind,
+        eyebrow: copy.eyebrow,
+        title: copy.title,
+        detail: copy.detail,
+        timingLabel: happeningWindow.label,
+        distanceLabel:
+          distanceKm !== null
+            ? formatDistanceMeters(Math.round(distanceKm * 1000))
+            : place.distanceDisplay || null,
+        rewardLabel:
+          place.activeDareCount > 0
+            ? `${place.activeDareCount} live`
+            : place.tagSummary.approvedCount > 0
+              ? `${place.tagSummary.approvedCount} spark${place.tagSummary.approvedCount === 1 ? '' : 's'}`
+              : 'First story',
+        actionLabel: copy.actionLabel,
+        href: null,
+        place,
+        tone: copy.tone,
+      });
+    });
+
+    return items.slice(0, 5);
+  }, [happeningWindow, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  const showNearbyDarePanel = nearbyDaresLoading || mapHappenings.length > 0;
 
   const filterCounts = useMemo(() => {
     const counts: Record<PulseFilter, number> = {
@@ -4649,19 +5114,19 @@ export default function RealWorldMap() {
                   >
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Nearby Live Missions
+                        Happening Around You
                       </p>
                       <p className="mt-1 truncate text-[11px] text-white/52">
                         {nearbyDaresLoading
-                          ? 'Scanning nearby dares...'
-                          : nearbyDareFeed.length > 0
-                            ? `${nearbyDareFeed.length} live within ${nearbyDareRadiusKm}km`
-                            : `No live dares within ${nearbyDareRadiusKm}km`}
+                          ? 'Scanning the local grid...'
+                          : mapHappenings.length > 0
+                            ? `${mapHappenings.length} things · ${happeningWindow.label}`
+                            : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                        {nearbyDaresLoading ? 'scanning' : `${nearbyDareFeed.length} live`}
+                        {nearbyDaresLoading ? 'scanning' : `${mapHappenings.length} things`}
                       </div>
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
                         <ChevronUp className="h-4 w-4" />
@@ -4674,33 +5139,39 @@ export default function RealWorldMap() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Nearby Live Missions
+                        Happening Around You
                       </p>
                       <p className="mt-1 text-[11px] text-white/55">
-                        {userLocation ? 'Closest live dares around you' : 'Live dares in this map view'}
+                        {userLocation ? happeningWindow.prompt : `${happeningWindow.dateLabel} · ${happeningWindow.prompt}`}
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {nearbyDaresLoading ? 'scanning' : `${nearbyDareFeed.length} live`}
+                      {nearbyDaresLoading ? 'scanning' : `${mapHappenings.length} things`}
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <div className="flex flex-wrap gap-2">
-                      {nearbyDareFilterOptions.map((option) => (
-                        <button
-                          key={`nearby-dare-filter:${option.value}`}
-                          type="button"
-                          data-active={nearbyDareFilter === option.value}
-                          onClick={() => setNearbyDareFilter(option.value)}
-                          className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white ${option.accentClass}`}
-                        >
-                          <span>{option.label}</span>
-                          <span className="rounded-full border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] text-white/62">
-                            {option.count}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    {nearbyDareCounts.all > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {nearbyDareFilterOptions.map((option) => (
+                          <button
+                            key={`nearby-dare-filter:${option.value}`}
+                            type="button"
+                            data-active={nearbyDareFilter === option.value}
+                            onClick={() => setNearbyDareFilter(option.value)}
+                            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white ${option.accentClass}`}
+                          >
+                            <span>{option.label}</span>
+                            <span className="rounded-full border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] text-white/62">
+                              {option.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">
+                        Tourist mode · events, venues + proof openings
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => setNearbyDarePanelCollapsed((current) => !current)}
@@ -4735,71 +5206,92 @@ export default function RealWorldMap() {
                 <div className={`nearby-dare-tray-list px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
                   {nearbyDaresLoading ? (
                     <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                      Scanning nearby dares...
+                      Scanning the local grid...
                     </div>
                   ) : (
-                    nearbyDareFeed.length > 0 ? (
-                    nearbyDareFeed.map((dare) => {
-                      const matchingPlace = dare.venueSlug ? nearbyPlaceBySlug.get(dare.venueSlug) : null;
+                    mapHappenings.length > 0 ? (
+                    mapHappenings.map((happening) => {
+                      const toneClasses = getHappeningToneClasses(happening.tone);
+                      const isExternalHappeningHref = happening.href?.startsWith('http');
 
                       return (
                         <div
-                          key={`nearby-dare:${dare.id}`}
+                          key={`map-happening:${happening.id}`}
                           className="flex items-center justify-between gap-3 rounded-[18px] border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/[0.04]"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start gap-2">
-                              <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#f5c518] shadow-[0_0_12px_rgba(245,197,24,0.45)]" />
+                              <span className={`mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${toneClasses.dot}`} />
                               <div className="min-w-0">
-                                <p className="truncate text-[13px] font-semibold text-white">{dare.title}</p>
-                                <p className="mt-1 truncate text-[11px] text-white/48">
-                                  {dare.distanceDisplay}
-                                  {dare.locationLabel ? ` · ${dare.locationLabel}` : ''}
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
+                                  {happening.eyebrow}
+                                </p>
+                                <p className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-white">
+                                  {happening.title}
+                                </p>
+                                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-white/48">
+                                  {happening.detail}
                                 </p>
                               </div>
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-2 pl-[18px]">
-                              <div className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72]">
-                                {dare.bounty} USDC
+                              <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${toneClasses.chip}`}>
+                                {happening.timingLabel}
                               </div>
-                              {dare.streamerHandle ? (
+                              {happening.distanceLabel ? (
                                 <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/62">
-                                  {dare.streamerHandle}
+                                  {happening.distanceLabel}
                                 </div>
-                              ) : (
-                                <div className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
-                                  Open
+                              ) : null}
+                              {happening.rewardLabel ? (
+                                <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/62">
+                                  {happening.rewardLabel}
                                 </div>
-                              )}
-                              <SentinelBadge
-                                requireSentinel={dare.requireSentinel}
-                                sentinelVerified={dare.sentinelVerified}
-                              />
+                              ) : null}
                             </div>
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-2">
-                            {matchingPlace ? (
+                            {happening.place ? (
                               <button
                                 type="button"
-                                onClick={() => focusExistingPlace(matchingPlace)}
+                                onClick={() => focusExistingPlace(happening.place!)}
                                 className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
                               >
                                 Venue
                               </button>
                             ) : null}
-                            <Link
-                              href={dare.shortId ? `/dare/${dare.shortId}` : '/dares'}
-                              className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/34 hover:bg-[#f5c518]/[0.14]"
-                            >
-                              Open
-                            </Link>
+                            {happening.href && isExternalHappeningHref ? (
+                              <a
+                                href={happening.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                              >
+                                {happening.actionLabel}
+                              </a>
+                            ) : happening.href ? (
+                              <Link
+                                href={happening.href}
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                              >
+                                {happening.actionLabel}
+                              </Link>
+                            ) : happening.place ? (
+                              <button
+                                type="button"
+                                onClick={() => focusExistingPlace(happening.place!)}
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                              >
+                                {happening.actionLabel}
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       );
                     })
                     ) : (
                       <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                        No nearby dares match this filter in {nearbyDareRadiusKm}km
+                        No happenings surfaced in {nearbyDareRadiusKm}km yet. Move the map or drop the first mark.
                       </div>
                     )
                   )}
@@ -4807,10 +5299,10 @@ export default function RealWorldMap() {
                 ) : (
                   <div className="px-4 py-3 text-[11px] text-white/48">
                     {nearbyDaresLoading
-                      ? 'Scanning nearby dares...'
-                      : nearbyDareFeed.length > 0
-                        ? `${nearbyDareFeed[0].title}`
-                        : `No nearby dares match this filter in ${nearbyDareRadiusKm}km`}
+                      ? 'Scanning the local grid...'
+                      : mapHappenings.length > 0
+                        ? `${mapHappenings[0].title}`
+                        : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
                   </div>
                 )}
                 </>

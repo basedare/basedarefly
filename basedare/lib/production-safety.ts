@@ -9,6 +9,7 @@ import { isAddress } from 'viem';
 import rlsTables from '@/config/rls-tables.json';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { prisma } from '@/lib/prisma';
+import { SIGNAL_ROOM_CHAT_ID, SIGNAL_ROOM_URL_FALLBACK } from '@/lib/signal-room';
 
 export type ProductionSafetySeverity = 'pass' | 'warn' | 'block';
 
@@ -1122,22 +1123,18 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     detailWhenMissing: 'TELEGRAM_ADMIN_CHAT_ID is missing, so ops alerts degrade to logs.',
     nextAction: 'Set TELEGRAM_ADMIN_CHAT_ID for the admin alert channel.',
   });
-  const hasSignalRoomUrl = hasEnv('NEXT_PUBLIC_TELEGRAM_SIGNAL_URL') || hasEnv('NEXT_PUBLIC_TELEGRAM_COMMUNITY_URL');
-  const hasSignalRoomChat = hasEnv('TELEGRAM_SIGNAL_CHAT_ID') || hasEnv('TELEGRAM_PUBLIC_CHAT_ID');
+  const hasSignalRoomUrlOverride =
+    hasEnv('NEXT_PUBLIC_TELEGRAM_SIGNAL_URL') || hasEnv('NEXT_PUBLIC_TELEGRAM_COMMUNITY_URL');
+  const hasSignalRoomChatOverride = hasEnv('TELEGRAM_SIGNAL_CHAT_ID') || hasEnv('TELEGRAM_PUBLIC_CHAT_ID');
   checks.push({
     id: 'env.telegram-signal-room',
     label: 'Telegram Signal Room',
-    severity: hasSignalRoomUrl && hasSignalRoomChat ? 'pass' : 'warn',
-    detail:
-      hasSignalRoomUrl && hasSignalRoomChat
-        ? 'Public Signal Room URL and broadcast chat are configured.'
-        : `Signal URL ${hasSignalRoomUrl ? 'configured' : 'missing'}; broadcast chat ${
-            hasSignalRoomChat ? 'configured' : 'missing'
-          }.`,
-    nextAction:
-      hasSignalRoomUrl && hasSignalRoomChat
-        ? undefined
-        : 'Set NEXT_PUBLIC_TELEGRAM_SIGNAL_URL and TELEGRAM_SIGNAL_CHAT_ID to enable public community CTAs and safe broadcasts.',
+    severity: 'pass',
+    detail: `Public Signal Room uses ${
+      hasSignalRoomUrlOverride ? 'the configured URL override' : `the default ${SIGNAL_ROOM_URL_FALLBACK}`
+    }; broadcasts use ${
+      hasSignalRoomChatOverride ? 'the configured chat override' : `the default ${SIGNAL_ROOM_CHAT_ID}`
+    }.`,
   });
 
   const hasVapidPublicKey = hasEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY') || hasEnv('VAPID_PUBLIC_KEY');
