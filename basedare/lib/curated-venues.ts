@@ -18,6 +18,45 @@ type CuratedVenue = {
 
 export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
   {
+    slug: 'hideaway',
+    name: 'Hideaway',
+    description:
+      'Boardwalk bar energy right by the island hopping dock in General Luna.',
+    address: 'Boardwalk, General Luna, 8419 Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.78134,
+    longitude: 126.15625,
+    timezone: 'Asia/Manila',
+    categories: ['nightlife', 'boardwalk', 'dock', 'bar', 'siargao', 'general-luna'],
+  },
+  {
+    slug: 'siargao-beach-club',
+    name: 'Siargao Beach Club',
+    description:
+      'Nightlife and beach-club pilot venue for BaseDare venue-memory and QR-console testing in General Luna.',
+    address: 'Tourism Road, Purok 3, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.78578,
+    longitude: 126.16048,
+    timezone: 'Asia/Manila',
+    categories: ['nightlife', 'music', 'beach-club', 'bar', 'siargao', 'general-luna'],
+  },
+  {
+    slug: 'cloud-9-boardwalk',
+    name: 'Cloud 9 Boardwalk',
+    description:
+      'Iconic surf-side walkway and a clean first-mark target for Siargao.',
+    address: 'Cloud 9, Catangnan, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.81288,
+    longitude: 126.15935,
+    timezone: 'Asia/Manila',
+    categories: ['surf', 'boardwalk', 'iconic', 'beach', 'siargao', 'catangnan'],
+  },
+  {
     slug: 'the-cat-and-gun',
     name: 'The Cat & Gun',
     description:
@@ -39,6 +78,9 @@ const SIARGAO_QUERY_TOKENS = [
   'siargao',
   'general luna',
   'surigao',
+  'hideaway',
+  'cloud 9',
+  'beach club',
 ];
 
 export function getCuratedVenueSlugsForQuery(query: string) {
@@ -68,21 +110,30 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
   const selectedVenues = CURATED_SIARGAO_VENUES.filter((venue) => uniqueSlugs.includes(venue.slug));
   if (selectedVenues.length === 0) return;
 
-  const existing = await prisma.venue.findMany({
-    where: { slug: { in: selectedVenues.map((venue) => venue.slug) } },
-    select: { slug: true },
-  });
-  const existingSlugs = new Set(existing.map((venue) => venue.slug));
-  const missing = selectedVenues.filter((venue) => !existingSlugs.has(venue.slug));
-
-  if (missing.length === 0) return;
-
   await Promise.all(
-    missing.map((venue) =>
+    selectedVenues.map((venue) =>
       prisma.venue.upsert({
         where: { slug: venue.slug },
         update: {
           name: venue.name,
+          description: venue.description,
+          address: venue.address,
+          city: venue.city,
+          country: venue.country,
+          latitude: venue.latitude,
+          longitude: venue.longitude,
+          geohash: encodeGeohash(venue.latitude, venue.longitude, 6),
+          timezone: venue.timezone,
+          categories: venue.categories,
+          placeSource: 'BASEDARE_CURATED',
+          externalPlaceId: `curated:${venue.slug}`,
+          checkInRadiusMeters: 120,
+          metadataJson: {
+            curated: true,
+            curatedSet: 'siargao-v2',
+            coordinatePolicy: 'Pinned to venue or street-side land anchor for clearer map routing.',
+            activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
+          },
         },
         create: {
           slug: venue.slug,
@@ -101,8 +152,9 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v1',
-            activationAngle: 'Food, coffee, sports-bar, and island hangout missions.',
+            curatedSet: 'siargao-v2',
+            coordinatePolicy: 'Pinned to venue or street-side land anchor for clearer map routing.',
+            activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
           },
         },
       })

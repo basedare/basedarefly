@@ -854,24 +854,47 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
 
       if (layer.type === 'fill') {
         if (layerId.includes('water')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#05070d' : '#071224');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.72 : 0.86);
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#05070d' : '#052638');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.78 : 0.96);
+          map.setPaintProperty(layer.id, 'fill-outline-color', muted ? '#10131a' : 'rgba(103,232,249,0.22)');
           return;
         }
 
         if (layerId.includes('park') || layerId.includes('landcover') || layerId.includes('wood')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#070908' : '#07120f');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.38 : 0.48);
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#080a09' : '#0d1b16');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.42 : 0.62);
           return;
         }
 
-        map.setPaintProperty(layer.id, 'fill-color', muted ? '#08090f' : '#0a0d18');
-        map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.52 : 0.68);
+        if (
+          layerId.includes('landuse') ||
+          layerId.includes('residential') ||
+          layerId.includes('commercial') ||
+          layerId.includes('industrial')
+        ) {
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#090a10' : '#101526');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.82);
+          return;
+        }
+
+        map.setPaintProperty(layer.id, 'fill-color', muted ? '#08090f' : '#0d1221');
+        map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.56 : 0.76);
       }
 
       if (layer.type === 'line') {
-        const roadColor = muted ? '#2a2d38' : '#273150';
-        const arterialColor = muted ? '#393b45' : '#4c3d71';
+        if (
+          layerId.includes('water') ||
+          layerId.includes('river') ||
+          layerId.includes('stream') ||
+          layerId.includes('canal')
+        ) {
+          map.setPaintProperty(layer.id, 'line-color', muted ? '#1f2937' : '#38bdf8');
+          map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.34 : 0.42);
+          return;
+        }
+
+        const roadColor = muted ? '#2a2d38' : '#33405f';
+        const arterialColor = muted ? '#393b45' : '#6d5aa6';
         map.setPaintProperty(
           layer.id,
           'line-color',
@@ -879,7 +902,7 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
             ? arterialColor
             : roadColor
         );
-        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.46 : 0.58);
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.46 : 0.68);
       }
 
       if (layer.type === 'symbol') {
@@ -942,9 +965,9 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
               ['linear'],
               ['zoom'],
               13,
-              preset === 'noir' ? '#11131a' : '#16162a',
+              preset === 'noir' ? '#11131a' : '#1a1d34',
               16,
-              preset === 'noir' ? '#272936' : '#31234f',
+              preset === 'noir' ? '#272936' : '#3a315c',
             ],
             'fill-extrusion-height': [
               'interpolate',
@@ -7727,7 +7750,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map {
-          --tile-filter: brightness(0.34) saturate(0.72) contrast(1.22) hue-rotate(14deg) sepia(0.16);
+          --tile-filter: brightness(0.46) saturate(0.92) contrast(1.18) hue-rotate(12deg) sepia(0.12);
           --preset-atmosphere:
             radial-gradient(ellipse 45% 38% at 24% 18%, rgba(245, 197, 24, 0.1) 0%, transparent 58%),
             radial-gradient(ellipse 34% 40% at 78% 72%, rgba(184, 127, 255, 0.08) 0%, transparent 62%),
@@ -7912,7 +7935,7 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
-          filter: brightness(0.66) saturate(1.28) contrast(1.24) hue-rotate(16deg);
+          filter: brightness(0.78) saturate(1.32) contrast(1.18) hue-rotate(14deg);
           outline: none;
         }
 
@@ -7922,8 +7945,8 @@ export default function RealWorldMap() {
 
         .maplibre-depth-vignette {
           background:
-            radial-gradient(ellipse 80% 62% at 50% 36%, transparent 0%, rgba(2, 4, 10, 0.08) 56%, rgba(0, 0, 0, 0.54) 100%),
-            linear-gradient(180deg, rgba(7, 4, 20, 0.18) 0%, transparent 22%, rgba(0, 0, 0, 0.2) 100%);
+            radial-gradient(ellipse 80% 62% at 50% 36%, transparent 0%, rgba(2, 4, 10, 0.06) 56%, rgba(0, 0, 0, 0.46) 100%),
+            linear-gradient(180deg, rgba(7, 4, 20, 0.13) 0%, transparent 22%, rgba(0, 0, 0, 0.16) 100%);
         }
 
         .basedare-maplibre-map :global(.maplibregl-marker) {
