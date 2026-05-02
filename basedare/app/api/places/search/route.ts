@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isValidCoordinates } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
+import { ensureCuratedVenueRecords, getCuratedVenueSlugsForQuery } from '@/lib/curated-venues';
 
 export const runtime = 'nodejs';
 
@@ -71,6 +72,8 @@ function normalizeResult(result: NominatimResult) {
 }
 
 async function searchKnownPlaces(query: string) {
+  await ensureCuratedVenueRecords(getCuratedVenueSlugsForQuery(query));
+
   const normalizedSlugQuery = query.toLowerCase().replace(/\s+/g, '-');
   const tokens = query
     .split(/\s+/)

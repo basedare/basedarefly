@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl, {
   type GeoJSONSource,
@@ -144,6 +144,24 @@ type SearchResponse = {
   success: boolean;
   data?: {
     results: SearchResult[];
+  };
+};
+
+type ResolvePlaceResponse = {
+  success: boolean;
+  error?: string;
+  data?: {
+    created: boolean;
+    place: {
+      id: string;
+      slug: string;
+      name: string;
+      address: string | null;
+      city: string | null;
+      country: string | null;
+      latitude: number;
+      longitude: number;
+    };
   };
 };
 
@@ -383,6 +401,7 @@ type MapPreset = 'classic' | 'noir';
 type MapVenueFocus = 'all' | 'live' | 'matched' | 'footprint';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type VenueCommandCardTone = 'gold' | 'cyan' | 'purple';
+type SelectedCommandAction = 'fund' | 'venue';
 type CeremonyState =
   | {
       kind: 'pending' | 'first-spark' | 'alive-upgrade';
@@ -1848,6 +1867,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
 
 export default function RealWorldMap() {
   const { address, isConnected } = useAccount();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -1887,6 +1907,7 @@ export default function RealWorldMap() {
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
+  const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const isImmersiveMobile = false;
@@ -3429,6 +3450,116 @@ export default function RealWorldMap() {
           source: 'map',
         })
       : null;
+  const resolveSelectedPlaceForCommand = useCallback(async () => {
+    if (!selectedPlace) {
+      throw new Error('No place selected');
+    }
+
+    if (selectedPlace.placeId && selectedPlace.slug) {
+      return {
+        id: selectedPlace.placeId,
+        slug: selectedPlace.slug,
+        name: selectedPlace.name,
+        address: selectedPlace.address ?? null,
+        city: selectedPlace.city ?? null,
+        country: selectedPlace.country ?? null,
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+      };
+    }
+
+    const response = await fetch('/api/places/resolve-or-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: selectedPlace.name,
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+        address: selectedPlace.address ?? null,
+        city: selectedPlace.city ?? null,
+        country: selectedPlace.country ?? null,
+        placeSource: selectedPlace.placeSource ?? null,
+        externalPlaceId: selectedPlace.externalPlaceId ?? null,
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as ResolvePlaceResponse | null;
+    if (!response.ok || !payload?.success || !payload.data?.place) {
+      throw new Error(payload?.error || 'Failed to route this place into BaseDare');
+    }
+
+    const resolvedPlace = payload.data.place;
+    setSelectedPlace((current) =>
+      current
+        ? {
+            ...current,
+            placeId: resolvedPlace.id,
+            slug: resolvedPlace.slug,
+            name: resolvedPlace.name,
+            address: resolvedPlace.address ?? current.address ?? null,
+            city: resolvedPlace.city ?? current.city ?? null,
+            country: resolvedPlace.country ?? current.country ?? null,
+            latitude: resolvedPlace.latitude,
+            longitude: resolvedPlace.longitude,
+          }
+        : current
+    );
+    setTargetCenter([resolvedPlace.latitude, resolvedPlace.longitude]);
+    setTargetZoom(15);
+
+    return resolvedPlace;
+  }, [selectedPlace]);
+
+  const handleSelectedCommandAction = useCallback(
+    async (action: SelectedCommandAction) => {
+      if (!selectedPlace || pendingCommandAction) return;
+
+      triggerHaptic('selection');
+      setPendingCommandAction(action);
+
+      try {
+        if (action === 'fund' && selectedFundDareHref) {
+          router.push(selectedFundDareHref);
+          return;
+        }
+
+        if (action === 'venue' && selectedVenueHref) {
+          router.push(selectedVenueHref);
+          return;
+        }
+
+        const resolvedPlace = await resolveSelectedPlaceForCommand();
+        const href =
+          action === 'fund'
+            ? buildVenueChallengeCreateHref({
+                venueId: resolvedPlace.id,
+                venueSlug: resolvedPlace.slug,
+                venueName: resolvedPlace.name,
+                source: 'map',
+              })
+            : `/venues/${resolvedPlace.slug}`;
+
+        router.push(href);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to route this place yet.';
+        setCeremonyState({
+          kind: 'pending',
+          title: 'Route failed',
+          body: message,
+        });
+      } finally {
+        setPendingCommandAction(null);
+      }
+    },
+    [
+      pendingCommandAction,
+      resolveSelectedPlaceForCommand,
+      router,
+      selectedFundDareHref,
+      selectedPlace,
+      selectedVenueHref,
+    ]
+  );
   const showSelectedVisualBadge = !firstMarkState;
   const selectedPulseMeaning = useMemo(
     () =>
@@ -3499,6 +3630,7 @@ export default function RealWorldMap() {
         tone: 'gold' as const,
         href: liveDareHref,
         actionLabel: liveDareHref ? 'Open brief' : null,
+        resolveAction: null as SelectedCommandAction | null,
       };
     }
 
@@ -3508,7 +3640,8 @@ export default function RealWorldMap() {
         detail: 'Mark it or fund the first challenge.',
         tone: 'purple' as const,
         href: selectedVenueHref,
-        actionLabel: selectedVenueHref ? 'Open venue' : null,
+        actionLabel: selectedVenueHref ? 'Open venue' : 'Open',
+        resolveAction: selectedVenueHref ? null : 'venue' as SelectedCommandAction,
       };
     }
 
@@ -3527,6 +3660,7 @@ export default function RealWorldMap() {
       tone: 'cyan' as const,
       href: commandHref,
       actionLabel: selectedCommandCenter ? 'Open' : 'Open venue',
+      resolveAction: commandHref ? null : 'venue' as SelectedCommandAction,
     };
   }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
   const selectedVenueCommandCards = useMemo(() => {
@@ -3565,7 +3699,8 @@ export default function RealWorldMap() {
             ? `${selectedPlaceActiveDares.length} active`
             : 'first activation',
         href: rewardHref,
-        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund dare' : null,
+        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund dare' : 'Fund',
+        resolveAction: rewardHref ? null : 'fund' as SelectedCommandAction,
         tone: 'gold' as VenueCommandCardTone,
       },
       {
@@ -3580,7 +3715,8 @@ export default function RealWorldMap() {
               ? getLastSparkLabel(selectedPlace.lastTaggedAt)
               : 'unclaimed story',
         href: selectedVenueHref,
-        actionLabel: selectedVenueHref ? 'Open memory' : null,
+        actionLabel: selectedVenueHref ? 'Open memory' : 'Open',
+        resolveAction: selectedVenueHref ? null : 'venue' as SelectedCommandAction,
         tone: 'cyan' as VenueCommandCardTone,
       },
       {
@@ -3605,7 +3741,8 @@ export default function RealWorldMap() {
           matchActive && selectedPlaceMatch?.dareShortId
             ? `/dare/${selectedPlaceMatch.dareShortId}`
             : selectedVenueHref,
-        actionLabel: matchActive ? 'Open match' : selectedVenueHref ? 'Open venue' : null,
+        actionLabel: matchActive ? 'Open match' : selectedVenueHref ? 'Open venue' : 'Open',
+        resolveAction: matchActive || selectedVenueHref ? null : 'venue' as SelectedCommandAction,
         tone: 'purple' as VenueCommandCardTone,
       },
     ];
@@ -4063,6 +4200,21 @@ export default function RealWorldMap() {
                 <ArrowLeft className="h-3 w-3 rotate-180" />
               </span>
             </Link>
+          </div>
+        ) : selectedPrimaryAction.resolveAction && selectedPrimaryAction.actionLabel ? (
+          <div className="map-command-strip-action-row">
+            <button
+              type="button"
+              onClick={() => void handleSelectedCommandAction(selectedPrimaryAction.resolveAction!)}
+              disabled={pendingCommandAction === selectedPrimaryAction.resolveAction}
+              className={`map-command-strip-jelly-button map-command-strip-jelly-button--${selectedPrimaryAction.tone}`}
+              aria-label={`${selectedPrimaryAction.actionLabel} for ${selectedPlace?.name ?? 'this venue'}`}
+            >
+              <span className="map-command-strip-jelly-label">
+                {pendingCommandAction === selectedPrimaryAction.resolveAction ? 'Routing' : selectedPrimaryAction.actionLabel}
+                <ArrowLeft className="h-3 w-3 rotate-180" />
+              </span>
+            </button>
           </div>
         ) : null}
       </div>
@@ -4918,7 +5070,7 @@ export default function RealWorldMap() {
                         <h4>Pick the next move</h4>
                       </div>
                       <span>
-                        {selectedVenueCommandCards.filter((card) => card.href).length} actions
+                        {selectedVenueCommandCards.filter((card) => card.href || card.resolveAction).length} actions
                       </span>
                     </div>
 
@@ -4928,7 +5080,8 @@ export default function RealWorldMap() {
 
                     <div className="map-command-actions">
                       {selectedVenueCommandCards.map((card) => {
-                        const actionTitle = card.actionLabel ?? card.value;
+                        const isResolving = Boolean(card.resolveAction && pendingCommandAction === card.resolveAction);
+                        const actionTitle = isResolving ? 'Routing' : card.actionLabel ?? card.value;
                         const rowTitle =
                           card.id === 'reward' && card.value === 'Fund' ? 'First challenge slot' : card.value;
                         const cardContent = (
@@ -4952,7 +5105,7 @@ export default function RealWorldMap() {
                           </>
                         );
                         const className = `map-command-action map-command-action--${card.tone} ${
-                          card.href ? 'map-command-action--clickable' : 'map-command-action--static'
+                          card.href || card.resolveAction ? 'map-command-action--clickable' : 'map-command-action--static'
                         }`;
 
                         return card.href ? (
@@ -4964,6 +5117,17 @@ export default function RealWorldMap() {
                           >
                             {cardContent}
                           </Link>
+                        ) : card.resolveAction ? (
+                          <button
+                            key={`venue-command-${card.id}`}
+                            type="button"
+                            onClick={() => void handleSelectedCommandAction(card.resolveAction!)}
+                            disabled={Boolean(pendingCommandAction)}
+                            className={className}
+                            aria-label={`${card.actionLabel ?? card.value} ${card.eyebrow} for ${selectedPlace.name}`}
+                          >
+                            {cardContent}
+                          </button>
                         ) : (
                           <div key={`venue-command-${card.id}`} className={className}>
                             {cardContent}
@@ -6341,6 +6505,7 @@ export default function RealWorldMap() {
         }
 
         .map-command-strip-jelly-button {
+          appearance: none;
           position: relative;
           isolation: isolate;
           z-index: 1;
@@ -6455,6 +6620,17 @@ export default function RealWorldMap() {
           white-space: nowrap;
         }
 
+        button.map-command-strip-jelly-button {
+          cursor: pointer;
+          font: inherit;
+        }
+
+        button.map-command-strip-jelly-button:disabled {
+          cursor: wait;
+          filter: saturate(0.82);
+          opacity: 0.76;
+        }
+
         .map-command-strip-orb span {
           height: 1.1rem;
           width: 1.1rem;
@@ -6564,9 +6740,11 @@ export default function RealWorldMap() {
         }
 
         .map-command-action {
+          appearance: none;
           position: relative;
           isolation: isolate;
           display: grid;
+          width: 100%;
           grid-template-columns: auto minmax(0, 1fr) auto;
           align-items: center;
           gap: 0.68rem;
@@ -6578,6 +6756,8 @@ export default function RealWorldMap() {
             linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(4, 6, 13, 0.92));
           padding: 0.72rem;
           color: white;
+          font: inherit;
+          text-align: left;
           text-decoration: none;
           box-shadow:
             0 12px 26px rgba(0, 0, 0, 0.18),
@@ -6602,6 +6782,12 @@ export default function RealWorldMap() {
 
         .map-command-action--clickable {
           cursor: pointer;
+        }
+
+        button.map-command-action:disabled {
+          cursor: wait;
+          filter: saturate(0.78);
+          opacity: 0.78;
         }
 
         .map-command-action--static {
@@ -6629,7 +6815,8 @@ export default function RealWorldMap() {
             linear-gradient(180deg, rgba(184, 127, 255, 0.075), rgba(5, 6, 13, 0.94));
         }
 
-        a.map-command-action:hover {
+        a.map-command-action:hover,
+        button.map-command-action:hover:not(:disabled) {
           transform: translateY(-1px);
           border-color: rgba(255, 255, 255, 0.2);
           filter: saturate(1.08);
@@ -6639,7 +6826,8 @@ export default function RealWorldMap() {
             inset 0 -12px 18px rgba(0, 0, 0, 0.18);
         }
 
-        a.map-command-action:focus-visible {
+        a.map-command-action:focus-visible,
+        button.map-command-action:focus-visible {
           outline: 2px solid rgba(245, 197, 24, 0.72);
           outline-offset: 3px;
         }

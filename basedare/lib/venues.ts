@@ -19,6 +19,7 @@ import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import { buildVenueProfile } from '@/lib/venue-profile';
+import { ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
 import type {
   VenueActivationInsight,
   VenueRoiSnapshot,
@@ -1250,6 +1251,8 @@ export async function getNearbyVenues(input: {
   if (!isValidCoordinates(lat, lng)) {
     throw new Error('Invalid coordinates');
   }
+
+  await ensureCuratedVenueRecords(getCuratedVenueSlugsNear({ lat, lng, radiusMeters }));
 
   const precision = radiusMeters > 5000 ? 5 : 6;
   const queryGeohash = encodeGeohash(lat, lng, precision);
