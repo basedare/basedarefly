@@ -2159,6 +2159,13 @@ export default function AdminPage() {
                 Activation Intakes
               </Link>
               <Link
+                href="/admin/local-signals"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
+              >
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Local Signals
+              </Link>
+              <Link
                 href="/admin/inbox"
                 className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-emerald-500/10 border border-emerald-300/35 text-emerald-100 hover:bg-emerald-400/15"
               >

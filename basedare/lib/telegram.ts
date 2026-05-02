@@ -12,6 +12,7 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
 import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/activation-brand-memory';
+import type { LocalSignalItem } from '@/lib/local-signals';
 import { normalizeSignalRoomChatId } from '@/lib/signal-room';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -241,6 +242,77 @@ export async function alertSignalRoomDare(data: {
     '',
     htmlLink(appUrl(`/dare/${encodeURIComponent(data.shortId)}`), 'Open the dare'),
   ].join('\n');
+
+  return sendMessageToChat(TELEGRAM_SIGNAL_CHAT_ID, message);
+}
+
+export async function alertLocalSignalSubmission(data: {
+  signalId: string;
+  title: string;
+  category: string;
+  venueName?: string | null;
+  city?: string | null;
+  startsAt?: string | null;
+  notes?: string | null;
+  submittedBy?: string | null;
+}): Promise<boolean> {
+  const startsAt = data.startsAt ? new Date(data.startsAt) : null;
+  const startsLabel =
+    startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt.toLocaleString('en-AU', { timeZone: 'Asia/Manila' }) : '';
+  const context = [
+    `Category: ${escapeHtml(data.category)}`,
+    data.venueName ? `Place: ${escapeHtml(data.venueName)}` : null,
+    data.city ? `City: ${escapeHtml(data.city)}` : null,
+    startsLabel ? `When: ${escapeHtml(startsLabel)} PHT` : null,
+    data.submittedBy ? `From: ${escapeHtml(compactText(data.submittedBy, 80))}` : null,
+  ].filter(Boolean);
+
+  const message = `
+📍 <b>LOCAL SIGNAL SUBMITTED</b>
+
+<b>${escapeHtml(compactText(data.title, 140))}</b>
+${context.join('\n')}
+${data.notes ? `\nNote: ${escapeHtml(compactText(data.notes, 260))}` : ''}
+Signal: <code>${escapeHtml(data.signalId)}</code>
+
+${htmlLink(appUrl(`/admin/local-signals?signalId=${encodeURIComponent(data.signalId)}`), 'Review local signal')} · ${htmlLink(appUrl('/map'), 'Open map')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertSignalRoomLocalSignal(signal: LocalSignalItem): Promise<boolean> {
+  if (!TELEGRAM_SIGNAL_CHAT_ID) {
+    return false;
+  }
+
+  const startsAt = signal.startsAt ? new Date(signal.startsAt) : null;
+  const startsLabel =
+    startsAt && !Number.isNaN(startsAt.getTime())
+      ? startsAt.toLocaleString('en-AU', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: 'Asia/Manila',
+        })
+      : 'Now / check locally';
+  const placeLine = [signal.venueName, signal.city].filter(Boolean).join(' · ');
+
+  const message = [
+    '📡 <b>LOCAL SIGNAL</b>',
+    '',
+    `<b>${escapeHtml(compactText(signal.title, 140))}</b>`,
+    `🕒 ${escapeHtml(startsLabel)} PHT`,
+    `🏷 ${escapeHtml(signal.category)}`,
+    placeLine ? `📍 ${escapeHtml(compactText(placeLine, 100))}` : null,
+    signal.notes ? `\n${escapeHtml(compactText(signal.notes, 260))}` : null,
+    '',
+    htmlLink(appUrl('/map'), 'Open BaseDare map'),
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return sendMessageToChat(TELEGRAM_SIGNAL_CHAT_ID, message);
 }

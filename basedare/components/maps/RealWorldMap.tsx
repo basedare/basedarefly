@@ -191,6 +191,55 @@ type NearbyDaresResponse = {
   };
 };
 
+type LocalSignal = {
+  id: string;
+  title: string;
+  status: 'NEW' | 'APPROVED' | 'REJECTED';
+  category: string;
+  venueName: string;
+  city: string;
+  notes: string;
+  sourceUrl: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distanceKm: number | null;
+  distanceDisplay: string | null;
+  submittedBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type LocalSignalsResponse = {
+  success: boolean;
+  data?: {
+    signals: LocalSignal[];
+    count: number;
+  };
+};
+
+type LocalSignalDraft = {
+  title: string;
+  category: string;
+  venueName: string;
+  city: string;
+  startsAt: string;
+  notes: string;
+};
+
+const LOCAL_SIGNAL_CATEGORIES = [
+  'surf',
+  'food',
+  'music',
+  'nightlife',
+  'market',
+  'wellness',
+  'tour',
+  'community',
+  'other',
+] as const;
+
 type FootprintMark = {
   id: string;
   creatorTag: string | null;
@@ -1932,6 +1981,25 @@ function getLocalEventHappenings(input: {
   return localEvents;
 }
 
+function formatSignalTimingLabel(signal: LocalSignal, fallback: string) {
+  if (!signal.startsAt) return fallback;
+  const date = new Date(signal.startsAt);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getLocalSignalTone(category: string): HappeningTone {
+  if (/(surf|wellness|tour)/i.test(category)) return 'cyan';
+  if (/(food|market)/i.test(category)) return 'gold';
+  if (/(music|nightlife)/i.test(category)) return 'rose';
+  return 'purple';
+}
+
 function getHappeningToneClasses(tone: HappeningTone) {
   switch (tone) {
     case 'cyan':
@@ -2274,7 +2342,9 @@ export default function RealWorldMap() {
   const [searching, setSearching] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
+  const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
   const [nearbyDaresLoading, setNearbyDaresLoading] = useState(false);
+  const [localSignalsLoading, setLocalSignalsLoading] = useState(false);
   const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [locating, setLocating] = useState(false);
@@ -2302,6 +2372,17 @@ export default function RealWorldMap() {
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
+  const [showLocalSignalForm, setShowLocalSignalForm] = useState(false);
+  const [localSignalDraft, setLocalSignalDraft] = useState<LocalSignalDraft>({
+    title: '',
+    category: 'other',
+    venueName: '',
+    city: '',
+    startsAt: '',
+    notes: '',
+  });
+  const [localSignalSubmitting, setLocalSignalSubmitting] = useState(false);
+  const [localSignalSubmitState, setLocalSignalSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -2320,6 +2401,7 @@ export default function RealWorldMap() {
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
   const nearbyFetchIdRef = useRef(0);
   const nearbyDareFetchIdRef = useRef(0);
+  const localSignalFetchIdRef = useRef(0);
   const lastPushLocationSyncRef = useRef<{
     latitude: number;
     longitude: number;
@@ -2755,6 +2837,101 @@ export default function RealWorldMap() {
     }
   }, [nearbyDareRadiusKm]);
 
+  const fetchLocalSignals = useCallback(async (latitude: number, longitude: number) => {
+    const requestId = ++localSignalFetchIdRef.current;
+    try {
+      setLocalSignalsLoading(true);
+      const url = new URL('/api/local-signals', window.location.origin);
+      url.searchParams.set('lat', String(latitude));
+      url.searchParams.set('lng', String(longitude));
+      url.searchParams.set('radiusKm', String(Math.max(nearbyDareRadiusKm, 12)));
+      url.searchParams.set('limit', '8');
+
+      const response = await fetch(url.toString());
+      const payload = (await response.json()) as LocalSignalsResponse;
+
+      if (!response.ok || !payload.success || !payload.data?.signals) {
+        throw new Error('Failed to load local signals');
+      }
+
+      if (requestId === localSignalFetchIdRef.current) {
+        setLocalSignals(payload.data.signals);
+      }
+    } catch (error) {
+      console.error('[REAL_WORLD_MAP] Local signals failed:', error);
+      if (requestId === localSignalFetchIdRef.current) {
+        setLocalSignals([]);
+      }
+    } finally {
+      if (requestId === localSignalFetchIdRef.current) {
+        setLocalSignalsLoading(false);
+      }
+    }
+  }, [nearbyDareRadiusKm]);
+
+  const submitLocalSignal = useCallback(async () => {
+    const title = localSignalDraft.title.trim();
+    if (title.length < 3) {
+      setLocalSignalSubmitState({ type: 'error', message: 'Add a short title for what is happening.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    const source = userLocation ?? viewportCenter;
+    setLocalSignalSubmitting(true);
+    setLocalSignalSubmitState(null);
+
+    try {
+      const startsAt = localSignalDraft.startsAt
+        ? new Date(localSignalDraft.startsAt).toISOString()
+        : '';
+      const response = await fetch('/api/local-signals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          category: localSignalDraft.category,
+          venueName: localSignalDraft.venueName.trim(),
+          city: localSignalDraft.city.trim(),
+          startsAt,
+          notes: localSignalDraft.notes.trim(),
+          latitude: source?.latitude ?? null,
+          longitude: source?.longitude ?? null,
+          submittedBy: address || '',
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to submit local signal');
+      }
+
+      setLocalSignalDraft({
+        title: '',
+        category: 'other',
+        venueName: '',
+        city: '',
+        startsAt: '',
+        notes: '',
+      });
+      setLocalSignalSubmitState({
+        type: 'success',
+        message: 'Signal submitted for review. Approved tips will appear on the map.',
+      });
+      triggerHaptic('success');
+    } catch (error) {
+      setLocalSignalSubmitState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to submit local signal',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setLocalSignalSubmitting(false);
+    }
+  }, [address, localSignalDraft, userLocation, viewportCenter]);
+
   useEffect(() => {
     const source = userLocation ?? viewportCenter;
     if (!source) {
@@ -2762,7 +2939,8 @@ export default function RealWorldMap() {
     }
 
     void fetchNearbyDares(source.latitude, source.longitude, mapZoom);
-  }, [fetchNearbyDares, mapZoom, userLocation, viewportCenter]);
+    void fetchLocalSignals(source.latitude, source.longitude);
+  }, [fetchLocalSignals, fetchNearbyDares, mapZoom, userLocation, viewportCenter]);
 
   useEffect(() => {
     if (!address || !userLocation || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -3595,6 +3773,29 @@ export default function RealWorldMap() {
       });
     });
 
+    localSignals.slice(0, 3).forEach((signal) => {
+      if (items.length >= 5) return;
+
+      items.push({
+        id: `approved-signal:${signal.id}`,
+        kind: 'local-event',
+        eyebrow: 'Local signal',
+        title: signal.title,
+        detail:
+          signal.notes ||
+          (signal.venueName
+            ? `${signal.venueName}${signal.city ? ` · ${signal.city}` : ''}`
+            : 'A reviewed local happening from the BaseDare Signal Room.'),
+        timingLabel: formatSignalTimingLabel(signal, happeningWindow.label),
+        distanceLabel: signal.distanceDisplay,
+        rewardLabel: signal.category,
+        actionLabel: signal.sourceUrl ? 'Source' : 'Signal Room',
+        href: signal.sourceUrl || SIGNAL_ROOM_URL,
+        place: null,
+        tone: getLocalSignalTone(signal.category),
+      });
+    });
+
     getLocalEventHappenings({
       places: nearbyPlaces,
       window: happeningWindow,
@@ -3654,8 +3855,9 @@ export default function RealWorldMap() {
     });
 
     return items.slice(0, 5);
-  }, [happeningWindow, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
-  const showNearbyDarePanel = nearbyDaresLoading || mapHappenings.length > 0;
+  }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  const happeningLoading = nearbyDaresLoading || localSignalsLoading;
+  const showNearbyDarePanel = happeningLoading || mapHappenings.length > 0;
 
   const filterCounts = useMemo(() => {
     const counts: Record<PulseFilter, number> = {
@@ -5117,7 +5319,7 @@ export default function RealWorldMap() {
                         Happening Around You
                       </p>
                       <p className="mt-1 truncate text-[11px] text-white/52">
-                        {nearbyDaresLoading
+                        {happeningLoading
                           ? 'Scanning the local grid...'
                           : mapHappenings.length > 0
                             ? `${mapHappenings.length} things · ${happeningWindow.label}`
@@ -5126,7 +5328,7 @@ export default function RealWorldMap() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                        {nearbyDaresLoading ? 'scanning' : `${mapHappenings.length} things`}
+                        {happeningLoading ? 'scanning' : `${mapHappenings.length} things`}
                       </div>
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
                         <ChevronUp className="h-4 w-4" />
@@ -5146,7 +5348,7 @@ export default function RealWorldMap() {
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {nearbyDaresLoading ? 'scanning' : `${mapHappenings.length} things`}
+                      {happeningLoading ? 'scanning' : `${mapHappenings.length} things`}
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -5172,18 +5374,31 @@ export default function RealWorldMap() {
                         Tourist mode · events, venues + proof openings
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setNearbyDarePanelCollapsed((current) => !current)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:border-white/16 hover:text-white"
-                      aria-label={nearbyDarePanelCollapsed ? 'Expand nearby dare panel' : 'Collapse nearby dare panel'}
-                    >
-                      {nearbyDarePanelCollapsed ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowLocalSignalForm((current) => !current);
+                          setNearbyDarePanelCollapsed(false);
+                          triggerHaptic('selection');
+                        }}
+                        className="inline-flex min-h-8 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/78 transition hover:border-cyan-200/34 hover:text-cyan-50"
+                      >
+                        {showLocalSignalForm ? 'Close' : 'Drop signal'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNearbyDarePanelCollapsed((current) => !current)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:border-white/16 hover:text-white"
+                        aria-label={nearbyDarePanelCollapsed ? 'Expand nearby dare panel' : 'Collapse nearby dare panel'}
+                      >
+                        {nearbyDarePanelCollapsed ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
@@ -5204,7 +5419,111 @@ export default function RealWorldMap() {
                 </div>
                 {!nearbyDarePanelCollapsed ? (
                 <div className={`nearby-dare-tray-list px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
-                  {nearbyDaresLoading ? (
+                  {showLocalSignalForm ? (
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void submitLocalSignal();
+                      }}
+                      className="mb-2 rounded-[22px] border border-cyan-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(5,8,16,0.94)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_14px_28px_rgba(0,0,0,0.24)]"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100/62">
+                            Local intel
+                          </p>
+                          <p className="mt-1 text-[12px] font-bold leading-snug text-white">
+                            Tell tourists what is actually happening.
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
+                          Review
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        <input
+                          value={localSignalDraft.title}
+                          onChange={(event) =>
+                            setLocalSignalDraft((current) => ({ ...current, title: event.target.value }))
+                          }
+                          placeholder="Tonight: live DJ at..."
+                          maxLength={140}
+                          className="min-h-10 rounded-[15px] border border-white/10 bg-black/38 px-3 text-[12px] font-bold text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/30"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            value={localSignalDraft.venueName}
+                            onChange={(event) =>
+                              setLocalSignalDraft((current) => ({ ...current, venueName: event.target.value }))
+                            }
+                            placeholder="Place"
+                            maxLength={140}
+                            className="min-h-10 rounded-[15px] border border-white/10 bg-black/38 px-3 text-[12px] font-bold text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/30"
+                          />
+                          <select
+                            value={localSignalDraft.category}
+                            onChange={(event) =>
+                              setLocalSignalDraft((current) => ({ ...current, category: event.target.value }))
+                            }
+                            className="min-h-10 rounded-[15px] border border-white/10 bg-black/38 px-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/78 outline-none transition focus:border-cyan-200/30"
+                          >
+                            {LOCAL_SIGNAL_CATEGORIES.map((category) => (
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            value={localSignalDraft.city}
+                            onChange={(event) =>
+                              setLocalSignalDraft((current) => ({ ...current, city: event.target.value }))
+                            }
+                            placeholder="Area / city"
+                            maxLength={120}
+                            className="min-h-10 rounded-[15px] border border-white/10 bg-black/38 px-3 text-[12px] font-bold text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/30"
+                          />
+                          <input
+                            type="datetime-local"
+                            value={localSignalDraft.startsAt}
+                            onChange={(event) =>
+                              setLocalSignalDraft((current) => ({ ...current, startsAt: event.target.value }))
+                            }
+                            className="min-h-10 rounded-[15px] border border-white/10 bg-black/38 px-3 text-[11px] font-bold text-white/76 outline-none transition focus:border-cyan-200/30"
+                          />
+                        </div>
+                        <textarea
+                          value={localSignalDraft.notes}
+                          onChange={(event) =>
+                            setLocalSignalDraft((current) => ({ ...current, notes: event.target.value }))
+                          }
+                          placeholder="Why should someone go?"
+                          maxLength={700}
+                          className="min-h-[70px] resize-none rounded-[15px] border border-white/10 bg-black/38 px-3 py-2 text-[12px] font-bold leading-relaxed text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/30"
+                        />
+                        {localSignalSubmitState ? (
+                          <p
+                            className={`rounded-[14px] border px-3 py-2 text-[11px] font-bold ${
+                              localSignalSubmitState.type === 'success'
+                                ? 'border-emerald-200/18 bg-emerald-300/[0.08] text-emerald-100/78'
+                                : 'border-red-200/18 bg-red-400/[0.08] text-red-100/78'
+                            }`}
+                          >
+                            {localSignalSubmitState.message}
+                          </p>
+                        ) : null}
+                        <button
+                          type="submit"
+                          disabled={localSignalSubmitting}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-cyan-100/20 bg-cyan-300/[0.1] px-4 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_24px_rgba(0,0,0,0.22)] transition hover:border-cyan-100/35 disabled:cursor-wait disabled:opacity-55"
+                        >
+                          {localSignalSubmitting ? 'Submitting...' : 'Submit for review'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                  {happeningLoading ? (
                     <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
                       Scanning the local grid...
                     </div>
@@ -5298,7 +5617,7 @@ export default function RealWorldMap() {
                 </div>
                 ) : (
                   <div className="px-4 py-3 text-[11px] text-white/48">
-                    {nearbyDaresLoading
+                    {happeningLoading
                       ? 'Scanning the local grid...'
                       : mapHappenings.length > 0
                         ? `${mapHappenings[0].title}`
