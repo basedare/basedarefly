@@ -206,6 +206,33 @@ Optional later tools:
 
 Each tool should produce structured output where possible.
 
+### Spark Audit output contract
+
+The Spark Audit is the preferred lead magnet for venue and brand acquisition.
+It should turn one venue or event into a concise activation plan that is useful before a sale.
+
+Each Spark Audit should include:
+- target venue or event
+- city or market
+- venue category
+- buyer goal
+- story or vibe signal
+- 5 venue-aware mission ideas
+- 3 creator archetypes to route
+- QR or check-in mechanic
+- proof metrics to track
+- recommended pilot offer
+- one next action for the buyer
+
+Operating rule:
+- Generate the audit automatically.
+- Treat it as a draft plan, not an external promise.
+- A human must review before sending a price, guarantee, or delivery timeline externally.
+
+Conversion rule:
+- The audit should hand off into the Activation Intake queue.
+- The smallest buyer action should be: "approve this audit as the first pilot brief."
+
 ### Lead output contract
 
 Each venue or creator lead should include:

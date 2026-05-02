@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BadgeDollarSign, BarChart3, CheckCircle2, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
 
 import ActivationIntakeForm from './ActivationIntakeForm';
+import SparkAuditGenerator from './SparkAuditGenerator';
 import SquircleLink from '@/components/ui/SquircleLink';
 
 export const metadata: Metadata = {
@@ -94,6 +95,7 @@ type ActivationsPageProps = {
     packageId?: string;
     goal?: string;
     buyerType?: string;
+    auditBrief?: string;
   }>;
 };
 
@@ -281,6 +283,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
           ))}
         </section>
 
+        <SparkAuditGenerator />
+
         <section id="activation-intake" className="mt-8 grid gap-6 lg:grid-cols-[0.84fr_1.16fr]">
           <div className={`${raisedPanelClass} p-6`}>
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
@@ -325,6 +329,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               routedPackageId={resolvedSearchParams.packageId || null}
               routedGoal={resolvedSearchParams.goal || null}
               routedBuyerType={resolvedSearchParams.buyerType || null}
+              routedAuditBrief={resolvedSearchParams.auditBrief || null}
             />
           </div>
         </section>

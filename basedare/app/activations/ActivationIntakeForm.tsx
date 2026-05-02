@@ -88,6 +88,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'venue-console': 'Venue console',
   control: 'Control room',
   scout: 'Creator radar',
+  'spark-audit': 'Spark audit generator',
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
@@ -117,6 +118,7 @@ type ActivationIntakeFormProps = {
   routedPackageId?: string | null;
   routedGoal?: string | null;
   routedBuyerType?: string | null;
+  routedAuditBrief?: string | null;
 };
 
 export default function ActivationIntakeForm({
@@ -130,6 +132,7 @@ export default function ActivationIntakeForm({
   routedPackageId,
   routedGoal,
   routedBuyerType,
+  routedAuditBrief,
 }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
@@ -146,7 +149,8 @@ export default function ActivationIntakeForm({
     routedBudgetRange ||
     routedPackageId ||
     routedGoal ||
-    routedBuyerType
+    routedBuyerType ||
+    routedAuditBrief
   );
 
   useEffect(() => {
@@ -160,7 +164,8 @@ export default function ActivationIntakeForm({
       !routedBudgetRange &&
       !routedPackageId &&
       !routedGoal &&
-      !routedBuyerType
+      !routedBuyerType &&
+      !routedAuditBrief
     ) return;
 
     const normalizedCreator = routedCreator
@@ -177,6 +182,7 @@ export default function ActivationIntakeForm({
     const packageId = isPackageId(routedPackageId) ? routedPackageId : null;
     const goal = isGoal(routedGoal) ? routedGoal : null;
     const buyerType = isBuyerType(routedBuyerType) ? routedBuyerType : null;
+    const normalizedAuditBrief = routedAuditBrief?.trim() || null;
     const contextKey = [
       normalizedCreator,
       normalizedVenue,
@@ -188,6 +194,7 @@ export default function ActivationIntakeForm({
       packageId,
       goal,
       buyerType,
+      normalizedAuditBrief,
     ].filter(Boolean).join('|');
     if (routedContextRef.current === contextKey) return;
 
@@ -218,6 +225,7 @@ export default function ActivationIntakeForm({
           normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
           normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
           normalizedCity ? `Target city: ${normalizedCity}` : null,
+          normalizedAuditBrief ? `Spark Audit:\n${normalizedAuditBrief}` : null,
           normalizedSource ? `Source: ${normalizedSource}` : 'Source: Control activation route',
         ]
           .filter(Boolean)
@@ -235,6 +243,7 @@ export default function ActivationIntakeForm({
     routedVenue,
     routedVenueId,
     routedVenueSlug,
+    routedAuditBrief,
   ]);
 
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {

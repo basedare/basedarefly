@@ -196,7 +196,43 @@ Suggested fields:
 - `createdAt`
 - `updatedAt`
 
-### 7. Scorecard Snapshot
+### 7. Spark Audit
+
+Represents a generated lead magnet for a venue, brand, event, or local business.
+
+Suggested fields:
+- `id`
+- `leadId`
+- `venueName`
+- `city`
+- `venueCategory`
+- `targetAudience`
+- `buyerGoal`
+- `vibeSignal`
+- `missionIdeas`
+- `creatorArchetypes`
+- `qrOrCheckInMechanic`
+- `proofMetrics`
+- `recommendedOffer`
+- `auditSummary`
+- `status`
+  - `DRAFT`
+  - `SENT`
+  - `INTAKE_STARTED`
+  - `CALL_BOOKED`
+  - `PILOT_WON`
+  - `STALE`
+- `createdBy`
+- `reviewedBy`
+- `createdAt`
+- `updatedAt`
+
+Memory rule:
+- Store the audit summary against the lead before outreach.
+- If a venue responds, attach objections and buying language to the same lead so future audits improve.
+- Do not treat a generated audit as proof that the venue is qualified; qualification still depends on buyer budget, urgency, and response.
+
+### 8. Scorecard Snapshot
 
 Represents a periodic roll-up of key operating metrics.
 
