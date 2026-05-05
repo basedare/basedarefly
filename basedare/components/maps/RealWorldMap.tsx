@@ -5940,8 +5940,8 @@ export default function RealWorldMap() {
                         </span>
                       </div>
                       <div
-                        className={`venue-action-rail venue-action-rail--primary mt-3 grid gap-2 ${
-                          selectedPlace.slug ? 'grid-cols-[0.86fr_1fr_1.18fr]' : 'grid-cols-2'
+                        className={`venue-action-rail venue-action-rail--primary mt-3 grid gap-1.5 ${
+                          selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'
                         }`}
                       >
                         <TagPlaceButton
@@ -8605,13 +8605,18 @@ export default function RealWorldMap() {
           width: 100%;
         }
 
+        .venue-action-rail--primary {
+          width: calc(100% + 3.75rem);
+          max-width: calc(100% + 3.75rem);
+        }
+
         .venue-action-rail :global(.map-jelly-action > svg) {
           display: block;
         }
 
         .venue-action-rail :global(.map-jelly-action > div) {
-          padding-left: 0.36rem !important;
-          padding-right: 0.36rem !important;
+          padding-left: 0.2rem !important;
+          padding-right: 0.2rem !important;
         }
 
         .venue-action-rail :global(.map-jelly-action > div svg) {
@@ -8621,17 +8626,18 @@ export default function RealWorldMap() {
         .venue-action-rail :global(.map-jelly-action-label) {
           max-width: 100%;
           min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: clamp(0.58rem, 0.74vw, 0.68rem) !important;
-          letter-spacing: 0.045em !important;
+          overflow: visible;
+          text-overflow: clip;
+          white-space: nowrap;
+          font-size: clamp(0.56rem, 0.66vw, 0.66rem) !important;
+          letter-spacing: 0.025em !important;
           line-height: 1;
         }
 
         @media (min-width: 1180px) {
           .venue-action-rail :global(.map-jelly-action-label) {
-            font-size: 0.72rem !important;
-            letter-spacing: 0.065em !important;
+            font-size: 0.66rem !important;
+            letter-spacing: 0.035em !important;
           }
         }
 
@@ -8652,6 +8658,11 @@ export default function RealWorldMap() {
         }
 
         @media (max-width: 767px) {
+          .venue-action-rail--primary {
+            width: calc(100% + 3.25rem);
+            max-width: calc(100% + 3.25rem);
+          }
+
           .venue-action-rail :global(.map-action-button) {
             min-height: 48px;
             border-radius: 14px;
