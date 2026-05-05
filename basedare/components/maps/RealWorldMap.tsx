@@ -21,6 +21,8 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
+  Maximize2,
+  Minimize2,
   Minus,
   Plus,
   RotateCcw,
@@ -2386,7 +2388,8 @@ export default function RealWorldMap() {
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const isImmersiveMobile = false;
+  const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
+  const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
@@ -2472,11 +2475,60 @@ export default function RealWorldMap() {
 
   useEffect(() => {
     if (!isMobileViewport) {
+      setIsMapFullscreenMobile(false);
       return;
     }
 
     setNearbyDarePanelCollapsed(true);
   }, [isMobileViewport]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || !isImmersiveMobile) {
+      return undefined;
+    }
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
+    };
+  }, [isImmersiveMobile]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const resizeMap = () => map.resize();
+    const animationFrame = window.requestAnimationFrame(resizeMap);
+    const resizeTimeout = window.setTimeout(resizeMap, 340);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(resizeTimeout);
+    };
+  }, [isImmersiveMobile, mapReady]);
+
+  useEffect(() => {
+    if (!isImmersiveMobile || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMapFullscreenMobile(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isImmersiveMobile]);
 
   useEffect(() => {
     if (!isMobileViewport || !selectedPlace) {
@@ -4600,6 +4652,12 @@ export default function RealWorldMap() {
   const mapCameraBearingLabel = `${Math.round(((mapBearing % 360) + 360) % 360)} deg`;
   const mapCameraPitchLabel = `${Math.round(mapPitch)} deg`;
 
+  const handleMapFullscreenToggle = useCallback(() => {
+    triggerHaptic('selection');
+    setNearbyDarePanelCollapsed(true);
+    setIsMapFullscreenMobile((current) => !current);
+  }, []);
+
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -4983,19 +5041,24 @@ export default function RealWorldMap() {
         ) : null}
 
         <div
-          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] rounded-none border-0 shadow-none' : 'rounded-[38px]'}`}
+          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[38px]'}`}
           style={
             isImmersiveMobile
               ? {
                   paddingTop: 'env(safe-area-inset-top)',
                   paddingBottom: 'env(safe-area-inset-bottom)',
+                  boxSizing: 'border-box',
                 }
               : undefined
           }
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
-          <div className="relative z-20 flex flex-col gap-3 border-b border-white/8 px-4 py-3 sm:px-5 sm:py-3.5">
+          <div
+            className={`relative z-20 flex shrink-0 flex-col gap-3 border-b border-white/8 ${
+              isImmersiveMobile ? 'px-3 py-2' : 'px-4 py-3 sm:px-5 sm:py-3.5'
+            }`}
+          >
             <div className="relative w-full max-w-xl">
               <div className="bd-dent-surface bd-dent-surface--soft flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5">
                 <Search className="h-4 w-4 text-cyan-200" />
@@ -5067,7 +5130,7 @@ export default function RealWorldMap() {
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
+            <div className={`flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between ${isImmersiveMobile ? 'hidden' : ''}`}>
               <div className="flex flex-col gap-2.5">
                 <div className="map-signal-rail">
                   <div className="map-signal-rail-label">
@@ -5230,7 +5293,9 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
-            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${isImmersiveMobile ? 'h-[calc(100dvh-172px)] min-h-0' : 'h-[68vh] min-h-[560px]'}`}
+            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
+              isImmersiveMobile ? 'map-container-wrapper--immersive min-h-0 flex-1' : 'h-[68vh] min-h-[560px]'
+            }`}
           >
             <div
               ref={mapCanvasRef}
@@ -5241,6 +5306,21 @@ export default function RealWorldMap() {
             <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
               MapLibre 3D Grid · Live Chaos Layer
             </div>
+            {isMobileViewport ? (
+              <button
+                type="button"
+                onClick={handleMapFullscreenToggle}
+                className={`map-fullscreen-toggle ${isImmersiveMobile ? 'map-fullscreen-toggle--active' : ''}`}
+                aria-label={isImmersiveMobile ? 'Collapse map' : 'Expand map full screen'}
+                title={isImmersiveMobile ? 'Collapse map' : 'Expand map'}
+              >
+                {isImmersiveMobile ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </button>
+            ) : null}
 
             <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
             <div className="network-mesh pointer-events-none absolute inset-0 z-[3]" />
@@ -5758,7 +5838,7 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isMobileViewport ? 'max-h-[82dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div className={`flex flex-col overflow-hidden ${isImmersiveMobile ? 'max-h-[58dvh]' : isMobileViewport ? 'max-h-[82dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">
@@ -7096,6 +7176,60 @@ export default function RealWorldMap() {
             0 -2px 4px rgba(0, 0, 0, 0.6);
           outline: 3px solid rgba(255, 255, 255, 0.04);
           outline-offset: -3px;
+        }
+
+        .map-container-wrapper--immersive {
+          border-radius: 0;
+          box-shadow: none;
+          outline: 0;
+        }
+
+        .map-fullscreen-toggle {
+          position: absolute;
+          top: calc(0.75rem + env(safe-area-inset-top));
+          right: calc(0.75rem + env(safe-area-inset-right));
+          z-index: 18;
+          display: inline-flex;
+          width: 2.75rem;
+          height: 2.75rem;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 999px;
+          color: rgba(255, 255, 255, 0.82);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.18), transparent 42%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(6, 8, 16, 0.88));
+          box-shadow:
+            0 16px 34px rgba(0, 0, 0, 0.36),
+            0 0 24px rgba(34, 211, 238, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.28);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            color 160ms ease,
+            background 160ms ease;
+          touch-action: manipulation;
+        }
+
+        .map-fullscreen-toggle:active {
+          transform: translateY(1px) scale(0.98);
+        }
+
+        .map-fullscreen-toggle--active {
+          border-color: rgba(245, 197, 24, 0.34);
+          color: #fff0bc;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(245, 197, 24, 0.2), transparent 42%),
+            linear-gradient(180deg, rgba(245, 197, 24, 0.17), rgba(16, 11, 4, 0.9));
+          box-shadow:
+            0 16px 34px rgba(0, 0, 0, 0.38),
+            0 0 24px rgba(245, 197, 24, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -10px 16px rgba(0, 0, 0, 0.3);
         }
 
         .map-signal-rail {
