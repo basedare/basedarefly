@@ -16,6 +16,7 @@ import {
   MapPin,
   Navigation,
   RefreshCw,
+  Sparkles,
   Target,
   TimerReset,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import { useAccount } from 'wagmi';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
+import { trackActivationFunnelEvent } from '@/lib/activation-funnel-client';
 import type {
   VenueScoutCommandReport,
   VenueScoutLead,
@@ -46,6 +48,8 @@ type SeedLeadDraft = {
   audience: 'venue' | 'sponsor';
   intent: 'claim' | 'activation' | 'repeat';
 };
+
+type ActivationHandoffItem = VenueScoutLead | VenueScoutSeedCandidate;
 
 const DEFAULT_SEED_LEAD_DRAFT: SeedLeadDraft = {
   email: '',
@@ -84,10 +88,25 @@ function maskWallet(wallet: string | null) {
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
-function mailtoHref(lead: VenueScoutLead) {
-  const subject = encodeURIComponent(lead.pitch.subject);
-  const body = encodeURIComponent(lead.pitch.emailBody);
+function activationMailtoHref(lead: VenueScoutLead) {
+  const subject = encodeURIComponent(lead.activationHandoff.outreachSubject);
+  const body = encodeURIComponent(lead.activationHandoff.outreachBody);
   return `mailto:${lead.contact.email}?subject=${subject}&body=${body}`;
+}
+
+function handoffItemKey(item: ActivationHandoffItem) {
+  return `${'venue' in item ? 'lead' : 'seed'}:${item.id}`;
+}
+
+function handoffVenue(item: ActivationHandoffItem) {
+  if ('venue' in item) return item.venue;
+  return {
+    id: item.id,
+    slug: item.slug,
+    name: item.name,
+    city: item.city,
+    country: item.country,
+  };
 }
 
 function SummaryCard({
@@ -122,6 +141,9 @@ function LeadCard({
   lead,
   copied,
   onCopy,
+  handoffCopied,
+  onCopyHandoff,
+  onOpenActivationHandoff,
   canAssignOwner,
   isUpdating,
   onUpdateLead,
@@ -129,6 +151,9 @@ function LeadCard({
   lead: VenueScoutLead;
   copied: boolean;
   onCopy: (lead: VenueScoutLead) => void;
+  handoffCopied: boolean;
+  onCopyHandoff: (lead: VenueScoutLead) => void;
+  onOpenActivationHandoff: (lead: VenueScoutLead, target: string) => void;
   canAssignOwner: boolean;
   isUpdating: boolean;
   onUpdateLead: (lead: VenueScoutLead, patch: VenueLeadUpdatePatch) => void;
@@ -176,7 +201,7 @@ function LeadCard({
             Report
           </Link>
           <a
-            href={mailtoHref(lead)}
+            href={activationMailtoHref(lead)}
             className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-300/15"
           >
             <Mail className="h-3.5 w-3.5" />
@@ -232,6 +257,45 @@ function LeadCard({
           <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/8 bg-white/[0.035] p-3 font-sans text-xs font-bold leading-relaxed text-white/62">
             {lead.pitch.emailBody}
           </pre>
+          <div className="mt-3 rounded-2xl border border-yellow-200/14 bg-yellow-300/[0.055] p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100/55">Spark audit handoff</p>
+                <p className="mt-2 text-xs font-bold leading-relaxed text-yellow-50/72">
+                  {lead.activationHandoff.nextAction}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link
+                  href={lead.activationHandoff.href}
+                  target="_blank"
+                  onClick={() => onOpenActivationHandoff(lead, 'open-audit')}
+                  className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Open audit
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => onCopyHandoff(lead)}
+                  className="inline-flex items-center gap-2 rounded-full border border-yellow-100/20 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-black/30"
+                >
+                  {handoffCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" /> : <Copy className="h-3.5 w-3.5" />}
+                  {handoffCopied ? 'Copied' : 'Copy audit'}
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {lead.activationHandoff.approvalChecklist.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-yellow-100/12 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-50/50"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -340,16 +404,22 @@ function LeadCard({
 function SeedCandidateCard({
   candidate,
   draft,
+  handoffCopied,
   canAssignOwner,
   isCreating,
   onDraftChange,
+  onCopyHandoff,
+  onOpenActivationHandoff,
   onCreateLead,
 }: {
   candidate: VenueScoutSeedCandidate;
   draft: SeedLeadDraft;
+  handoffCopied: boolean;
   canAssignOwner: boolean;
   isCreating: boolean;
   onDraftChange: (candidateId: string, patch: Partial<SeedLeadDraft>) => void;
+  onCopyHandoff: (candidate: VenueScoutSeedCandidate) => void;
+  onOpenActivationHandoff: (candidate: VenueScoutSeedCandidate, target: string) => void;
   onCreateLead: (candidate: VenueScoutSeedCandidate) => void;
 }) {
   return (
@@ -393,6 +463,33 @@ function SeedCandidateCard({
           <MapPin className="h-3.5 w-3.5" />
           Map
         </Link>
+      </div>
+      <div className="mt-4 rounded-[1.25rem] border border-yellow-200/14 bg-yellow-300/[0.055] p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100/55">
+          Spark audit packet
+        </p>
+        <p className="mt-2 text-xs font-bold leading-relaxed text-yellow-50/68">
+          {candidate.activationHandoff.nextAction}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={candidate.activationHandoff.href}
+            target="_blank"
+            onClick={() => onOpenActivationHandoff(candidate, 'open-seed-audit')}
+            className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Open audit
+          </Link>
+          <button
+            type="button"
+            onClick={() => onCopyHandoff(candidate)}
+            className="inline-flex items-center gap-2 rounded-full border border-yellow-100/20 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-black/30"
+          >
+            {handoffCopied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" /> : <Copy className="h-3.5 w-3.5" />}
+            {handoffCopied ? 'Copied' : 'Copy pitch'}
+          </button>
+        </div>
       </div>
       <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/25 p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
@@ -470,6 +567,7 @@ export default function VenueScoutCommandPage() {
     hasSessionAdminSecret,
   } = useSessionAdminSecret();
   const [copiedLeadId, setCopiedLeadId] = useState<string | null>(null);
+  const [copiedHandoffId, setCopiedHandoffId] = useState<string | null>(null);
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
   const [creatingSeedId, setCreatingSeedId] = useState<string | null>(null);
   const [leadActionMessage, setLeadActionMessage] = useState<string | null>(null);
@@ -564,6 +662,53 @@ export default function VenueScoutCommandPage() {
       setCopiedLeadId(null);
     }
   }, []);
+
+  const trackActivationHandoff = useCallback((item: ActivationHandoffItem, target: string) => {
+    const venue = handoffVenue(item);
+    void trackActivationFunnelEvent({
+      eventType: 'ACTIVATION_CTA_CLICK',
+      target,
+      channel: 'venue-scout-command',
+      attribution: {
+        source: item.activationHandoff.source,
+        venueId: venue.id,
+        venueSlug: venue.slug,
+        venueName: venue.name,
+        packageId: item.activationHandoff.packageId,
+        budgetRange: item.activationHandoff.budgetRange,
+        goal: item.activationHandoff.buyerGoal,
+        buyerType: 'venue',
+      },
+      metadata: {
+        routeCluster: item.routeCluster,
+        score: 'priority' in item ? item.priority.score : item.score,
+        href: item.activationHandoff.href,
+      },
+    });
+  }, []);
+
+  const copyActivationHandoff = useCallback(
+    async (item: ActivationHandoffItem) => {
+      const copyText = [
+        item.activationHandoff.outreachSubject,
+        '',
+        item.activationHandoff.outreachBody,
+        '',
+        'Spark Audit Brief',
+        item.activationHandoff.auditBrief,
+      ].join('\n');
+
+      try {
+        await navigator.clipboard.writeText(copyText);
+        setCopiedHandoffId(handoffItemKey(item));
+        trackActivationHandoff(item, 'copy-spark-audit-handoff');
+        window.setTimeout(() => setCopiedHandoffId(null), 1800);
+      } catch {
+        setCopiedHandoffId(null);
+      }
+    },
+    [trackActivationHandoff]
+  );
 
   const updateLead = useCallback(
     async (lead: VenueScoutLead, patch: VenueLeadUpdatePatch) => {
@@ -676,6 +821,8 @@ export default function VenueScoutCommandPage() {
               `Created from Venue Scout Command seed venue.`,
               `Suggested angle: ${candidate.suggestedAngle}`,
               `Seed reasons: ${candidate.reasons.join(', ')}`,
+              `Activation handoff: ${candidate.activationHandoff.absoluteHref}`,
+              `Spark Audit:\n${candidate.activationHandoff.auditBrief}`,
             ].join('\n'),
           }),
         });
@@ -932,6 +1079,9 @@ export default function VenueScoutCommandPage() {
                         lead={lead}
                         copied={copiedLeadId === lead.id}
                         onCopy={copyPitch}
+                        handoffCopied={copiedHandoffId === handoffItemKey(lead)}
+                        onCopyHandoff={copyActivationHandoff}
+                        onOpenActivationHandoff={trackActivationHandoff}
                         canAssignOwner={Boolean(address)}
                         isUpdating={updatingLeadId === lead.id}
                         onUpdateLead={updateLead}
@@ -967,9 +1117,12 @@ export default function VenueScoutCommandPage() {
                       key={candidate.id}
                       candidate={candidate}
                       draft={seedLeadDrafts[candidate.id] ?? DEFAULT_SEED_LEAD_DRAFT}
+                      handoffCopied={copiedHandoffId === handoffItemKey(candidate)}
                       canAssignOwner={Boolean(address)}
                       isCreating={creatingSeedId === candidate.id}
                       onDraftChange={updateSeedLeadDraft}
+                      onCopyHandoff={copyActivationHandoff}
+                      onOpenActivationHandoff={trackActivationHandoff}
                       onCreateLead={createLeadFromSeed}
                     />
                   ))}

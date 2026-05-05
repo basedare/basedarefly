@@ -94,6 +94,7 @@ const SOURCE_LABELS: Record<string, string> = {
   control: 'Control room',
   scout: 'Creator radar',
   'spark-audit': 'Spark audit generator',
+  'venue-scout-command': 'Venue scout command',
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {

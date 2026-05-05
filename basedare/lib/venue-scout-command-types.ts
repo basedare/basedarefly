@@ -21,6 +21,20 @@ export type VenueScoutSuggestedDare = {
   why: string;
 };
 
+export type VenueScoutActivationHandoff = {
+  source: 'venue-scout-command';
+  href: string;
+  absoluteHref: string;
+  auditBrief: string;
+  outreachSubject: string;
+  outreachBody: string;
+  buyerGoal: 'foot_traffic';
+  packageId: 'pilot-drop';
+  budgetRange: '500_1500';
+  nextAction: string;
+  approvalChecklist: string[];
+};
+
 export type VenueScoutLead = {
   id: string;
   audience: string;
@@ -68,6 +82,7 @@ export type VenueScoutLead = {
   };
   pitch: VenueScoutPitch;
   suggestedDare: VenueScoutSuggestedDare;
+  activationHandoff: VenueScoutActivationHandoff;
   links: {
     venue: string;
     report: string;
@@ -104,6 +119,7 @@ export type VenueScoutSeedCandidate = {
     memoryCompletedDares: number;
   };
   suggestedAngle: string;
+  activationHandoff: VenueScoutActivationHandoff;
   links: {
     venue: string;
     report: string;

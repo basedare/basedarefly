@@ -2,6 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/prisma';
 import type {
+  VenueScoutActivationHandoff,
   VenueScoutCommandReport,
   VenueScoutLead,
   VenueScoutLeadPriority,
@@ -76,6 +77,7 @@ const STAGE_PRIORITY: PipelineStageKey[] = [
 ];
 
 const ACTIVE_LEAD_STATUSES = ['NEW', 'FOLLOWING_UP', 'WAITING'];
+const PUBLIC_APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz').replace(/\/$/, '');
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null;
@@ -297,6 +299,108 @@ function buildSuggestedDare(input: {
   };
 }
 
+function metricSummary(metrics: ReturnType<typeof getVenueMetrics>) {
+  const presence = metrics.checkIns + metrics.memoryCheckIns;
+  const proofs = metrics.dares + metrics.memoryCompletedDares;
+  const signals: string[] = [];
+
+  if (presence > 0) signals.push(`${presence} presence signal${presence === 1 ? '' : 's'}`);
+  if (proofs > 0) signals.push(`${proofs} proof action${proofs === 1 ? '' : 's'}`);
+  if (metrics.placeTags > 0) signals.push(`${metrics.placeTags} creator tag${metrics.placeTags === 1 ? '' : 's'}`);
+  if (metrics.campaigns > 0) signals.push(`${metrics.campaigns} campaign${metrics.campaigns === 1 ? '' : 's'}`);
+
+  return signals.length ? signals.join(', ') : 'no public proof yet';
+}
+
+function buildSparkAuditBrief(input: {
+  venue: VenueRow;
+  metrics: ReturnType<typeof getVenueMetrics>;
+  suggestedDare: VenueScoutSuggestedDare;
+  suggestedAngle: string;
+}) {
+  const market = routeClusterForVenue(input.venue);
+  const category = input.venue.categories[0] || 'local venue';
+
+  return [
+    `Spark Audit for ${input.venue.name}`,
+    `Market: ${market}`,
+    `Category: ${category}`,
+    'Buyer goal: drive verified foot traffic and creator proof.',
+    `Current signal: ${metricSummary(input.metrics)}.`,
+    `Pilot angle: ${input.suggestedAngle}`,
+    `Starter mission: ${input.suggestedDare.title}`,
+    `Proof mechanic: ${input.suggestedDare.proofHook}`,
+    `Pilot budget: ${input.suggestedDare.bountyRange} creator reward pool before scaling.`,
+    'Metrics to track: QR/check-in scans, approved proofs, timestamps, creator handles, content links, and repeat decision.',
+    'Next action: approve this Spark Audit as the first BaseDare pilot brief.',
+  ].join('\n');
+}
+
+function buildActivationHandoff(input: {
+  venue: VenueRow;
+  metrics: ReturnType<typeof getVenueMetrics>;
+  suggestedDare: VenueScoutSuggestedDare;
+  suggestedAngle: string;
+  contactName?: string | null;
+}): VenueScoutActivationHandoff {
+  const auditBrief = buildSparkAuditBrief({
+    venue: input.venue,
+    metrics: input.metrics,
+    suggestedDare: input.suggestedDare,
+    suggestedAngle: input.suggestedAngle,
+  });
+  const params = new URLSearchParams({
+    source: 'venue-scout-command',
+    buyerType: 'venue',
+    packageId: 'pilot-drop',
+    budgetRange: '500_1500',
+    goal: 'foot_traffic',
+    venue: input.venue.name,
+    venueName: input.venue.name,
+    venueId: input.venue.id,
+    venueSlug: input.venue.slug,
+    auditBrief,
+  });
+
+  if (input.venue.city) params.set('city', input.venue.city);
+
+  const href = `/activations?${params.toString()}#activation-intake`;
+  const absoluteHref = `${PUBLIC_APP_URL}${href}`;
+  const greeting = input.contactName ? `Hi ${input.contactName},` : 'Hi,';
+  const outreachSubject = `Spark Audit for ${input.venue.name}`;
+  const outreachBody = [
+    greeting,
+    '',
+    `I put together a small BaseDare Spark Audit for ${input.venue.name}. The useful version is not a generic influencer post. It is one venue mission, a QR/check-in proof mechanic, and a short receipt that shows whether real people moved.`,
+    '',
+    `The first pilot idea: ${input.suggestedDare.title}.`,
+    `Why now: ${metricSummary(input.metrics)}.`,
+    `Proof: ${input.suggestedDare.proofHook}.`,
+    '',
+    `Audit link: ${absoluteHref}`,
+    '',
+    'If this looks useful, the smallest next step is approving it as the first pilot brief.',
+  ].join('\n');
+
+  return {
+    source: 'venue-scout-command',
+    href,
+    absoluteHref,
+    auditBrief,
+    outreachSubject,
+    outreachBody,
+    buyerGoal: 'foot_traffic',
+    packageId: 'pilot-drop',
+    budgetRange: '500_1500',
+    nextAction: 'Open the prefilled Spark Audit, review the buyer brief, then send the outreach draft only after operator approval.',
+    approvalChecklist: [
+      'Contact is the right venue or sponsor buyer.',
+      'Venue can support the QR/check-in proof mechanic.',
+      'Pilot budget and timeline are not promised externally yet.',
+    ],
+  };
+}
+
 function buildPitch(input: {
   lead: LeadRow;
   opportunity: string;
@@ -364,11 +468,22 @@ function mapLead(row: LeadRow): VenueScoutLead {
     metrics,
     intent: row.intent,
   });
+  const suggestedAngle =
+    metrics.memoryCompletedDares > 0 || metrics.dares > 0 || metrics.campaigns > 0
+      ? `Package ${row.venue.name}'s existing proof into a venue pilot pitch.`
+      : `Seed the first venue activation at ${row.venue.name} with one small dare and a clear report link.`;
   const pitch = buildPitch({
     lead: row,
     opportunity,
     metrics,
     suggestedDare,
+  });
+  const activationHandoff = buildActivationHandoff({
+    venue: row.venue,
+    metrics,
+    suggestedDare,
+    suggestedAngle,
+    contactName: row.name,
   });
 
   return {
@@ -413,6 +528,7 @@ function mapLead(row: LeadRow): VenueScoutLead {
     },
     pitch,
     suggestedDare,
+    activationHandoff,
     links: {
       venue: `/venues/${row.venue.slug}`,
       report: `/venues/${row.venue.slug}/report`,
@@ -485,6 +601,15 @@ function mapSeedCandidate(venue: VenueRow): VenueScoutSeedCandidate {
   }
 
   const category = venue.categories[0]?.toLowerCase() ?? 'local venue';
+  const suggestedAngle =
+    score >= 45
+      ? `Package ${venue.name}'s existing proof into a venue pilot pitch.`
+      : `Seed the first ${category} activation with one small dare and a clear report link.`;
+  const suggestedDare = buildSuggestedDare({
+    venue,
+    metrics,
+    intent: 'activation',
+  });
 
   return {
     id: venue.id,
@@ -503,10 +628,13 @@ function mapSeedCandidate(venue: VenueRow): VenueScoutSeedCandidate {
       memoryCheckIns: metrics.memoryCheckIns,
       memoryCompletedDares: metrics.memoryCompletedDares,
     },
-    suggestedAngle:
-      score >= 45
-        ? `Package ${venue.name}'s existing proof into a venue pilot pitch.`
-        : `Seed the first ${category} activation with one small dare and a clear report link.`,
+    suggestedAngle,
+    activationHandoff: buildActivationHandoff({
+      venue,
+      metrics,
+      suggestedDare,
+      suggestedAngle,
+    }),
     links: {
       venue: `/venues/${venue.slug}`,
       report: `/venues/${venue.slug}/report`,
