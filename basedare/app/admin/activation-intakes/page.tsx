@@ -82,6 +82,19 @@ type ActivationIntake = {
   sparkRoutePacket: string;
   invoiceMemo: string;
   paymentPacket: string;
+  closeRoom: {
+    href: string;
+    absoluteHref: string;
+    mailtoHref: string | null;
+    sentAt: string;
+    viewedAt: string;
+    paymentClickedAt: string;
+    replyClickedAt: string;
+    viewCount: number;
+    paymentClickCount: number;
+    replyClickCount: number;
+    staleHours: number | null;
+  };
   activationReceipt: {
     status: string;
     label: string;
@@ -186,6 +199,12 @@ type IntakeDraft = {
   nextActionAt?: string;
   paymentLink?: string;
   paymentReference?: string;
+};
+
+type IntakeUpdatePatch = Partial<Omit<IntakeDraft, 'nextActionAt'>> & {
+  nextActionAt?: string | null;
+  status?: IntakeStatus;
+  closeRoomAction?: 'sent';
 };
 
 const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
@@ -379,6 +398,11 @@ function buildLaunchOperatorNote(intake: ActivationIntake, assignedVenue: string
   return `Launch handoff confirmed: ${target} / ${creator} / ${intake.budgetLabel}. Payment was marked confirmed before launch handoff.`;
 }
 
+function buildCloseRoomOperatorNote(intake: ActivationIntake) {
+  const target = intake.assignedVenue || intake.venue || intake.company || 'activation target';
+  return `Close room sent for ${target}. Follow up tomorrow if the buyer opens it but does not click payment.`;
+}
+
 export default function ActivationIntakesPage() {
   const { address } = useAccount();
   const [payload, setPayload] = useState<IntakePayload | null>(null);
@@ -498,10 +522,7 @@ export default function ActivationIntakesPage() {
     });
   };
 
-  const updateIntake = async (
-    id: string,
-    patch: Partial<Omit<IntakeDraft, 'nextActionAt'>> & { nextActionAt?: string | null; status?: IntakeStatus }
-  ) => {
+  const updateIntake = async (id: string, patch: IntakeUpdatePatch): Promise<ActivationIntake | null> => {
     setUpdatingId(id);
     setError(null);
 
@@ -525,8 +546,10 @@ export default function ActivationIntakesPage() {
 
       replaceIntake(data.data);
       setDrafts((current) => ({ ...current, [id]: {} }));
+      return data.data;
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Unable to update intake');
+      return null;
     } finally {
       setUpdatingId(null);
     }
@@ -598,6 +621,24 @@ export default function ActivationIntakesPage() {
         'Payment packet sent. Follow up tomorrow if payment is not confirmed.'
       ),
     });
+  };
+
+  const sendCloseRoom = async (intake: ActivationIntake) => {
+    const draft = drafts[intake.id] ?? {};
+    const nextIntake = await updateIntake(intake.id, {
+      assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
+      assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
+      paymentLink: draft.paymentLink ?? intake.paymentLink,
+      paymentReference: draft.paymentReference ?? intake.paymentReference,
+      status: intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED' ? intake.status : 'PAYMENT_SENT',
+      closeRoomAction: 'sent',
+      nextActionAt: addDaysIso(1),
+      operatorNote: appendOperatorNote(draft.operatorNote ?? intake.operatorNote, buildCloseRoomOperatorNote(intake)),
+    });
+
+    if (nextIntake) {
+      await copyText(`${intake.id}:close-room`, nextIntake.closeRoom.absoluteHref);
+    }
   };
 
   const confirmPaid = async (intake: ActivationIntake) => {
@@ -1191,6 +1232,76 @@ export default function ActivationIntakesPage() {
                                 className="mt-2 w-full rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-sm font-bold text-white outline-none placeholder:text-white/25 focus:border-orange-300/35"
                               />
                             </label>
+                          </div>
+
+                          <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/34 p-3">
+                            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+                                  Buyer close room
+                                </p>
+                                <p className="mt-1 text-xs font-bold leading-5 text-white/50">
+                                  One tokenized page for the route, payment reference, proof logic, and launch gates.
+                                  {intake.closeRoom.staleHours !== null && intake.closeRoom.staleHours >= 24
+                                    ? ` ${intake.closeRoom.staleHours}h since sent without payment click.`
+                                    : ''}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+                                  Views {intake.closeRoom.viewCount}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+                                  Pay clicks {intake.closeRoom.paymentClickCount}
+                                </span>
+                                {intake.closeRoom.sentAt ? (
+                                  <span className="rounded-full border border-orange-300/18 bg-orange-300/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-orange-100/70">
+                                    Sent {formatDateTime(intake.closeRoom.sentAt)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                              <button
+                                type="button"
+                                onClick={() => void copyText(`${intake.id}:close-room`, intake.closeRoom.absoluteHref)}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/15"
+                              >
+                                <Clipboard className="h-4 w-4" />
+                                {copiedId === `${intake.id}:close-room` ? 'Copied' : 'Copy room'}
+                              </button>
+                              <Link
+                                href={intake.closeRoom.href}
+                                target="_blank"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.1]"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Open room
+                              </Link>
+                              {intake.closeRoom.mailtoHref ? (
+                                <a
+                                  href={intake.closeRoom.mailtoHref}
+                                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
+                                >
+                                  <Mail className="h-4 w-4" />
+                                  Email room
+                                </a>
+                              ) : (
+                                <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
+                                  No email
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => void sendCloseRoom(intake)}
+                                disabled={isUpdating}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-300/20 bg-orange-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-orange-100 transition hover:bg-orange-300/15 disabled:opacity-45"
+                              >
+                                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                Send room
+                              </button>
+                            </div>
                           </div>
 
                           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">

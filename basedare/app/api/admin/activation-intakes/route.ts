@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+import { buildActivationCloseRoomAdminState } from '@/lib/activation-close-room';
 import {
   activationFunnelEventTypeForStatus,
   buildActivationFunnelSummary,
@@ -35,6 +36,7 @@ const IntakeUpdateSchema = z.object({
   nextActionAt: z.string().datetime().nullable().optional(),
   paymentLink: z.string().max(500).nullable().optional(),
   paymentReference: z.string().max(180).nullable().optional(),
+  closeRoomAction: z.enum(['sent']).optional(),
 });
 
 type IntakeStatus = (typeof INTAKE_STATUSES)[number];
@@ -1061,6 +1063,15 @@ function mapIntakeEvent(event: {
     paymentReference,
     campaign: findActivationReceiptCampaign(event.id, campaigns),
   });
+  const closeRoom = buildActivationCloseRoomAdminState({
+    id: event.id,
+    metadata,
+    company,
+    contactName,
+    email,
+    assignedVenue,
+    paymentReference,
+  });
   const subjectTarget = company || assignedVenue || 'activation';
 
   return {
@@ -1103,6 +1114,7 @@ function mapIntakeEvent(event: {
     invoiceMemo,
     paymentPacket,
     activationReceipt,
+    closeRoom,
     links: {
       createHref,
       scoutHref,
@@ -1257,22 +1269,36 @@ export async function PUT(request: NextRequest) {
     if (input.nextActionAt !== undefined) nextOperator.nextActionAt = input.nextActionAt;
     if (input.paymentLink !== undefined) nextOperator.paymentLink = cleanOptional(input.paymentLink);
     if (input.paymentReference !== undefined) nextOperator.paymentReference = cleanOptional(input.paymentReference);
+    if (input.closeRoomAction === 'sent') {
+      const now = new Date().toISOString();
+      nextOperator.closeRoomSentAt = now;
+      nextOperator.closeRoomLastSentAt = now;
+      nextOperator.closeRoomSendCount =
+        typeof existingOperator.closeRoomSendCount === 'number'
+          ? existingOperator.closeRoomSendCount + 1
+          : 1;
+    }
 
     const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
-    const nextStatus = input.status ?? currentStatus;
+    const closeRoomStatus =
+      ['PAID_CONFIRMED', 'LAUNCHED', 'REJECTED'].includes(currentStatus)
+        ? currentStatus
+        : 'PAYMENT_SENT';
+    const nextStatus = input.status ?? (input.closeRoomAction === 'sent' ? closeRoomStatus : currentStatus);
     const nextMetadata = JSON.parse(
       JSON.stringify({
         ...metadata,
         operator: nextOperator,
         statusHistory:
-          input.status && input.status !== event.status
+          nextStatus !== currentStatus
             ? [
                 ...statusHistory.slice(-12),
                 {
                   from: currentStatus,
-                  to: input.status,
+                  to: nextStatus,
                   at: new Date().toISOString(),
                   by: auth.walletAddress,
+                  closeRoomAction: input.closeRoomAction ?? null,
                 },
               ]
             : statusHistory,
@@ -1305,8 +1331,8 @@ export async function PUT(request: NextRequest) {
     ]);
     const mappedIntake = mapIntakeEvent(updated, creatorCandidates, activationCampaigns);
 
-    if (input.status && input.status !== event.status) {
-      const funnelEventType = activationFunnelEventTypeForStatus(input.status);
+    if (nextStatus !== currentStatus) {
+      const funnelEventType = activationFunnelEventTypeForStatus(nextStatus);
       if (funnelEventType) {
         await recordActivationFunnelEvent({
           eventType: funnelEventType,
@@ -1324,6 +1350,8 @@ export async function PUT(request: NextRequest) {
             previousStatus: currentStatus,
             assignedVenue: mappedIntake.assignedVenue || null,
             assignedCreator: mappedIntake.assignedCreator || null,
+            closeRoomAction: input.closeRoomAction ?? null,
+            closeRoomHref: mappedIntake.closeRoom.href,
           },
         });
       }

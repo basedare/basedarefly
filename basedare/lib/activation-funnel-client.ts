@@ -5,7 +5,10 @@ type PublicActivationFunnelEvent =
   | 'ACTIVATION_CTA_CLICK'
   | 'ACTIVATION_SPARK_AUDIT_USED'
   | 'ACTIVATION_FORM_START'
-  | 'ACTIVATION_FORM_SUBMIT';
+  | 'ACTIVATION_FORM_SUBMIT'
+  | 'ACTIVATION_CLOSE_ROOM_OPEN'
+  | 'ACTIVATION_CLOSE_ROOM_PAYMENT_CLICK'
+  | 'ACTIVATION_CLOSE_ROOM_REPLY_CLICK';
 
 type ActivationFunnelPayloadValue = string | number | boolean | null | undefined;
 

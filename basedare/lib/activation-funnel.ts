@@ -13,6 +13,9 @@ export const ACTIVATION_PUBLIC_FUNNEL_EVENTS = [
   'ACTIVATION_SPARK_AUDIT_USED',
   'ACTIVATION_FORM_START',
   'ACTIVATION_FORM_SUBMIT',
+  'ACTIVATION_CLOSE_ROOM_OPEN',
+  'ACTIVATION_CLOSE_ROOM_PAYMENT_CLICK',
+  'ACTIVATION_CLOSE_ROOM_REPLY_CLICK',
 ] as const;
 
 export const ACTIVATION_STATUS_FUNNEL_EVENTS = [
@@ -162,6 +165,9 @@ function eventTitle(eventType: ActivationFunnelEventType) {
     ACTIVATION_SPARK_AUDIT_USED: 'Spark Audit used',
     ACTIVATION_FORM_START: 'Activation form started',
     ACTIVATION_FORM_SUBMIT: 'Activation form submitted',
+    ACTIVATION_CLOSE_ROOM_OPEN: 'Activation close room opened',
+    ACTIVATION_CLOSE_ROOM_PAYMENT_CLICK: 'Activation close room payment clicked',
+    ACTIVATION_CLOSE_ROOM_REPLY_CLICK: 'Activation close room reply clicked',
     ACTIVATION_STATUS_QUALIFIED: 'Activation intake qualified',
     ACTIVATION_STATUS_READY_TO_INVOICE: 'Activation intake ready to invoice',
     ACTIVATION_STATUS_PAYMENT_SENT: 'Activation payment sent',
