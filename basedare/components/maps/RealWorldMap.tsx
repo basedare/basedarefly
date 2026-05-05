@@ -642,6 +642,10 @@ function getMapLibreFirstSymbolLayerId(map: MapLibreMap) {
   return map.getStyle().layers?.find((layer) => layer.type === 'symbol')?.id;
 }
 
+function getMapLibreFirstLineLayerId(map: MapLibreMap) {
+  return map.getStyle().layers?.find((layer) => layer.type === 'line')?.id;
+}
+
 function getMapLibreVectorSourceId(map: MapLibreMap) {
   const sources = map.getStyle().sources as Record<string, { type?: string }> | undefined;
   if (!sources) return null;
@@ -1020,6 +1024,8 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
   ensureMapLibreSource(map, MAPLIBRE_FOOTPRINT_SOURCE_ID, emptyLineCollection());
 
   const firstSymbolLayerId = getMapLibreFirstSymbolLayerId(map);
+  const firstLineLayerId = getMapLibreFirstLineLayerId(map);
+  const zoneFillBeforeLayerId = firstLineLayerId ?? firstSymbolLayerId;
 
   const vectorSourceId = getMapLibreVectorSourceId(map);
   if (vectorSourceId) {
@@ -1071,32 +1077,37 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
       source: MAPLIBRE_CHAOS_SOURCE_ID,
       paint: {
         'fill-color': [
-          'match',
-          ['get', 'visualState'],
-          'hot',
-          '#ff2d55',
-          'active',
-          '#22d3ee',
-          'first-mark',
-          '#f8dd72',
-          'pending',
-          '#f59e0b',
-          '#b87fff',
+          'case',
+          ['==', ['get', 'matched'], true],
+          '#67e8f9',
+          [
+            'match',
+            ['get', 'visualState'],
+            'hot',
+            '#ff5c8a',
+            'active',
+            '#22d3ee',
+            'first-mark',
+            '#f8dd72',
+            'pending',
+            '#fbbf24',
+            '#2dd4bf',
+          ],
         ],
         'fill-opacity': [
           'interpolate',
           ['linear'],
           ['get', 'chaosLevel'],
           0,
-          0.004,
+          0.003,
           35,
-          preset === 'noir' ? 0.014 : 0.022,
+          preset === 'noir' ? 0.008 : 0.014,
           100,
-          preset === 'noir' ? 0.028 : 0.045,
+          preset === 'noir' ? 0.016 : 0.028,
         ],
       },
     },
-    firstSymbolLayerId
+    zoneFillBeforeLayerId
   );
 
   addMapLibreLayer(
@@ -1107,21 +1118,27 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
       source: MAPLIBRE_CHAOS_SOURCE_ID,
       paint: {
         'line-color': [
-          'match',
-          ['get', 'visualState'],
-          'hot',
-          '#ff6f91',
-          'active',
-          '#67e8f9',
-          'first-mark',
-          '#f8dd72',
-          'pending',
-          '#fbbf24',
-          '#c084fc',
+          'case',
+          ['==', ['get', 'matched'], true],
+          '#a5f3fc',
+          [
+            'match',
+            ['get', 'visualState'],
+            'hot',
+            '#ff6f91',
+            'active',
+            '#67e8f9',
+            'first-mark',
+            '#f8dd72',
+            'pending',
+            '#fbbf24',
+            '#5eead4',
+          ],
         ],
         'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.8, 15, 2.2],
-        'line-opacity': ['interpolate', ['linear'], ['get', 'chaosLevel'], 0, 0.14, 100, 0.5],
-        'line-blur': 0.65,
+        'line-opacity': ['interpolate', ['linear'], ['get', 'chaosLevel'], 0, 0.34, 100, 0.78],
+        'line-blur': 0.15,
+        'line-dasharray': [1.15, 1.25],
       },
     },
     firstSymbolLayerId
