@@ -9,6 +9,7 @@ import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { getRankedCampaignMatches } from '@/lib/campaign-matching';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
 import { getApprovedTagSummaryMap } from '@/lib/place-tags';
+import { markActivationIntakeLaunchedFromCampaign } from '@/lib/activation-funnel';
 import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
 import {
   BountyPlaceResolutionError,
@@ -755,6 +756,20 @@ export async function POST(request: NextRequest) {
           payoutPerCreator,
         },
       });
+
+      if (reportSource === 'activation-intake' && reportSessionKey) {
+        void markActivationIntakeLaunchedFromCampaign({
+          leadId: reportSessionKey,
+          campaignId: campaign.id,
+          campaignTitle: campaign.title,
+          venueId: campaign.venueId ?? venueId,
+          venueSlug: campaign.venue?.slug ?? null,
+          actor: brandWallet,
+          amount: totalBudget,
+        }).catch((error) => {
+          console.error('[CAMPAIGNS] Activation intake launch tracking failed:', error);
+        });
+      }
     }
 
     const campaignWithCounts = mapCampaignWithCounts(campaign as Parameters<typeof mapCampaignWithCounts>[0]);

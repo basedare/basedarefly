@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, Clipboard, Sparkles } from 'lucide-react';
 
+import { trackActivationFunnelEvent } from '@/lib/activation-funnel-client';
+
 type VenueType = 'beach' | 'bar' | 'cafe' | 'restaurant' | 'hotel' | 'gym' | 'event' | 'retail';
 type BuyerGoal = 'foot_traffic' | 'ugc' | 'launch' | 'event' | 'repeat_visits';
 
@@ -207,6 +209,25 @@ export default function SparkAuditGenerator() {
   const copyAudit = async () => {
     try {
       await navigator.clipboard.writeText(audit.summary);
+      void trackActivationFunnelEvent({
+        eventType: 'ACTIVATION_SPARK_AUDIT_USED',
+        target: 'copy-audit',
+        channel: 'spark-audit',
+        attribution: {
+          venueName: venueName.trim() || null,
+          packageId: 'pilot-drop',
+          budgetRange: '500_1500',
+          goal,
+          buyerType: 'venue',
+          source: 'spark-audit',
+        },
+        metadata: {
+          venueType,
+          city: city.trim() || null,
+          hasAudience: Boolean(audience.trim()),
+          hasVibe: Boolean(vibe.trim()),
+        },
+      });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -390,6 +411,29 @@ export default function SparkAuditGenerator() {
               </button>
               <Link
                 href={`/activations?${routeParams}#activation-intake`}
+                data-activation-track="use-spark-audit-as-pilot-brief"
+                data-activation-channel="spark-audit"
+                onClick={() => {
+                  void trackActivationFunnelEvent({
+                    eventType: 'ACTIVATION_SPARK_AUDIT_USED',
+                    target: 'use-as-pilot-brief',
+                    channel: 'spark-audit',
+                    attribution: {
+                      venueName: venueName.trim() || null,
+                      packageId: 'pilot-drop',
+                      budgetRange: '500_1500',
+                      goal,
+                      buyerType: 'venue',
+                      source: 'spark-audit',
+                    },
+                    metadata: {
+                      venueType,
+                      city: city.trim() || null,
+                      hasAudience: Boolean(audience.trim()),
+                      hasVibe: Boolean(vibe.trim()),
+                    },
+                  });
+                }}
                 className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-yellow-200/24 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200"
               >
                 Use this as pilot brief

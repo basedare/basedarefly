@@ -30,6 +30,28 @@ const ActivationBrandMemorySchema = z
     desiredFeeling: '',
   });
 
+const ActivationAttributionSchema = z
+  .object({
+    source: z.string().max(80).optional().nullable(),
+    routedSource: z.string().max(80).optional().nullable(),
+    venueSlug: z.string().max(180).optional().nullable(),
+    venueId: z.string().max(120).optional().nullable(),
+    venueName: z.string().max(180).optional().nullable(),
+    creator: z.string().max(120).optional().nullable(),
+    packageId: z.string().max(80).optional().nullable(),
+    budgetRange: z.string().max(80).optional().nullable(),
+    goal: z.string().max(80).optional().nullable(),
+    buyerType: z.string().max(80).optional().nullable(),
+    utmSource: z.string().max(120).optional().nullable(),
+    utmMedium: z.string().max(120).optional().nullable(),
+    utmCampaign: z.string().max(160).optional().nullable(),
+    utmContent: z.string().max(160).optional().nullable(),
+    utmTerm: z.string().max(160).optional().nullable(),
+    referrer: z.string().max(500).optional().nullable(),
+  })
+  .optional()
+  .default({});
+
 const ActivationIntakeSchema = z.object({
   company: z.string().min(2).max(140),
   contactName: z.string().min(2).max(120),
@@ -48,6 +70,8 @@ const ActivationIntakeSchema = z.object({
   routedVenueId: z.string().max(120).optional().default(''),
   routedVenueSlug: z.string().max(180).optional().default(''),
   routedSource: z.string().max(80).optional().default(''),
+  funnelSessionKey: z.string().max(200).optional().default(''),
+  activationAttribution: ActivationAttributionSchema,
   brandMemory: ActivationBrandMemorySchema,
 });
 
@@ -102,6 +126,17 @@ export async function POST(request: NextRequest) {
     const routedVenueId = normalizeText(input.routedVenueId || '');
     const routedVenueSlug = normalizeText(input.routedVenueSlug || '');
     const routedSource = normalizeText(input.routedSource || '');
+    const funnelSessionKey = normalizeText(input.funnelSessionKey || '');
+    const activationAttribution = {
+      ...input.activationAttribution,
+      source: normalizeText(input.activationAttribution.source || ''),
+      routedSource: normalizeText(input.activationAttribution.routedSource || ''),
+      venueSlug: normalizeText(input.activationAttribution.venueSlug || ''),
+      venueId: normalizeText(input.activationAttribution.venueId || ''),
+      venueName: normalizeText(input.activationAttribution.venueName || ''),
+      creator: normalizeText(input.activationAttribution.creator || ''),
+      funnelSessionKey,
+    };
     const notes = input.notes.trim();
     const brandMemory = normalizeActivationBrandMemory(input.brandMemory);
     const activationBrief = buildActivationStoryBrief({
@@ -119,7 +154,7 @@ export async function POST(request: NextRequest) {
     const event = await prisma.founderEvent.create({
       data: {
         eventType: 'ACTIVATION_INTAKE',
-        source: 'site',
+        source: routedSource || activationAttribution.source || 'site',
         subjectType: 'activation_lead',
         subjectId: null,
         dedupeKey: `activation-intake:${Date.now()}:${randomUUID()}`,
@@ -128,6 +163,7 @@ export async function POST(request: NextRequest) {
         status: 'NEW',
         actor: input.email.toLowerCase(),
         href: '/admin/activation-intakes',
+        venueSlug: routedVenueSlug || activationAttribution.venueSlug || null,
         metadataJson: {
           company,
           contactName,
@@ -145,6 +181,8 @@ export async function POST(request: NextRequest) {
           routedVenueId,
           routedVenueSlug,
           routedSource,
+          funnelSessionKey,
+          activationAttribution,
           brandMemory,
           activationBrief,
           clientIp,

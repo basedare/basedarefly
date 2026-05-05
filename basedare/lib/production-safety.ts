@@ -399,7 +399,12 @@ async function checkCronSchedules(checks: ProductionSafetyCheck[]) {
     };
     const crons = parsed.crons ?? [];
     const schedules = new Map(crons.map((cron) => [cron.path, cron.schedule]));
-    const missing = ['/api/cron/retry-payouts', '/api/cron/refund-expired', '/api/cron/venue-report-leads']
+    const missing = [
+      '/api/cron/retry-payouts',
+      '/api/cron/refund-expired',
+      '/api/cron/venue-report-leads',
+      '/api/cron/activation-intakes',
+    ]
       .filter((cronPath) => !schedules.get(cronPath));
 
     if (missing.length > 0) {
@@ -606,6 +611,11 @@ export async function buildMoneyRailsSettlementSnapshot(): Promise<MoneyRailsSet
         label: 'Expired refunds cron',
         path: '/api/cron/refund-expired',
         note: 'Run with CRON_SECRET; this delegates to the protected refund processor.',
+      },
+      {
+        label: 'Activation intake nudges cron',
+        path: '/api/cron/activation-intakes',
+        note: 'Run with CRON_SECRET to alert on high-intent paid activation leads missing follow-up.',
       },
       {
         label: 'Money rails runbook',

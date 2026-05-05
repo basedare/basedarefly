@@ -790,6 +790,52 @@ ${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.le
   return sendMessage(message);
 }
 
+export async function alertActivationIntakeFollowUpQueue(data: {
+  urgentCount: number;
+  minAgeHours: number;
+  leads: Array<{
+    leadId: string;
+    company: string;
+    contactName: string;
+    email: string;
+    city: string;
+    venue: string;
+    status: string;
+    budgetRange: string;
+    packageId: string;
+    source: string;
+    ageHours: number;
+    reasons: string[];
+  }>;
+}): Promise<boolean> {
+  const budgetLabels: Record<string, string> = {
+    '500_1500': '$500-$1.5k',
+    '1500_5000': '$1.5k-$5k',
+    '5000_15000': '$5k-$15k',
+    '15000_plus': '$15k+',
+  };
+  const preview = data.leads
+    .slice(0, 5)
+    .map((lead) => {
+      const target = [lead.venue, lead.city].filter(Boolean).join(' · ');
+      const reasons = lead.reasons.length ? lead.reasons.map((reason) => escapeHtml(reason)).join(', ') : 'no next action';
+      return `• <b>${escapeHtml(lead.company)}</b>${target ? ` · ${escapeHtml(target)}` : ''}\n  ${escapeHtml(lead.status)} · ${escapeHtml(budgetLabels[lead.budgetRange] || lead.budgetRange || 'budget unknown')} · ${escapeHtml(lead.packageId || 'package unknown')} · ${lead.ageHours}h old\n  ${escapeHtml(lead.email)} · ${escapeHtml(lead.source || 'direct')} · ${reasons}`;
+    })
+    .join('\n');
+
+  const message = `
+💸 <b>ACTIVATION FOLLOW-UP ALERT</b>
+
+${data.urgentCount} high-intent activation ${data.urgentCount === 1 ? 'lead has' : 'leads have'} no next action after ${data.minAgeHours}h.
+
+${preview}
+
+${htmlLink(appUrl('/admin/activation-intakes'), 'Open activation queue')} · ${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')}
+`.trim();
+
+  return sendMessage(message);
+}
+
 /**
  * Alert: Creator submitted a claim request for an open activation
  */

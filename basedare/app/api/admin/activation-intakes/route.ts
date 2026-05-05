@@ -3,6 +3,11 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
+import {
+  activationFunnelEventTypeForStatus,
+  buildActivationFunnelSummary,
+  recordActivationFunnelEvent,
+} from '@/lib/activation-funnel';
 import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { prisma } from '@/lib/prisma';
@@ -1163,6 +1168,7 @@ export async function GET(request: NextRequest) {
       fetchActivationReceiptCampaigns(),
     ]);
     const intakes = events.map((event) => mapIntakeEvent(event, creatorCandidates, activationCampaigns));
+    const funnel = await buildActivationFunnelSummary();
     const summary = INTAKE_STATUSES.reduce(
       (acc, status) => ({
         ...acc,
@@ -1183,6 +1189,7 @@ export async function GET(request: NextRequest) {
           needsInfo: summary.NEEDS_INFO,
           launched: summary.LAUNCHED,
           byStatus: summary,
+          funnel,
         },
         intakes,
       },
@@ -1299,6 +1306,28 @@ export async function PUT(request: NextRequest) {
     const mappedIntake = mapIntakeEvent(updated, creatorCandidates, activationCampaigns);
 
     if (input.status && input.status !== event.status) {
+      const funnelEventType = activationFunnelEventTypeForStatus(input.status);
+      if (funnelEventType) {
+        await recordActivationFunnelEvent({
+          eventType: funnelEventType,
+          source: 'activation-intake-admin',
+          subjectType: 'activation_lead',
+          subjectId: mappedIntake.id,
+          dedupeKey: `activation-status:${mappedIntake.id}:${input.status}`,
+          title: `${mappedIntake.company || 'Activation lead'} moved to ${mappedIntake.statusLabel}`,
+          amount: mappedIntake.amount,
+          status: mappedIntake.status,
+          actor: auth.walletAddress,
+          href: `/admin/activation-intakes?leadId=${encodeURIComponent(mappedIntake.id)}`,
+          venueSlug: mappedIntake.routeContext.venueSlug || null,
+          metadata: {
+            previousStatus: currentStatus,
+            assignedVenue: mappedIntake.assignedVenue || null,
+            assignedCreator: mappedIntake.assignedCreator || null,
+          },
+        });
+      }
+
       void alertActivationIntakeStatusUpdate({
         leadId: mappedIntake.id,
         company: mappedIntake.company,

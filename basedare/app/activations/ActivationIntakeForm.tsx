@@ -5,6 +5,11 @@ import type { FormEvent } from 'react';
 import { Loader2, Send, Sparkles } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
+import {
+  getActivationFunnelAttribution,
+  getActivationFunnelSessionKey,
+  trackActivationFunnelEvent,
+} from '@/lib/activation-funnel-client';
 
 type IntakeState = {
   company: string;
@@ -139,6 +144,7 @@ export default function ActivationIntakeForm({
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(null);
+  const formStartTrackedRef = useRef(false);
   const hasRoutedContext = Boolean(
     form.routedCreator ||
     form.routedVenueId ||
@@ -246,7 +252,29 @@ export default function ActivationIntakeForm({
     routedAuditBrief,
   ]);
 
+  const trackFormStart = () => {
+    if (formStartTrackedRef.current) return;
+    formStartTrackedRef.current = true;
+    void trackActivationFunnelEvent({
+      eventType: 'ACTIVATION_FORM_START',
+      target: 'activation-intake-form',
+      channel: 'activation-intake',
+      attribution: {
+        source: form.routedSource || undefined,
+        venueId: form.routedVenueId || undefined,
+        venueSlug: form.routedVenueSlug || undefined,
+        venueName: form.venue || undefined,
+        creator: form.routedCreator || undefined,
+        packageId: form.packageId,
+        budgetRange: form.budgetRange,
+        goal: form.goal,
+        buyerType: form.buyerType,
+      },
+    });
+  };
+
   const updateField = <Key extends keyof IntakeState>(key: Key, value: IntakeState[Key]) => {
+    trackFormStart();
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -254,6 +282,7 @@ export default function ActivationIntakeForm({
     key: Key,
     value: IntakeState['brandMemory'][Key]
   ) => {
+    trackFormStart();
     setForm((current) => ({
       ...current,
       brandMemory: {
@@ -284,12 +313,51 @@ export default function ActivationIntakeForm({
     setError(null);
 
     try {
+      void trackActivationFunnelEvent({
+        eventType: 'ACTIVATION_FORM_SUBMIT',
+        target: 'activation-intake-form',
+        channel: 'activation-intake',
+        attribution: {
+          source: form.routedSource || undefined,
+          venueId: form.routedVenueId || undefined,
+          venueSlug: form.routedVenueSlug || undefined,
+          venueName: form.venue || undefined,
+          creator: form.routedCreator || undefined,
+          packageId: form.packageId,
+          budgetRange: form.budgetRange,
+          goal: form.goal,
+          buyerType: form.buyerType,
+        },
+        metadata: {
+          hasBrandMemory: Boolean(
+            form.brandMemory.originStory ||
+            form.brandMemory.audience ||
+            form.brandMemory.vibe ||
+            form.brandMemory.rituals
+          ),
+        },
+      });
+
       const response = await fetch('/api/activation-intake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          funnelSessionKey: getActivationFunnelSessionKey(),
+          activationAttribution: getActivationFunnelAttribution({
+            source: form.routedSource || undefined,
+            venueId: form.routedVenueId || undefined,
+            venueSlug: form.routedVenueSlug || undefined,
+            venueName: form.venue || undefined,
+            creator: form.routedCreator || undefined,
+            packageId: form.packageId,
+            budgetRange: form.budgetRange,
+            goal: form.goal,
+            buyerType: form.buyerType,
+          }),
+        }),
       });
       const payload = await response.json();
 
@@ -299,6 +367,7 @@ export default function ActivationIntakeForm({
 
       setSubmittedId(payload.data?.id || 'received');
       setForm(INITIAL_STATE);
+      formStartTrackedRef.current = false;
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to route activation request');
     } finally {

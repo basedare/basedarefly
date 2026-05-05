@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BadgeDollarSign, BarChart3, CheckCircle2, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
 
+import ActivationFunnelTracker from './ActivationFunnelTracker';
 import ActivationIntakeForm from './ActivationIntakeForm';
 import SparkAuditGenerator from './SparkAuditGenerator';
 import SquircleLink from '@/components/ui/SquircleLink';
@@ -110,6 +111,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
 
   return (
     <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
+      <ActivationFunnelTracker />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.06),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0)_26%,rgba(0,0,0,0.82)_100%)]" />
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-44 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
@@ -118,6 +120,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
         <div className="mb-5 flex items-center justify-between gap-3">
           <Link
             href="/?mode=control"
+            data-activation-track="back-to-control"
+            data-activation-channel="header"
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -125,6 +129,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
           </Link>
           <Link
             href="/brands/portal"
+            data-activation-track="open-brand-portal-header"
+            data-activation-channel="header"
             className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
           >
             Brand Portal
@@ -150,8 +156,18 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <div className="w-full sm:w-[284px]">
-                  <SquircleLink href="#activation-intake" tone="yellow" label="Launch Grid Activation" fullWidth height={44}>
+                <div
+                  className="w-full sm:w-[284px]"
+                  data-activation-track="launch-grid-activation"
+                  data-activation-channel="hero"
+                >
+                  <SquircleLink
+                    href="#activation-intake"
+                    tone="yellow"
+                    label="Launch Grid Activation"
+                    fullWidth
+                    height={44}
+                  >
                     <span className="flex items-center justify-center gap-2 text-[0.78rem] tracking-[0.08em] text-[#15120c]">
                       Launch Grid Activation
                       <ArrowRight className="h-4 w-4" />
@@ -160,6 +176,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                 </div>
                 <Link
                   href="/brands/portal"
+                  data-activation-track="open-brand-portal-hero"
+                  data-activation-channel="hero"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   Open Brand Portal

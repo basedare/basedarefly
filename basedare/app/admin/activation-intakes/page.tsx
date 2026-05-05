@@ -141,6 +141,40 @@ type IntakePayload = {
     needsInfo: number;
     launched: number;
     byStatus: Record<IntakeStatus, number>;
+    funnel: {
+      periodDays: number;
+      generatedAt: string;
+      sparkAudits: number;
+      submittedAmount: number;
+      steps: Array<{
+        key: string;
+        label: string;
+        value: number;
+        hint: string;
+        conversionFromPrevious: number | null;
+      }>;
+      attribution: {
+        topSources: Array<{ label: string; count: number }>;
+        topPackages: Array<{ label: string; count: number }>;
+      };
+      stuck: {
+        count: number;
+        minAgeHours: number;
+        top: {
+          id: string;
+          company: string;
+          email: string;
+          city: string;
+          venue: string;
+          status: string;
+          ageHours: number;
+          priority: {
+            score: number;
+            reasons: string[];
+          };
+        } | null;
+      };
+    };
   };
   intakes: ActivationIntake[];
 };
@@ -190,6 +224,16 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function formatFunnelConversion(value: number | null) {
+  return value === null ? 'n/a' : `${value}%`;
+}
+
+function formatCompactMoney(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '$0';
+  if (value >= 1000) return `$${Math.round(value / 100) / 10}k`;
+  return `$${Math.round(value)}`;
 }
 
 function formatNextActionInput(value: string) {
@@ -336,7 +380,7 @@ function buildLaunchOperatorNote(intake: ActivationIntake, assignedVenue: string
 }
 
 export default function ActivationIntakesPage() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const [payload, setPayload] = useState<IntakePayload | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [drafts, setDrafts] = useState<Record<string, IntakeDraft>>({});
@@ -447,6 +491,7 @@ export default function ActivationIntakesPage() {
           needsInfo: byStatus.NEEDS_INFO,
           launched: byStatus.LAUNCHED,
           byStatus,
+          funnel: current.summary.funnel,
         },
         intakes: nextIntakes,
       };
@@ -693,6 +738,109 @@ export default function ActivationIntakesPage() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-black/46 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_rgba(0,0,0,0.34)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/72">
+                    <ListChecks className="h-4 w-4" />
+                    Revenue funnel
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">
+                    Views to paid activation
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-white/52">
+                    Last {payload.summary.funnel.periodDays} days. Submissions use real intake records, so older
+                    leads still count even if page tracking only started today.
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[420px]">
+                  <div className="rounded-[1.2rem] border border-yellow-300/18 bg-yellow-300/[0.08] px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100/60">Spark audits</p>
+                    <p className="mt-1 text-2xl font-black text-yellow-100">{payload.summary.funnel.sparkAudits}</p>
+                  </div>
+                  <div className="rounded-[1.2rem] border border-emerald-300/18 bg-emerald-300/[0.08] px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/60">Pipeline floor</p>
+                    <p className="mt-1 text-2xl font-black text-emerald-100">
+                      {formatCompactMoney(payload.summary.funnel.submittedAmount)}
+                    </p>
+                  </div>
+                  <div className={`rounded-[1.2rem] border px-4 py-3 ${
+                    payload.summary.funnel.stuck.count > 0
+                      ? 'border-red-300/24 bg-red-500/[0.08]'
+                      : 'border-white/10 bg-white/[0.04]'
+                  }`}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/42">Stuck warm</p>
+                    <p className="mt-1 text-2xl font-black text-white">{payload.summary.funnel.stuck.count}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+                {payload.summary.funnel.steps.map((step) => (
+                  <div
+                    key={step.key}
+                    className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/38">{step.label}</p>
+                    <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-white">{step.value}</p>
+                    <p className="mt-2 rounded-full border border-white/10 bg-black/28 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/42">
+                      {formatFunnelConversion(step.conversionFromPrevious)}
+                    </p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-white/38">{step.hint}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1.15fr]">
+                <div className="rounded-[1.4rem] border border-white/10 bg-black/28 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/40">Top sources</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(payload.summary.funnel.attribution.topSources.length
+                      ? payload.summary.funnel.attribution.topSources
+                      : [{ label: 'none yet', count: 0 }]
+                    ).map((source) => (
+                      <span key={source.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/54">
+                        {source.label} {source.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-[1.4rem] border border-white/10 bg-black/28 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/40">Top packages</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(payload.summary.funnel.attribution.topPackages.length
+                      ? payload.summary.funnel.attribution.topPackages
+                      : [{ label: 'none yet', count: 0 }]
+                    ).map((activationPackage) => (
+                      <span key={activationPackage.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/54">
+                        {activationPackage.label} {activationPackage.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-[1.4rem] border border-white/10 bg-black/28 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/40">Warm lead discipline</p>
+                  {payload.summary.funnel.stuck.top ? (
+                    <div className="mt-3">
+                      <Link
+                        href={`/admin/activation-intakes?leadId=${encodeURIComponent(payload.summary.funnel.stuck.top.id)}`}
+                        className="text-sm font-black text-yellow-100 underline-offset-4 hover:underline"
+                      >
+                        {payload.summary.funnel.stuck.top.company}
+                      </Link>
+                      <p className="mt-1 text-xs font-bold leading-5 text-white/48">
+                        {payload.summary.funnel.stuck.top.ageHours}h old · {payload.summary.funnel.stuck.top.status.toLowerCase().replace(/_/g, ' ')} · {payload.summary.funnel.stuck.top.priority.reasons.join(', ') || 'needs owner'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs font-bold leading-5 text-white/42">
+                      No high-intent activation is missing a follow-up action past {payload.summary.funnel.stuck.minAgeHours}h.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
