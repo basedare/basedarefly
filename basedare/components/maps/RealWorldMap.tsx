@@ -5307,7 +5307,7 @@ export default function RealWorldMap() {
             ) : null}
             {showNearbyDareTray ? (
               <div className={`nearby-dare-tray absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}>
-                {isMobileViewport && nearbyDarePanelCollapsed ? (
+                {nearbyDarePanelCollapsed ? (
                   <button
                     type="button"
                     onClick={() => setNearbyDarePanelCollapsed(false)}
@@ -5418,7 +5418,7 @@ export default function RealWorldMap() {
                   </div>
                 </div>
                 {!nearbyDarePanelCollapsed ? (
-                <div className={`nearby-dare-tray-list px-2 py-2 ${isMobileViewport ? 'max-h-[34dvh] overflow-y-auto' : ''}`}>
+                <div className="nearby-dare-tray-list px-2 py-2">
                   {showLocalSignalForm ? (
                     <form
                       onSubmit={(event) => {
@@ -5859,6 +5859,146 @@ export default function RealWorldMap() {
                           {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                         </span>
                       </div>
+                      <div
+                        className={`venue-action-rail venue-action-rail--primary mt-3 grid gap-2 ${
+                          selectedPlace.slug ? 'grid-cols-[0.86fr_1fr_1.18fr]' : 'grid-cols-2'
+                        }`}
+                      >
+                        <TagPlaceButton
+                          placeId={selectedPlace.placeId}
+                          placeName={selectedPlace.name}
+                          latitude={selectedPlace.latitude}
+                          longitude={selectedPlace.longitude}
+                          address={selectedPlace.address}
+                          city={selectedPlace.city}
+                          country={selectedPlace.country}
+                          placeSource={selectedPlace.placeSource}
+                          externalPlaceId={selectedPlace.externalPlaceId}
+                          onPlaceResolved={(place) => {
+                            setSelectedPlace((current) => ({
+                              placeId: place.id,
+                              slug: place.slug,
+                              name: place.name,
+                              address:
+                                place.address ??
+                                [place.city, place.country].filter(Boolean).join(', ') ??
+                                current?.address ??
+                                null,
+                              city: place.city,
+                              country: place.country,
+                              latitude: place.latitude,
+                              longitude: place.longitude,
+                              categories: current?.categories ?? null,
+                              placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+                              externalPlaceId:
+                                current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+                              approvedCount: current?.approvedCount ?? 0,
+                              heatScore: current?.heatScore ?? 0,
+                              lastTaggedAt: current?.lastTaggedAt ?? null,
+                              activeDareCount: current?.activeDareCount ?? 0,
+                            }));
+                            setTargetCenter([place.latitude, place.longitude]);
+                            setTargetZoom(15);
+                          }}
+                          onTagSubmitted={(tag) => {
+                            setPendingPlaceTags((current) => [
+                              {
+                                ...tag,
+                                placeId: selectedPlace?.placeId ?? tag.placeId,
+                              },
+                              ...current.filter((item) => item.tagId !== tag.tagId),
+                            ]);
+                            setCeremonyState({
+                              kind: 'pending',
+                              title: 'Your mark is pending',
+                              body: tag.firstMark
+                                ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
+                                : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
+                            });
+                          }}
+                          buttonVariant="jelly"
+                          buttonClassName="map-jelly-action"
+                        />
+
+                        <CreatePlaceChallengeButton
+                          placeId={selectedPlace.placeId}
+                          placeName={selectedPlace.name}
+                          latitude={selectedPlace.latitude}
+                          longitude={selectedPlace.longitude}
+                          address={selectedPlace.address}
+                          city={selectedPlace.city}
+                          country={selectedPlace.country}
+                          categories={selectedPlace.categories}
+                          placeSource={selectedPlace.placeSource}
+                          externalPlaceId={selectedPlace.externalPlaceId}
+                          onPlaceResolved={(place) => {
+                            setSelectedPlace((current) => ({
+                              placeId: place.id,
+                              slug: place.slug,
+                              name: place.name,
+                              address:
+                                place.address ??
+                                [place.city, place.country].filter(Boolean).join(', ') ??
+                                current?.address ??
+                                null,
+                              city: place.city,
+                              country: place.country,
+                              latitude: place.latitude,
+                              longitude: place.longitude,
+                              categories: current?.categories ?? null,
+                              placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+                              externalPlaceId:
+                                current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+                              approvedCount: current?.approvedCount ?? 0,
+                              heatScore: current?.heatScore ?? 0,
+                              lastTaggedAt: current?.lastTaggedAt ?? null,
+                              activeDareCount: current?.activeDareCount ?? 0,
+                            }));
+                            setTargetCenter([place.latitude, place.longitude]);
+                            setTargetZoom(15);
+                          }}
+                          onChallengeCreated={({ result }) => {
+                            setSelectedPlace((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    activeDareCount: (current.activeDareCount ?? 0) + 1,
+                                  }
+                                : current
+                            );
+                            if (selectedPlace.slug) {
+                              void loadSelectedPlaceVenueDetail(selectedPlace.slug, undefined, { silent: true });
+                            }
+                            setCeremonyState({
+                              kind: 'alive-upgrade',
+                              title: 'Challenge live',
+                              body: result.isOpenBounty
+                                ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
+                                : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
+                            });
+                          }}
+                          buttonVariant="jelly"
+                          buttonClassName="map-jelly-action"
+                        />
+
+                        {selectedPlace.slug ? (
+                          <SquircleLink
+                            href={`/venues/${selectedPlace.slug}${
+                              isCreatorSource
+                                ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
+                                : ''
+                            }`}
+                            tone="purple"
+                            label="Open venue"
+                            fullWidth
+                            height={44}
+                            className="map-jelly-action"
+                            labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
+                          >
+                            <span className="map-jelly-action-label">Open venue</span>
+                          </SquircleLink>
+                        ) : null}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -5877,7 +6017,7 @@ export default function RealWorldMap() {
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
-                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 7.5rem)' } : undefined}
+                    style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
 
                   {ceremonyState ? (
@@ -6731,146 +6871,6 @@ export default function RealWorldMap() {
                     )}
                   </div>
 
-                  <div
-                    className={`venue-action-rail mt-3 grid gap-2 sm:mt-4 sm:gap-3 ${
-                      selectedPlace.slug ? 'grid-cols-[0.86fr_1fr_1.18fr]' : 'grid-cols-2'
-                    }`}
-                  >
-                    <TagPlaceButton
-                      placeId={selectedPlace.placeId}
-                      placeName={selectedPlace.name}
-                      latitude={selectedPlace.latitude}
-                      longitude={selectedPlace.longitude}
-                      address={selectedPlace.address}
-                      city={selectedPlace.city}
-                      country={selectedPlace.country}
-                      placeSource={selectedPlace.placeSource}
-                      externalPlaceId={selectedPlace.externalPlaceId}
-                      onPlaceResolved={(place) => {
-                        setSelectedPlace((current) => ({
-                          placeId: place.id,
-                          slug: place.slug,
-                          name: place.name,
-                          address:
-                            place.address ??
-                            [place.city, place.country].filter(Boolean).join(', ') ??
-                            current?.address ??
-                            null,
-                          city: place.city,
-                          country: place.country,
-                          latitude: place.latitude,
-                          longitude: place.longitude,
-                          categories: current?.categories ?? null,
-                          placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
-                          externalPlaceId:
-                            current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
-                          approvedCount: current?.approvedCount ?? 0,
-                          heatScore: current?.heatScore ?? 0,
-                          lastTaggedAt: current?.lastTaggedAt ?? null,
-                          activeDareCount: current?.activeDareCount ?? 0,
-                        }));
-                        setTargetCenter([place.latitude, place.longitude]);
-                        setTargetZoom(15);
-                      }}
-                      onTagSubmitted={(tag) => {
-                        setPendingPlaceTags((current) => [
-                          {
-                            ...tag,
-                            placeId: selectedPlace?.placeId ?? tag.placeId,
-                          },
-                          ...current.filter((item) => item.tagId !== tag.tagId),
-                        ]);
-                        setCeremonyState({
-                          kind: 'pending',
-                          title: 'Your mark is pending',
-                          body: tag.firstMark
-                            ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
-                            : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
-                        });
-                      }}
-                      buttonVariant="jelly"
-                      buttonClassName="map-jelly-action"
-                    />
-
-                    <CreatePlaceChallengeButton
-                      placeId={selectedPlace.placeId}
-                      placeName={selectedPlace.name}
-                      latitude={selectedPlace.latitude}
-                      longitude={selectedPlace.longitude}
-                      address={selectedPlace.address}
-                      city={selectedPlace.city}
-                      country={selectedPlace.country}
-                      categories={selectedPlace.categories}
-                      placeSource={selectedPlace.placeSource}
-                      externalPlaceId={selectedPlace.externalPlaceId}
-                      onPlaceResolved={(place) => {
-                        setSelectedPlace((current) => ({
-                          placeId: place.id,
-                          slug: place.slug,
-                          name: place.name,
-                          address:
-                            place.address ??
-                            [place.city, place.country].filter(Boolean).join(', ') ??
-                            current?.address ??
-                            null,
-                          city: place.city,
-                          country: place.country,
-                          latitude: place.latitude,
-                          longitude: place.longitude,
-                          categories: current?.categories ?? null,
-                          placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
-                          externalPlaceId:
-                            current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
-                          approvedCount: current?.approvedCount ?? 0,
-                          heatScore: current?.heatScore ?? 0,
-                          lastTaggedAt: current?.lastTaggedAt ?? null,
-                          activeDareCount: current?.activeDareCount ?? 0,
-                        }));
-                        setTargetCenter([place.latitude, place.longitude]);
-                        setTargetZoom(15);
-                      }}
-                      onChallengeCreated={({ result }) => {
-                        setSelectedPlace((current) =>
-                          current
-                            ? {
-                                ...current,
-                                activeDareCount: (current.activeDareCount ?? 0) + 1,
-                              }
-                            : current
-                        );
-                        if (selectedPlace.slug) {
-                          void loadSelectedPlaceVenueDetail(selectedPlace.slug, undefined, { silent: true });
-                        }
-                        setCeremonyState({
-                          kind: 'alive-upgrade',
-                          title: 'Challenge live',
-                          body: result.isOpenBounty
-                            ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
-                            : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
-                        });
-                      }}
-                      buttonVariant="jelly"
-                      buttonClassName="map-jelly-action"
-                    />
-
-                    {selectedPlace.slug ? (
-                      <SquircleLink
-                        href={`/venues/${selectedPlace.slug}${
-                          isCreatorSource
-                            ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
-                            : ''
-                        }`}
-                        tone="purple"
-                        label="Open venue"
-                        fullWidth
-                        height={44}
-                        className="map-jelly-action"
-                        labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
-                      >
-                        <span className="map-jelly-action-label">Open venue</span>
-                      </SquircleLink>
-                    ) : null}
-                  </div>
                   </div>
                   </div>
                 </div>
@@ -6891,6 +6891,37 @@ export default function RealWorldMap() {
           max-height: calc(100% - 16px);
         }
 
+        .nearby-dare-tray {
+          display: flex;
+          max-height: calc(100% - 1.5rem);
+          flex-direction: column;
+        }
+
+        .nearby-dare-tray-list {
+          flex: 1 1 auto;
+          min-height: 0;
+          max-height: min(42dvh, 24rem);
+          overflow-y: auto;
+          scrollbar-color: rgba(245, 197, 24, 0.34) transparent;
+          scrollbar-width: thin;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-y: contain;
+          touch-action: pan-y;
+        }
+
+        .nearby-dare-tray-list::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .nearby-dare-tray-list::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .nearby-dare-tray-list::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: rgba(245, 197, 24, 0.32);
+        }
+
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
             bottom: calc(0.75rem + env(safe-area-inset-bottom));
@@ -6898,17 +6929,16 @@ export default function RealWorldMap() {
           }
 
           .selected-place-panel-content {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem) !important;
-            scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 7.5rem);
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem) !important;
+            scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem);
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: auto;
             touch-action: pan-y;
           }
 
           .nearby-dare-tray-list {
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: auto;
-            touch-action: pan-y;
+            max-height: 34dvh;
+            overflow-y: auto;
           }
 
           .map-signal-rail {
