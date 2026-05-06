@@ -2366,6 +2366,7 @@ export default function RealWorldMap() {
   const [localSignalsLoading, setLocalSignalsLoading] = useState(false);
   const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [selectedPlacePanelExpanded, setSelectedPlacePanelExpanded] = useState(false);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [userHeading, setUserHeading] = useState<number | null>(null);
@@ -2415,6 +2416,11 @@ export default function RealWorldMap() {
   const deepLinkedDareShortId = searchParams.get('dare');
   const showTraceParam = searchParams.get('trace') === '1';
   const showMatchesParam = searchParams.get('matches') === '1';
+  const selectedPlaceIdentity = selectedPlace
+    ? selectedPlace.placeId ??
+      selectedPlace.slug ??
+      `${selectedPlace.latitude.toFixed(5)}:${selectedPlace.longitude.toFixed(5)}`
+    : null;
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
@@ -2554,6 +2560,15 @@ export default function RealWorldMap() {
 
     setNearbyDarePanelCollapsed(true);
   }, [isMobileViewport, selectedPlace]);
+
+  useEffect(() => {
+    if (!selectedPlaceIdentity || !isMobileViewport) {
+      setSelectedPlacePanelExpanded(false);
+      return;
+    }
+
+    setSelectedPlacePanelExpanded(false);
+  }, [isMobileViewport, selectedPlaceIdentity]);
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -3204,16 +3219,27 @@ export default function RealWorldMap() {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapReady || !targetCenter) return;
+    const targetOffset = isMobileViewport
+      ? ([
+          0,
+          isImmersiveMobile
+            ? selectedPlacePanelExpanded
+              ? -170
+              : -118
+            : -96,
+        ] as [number, number])
+      : undefined;
 
     map.flyTo({
       center: [targetCenter[1], targetCenter[0]],
       zoom: targetZoom ?? map.getZoom(),
       pitch: isMobileViewport ? 54 : DEFAULT_MAP_PITCH,
       bearing: map.getBearing() || DEFAULT_MAP_BEARING,
+      offset: targetOffset,
       duration: 900,
       essential: true,
     });
-  }, [isMobileViewport, mapReady, targetCenter, targetZoom]);
+  }, [isImmersiveMobile, isMobileViewport, mapReady, selectedPlacePanelExpanded, targetCenter, targetZoom]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -4169,8 +4195,13 @@ export default function RealWorldMap() {
   const nearbyRadiusOptions = [2, 5, 10, 20];
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
+  const showCompactSelectedPlacePanel = Boolean(
+    isImmersiveMobile && selectedPlace && !selectedPlacePanelExpanded
+  );
   const selectedPlacePanelWrapClass = isMobileViewport
-    ? 'selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30'
+    ? `selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30 ${
+        showCompactSelectedPlacePanel ? 'selected-place-panel-wrap--compact' : ''
+      }`
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
@@ -4672,6 +4703,7 @@ export default function RealWorldMap() {
   const handleMapFullscreenToggle = useCallback(() => {
     triggerHaptic('selection');
     setNearbyDarePanelCollapsed(true);
+    setSelectedPlacePanelExpanded(false);
     setIsMapFullscreenMobile((current) => !current);
   }, []);
 
@@ -4992,6 +5024,148 @@ export default function RealWorldMap() {
       ) : null}
     </>
   );
+  const selectedPlaceActionRail = selectedPlace ? (
+    <div
+      className={`venue-action-rail venue-action-rail--primary ${
+        showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
+      } mt-3 grid gap-1.5 ${selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'}`}
+    >
+      <TagPlaceButton
+        placeId={selectedPlace.placeId}
+        placeName={selectedPlace.name}
+        latitude={selectedPlace.latitude}
+        longitude={selectedPlace.longitude}
+        address={selectedPlace.address}
+        city={selectedPlace.city}
+        country={selectedPlace.country}
+        placeSource={selectedPlace.placeSource}
+        externalPlaceId={selectedPlace.externalPlaceId}
+        onPlaceResolved={(place) => {
+          setSelectedPlace((current) => ({
+            placeId: place.id,
+            slug: place.slug,
+            name: place.name,
+            address:
+              place.address ??
+              [place.city, place.country].filter(Boolean).join(', ') ??
+              current?.address ??
+              null,
+            city: place.city,
+            country: place.country,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            categories: current?.categories ?? null,
+            placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+            externalPlaceId:
+              current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+            approvedCount: current?.approvedCount ?? 0,
+            heatScore: current?.heatScore ?? 0,
+            lastTaggedAt: current?.lastTaggedAt ?? null,
+            activeDareCount: current?.activeDareCount ?? 0,
+          }));
+          setTargetCenter([place.latitude, place.longitude]);
+          setTargetZoom(15);
+        }}
+        onTagSubmitted={(tag) => {
+          setPendingPlaceTags((current) => [
+            {
+              ...tag,
+              placeId: selectedPlace?.placeId ?? tag.placeId,
+            },
+            ...current.filter((item) => item.tagId !== tag.tagId),
+          ]);
+          setCeremonyState({
+            kind: 'pending',
+            title: 'Your mark is pending',
+            body: tag.firstMark
+              ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
+              : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
+          });
+        }}
+        buttonVariant="jelly"
+        buttonClassName="map-jelly-action"
+      />
+
+      <CreatePlaceChallengeButton
+        placeId={selectedPlace.placeId}
+        placeName={selectedPlace.name}
+        latitude={selectedPlace.latitude}
+        longitude={selectedPlace.longitude}
+        address={selectedPlace.address}
+        city={selectedPlace.city}
+        country={selectedPlace.country}
+        categories={selectedPlace.categories}
+        placeSource={selectedPlace.placeSource}
+        externalPlaceId={selectedPlace.externalPlaceId}
+        onPlaceResolved={(place) => {
+          setSelectedPlace((current) => ({
+            placeId: place.id,
+            slug: place.slug,
+            name: place.name,
+            address:
+              place.address ??
+              [place.city, place.country].filter(Boolean).join(', ') ??
+              current?.address ??
+              null,
+            city: place.city,
+            country: place.country,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            categories: current?.categories ?? null,
+            placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
+            externalPlaceId:
+              current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
+            approvedCount: current?.approvedCount ?? 0,
+            heatScore: current?.heatScore ?? 0,
+            lastTaggedAt: current?.lastTaggedAt ?? null,
+            activeDareCount: current?.activeDareCount ?? 0,
+          }));
+          setTargetCenter([place.latitude, place.longitude]);
+          setTargetZoom(15);
+        }}
+        onChallengeCreated={({ result }) => {
+          setSelectedPlace((current) =>
+            current
+              ? {
+                  ...current,
+                  activeDareCount: (current.activeDareCount ?? 0) + 1,
+                }
+              : current
+          );
+          if (selectedPlace.slug) {
+            void loadSelectedPlaceVenueDetail(selectedPlace.slug, undefined, { silent: true });
+          }
+          setCeremonyState({
+            kind: 'alive-upgrade',
+            title: 'Challenge live',
+            body: result.isOpenBounty
+              ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
+              : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
+          });
+        }}
+        buttonVariant="jelly"
+        buttonClassName="map-jelly-action"
+      />
+
+      {selectedPlace.slug ? (
+        <SquircleLink
+          href={`/venues/${selectedPlace.slug}${
+            isCreatorSource
+              ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
+              : ''
+          }`}
+          tone="purple"
+          label="Open venue"
+          fullWidth
+          height={44}
+          className="map-jelly-action"
+          labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
+        >
+          <span className="map-jelly-action-label">Open venue</span>
+        </SquircleLink>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <section
@@ -5851,6 +6025,88 @@ export default function RealWorldMap() {
 
             {selectedPlace ? (
               <div className={selectedPlacePanelWrapClass}>
+                {showCompactSelectedPlacePanel ? (
+                  <div className={`${mapPanelShellClass} selected-place-compact-dock place-panel-popup`}>
+                    <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.16),transparent_26%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.15),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.055)_0%,transparent_38%,rgba(0,0,0,0.2)_100%)]" />
+                    <div className="pointer-events-none absolute inset-[1px] rounded-[25px] border border-white/6" />
+                    <div className="relative z-10 px-3 pb-3 pt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('selection');
+                          setSelectedPlacePanelExpanded(true);
+                        }}
+                        className="mx-auto mb-2 block h-1.5 w-14 rounded-full bg-white/18 transition hover:bg-white/28"
+                        aria-label="Expand venue details"
+                        title="Expand venue details"
+                      />
+                      <div className="flex items-start gap-3">
+                        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13),rgba(5,7,15,0.92))] text-xl shadow-[0_14px_26px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                          {selectedVenueProfile?.profileImageUrl ? (
+                            <Image
+                              src={selectedVenueProfile.profileImageUrl}
+                              alt=""
+                              fill
+                              sizes="44px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <span aria-hidden="true">
+                              {selectedVenueProfile?.primaryLegend.emoji ?? '*'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-[1.05rem] font-black leading-tight text-white">
+                                {selectedPlace.name}
+                              </p>
+                              <p className="mt-1 line-clamp-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/58">
+                                {selectedVenueProfile?.tagline ?? selectedVisualCopy.label}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerHaptic('selection');
+                                  setSelectedPlacePanelExpanded(true);
+                                }}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] text-[#f8dd72] shadow-[0_10px_20px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]"
+                                aria-label="Expand venue details"
+                                title="Expand venue details"
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerHaptic('selection');
+                                  setSelectedPlace(null);
+                                }}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] text-white/70 shadow-[0_10px_20px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                                aria-label="Close place panel"
+                                title="Close place panel"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex min-w-0 items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-[12px] leading-snug text-white/58">
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
+                            <span className="truncate">
+                              {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {selectedPlaceActionRail}
+                    </div>
+                  </div>
+                ) : (
                 <div className={`${mapPanelShellClass} place-panel-popup`}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
@@ -5956,159 +6212,36 @@ export default function RealWorldMap() {
                           {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                         </span>
                       </div>
-                      <div
-                        className={`venue-action-rail venue-action-rail--primary mt-3 grid gap-1.5 ${
-                          selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'
-                        }`}
-                      >
-                        <TagPlaceButton
-                          placeId={selectedPlace.placeId}
-                          placeName={selectedPlace.name}
-                          latitude={selectedPlace.latitude}
-                          longitude={selectedPlace.longitude}
-                          address={selectedPlace.address}
-                          city={selectedPlace.city}
-                          country={selectedPlace.country}
-                          placeSource={selectedPlace.placeSource}
-                          externalPlaceId={selectedPlace.externalPlaceId}
-                          onPlaceResolved={(place) => {
-                            setSelectedPlace((current) => ({
-                              placeId: place.id,
-                              slug: place.slug,
-                              name: place.name,
-                              address:
-                                place.address ??
-                                [place.city, place.country].filter(Boolean).join(', ') ??
-                                current?.address ??
-                                null,
-                              city: place.city,
-                              country: place.country,
-                              latitude: place.latitude,
-                              longitude: place.longitude,
-                              categories: current?.categories ?? null,
-                              placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
-                              externalPlaceId:
-                                current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
-                              approvedCount: current?.approvedCount ?? 0,
-                              heatScore: current?.heatScore ?? 0,
-                              lastTaggedAt: current?.lastTaggedAt ?? null,
-                              activeDareCount: current?.activeDareCount ?? 0,
-                            }));
-                            setTargetCenter([place.latitude, place.longitude]);
-                            setTargetZoom(15);
-                          }}
-                          onTagSubmitted={(tag) => {
-                            setPendingPlaceTags((current) => [
-                              {
-                                ...tag,
-                                placeId: selectedPlace?.placeId ?? tag.placeId,
-                              },
-                              ...current.filter((item) => item.tagId !== tag.tagId),
-                            ]);
-                            setCeremonyState({
-                              kind: 'pending',
-                              title: 'Your mark is pending',
-                              body: tag.firstMark
-                                ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
-                                : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
-                            });
-                          }}
-                          buttonVariant="jelly"
-                          buttonClassName="map-jelly-action"
-                        />
-
-                        <CreatePlaceChallengeButton
-                          placeId={selectedPlace.placeId}
-                          placeName={selectedPlace.name}
-                          latitude={selectedPlace.latitude}
-                          longitude={selectedPlace.longitude}
-                          address={selectedPlace.address}
-                          city={selectedPlace.city}
-                          country={selectedPlace.country}
-                          categories={selectedPlace.categories}
-                          placeSource={selectedPlace.placeSource}
-                          externalPlaceId={selectedPlace.externalPlaceId}
-                          onPlaceResolved={(place) => {
-                            setSelectedPlace((current) => ({
-                              placeId: place.id,
-                              slug: place.slug,
-                              name: place.name,
-                              address:
-                                place.address ??
-                                [place.city, place.country].filter(Boolean).join(', ') ??
-                                current?.address ??
-                                null,
-                              city: place.city,
-                              country: place.country,
-                              latitude: place.latitude,
-                              longitude: place.longitude,
-                              categories: current?.categories ?? null,
-                              placeSource: current?.placeSource ?? selectedPlace.placeSource ?? null,
-                              externalPlaceId:
-                                current?.externalPlaceId ?? selectedPlace.externalPlaceId ?? null,
-                              approvedCount: current?.approvedCount ?? 0,
-                              heatScore: current?.heatScore ?? 0,
-                              lastTaggedAt: current?.lastTaggedAt ?? null,
-                              activeDareCount: current?.activeDareCount ?? 0,
-                            }));
-                            setTargetCenter([place.latitude, place.longitude]);
-                            setTargetZoom(15);
-                          }}
-                          onChallengeCreated={({ result }) => {
-                            setSelectedPlace((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    activeDareCount: (current.activeDareCount ?? 0) + 1,
-                                  }
-                                : current
-                            );
-                            if (selectedPlace.slug) {
-                              void loadSelectedPlaceVenueDetail(selectedPlace.slug, undefined, { silent: true });
-                            }
-                            setCeremonyState({
-                              kind: 'alive-upgrade',
-                              title: 'Challenge live',
-                              body: result.isOpenBounty
-                                ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
-                                : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
-                            });
-                          }}
-                          buttonVariant="jelly"
-                          buttonClassName="map-jelly-action"
-                        />
-
-                        {selectedPlace.slug ? (
-                          <SquircleLink
-                            href={`/venues/${selectedPlace.slug}${
-                              isCreatorSource
-                                ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
-                                : ''
-                            }`}
-                            tone="purple"
-                            label="Open venue"
-                            fullWidth
-                            height={44}
-                            className="map-jelly-action"
-                            labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
-                          >
-                            <span className="map-jelly-action-label">Open venue</span>
-                          </SquircleLink>
-                        ) : null}
-                      </div>
+                      {selectedPlaceActionRail}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setSelectedPlace(null);
-                      }}
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
-                      aria-label="Close place panel"
-                      title="Close place panel"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {isImmersiveMobile ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic('selection');
+                            setSelectedPlacePanelExpanded(false);
+                          }}
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(8,12,20,0.86)_100%)] text-cyan-100/78 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-cyan-100/32 hover:text-cyan-50"
+                          aria-label="Collapse place details"
+                          title="Collapse details"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('selection');
+                          setSelectedPlace(null);
+                        }}
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
+                        aria-label="Close place panel"
+                        title="Close place panel"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   </div>
 
@@ -6971,6 +7104,7 @@ export default function RealWorldMap() {
                   </div>
                   </div>
                 </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -6986,6 +7120,15 @@ export default function RealWorldMap() {
 
         .selected-place-panel-wrap {
           max-height: calc(100% - 16px);
+        }
+
+        .selected-place-panel-wrap--compact {
+          max-height: min(31dvh, 15.5rem);
+        }
+
+        .selected-place-compact-dock {
+          border-radius: 26px;
+          transform-origin: 50% 100%;
         }
 
         .nearby-dare-tray {
@@ -7023,6 +7166,13 @@ export default function RealWorldMap() {
           .selected-place-panel-wrap {
             bottom: calc(0.75rem + env(safe-area-inset-bottom));
             max-height: min(82dvh, calc(100% - 1.5rem));
+          }
+
+          .selected-place-panel-wrap--compact {
+            right: 0.75rem;
+            bottom: calc(0.8rem + env(safe-area-inset-bottom));
+            left: 0.75rem;
+            max-height: min(32dvh, 15.75rem);
           }
 
           .selected-place-panel-content {
@@ -8701,6 +8851,25 @@ export default function RealWorldMap() {
           .venue-action-rail :global(.map-action-button svg) {
             display: none;
           }
+        }
+
+        .venue-action-rail--primary.venue-action-rail--compact-dock {
+          width: 100%;
+          max-width: 100%;
+          margin-top: 0.75rem;
+        }
+
+        .selected-place-compact-dock .venue-action-rail {
+          padding: 0.36rem;
+        }
+
+        .selected-place-compact-dock :global(.map-action-button) {
+          min-height: 44px;
+        }
+
+        .selected-place-compact-dock :global(.map-jelly-action-label) {
+          font-size: 0.58rem !important;
+          letter-spacing: 0.055em !important;
         }
 
         .map-panel-shell::before {
