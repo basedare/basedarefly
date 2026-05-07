@@ -32,11 +32,12 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import MapCrosshair from '@/app/map/MapCrosshair';
@@ -232,6 +233,38 @@ type LocalSignalDraft = {
   notes: string;
 };
 
+type VenuePresenceVisibility = 'NEARBY' | 'PUBLIC' | 'PRIVATE';
+type VenuePresenceDuration = 30 | 60 | 120;
+type VenuePresenceSummary = {
+  venueId: string;
+  venueSlug: string;
+  venueName: string;
+  latitude: number;
+  longitude: number;
+  activeCount: number;
+  nearbyCount: number;
+  publicCount: number;
+  latestSignalAt: string;
+  expiresAt: string;
+  distanceKm: number | null;
+  distanceDisplay: string | null;
+};
+type VenuePresenceResponse = {
+  success: boolean;
+  data?: {
+    signals: VenuePresenceSummary[];
+    count: number;
+  };
+};
+type ActivePresenceSignal = {
+  venueId: string;
+  venueSlug: string;
+  venueName: string;
+  visibility: VenuePresenceVisibility;
+  durationMinutes: VenuePresenceDuration;
+  expiresAt: string;
+};
+
 const LOCAL_SIGNAL_CATEGORIES = [
   'surf',
   'food',
@@ -243,6 +276,30 @@ const LOCAL_SIGNAL_CATEGORIES = [
   'community',
   'other',
 ] as const;
+
+const PRESENCE_DURATION_OPTIONS: VenuePresenceDuration[] = [30, 60, 120];
+const PRESENCE_VISIBILITY_OPTIONS: Array<{
+  value: VenuePresenceVisibility;
+  label: string;
+  detail: string;
+}> = [
+  {
+    value: 'NEARBY',
+    label: 'Nearby',
+    detail: 'aggregate only',
+  },
+  {
+    value: 'PUBLIC',
+    label: 'Public',
+    detail: 'venue pulse',
+  },
+  {
+    value: 'PRIVATE',
+    label: 'Private',
+    detail: 'not counted',
+  },
+];
+const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 
 const SIGNAL_LAYER_KIND_ORDER: SignalLayerKind[] = ['drop', 'first', 'route', 'relic', 'intel'];
 
@@ -545,15 +602,22 @@ const MAPLIBRE_CHAOS_SOURCE_ID = 'basedare-chaos-zones';
 const MAPLIBRE_FOOTPRINT_SOURCE_ID = 'basedare-footprint-trail';
 const MAPLIBRE_SELECTED_SOURCE_ID = 'basedare-selected-signal';
 const MAPLIBRE_USER_SOURCE_ID = 'basedare-user-position';
+const MAPLIBRE_PRESENCE_SOURCE_ID = 'basedare-signal-presence';
 const MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID = 'basedare-live-signal-halo';
 const MAPLIBRE_ACTIVATED_PLINTH_LAYER_ID = 'basedare-activated-venue-plinth';
 const MAPLIBRE_PROOF_NODE_LAYER_ID = 'basedare-proof-nodes';
 const MAPLIBRE_SIGNAL_LABEL_LAYER_ID = 'basedare-signal-labels';
+const MAPLIBRE_PRESENCE_HALO_LAYER_ID = 'basedare-presence-halo';
+const MAPLIBRE_PRESENCE_CORE_LAYER_ID = 'basedare-presence-core';
+const MAPLIBRE_PRESENCE_LABEL_LAYER_ID = 'basedare-presence-labels';
 const MAPLIBRE_INTERACTIVE_SIGNAL_LAYER_IDS = [
   MAPLIBRE_SIGNAL_LABEL_LAYER_ID,
   MAPLIBRE_ACTIVATED_PLINTH_LAYER_ID,
   MAPLIBRE_PROOF_NODE_LAYER_ID,
   MAPLIBRE_LIVE_SIGNAL_HALO_LAYER_ID,
+  MAPLIBRE_PRESENCE_LABEL_LAYER_ID,
+  MAPLIBRE_PRESENCE_CORE_LAYER_ID,
+  MAPLIBRE_PRESENCE_HALO_LAYER_ID,
 ];
 const CURRENT_LOCATION_CENTERED_ICON_PATH = '/assets/current-location-bear-pin.png';
 const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
@@ -901,6 +965,40 @@ function buildUserPositionCollection(
   };
 }
 
+function buildPresenceSignalCollection(
+  presenceSignals: VenuePresenceSummary[],
+  selectedPlace: SelectedPlace | null
+): FeatureCollection<Point> {
+  if (presenceSignals.length === 0) return emptyPointCollection();
+
+  return {
+    type: 'FeatureCollection',
+    features: presenceSignals.map((signal): Feature<Point> => {
+      const selected =
+        Boolean(selectedPlace?.placeId && selectedPlace.placeId === signal.venueId) ||
+        Boolean(selectedPlace?.slug && selectedPlace.slug === signal.venueSlug);
+
+      return {
+        type: 'Feature',
+        properties: {
+          id: signal.venueId,
+          slug: signal.venueSlug,
+          name: signal.venueName,
+          activeCount: signal.activeCount,
+          publicCount: signal.publicCount,
+          nearbyCount: signal.nearbyCount,
+          selected,
+          label: `${signal.activeCount} here`,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [signal.longitude, signal.latitude],
+        },
+      };
+    }),
+  };
+}
+
 function buildFootprintLineCollection({
   marks,
   enabled,
@@ -1033,6 +1131,7 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
   ensureMapLibreSource(map, MAPLIBRE_SELECTED_SOURCE_ID, emptyPointCollection());
   ensureMapLibreSource(map, MAPLIBRE_USER_SOURCE_ID, emptyPointCollection());
   ensureMapLibreSource(map, MAPLIBRE_FOOTPRINT_SOURCE_ID, emptyLineCollection());
+  ensureMapLibreSource(map, MAPLIBRE_PRESENCE_SOURCE_ID, emptyPointCollection());
 
   const firstSymbolLayerId = getMapLibreFirstSymbolLayerId(map);
   const firstLineLayerId = getMapLibreFirstLineLayerId(map);
@@ -1271,6 +1370,58 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
   addMapLibreLayer(
     map,
     {
+      id: MAPLIBRE_PRESENCE_HALO_LAYER_ID,
+      type: 'circle',
+      source: MAPLIBRE_PRESENCE_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          10,
+          ['+', 24, ['*', ['get', 'activeCount'], 6]],
+          15,
+          ['+', 54, ['*', ['get', 'activeCount'], 14]],
+        ],
+        'circle-color': [
+          'case',
+          ['==', ['get', 'selected'], true],
+          '#f8dd72',
+          '#34d399',
+        ],
+        'circle-opacity': preset === 'noir' ? 0.12 : 0.16,
+        'circle-blur': 0.62,
+        'circle-stroke-width': ['case', ['>=', ['get', 'activeCount'], 2], 1.4, 0.8],
+        'circle-stroke-color': '#a7f3d0',
+        'circle-stroke-opacity': 0.52,
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
+      id: MAPLIBRE_PRESENCE_CORE_LAYER_ID,
+      type: 'circle',
+      source: MAPLIBRE_PRESENCE_SOURCE_ID,
+      paint: {
+        'circle-pitch-alignment': 'map',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4.5, 15, 9.5],
+        'circle-color': '#34d399',
+        'circle-opacity': 0.94,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': 'rgba(236,253,245,0.86)',
+        'circle-stroke-opacity': 0.76,
+      },
+    },
+    firstSymbolLayerId
+  );
+
+  addMapLibreLayer(
+    map,
+    {
       id: MAPLIBRE_PROOF_NODE_LAYER_ID,
       type: 'circle',
       source: MAPLIBRE_VENUE_SOURCE_ID,
@@ -1293,6 +1444,30 @@ function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
     },
     firstSymbolLayerId
   );
+
+  addMapLibreLayer(map, {
+    id: MAPLIBRE_PRESENCE_LABEL_LAYER_ID,
+    type: 'symbol',
+    source: MAPLIBRE_PRESENCE_SOURCE_ID,
+    minzoom: 12.5,
+    layout: {
+      'text-field': ['upcase', ['get', 'label']],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 8.5, 16, 11],
+      'text-letter-spacing': 0.08,
+      'text-offset': [0, -2.3],
+      'text-anchor': 'bottom',
+      'text-allow-overlap': false,
+      'text-ignore-placement': false,
+      'text-optional': true,
+    },
+    paint: {
+      'text-color': '#bbf7d0',
+      'text-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13.2, 0.9, 16, 1],
+      'text-halo-color': 'rgba(2,5,10,0.94)',
+      'text-halo-width': 1.4,
+      'text-halo-blur': 0.6,
+    },
+  });
 
   addMapLibreLayer(map, {
     id: MAPLIBRE_SIGNAL_LABEL_LAYER_ID,
@@ -2487,6 +2662,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
 
 export default function RealWorldMap() {
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
@@ -2500,8 +2676,10 @@ export default function RealWorldMap() {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
   const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
+  const [venuePresenceSignals, setVenuePresenceSignals] = useState<VenuePresenceSummary[]>([]);
   const [nearbyDaresLoading, setNearbyDaresLoading] = useState(false);
   const [localSignalsLoading, setLocalSignalsLoading] = useState(false);
+  const [venuePresenceLoading, setVenuePresenceLoading] = useState(false);
   const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [selectedPlacePanelExpanded, setSelectedPlacePanelExpanded] = useState(false);
@@ -2541,6 +2719,11 @@ export default function RealWorldMap() {
   });
   const [localSignalSubmitting, setLocalSignalSubmitting] = useState(false);
   const [localSignalSubmitState, setLocalSignalSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [presenceDurationMinutes, setPresenceDurationMinutes] = useState<VenuePresenceDuration>(60);
+  const [presenceVisibility, setPresenceVisibility] = useState<VenuePresenceVisibility>('NEARBY');
+  const [presenceSubmitting, setPresenceSubmitting] = useState(false);
+  const [presenceSubmitState, setPresenceSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [activePresenceSignal, setActivePresenceSignal] = useState<ActivePresenceSignal | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -2566,6 +2749,7 @@ export default function RealWorldMap() {
   const nearbyFetchIdRef = useRef(0);
   const nearbyDareFetchIdRef = useRef(0);
   const localSignalFetchIdRef = useRef(0);
+  const venuePresenceFetchIdRef = useRef(0);
   const lastPushLocationSyncRef = useRef<{
     latitude: number;
     longitude: number;
@@ -2707,6 +2891,54 @@ export default function RealWorldMap() {
 
     setSelectedPlacePanelExpanded(false);
   }, [isMobileViewport, selectedPlaceIdentity]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(ACTIVE_PRESENCE_STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Partial<ActivePresenceSignal>;
+      if (!parsed.venueId || !parsed.venueSlug || !parsed.venueName || !parsed.expiresAt) {
+        window.localStorage.removeItem(ACTIVE_PRESENCE_STORAGE_KEY);
+        return;
+      }
+
+      if (new Date(parsed.expiresAt).getTime() <= Date.now()) {
+        window.localStorage.removeItem(ACTIVE_PRESENCE_STORAGE_KEY);
+        return;
+      }
+
+      setActivePresenceSignal(parsed as ActivePresenceSignal);
+    } catch {
+      window.localStorage.removeItem(ACTIVE_PRESENCE_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activePresenceSignal) {
+      return undefined;
+    }
+
+    const expiresInMs = new Date(activePresenceSignal.expiresAt).getTime() - Date.now();
+    if (expiresInMs <= 0) {
+      setActivePresenceSignal(null);
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(ACTIVE_PRESENCE_STORAGE_KEY);
+      }
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setActivePresenceSignal(null);
+      window.localStorage.removeItem(ACTIVE_PRESENCE_STORAGE_KEY);
+    }, expiresInMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activePresenceSignal]);
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -3091,6 +3323,38 @@ export default function RealWorldMap() {
     }
   }, [nearbyDareRadiusKm]);
 
+  const fetchVenuePresence = useCallback(async (latitude: number, longitude: number) => {
+    const requestId = ++venuePresenceFetchIdRef.current;
+    try {
+      setVenuePresenceLoading(true);
+      const url = new URL('/api/venues/presence', window.location.origin);
+      url.searchParams.set('lat', String(latitude));
+      url.searchParams.set('lng', String(longitude));
+      url.searchParams.set('radiusKm', String(Math.max(nearbyDareRadiusKm, 8)));
+      url.searchParams.set('limit', '30');
+
+      const response = await fetch(url.toString());
+      const payload = (await response.json()) as VenuePresenceResponse;
+
+      if (!response.ok || !payload.success || !payload.data?.signals) {
+        throw new Error('Failed to load venue presence');
+      }
+
+      if (requestId === venuePresenceFetchIdRef.current) {
+        setVenuePresenceSignals(payload.data.signals);
+      }
+    } catch (error) {
+      console.error('[REAL_WORLD_MAP] Venue presence failed:', error);
+      if (requestId === venuePresenceFetchIdRef.current) {
+        setVenuePresenceSignals([]);
+      }
+    } finally {
+      if (requestId === venuePresenceFetchIdRef.current) {
+        setVenuePresenceLoading(false);
+      }
+    }
+  }, [nearbyDareRadiusKm]);
+
   const submitLocalSignal = useCallback(async () => {
     const title = localSignalDraft.title.trim();
     if (title.length < 3) {
@@ -3162,7 +3426,8 @@ export default function RealWorldMap() {
 
     void fetchNearbyDares(source.latitude, source.longitude, mapZoom);
     void fetchLocalSignals(source.latitude, source.longitude);
-  }, [fetchLocalSignals, fetchNearbyDares, mapZoom, userLocation, viewportCenter]);
+    void fetchVenuePresence(source.latitude, source.longitude);
+  }, [fetchLocalSignals, fetchNearbyDares, fetchVenuePresence, mapZoom, userLocation, viewportCenter]);
 
   useEffect(() => {
     if (!address || !userLocation || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -3894,6 +4159,21 @@ export default function RealWorldMap() {
     });
     return index;
   }, [nearbyPlaces]);
+  const venuePresenceIndex = useMemo(() => {
+    const byVenueId = new Map<string, VenuePresenceSummary>();
+    const bySlug = new Map<string, VenuePresenceSummary>();
+
+    venuePresenceSignals.forEach((signal) => {
+      byVenueId.set(signal.venueId, signal);
+      bySlug.set(signal.venueSlug, signal);
+    });
+
+    return { byVenueId, bySlug };
+  }, [venuePresenceSignals]);
+  const activeVenuePresenceCount = useMemo(
+    () => venuePresenceSignals.reduce((total, signal) => total + signal.activeCount, 0),
+    [venuePresenceSignals]
+  );
 
   useEffect(() => {
     if (!mapReady || !activeMapFilterIsScoped || filteredNearbyPlaces.length !== 1) {
@@ -3923,13 +4203,32 @@ export default function RealWorldMap() {
       if (typeof slug !== 'string') return;
 
       const place = nearbyPlaceBySlug.get(slug);
-      if (!place) return;
-
       skipNextMapClickRef.current = true;
       window.setTimeout(() => {
         skipNextMapClickRef.current = false;
       }, 0);
-      focusExistingPlace(place);
+      if (place) {
+        focusExistingPlace(place);
+        return;
+      }
+
+      const presence = venuePresenceIndex.bySlug.get(slug);
+      if (!presence) return;
+
+      setSelectedPlace({
+        placeId: presence.venueId,
+        slug: presence.venueSlug,
+        name: presence.venueName,
+        address: presence.distanceDisplay ? `Presence signal · ${presence.distanceDisplay}` : 'Presence signal',
+        latitude: presence.latitude,
+        longitude: presence.longitude,
+        approvedCount: 0,
+        heatScore: presence.activeCount * 10,
+        activeDareCount: 0,
+        mapModes: DEFAULT_VENUE_MAP_MODES,
+      });
+      setTargetCenter([presence.latitude, presence.longitude]);
+      setTargetZoom(15);
     };
     const handleSignalEnter = () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -3951,7 +4250,7 @@ export default function RealWorldMap() {
         map.off('mouseleave', layerId, handleSignalLeave);
       });
     };
-  }, [focusExistingPlace, mapReady, nearbyPlaceBySlug]);
+  }, [focusExistingPlace, mapReady, nearbyPlaceBySlug, venuePresenceIndex]);
 
   const nearbyDareFeed = useMemo(() => {
     const filtered = nearbyDaresInRange.filter((dare) => {
@@ -4275,6 +4574,51 @@ export default function RealWorldMap() {
 
     return matchedVenueIndex.get(selectedPlace.slug) ?? null;
   }, [matchedVenueIndex, selectedPlace?.slug]);
+  const selectedPresenceSummary = useMemo(() => {
+    if (!selectedPlace) {
+      return null;
+    }
+
+    if (selectedPlace.placeId) {
+      const byVenueId = venuePresenceIndex.byVenueId.get(selectedPlace.placeId);
+      if (byVenueId) return byVenueId;
+    }
+
+    return selectedPlace.slug ? venuePresenceIndex.bySlug.get(selectedPlace.slug) ?? null : null;
+  }, [selectedPlace, venuePresenceIndex]);
+  const activePresenceIsSelectedVenue = Boolean(
+    activePresenceSignal &&
+      selectedPlace &&
+      (activePresenceSignal.venueId === selectedPlace.placeId ||
+        activePresenceSignal.venueSlug === selectedPlace.slug) &&
+      new Date(activePresenceSignal.expiresAt).getTime() > Date.now()
+  );
+  const selectedVenueProfile = selectedPlace?.profile ?? null;
+  const selectedVenuePhotoItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      url: string;
+      label: string;
+      source: string;
+    }> = [];
+    const seen = new Set<string>();
+
+    const addPhoto = (id: string, url: string | null | undefined, label: string, source: string) => {
+      const normalized = url?.trim();
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      items.push({ id, url: normalized, label, source });
+    };
+
+    addPhoto('cover', selectedVenueProfile?.coverImageUrl, 'Venue cover', 'profile');
+    addPhoto('profile', selectedVenueProfile?.profileImageUrl, 'Venue photo', 'profile');
+    selectedPlaceTags.forEach((tag) => {
+      if (tag.proofType !== 'IMAGE') return;
+      addPhoto(`tag:${tag.id}`, tag.proofMediaUrl, tag.caption || 'Proof photo', tag.creatorTag ? `@${tag.creatorTag}` : 'proof');
+    });
+
+    return items.slice(0, 4);
+  }, [selectedPlaceTags, selectedVenueProfile?.coverImageUrl, selectedVenueProfile?.profileImageUrl]);
 
   const filterOptions: Array<{
     value: PulseFilter;
@@ -4360,7 +4704,6 @@ export default function RealWorldMap() {
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
-  const selectedVenueProfile = selectedPlace?.profile ?? null;
   const selectedVenueActivated = isVenueActivated(selectedCommandCenter);
   const selectedActivationActionCopy = selectedCommandCenter
     ? getVenueActivationActionCopy(selectedCommandCenter)
@@ -4505,6 +4848,116 @@ export default function RealWorldMap() {
       selectedVenueHref,
     ]
   );
+
+  const handleSignalPresence = useCallback(async () => {
+    if (!selectedPlace || presenceSubmitting) {
+      return;
+    }
+
+    if (!isConnected || !address) {
+      setPresenceSubmitState({ type: 'error', message: 'Connect your wallet to signal presence.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    if (!userLocation) {
+      setPresenceSubmitState({ type: 'error', message: 'Turn on location before signaling this venue.' });
+      requestApproximateLocation();
+      triggerHaptic('warning');
+      return;
+    }
+
+    setPresenceSubmitting(true);
+    setPresenceSubmitState(null);
+
+    try {
+      const resolvedPlace = await resolveSelectedPlaceForCommand();
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        action: 'venue-presence',
+        resource: `venue:${resolvedPlace.id}:presence`,
+        allowSignPrompt: true,
+        signMessageAsync,
+      });
+
+      const response = await fetch('/api/venues/presence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          venueId: resolvedPlace.id,
+          walletAddress: address,
+          lat: userLocation.latitude,
+          lng: userLocation.longitude,
+          durationMinutes: presenceDurationMinutes,
+          visibility: presenceVisibility,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            error?: string;
+            data?: {
+              venueId: string;
+              venueSlug: string;
+              venueName: string;
+              visibility: VenuePresenceVisibility;
+              durationMinutes: VenuePresenceDuration;
+              expiresAt: string;
+            };
+          }
+        | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Unable to signal presence right now.');
+      }
+
+      const nextActiveSignal: ActivePresenceSignal = {
+        venueId: payload.data.venueId,
+        venueSlug: payload.data.venueSlug,
+        venueName: payload.data.venueName,
+        visibility: payload.data.visibility,
+        durationMinutes: payload.data.durationMinutes,
+        expiresAt: payload.data.expiresAt,
+      };
+
+      setActivePresenceSignal(nextActiveSignal);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ACTIVE_PRESENCE_STORAGE_KEY, JSON.stringify(nextActiveSignal));
+      }
+      setPresenceSubmitState({
+        type: 'success',
+        message:
+          presenceVisibility === 'PRIVATE'
+            ? 'Private presence saved. It will not be counted on the public map.'
+            : `Signal live at ${payload.data.venueName}. The map only shows aggregate presence.`,
+      });
+      void fetchVenuePresence(userLocation.latitude, userLocation.longitude);
+      triggerHaptic('success');
+    } catch (error) {
+      setPresenceSubmitState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to signal presence right now.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setPresenceSubmitting(false);
+    }
+  }, [
+    address,
+    fetchVenuePresence,
+    isConnected,
+    presenceDurationMinutes,
+    presenceSubmitting,
+    presenceVisibility,
+    requestApproximateLocation,
+    resolveSelectedPlaceForCommand,
+    selectedPlace,
+    signMessageAsync,
+    userLocation,
+  ]);
   const showSelectedVisualBadge = !firstMarkState;
   const selectedPulseMeaning = useMemo(
     () =>
@@ -4768,6 +5221,45 @@ export default function RealWorldMap() {
         },
       },
       {
+        id: 'presence',
+        label: 'Here Now',
+        count: activeVenuePresenceCount,
+        detail: venuePresenceLoading ? 'sync' : 'signals',
+        active: false,
+        disabled: activeVenuePresenceCount === 0,
+        className:
+          'data-[active=true]:border-emerald-300/45 data-[active=true]:bg-emerald-500/[0.14] data-[active=true]:text-emerald-100',
+        onClick: () => {
+          const signal = venuePresenceSignals[0];
+          if (!signal) {
+            triggerHaptic('warning');
+            return;
+          }
+
+          const place = nearbyPlaceBySlug.get(signal.venueSlug);
+          if (place) {
+            focusExistingPlace(place);
+            return;
+          }
+
+          setSelectedPlace({
+            placeId: signal.venueId,
+            slug: signal.venueSlug,
+            name: signal.venueName,
+            address: signal.distanceDisplay ? `Presence signal · ${signal.distanceDisplay}` : 'Presence signal',
+            latitude: signal.latitude,
+            longitude: signal.longitude,
+            approvedCount: 0,
+            heatScore: signal.activeCount * 10,
+            activeDareCount: 0,
+            mapModes: DEFAULT_VENUE_MAP_MODES,
+          });
+          setTargetCenter([signal.latitude, signal.longitude]);
+          setTargetZoom(15);
+          triggerHaptic('selection');
+        },
+      },
+      {
         id: 'hot',
         label: 'Hot',
         count: filterCounts.blazing,
@@ -4842,14 +5334,19 @@ export default function RealWorldMap() {
       },
     ],
     [
+      activeVenuePresenceCount,
       filterCounts.blazing,
       filterCounts.unmarked,
       filterCounts.verified,
+      focusExistingPlace,
       isConnected,
       mapVenueFocus,
+      nearbyPlaceBySlug,
       nearbyDareCounts.all,
       nearbyDareRadiusKm,
       pulseFilter,
+      venuePresenceLoading,
+      venuePresenceSignals,
       visibleMatchedVenueCount,
     ]
   );
@@ -4951,6 +5448,11 @@ export default function RealWorldMap() {
     setGeoJsonSourceData(map, MAPLIBRE_USER_SOURCE_ID, buildUserPositionCollection(userLocation));
     setGeoJsonSourceData(
       map,
+      MAPLIBRE_PRESENCE_SOURCE_ID,
+      buildPresenceSignalCollection(venuePresenceSignals, selectedPlace)
+    );
+    setGeoJsonSourceData(
+      map,
       MAPLIBRE_FOOTPRINT_SOURCE_ID,
       buildFootprintLineCollection({
         marks: footprintMarks,
@@ -4966,6 +5468,7 @@ export default function RealWorldMap() {
     showFootprintLayer,
     showMatchedLayer,
     userLocation,
+    venuePresenceSignals,
   ]);
 
   useEffect(() => {
@@ -6497,6 +7000,98 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
+                  <div className="map-panel-section mt-4 rounded-[24px] border border-emerald-300/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12)_0%,rgba(8,15,14,0.88)_22%,rgba(4,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-emerald-100/82">
+                          <LocateFixed className="h-3.5 w-3.5 text-emerald-200" />
+                          Signal Presence
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-white">
+                          {activePresenceIsSelectedVenue
+                            ? `You're live here ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
+                            : selectedPresenceSummary && selectedPresenceSummary.activeCount > 0
+                              ? `${selectedPresenceSummary.activeCount} active ${selectedPresenceSummary.activeCount === 1 ? 'signal' : 'signals'} near this venue.`
+                              : 'Light up this venue for the next wave.'}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                        {selectedPresenceSummary?.activeCount ?? (activePresenceIsSelectedVenue ? 1 : 0)} here
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-1.5">
+                      {PRESENCE_DURATION_OPTIONS.map((duration) => (
+                        <button
+                          key={`presence-duration:${duration}`}
+                          type="button"
+                          data-active={presenceDurationMinutes === duration}
+                          onClick={() => {
+                            setPresenceDurationMinutes(duration);
+                            triggerHaptic('selection');
+                          }}
+                          className="rounded-[16px] border border-white/10 bg-white/[0.04] px-2 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48 transition hover:border-white/18 hover:text-white data-[active=true]:border-emerald-300/34 data-[active=true]:bg-emerald-500/[0.12] data-[active=true]:text-emerald-100"
+                        >
+                          {duration}m
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {PRESENCE_VISIBILITY_OPTIONS.map((option) => (
+                        <button
+                          key={`presence-visibility:${option.value}`}
+                          type="button"
+                          data-active={presenceVisibility === option.value}
+                          onClick={() => {
+                            setPresenceVisibility(option.value);
+                            triggerHaptic('selection');
+                          }}
+                          className="min-w-0 rounded-[16px] border border-white/10 bg-white/[0.035] px-2 py-2 text-left transition hover:border-white/18 data-[active=true]:border-cyan-300/32 data-[active=true]:bg-cyan-500/[0.1]"
+                        >
+                          <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/64">
+                            {option.label}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                            {option.detail}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
+                      <p className="min-w-0 text-xs leading-5 text-white/58">
+                        {userLocation
+                          ? 'Approximate venue presence only. Exact location stays off the public map.'
+                          : 'Location is needed before this venue can light up.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+                        disabled={presenceSubmitting}
+                        className="inline-flex shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+                      >
+                        {presenceSubmitting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : userLocation ? (
+                          activePresenceIsSelectedVenue ? 'Refresh' : 'Signal'
+                        ) : (
+                          'Locate'
+                        )}
+                      </button>
+                    </div>
+
+                    {presenceSubmitState ? (
+                      <p
+                        className={`mt-2 text-xs leading-5 ${
+                          presenceSubmitState.type === 'success' ? 'text-emerald-100/78' : 'text-rose-200/82'
+                        }`}
+                      >
+                        {presenceSubmitState.message}
+                      </p>
+                    ) : null}
+                  </div>
+
                   <div className="map-command-console">
                     <div className="map-command-console-header">
                       <div>
@@ -6599,6 +7194,55 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.heatScore ?? 0}</p>
                       <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/42">{selectedPulseMeaning.label}</p>
                     </div>
+                  </div>
+
+                  <div className={`map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+                        Venue Photos
+                      </div>
+                      <span className={mapPanelInsetChipClass}>
+                        {selectedVenuePhotoItems.length > 0
+                          ? `${selectedVenuePhotoItems.length} live`
+                          : 'open slots'}
+                      </span>
+                    </div>
+                    {selectedVenuePhotoItems.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {selectedVenuePhotoItems.map((photo, index) => (
+                          <div
+                            key={photo.id}
+                            className={`group relative overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] shadow-[0_14px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] ${
+                              index === 0 ? 'col-span-2 aspect-[16/8]' : 'aspect-[4/3]'
+                            }`}
+                          >
+                            <img
+                              src={photo.url}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover opacity-90 transition duration-300 group-hover:scale-[1.03] group-hover:opacity-100"
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.52)_100%)]" />
+                            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
+                              <span className="truncate rounded-full border border-white/12 bg-black/46 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/78">
+                                {photo.label}
+                              </span>
+                              <span className="shrink-0 rounded-full border border-cyan-200/14 bg-cyan-500/[0.1] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-100/78">
+                                {photo.source}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-3">
+                        <p className="text-sm font-semibold text-white">No venue photos attached yet.</p>
+                        <p className="mt-1.5 text-sm leading-relaxed text-white/58">
+                          The next mark should capture the room, the entrance, or the signature moment so this venue becomes readable fast.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className={`map-mobile-priority mt-4 ${mapPanelSectionClass}`}>
