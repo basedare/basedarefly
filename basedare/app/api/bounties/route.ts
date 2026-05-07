@@ -9,8 +9,8 @@ import {
   isAddress,
   type Address,
 } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { prisma } from '@/lib/prisma';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { alertNewDare, alertBigPledge, alertFlaggedContent, alertSignalRoomDare } from '@/lib/telegram';
@@ -35,9 +35,8 @@ import { getPostFundingDareStatus } from '@/lib/dare-status';
 const BIG_PLEDGE_THRESHOLD = 100;
 
 // Network selection based on environment
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 // ============================================================================
 // SHORT ID GENERATOR

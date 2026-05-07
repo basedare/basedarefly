@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createPublicClient, http, decodeEventLog, isAddress, type Address } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
 import { getPostFundingDareStatus } from '@/lib/dare-status';
@@ -13,9 +13,8 @@ const RegisterBountySchema = z.object({
     txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
 });
 
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const hasValidContractAddress = isAddress(BOUNTY_CONTRACT_ADDRESS);
 

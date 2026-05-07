@@ -2,15 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { createPublicClient, http, formatUnits, parseUnits, type Address } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { USDC_ABI } from '@/abis/BaseDareBounty';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
+import { BOUNTY_CONTRACT_ADDRESS as BOUNTY_CONTRACT, USDC_ADDRESS } from '@/lib/contracts';
 
 // Network selection based on environment
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
-
-import { BOUNTY_CONTRACT_ADDRESS as BOUNTY_CONTRACT, USDC_ADDRESS } from '@/lib/contracts';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 const REFEREE_WALLET = '0xC9ECB9407e8aD2618310DF9D4EFC494F3B90115E' as Address;
 

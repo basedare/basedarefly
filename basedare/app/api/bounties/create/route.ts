@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
 import { createPublicClient, createWalletClient, http, isAddress, parseUnits, type Address } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { prisma } from '@/lib/prisma';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 
 // Network selection based on environment
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 // Environment validation (server-side only)
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;

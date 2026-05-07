@@ -1,4 +1,4 @@
-import { base, baseSepolia } from 'viem/chains';
+import { getBaseChain } from '@/lib/base-chain';
 
 /**
  * Utility to truncate an EVM wallet address for display.
@@ -15,9 +15,7 @@ export function truncateAddress(address?: string | null): string {
  * @returns viem Chain object (baseSepolia for dev, base for prod)
  */
 export function getActiveChain() {
-    const isProd = process.env.NODE_ENV === 'production';
-    // Ideally, use an explicit env variable for the chain, e.g. NEXT_PUBLIC_IS_MAINNET
-    return isProd ? base : baseSepolia;
+    return getBaseChain();
 }
 
 /**

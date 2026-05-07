@@ -6,7 +6,6 @@ import {
   isAddress,
   type Address,
 } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import {
   findBountySettlementEvent,
@@ -16,15 +15,15 @@ import {
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { alertError } from '@/lib/telegram';
 
 // Network selection based on environment
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);

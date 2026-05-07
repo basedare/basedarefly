@@ -10,9 +10,9 @@ import {
   parseEther,
   type Address,
 } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
@@ -25,9 +25,8 @@ import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReaso
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 import { sendWalletPush } from '@/lib/web-push';
 
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const FORCE_SIMULATION = isBountySimulationMode();
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);

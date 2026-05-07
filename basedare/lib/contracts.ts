@@ -1,35 +1,19 @@
 import { createPublicClient, createWalletClient, http, type Address, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI, PROTOCOL_ABI, USDC_ABI } from '@/abis/BaseDareProtocol';
+import { getBaseChain, getBaseNetworkConfig, getBaseRpcUrl } from '@/lib/base-chain';
 import { getConfiguredRefereePrivateKey } from '@/lib/referee-wallet';
 
 // ============================================================================
 // NETWORK CONFIGURATION
 // ============================================================================
 
-// Determine which network to use based on environment variable
-const NETWORK = process.env.NEXT_PUBLIC_NETWORK || 'sepolia';
-const IS_MAINNET = NETWORK === 'mainnet';
-
 // Select chain based on network
-const activeChain = IS_MAINNET ? base : baseSepolia;
-
-// Select RPC URL based on network
-const getRpcUrl = () => {
-  if (IS_MAINNET) {
-    return process.env.BASE_MAINNET_RPC_URL || 'https://mainnet.base.org';
-  }
-  return process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.base.org';
-};
+const activeChain = getBaseChain();
 
 // Export network info for components
 export const NETWORK_CONFIG = {
-  network: NETWORK,
-  isMainnet: IS_MAINNET,
-  chainId: IS_MAINNET ? 8453 : 84532,
-  chainName: IS_MAINNET ? 'Base' : 'Base Sepolia',
-  blockExplorer: IS_MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org',
+  ...getBaseNetworkConfig(),
 };
 
 // ============================================================================
@@ -169,7 +153,7 @@ export function getContractError(contract: 'protocol' | 'bounty' | 'usdc'): stri
 // Public client for reading contract state
 export const publicClient = createPublicClient({
   chain: activeChain,
-  transport: http(getRpcUrl()),
+  transport: http(getBaseRpcUrl()),
 });
 
 // Wallet client factory (for write operations) - SERVER ONLY
@@ -178,7 +162,7 @@ export function getWalletClient() {
   return createWalletClient({
     account,
     chain: activeChain,
-    transport: http(getRpcUrl()),
+    transport: http(getBaseRpcUrl()),
   });
 }
 

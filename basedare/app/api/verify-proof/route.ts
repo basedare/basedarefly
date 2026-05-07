@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address, keccak256, toBytes } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { getBaseChain, getBaseRpcUrl, isBaseMainnet } from '@/lib/base-chain';
 import { alertError, alertSentinelReviewRequired, alertVerification } from '@/lib/telegram';
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
@@ -18,9 +18,8 @@ import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
 
 // Network selection based on environment
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 // ============================================================================
 // ENVIRONMENT & CONFIG
@@ -123,7 +122,7 @@ interface StreamVerificationResult {
 
 async function verifyLivepeerStream(streamId: string): Promise<StreamVerificationResult> {
   // In production (mainnet), require Livepeer API key
-  if (IS_MAINNET && !LIVEPEER_API_KEY) {
+  if (isBaseMainnet() && !LIVEPEER_API_KEY) {
     console.warn('[LIVEPEER] WARNING: No API key configured for mainnet');
     // Still allow verification to proceed - stream check is optional for video proof
     return { active: true, healthy: true, streamName: 'no-key-configured' };
@@ -131,7 +130,7 @@ async function verifyLivepeerStream(streamId: string): Promise<StreamVerificatio
 
   // Allow dev streams only on testnet
   if (streamId.startsWith('dev-')) {
-    if (IS_MAINNET) {
+    if (isBaseMainnet()) {
       console.log('[LIVEPEER] Dev streams not allowed on mainnet');
       return { active: false, healthy: false, error: 'Dev streams not allowed in production' };
     }

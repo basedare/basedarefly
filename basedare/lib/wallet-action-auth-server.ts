@@ -11,8 +11,8 @@ import {
   type Address,
   type Hex,
 } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { authOptions } from '@/lib/auth-options';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import {
   buildWalletActionMessage,
   buildWalletSessionMessage,
@@ -20,9 +20,8 @@ import {
   isWalletSessionFresh,
 } from '@/lib/wallet-action-auth';
 
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 const publicClient = createPublicClient({
   chain: activeChain,

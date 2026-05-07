@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 import { prisma } from '@/lib/prisma';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { verifyCronSecret } from '@/lib/api-auth';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { alertError } from '@/lib/telegram';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
@@ -11,9 +11,8 @@ import { getRefereeAccount } from '@/lib/referee-wallet';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 
 // Network config
-const IS_MAINNET = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-const activeChain = IS_MAINNET ? base : baseSepolia;
-const rpcUrl = IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+const activeChain = getBaseChain();
+const rpcUrl = getBaseRpcUrl();
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
 const FORCE_SIMULATION = isBountySimulationMode();
