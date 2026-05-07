@@ -40,7 +40,6 @@ import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
-import MapCrosshair from '@/app/map/MapCrosshair';
 import CosmicButton from '@/components/ui/CosmicButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
@@ -2670,6 +2669,7 @@ export default function RealWorldMap() {
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const mapMarkersRef = useRef<MapLibreMarker[]>([]);
   const [mapReady, setMapReady] = useState(false);
+  const [mapRuntimeError, setMapRuntimeError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -3577,6 +3577,7 @@ export default function RealWorldMap() {
     const handleLoad = () => {
       ensureMapLibreDareLayers(map, mapPresetRef.current);
       syncViewport();
+      setMapRuntimeError(null);
       setMapReady(true);
     };
 
@@ -3594,16 +3595,51 @@ export default function RealWorldMap() {
       handleMapClickRef.current(event.lngLat.lat, event.lngLat.lng);
     };
 
+    const handleMapError = (event: { error?: unknown; message?: string }) => {
+      const error = event.error;
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof event.message === 'string'
+            ? event.message
+            : typeof error === 'string'
+              ? error
+              : '';
+
+      if (/webgl|context|gpu|canvas/i.test(message)) {
+        setMapRuntimeError('Map renderer reset. Reload the grid to recover.');
+        console.error('[REAL_WORLD_MAP] MapLibre renderer error:', message);
+      }
+    };
+
+    const canvas = map.getCanvas();
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      setMapReady(false);
+      setMapRuntimeError('Map renderer paused. Reload the grid to recover.');
+    };
+    const handleContextRestored = () => {
+      setMapRuntimeError(null);
+      map.resize();
+      setMapReady(true);
+    };
+
     map.on('load', handleLoad);
     map.on('styledata', handleStyleData);
     map.on('moveend', syncViewport);
     map.on('click', handleClick);
+    map.on('error', handleMapError);
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
     return () => {
       map.off('load', handleLoad);
       map.off('styledata', handleStyleData);
       map.off('moveend', syncViewport);
       map.off('click', handleClick);
+      map.off('error', handleMapError);
+      canvas.removeEventListener('webglcontextlost', handleContextLost, false);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
       mapMarkersRef.current.forEach((marker) => marker.remove());
       mapMarkersRef.current = [];
       map.remove();
@@ -6739,12 +6775,6 @@ export default function RealWorldMap() {
                 </button>
               </div>
             </div>
-            <MapCrosshair
-              containerRef={mapViewportRef}
-              horizontalColor="rgba(184, 127, 255, 0.82)"
-              verticalColor="rgba(245, 197, 24, 0.82)"
-            />
-
             {!mapReady ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgba(3,5,12,0.74)] backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -6753,6 +6783,22 @@ export default function RealWorldMap() {
                     <p className="text-sm uppercase tracking-[0.28em] text-cyan-200/80">Loading grid</p>
                     <p className="mt-2 text-sm text-white/55">Spinning up the first open place-memory canvas.</p>
                   </div>
+                </div>
+              </div>
+            ) : null}
+
+            {mapRuntimeError ? (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(3,5,12,0.82)]">
+                <div className="max-w-sm rounded-[26px] border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(7,9,18,0.94)_100%)] px-5 py-5 text-center shadow-[0_24px_70px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/62">Map renderer</p>
+                  <p className="mt-3 text-sm font-bold leading-6 text-white/72">{mapRuntimeError}</p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="mt-4 rounded-full border border-cyan-200/24 bg-cyan-300/[0.1] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 transition hover:border-cyan-100/40"
+                  >
+                    Reload grid
+                  </button>
                 </div>
               </div>
             ) : null}

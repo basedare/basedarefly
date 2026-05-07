@@ -17,6 +17,12 @@ import {
 } from '@/lib/creator-captains';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
+import {
+  SCOUT_CREATOR_LEAD_EVENT_TYPE,
+  isRecord as isScoutRecord,
+  normalizeScoutCode,
+  stringValue as scoutStringValue,
+} from '@/lib/scout-creator-leads';
 import { alertCreatorCaptainApplication } from '@/lib/telegram';
 
 const CreatorCaptainApplicationSchema = z.object({
@@ -35,8 +41,85 @@ const CreatorCaptainApplicationSchema = z.object({
   walletAddress: z.string().max(80).optional().default(''),
   venueLead: z.string().max(600).optional().default(''),
   referralSource: z.string().max(180).optional().default(''),
+  scoutCode: z.string().max(80).optional().default(''),
+  referredCreatorHandle: z.string().max(140).optional().default(''),
   companyWebsite: z.string().max(240).optional().default(''),
 });
+
+async function markMatchingScoutLeadApplied(input: {
+  captainApplicationId: string;
+  scoutCode: string;
+  primaryHandle: string;
+  referredCreatorHandle: string;
+}) {
+  const scoutCode = normalizeScoutCode(input.scoutCode);
+  if (!scoutCode) return null;
+
+  const candidateHandles = new Set(
+    [input.primaryHandle, input.referredCreatorHandle]
+      .map((handle) => normalizeCreatorHandle(handle).toLowerCase())
+      .filter(Boolean)
+  );
+
+  const leadEvents = await prisma.founderEvent.findMany({
+    where: {
+      eventType: SCOUT_CREATOR_LEAD_EVENT_TYPE,
+      status: {
+        notIn: ['REJECTED', 'REWARD_PAID'],
+      },
+    },
+    orderBy: {
+      occurredAt: 'desc',
+    },
+    take: 150,
+    select: {
+      id: true,
+      status: true,
+      metadataJson: true,
+    },
+  });
+
+  const matchingLead = leadEvents.find((lead) => {
+    const metadata = isScoutRecord(lead.metadataJson) ? lead.metadataJson : {};
+    const leadScoutCode = normalizeScoutCode(scoutStringValue(metadata.scoutCode));
+    const leadCreatorHandle = normalizeCreatorHandle(scoutStringValue(metadata.creatorHandle)).toLowerCase();
+    return leadScoutCode === scoutCode && (!candidateHandles.size || candidateHandles.has(leadCreatorHandle));
+  });
+
+  if (!matchingLead) return null;
+
+  const metadata = isScoutRecord(matchingLead.metadataJson) ? matchingLead.metadataJson : {};
+  const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
+  const currentStatus = matchingLead.status || 'LEAD_SUBMITTED';
+  const nextMetadata = JSON.parse(
+    JSON.stringify({
+      ...metadata,
+      captainApplicationId: input.captainApplicationId,
+      captainAppliedAt: new Date().toISOString(),
+      statusHistory: [
+        ...statusHistory.slice(-12),
+        {
+          from: currentStatus,
+          to: 'CREATOR_APPLIED',
+          at: new Date().toISOString(),
+          by: 'creator-captain-form',
+          captainApplicationId: input.captainApplicationId,
+        },
+      ],
+    })
+  ) as Prisma.InputJsonValue;
+
+  await prisma.founderEvent.update({
+    where: { id: matchingLead.id },
+    data: {
+      status: 'CREATOR_APPLIED',
+      href: '/admin/scouts',
+      metadataJson: nextMetadata,
+    },
+  });
+
+  return matchingLead.id;
+}
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
@@ -79,6 +162,8 @@ export async function POST(request: NextRequest) {
     const walletAddress = normalizeText(input.walletAddress);
     const venueLead = input.venueLead.trim();
     const referralSource = normalizeText(input.referralSource);
+    const scoutCode = normalizeScoutCode(input.scoutCode);
+    const referredCreatorHandle = normalizeCreatorHandle(input.referredCreatorHandle || primaryHandle);
 
     if (walletAddress && !isAddress(walletAddress)) {
       return NextResponse.json(
@@ -125,12 +210,33 @@ export async function POST(request: NextRequest) {
           walletAddress: walletAddress || null,
           venueLead,
           referralSource,
+          scoutAttribution: scoutCode
+            ? {
+                scoutCode,
+                referralSource: referralSource || 'scout-referral',
+                referredCreatorHandle,
+              }
+            : null,
           priority,
           clientIp,
         } satisfies Prisma.InputJsonValue,
       },
       select: { id: true },
     });
+
+    let linkedScoutLeadId: string | null = null;
+    if (scoutCode) {
+      try {
+        linkedScoutLeadId = await markMatchingScoutLeadApplied({
+          captainApplicationId: event.id,
+          scoutCode,
+          primaryHandle,
+          referredCreatorHandle,
+        });
+      } catch (linkError) {
+        console.error('[CREATOR_CAPTAIN] Scout lead attribution failed:', linkError);
+      }
+    }
 
     void alertCreatorCaptainApplication({
       applicationId: event.id,
@@ -154,6 +260,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         id: event.id,
+        linkedScoutLeadId,
       },
     });
   } catch (error: unknown) {
@@ -165,4 +272,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

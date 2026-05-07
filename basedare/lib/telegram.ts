@@ -19,6 +19,11 @@ import {
   CREATOR_CAPTAIN_PLATFORM_LABELS,
   CREATOR_CAPTAIN_PAYOUT_LABELS,
 } from '@/lib/creator-captains';
+import {
+  SCOUT_CREATOR_LEAD_STATUS_LABELS,
+  SCOUT_CREATOR_PLATFORM_LABELS,
+  SCOUT_RELATIONSHIP_STRENGTH_LABELS,
+} from '@/lib/scout-creator-leads';
 import type { LocalSignalItem } from '@/lib/local-signals';
 import { normalizeSignalRoomChatId } from '@/lib/signal-room';
 
@@ -838,6 +843,70 @@ Application: <code>${escapeHtml(data.applicationId)}</code>
 ${lines.length ? `\n${lines.join('\n')}` : ''}
 
 ${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertScoutCreatorLead(data: {
+  leadId: string;
+  scoutName: string;
+  scoutHandle: string;
+  scoutCode: string;
+  creatorHandle: string;
+  creatorName?: string | null;
+  creatorPlatform: string;
+  creatorCity: string;
+  relationshipStrength: string;
+  score: number;
+  scoreReasons: string[];
+  captainInvitePath: string;
+}): Promise<boolean> {
+  const details = [
+    `Scout: ${escapeHtml(data.scoutHandle || data.scoutName)} · Code: <code>${escapeHtml(data.scoutCode)}</code>`,
+    `Creator: <code>${escapeHtml(data.creatorHandle)}</code>${data.creatorName ? ` · ${escapeHtml(data.creatorName)}` : ''}`,
+    `City: ${escapeHtml(data.creatorCity)} · Platform: ${escapeHtml(SCOUT_CREATOR_PLATFORM_LABELS[data.creatorPlatform as keyof typeof SCOUT_CREATOR_PLATFORM_LABELS] || data.creatorPlatform)}`,
+    `Relationship: ${escapeHtml(SCOUT_RELATIONSHIP_STRENGTH_LABELS[data.relationshipStrength as keyof typeof SCOUT_RELATIONSHIP_STRENGTH_LABELS] || data.relationshipStrength)}`,
+    `Score: ${data.score}/100 · ${escapeHtml(data.scoreReasons.join(', '))}`,
+  ];
+
+  const message = `
+🛰️ <b>SCOUT CREATOR LEAD</b>
+
+${details.join('\n')}
+Lead: <code>${escapeHtml(data.leadId)}</code>
+
+${htmlLink(appUrl(`/admin/scouts?leadId=${encodeURIComponent(data.leadId)}`), 'Open scout queue')} · ${htmlLink(appUrl(data.captainInvitePath), 'Captain invite')} · ${htmlLink(appUrl('/scouts'), 'Scout form')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertScoutCreatorLeadStatusUpdate(data: {
+  leadId: string;
+  creatorHandle: string;
+  scoutCode: string;
+  status: string;
+  operatorNote?: string | null;
+  updatedBy?: string | null;
+}): Promise<boolean> {
+  const statusLabel =
+    SCOUT_CREATOR_LEAD_STATUS_LABELS[data.status as keyof typeof SCOUT_CREATOR_LEAD_STATUS_LABELS] || data.status;
+  const lines = [
+    `Creator: <code>${escapeHtml(data.creatorHandle)}</code>`,
+    `Scout code: <code>${escapeHtml(data.scoutCode)}</code>`,
+    data.operatorNote ? `Note: ${escapeHtml(compactText(data.operatorNote, 220))}` : null,
+    data.updatedBy ? `By: <code>${escapeHtml(data.updatedBy)}</code>` : null,
+  ].filter(Boolean);
+
+  const message = `
+✅ <b>SCOUT LEAD UPDATED</b>
+
+Status: <b>${escapeHtml(statusLabel)}</b>
+Lead: <code>${escapeHtml(data.leadId)}</code>
+${lines.length ? `\n${lines.join('\n')}` : ''}
+
+${htmlLink(appUrl(`/admin/scouts?leadId=${encodeURIComponent(data.leadId)}`), 'Open scout queue')}
 `.trim();
 
   return sendMessage(message);

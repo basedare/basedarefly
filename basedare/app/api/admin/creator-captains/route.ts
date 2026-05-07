@@ -91,6 +91,7 @@ function mapCaptainEvent(event: {
   const metadata = asRecord(event.metadataJson);
   const operator = asRecord(metadata.operator);
   const priority = asRecord(metadata.priority);
+  const scoutAttribution = asRecord(metadata.scoutAttribution);
   const categories = stringArrayValue(metadata.categories);
   const categoriesLabel = categories
     .map((category) => formatLabel(CREATOR_CAPTAIN_CATEGORY_LABELS, category))
@@ -137,6 +138,11 @@ function mapCaptainEvent(event: {
     walletAddress: stringValue(metadata.walletAddress),
     venueLead: stringValue(metadata.venueLead),
     referralSource: stringValue(metadata.referralSource),
+    scoutAttribution: {
+      scoutCode: stringValue(scoutAttribution.scoutCode),
+      referralSource: stringValue(scoutAttribution.referralSource),
+      referredCreatorHandle: stringValue(scoutAttribution.referredCreatorHandle),
+    },
     priority: {
       score: typeof priority.score === 'number' ? priority.score : 0,
       reasons: stringArrayValue(priority.reasons),
@@ -334,4 +340,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to update creator captain application' }, { status: 500 });
   }
 }
-

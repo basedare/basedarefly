@@ -250,6 +250,13 @@ export default function CreatorRadarPage() {
             Public creators
             <ArrowRight className="h-4 w-4" />
           </Link>
+          <Link
+            href="/scouts"
+            className="hidden items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-300/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-yellow-100/72 transition hover:border-yellow-300/35 hover:text-yellow-100 sm:inline-flex"
+          >
+            Scout Army
+            <Users className="h-4 w-4" />
+          </Link>
         </div>
 
         <section className={`${raisedPanelClass} px-5 py-7 sm:px-8 lg:px-10 lg:py-10`}>

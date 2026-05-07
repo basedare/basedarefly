@@ -33,7 +33,21 @@ const signalSteps = [
   },
 ];
 
-export default function CreatorCaptainsPage() {
+type CreatorCaptainsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || '';
+  return value || '';
+}
+
+export default async function CreatorCaptainsPage({ searchParams }: CreatorCaptainsPageProps) {
+  const params = (await searchParams) || {};
+  const scoutCode = firstParam(params.scout);
+  const routedCreatorHandle = firstParam(params.creator || params.handle || params.streamer);
+  const source = firstParam(params.source) || (scoutCode ? 'scout-referral' : '');
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#05050b] text-white">
       <LiquidBackground />
@@ -99,10 +113,13 @@ export default function CreatorCaptainsPage() {
             </div>
           </div>
 
-          <CreatorCaptainApplicationForm />
+          <CreatorCaptainApplicationForm
+            initialScoutCode={scoutCode}
+            initialCreatorHandle={routedCreatorHandle}
+            initialSource={source}
+          />
         </section>
       </div>
     </main>
   );
 }
-

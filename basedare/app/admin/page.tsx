@@ -2166,6 +2166,13 @@ export default function AdminPage() {
                 Creator Captains
               </Link>
               <Link
+                href="/admin/scouts"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
+              >
+                <Users className="w-4 h-4 inline mr-2" />
+                Scout Army
+              </Link>
+              <Link
                 href="/admin/local-signals"
                 className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
               >

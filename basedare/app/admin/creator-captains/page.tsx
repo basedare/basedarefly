@@ -47,6 +47,11 @@ type CreatorCaptain = {
   walletAddress: string;
   venueLead: string;
   referralSource: string;
+  scoutAttribution: {
+    scoutCode: string;
+    referralSource: string;
+    referredCreatorHandle: string;
+  };
   priority: {
     score: number;
     reasons: string[];
@@ -444,6 +449,20 @@ export default function AdminCreatorCaptainsPage() {
                       </div>
                     ) : null}
 
+                    {captain.scoutAttribution?.scoutCode ? (
+                      <div className="mt-4 rounded-[20px] border border-yellow-300/15 bg-yellow-300/[0.055] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100/60">
+                          Scout attribution
+                        </p>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-yellow-50/70">
+                          Scout code {captain.scoutAttribution.scoutCode}
+                          {captain.scoutAttribution.referredCreatorHandle
+                            ? ` routed ${captain.scoutAttribution.referredCreatorHandle}.`
+                            : ' routed this application.'}
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div className="mt-4 rounded-[20px] border border-cyan-300/15 bg-cyan-300/[0.055] p-4">
                       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/60">Why it scored</p>
                       <p className="mt-2 text-sm font-semibold leading-6 text-cyan-50/70">
@@ -597,4 +616,3 @@ export default function AdminCreatorCaptainsPage() {
     </main>
   );
 }
-

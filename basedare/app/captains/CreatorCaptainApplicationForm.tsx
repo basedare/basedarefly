@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { CheckCircle2, Loader2, Send } from 'lucide-react';
 
 import {
@@ -37,6 +37,8 @@ type FormState = {
   walletAddress: string;
   venueLead: string;
   referralSource: string;
+  scoutCode: string;
+  referredCreatorHandle: string;
   companyWebsite: string;
 };
 
@@ -56,12 +58,20 @@ const INITIAL_FORM: FormState = {
   walletAddress: '',
   venueLead: '',
   referralSource: '',
+  scoutCode: '',
+  referredCreatorHandle: '',
   companyWebsite: '',
 };
 
 const inputClass =
   'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/40 focus:bg-black/38';
 const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
+
+type CreatorCaptainApplicationFormProps = {
+  initialScoutCode?: string;
+  initialCreatorHandle?: string;
+  initialSource?: string;
+};
 
 function toggleCategory(current: CreatorCaptainCategory[], category: CreatorCaptainCategory) {
   if (current.includes(category)) {
@@ -70,8 +80,23 @@ function toggleCategory(current: CreatorCaptainCategory[], category: CreatorCapt
   return [...current, category].slice(0, 4);
 }
 
-export default function CreatorCaptainApplicationForm() {
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+function buildInitialForm(props: CreatorCaptainApplicationFormProps): FormState {
+  return {
+    ...INITIAL_FORM,
+    primaryHandle: props.initialCreatorHandle || '',
+    referredCreatorHandle: props.initialCreatorHandle || '',
+    scoutCode: props.initialScoutCode || '',
+    referralSource: props.initialSource || (props.initialScoutCode ? 'scout-referral' : ''),
+  };
+}
+
+export default function CreatorCaptainApplicationForm(props: CreatorCaptainApplicationFormProps) {
+  const { initialCreatorHandle = '', initialScoutCode = '', initialSource = '' } = props;
+  const initialForm = useMemo(
+    () => buildInitialForm({ initialCreatorHandle, initialScoutCode, initialSource }),
+    [initialCreatorHandle, initialScoutCode, initialSource]
+  );
+  const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +117,7 @@ export default function CreatorCaptainApplicationForm() {
         throw new Error(data.error || 'Application failed');
       }
       setSubmittedId(data.data?.id || 'received');
-      setForm(INITIAL_FORM);
+      setForm(initialForm);
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : 'Application failed');
     } finally {
@@ -141,6 +166,18 @@ export default function CreatorCaptainApplicationForm() {
           </p>
         </div>
 
+        {form.scoutCode ? (
+          <div className="rounded-[20px] border border-cyan-300/18 bg-cyan-300/[0.06] p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/58">
+              Scout referral attached
+            </p>
+            <p className="mt-2 text-sm font-bold leading-6 text-cyan-50/72">
+              Scout code <span className="text-cyan-100">{form.scoutCode}</span>
+              {form.referredCreatorHandle ? ` routed this captain invite for ${form.referredCreatorHandle}.` : ' routed this captain invite.'}
+            </p>
+          </div>
+        ) : null}
+
         <input
           className="hidden"
           tabIndex={-1}
@@ -180,7 +217,13 @@ export default function CreatorCaptainApplicationForm() {
               required
               className={inputClass}
               value={form.primaryHandle}
-              onChange={(event) => setForm((current) => ({ ...current, primaryHandle: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  primaryHandle: event.target.value,
+                  referredCreatorHandle: current.referredCreatorHandle || event.target.value,
+                }))
+              }
               placeholder="@handle"
             />
           </label>
@@ -349,10 +392,13 @@ export default function CreatorCaptainApplicationForm() {
               className={inputClass}
               value={form.referralSource}
               onChange={(event) => setForm((current) => ({ ...current, referralSource: event.target.value }))}
-              placeholder="X, friend, venue, Base..."
+              placeholder="Scout, X, friend, venue, Base..."
             />
           </label>
         </div>
+
+        <input type="hidden" value={form.scoutCode} name="scoutCode" />
+        <input type="hidden" value={form.referredCreatorHandle} name="referredCreatorHandle" />
 
         {error ? (
           <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
@@ -372,4 +418,3 @@ export default function CreatorCaptainApplicationForm() {
     </form>
   );
 }
-
