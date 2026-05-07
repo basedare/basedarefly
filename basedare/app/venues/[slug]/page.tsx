@@ -266,6 +266,7 @@ export default async function VenueDetailPage(
     source: 'venue',
   });
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
+  const venueRecapHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
   const creatorContribution = venue.creatorContribution;
   const currentPulseState = getPulseState(venue.tagSummary.heatScore);
   const pulseMeterProgress = Math.min(
@@ -545,6 +546,13 @@ export default async function VenueDetailPage(
                         <BarChart3 className="h-4 w-4" />
                         Report
                       </Link>
+                      <Link
+                        href={venueRecapHref}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Receipt
+                      </Link>
                       {repeatActivationHref ? (
                         <Link
                           href={repeatActivationHref}
@@ -697,6 +705,13 @@ export default async function VenueDetailPage(
                 >
                   Start pilot
                   <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={venueRecapHref}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                >
+                  View receipt
+                  <CheckCircle2 className="h-4 w-4" />
                 </Link>
               </div>
             </div>

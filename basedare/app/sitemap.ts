@@ -90,6 +90,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'daily' as const,
         priority: 0.7,
       })),
+      ...venues.map((venue) => ({
+        url: `https://basedare.xyz/venues/${venue.slug}/recap`,
+        lastModified: venue.updatedAt,
+        changeFrequency: 'daily' as const,
+        priority: 0.68,
+      })),
       ...dares
         .filter((dare) => Boolean(dare.shortId))
         .map((dare) => ({

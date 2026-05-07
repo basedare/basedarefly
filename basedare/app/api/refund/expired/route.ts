@@ -30,6 +30,8 @@ const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS 
 const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
 const FORCE_SIMULATION = isBountySimulationMode();
 
+type RefundResultStatus = 'refunded' | 'verified' | 'failed' | 'simulated' | 'orphaned';
+
 // Cron secret handled by verifyCronSecret (fail-closed)
 
 // ============================================================================
@@ -51,6 +53,10 @@ function getServerClients() {
   });
 
   return { publicClient, walletClient, account };
+}
+
+function isBountyDoesNotExistError(message: string) {
+  return message.includes('Bounty: Does not exist') || message.includes('Bounty not found on-chain');
 }
 
 // ============================================================================
@@ -88,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const results: Array<{
       dareId: string;
-      status: 'refunded' | 'verified' | 'failed' | 'simulated';
+      status: RefundResultStatus;
       txHash?: string;
       error?: string;
     }> = [];
@@ -257,8 +263,8 @@ export async function POST(request: NextRequest) {
 
           results.push({
             dareId: dare.id,
-            status: 'failed',
-            error: 'Bounty not found on-chain; marked FAILED for manual reconciliation',
+            status: 'orphaned',
+            error: 'Bounty not found on-chain; marked FAILED and removed from refund queue',
           });
           console.log(`[REFUND] Dare ${dare.id} — bounty not found on-chain and no settlement logs found`);
           continue;
@@ -353,11 +359,85 @@ export async function POST(request: NextRequest) {
               console.log(`[REFUND] Reconciled refunded dare ${dare.id} from on-chain event ${settlement.txHash}`);
               continue;
             }
+
+            if (settlement.type === 'PAYOUT') {
+              const verifiedDare = await prisma.dare.update({
+                where: { id: dare.id },
+                data: {
+                  status: 'VERIFIED',
+                  verifiedAt: new Date(),
+                  verifyTxHash: settlement.txHash,
+                  appealStatus: 'NONE',
+                  appealReason: null,
+                },
+              });
+              await syncLinkedCampaignForDareState({
+                dareId: dare.id,
+                status: 'VERIFIED',
+              });
+              await recordDareFounderEventSafe({
+                eventType: 'dare_settled',
+                source: 'refund-expired-reconcile',
+                dare: verifiedDare,
+                status: 'VERIFIED',
+                metadata: {
+                  simulated: false,
+                  txHash: settlement.txHash,
+                  onChainDareId: dare.onChainDareId,
+                  reconciled: true,
+                },
+              });
+
+              results.push({
+                dareId: dare.id,
+                status: 'verified',
+                txHash: settlement.txHash,
+              });
+              console.log(`[REFUND] Reconciled paid dare ${dare.id} from on-chain event ${settlement.txHash}`);
+              continue;
+            }
           } catch (reconciliationError: unknown) {
             const reconcileMessage =
               reconciliationError instanceof Error ? reconciliationError.message : 'Unknown reconciliation error';
             console.error(`[REFUND] Settlement reconciliation failed for dare ${dare.id}:`, reconcileMessage);
           }
+        }
+
+        if (isBountyDoesNotExistError(message)) {
+          const failedDare = await prisma.dare.update({
+            where: { id: dare.id },
+            data: {
+              status: 'FAILED',
+              appealStatus: 'NONE',
+              appealReason: 'Bounty not found on-chain during expired refund',
+            },
+          });
+          await syncLinkedCampaignForDareState({
+            dareId: dare.id,
+            status: 'FAILED',
+          });
+          await recordDareFounderEventSafe({
+            eventType: 'dare_failed',
+            source: 'refund-expired-revert-reconcile',
+            dare: failedDare,
+            status: 'FAILED',
+            metadata: {
+              simulated: false,
+              onChainDareId: dare.onChainDareId,
+              txHash: dare.txHash,
+              claimDeadline: dare.claimDeadline?.toISOString() ?? null,
+              reason: 'Bounty not found on-chain after refundBacker revert',
+              originalError: message,
+            },
+          });
+
+          results.push({
+            dareId: dare.id,
+            status: 'orphaned',
+            error: 'Bounty not found on-chain; marked FAILED and removed from refund queue',
+          });
+          console.log(`[REFUND] Reconciled missing on-chain bounty for dare ${dare.id} after refundBacker revert`);
+          continue;
         }
 
         results.push({
@@ -371,9 +451,10 @@ export async function POST(request: NextRequest) {
     // Summary
     const refunded = results.filter((r) => r.status === 'refunded' || r.status === 'simulated').length;
     const repaired = results.filter((r) => r.status === 'verified').length;
+    const orphaned = results.filter((r) => r.status === 'orphaned').length;
     const failed = results.filter((r) => r.status === 'failed').length;
 
-    console.log(`[REFUND] Complete - Refunded: ${refunded}, Repaired: ${repaired}, Failed: ${failed}`);
+    console.log(`[REFUND] Complete - Refunded: ${refunded}, Repaired: ${repaired}, Orphaned: ${orphaned}, Failed: ${failed}`);
 
     if (failed > 0) {
       const failedSummary = results
@@ -395,6 +476,7 @@ export async function POST(request: NextRequest) {
       processed: expiredDares.length,
       refunded,
       repaired,
+      orphaned,
       failed,
       results,
     });

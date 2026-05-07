@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { Activity, ArrowRight, BarChart3, Flame, MapPin, Users, Waves } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, CheckCircle2, Flame, MapPin, Users, Waves } from 'lucide-react';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
   buildRepeatActivationComposerHref,
@@ -46,6 +46,7 @@ export default async function VenueReportPage(
   }
 
   const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
+  const venueRecapHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
   const freshActivationHref = `/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`;
   const bestCreatorRouteHref = venue.roiSnapshot.bestCreator
     ? buildVenueCreatorRouteComposerHref({
@@ -350,6 +351,15 @@ export default async function VenueReportPage(
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-3">
+                  <VenueReportTrackedLink
+                    href={venueRecapHref}
+                    venueSlug={venue.slug}
+                    audience={audience}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Open Spark Receipt
+                  </VenueReportTrackedLink>
                   <VenueReportTrackedLink
                     href={freshActivationHref}
                     venueSlug={venue.slug}
