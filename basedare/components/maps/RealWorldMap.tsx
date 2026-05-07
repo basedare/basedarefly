@@ -4719,6 +4719,7 @@ export default function RealWorldMap() {
           buyerType: 'venue',
           goal: 'foot_traffic',
           packageId: 'pilot-drop',
+          offerId: 'first-spark',
           source: 'map',
         })
       : null;

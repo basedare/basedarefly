@@ -16,6 +16,7 @@ import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import SquircleLink from '@/components/ui/SquircleLink';
+import FirstSparkPilotQuickStart from './FirstSparkPilotQuickStart';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -693,27 +694,14 @@ export default async function VenueDetailPage(
                   </div>
                 ))}
               </div>
-              <div className={`${insetCardClass} px-4 py-4`}>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Venue gives</p>
-                <p className="mt-2 text-lg font-black text-white">One perk + approval</p>
-                <p className="mt-2 text-xs leading-5 text-white/50">
-                  BaseDare handles setup, creator route, proof flow, and the recap.
-                </p>
-                <Link
-                  href={activateVenueHref}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.13] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_16px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/42 hover:bg-[#f5c518]/[0.17]"
-                >
-                  Start pilot
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href={venueRecapHref}
-                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-                >
-                  View receipt
-                  <CheckCircle2 className="h-4 w-4" />
-                </Link>
-              </div>
+              <FirstSparkPilotQuickStart
+                venueId={venue.id}
+                venueSlug={venue.slug}
+                venueName={venue.name}
+                city={venue.city}
+                fullIntakeHref={activateVenueHref}
+                className={insetCardClass}
+              />
             </div>
           </div>
 
