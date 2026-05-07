@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star } from "lucide-react";
+import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, UserRoundPlus } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
@@ -173,7 +173,17 @@ export default function CreatorsPage() {
                 Claim your tag, complete live dares, and build verified momentum on the grid.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
+                <Link href="/captains" className="flex-1">
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
+                  >
+                    <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
+                    <UserRoundPlus className="w-4 h-4 text-cyan-200" />
+                    Apply as Captain
+                  </motion.button>
+                </Link>
                 <LiquidMetalButton
                   onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
                   className="flex-1"

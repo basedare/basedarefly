@@ -12,6 +12,13 @@
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
 import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/activation-brand-memory';
+import {
+  CREATOR_CAPTAIN_AUDIENCE_LABELS,
+  CREATOR_CAPTAIN_AVAILABILITY_LABELS,
+  CREATOR_CAPTAIN_CATEGORY_LABELS,
+  CREATOR_CAPTAIN_PLATFORM_LABELS,
+  CREATOR_CAPTAIN_PAYOUT_LABELS,
+} from '@/lib/creator-captains';
 import type { LocalSignalItem } from '@/lib/local-signals';
 import { normalizeSignalRoomChatId } from '@/lib/signal-room';
 
@@ -762,6 +769,75 @@ ${missionPreview ? `\n${missionPreview}` : ''}
 Lead: <code>${escapeHtml(data.leadId)}</code>
 
 ${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.leadId)}`), 'Open intake queue')} · ${data.routedVenueSlug ? `${htmlLink(appUrl(`/venues/${encodeURIComponent(data.routedVenueSlug)}`), 'Open venue')} · ` : ''}${htmlLink(appUrl('/admin/daily-command-loop'), 'Command loop')} · ${htmlLink(appUrl('/brands/portal'), 'Brand portal')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertCreatorCaptainApplication(data: {
+  applicationId: string;
+  creatorName: string;
+  email: string;
+  city: string;
+  primaryHandle: string;
+  primaryPlatform: string;
+  categories: string[];
+  audienceSize: string;
+  availability: string;
+  expectedPayout: string;
+  venueLead?: string | null;
+  priorityScore: number;
+  priorityReasons: string[];
+}): Promise<boolean> {
+  const categoryLine = data.categories
+    .map((category) => CREATOR_CAPTAIN_CATEGORY_LABELS[category as keyof typeof CREATOR_CAPTAIN_CATEGORY_LABELS] || category)
+    .join(', ');
+  const details = [
+    `Contact: ${escapeHtml(data.creatorName)} &lt;${escapeHtml(data.email)}&gt;`,
+    `Handle: <code>${escapeHtml(data.primaryHandle)}</code> · Platform: ${escapeHtml(CREATOR_CAPTAIN_PLATFORM_LABELS[data.primaryPlatform as keyof typeof CREATOR_CAPTAIN_PLATFORM_LABELS] || data.primaryPlatform)}`,
+    `City: ${escapeHtml(data.city)} · Audience: ${escapeHtml(CREATOR_CAPTAIN_AUDIENCE_LABELS[data.audienceSize as keyof typeof CREATOR_CAPTAIN_AUDIENCE_LABELS] || data.audienceSize)}`,
+    `Lane: ${escapeHtml(categoryLine || 'unknown')} · Available: ${escapeHtml(CREATOR_CAPTAIN_AVAILABILITY_LABELS[data.availability as keyof typeof CREATOR_CAPTAIN_AVAILABILITY_LABELS] || data.availability)}`,
+    `Expected payout: ${escapeHtml(CREATOR_CAPTAIN_PAYOUT_LABELS[data.expectedPayout as keyof typeof CREATOR_CAPTAIN_PAYOUT_LABELS] || data.expectedPayout)}`,
+    data.venueLead ? `Venue lead: ${escapeHtml(compactText(data.venueLead, 180))}` : null,
+    `Priority: ${data.priorityScore}/100 · ${escapeHtml(data.priorityReasons.join(', '))}`,
+  ].filter(Boolean);
+
+  const message = `
+🎥 <b>CREATOR CAPTAIN APPLICATION</b>
+
+<b>${escapeHtml(data.primaryHandle)}</b>
+${details.join('\n')}
+Application: <code>${escapeHtml(data.applicationId)}</code>
+
+${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')} · ${htmlLink(appUrl('/captains'), 'Public form')} · ${htmlLink(appUrl('/admin/activation-intakes'), 'Activation queue')}
+`.trim();
+
+  return sendMessage(message);
+}
+
+export async function alertCreatorCaptainStatusUpdate(data: {
+  applicationId: string;
+  creatorName: string;
+  primaryHandle: string;
+  status: string;
+  operatorNote?: string | null;
+  updatedBy?: string | null;
+}): Promise<boolean> {
+  const lines = [
+    data.creatorName ? `Creator: ${escapeHtml(data.creatorName)}` : null,
+    data.operatorNote ? `Note: ${escapeHtml(compactText(data.operatorNote, 220))}` : null,
+    data.updatedBy ? `By: <code>${escapeHtml(data.updatedBy)}</code>` : null,
+  ].filter(Boolean);
+
+  const message = `
+✅ <b>CREATOR CAPTAIN UPDATED</b>
+
+<b>${escapeHtml(data.primaryHandle || data.creatorName || 'Creator')}</b>
+Status: <b>${escapeHtml(data.status)}</b>
+Application: <code>${escapeHtml(data.applicationId)}</code>
+${lines.length ? `\n${lines.join('\n')}` : ''}
+
+${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')}
 `.trim();
 
   return sendMessage(message);
