@@ -5,7 +5,18 @@ import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi
 import { useSession } from 'next-auth/react';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, MessageSquare, PlayCircle, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CreditCard,
+  MapPin,
+  MessageSquare,
+  PlayCircle,
+  ReceiptText,
+  Sparkles,
+  Target,
+  Users,
+} from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
@@ -333,6 +344,87 @@ const TIER_INFO = {
   },
 };
 
+type ActivationPackageId = 'scout-drop' | 'venue-push' | 'headline-night';
+type ActivationPackage = {
+  id: ActivationPackageId;
+  name: string;
+  eyebrow: string;
+  tier: CampaignTier;
+  payout: number;
+  bestFor: string;
+  outcome: string;
+  proof: string;
+  buyerCopy: string;
+};
+
+const DEFAULT_ACTIVATION_PACKAGE_ID: ActivationPackageId = 'venue-push';
+
+const ACTIVATION_PACKAGES: ActivationPackage[] = [
+  {
+    id: 'scout-drop',
+    name: 'Scout Drop',
+    eyebrow: 'Fast test',
+    tier: 'SIP_MENTION',
+    payout: 75,
+    bestFor: 'First signal at a venue',
+    outcome: 'One creator visit, venue proof, and a reusable social clip.',
+    proof: 'Creator captures the venue, why it is worth showing up, and one clean proof moment.',
+    buyerCopy: 'Low-friction starter package for validating whether a place can produce creator memory.',
+  },
+  {
+    id: 'venue-push',
+    name: 'Venue Push',
+    eyebrow: 'Recommended',
+    tier: 'CHALLENGE',
+    payout: 250,
+    bestFor: 'Driving a specific night or offer',
+    outcome: 'One routed creator challenge with stronger urgency and review pressure.',
+    proof: 'Creator films the arrival, the venue energy, and the action you want repeated.',
+    buyerCopy: 'Best default for venues and local brands that want visible movement, not passive placement.',
+  },
+  {
+    id: 'headline-night',
+    name: 'Headline Night',
+    eyebrow: 'High impact',
+    tier: 'APEX',
+    payout: 1000,
+    bestFor: 'Launches, parties, and sponsor moments',
+    outcome: 'One premium creator mission with a tighter time window and stronger payout signal.',
+    proof: 'Creator makes the place feel like the event people should have attended.',
+    buyerCopy: 'Use this when the night itself matters and the proof needs to feel like a receipt.',
+  },
+];
+
+function getActivationPackage(packageId: ActivationPackageId) {
+  return (
+    ACTIVATION_PACKAGES.find((activationPackage) => activationPackage.id === packageId) ??
+    ACTIVATION_PACKAGES.find((activationPackage) => activationPackage.id === DEFAULT_ACTIVATION_PACKAGE_ID) ??
+    ACTIVATION_PACKAGES[0]
+  );
+}
+
+function getActivationPackageForTier(tier: CampaignTier | undefined) {
+  if (!tier) return getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID);
+  return ACTIVATION_PACKAGES.find((activationPackage) => activationPackage.tier === tier) ?? getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID);
+}
+
+function buildActivationPackageTitle(activationPackage: ActivationPackage, venueName?: string | null) {
+  const target = venueName?.trim();
+  return target ? `${target} ${activationPackage.name}` : activationPackage.name;
+}
+
+function buildActivationPackageDescription(activationPackage: ActivationPackage, venueName?: string | null) {
+  const target = venueName?.trim() || 'the venue';
+  return `${activationPackage.proof} Target venue: ${target}.`;
+}
+
+function formatUsdAmount(value: number) {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function isCampaignTier(value: string | null): value is CampaignTier {
   return value === 'SIP_MENTION' || value === 'SIP_SHILL' || value === 'CHALLENGE' || value === 'APEX';
 }
@@ -422,6 +514,8 @@ export default function BrandPortalPage() {
   const [showRegister, setShowRegister] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
+  const [selectedActivationPackageId, setSelectedActivationPackageId] =
+    useState<ActivationPackageId>(DEFAULT_ACTIVATION_PACKAGE_ID);
   const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
   const [selectedVenueRadarId, setSelectedVenueRadarId] = useState<string | null>(null);
   const [preferredCreatorTag, setPreferredCreatorTag] = useState<string | null>(null);
@@ -429,11 +523,11 @@ export default function BrandPortalPage() {
 
   const [formData, setFormData] = useState<CampaignFormData>({
     type: 'PLACE',
-    tier: 'SIP_SHILL',
+    tier: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).tier,
     title: '',
     description: '',
     creatorCountTarget: 10,
-    payoutPerCreator: 100,
+    payoutPerCreator: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).payout,
     syncTime: '',
     targetingCriteria: {
       niche: '',
@@ -504,6 +598,34 @@ export default function BrandPortalPage() {
     filteredVenueRadar[0] ??
     venueRadar[0] ??
     null;
+  const selectedActivationPackage = getActivationPackage(selectedActivationPackageId);
+  const selectedCheckoutCreator =
+    formData.type === 'PLACE'
+      ? recommendedCreators.find((match) => match.creator.id === selectedCreatorId) ?? null
+      : null;
+
+  const selectActivationPackage = useCallback((packageId: ActivationPackageId) => {
+    const activationPackage = getActivationPackage(packageId);
+    const activeMinPayout = NETWORK_CONFIG.isMainnet
+      ? TIER_INFO[activationPackage.tier].minPayout
+      : 1;
+    const venueName = selectedPlace?.name ?? selectedVenueRadar?.name ?? null;
+
+    setSelectedActivationPackageId(packageId);
+    setFormData((current) => ({
+      ...current,
+      type: 'PLACE',
+      tier: activationPackage.tier,
+      title: buildActivationPackageTitle(activationPackage, venueName),
+      description: buildActivationPackageDescription(activationPackage, venueName),
+      creatorCountTarget: 1,
+      payoutPerCreator: Math.max(activationPackage.payout, activeMinPayout),
+      targetingCriteria: {
+        ...current.targetingCriteria,
+        location: 'near-venue',
+      },
+    }));
+  }, [selectedPlace?.name, selectedVenueRadar?.name]);
 
   const openCampaignComposerForVenue = useCallback((venue: BrandVenueRadarItem, prefillInput?: string | null | ComposerPrefill) => {
     const prefill =
@@ -511,10 +633,14 @@ export default function BrandPortalPage() {
         ? { creatorTag: prefillInput ?? null }
         : prefillInput;
     const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
-    const nextTier = prefill.tier ?? 'SIP_SHILL';
+    const activationPackage = getActivationPackageForTier(prefill.tier);
+    const nextTier = prefill.tier ?? activationPackage.tier;
     const minimumPayout = NETWORK_CONFIG.isMainnet ? TIER_INFO[nextTier].minPayout : 1;
-    const nextPayout = prefill.payoutPerCreator ? Math.max(prefill.payoutPerCreator, minimumPayout) : null;
+    const nextPayout = prefill.payoutPerCreator
+      ? Math.max(prefill.payoutPerCreator, minimumPayout)
+      : Math.max(activationPackage.payout, minimumPayout);
 
+    setSelectedActivationPackageId(activationPackage.id);
     setSelectedPlace({
       id: venue.id,
       name: venue.name,
@@ -529,13 +655,12 @@ export default function BrandPortalPage() {
       ...current,
       type: 'PLACE',
       tier: nextTier,
-      title: prefill.title?.trim() || (current.title.trim() ? current.title : `${venue.name} activation`),
+      title: prefill.title?.trim() || buildActivationPackageTitle(activationPackage, venue.name),
       description:
         prefill.description?.trim() ||
-        (current.description.trim()
-          ? current.description
-          : `Launch a creator activation at ${venue.name} while venue signal is already building.`),
-      payoutPerCreator: nextPayout ?? Math.max(current.payoutPerCreator, minimumPayout),
+        buildActivationPackageDescription(activationPackage, venue.name),
+      payoutPerCreator: nextPayout,
+      creatorCountTarget: 1,
       syncTime: prefill.syncTime ?? current.syncTime,
       targetingCriteria: {
         ...current.targetingCriteria,
@@ -558,6 +683,68 @@ export default function BrandPortalPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 50);
   }, []);
+
+  const openCampaignComposerForCampaign = useCallback((campaign: Campaign) => {
+    if (!campaign.venue) return;
+
+    const matchingVenue = venueRadar.find(
+      (venue) => venue.id === campaign.venue?.id || venue.slug === campaign.venue?.slug
+    );
+    const campaignTier = isCampaignTier(campaign.tier) ? campaign.tier : undefined;
+
+    if (matchingVenue) {
+      openCampaignComposerForVenue(matchingVenue, {
+        tier: campaignTier,
+        payoutPerCreator: campaign.payoutPerCreator,
+        title: `${campaign.venue.name} repeat activation`,
+        description:
+          campaign.description?.trim() ||
+          `Run another creator activation at ${campaign.venue.name} while the venue already has BaseDare signal.`,
+        reportIntent: 'repeat',
+      });
+      return;
+    }
+
+    const activationPackage = getActivationPackageForTier(campaignTier);
+    const nextTier = campaignTier ?? activationPackage.tier;
+    const minimumPayout = NETWORK_CONFIG.isMainnet ? TIER_INFO[nextTier].minPayout : 1;
+    const displayName = [campaign.venue.name, formatVenueRadarLocation(campaign.venue)]
+      .filter(Boolean)
+      .join(', ');
+
+    setSelectedActivationPackageId(activationPackage.id);
+    setSelectedPlace({
+      id: campaign.venue.id,
+      name: campaign.venue.name,
+      displayName,
+      city: campaign.venue.city,
+      country: campaign.venue.country,
+      placeId: campaign.venue.id,
+      slug: campaign.venue.slug,
+    });
+    setPlaceQuery(displayName);
+    setPreferredCreatorTag(null);
+    setReportAttribution(null);
+    setFormData((current) => ({
+      ...current,
+      type: 'PLACE',
+      tier: nextTier,
+      title: `${campaign.venue?.name ?? 'Venue'} repeat activation`,
+      description:
+        campaign.description?.trim() ||
+        buildActivationPackageDescription(activationPackage, campaign.venue?.name),
+      payoutPerCreator: Math.max(campaign.payoutPerCreator || activationPackage.payout, minimumPayout),
+      creatorCountTarget: 1,
+      targetingCriteria: {
+        ...current.targetingCriteria,
+        location: 'near-venue',
+      },
+    }));
+    setShowCreateCampaign(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  }, [openCampaignComposerForVenue, venueRadar]);
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -1007,15 +1194,16 @@ export default function BrandPortalPage() {
         setShowCreateCampaign(false);
         setFormData({
           type: 'PLACE',
-          tier: 'SIP_SHILL',
+          tier: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).tier,
           title: '',
           description: '',
           creatorCountTarget: 10,
-          payoutPerCreator: 100,
+          payoutPerCreator: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).payout,
           syncTime: '',
           targetingCriteria: { niche: '', minFollowers: 0, location: 'anywhere', platforms: [] },
           verificationCriteria: { hashtagsRequired: [], minDurationSeconds: 30 },
         });
+        setSelectedActivationPackageId(DEFAULT_ACTIVATION_PACKAGE_ID);
         setPlaceQuery('');
         setPlaceResults([]);
         setSelectedPlace(null);
@@ -1190,6 +1378,42 @@ export default function BrandPortalPage() {
   };
 
   const budget = calculateBudget();
+  const selectedCreatorLabel =
+    selectedCheckoutCreator?.creator.tag ??
+    (recommendedCreatorsLoading
+      ? 'Ranking creators'
+      : selectedPlace
+        ? 'Pick creator'
+        : 'Venue first');
+  const canLaunchActivation =
+    !creatingCampaign &&
+    Boolean(formData.title.trim()) &&
+    formData.type === 'PLACE' &&
+    Boolean(selectedPlace) &&
+    !recommendedCreatorsLoading &&
+    Boolean(selectedCreatorId);
+  const checkoutSteps = [
+    {
+      label: 'Venue',
+      detail: selectedPlace?.name ?? 'Choose place',
+      complete: Boolean(selectedPlace),
+    },
+    {
+      label: 'Package',
+      detail: selectedActivationPackage.name,
+      complete: Boolean(selectedActivationPackage),
+    },
+    {
+      label: 'Creator',
+      detail: selectedCreatorLabel,
+      complete: Boolean(selectedCreatorId),
+    },
+    {
+      label: 'Fund',
+      detail: `$${formatUsdAmount(budget.total)} USDC`,
+      complete: false,
+    },
+  ];
 
   const formatWallet = (value: string | null | undefined) =>
     value ? `${value.slice(0, 6)}...${value.slice(-4)}` : null;
@@ -2227,104 +2451,194 @@ export default function BrandPortalPage() {
 
         {/* Value Menu / Launch Activation */}
         {showCreateCampaign ? (
-          <div className="mb-8 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-lg backdrop-blur-md md:p-6 md:backdrop-blur-xl">
-            <div className="mb-5 flex items-center justify-between md:mb-6">
-              <h2 className="text-xl font-bold text-zinc-900">Launch Venue Activation</h2>
+          <div className="mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white/90 shadow-lg backdrop-blur-md md:backdrop-blur-xl">
+            <div className="border-b border-zinc-200 bg-zinc-950 px-4 py-4 text-white md:px-6 md:py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-300">
+                      Activation checkout
+                    </span>
+                    <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
+                      {selectedActivationPackage.eyebrow}
+                    </span>
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">
+                    Venue → Package → Creator → Fund
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
+                    Buy one clear activation package. BaseDare fills the venue brief, routes the best creator, and tracks proof back to the venue.
+                  </p>
+              </div>
               <button
+                type="button"
                 onClick={() => {
                   setShowCreateCampaign(false);
                   setPreferredCreatorTag(null);
                 }}
-                className="text-zinc-500 hover:text-zinc-900"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-zinc-300 transition hover:border-white/20 hover:text-white"
+                  aria-label="Close activation checkout"
               >
                 ✕
               </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-4 gap-2">
+                {checkoutSteps.map((step, index) => (
+                  <div
+                    key={step.label}
+                    className={`rounded-xl border px-2 py-2 text-center md:px-3 md:py-3 ${
+                      step.complete
+                        ? 'border-emerald-300/25 bg-emerald-400/10'
+                        : index === 3
+                          ? 'border-[#f5c518]/25 bg-[#f5c518]/10'
+                          : 'border-white/10 bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-black/20 text-[10px] font-black md:h-7 md:w-7">
+                      {step.complete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" /> : index + 1}
+                    </div>
+                    <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-white md:text-[10px]">
+                      {step.label}
+                    </div>
+                    <div className="mt-0.5 truncate text-[10px] text-zinc-400 md:text-xs">
+                      {step.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Tier Selection - Value Menu Style */}
-            <div className="mb-6">
-              <label className="block text-sm text-zinc-600 mb-3">Choose budget tier</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                {(Object.keys(TIER_INFO) as Array<keyof typeof TIER_INFO>).map((tier) => {
-                  const info = TIER_INFO[tier];
-                  const isSelected = formData.tier === tier;
+            <div className="p-4 md:p-6">
+            <div className="mb-6 grid gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                  <Target className="h-3.5 w-3.5" />
+                  Current route
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Venue
+                    </div>
+                    <div className="mt-1 truncate text-base font-black text-zinc-950">
+                      {selectedPlace?.name ?? selectedVenueRadar?.name ?? 'Choose a venue below'}
+                    </div>
+                    <div className="mt-1 truncate text-xs text-zinc-500">
+                      {selectedPlace?.displayName ?? (selectedVenueRadar ? formatVenueRadarLocation(selectedVenueRadar) : 'Required before launch')}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Package
+                    </div>
+                    <div className="mt-1 text-base font-black text-zinc-950">{selectedActivationPackage.name}</div>
+                    <div className="mt-1 text-xs leading-5 text-zinc-500">{selectedActivationPackage.buyerCopy}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                      <Users className="h-3.5 w-3.5" />
+                      Creator
+                    </div>
+                    <div className="mt-1 truncate text-base font-black text-zinc-950">{selectedCreatorLabel}</div>
+                    <div className="mt-1 text-xs leading-5 text-zinc-500">
+                      {selectedCheckoutCreator
+                        ? selectedCheckoutCreator.reasons.slice(0, 2).join(' • ') || 'Best available venue fit'
+                        : 'Auto-ranked after the venue is selected'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-3 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
+                      Choose package
+                    </div>
+                    <div className="mt-1 text-sm text-zinc-600">
+                      Presets keep buyers out of blank-form mode. Details stay editable below.
+                    </div>
+                  </div>
+                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
+                    1 creator route
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                {ACTIVATION_PACKAGES.map((activationPackage) => {
+                  const info = TIER_INFO[activationPackage.tier];
+                  const activeMinPayout = NETWORK_CONFIG.isMainnet ? info.minPayout : 1;
+                  const packagePayout = Math.max(activationPackage.payout, activeMinPayout);
+                  const packageFee = packagePayout * (parseInt(info.rake) / 100);
+                  const packageTotal = packagePayout + packageFee;
+                  const isSelected = selectedActivationPackageId === activationPackage.id;
                   return (
                     <button
-                      key={tier}
-                      onClick={() => {
-                        const activeMinPayout = NETWORK_CONFIG.isMainnet ? info.minPayout : 1;
-                        setFormData({
-                          ...formData,
-                          tier,
-                          payoutPerCreator: Math.max(formData.payoutPerCreator, activeMinPayout),
-                        });
-                      }}
-                      className={`rounded-xl border p-3 transition-all md:p-4 ${
+                      key={activationPackage.id}
+                      type="button"
+                      onClick={() => selectActivationPackage(activationPackage.id)}
+                      className={`rounded-2xl border p-4 text-left transition-all ${
                         isSelected
-                          ? `bg-gradient-to-br ${info.color} border-transparent text-white`
+                          ? `bg-gradient-to-br ${info.color} border-transparent text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)]`
                           : `bg-white ${info.borderColor} hover:border-zinc-400 text-zinc-900`
                       }`}
                     >
-                      <div className="font-semibold">{info.name}</div>
-                      <div className={`mt-1 hidden text-xs md:block ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>{info.description}</div>
-                      <div className="mt-3 space-y-1 text-left text-xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>
+                            {activationPackage.eyebrow}
+                          </div>
+                          <div className="mt-1 text-lg font-black leading-tight">{activationPackage.name}</div>
+                        </div>
+                        {isSelected ? (
+                          <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />
+                        ) : null}
+                      </div>
+                      <div className={`mt-2 text-xs leading-5 ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>
+                        {activationPackage.outcome}
+                      </div>
+                      <div className="mt-4 space-y-1.5 text-xs">
                         <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>From:</span>
-                          <span>${NETWORK_CONFIG.isMainnet ? info.minPayout : 1}</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Creator escrow:</span>
+                          <span>${formatUsdAmount(packagePayout)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>BaseDare fee:</span>
+                          <span>${formatUsdAmount(packageFee)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/15 pt-1.5">
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Total:</span>
+                          <span className="font-black">${formatUsdAmount(packageTotal)}</span>
                         </div>
                         <div className="hidden justify-between md:flex">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Timing:</span>
+                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Window:</span>
                           <span>{info.window}</span>
                         </div>
-                        <div className="hidden justify-between md:flex">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Boost:</span>
-                          <span>{info.bonus}</span>
-                        </div>
+                      </div>
+                      <div className={`mt-4 rounded-xl border px-3 py-2 text-[11px] leading-4 ${isSelected ? 'border-white/15 bg-white/10 text-white/78' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>
+                        {activationPackage.bestFor}
                       </div>
                     </button>
                   );
                 })}
+                </div>
               </div>
             </div>
 
             {/* Campaign Details */}
-            <div className="mb-6">
-              <label className="block text-sm text-zinc-600 mb-2">Activation format</label>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {([
-                  {
-                    value: 'PLACE',
-                    title: 'Venue Activation',
-                    body: 'Fund one real place mission that appears on the map.',
-                  },
-                  {
-                    value: 'CREATOR',
-                    title: 'Creator-only Route',
-                    body: 'Coming later. Venue activations are the supported launch path right now.',
-                  },
-                ] as const).map((option) => {
-                  const isSelected = formData.type === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() =>
-                        setFormData((current) => ({
-                          ...current,
-                          type: option.value,
-                          creatorCountTarget: option.value === 'PLACE' ? 1 : current.creatorCountTarget,
-                        }))
-                      }
-                      className={`rounded-xl border p-4 text-left transition ${
-                        isSelected
-                          ? 'border-purple-500/60 bg-purple-500/[0.08] text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]'
-                          : 'border-zinc-300 bg-white hover:border-zinc-400'
-                      }`}
-                    >
-                      <div className="font-semibold">{option.title}</div>
-                      <div className="mt-1 text-xs text-zinc-500">{option.body}</div>
-                    </button>
-                  );
-                })}
+            <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
+                  Editable details
+                </div>
+                <div className="mt-1 text-sm text-zinc-600">
+                  The checkout is ready from the package. Adjust only what the buyer specifically cares about.
+                </div>
               </div>
             </div>
 
@@ -2383,6 +2697,36 @@ export default function BrandPortalPage() {
                               setPreferredCreatorTag(null);
                               setPlaceQuery(place.displayName);
                               setPlaceResults([]);
+                              setFormData((current) => {
+                                const genericPackageTitles = ACTIVATION_PACKAGES.map((activationPackage) =>
+                                  buildActivationPackageTitle(activationPackage)
+                                );
+                                const genericPackageDescriptions = ACTIVATION_PACKAGES.map((activationPackage) =>
+                                  buildActivationPackageDescription(activationPackage)
+                                );
+                                const shouldReplaceTitle =
+                                  !current.title.trim() ||
+                                  genericPackageTitles.includes(current.title.trim());
+                                const shouldReplaceDescription =
+                                  !current.description.trim() ||
+                                  genericPackageDescriptions.includes(current.description.trim());
+
+                                return {
+                                  ...current,
+                                  type: 'PLACE',
+                                  title: shouldReplaceTitle
+                                    ? buildActivationPackageTitle(selectedActivationPackage, place.name)
+                                    : current.title,
+                                  description: shouldReplaceDescription
+                                    ? buildActivationPackageDescription(selectedActivationPackage, place.name)
+                                    : current.description,
+                                  creatorCountTarget: 1,
+                                  targetingCriteria: {
+                                    ...current.targetingCriteria,
+                                    location: 'near-venue',
+                                  },
+                                };
+                              });
                             }}
                             className="w-full rounded-lg border border-transparent bg-white px-3 py-3 text-left transition hover:border-purple-300 hover:bg-purple-50"
                           >
@@ -2439,7 +2783,7 @@ export default function BrandPortalPage() {
                   )}
                   <div>
                     <label className="block text-sm text-zinc-600 mb-2">
-                      {formData.type === 'PLACE' ? 'Creator payout for this activation ($)' : 'Payout per creator ($)'}
+                      {formData.type === 'PLACE' ? 'Creator escrow for this activation ($)' : 'Payout per creator ($)'}
                     </label>
                     <input
                       type="number"
@@ -2744,65 +3088,69 @@ export default function BrandPortalPage() {
               </div>
             </div>
 
-            {/* Budget Summary */}
-            <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 md:p-4 mb-6">
-              <div className="text-sm text-zinc-600 mb-2">Budget summary</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center">
-                <div>
-                  <div className="text-lg md:text-2xl font-bold text-zinc-900">${budget.gross.toLocaleString()}</div>
-                  <div className="text-xs text-zinc-500">Creator payouts</div>
+            {/* Checkout Summary */}
+            <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_0.78fr]">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-100 p-4">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                  <ReceiptText className="h-3.5 w-3.5" />
+                  Checkout summary
                 </div>
-                <div>
-                  <div className="text-lg md:text-2xl font-bold text-purple-600">
-                    ${budget.rake.toLocaleString()}
+                <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-center">
+                    <div className="text-lg font-black text-zinc-950 md:text-2xl">${formatUsdAmount(budget.gross)}</div>
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Creator escrow</div>
                   </div>
-                  <div className="text-xs text-zinc-500">
-                    Platform fee ({TIER_INFO[formData.tier].rake})
+                  <div className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-3 text-center">
+                    <div className="text-lg font-black text-purple-700 md:text-2xl">
+                      ${formatUsdAmount(budget.rake)}
+                    </div>
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-purple-700">
+                      BaseDare fee
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-lg md:text-2xl font-bold text-green-600">
-                    ${budget.total.toLocaleString()}
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-center">
+                    <div className="text-lg font-black text-emerald-700 md:text-2xl">
+                      ${formatUsdAmount(budget.total)}
+                    </div>
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Total budget</div>
                   </div>
-                  <div className="text-xs text-zinc-500">Total budget</div>
-                </div>
-                <div>
-                  <div className="text-lg md:text-2xl font-bold text-zinc-900">
-                    {budget.effectiveSlotCount} × ${formData.payoutPerCreator}
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    {formData.type === 'PLACE' ? '1 activation × payout' : 'Slots × payout'}
+                  <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-center">
+                    <div className="text-lg font-black text-zinc-950 md:text-2xl">{TIER_INFO[formData.tier].rake}</div>
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Platform rate</div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Guarantee Banner */}
-            <div className="mb-6 hidden rounded-xl border border-green-300 bg-gradient-to-r from-green-100 to-emerald-100 p-4 md:block">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl" style={{ filter: 'grayscale(1)' }}>⚡</span>
-                <div>
-                  <div className="font-semibold text-green-700">
-                    Deliverables are reviewed before completion
-                  </div>
-                  <div className="text-sm text-zinc-600">
-                    Proof is checked before the activation is marked complete.
-                  </div>
+              <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-50 to-zinc-50 p-4">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Buyer confidence
                 </div>
+                <div className="mt-3 text-sm font-semibold text-zinc-950">
+                  Proof is reviewed before completion.
+                </div>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  The receipt links the venue, creator, payout, proof status, and repeat signal in one place after launch.
+                </p>
               </div>
             </div>
 
             {/* Actions */}
             <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-[0_18px_46px_rgba(15,10,35,0.2)] backdrop-blur md:static md:mx-0 md:flex-row md:gap-4 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 md:hidden">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Total</div>
+                  <div className="text-lg font-black text-zinc-950">${formatUsdAmount(budget.total)} USDC</div>
+                </div>
+                <div className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                  {selectedActivationPackage.name}
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={handleCreateCampaign}
-                disabled={
-                  creatingCampaign ||
-                  !formData.title.trim() ||
-                  formData.type === 'CREATOR' ||
-                  (formData.type === 'PLACE' && (!selectedPlace || recommendedCreatorsLoading || !selectedCreatorId))
-                }
-                className="flex-1 rounded-xl bg-zinc-950 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-zinc-800 disabled:opacity-50 md:py-4 md:text-lg"
+                disabled={!canLaunchActivation}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-950 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-zinc-800 disabled:opacity-50 md:py-4 md:text-lg"
               >
                 {creatingCampaign
                   ? approvalStatus === 'approving'
@@ -2815,13 +3163,15 @@ export default function BrandPortalPage() {
                   : formData.type === 'PLACE'
                   ? (
                     <>
-                      <span className="md:hidden">Launch ${budget.total.toLocaleString()}</span>
-                      <span className="hidden md:inline">Launch Activation (${budget.total.toLocaleString()} USDC)</span>
+                      <CreditCard className="h-4 w-4" />
+                      <span className="md:hidden">Fund ${formatUsdAmount(budget.total)}</span>
+                      <span className="hidden md:inline">Fund Activation (${formatUsdAmount(budget.total)} USDC)</span>
                     </>
                   )
                   : 'Creator-Only Coming Soon'}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setShowCreateCampaign(false);
                   setPreferredCreatorTag(null);
@@ -2831,10 +3181,17 @@ export default function BrandPortalPage() {
                 Cancel
               </button>
             </div>
+            </div>
           </div>
         ) : (
           <button
-            onClick={() => setShowCreateCampaign(true)}
+            onClick={() => {
+              if (selectedVenueRadar) {
+                openCampaignComposerForVenue(selectedVenueRadar);
+                return;
+              }
+              setShowCreateCampaign(true);
+            }}
             className="w-full mb-8 p-6 border-2 border-dashed border-zinc-700 rounded-2xl hover:border-purple-500/50 hover:bg-purple-500/5 transition group"
           >
             <div className="text-zinc-400 group-hover:text-purple-400 transition">
@@ -3178,6 +3535,16 @@ export default function BrandPortalPage() {
                           >
                             Open Brief
                           </Link>
+                        ) : null}
+                        {campaign.venue ? (
+                          <button
+                            type="button"
+                            onClick={() => openCampaignComposerForCampaign(campaign)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 transition hover:border-emerald-400 hover:bg-emerald-100"
+                          >
+                            <CreditCard className="h-3.5 w-3.5" />
+                            Run Again
+                          </button>
                         ) : null}
                         <button
                           type="button"

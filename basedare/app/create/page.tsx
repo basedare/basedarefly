@@ -71,6 +71,7 @@ function ContactButton() {
 
 // Validation schema matching the API
 const CreateBountySchema = z.object({
+  sparkType: z.enum(['PAID', 'COMMUNITY']).default('PAID'),
   streamerTag: z
     .string()
     .max(20, 'Tag must be 20 characters or less')
@@ -83,7 +84,7 @@ const CreateBountySchema = z.object({
     .max(100, 'Mission too long'),
   amount: z
     .number({ message: 'Amount must be a number' })
-    .min(5, 'Minimum bounty is $5 USDC')
+    .min(0, 'Amount cannot be negative')
     .max(10000, 'Maximum bounty is $10,000 USDC'),
   timeValue: z.number().min(1, 'Time value required'),
   timeUnit: z.enum(['Hours', 'Days', 'Weeks']),
@@ -96,6 +97,14 @@ const CreateBountySchema = z.object({
   locationLabel: z.string().max(100).optional(),
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
   requireSentinel: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (data.sparkType !== 'COMMUNITY' && data.amount < 5) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['amount'],
+      message: 'Minimum bounty is $5 USDC',
+    });
+  }
 });
 
 type FormData = z.input<typeof CreateBountySchema>;
@@ -112,6 +121,8 @@ interface SuccessData {
   shortId?: string;
   isOpenBounty?: boolean;
   isNearbyDare?: boolean;
+  isCommunitySpark?: boolean;
+  amount?: number;
   locationLabel?: string | null;
 }
 
@@ -167,6 +178,7 @@ function CreateDareContent() {
     id: string;
     name: string;
     mode: string | null;
+    source: string | null;
   } | null>(null);
   const recommendationTrackedRef = useRef<SentinelRecommendationReason | null>(null);
 
@@ -235,6 +247,7 @@ function CreateDareContent() {
   } = useForm<FormData>({
     resolver: zodResolver(CreateBountySchema),
     defaultValues: {
+      sparkType: 'PAID',
       streamerTag: '',
       title: '',
       amount: 100,
@@ -257,9 +270,39 @@ function CreateDareContent() {
   const watchMissionTag = watch('missionTag');
   const watchRequireSentinel = watch('requireSentinel');
   const watchAmount = watch('amount');
+  const watchTimeValue = watch('timeValue');
+  const watchTimeUnit = watch('timeUnit');
   const watchVenueId = watch('venueId');
+  const watchSparkType = watch('sparkType');
+  const isCommunitySpark = watchSparkType === 'COMMUNITY';
+  const isVenueSignalCheckout = Boolean(
+    venuePrefill &&
+      (venuePrefill.source === 'map' ||
+        venuePrefill.source === 'venue' ||
+        venuePrefill.mode === 'venue-challenge' ||
+        venuePrefill.mode === 'venue-activation')
+  );
+  const checkoutRewardLabel = isCommunitySpark
+    ? 'Free Spark'
+    : `${Math.max(0, Number.isFinite(Number(watchAmount)) ? Number(watchAmount) : 0).toLocaleString()} USDC`;
+  const checkoutWindowLabel = `${watchTimeValue || 24} ${watchTimeUnit || 'Hours'}`;
+  const checkoutProofLabel = isCommunitySpark
+    ? 'Public proof'
+    : watchRequireSentinel
+      ? 'Sentinel proof'
+      : 'Venue proof';
   const handleGeneratorContextChange = useCallback(
     ({ mode, tag }: { mode: 'IRL' | 'STREAM'; tag: string }) => {
+      if (getValues('sparkType') === 'COMMUNITY') {
+        if (getValues('missionMode') !== 'IRL') {
+          setValue('missionMode', 'IRL');
+        }
+        if (getValues('missionTag') !== 'community') {
+          setValue('missionTag', 'community');
+        }
+        return;
+      }
+
       if (getValues('missionMode') !== mode) {
         setValue('missionMode', mode);
       }
@@ -273,10 +316,10 @@ function CreateDareContent() {
   const sentinelRecommendation = useMemo(
     () =>
       getSentinelRecommendation({
-        amount: watchAmount,
-        missionTag: watchMissionTag,
+        amount: isCommunitySpark ? 0 : watchAmount,
+        missionTag: isCommunitySpark ? 'community' : watchMissionTag,
       }),
-    [watchAmount, watchMissionTag]
+    [isCommunitySpark, watchAmount, watchMissionTag]
   );
   const isSentinelRecommended = appSettings.sentinelEnabled && sentinelRecommendation.recommended;
   const sentinelRecommendationReason = appSettings.sentinelEnabled
@@ -292,6 +335,7 @@ function CreateDareContent() {
     const venueName = searchParams.get('venueName');
     const venueLabel = venueName || searchParams.get('venue') || '';
     const mode = searchParams.get('mode');
+    const source = searchParams.get('source');
     if (streamer) setValue('streamerTag', streamer);
     if (title) setValue('title', title);
     if (amount) {
@@ -311,6 +355,7 @@ function CreateDareContent() {
         id: venueId || 'venue-name-prefill',
         name: venueLabel || 'Selected venue',
         mode,
+        source,
       });
     } else {
       setVenuePrefill(null);
@@ -336,6 +381,31 @@ function CreateDareContent() {
     if (!geoSupported || geoLoading || coordinates || geoError) return;
     requestLocation();
   }, [watchVenueId, watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
+
+  useEffect(() => {
+    if (!isCommunitySpark) {
+      return;
+    }
+
+    if (getValues('amount') !== 0) {
+      setValue('amount', 0, { shouldDirty: true, shouldTouch: true });
+    }
+    if (getValues('streamerTag') !== '@everyone') {
+      setValue('streamerTag', '@everyone', { shouldDirty: true, shouldTouch: true });
+    }
+    if (getValues('missionMode') !== 'IRL') {
+      setValue('missionMode', 'IRL', { shouldDirty: true, shouldTouch: true });
+    }
+    if (getValues('missionTag') !== 'community') {
+      setValue('missionTag', 'community', { shouldDirty: true, shouldTouch: true });
+    }
+    if (!getValues('isNearbyDare')) {
+      setValue('isNearbyDare', true, { shouldDirty: true, shouldTouch: true });
+    }
+    if (getValues('requireSentinel')) {
+      setValue('requireSentinel', false, { shouldDirty: true, shouldTouch: true });
+    }
+  }, [getValues, isCommunitySpark, setValue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,6 +436,13 @@ function CreateDareContent() {
   }, []);
 
   useEffect(() => {
+    if (isCommunitySpark) {
+      if (watchRequireSentinel) {
+        setValue('requireSentinel', false, { shouldDirty: false, shouldTouch: false });
+      }
+      return;
+    }
+
     if (!appSettings.sentinelEnabled && watchRequireSentinel) {
       setValue('requireSentinel', false, { shouldDirty: false, shouldTouch: false });
       return;
@@ -381,6 +458,7 @@ function CreateDareContent() {
   }, [
     appSettings.sentinelEnabled,
     dirtyFields.requireSentinel,
+    isCommunitySpark,
     isSentinelRecommended,
     setValue,
     watchRequireSentinel,
@@ -405,8 +483,8 @@ function CreateDareContent() {
   }, [isSentinelRecommended, sentinelRecommendationReason, watchRequireSentinel]);
 
   // Balance check for FundButton (skip in simulation mode)
-  const requiredAmount = watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
-  const hasInsufficientBalance = !isSimulationMode && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
+  const requiredAmount = !isCommunitySpark && watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
+  const hasInsufficientBalance = !isCommunitySpark && !isSimulationMode && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
   const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
 
   // Debug: log validation errors
@@ -450,7 +528,8 @@ function CreateDareContent() {
 
     try {
       const connectedWallet = address?.toLowerCase();
-      const selectedSentinel = Boolean(data.requireSentinel);
+      const submitAsCommunitySpark = data.sparkType === 'COMMUNITY';
+      const selectedSentinel = submitAsCommunitySpark ? false : Boolean(data.requireSentinel);
       if (!connectedWallet) {
         throw new Error('Connect your wallet before deploying a dare');
       }
@@ -528,12 +607,13 @@ function CreateDareContent() {
       const result = await submitBountyCreation(
         {
           title: data.title,
-          amount: data.amount,
-          streamerTag: data.streamerTag,
+          amount: submitAsCommunitySpark ? 0 : data.amount,
+          sparkType: data.sparkType,
+          streamerTag: submitAsCommunitySpark ? '@everyone' : data.streamerTag,
           streamId: data.streamId ?? 'dev-stream-001',
-          missionMode: data.missionMode ?? 'IRL',
-          missionTag: data.missionTag ?? 'nightlife',
-          isNearbyDare: isNearbyDareEnabled,
+          missionMode: submitAsCommunitySpark ? 'IRL' : data.missionMode ?? 'IRL',
+          missionTag: submitAsCommunitySpark ? 'community' : data.missionTag ?? 'nightlife',
+          isNearbyDare: submitAsCommunitySpark ? true : isNearbyDareEnabled,
           latitude: isNearbyDareEnabled ? coordinates?.lat : undefined,
           longitude: isNearbyDareEnabled ? coordinates?.lng : undefined,
           locationLabel: data.locationLabel || undefined,
@@ -571,12 +651,16 @@ function CreateDareContent() {
       if (result.isNearbyDare) clearLocation();
 
       toast({
-        title: result.syncPending
+        title: result.isCommunitySpark
+          ? '🌊 COMMUNITY SPARK LIVE'
+          : result.syncPending
           ? '⏳ ONCHAIN DEPLOYED'
           : result.simulated
             ? '🧪 SIMULATION SUCCESS'
             : '✅ CONTRACT DEPLOYED',
-        description: result.syncPending
+        description: result.isCommunitySpark
+          ? 'Free proof mission is live for people nearby.'
+          : result.syncPending
           ? `Tx ${result.txHash?.slice(0, 10)}... landed. Syncing dare record now.`
           : `Dare ID: ${result.dareId}`,
         duration: 6000,
@@ -674,10 +758,17 @@ function CreateDareContent() {
           </div>
 
           <h1 className="mb-3 text-4xl font-display font-black uppercase italic tracking-tighter md:mb-4 md:text-7xl">
-            INIT <span className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.22)]">PROTOCOL</span>
+            {isVenueSignalCheckout ? 'FUND' : 'INIT'}{' '}
+            <span className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.22)]">
+              {isVenueSignalCheckout ? 'SIGNAL' : 'PROTOCOL'}
+            </span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
-            Deploy a new smart contract dare on Base L2
+            {isVenueSignalCheckout
+              ? 'Turn this venue signal into a live funded drop'
+              : isCommunitySpark
+              ? 'Launch a free local proof mission for community momentum'
+              : 'Deploy a new smart contract dare on Base L2'}
           </p>
         </div>
 
@@ -696,14 +787,57 @@ function CreateDareContent() {
                     {venuePrefill.name}
                   </div>
                   <p className="mt-1 text-xs leading-5 text-white/54">
-                    This mission will attach to the venue record directly. No GPS permission is needed for this route.
+                    {isVenueSignalCheckout
+                      ? 'This drop will attach to the venue memory layer and route proof back to the map.'
+                      : 'This mission will attach to the venue record directly. No GPS permission is needed for this route.'}
                   </p>
                 </div>
               </div>
               <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-                {venuePrefill.mode === 'venue-activation' ? 'activation' : 'challenge'}
+                {venuePrefill.mode === 'venue-activation' ? 'activation' : isVenueSignalCheckout ? 'funded drop' : 'challenge'}
               </span>
             </div>
+            {isVenueSignalCheckout ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {[
+                  {
+                    label: 'Reward',
+                    value: checkoutRewardLabel,
+                    icon: Wallet,
+                    className: 'border-[#f5c518]/18 bg-[#f5c518]/[0.075] text-[#f8dd72]',
+                  },
+                  {
+                    label: 'Window',
+                    value: checkoutWindowLabel,
+                    icon: Clock,
+                    className: 'border-purple-300/18 bg-purple-500/[0.075] text-purple-100',
+                  },
+                  {
+                    label: 'Proof',
+                    value: checkoutProofLabel,
+                    icon: CheckCircle,
+                    className: 'border-cyan-300/18 bg-cyan-500/[0.075] text-cyan-100',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className={`rounded-[18px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_14px_rgba(0,0,0,0.18)] ${item.className}`}
+                    >
+                      <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] opacity-70">
+                        <Icon className="h-3.5 w-3.5" />
+                        {item.label}
+                      </div>
+                      <p className="mt-2 truncate text-sm font-black uppercase tracking-[0.08em] text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -727,6 +861,8 @@ function CreateDareContent() {
                   }`}>
                   {successData.awaitingClaim
                     ? 'Awaiting Claim'
+                    : successData.isCommunitySpark
+                      ? 'Community Spark Live'
                     : successData.syncPending
                       ? 'Syncing Dare Record'
                     : successData.simulated
@@ -737,6 +873,8 @@ function CreateDareContent() {
                   }`}>
                   {successData.awaitingClaim
                     ? `Escrowed for ${successData.streamerTag}`
+                    : successData.isCommunitySpark
+                      ? 'Open community mission - proof builds the local grid.'
                     : successData.syncPending
                       ? `Onchain tx confirmed: ${successData.txHash?.slice(0, 12)}...`
                     : successData.streamerTag
@@ -744,9 +882,14 @@ function CreateDareContent() {
                       : 'Open dare - anyone can complete!'}
                 </p>
               </div>
-              {successData.simulated && !successData.awaitingClaim && (
+              {successData.simulated && !successData.awaitingClaim && !successData.isCommunitySpark && (
                 <span className="hidden md:inline-flex ml-auto px-3 py-1 text-xs font-mono uppercase bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">
                   Testnet
+                </span>
+              )}
+              {successData.isCommunitySpark && (
+                <span className="hidden md:inline-flex ml-auto px-3 py-1 text-xs font-mono uppercase bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+                  Free Spark
                 </span>
               )}
             </div>
@@ -809,7 +952,7 @@ function CreateDareContent() {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <ShareComposerButton
                   title={watchTitle || 'Live BaseDare challenge'}
-                  bounty={watchAmount}
+                  bounty={successData.isCommunitySpark ? undefined : successData.amount ?? watchAmount}
                   streamerTag={successData.streamerTag}
                   shortId={successData.shortId}
                   placeName={successData.locationLabel}
@@ -830,6 +973,7 @@ function CreateDareContent() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit(onSubmit, onError)}>
+          <input type="hidden" {...register('sparkType')} />
           <input type="hidden" {...register('venueId')} />
           {/* Error Summary - Liquid Glass Style */}
           {Object.keys(errors).length > 0 && (
@@ -863,6 +1007,84 @@ function CreateDareContent() {
               <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
               <div className="space-y-5 md:space-y-12">
 
+              {/* 0. RAIL TYPE */}
+              <div className="space-y-3">
+                <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-[#FACC15] uppercase tracking-widest">
+                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Choose Rail
+                  </label>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">
+                    Paid pressure or community proof
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {[
+                    {
+                      key: 'PAID' as const,
+                      eyebrow: 'USDC escrow',
+                      title: isVenueSignalCheckout ? 'Funded Drop' : 'Paid Dare',
+                      body: isVenueSignalCheckout
+                        ? 'Put USDC behind this venue signal so someone has a reason to show up and prove it.'
+                        : 'Fund a creator mission with real payout pressure.',
+                    },
+                    {
+                      key: 'COMMUNITY' as const,
+                      eyebrow: 'Free / pro bono',
+                      title: 'Community Spark',
+                      body: 'Beach cleanup, local help, meetup, or good-cause proof. No USDC required.',
+                    },
+                  ].map((option) => {
+                    const active = watchSparkType === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => {
+                          setValue('sparkType', option.key, { shouldDirty: true, shouldTouch: true });
+                          if (option.key === 'COMMUNITY') {
+                            setValue('amount', 0, { shouldDirty: true, shouldTouch: true });
+                            setValue('streamerTag', '@everyone', { shouldDirty: true, shouldTouch: true });
+                            setValue('missionMode', 'IRL', { shouldDirty: true, shouldTouch: true });
+                            setValue('missionTag', 'community', { shouldDirty: true, shouldTouch: true });
+                            setValue('isNearbyDare', true, { shouldDirty: true, shouldTouch: true });
+                            setValue('requireSentinel', false, { shouldDirty: true, shouldTouch: true });
+                            if (!coordinates && !watchVenueId) requestLocation();
+                          } else if (getValues('amount') < 5) {
+                            setValue('amount', 100, { shouldDirty: true, shouldTouch: true });
+                          }
+                          haptic(option.key === 'COMMUNITY' ? 'spark' : 'tap');
+                          trigger('click');
+                        }}
+                        className={`group relative overflow-hidden rounded-[22px] border p-4 text-left transition-all md:p-5 ${
+                          active
+                            ? option.key === 'COMMUNITY'
+                              ? 'border-emerald-300/28 bg-emerald-500/[0.09] shadow-[0_0_26px_rgba(16,185,129,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]'
+                              : 'border-[#f5c518]/32 bg-[#f5c518]/[0.08] shadow-[0_0_26px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]'
+                            : 'border-white/[0.08] bg-white/[0.025] hover:border-white/[0.16] hover:bg-white/[0.04]'
+                        }`}
+                      >
+                        <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                        <span className={`text-[10px] font-black uppercase tracking-[0.24em] ${
+                          active
+                            ? option.key === 'COMMUNITY'
+                              ? 'text-emerald-200'
+                              : 'text-[#f8dd72]'
+                            : 'text-white/38'
+                        }`}>
+                          {option.eyebrow}
+                        </span>
+                        <span className="mt-2 block text-lg font-black text-white md:text-xl">
+                          {option.title}
+                        </span>
+                        <span className="mt-2 block text-xs leading-5 text-white/52 md:text-sm">
+                          {option.body}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* 1. TARGET (Optional) */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
@@ -870,10 +1092,15 @@ function CreateDareContent() {
                 </label>
                 <input
                   {...register('streamerTag')}
-                  placeholder="@username or @everyone for open dare"
+                  placeholder={isCommunitySpark ? '@everyone locked for public community proof' : '@username or @everyone for open dare'}
+                  disabled={isCommunitySpark}
                   className={`${dentInputClass} h-12 w-full rounded-xl pl-4 text-base font-bold text-white placeholder:text-white/20 transition-all focus:border-purple-500/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:pl-6 md:text-xl`}
                 />
-                <p className="text-[10px] md:text-xs text-gray-500 font-mono">Use @everyone for open dares anyone can complete</p>
+                <p className="text-[10px] md:text-xs text-gray-500 font-mono">
+                  {isCommunitySpark
+                    ? 'Community Sparks are open by default so locals, tourists, and creators can join without a paid target.'
+                    : 'Use @everyone for open dares anyone can complete'}
+                </p>
                 {errors.streamerTag && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.streamerTag.message}</p>
                 )}
@@ -1106,7 +1333,9 @@ function CreateDareContent() {
                         ) : null}
                       </div>
                       <p className="mt-1 text-[10px] md:text-xs text-gray-500 font-mono">
-                        {appSettings.sentinelEnabled
+                        {isCommunitySpark
+                          ? 'Community Sparks use public proof and admin visibility, not paid payout verification.'
+                          : appSettings.sentinelEnabled
                           ? 'Extra anti-deepfake proof with manual referee review. Recommended for brand, venue, or high-value dares.'
                           : formatSentinelPausedMessage(appSettings.sentinelPausedReason)}
                       </p>
@@ -1114,7 +1343,7 @@ function CreateDareContent() {
                     <input
                       type="checkbox"
                       {...requireSentinelField}
-                      disabled={!appSettings.sentinelEnabled}
+                      disabled={isCommunitySpark || !appSettings.sentinelEnabled}
                       className="mt-1 h-5 w-5 accent-emerald-500"
                     />
                   </label>
@@ -1125,23 +1354,39 @@ function CreateDareContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-[#FACC15] uppercase tracking-widest">
-                    <Wallet className="w-3.5 h-3.5 md:w-4 md:h-4" /> Total Bounty
+                    <Wallet className="w-3.5 h-3.5 md:w-4 md:h-4" /> {isCommunitySpark ? 'Community Reward' : 'Total Bounty'}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      {...register('amount', { valueAsNumber: true })}
-                      placeholder="100"
-                      className={`${dentInputClass} h-12 w-full rounded-xl pl-4 pr-16 text-lg font-black text-[#FACC15] placeholder:text-white/20 transition-all focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:pl-6 md:pr-24 md:text-2xl`}
-                    />
-                    <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-xs md:text-sm font-bold text-gray-400">
-                      USDC
-                    </span>
-                  </div>
+                  {isCommunitySpark ? (
+                    <div className={`${dentGroupClass} flex h-12 items-center justify-between rounded-xl px-4 md:h-16 md:px-6`}>
+                      <div>
+                        <p className="text-lg font-black text-emerald-200 md:text-2xl">Free Spark</p>
+                        <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">
+                          reputation + community proof
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100">
+                        0 USDC
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="number"
+                        {...register('amount', { valueAsNumber: true })}
+                        placeholder="100"
+                        className={`${dentInputClass} h-12 w-full rounded-xl pl-4 pr-16 text-lg font-black text-[#FACC15] placeholder:text-white/20 transition-all focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none md:h-16 md:pl-6 md:pr-24 md:text-2xl`}
+                      />
+                      <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-xs md:text-sm font-bold text-gray-400">
+                        USDC
+                      </span>
+                    </div>
+                  )}
                   {errors.amount && (
                     <p className="text-red-400 text-xs md:text-sm">{errors.amount.message}</p>
                   )}
-                  <p className="text-[10px] md:text-xs text-gray-500 font-mono">Min: $5 • Max: $10,000</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 font-mono">
+                    {isCommunitySpark ? 'Best for beach cleanups, local help, meetups, and good-cause missions.' : 'Min: $5 • Max: $10,000'}
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
@@ -1170,7 +1415,7 @@ function CreateDareContent() {
               </div>
 
               {/* BALANCE & FUND BUTTON */}
-              {isConnected && !isSimulationMode && (
+              {isConnected && !isSimulationMode && !isCommunitySpark && (
                 <div className="pt-4 md:pt-6 space-y-3">
                   {!isOnchainContractsReady && (
                     <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
@@ -1196,7 +1441,7 @@ function CreateDareContent() {
                       <div className="relative bg-[#0a0a0a] rounded-[11px] p-4 flex flex-col items-center gap-3">
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.05] via-transparent to-white/[0.02] pointer-events-none rounded-[11px]" />
                         <p className="text-xs text-gray-400 font-mono text-center relative z-10">
-                          You need {watchAmount} USDC to deploy this bounty
+                          You need {watchAmount} USDC to {isVenueSignalCheckout ? 'fund this drop' : 'deploy this bounty'}
                         </p>
                         <FundButton className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-all relative z-10">
                           Get USDC
@@ -1208,10 +1453,12 @@ function CreateDareContent() {
               )}
 
               {/* SIMULATION MODE INDICATOR */}
-              {isSimulationMode && (
+              {(isSimulationMode || isCommunitySpark) && (
                 <div className="pt-4 md:pt-6 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                   <p className="text-yellow-400 text-xs md:text-sm font-bold text-center">
-                    🧪 SIMULATION MODE - No USDC required, database-only testing
+                    {isCommunitySpark
+                      ? '🌊 COMMUNITY SPARK - No USDC required, database-only proof mission'
+                      : '🧪 SIMULATION MODE - No USDC required, database-only testing'}
                   </p>
                 </div>
               )}
@@ -1223,14 +1470,14 @@ function CreateDareContent() {
                     <span className={`rounded-full border px-2 py-1.5 ${isConnected ? 'border-emerald-300/25 bg-emerald-500/[0.1] text-emerald-200' : 'border-white/10 bg-white/[0.04] text-white/38'}`}>
                       Wallet
                     </span>
-                    <span className={`rounded-full border px-2 py-1.5 ${isSimulationMode || !hasInsufficientBalance ? 'border-[#FACC15]/25 bg-[#FACC15]/[0.1] text-[#f8dd72]' : 'border-red-300/25 bg-red-500/[0.1] text-red-200'}`}>
-                      USDC
+                    <span className={`rounded-full border px-2 py-1.5 ${isCommunitySpark ? 'border-emerald-300/25 bg-emerald-500/[0.1] text-emerald-100' : isSimulationMode || !hasInsufficientBalance ? 'border-[#FACC15]/25 bg-[#FACC15]/[0.1] text-[#f8dd72]' : 'border-red-300/25 bg-red-500/[0.1] text-red-200'}`}>
+                      {isCommunitySpark ? 'Free' : 'USDC'}
                     </span>
                     <span className={`rounded-full border px-2 py-1.5 ${isSubmitting ? 'border-cyan-300/25 bg-cyan-500/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.04] text-white/45'}`}>
                       {isSubmitting ? approvalStatus || 'Live' : 'Launch'}
                     </span>
                   </div>
-                  {hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady) ? (
+                  {hasInsufficientBalance || (!isCommunitySpark && !isSimulationMode && !isOnchainContractsReady) ? (
                     <InitProtocolButton
                       variant="liquid"
                       disabled
@@ -1240,7 +1487,7 @@ function CreateDareContent() {
                     >
                       <div className="relative flex items-center justify-center gap-3">
                         <span className="font-black uppercase tracking-[0.12em] text-[0.95rem] text-white/45">
-                          {!isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
+                          {!isCommunitySpark && !isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
                         </span>
                       </div>
                     </InitProtocolButton>
@@ -1250,6 +1497,7 @@ function CreateDareContent() {
                       active={isSubmitting}
                       type="submit"
                       disabled={isSubmitting}
+                      idleLabel={isCommunitySpark ? 'Launch Community Spark' : isVenueSignalCheckout ? 'Fund Drop' : 'Initiate'}
                       className="w-full"
                       height={48}
                       buttonClassName="h-12"
@@ -1257,7 +1505,17 @@ function CreateDareContent() {
                         <div className="relative flex items-center justify-center gap-3">
                           <Loader2 className="h-5 w-5 animate-spin text-yellow-400 md:h-6 md:w-6" />
                           <span className="relative text-sm font-black uppercase tracking-[0.12em] text-yellow-400">
-                            {approvalStatus === 'approving'
+                            {isCommunitySpark
+                              ? 'Launching Spark...'
+                              : isVenueSignalCheckout
+                              ? approvalStatus === 'approving'
+                                ? 'Approving USDC...'
+                                : approvalStatus === 'funding'
+                                  ? 'Funding Drop...'
+                                  : approvalStatus === 'verifying'
+                                    ? 'Verifying...'
+                                    : 'Funding Signal...'
+                              : approvalStatus === 'approving'
                               ? 'Approving USDC...'
                               : approvalStatus === 'funding'
                                 ? 'Deploying Dare...'

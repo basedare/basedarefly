@@ -324,6 +324,8 @@ export type VenueDetail = {
     shortId: string;
     title: string;
     missionMode: string;
+    missionTag?: string | null;
+    isCommunitySpark?: boolean;
     bounty: number;
     status: string;
     streamerHandle: string | null;
@@ -343,6 +345,8 @@ export type VenueDetail = {
     shortId: string;
     title: string;
     missionMode: string;
+    missionTag?: string | null;
+    isCommunitySpark?: boolean;
     bounty: number;
     status: string;
     streamerHandle: string | null;

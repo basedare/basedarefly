@@ -39,6 +39,7 @@ const ActivationAttributionSchema = z
     venueName: z.string().max(180).optional().nullable(),
     creator: z.string().max(120).optional().nullable(),
     packageId: z.string().max(80).optional().nullable(),
+    offerId: z.string().max(80).optional().nullable(),
     budgetRange: z.string().max(80).optional().nullable(),
     goal: z.string().max(80).optional().nullable(),
     buyerType: z.string().max(80).optional().nullable(),
@@ -70,6 +71,7 @@ const ActivationIntakeSchema = z.object({
   routedVenueId: z.string().max(120).optional().default(''),
   routedVenueSlug: z.string().max(180).optional().default(''),
   routedSource: z.string().max(80).optional().default(''),
+  offerId: z.string().max(80).optional().default(''),
   funnelSessionKey: z.string().max(200).optional().default(''),
   activationAttribution: ActivationAttributionSchema,
   brandMemory: ActivationBrandMemorySchema,
@@ -126,6 +128,7 @@ export async function POST(request: NextRequest) {
     const routedVenueId = normalizeText(input.routedVenueId || '');
     const routedVenueSlug = normalizeText(input.routedVenueSlug || '');
     const routedSource = normalizeText(input.routedSource || '');
+    const offerId = normalizeText(input.offerId || '');
     const funnelSessionKey = normalizeText(input.funnelSessionKey || '');
     const activationAttribution = {
       ...input.activationAttribution,
@@ -135,6 +138,7 @@ export async function POST(request: NextRequest) {
       venueId: normalizeText(input.activationAttribution.venueId || ''),
       venueName: normalizeText(input.activationAttribution.venueName || ''),
       creator: normalizeText(input.activationAttribution.creator || ''),
+      offerId: normalizeText(input.activationAttribution.offerId || offerId),
       funnelSessionKey,
     };
     const notes = input.notes.trim();
@@ -181,6 +185,7 @@ export async function POST(request: NextRequest) {
           routedVenueId,
           routedVenueSlug,
           routedSource,
+          offerId,
           funnelSessionKey,
           activationAttribution,
           brandMemory,
@@ -210,6 +215,7 @@ export async function POST(request: NextRequest) {
       routedCreator,
       routedVenueSlug,
       routedSource,
+      offerId,
       brandMemory,
       activationBrief,
     }).catch((error) => {

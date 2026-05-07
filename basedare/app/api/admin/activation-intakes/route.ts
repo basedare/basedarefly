@@ -394,6 +394,7 @@ function buildSparkRoutePacket(input: {
   budgetLabel: string;
   timelineLabel: string;
   packageId: string;
+  offerId: string;
   positioningLine: string;
   proofLogic: string;
   repeatMetric: string;
@@ -430,6 +431,9 @@ function buildSparkRoutePacket(input: {
     '- Venue-aware prompts so the content feels like your story.',
     '- Proof receipt: submitted proof, creator output, place signal, and next-step recommendation.',
     '- Human review before money moves or public commitments are made.',
+    input.offerId === 'first-spark'
+      ? '- First Spark offer: venue approves the route and provides one perk; BaseDare runs setup, proof flow, and recap. If no verified proof lands, review and rerun the route.'
+      : null,
     '',
     'Suggested first missions:',
     ...missionLines,
@@ -959,6 +963,8 @@ function mapIntakeEvent(event: {
   const routedVenueId = stringValue(metadata.routedVenueId);
   const routedVenueSlug = stringValue(metadata.routedVenueSlug);
   const routedSource = stringValue(metadata.routedSource);
+  const activationAttribution = asRecord(metadata.activationAttribution);
+  const offerId = stringValue(metadata.offerId) || stringValue(activationAttribution.offerId);
   const assignedCreator = stringValue(operator.assignedCreator);
   const assignedVenue = stringValue(operator.assignedVenue) || venue;
   const operatorNote = stringValue(operator.operatorNote);
@@ -1021,6 +1027,7 @@ function mapIntakeEvent(event: {
     budgetLabel,
     timelineLabel,
     packageId,
+    offerId,
     positioningLine,
     proofLogic,
     repeatMetric,
@@ -1091,6 +1098,7 @@ function mapIntakeEvent(event: {
     timelineLabel,
     goal,
     packageId,
+    offerId,
     website,
     notes,
     routeContext,

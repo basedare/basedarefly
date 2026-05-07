@@ -504,6 +504,7 @@ function mapActiveDare(dare: {
   shortId: string | null;
   title: string;
   missionMode: string | null;
+  tag: string | null;
   bounty: number;
   status: string;
   streamerHandle: string | null;
@@ -528,6 +529,8 @@ function mapActiveDare(dare: {
     shortId: dare.shortId ?? dare.id.slice(0, 8),
     title: dare.title,
     missionMode: dare.missionMode ?? 'IRL',
+    missionTag: dare.tag,
+    isCommunitySpark: dare.bounty <= 0 && dare.tag === 'community',
     bounty: dare.bounty,
     status: dare.status,
     streamerHandle: dare.streamerHandle,
@@ -1464,6 +1467,7 @@ export async function getVenueDetailBySlug(
           shortId: true,
           title: true,
           missionMode: true,
+          tag: true,
           bounty: true,
           status: true,
           streamerHandle: true,

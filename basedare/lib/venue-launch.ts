@@ -24,6 +24,7 @@ type ActivationIntakePrefillInput = {
   packageId?: 'pilot-drop' | 'local-signal' | 'city-takeover';
   goal?: 'foot_traffic' | 'ugc' | 'launch' | 'event' | 'repeat_visits' | 'other';
   buyerType?: 'venue' | 'brand' | 'agency' | 'event' | 'other';
+  offerId?: 'first-spark';
 };
 
 function inferCampaignTierByPayout(payout: number): CampaignTier {
@@ -54,6 +55,7 @@ export function buildVenueActivationIntakeHref(input: ActivationIntakePrefillInp
   if (input.packageId) params.set('packageId', input.packageId);
   if (input.goal) params.set('goal', input.goal);
   if (input.buyerType) params.set('buyerType', input.buyerType);
+  if (input.offerId) params.set('offer', input.offerId);
   if (input.payout) params.set('budgetRange', inferActivationBudgetRange(input.payout));
 
   return `/activations?${params.toString()}#activation-intake`;

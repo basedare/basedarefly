@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, Clock3, Flame, MapPin, ShieldCheck, Waves } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle2, Clock3, Flame, MapPin, ShieldCheck, Sparkles, Waves } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -185,6 +185,20 @@ function getMetricDeltaClass(value: number) {
   return 'border-white/10 bg-white/[0.04] text-white/48';
 }
 
+function getVenueSignalToneClass(tone: 'gold' | 'cyan' | 'purple' | 'rose') {
+  switch (tone) {
+    case 'cyan':
+      return 'border-cyan-300/18 bg-cyan-500/[0.075] text-cyan-100';
+    case 'purple':
+      return 'border-fuchsia-300/18 bg-fuchsia-500/[0.075] text-fuchsia-100';
+    case 'rose':
+      return 'border-rose-300/18 bg-rose-500/[0.075] text-rose-100';
+    case 'gold':
+    default:
+      return 'border-[#f5c518]/20 bg-[#f5c518]/[0.08] text-[#f8dd72]';
+  }
+}
+
 export default async function VenueDetailPage(
   {
     params,
@@ -248,6 +262,7 @@ export default async function VenueDetailPage(
     goal: 'foot_traffic',
     buyerType: 'venue',
     packageId: 'pilot-drop',
+    offerId: 'first-spark',
     source: 'venue',
   });
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
@@ -336,6 +351,82 @@ export default async function VenueDetailPage(
     : venue.commandCenter.claimState === 'unclaimed'
       ? 'Start claim'
       : 'Open map';
+  const primaryLiveDrop =
+    focusedActivation ?? featuredPaidActivation ?? venue.activeDares[0] ?? null;
+  const firstMarkMoment =
+    venue.timelineMoments.find((moment) => moment.badges.includes('first spark')) ?? null;
+  const latestProofRelic =
+    venue.timelineMoments.find((moment) => moment.kind === 'DARE_COMPLETION' || Boolean(moment.mediaUrl)) ?? null;
+  const venueSignalLayerCards: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    tone: 'gold' | 'cyan' | 'purple' | 'rose';
+    href: string | null;
+    actionLabel: string | null;
+  }> = [
+    {
+      label: 'Live Signal',
+      value:
+        venue.liveSession?.status === 'LIVE'
+          ? 'On-air'
+          : venue.activeDares.length > 0
+            ? 'Money live'
+            : currentPulseState.label,
+      detail:
+        venue.liveSession?.status === 'LIVE'
+          ? `Secure Handshake is live inside ${venue.checkInRadiusMeters}m. Scan, show up, and leave proof.`
+          : venue.activeDares.length > 0
+            ? `${venue.activeDares.length} funded drop${venue.activeDares.length === 1 ? '' : 's'} already make this venue actionable.`
+            : 'The venue is visible on the grid. The next mark or funded drop wakes it up for everyone.',
+      tone: 'cyan',
+      href: mapHref,
+      actionLabel: 'Open map',
+    },
+    {
+      label: 'Money Drop',
+      value:
+        venue.activeDares.length > 0
+          ? `$${totalActiveChallengeFunding.toFixed(0)} live`
+          : 'Open slot',
+      detail: primaryLiveDrop
+        ? `${primaryLiveDrop.title} is the current paid path into this venue.`
+        : 'No funded drop is live yet. First funder gets the cleanest signal on this place.',
+      tone: 'gold',
+      href: primaryLiveDrop?.shortId ? `/dare/${primaryLiveDrop.shortId}` : fundChallengeHref,
+      actionLabel: primaryLiveDrop ? 'Open drop' : 'Fund first',
+    },
+    {
+      label: 'First Mark',
+      value: firstMarkMoment
+        ? firstMarkMoment.creatorLabel
+        : hasPendingOwnVenueMark
+          ? 'In review'
+          : 'Unclaimed',
+      detail: firstMarkMoment
+        ? `${firstMarkMoment.creatorLabel} wrote the opening legend ${formatVenueLogbookDate(firstMarkMoment.occurredAt)}.`
+        : hasPendingOwnVenueMark
+          ? 'A first mark is waiting for referee approval. If it lands, the venue memory starts.'
+          : 'Nobody owns the opening story yet. The first approved mark becomes permanent venue memory.',
+      tone: 'purple',
+      href: null,
+      actionLabel: null,
+    },
+    {
+      label: 'Proof Relic',
+      value: latestProofRelic
+        ? latestProofRelic.kind === 'DARE_COMPLETION'
+          ? 'Reward proof'
+          : 'Place proof'
+        : 'Waiting',
+      detail: latestProofRelic
+        ? `${latestProofRelic.creatorLabel} left proof ${formatVenueLogbookDate(latestProofRelic.occurredAt)}.`
+        : 'No proof relic exists yet. The first completed dare or approved media mark gives this venue a story object.',
+      tone: 'rose',
+      href: latestProofRelic?.shortId ? `/dare/${latestProofRelic.shortId}` : null,
+      actionLabel: latestProofRelic?.shortId ? 'Open proof' : null,
+    },
+  ];
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -395,7 +486,7 @@ export default async function VenueDetailPage(
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
                     <h2 className="mt-2 text-2xl font-black text-white">Leave a mark here</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Verified marks are the fastest way to make this place feel alive. Funded challenges can stack on top.
+                      Verified marks are the fastest way to make this place feel alive. Funded drops can stack on top.
                     </p>
                     <div className="mt-5 grid gap-2">
                       <VenueMarkButton
@@ -422,13 +513,14 @@ export default async function VenueDetailPage(
                       </SquircleLink>
                       <SquircleLink
                         href={activateVenueHref}
-                        label="Activate"
+                        label="First Spark"
                         tone="purple"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        Activate
+                        First Spark
+                        <Sparkles className="h-4 w-4" />
                       </SquircleLink>
                     </div>
                   </div>
@@ -492,7 +584,7 @@ export default async function VenueDetailPage(
               </div>
               <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Live challenges</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Live drops</p>
                   <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
                 </div>
                 <div className={`${insetCardClass} px-4 py-4`}>
@@ -507,6 +599,105 @@ export default async function VenueDetailPage(
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Verified marks</p>
                   <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_9%_0%,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_92%_18%,rgba(245,197,24,0.12),transparent_32%),radial-gradient(circle_at_70%_100%,rgba(168,85,247,0.11),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_42%,rgba(0,0,0,0.22)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
+            <div className="relative">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/58">
+                    Signal Layer
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">
+                    Something can happen here.
+                  </h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#f8dd72]">
+                    Drops
+                  </span>
+                  <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100">
+                    Firsts
+                  </span>
+                  <span className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">
+                    Relics
+                  </span>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {venueSignalLayerCards.map((card) => (
+                  <div key={card.label} className={`${insetCardClass} flex min-h-[12rem] flex-col px-4 py-4`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getVenueSignalToneClass(card.tone)}`}>
+                        {card.label}
+                      </span>
+                      <Sparkles className="h-4 w-4 text-white/34" />
+                    </div>
+                    <p className="mt-4 text-2xl font-black text-white">{card.value}</p>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-white/58">{card.detail}</p>
+                    {card.href && card.actionLabel ? (
+                      <Link
+                        href={card.href}
+                        className="mt-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                      >
+                        {card.actionLabel}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className={`${raisedPanelClass} px-5 py-6 sm:px-7`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(245,197,24,0.13),transparent_34%),radial-gradient(circle_at_92%_12%,rgba(168,85,247,0.12),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.045)_0%,transparent_42%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/35 to-transparent" />
+            <div className="relative grid gap-5 lg:grid-cols-[1fr_1.05fr_0.66fr] lg:items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f8dd72]">
+                  <Sparkles className="h-4 w-4" />
+                  First Spark Pilot
+                </div>
+                <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-white">
+                  We run the first venue activation.
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/62">
+                  BaseDare sets up the live venue page, creator mission, QR/check-in proof path, and recap.
+                  The venue provides one simple perk or reward. If no verified proof lands, the operator route
+                  is reviewed and rerun instead of asking the venue to buy blind.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  ['People', 'Creators have a funded reason to show up.'],
+                  ['Content', 'Proof clips and marks become reusable venue memory.'],
+                  ['Receipt', 'The buyer sees what happened before repeating spend.'],
+                ].map(([label, detail]) => (
+                  <div key={label} className={`${insetCardClass} px-4 py-4`}>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+                    <p className="mt-3 text-sm font-black text-white">{label}</p>
+                    <p className="mt-2 text-xs leading-5 text-white/50">{detail}</p>
+                  </div>
+                ))}
+              </div>
+              <div className={`${insetCardClass} px-4 py-4`}>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Venue gives</p>
+                <p className="mt-2 text-lg font-black text-white">One perk + approval</p>
+                <p className="mt-2 text-xs leading-5 text-white/50">
+                  BaseDare handles setup, creator route, proof flow, and the recap.
+                </p>
+                <Link
+                  href={activateVenueHref}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.13] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_16px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/42 hover:bg-[#f5c518]/[0.17]"
+                >
+                  Start pilot
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </div>
@@ -678,7 +869,7 @@ export default async function VenueDetailPage(
                   <>
                     <p className="mt-3 text-2xl font-black text-white">No local legend yet</p>
                     <p className="mt-2 text-sm leading-relaxed text-white/62">
-                      Fund the next challenge and the creator-routing layer starts ranking who can own this place.
+                      Fund the next drop and the creator-routing layer starts ranking who can own this place.
                     </p>
                     <div className="mt-4">
                       <SquircleLink
@@ -716,8 +907,8 @@ export default async function VenueDetailPage(
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Challenges</p>
-                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">Fund a challenge here</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Live Drops</p>
+                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">Fund a drop here</h2>
                     <p className="mt-3 hidden max-w-2xl text-sm text-white/60 sm:block">
                       This is the public money layer. Challenges can run here whether the venue is activated or not.
                     </p>
@@ -731,7 +922,7 @@ export default async function VenueDetailPage(
                     </div>
                     {venue.activeDares.length === 0 ? (
                       <div className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-4 py-2 text-sm text-fuchsia-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                        first challenge open
+                        first drop open
                       </div>
                     ) : null}
                     {paidActivationCount > 0 ? (
@@ -779,7 +970,7 @@ export default async function VenueDetailPage(
                       <div className="min-w-0 flex-1">
                         <p className="text-2xl font-black text-white">{focusedActivation.title}</p>
                         <p className="mt-2 text-sm text-white/62">
-                          This is the live challenge your dashboard pointed you to at this venue.
+                          This is the live drop your dashboard pointed you to at this venue.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
@@ -839,7 +1030,7 @@ export default async function VenueDetailPage(
                         <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">Verified Wins</p>
                         <p className="mt-2 text-2xl font-black text-[#f8dd72]">{creatorContribution.totalWinsHere}</p>
                         <p className="mt-2 text-xs leading-relaxed text-white/52">
-                          Your challenge completions are part of this venue&apos;s permanent proof trail.
+                          Your completed drops are part of this venue&apos;s permanent proof trail.
                         </p>
                       </div>
                       <div className={`${softCardClass} p-4`}>
@@ -997,7 +1188,7 @@ export default async function VenueDetailPage(
                     <div className={`${insetCardClass} px-4 py-5`}>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f8dd72]">
-                          First challenge open
+                          First drop open
                         </span>
                         {venue.tagSummary.approvedCount > 0 ? (
                           <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
@@ -1009,7 +1200,7 @@ export default async function VenueDetailPage(
                         This place already has map presence. It just needs the first funded mission.
                       </p>
                       <p className="mt-2 text-sm text-white/58">
-                        Fund the first challenge and turn passive venue memory into a live participation surface.
+                        Fund the first drop and turn passive venue memory into a live participation surface.
                       </p>
                       <div className="mt-4 max-w-xs">
                         <SquircleLink
@@ -1067,7 +1258,7 @@ export default async function VenueDetailPage(
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Top Creators For This Venue</p>
                     <h2 className="mt-2 text-2xl font-bold">Route proven people into this place faster</h2>
                     <p className="mt-3 max-w-2xl text-sm text-white/60">
-                      These creators already have signal here. Use them as the fastest path from venue momentum to a funded challenge or activation.
+                      These creators already have signal here. Use them as the fastest path from venue momentum to a funded drop or activation.
                     </p>
                   </div>
                   <Link
@@ -1082,7 +1273,7 @@ export default async function VenueDetailPage(
                 {topCreatorRoutes.length === 0 ? (
                   <div className={`${insetCardClass} mt-5 px-4 py-5`}>
                     <p className="text-sm text-white/78">
-                      No strong venue-fit creator yet. Fund the next challenge and this recommendation layer will start filling itself in.
+                      No strong venue-fit creator yet. Fund the next drop and this recommendation layer will start filling itself in.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link

@@ -44,6 +44,7 @@ const BASEDARE_ABI = [
 // ── Types ──────────────────────────────────────────────────────────────────
 interface DareDetail {
   id: string; shortId: string; title: string; bounty: number; upvoteCount: number;
+  missionTag?: string | null; isCommunitySpark?: boolean | null;
   streamerHandle: string | null; status: string; expiresAt: string | null;
   videoUrl: string | null; imageUrl?: string | null; inviteToken: string | null; claimDeadline: string | null;
   targetWalletAddress: string | null; awaitingClaim: boolean; updatedAt?: string | null;
@@ -578,6 +579,7 @@ export default function DareDetailPage() {
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
   const safeBountyAmount = Number.isFinite(dare?.bounty) ? (dare?.bounty ?? 0) : 0;
+  const isCommunitySpark = Boolean(dare?.isCommunitySpark || (safeBountyAmount <= 0 && dare?.missionTag === 'community'));
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? (dare?.upvoteCount ?? 0) : 0;
   const lifecycleMoments = dare
     ? [
@@ -797,10 +799,21 @@ export default function DareDetailPage() {
         {/* Bounty + likes row */}
         <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 backdrop-blur-md md:backdrop-blur-xl">
           <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">Pot Size</p>
+              <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">
+                {isCommunitySpark ? 'Spark Type' : 'Pot Size'}
+              </p>
               <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-black text-green-400">{safeBountyAmount.toLocaleString()}</span>
-              <span className="text-sm font-bold text-green-600">USDC</span>
+              {isCommunitySpark ? (
+                <>
+                  <span className="text-3xl font-black text-emerald-300">Community</span>
+                  <span className="text-sm font-bold text-emerald-500">SPARK</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-3xl font-black text-green-400">{safeBountyAmount.toLocaleString()}</span>
+                  <span className="text-sm font-bold text-green-600">USDC</span>
+                </>
+              )}
             </div>
           </div>
           <button
@@ -920,8 +933,8 @@ export default function DareDetailPage() {
               )}
             </AnimatePresence>
 
-            {/* Three CTA buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* CTA buttons */}
+            <div className={`grid gap-2 ${isCommunitySpark ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {/* Upvote */}
               <button
                 onClick={handleUpvote}
@@ -932,22 +945,23 @@ export default function DareDetailPage() {
                 <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
               </button>
 
-              {/* Add to Pool */}
-              <button
-                onClick={() => {
-                  if (!isOnchainContractsReady) { setTxError(onchainConfigError || 'Contract configuration missing'); return; }
-                  if (!isConnected) { setTxError('Connect your wallet first'); return; }
-                  setShowAddInput(v => !v);
-                }}
-                disabled={approvePending || fundPending || !isOnchainContractsReady}
-                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-green-500/20 bg-green-500/10 py-2 text-green-400 transition-all hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50 md:py-3"
-              >
-                {approvePending || fundPending
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : <Zap className="w-5 h-5" />
-                }
-                <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
-              </button>
+              {!isCommunitySpark && (
+                <button
+                  onClick={() => {
+                    if (!isOnchainContractsReady) { setTxError(onchainConfigError || 'Contract configuration missing'); return; }
+                    if (!isConnected) { setTxError('Connect your wallet first'); return; }
+                    setShowAddInput(v => !v);
+                  }}
+                  disabled={approvePending || fundPending || !isOnchainContractsReady}
+                  className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-green-500/20 bg-green-500/10 py-2 text-green-400 transition-all hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50 md:py-3"
+                >
+                  {approvePending || fundPending
+                    ? <Loader2 className="w-5 h-5 animate-spin" />
+                    : <Zap className="w-5 h-5" />
+                  }
+                  <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
+                </button>
+              )}
 
               {/* Steal */}
               <button
@@ -964,8 +978,14 @@ export default function DareDetailPage() {
         {/* Claim section (preserved for open/target dares) */}
         {dare.awaitingClaim && !dare.targetWalletAddress && isConnected && !dare.claimRequestWallet && (
           <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
-            <h3 className="text-sm font-black text-purple-300 mb-2">Open Bounty — Claim It</h3>
-            <p className="text-xs text-white/50 mb-3">You can request to accept this dare and earn the full bounty.</p>
+            <h3 className="text-sm font-black text-purple-300 mb-2">
+              {isCommunitySpark ? 'Community Spark — Join It' : 'Open Bounty — Claim It'}
+            </h3>
+            <p className="text-xs text-white/50 mb-3">
+              {isCommunitySpark
+                ? 'Request this spark to coordinate proof and build community reputation.'
+                : 'You can request to accept this dare and earn the full bounty.'}
+            </p>
             {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
             <CosmicButton
               onClick={handleClaimRequest}

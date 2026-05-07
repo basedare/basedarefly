@@ -54,6 +54,7 @@ export function getActivationFunnelAttribution(extra: Record<string, string | nu
     venueName: clean(params.get('venueName')) || clean(params.get('venue')) || extra.venueName || null,
     creator,
     packageId: clean(params.get('packageId')) || extra.packageId || null,
+    offerId: clean(params.get('offer')) || extra.offerId || null,
     budgetRange: clean(params.get('budgetRange')) || extra.budgetRange || null,
     goal: clean(params.get('goal')) || extra.goal || null,
     buyerType: clean(params.get('buyerType')) || extra.buyerType || null,

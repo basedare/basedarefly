@@ -209,6 +209,7 @@ export async function alertNewDare(data: {
   streamerTag: string | null;
   isOpenBounty: boolean;
   stakerAddress?: string | null;
+  isCommunitySpark?: boolean;
 }): Promise<void> {
   await sendDareCreatedAlert(data);
 }
@@ -224,19 +225,23 @@ export async function alertSignalRoomDare(data: {
   isOpenBounty: boolean;
   missionMode?: string | null;
   locationLabel?: string | null;
+  isCommunitySpark?: boolean;
 }): Promise<boolean> {
   if (!TELEGRAM_SIGNAL_CHAT_ID) {
     return false;
   }
 
   const target = data.isOpenBounty ? 'open to anyone' : data.streamerTag || 'targeted creator';
+  const rewardLine = data.isCommunitySpark
+    ? '🤝 Community Spark · free proof mission'
+    : `💰 ${formatUSDC(data.amount)}`;
   const locationLine = data.locationLabel ? `\n📍 ${escapeHtml(compactText(data.locationLabel, 80))}` : '';
   const modeLine = data.missionMode ? `\n🎛 ${escapeHtml(data.missionMode)}` : '';
   const message = [
-    '⚡ <b>LIVE BASEDARE SIGNAL</b>',
+    data.isCommunitySpark ? '🌊 <b>COMMUNITY SPARK LIVE</b>' : '⚡ <b>LIVE BASEDARE SIGNAL</b>',
     '',
     `<b>${escapeHtml(compactText(data.title, 140))}</b>`,
-    `💰 ${formatUSDC(data.amount)}`,
+    rewardLine,
     `🎯 ${escapeHtml(target)}`,
     `${modeLine}${locationLine}`,
     '',
@@ -689,6 +694,7 @@ export async function alertActivationIntake(data: {
   timeline: string;
   goal: string;
   packageId?: string | null;
+  offerId?: string | null;
   website?: string | null;
   notes?: string | null;
   routedCreator?: string | null;
@@ -724,6 +730,7 @@ export async function alertActivationIntake(data: {
     `City: ${escapeHtml(data.city)}${data.venue ? ` · Venue: ${escapeHtml(data.venue)}` : ''}`,
     `Timeline: ${escapeHtml(timelineLabels[data.timeline] || data.timeline)} · Goal: ${escapeHtml(goalLabels[data.goal] || data.goal)}`,
     data.packageId ? `Package: ${escapeHtml(data.packageId)}` : null,
+    data.offerId ? `Offer: ${escapeHtml(data.offerId)}` : null,
     data.website ? `Website: ${escapeHtml(data.website)}` : null,
     data.routedSource ? `Source: ${escapeHtml(data.routedSource)}` : null,
     data.routedCreator ? `Creator route: ${escapeHtml(data.routedCreator)}` : null,

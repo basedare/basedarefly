@@ -37,6 +37,8 @@ export async function GET(
       shortId: reconciledDare.shortId || reconciledDare.id.slice(0, 8),
       title: reconciledDare.title,
       bounty: reconciledDare.bounty,
+      missionTag: reconciledDare.tag,
+      isCommunitySpark: reconciledDare.bounty <= 0 && reconciledDare.tag === 'community',
       upvoteCount: reconciledDare.upvoteCount ?? 0,
       streamerHandle: reconciledDare.streamerHandle,
       status: reconciledDare.status,

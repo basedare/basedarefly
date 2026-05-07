@@ -8,7 +8,11 @@ import {
 } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
-import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bounty-chain';
+import {
+  findBountySettlementEvent,
+  waitForSuccessfulReceipt,
+  type BountySettlementEvent,
+} from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const results: Array<{
       dareId: string;
-      status: 'refunded' | 'failed' | 'simulated';
+      status: 'refunded' | 'verified' | 'failed' | 'simulated';
       txHash?: string;
       error?: string;
     }> = [];
@@ -137,6 +141,128 @@ export async function POST(request: NextRequest) {
           continue;
         }
         const bountyId = BigInt(dare.onChainDareId);
+
+        const bountyData = await publicClient.readContract({
+          address: BOUNTY_CONTRACT_ADDRESS,
+          abi: BOUNTY_ABI,
+          functionName: 'bounties',
+          args: [bountyId],
+        }) as [bigint, string, string, string, boolean];
+
+        const [amount] = bountyData;
+
+        if (amount === BigInt(0)) {
+          const settlement: BountySettlementEvent = dare.txHash?.startsWith('0x')
+            ? await findBountySettlementEvent({
+                publicClient,
+                contractAddress: BOUNTY_CONTRACT_ADDRESS,
+                dareId: bountyId,
+                fundingTxHash: dare.txHash,
+              })
+            : { type: 'NONE', txHash: null, blockNumber: null };
+
+          if (settlement.type === 'REFUND') {
+            const refundedDare = await prisma.dare.update({
+              where: { id: dare.id },
+              data: { status: 'REFUNDED' },
+            });
+            await syncLinkedCampaignForDareState({
+              dareId: dare.id,
+              status: 'REFUNDED',
+            });
+            await recordDareFounderEventSafe({
+              eventType: 'dare_refunded',
+              source: 'refund-expired-preflight-reconcile',
+              dare: refundedDare,
+              status: 'REFUNDED',
+              metadata: {
+                simulated: false,
+                txHash: settlement.txHash,
+                onChainDareId: dare.onChainDareId,
+                reconciled: true,
+              },
+            });
+
+            results.push({
+              dareId: dare.id,
+              status: 'refunded',
+              txHash: settlement.txHash,
+            });
+            console.log(`[REFUND] Reconciled refunded dare ${dare.id} from on-chain event ${settlement.txHash}`);
+            continue;
+          }
+
+          if (settlement.type === 'PAYOUT') {
+            const verifiedDare = await prisma.dare.update({
+              where: { id: dare.id },
+              data: {
+                status: 'VERIFIED',
+                verifiedAt: new Date(),
+                verifyTxHash: settlement.txHash,
+                appealStatus: 'NONE',
+                appealReason: null,
+              },
+            });
+            await syncLinkedCampaignForDareState({
+              dareId: dare.id,
+              status: 'VERIFIED',
+            });
+            await recordDareFounderEventSafe({
+              eventType: 'dare_settled',
+              source: 'refund-expired-preflight-reconcile',
+              dare: verifiedDare,
+              status: 'VERIFIED',
+              metadata: {
+                simulated: false,
+                txHash: settlement.txHash,
+                onChainDareId: dare.onChainDareId,
+                reconciled: true,
+              },
+            });
+
+            results.push({
+              dareId: dare.id,
+              status: 'verified',
+              txHash: settlement.txHash,
+            });
+            console.log(`[REFUND] Reconciled paid dare ${dare.id} from on-chain event ${settlement.txHash}`);
+            continue;
+          }
+
+          const failedDare = await prisma.dare.update({
+            where: { id: dare.id },
+            data: {
+              status: 'FAILED',
+              appealStatus: 'NONE',
+              appealReason: 'Bounty not found on-chain during expired refund',
+            },
+          });
+          await syncLinkedCampaignForDareState({
+            dareId: dare.id,
+            status: 'FAILED',
+          });
+          await recordDareFounderEventSafe({
+            eventType: 'dare_failed',
+            source: 'refund-expired-preflight',
+            dare: failedDare,
+            status: 'FAILED',
+            metadata: {
+              simulated: false,
+              onChainDareId: dare.onChainDareId,
+              txHash: dare.txHash,
+              claimDeadline: dare.claimDeadline?.toISOString() ?? null,
+              reason: 'Bounty not found on-chain',
+            },
+          });
+
+          results.push({
+            dareId: dare.id,
+            status: 'failed',
+            error: 'Bounty not found on-chain; marked FAILED for manual reconciliation',
+          });
+          console.log(`[REFUND] Dare ${dare.id} — bounty not found on-chain and no settlement logs found`);
+          continue;
+        }
 
         const txHash = await walletClient.writeContract({
           address: BOUNTY_CONTRACT_ADDRESS,
@@ -244,9 +370,10 @@ export async function POST(request: NextRequest) {
 
     // Summary
     const refunded = results.filter((r) => r.status === 'refunded' || r.status === 'simulated').length;
+    const repaired = results.filter((r) => r.status === 'verified').length;
     const failed = results.filter((r) => r.status === 'failed').length;
 
-    console.log(`[REFUND] Complete - Refunded: ${refunded}, Failed: ${failed}`);
+    console.log(`[REFUND] Complete - Refunded: ${refunded}, Repaired: ${repaired}, Failed: ${failed}`);
 
     if (failed > 0) {
       const failedSummary = results
@@ -267,6 +394,7 @@ export async function POST(request: NextRequest) {
       message: `Processed ${expiredDares.length} expired dares`,
       processed: expiredDares.length,
       refunded,
+      repaired,
       failed,
       results,
     });

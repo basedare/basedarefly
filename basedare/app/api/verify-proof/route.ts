@@ -634,6 +634,7 @@ export async function POST(req: NextRequest) {
       let blockNumber: string | null = null;
       const completedAt = new Date();
       const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
+      const isCommunitySpark = dare.bounty <= 0 && dare.tag === 'community';
 
       await recordDareFounderEventSafe({
         eventType: 'proof_submitted',
@@ -755,7 +756,9 @@ export async function POST(req: NextRequest) {
           proofHash: verification.proofHash,
           proofMedia,
           appealStatus: null,
-          notificationMessage: `Your proof for "${dare.title}" was approved. ${streamerPayout.toFixed(2)} USDC has been sent to your wallet.`,
+          notificationMessage: isCommunitySpark
+            ? `Your proof for "${dare.title}" was approved. This Community Spark is now part of the local grid memory.`
+            : `Your proof for "${dare.title}" was approved. ${streamerPayout.toFixed(2)} USDC has been sent to your wallet.`,
         });
       } catch (successPathError: unknown) {
         const successPathMessage =

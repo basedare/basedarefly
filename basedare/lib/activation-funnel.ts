@@ -46,6 +46,7 @@ export type ActivationFunnelAttribution = {
   venueName?: string | null;
   creator?: string | null;
   packageId?: string | null;
+  offerId?: string | null;
   budgetRange?: string | null;
   goal?: string | null;
   buyerType?: string | null;

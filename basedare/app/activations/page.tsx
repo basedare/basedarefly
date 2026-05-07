@@ -23,11 +23,11 @@ const insetCardClass =
 const packages = [
   {
     id: 'pilot-drop',
-    name: 'Venue Spark Pilot',
-    price: '$749+',
-    bestFor: 'First venue proof',
-    detail: 'One real venue, Brand Memory brief, venue-aware creator missions, QR/check-in tracking, proof media, and a simple result receipt.',
-    includes: ['global venue target', 'Brand Memory brief', '3-5 creator missions', 'Spark receipt'],
+    name: 'First Spark Pilot',
+    price: 'Founding pilot',
+    bestFor: 'No-brainer venue start',
+    detail: 'One real venue, live venue page, creator mission, QR/check-in proof path, proof media, and a simple recap before any recurring package.',
+    includes: ['venue page + QR', 'creator route', 'proof recap', 'rerun if no proof'],
   },
   {
     id: 'local-signal',
@@ -96,6 +96,7 @@ type ActivationsPageProps = {
     packageId?: string;
     goal?: string;
     buyerType?: string;
+    offer?: string;
     auditBrief?: string;
   }>;
 };
@@ -108,6 +109,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const routedVenueSlug = resolvedSearchParams.venueSlug || null;
   const routedCity = resolvedSearchParams.city || null;
   const routedSource = resolvedSearchParams.source || null;
+  const routedOfferId = resolvedSearchParams.offer === 'first-spark' ? 'first-spark' : null;
+  const isFirstSparkOffer = routedOfferId === 'first-spark';
 
   return (
     <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 grayscale saturate-0 contrast-125 sm:px-6 lg:py-12">
@@ -145,14 +148,15 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
                 <BadgeDollarSign className="h-4 w-4" />
-                Grid Activation OS
+                {isFirstSparkOffer ? 'First Spark Pilot' : 'Grid Activation OS'}
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
-                Own the grid. Prove the movement.
+                {isFirstSparkOffer ? 'Run the first proof night.' : 'Own the grid. Prove the movement.'}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/64 sm:text-lg">
-                BaseDare connects venues, creators, fans, and brands through Brand Memory, smart dares,
-                proof verification, payout rails, and analytics that show whether real-world action actually happened.
+                {isFirstSparkOffer
+                  ? 'BaseDare sets up the venue page, creator mission, QR/check-in proof path, and recap. The venue only needs to approve the route and provide one simple perk or reward.'
+                  : 'BaseDare connects venues, creators, fans, and brands through Brand Memory, smart dares, proof verification, payout rails, and analytics that show whether real-world action actually happened.'}
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -164,12 +168,12 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                   <SquircleLink
                     href="#activation-intake"
                     tone="yellow"
-                    label="Launch Grid Activation"
+                    label={isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
                     fullWidth
                     height={44}
                   >
                     <span className="flex items-center justify-center gap-2 text-[0.78rem] tracking-[0.08em] text-[#15120c]">
-                      Launch Grid Activation
+                      {isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </SquircleLink>
@@ -310,11 +314,13 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               <Users className="h-4 w-4" />
               Pilot qualification
             </div>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">Tell us what should happen anywhere.</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">
+              {isFirstSparkOffer ? 'Approve the first pilot route.' : 'Tell us what should happen anywhere.'}
+            </h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
-              The fastest paid path is a narrow pilot: one buyer, one venue or event, one Brand Memory, one proof target,
-              one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the
-              model is the same.
+              {isFirstSparkOffer
+                ? 'The smallest venue action is simple: approve the route, name the perk, and let BaseDare handle creator routing, proof, and recap. If no verified proof lands, the operator route gets reviewed and rerun.'
+                : 'The fastest paid path is a narrow pilot: one buyer, one venue or event, one Brand Memory, one proof target, one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the model is the same.'}
             </p>
             <div className="mt-5 space-y-3">
               {[
@@ -347,6 +353,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               routedPackageId={resolvedSearchParams.packageId || null}
               routedGoal={resolvedSearchParams.goal || null}
               routedBuyerType={resolvedSearchParams.buyerType || null}
+              routedOfferId={routedOfferId}
               routedAuditBrief={resolvedSearchParams.auditBrief || null}
             />
           </div>

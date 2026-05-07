@@ -55,6 +55,7 @@ type ActivationIntake = {
   timelineLabel: string;
   goal: string;
   packageId: string;
+  offerId: string;
   website: string;
   notes: string;
   routeContext: {
@@ -1005,6 +1006,11 @@ export default function ActivationIntakesPage() {
                             {intake.routeContext.creator ? (
                               <span className="rounded-full border border-fuchsia-200/14 bg-fuchsia-300/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100/72">
                                 Routed: {intake.routeContext.creator}
+                              </span>
+                            ) : null}
+                            {intake.offerId ? (
+                              <span className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/72">
+                                Offer: {intake.offerId}
                               </span>
                             ) : null}
                             {intake.routeContext.venueHref ? (

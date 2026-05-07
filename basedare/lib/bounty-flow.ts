@@ -14,6 +14,7 @@ export type BountyCreationInput = {
   title: string;
   description?: string;
   amount: number;
+  sparkType?: 'PAID' | 'COMMUNITY';
   streamerTag?: string;
   streamId?: string;
   missionMode?: 'IRL' | 'STREAM';
@@ -34,6 +35,8 @@ export type BountyCreationInput = {
 export type BountyCreationResult = {
   dareId: string;
   simulated: boolean;
+  amount?: number;
+  isCommunitySpark?: boolean;
   txHash?: string;
   syncPending?: boolean;
   awaitingClaim?: boolean;
@@ -79,6 +82,7 @@ export async function submitBountyCreation(
   }
 ): Promise<BountyCreationResult> {
   const isSimulationMode = options.isSimulationMode ?? getBountyModeSnapshot().simulated;
+  const isCommunitySpark = input.sparkType === 'COMMUNITY';
   const jsonHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options.authHeaders ?? {}),
@@ -88,12 +92,13 @@ export async function submitBountyCreation(
   const requestBody: Record<string, unknown> = {
     title: input.title,
     description: input.description?.trim() || undefined,
-    amount: input.amount,
-    streamerTag: input.streamerTag?.trim() || undefined,
+    amount: isCommunitySpark ? 0 : input.amount,
+    sparkType: input.sparkType ?? 'PAID',
+    streamerTag: isCommunitySpark ? '@everyone' : input.streamerTag?.trim() || undefined,
     streamId: input.streamId ?? 'dev-stream-001',
-    missionMode: input.missionMode ?? 'IRL',
-    missionTag: input.missionTag ?? 'nightlife',
-    isNearbyDare: input.isNearbyDare ?? true,
+    missionMode: isCommunitySpark ? 'IRL' : input.missionMode ?? 'IRL',
+    missionTag: isCommunitySpark ? 'community' : input.missionTag ?? 'nightlife',
+    isNearbyDare: isCommunitySpark ? true : input.isNearbyDare ?? true,
     stakerAddress: input.stakerAddress,
     venueId: input.venueId,
     creationContext: input.creationContext ?? 'CREATE',
@@ -101,7 +106,9 @@ export async function submitBountyCreation(
     imageCid: input.imageCid || undefined,
   };
 
-  if (typeof input.requireSentinel === 'boolean') {
+  if (isCommunitySpark) {
+    requestBody.requireSentinel = false;
+  } else if (typeof input.requireSentinel === 'boolean') {
     requestBody.requireSentinel = input.requireSentinel;
   }
 
@@ -112,7 +119,7 @@ export async function submitBountyCreation(
     requestBody.discoveryRadiusKm = input.discoveryRadiusKm ?? 5;
   }
 
-  if (isSimulationMode) {
+  if (isSimulationMode || isCommunitySpark) {
     const response = await fetch('/api/bounties', {
       method: 'POST',
       headers: jsonHeaders,
@@ -126,6 +133,8 @@ export async function submitBountyCreation(
     return {
       dareId: result.data.dareId,
       simulated: true,
+      amount: result.data.amount,
+      isCommunitySpark: Boolean(result.data.isCommunitySpark),
       awaitingClaim: result.data.awaitingClaim,
       inviteLink: result.data.inviteLink,
       claimDeadline: result.data.claimDeadline,
@@ -242,6 +251,8 @@ export async function submitBountyCreation(
     return {
       dareId,
       simulated: false,
+      amount: input.amount,
+      isCommunitySpark: false,
       txHash,
       syncPending: true,
       awaitingClaim: false,
@@ -258,6 +269,8 @@ export async function submitBountyCreation(
     return {
       dareId,
       simulated: false,
+      amount: input.amount,
+      isCommunitySpark: false,
       txHash,
       syncPending: true,
       awaitingClaim: false,
@@ -272,6 +285,8 @@ export async function submitBountyCreation(
   return {
     dareId: registeredData.id,
     simulated: false,
+    amount: input.amount,
+    isCommunitySpark: false,
     txHash,
     awaitingClaim: registeredData.status === 'AWAITING_CLAIM',
     streamerTag: registeredData.streamerHandle,

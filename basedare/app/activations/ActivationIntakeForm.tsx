@@ -29,6 +29,7 @@ type IntakeState = {
   routedVenueId: string;
   routedVenueSlug: string;
   routedSource: string;
+  offerId: '' | 'first-spark';
   brandMemory: Required<ActivationBrandMemoryInput>;
 };
 
@@ -50,6 +51,7 @@ const INITIAL_STATE: IntakeState = {
   routedVenueId: '',
   routedVenueSlug: '',
   routedSource: '',
+  offerId: '',
   brandMemory: {
     originStory: '',
     audience: '',
@@ -124,6 +126,7 @@ type ActivationIntakeFormProps = {
   routedPackageId?: string | null;
   routedGoal?: string | null;
   routedBuyerType?: string | null;
+  routedOfferId?: string | null;
   routedAuditBrief?: string | null;
 };
 
@@ -138,6 +141,7 @@ export default function ActivationIntakeForm({
   routedPackageId,
   routedGoal,
   routedBuyerType,
+  routedOfferId,
   routedAuditBrief,
 }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
@@ -151,12 +155,14 @@ export default function ActivationIntakeForm({
     form.routedVenueId ||
     form.routedVenueSlug ||
     form.routedSource ||
+    form.offerId ||
     routedVenue ||
     routedCity ||
     routedBudgetRange ||
     routedPackageId ||
     routedGoal ||
     routedBuyerType ||
+    routedOfferId ||
     routedAuditBrief
   );
 
@@ -172,6 +178,7 @@ export default function ActivationIntakeForm({
       !routedPackageId &&
       !routedGoal &&
       !routedBuyerType &&
+      !routedOfferId &&
       !routedAuditBrief
     ) return;
 
@@ -189,6 +196,7 @@ export default function ActivationIntakeForm({
     const packageId = isPackageId(routedPackageId) ? routedPackageId : null;
     const goal = isGoal(routedGoal) ? routedGoal : null;
     const buyerType = isBuyerType(routedBuyerType) ? routedBuyerType : null;
+    const offerId = routedOfferId === 'first-spark' ? 'first-spark' : null;
     const normalizedAuditBrief = routedAuditBrief?.trim() || null;
     const contextKey = [
       normalizedCreator,
@@ -201,6 +209,7 @@ export default function ActivationIntakeForm({
       packageId,
       goal,
       buyerType,
+      offerId,
       normalizedAuditBrief,
     ].filter(Boolean).join('|');
     if (routedContextRef.current === contextKey) return;
@@ -217,18 +226,23 @@ export default function ActivationIntakeForm({
 
       return {
         ...current,
-        buyerType: buyerType ?? current.buyerType,
         city: current.city || normalizedCity || '',
         venue: current.venue || normalizedVenue || '',
-        budgetRange: budgetRange ?? current.budgetRange,
-        packageId: packageId ?? current.packageId,
-        goal: goal ?? current.goal,
+        budgetRange: budgetRange ?? (offerId === 'first-spark' ? '500_1500' : current.budgetRange),
+        timeline: offerId === 'first-spark' ? 'this_week' : current.timeline,
+        packageId: packageId ?? (offerId === 'first-spark' ? 'pilot-drop' : current.packageId),
+        goal: goal ?? (offerId === 'first-spark' ? 'foot_traffic' : current.goal),
+        buyerType: buyerType ?? (offerId === 'first-spark' ? 'venue' : current.buyerType),
         routedCreator: normalizedCreator ?? current.routedCreator,
         routedVenueId: normalizedVenueId ?? current.routedVenueId,
         routedVenueSlug: normalizedVenueSlug ?? current.routedVenueSlug,
         routedSource: normalizedSource ?? current.routedSource,
+        offerId: offerId ?? current.offerId,
         notes: [
           current.notes.trim(),
+          offerId === 'first-spark'
+            ? 'Offer: First Spark Pilot. Venue provides one perk or reward; BaseDare handles setup, creator routing, QR/check-in proof path, and recap. If no verified proof lands, review and rerun the route.'
+            : null,
           normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
           normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
           normalizedCity ? `Target city: ${normalizedCity}` : null,
@@ -250,6 +264,7 @@ export default function ActivationIntakeForm({
     routedVenue,
     routedVenueId,
     routedVenueSlug,
+    routedOfferId,
     routedAuditBrief,
   ]);
 
@@ -270,6 +285,7 @@ export default function ActivationIntakeForm({
         budgetRange: form.budgetRange,
         goal: form.goal,
         buyerType: form.buyerType,
+        offerId: form.offerId || undefined,
       },
     });
   };
@@ -304,8 +320,9 @@ export default function ActivationIntakeForm({
         ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
         ['Package', PACKAGE_LABELS[form.packageId]],
         ['Goal', GOAL_LABELS[form.goal]],
+        form.offerId === 'first-spark' ? ['Offer', 'First Spark Pilot'] : null,
       ].filter((item): item is [string, string] => Boolean(item)),
-    [form.budgetRange, form.city, form.goal, form.packageId, form.routedCreator, form.routedSource, form.venue]
+    [form.budgetRange, form.city, form.goal, form.offerId, form.packageId, form.routedCreator, form.routedSource, form.venue]
   );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -328,6 +345,7 @@ export default function ActivationIntakeForm({
           budgetRange: form.budgetRange,
           goal: form.goal,
           buyerType: form.buyerType,
+          offerId: form.offerId || undefined,
         },
         metadata: {
           hasBrandMemory: Boolean(
@@ -357,6 +375,7 @@ export default function ActivationIntakeForm({
             budgetRange: form.budgetRange,
             goal: form.goal,
             buyerType: form.buyerType,
+            offerId: form.offerId || undefined,
           }),
         }),
       });
@@ -427,6 +446,25 @@ export default function ActivationIntakeForm({
                 className="rounded-full border border-white/[0.09] bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58"
               >
                 <span className="text-white/32">{label}:</span> {value}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {form.offerId === 'first-spark' ? (
+        <div className="rounded-[26px] border border-emerald-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(16,185,129,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/72">Founding venue offer</p>
+          <p className="mt-2 text-sm font-black leading-6 text-white">
+            BaseDare runs setup, creator routing, QR/check-in proof, and recap. You approve the route and provide one perk.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {['venue page', 'creator mission', 'proof receipt', 'rerun review if no proof'].map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-white/[0.09] bg-black/24 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/52"
+              >
+                {item}
               </span>
             ))}
           </div>

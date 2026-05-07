@@ -1369,6 +1369,7 @@ export async function sendDareCreatedAlert(data: {
   streamerTag: string | null;
   isOpenBounty: boolean;
   stakerAddress?: string | null;
+  isCommunitySpark?: boolean;
 }): Promise<void> {
   if (!TELEGRAM_ADMIN_CHAT_ID) {
     return;
@@ -1380,10 +1381,12 @@ export async function sendDareCreatedAlert(data: {
     : 'Anonymous';
 
   const message = [
-    '🆕 <b>NEW DARE CREATED</b>',
+    data.isCommunitySpark ? '🌊 <b>NEW COMMUNITY SPARK</b>' : '🆕 <b>NEW DARE CREATED</b>',
     '',
     `<b>${data.title}</b>`,
-    `💰 $${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC`,
+    data.isCommunitySpark
+      ? '🤝 Free community proof mission'
+      : `💰 $${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC`,
     `🏷️ Tag: <code>${targetTag}</code>`,
     `👛 Staker: <code>${staker}</code>`,
     `🔗 <a href="${BASE_URL}/dare/${data.shortId}">View Dare</a>`,

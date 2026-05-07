@@ -173,6 +173,8 @@ type NearbyDare = {
   shortId: string | null;
   title: string;
   bounty: number;
+  missionTag?: string | null;
+  isCommunitySpark?: boolean;
   status: string;
   locationLabel: string | null;
   distanceKm: number;
@@ -241,6 +243,8 @@ const LOCAL_SIGNAL_CATEGORIES = [
   'community',
   'other',
 ] as const;
+
+const SIGNAL_LAYER_KIND_ORDER: SignalLayerKind[] = ['drop', 'first', 'route', 'relic', 'intel'];
 
 type FootprintMark = {
   id: string;
@@ -373,6 +377,8 @@ type VenueDetailResponse = {
         shortId: string;
         title: string;
         missionMode: string;
+        missionTag?: string | null;
+        isCommunitySpark?: boolean;
         bounty: number;
         status: string;
         streamerHandle: string | null;
@@ -394,6 +400,8 @@ type VenueDetailResponse = {
         shortId: string;
         title: string;
         missionMode: string;
+        missionTag?: string | null;
+        isCommunitySpark?: boolean;
         bounty: number;
         status: string;
         streamerHandle: string | null;
@@ -431,6 +439,8 @@ type SelectedPlaceActiveDare = {
   shortId: string;
   title: string;
   missionMode: string;
+  missionTag?: string | null;
+  isCommunitySpark?: boolean;
   bounty: number;
   status: string;
   streamerHandle: string | null;
@@ -462,7 +472,8 @@ type CeremonyState =
     }
   | null;
 type NearbyDareFilter = 'all' | 'open' | 'sentinel' | 'high';
-type HappeningTone = 'gold' | 'cyan' | 'purple' | 'rose';
+type HappeningTone = 'gold' | 'cyan' | 'purple' | 'rose' | 'green';
+type SignalLayerKind = 'drop' | 'first' | 'route' | 'relic' | 'intel';
 type HappeningWindow = {
   key: 'morning' | 'day' | 'sunset' | 'late';
   label: string;
@@ -1408,6 +1419,14 @@ function getActivationStateCopy(dare: SelectedPlaceActiveDare) {
   };
 }
 
+function isCommunityActivation(dare: Pick<SelectedPlaceActiveDare, 'bounty' | 'missionTag' | 'isCommunitySpark'>) {
+  return Boolean(dare.isCommunitySpark || (dare.bounty <= 0 && dare.missionTag === 'community'));
+}
+
+function getActivationRewardLabel(dare: Pick<SelectedPlaceActiveDare, 'bounty' | 'missionTag' | 'isCommunitySpark'>) {
+  return isCommunityActivation(dare) ? 'Community Spark' : `${formatMapUsd(dare.bounty)} USDC`;
+}
+
 function getLastSparkLabel(lastTaggedAt: string | null) {
   if (!lastTaggedAt) return 'No sparks yet';
 
@@ -1552,7 +1571,7 @@ function getPulseMeaning({
   if (pulse === 'igniting') {
     return {
       label: 'Igniting',
-      description: `Momentum is real here. Verified marks are stacking, heat is climbing, and ${activeDareCount > 0 ? 'live challenges are helping it move' : 'another activation could push it into the hot tier'}.`,
+      description: `Momentum is real here. Verified marks are stacking, heat is climbing, and ${activeDareCount > 0 ? 'live drops are helping it move' : 'another activation could push it into the hot tier'}.`,
     };
   }
 
@@ -1565,7 +1584,7 @@ function getPulseMeaning({
 
   return {
     label: 'Dormant',
-    description: `The venue exists on the map, but no strong public memory loop is active yet. First mark or first challenge wins the story.`,
+    description: `The venue exists on the map, but no strong public memory loop is active yet. First mark or first funded drop wins the story.`,
   };
 }
 
@@ -1756,9 +1775,9 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (place.activeDareCount > 0) {
     return {
       kind: 'venue-memory' as const,
-      eyebrow: 'Live venue',
+      eyebrow: 'Live venue drop',
       title: `${place.activeDareCount} mission${place.activeDareCount === 1 ? '' : 's'} moving at ${place.name}`,
-      detail: 'There is already money or proof activity here. This is the clearest user path right now.',
+      detail: 'Money or proof activity is already moving here. This is the clearest path from map signal to real-world action.',
       actionLabel: 'View',
       tone: 'cyan' as HappeningTone,
     };
@@ -1769,7 +1788,7 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
       kind: 'first-spark' as const,
       eyebrow: 'First mark open',
       title: `Be first at ${place.name}`,
-      detail: 'No verified memory is anchored yet. A tourist or local can own the first story here.',
+      detail: 'No verified memory is anchored yet. The first person to mark it writes the opening legend.',
       actionLabel: 'Mark',
       tone: 'purple' as HappeningTone,
     };
@@ -2039,6 +2058,12 @@ function getHappeningToneClasses(tone: HappeningTone) {
         chip: 'border-rose-300/18 bg-rose-500/[0.08] text-rose-100',
         action: 'border-rose-300/22 bg-rose-500/[0.08] text-rose-100 hover:border-rose-300/38 hover:bg-rose-500/[0.14]',
       };
+    case 'green':
+      return {
+        dot: 'bg-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.45)]',
+        chip: 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100',
+        action: 'border-emerald-300/22 bg-emerald-500/[0.08] text-emerald-100 hover:border-emerald-300/38 hover:bg-emerald-500/[0.14]',
+      };
     case 'gold':
     default:
       return {
@@ -2047,6 +2072,115 @@ function getHappeningToneClasses(tone: HappeningTone) {
         action: 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]',
       };
   }
+}
+
+function getSignalLayerKind(happening: MapHappening): SignalLayerKind {
+  if (happening.kind === 'live-dare') return 'drop';
+  if (happening.kind === 'first-spark') return 'first';
+  if (happening.kind === 'tourist-route') return 'route';
+  if (happening.kind === 'venue-memory') return 'relic';
+  return 'intel';
+}
+
+function getSignalLayerKindMeta(kind: SignalLayerKind) {
+  switch (kind) {
+    case 'drop':
+      return {
+        label: 'Drop',
+        pluralLabel: 'Drops',
+        chipClass: 'border-[#f5c518]/24 bg-[#f5c518]/[0.1] text-[#f8dd72]',
+        activeClass: 'border-[#f5c518]/28 bg-[#f5c518]/[0.12] text-[#f8dd72]',
+      };
+    case 'first':
+      return {
+        label: 'First',
+        pluralLabel: 'Firsts',
+        chipClass: 'border-[#b87fff]/24 bg-[#b87fff]/[0.1] text-[#edd8ff]',
+        activeClass: 'border-[#b87fff]/28 bg-[#b87fff]/[0.12] text-[#edd8ff]',
+      };
+    case 'route':
+      return {
+        label: 'Route',
+        pluralLabel: 'Routes',
+        chipClass: 'border-cyan-300/22 bg-cyan-500/[0.08] text-cyan-100',
+        activeClass: 'border-cyan-300/26 bg-cyan-500/[0.1] text-cyan-100',
+      };
+    case 'relic':
+      return {
+        label: 'Relic',
+        pluralLabel: 'Relics',
+        chipClass: 'border-rose-300/20 bg-rose-500/[0.08] text-rose-100',
+        activeClass: 'border-rose-300/24 bg-rose-500/[0.1] text-rose-100',
+      };
+    case 'intel':
+    default:
+      return {
+        label: 'Intel',
+        pluralLabel: 'Intel',
+        chipClass: 'border-white/12 bg-white/[0.045] text-white/58',
+        activeClass: 'border-white/14 bg-white/[0.06] text-white/70',
+      };
+  }
+}
+
+function truncateSignalMissionTitle(value: string) {
+  const compact = value.replace(/\s+/g, ' ').trim();
+  if (compact.length <= 96) return compact;
+  return `${compact.slice(0, 93).trimEnd()}...`;
+}
+
+function getSignalFundConfig(happening: MapHappening) {
+  const place = happening.place;
+  if (!place) return null;
+
+  const kind = getSignalLayerKind(happening);
+  const fundCopy: Record<
+    SignalLayerKind,
+    {
+      label: string;
+      title: string;
+      payout: number;
+    }
+  > = {
+    drop: {
+      label: 'Fund more',
+      title: `Fund another drop at ${place.name}`,
+      payout: 80,
+    },
+    first: {
+      label: 'Fund first',
+      title: `Fund the first story at ${place.name}`,
+      payout: 60,
+    },
+    route: {
+      label: 'Fund route',
+      title: `Fund a route proof at ${place.name}`,
+      payout: 60,
+    },
+    relic: {
+      label: 'Fund next',
+      title: `Fund the next proof at ${place.name}`,
+      payout: 60,
+    },
+    intel: {
+      label: 'Fund signal',
+      title: `Fund this signal at ${place.name}`,
+      payout: 60,
+    },
+  };
+  const copy = fundCopy[kind];
+
+  return {
+    label: copy.label,
+    href: buildVenueChallengeCreateHref({
+      venueId: place.id,
+      venueSlug: place.slug,
+      venueName: place.name,
+      title: truncateSignalMissionTitle(copy.title),
+      payout: copy.payout,
+      source: 'map',
+    }),
+  };
 }
 
 function getPulseLegendPalette(pulse: PulseState) {
@@ -3851,20 +3985,22 @@ export default function RealWorldMap() {
       items.push({
         id: `live-dare:${dare.id}`,
         kind: 'live-dare',
-        eyebrow: dare.isOpenBounty ? 'Open money' : 'Live mission',
+        eyebrow: dare.isCommunitySpark ? 'Community spark' : dare.isOpenBounty ? 'Open drop' : 'Live drop',
         title: dare.title,
         detail: place
-          ? `${place.name} is active right now. Tourists can follow the proof trail instead of guessing what to do.`
+          ? dare.isCommunitySpark
+            ? `${place.name} has a free community mission live. Show up, help, and leave proof on the grid.`
+            : `${place.name} is active right now. Follow the signal, make the proof, and take the reward before the window closes.`
           : dare.locationLabel
             ? `Active near ${dare.locationLabel}.`
             : 'A live dare is moving nearby.',
         timingLabel: happeningWindow.label,
         distanceLabel: dare.distanceDisplay,
-        rewardLabel: `${formatMapUsd(dare.bounty)} USDC`,
-        actionLabel: 'Open Dare',
+        rewardLabel: dare.isCommunitySpark ? 'Community' : `${formatMapUsd(dare.bounty)} USDC`,
+        actionLabel: 'Open Drop',
         href: dare.shortId ? `/dare/${dare.shortId}` : '/dares',
         place,
-        tone: dare.bounty >= 100 ? 'gold' : 'cyan',
+        tone: dare.isCommunitySpark ? 'green' : dare.bounty >= 100 ? 'gold' : 'cyan',
       });
     });
 
@@ -3951,6 +4087,21 @@ export default function RealWorldMap() {
 
     return items.slice(0, 5);
   }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  const signalLayerCounts = useMemo(() => {
+    const counts: Record<SignalLayerKind, number> = {
+      drop: 0,
+      first: 0,
+      route: 0,
+      relic: 0,
+      intel: 0,
+    };
+
+    mapHappenings.forEach((happening) => {
+      counts[getSignalLayerKind(happening)] += 1;
+    });
+
+    return counts;
+  }, [mapHappenings]);
   const happeningLoading = nearbyDaresLoading || localSignalsLoading;
   const showNearbyDarePanel = happeningLoading || mapHappenings.length > 0;
 
@@ -4365,7 +4516,7 @@ export default function RealWorldMap() {
     const reasons: string[] = [];
 
     if ((selectedPlace?.activeDareCount ?? 0) > 0) {
-      reasons.push(`${selectedPlace?.activeDareCount} live ${selectedPlace?.activeDareCount === 1 ? 'challenge is' : 'challenges are'} active here right now.`);
+      reasons.push(`${selectedPlace?.activeDareCount} live ${selectedPlace?.activeDareCount === 1 ? 'drop is' : 'drops are'} active here right now.`);
     }
 
     if ((selectedPlace?.approvedCount ?? 0) > 0) {
@@ -4383,7 +4534,7 @@ export default function RealWorldMap() {
     }
 
     if (!reasons.length) {
-      reasons.push('This is still an open story. A first verified spark or a first funded activation can define what this venue becomes.');
+      reasons.push('This is still an open story. A first verified spark or a first funded drop can define what this venue becomes.');
     }
 
     return reasons.slice(0, 3);
@@ -4391,7 +4542,7 @@ export default function RealWorldMap() {
   const selectedVenueNextMove = useMemo(() => {
     if ((selectedPlace?.activeDareCount ?? 0) > 0) {
       return proximityAccess.canReveal
-        ? 'Open the live challenge here now.'
+        ? 'Open the live drop here now.'
         : `Travel within ${PROXIMITY_REVEAL_METERS}m to unlock the full live brief.`;
     }
 
@@ -4413,7 +4564,7 @@ export default function RealWorldMap() {
           : null;
 
       return {
-        label: proximityAccess.canReveal ? 'Open the live challenge' : 'Move closer to unlock',
+        label: proximityAccess.canReveal ? 'Open the live drop' : 'Move closer to unlock',
         detail: proximityAccess.canReveal
           ? 'A funded mission is already active here.'
           : `Full brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`,
@@ -4426,12 +4577,12 @@ export default function RealWorldMap() {
 
     if ((selectedPlace?.approvedCount ?? 0) <= 0) {
       return {
-        label: 'Wake this venue up',
-        detail: 'Mark it or fund the first challenge.',
+        label: 'Fund the first drop',
+        detail: 'Make this signal worth chasing. The first funded drop gives people a reason to show up and prove it.',
         tone: 'purple' as const,
-        href: selectedVenueHref,
-        actionLabel: selectedVenueHref ? 'Open venue' : 'Open',
-        resolveAction: selectedVenueHref ? null : 'venue' as SelectedCommandAction,
+        href: selectedFundDareHref,
+        actionLabel: selectedFundDareHref ? 'Fund drop' : 'Route + fund',
+        resolveAction: selectedFundDareHref ? null : 'fund' as SelectedCommandAction,
       };
     }
 
@@ -4441,20 +4592,28 @@ export default function RealWorldMap() {
         selectedCommandCenter.contactUrl ??
         selectedVenueHref
       : selectedVenueHref;
+    const nextSignalHref = selectedCommandCenter ? commandHref : selectedFundDareHref ?? selectedVenueHref;
 
     return {
       label: selectedCommandCenter ? 'Run venue playbook' : 'Build the next signal',
       detail: selectedCommandCenter
         ? 'Open rewards, proof memory, routing, and repeat plays.'
-        : 'Add a mark or fund a challenge to make the memory loop obvious.',
+        : 'Turn the existing memory into a funded drop people can chase tonight.',
       tone: 'cyan' as const,
-      href: commandHref,
-      actionLabel: selectedCommandCenter ? 'Open' : 'Open venue',
-      resolveAction: commandHref ? null : 'venue' as SelectedCommandAction,
+      href: nextSignalHref,
+      actionLabel: selectedCommandCenter ? 'Open' : selectedFundDareHref ? 'Fund drop' : 'Open venue',
+      resolveAction: nextSignalHref ? null : 'venue' as SelectedCommandAction,
     };
-  }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
+  }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedFundDareHref, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
   const selectedVenueCommandCards = useMemo(() => {
     const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
+    const hasCommunityActivation = selectedPlaceActiveDares.some(isCommunityActivation);
+    const rewardValue =
+      selectedPlaceActiveDares.length === 0
+        ? 'Fund'
+        : rewardTotal > 0
+          ? `${formatMapUsd(rewardTotal)} USDC${hasCommunityActivation ? ' + spark' : ''}`
+          : 'Community Spark';
     const primaryActivation =
       focusedCreatorActivation ?? featuredPaidActivation ?? visibleActiveDares[0] ?? null;
     const rewardHref =
@@ -4478,18 +4637,18 @@ export default function RealWorldMap() {
       {
         id: 'reward',
         eyebrow: selectedPlaceActiveDares.length > 0 ? 'Live reward' : 'Reward slot',
-        value: selectedPlaceActiveDares.length > 0 ? `${formatMapUsd(rewardTotal)} USDC` : 'Fund',
+        value: rewardValue,
         detail: primaryActivation
           ? proximityAccess.canReveal
             ? primaryActivation.title
             : `Brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`
-          : 'Fund the first challenge here.',
+          : 'Fund the first drop here.',
         meta:
           selectedPlaceActiveDares.length > 0
             ? `${selectedPlaceActiveDares.length} active`
-            : 'first activation',
+            : 'first drop',
         href: rewardHref,
-        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund dare' : 'Fund',
+        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund drop' : 'Fund',
         resolveAction: rewardHref ? null : 'fund' as SelectedCommandAction,
         tone: 'gold' as VenueCommandCardTone,
       },
@@ -4552,6 +4711,37 @@ export default function RealWorldMap() {
     visibleMatchedVenueCount,
     visibleActiveDares,
   ]);
+  const selectedSignalActionChips = useMemo(
+    () => [
+      {
+        kind: 'drop' as SignalLayerKind,
+        label: 'Drop',
+        value:
+          (selectedPlaceActiveDares.length ?? 0) > 0
+            ? `${selectedPlaceActiveDares.length} live`
+            : 'fundable',
+      },
+      {
+        kind: 'first' as SignalLayerKind,
+        label: 'First',
+        value:
+          (selectedPlace?.approvedCount ?? 0) > 0
+            ? 'claimed'
+            : selectedPendingPlaceTags.length > 0
+              ? 'review'
+              : 'open',
+      },
+      {
+        kind: 'relic' as SignalLayerKind,
+        label: 'Relic',
+        value:
+          selectedPlaceTags.length > 0
+            ? `${selectedPlaceTags.length} proof`
+            : 'waiting',
+      },
+    ],
+    [selectedPendingPlaceTags.length, selectedPlace?.approvedCount, selectedPlaceActiveDares.length, selectedPlaceTags.length]
+  );
   const signalRailOptions = useMemo(
     () => [
       {
@@ -5587,19 +5777,19 @@ export default function RealWorldMap() {
                   >
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Happening Around You
+                        Signal Layer
                       </p>
                       <p className="mt-1 truncate text-[11px] text-white/52">
                         {happeningLoading
                           ? 'Scanning the local grid...'
                           : mapHappenings.length > 0
-                            ? `${mapHappenings.length} things · ${happeningWindow.label}`
+                            ? `${mapHappenings.length} signals · ${happeningWindow.label}`
                             : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                        {happeningLoading ? 'scanning' : `${mapHappenings.length} things`}
+                        {happeningLoading ? 'scanning' : `${mapHappenings.length} signals`}
                       </div>
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
                         <ChevronUp className="h-4 w-4" />
@@ -5619,8 +5809,29 @@ export default function RealWorldMap() {
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {happeningLoading ? 'scanning' : `${mapHappenings.length} things`}
+                      {happeningLoading ? 'scanning' : `${mapHappenings.length} signals`}
                     </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {SIGNAL_LAYER_KIND_ORDER.map((kind) => {
+                      const meta = getSignalLayerKindMeta(kind);
+                      const count = signalLayerCounts[kind];
+
+                      return (
+                        <span
+                          key={`signal-layer-count:${kind}`}
+                          data-active={count > 0}
+                          className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
+                            count > 0 ? meta.activeClass : 'border-white/8 bg-white/[0.025] text-white/28'
+                          }`}
+                        >
+                          <span>{meta.pluralLabel}</span>
+                          <span className="rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[8px] text-white/62">
+                            {count}
+                          </span>
+                        </span>
+                      );
+                    })}
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     {nearbyDareCounts.all > 0 ? (
@@ -5802,6 +6013,8 @@ export default function RealWorldMap() {
                     mapHappenings.length > 0 ? (
                     mapHappenings.map((happening) => {
                       const toneClasses = getHappeningToneClasses(happening.tone);
+                      const signalKindMeta = getSignalLayerKindMeta(getSignalLayerKind(happening));
+                      const signalFundConfig = getSignalFundConfig(happening);
                       const isExternalHappeningHref = happening.href?.startsWith('http');
 
                       return (
@@ -5813,9 +6026,14 @@ export default function RealWorldMap() {
                             <div className="flex items-start gap-2">
                               <span className={`mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${toneClasses.dot}`} />
                               <div className="min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
-                                  {happening.eyebrow}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${signalKindMeta.chipClass}`}>
+                                    {signalKindMeta.label}
+                                  </span>
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
+                                    {happening.eyebrow}
+                                  </span>
+                                </div>
                                 <p className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-white">
                                   {happening.title}
                                 </p>
@@ -5874,6 +6092,14 @@ export default function RealWorldMap() {
                               >
                                 {happening.actionLabel}
                               </button>
+                            ) : null}
+                            {signalFundConfig ? (
+                              <Link
+                                href={signalFundConfig.href}
+                                className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.16]"
+                              >
+                                {signalFundConfig.label}
+                              </Link>
                             ) : null}
                           </div>
                         </div>
@@ -6278,6 +6504,24 @@ export default function RealWorldMap() {
                       </span>
                     </div>
 
+                    <div className="mt-3 grid grid-cols-3 gap-1.5">
+                      {selectedSignalActionChips.map((chip) => {
+                        const meta = getSignalLayerKindMeta(chip.kind);
+
+                        return (
+                          <div
+                            key={`selected-signal-action:${chip.kind}`}
+                            className={`rounded-[16px] border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-8px_12px_rgba(0,0,0,0.18)] ${meta.activeClass}`}
+                          >
+                            <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-65">{chip.label}</p>
+                            <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.08em] text-white">
+                              {chip.value}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
                     <div className={`${selectedCommandStripClassName} map-command-strip--primary`}>
                       {selectedCommandStripContent}
                     </div>
@@ -6287,7 +6531,7 @@ export default function RealWorldMap() {
                         const isResolving = Boolean(card.resolveAction && pendingCommandAction === card.resolveAction);
                         const actionTitle = isResolving ? 'Routing' : card.actionLabel ?? card.value;
                         const rowTitle =
-                          card.id === 'reward' && card.value === 'Fund' ? 'First challenge slot' : card.value;
+                          card.id === 'reward' && card.value === 'Fund' ? 'First drop slot' : card.value;
                         const cardContent = (
                           <>
                             <span
@@ -6636,11 +6880,13 @@ export default function RealWorldMap() {
                             {focusedCreatorActivation.title}
                           </p>
                           <p className="mt-2 text-sm text-white/65">
-                            This is the live paid activation your dashboard pointed you to here.
+                            {isCommunityActivation(focusedCreatorActivation)
+                              ? 'This is a free community spark your dashboard pointed you to here.'
+                              : 'This is the live paid activation your dashboard pointed you to here.'}
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
-                              ${focusedCreatorActivation.bounty} USDC
+                              {getActivationRewardLabel(focusedCreatorActivation)}
                             </span>
                             <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(focusedCreatorActivation).className}`}>
                               {getActivationStateCopy(focusedCreatorActivation).label}
@@ -6709,7 +6955,7 @@ export default function RealWorldMap() {
                           />
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
-                              ${featuredPaidActivation.bounty} USDC
+                              {getActivationRewardLabel(featuredPaidActivation)}
                             </span>
                             <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${getActivationStateCopy(featuredPaidActivation).className}`}>
                               {getActivationStateCopy(featuredPaidActivation).label}
@@ -6943,7 +7189,7 @@ export default function RealWorldMap() {
                                     sentinelVerified={dare.sentinelVerified}
                                   />
                                   <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f8dd72]">
-                                    ${dare.bounty} USDC
+                                    {getActivationRewardLabel(dare)}
                                   </span>
                                   {dare.brandName ? (
                                     <span className="rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">

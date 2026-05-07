@@ -129,6 +129,7 @@ async function resolveTagToAddress(tag: string): Promise<{ address: Address | nu
 const StakeBountySchema = z.object({
   missionMode: z.enum(['IRL', 'STREAM']).default('IRL'),
   missionTag: z.string().max(50, 'Mission tag too long').optional(),
+  sparkType: z.enum(['PAID', 'COMMUNITY']).default('PAID'),
 
   // Bounty metadata
   title: z
@@ -146,7 +147,7 @@ const StakeBountySchema = z.object({
   // Stake amount (USDC)
   amount: z
     .number()
-    .min(5, 'Minimum bounty is $5 USDC')
+    .min(0, 'Amount cannot be negative')
     .max(10000, 'Maximum bounty is $10,000 USDC'),
 
   // Livepeer stream verification
@@ -195,6 +196,14 @@ const StakeBountySchema = z.object({
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
   venueId: z.string().min(1).optional(),
   creationContext: z.enum(['MAP', 'CREATE']).optional(),
+}).superRefine((data, ctx) => {
+  if (data.sparkType !== 'COMMUNITY' && data.amount < 5) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['amount'],
+      message: 'Minimum bounty is $5 USDC',
+    });
+  }
 });
 
 const GetBountySchema = z.object({
@@ -319,6 +328,7 @@ export async function POST(request: NextRequest) {
       title,
       description,
       amount,
+      sparkType,
       missionMode,
       missionTag,
       streamId,
@@ -337,8 +347,17 @@ export async function POST(request: NextRequest) {
       venueId,
       creationContext,
     } = validation.data;
+    const isCommunitySpark = sparkType === 'COMMUNITY';
     const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
     const normalizedMissionTag = missionTag?.trim() || null;
+    const effectiveAmount = isCommunitySpark ? 0 : amount;
+    const effectiveMissionMode = isCommunitySpark ? 'IRL' : normalizedMissionMode;
+    const effectiveMissionTag = isCommunitySpark ? 'community' : normalizedMissionTag;
+    const effectiveStreamerTag = isCommunitySpark ? '@everyone' : streamerTag;
+    const effectiveRawIsNearbyDare = isCommunitySpark ? true : rawIsNearbyDare;
+    const effectiveDiscoveryRadiusKm = isCommunitySpark
+      ? rawDiscoveryRadiusKm ?? 5
+      : rawDiscoveryRadiusKm;
 
     const normalizedStakerAddress = stakerAddress?.toLowerCase();
     const isInternalAuthorized = isInternalApiAuthorized(request);
@@ -366,11 +385,11 @@ export async function POST(request: NextRequest) {
     const placeContext = await resolveCanonicalBountyPlaceContext({
       venueId,
       creationContext,
-      isNearbyDare: rawIsNearbyDare,
+      isNearbyDare: effectiveRawIsNearbyDare,
       latitude: rawLatitude,
       longitude: rawLongitude,
       locationLabel: rawLocationLabel,
-      discoveryRadiusKm: rawDiscoveryRadiusKm,
+      discoveryRadiusKm: effectiveDiscoveryRadiusKm,
     });
 
     const {
@@ -389,12 +408,13 @@ export async function POST(request: NextRequest) {
 
     const appSettings = await getAppSettings();
     const sentinelRecommendation = getSentinelRecommendation({
-      amount,
-      missionTag: normalizedMissionTag,
+      amount: effectiveAmount,
+      missionTag: effectiveMissionTag,
       venueId: canonicalVenueId,
     });
-    const requestedRequireSentinel = requireSentinel === true;
+    const requestedRequireSentinel = !isCommunitySpark && requireSentinel === true;
     const effectiveRequireSentinel =
+      !isCommunitySpark &&
       appSettings.sentinelEnabled &&
       (requestedRequireSentinel || (requireSentinel === undefined && sentinelRecommendation.recommended));
 
@@ -413,7 +433,7 @@ export async function POST(request: NextRequest) {
     // 1.5. AUTO-MODERATION - Check for sketchy/dangerous content
     // -------------------------------------------------------------------------
     // Higher amounts = more scrutiny (more attractive to scammers)
-    const moderation = moderateDare(title, description, amount);
+    const moderation = moderateDare(title, description, effectiveAmount);
 
     if (!moderation.allowed) {
       console.log(`[MODERATION] Blocked dare: "${title}" - ${moderation.reason}`);
@@ -440,15 +460,16 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // Reserved tags that create open bounties (anyone can complete)
     const OPEN_BOUNTY_TAGS = ['@everyone', '@anyone', '@all'];
-    const normalizedTag = streamerTag?.trim().toLowerCase() || '';
-    const isOpenBounty = !streamerTag || streamerTag.trim() === '' || OPEN_BOUNTY_TAGS.includes(normalizedTag);
+    const normalizedTag = effectiveStreamerTag?.trim().toLowerCase() || '';
+    const isOpenBounty = isCommunitySpark || !effectiveStreamerTag || effectiveStreamerTag.trim() === '' || OPEN_BOUNTY_TAGS.includes(normalizedTag);
 
     let streamerAddress: Address | null = null;
     let tagSimulated = false;
     let tagVerified = false;
 
     if (!isOpenBounty) {
-      const tagResolution = await resolveTagToAddress(streamerTag);
+      const targetTag = effectiveStreamerTag || '';
+      const tagResolution = await resolveTagToAddress(targetTag);
       streamerAddress = tagResolution.address;
       tagSimulated = tagResolution.simulated;
       tagVerified = tagResolution.verified;
@@ -464,7 +485,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`[TAG] Resolved ${streamerTag} -> ${streamerAddress}${tagSimulated ? ' (simulated)' : ''}`);
+      console.log(`[TAG] Resolved ${targetTag} -> ${streamerAddress}${tagSimulated ? ' (simulated)' : ''}`);
     } else {
       console.log(`[BOUNTY] Creating open bounty - no target specified`);
     }
@@ -490,12 +511,14 @@ export async function POST(request: NextRequest) {
     // -------------------------------------------------------------------------
     // Use database-only mode for: no contract, simulation, open bounties, or unverified tags
     // Only go on-chain for verified tags with real wallet addresses
-    if (!isContractDeployed || FORCE_SIMULATION || isOpenBounty || tagSimulated) {
+    if (isCommunitySpark || !isContractDeployed || FORCE_SIMULATION || isOpenBounty || tagSimulated) {
       // Database-only mode
-      if (isOpenBounty) {
+      if (isCommunitySpark) {
+        console.log('[BOUNTY] Community spark - using database-only mode (no USDC escrow)');
+      } else if (isOpenBounty) {
         console.log('[BOUNTY] Open bounty - using database-only mode (no on-chain escrow)');
       } else if (tagSimulated) {
-        console.log(`[BOUNTY] Unverified tag ${streamerTag} - using database-only mode until claimed`);
+        console.log(`[BOUNTY] Unverified tag ${effectiveStreamerTag} - using database-only mode until claimed`);
       } else {
         console.warn('[BOUNTY] Running in simulated mode (contract not deployed or SIMULATE_BOUNTIES=true)');
       }
@@ -523,10 +546,10 @@ export async function POST(request: NextRequest) {
         dareStatus,
       } = await createDatabaseBackedBounty({
         title,
-        missionMode: normalizedMissionMode,
-        missionTag: normalizedMissionTag,
-        amount,
-        streamerTag: isOpenBounty ? null : streamerTag || null,
+        missionMode: effectiveMissionMode,
+        missionTag: effectiveMissionTag,
+        amount: effectiveAmount,
+        streamerTag: isOpenBounty ? null : effectiveStreamerTag || null,
         streamId,
         tagVerified,
         stakerAddress: normalizedStakerAddress || null,
@@ -546,7 +569,7 @@ export async function POST(request: NextRequest) {
         isSimulated: true,
       });
 
-      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isOpenBounty ? 'OPEN BOUNTY' : `tag: ${streamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
+      console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isCommunitySpark ? 'COMMUNITY SPARK' : isOpenBounty ? 'OPEN BOUNTY' : `tag: ${effectiveStreamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
 
       await recordDareFounderEventSafe({
         eventType: 'dare_created',
@@ -555,8 +578,10 @@ export async function POST(request: NextRequest) {
         status: dareStatus,
         metadata: {
           simulated: true,
-          missionMode: normalizedMissionMode,
-          missionTag: normalizedMissionTag,
+          missionMode: effectiveMissionMode,
+          missionTag: effectiveMissionTag,
+          sparkType,
+          isCommunitySpark,
           isOpenBounty,
           tagVerified,
           tagSimulated,
@@ -572,8 +597,10 @@ export async function POST(request: NextRequest) {
         status: dareStatus,
         metadata: {
           simulated: true,
-          missionMode: normalizedMissionMode,
-          missionTag: normalizedMissionTag,
+          missionMode: effectiveMissionMode,
+          missionTag: effectiveMissionTag,
+          sparkType,
+          isCommunitySpark,
           isOpenBounty,
           tagVerified,
           tagSimulated,
@@ -587,21 +614,23 @@ export async function POST(request: NextRequest) {
         dareId: dbDare.id,
         shortId,
         title,
-        amount,
-        streamerTag: isOpenBounty ? null : streamerTag || null,
+        amount: effectiveAmount,
+        streamerTag: isOpenBounty ? null : effectiveStreamerTag || null,
         isOpenBounty,
         stakerAddress,
+        isCommunitySpark,
       }).catch(err => console.error('[TELEGRAM] Alert failed:', err));
 
       if (isOpenBounty || isNearbyDare) {
         alertSignalRoomDare({
           shortId,
           title,
-          amount,
-          streamerTag: isOpenBounty ? null : streamerTag || null,
+          amount: effectiveAmount,
+          streamerTag: isOpenBounty ? null : effectiveStreamerTag || null,
           isOpenBounty,
-          missionMode: normalizedMissionMode,
+          missionMode: effectiveMissionMode,
           locationLabel,
+          isCommunitySpark,
         }).catch(err => console.error('[TELEGRAM] Signal room alert failed:', err));
       }
 
@@ -611,7 +640,7 @@ export async function POST(request: NextRequest) {
           dareId: dbDare.id,
           shortId,
           title,
-          amount,
+          amount: effectiveAmount,
           reason: moderation.reason || 'Flagged for review',
           matches: moderation.matches,
           confidence: moderation.confidence,
@@ -619,13 +648,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Big pledge alert for high-value dares
-      if (amount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {
+      if (!isCommunitySpark && effectiveAmount >= BIG_PLEDGE_THRESHOLD && stakerAddress) {
         alertBigPledge({
           dareId: dbDare.id,
           shortId,
           title,
-          pledgeAmount: amount,
-          totalPot: amount,
+          pledgeAmount: effectiveAmount,
+          totalPot: effectiveAmount,
           pledgerAddress: stakerAddress,
           txHash: null,
         }).catch(err => console.error('[TELEGRAM] Big pledge alert failed:', err));
@@ -636,14 +665,16 @@ export async function POST(request: NextRequest) {
           walletAddress: dbDare.targetWalletAddress,
           title,
           shortId,
-          bounty: amount,
+          bounty: effectiveAmount,
         });
       }
 
       if (isNearbyDare && latitude != null && longitude != null) {
         void sendNearbyDarePush({
-          title: `Nearby dare: ${title}`,
-          body: `${amount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
+          title: isCommunitySpark ? `Community Spark: ${title}` : `Nearby dare: ${title}`,
+          body: isCommunitySpark
+            ? `Free community proof${locationLabel ? ` · ${locationLabel}` : ''}`
+            : `${effectiveAmount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
           url: `/dare/${shortId}`,
           latitude,
           longitude,
@@ -658,7 +689,9 @@ export async function POST(request: NextRequest) {
         success: true,
         simulated: true,
         message: isOpenBounty
-          ? 'Open bounty created - anyone can complete this dare!'
+          ? isCommunitySpark
+            ? 'Community Spark created - anyone nearby can complete it for proof and reputation.'
+            : 'Open bounty created - anyone can complete this dare!'
           : isAwaitingClaim
             ? 'Bounty escrowed - tag not yet claimed. Share the invite link!'
             : 'Contract not deployed - simulated stake for frontend testing',
@@ -666,10 +699,12 @@ export async function POST(request: NextRequest) {
           dareId: dbDare.id,
           title,
           description,
-          missionMode: normalizedMissionMode,
-          missionTag: normalizedMissionTag,
-          amount,
-          streamerTag: isOpenBounty ? null : streamerTag,
+          missionMode: effectiveMissionMode,
+          missionTag: effectiveMissionTag,
+          sparkType,
+          isCommunitySpark,
+          amount: effectiveAmount,
+          streamerTag: isOpenBounty ? null : effectiveStreamerTag,
           streamerAddress,
           tagSimulated,
           tagVerified,
