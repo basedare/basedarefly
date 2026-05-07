@@ -32,6 +32,10 @@ if (isVercelBuild && isNestedAppRoot) {
   ensureVercelParentAlias("config");
   ensureVercelParentAlias("package.json", "file");
 
+  if (existsSync(path.join(appRoot, ".env.example"))) {
+    ensureVercelParentAlias(".env.example", "file");
+  }
+
   if (existsSync(path.join(appRoot, ".env.mainnet.example"))) {
     ensureVercelParentAlias(".env.mainnet.example", "file");
   }
