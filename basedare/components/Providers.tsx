@@ -17,7 +17,11 @@ const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
 const config = createConfig({
   chains: [base],
   connectors: [
-    injected(), // Desktop browser wallet extensions (MetaMask, etc)
+    // Targeted injected connectors avoid the generic provider grabbing the wrong
+    // browser wallet when MetaMask, Brave, and Coinbase are all installed.
+    injected({ target: 'metaMask', unstable_shimAsyncInject: 1000 }),
+    injected({ target: 'braveWallet', unstable_shimAsyncInject: 1000 }),
+    injected({ unstable_shimAsyncInject: 1000 }), // Fallback for other browser wallets
     coinbaseWallet({ appName: 'BaseDare', preference: 'all' }),
     ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
       ? [walletConnect({ projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID })]

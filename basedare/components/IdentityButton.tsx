@@ -1,6 +1,7 @@
 'use client';
 
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import type { Connector } from 'wagmi';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useFeedback } from '@/hooks/useFeedback';
@@ -50,12 +51,34 @@ function getConnectorMeta(connector: ConnectorLike) {
   return { key: `${id}:${name}`, label: connector.name, icon: '💼' };
 }
 
+function getWalletConnectErrorMessage(error: unknown, connector: ConnectorLike) {
+  const meta = getConnectorMeta(connector);
+  const message = error instanceof Error ? error.message : '';
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('provider not found') || normalized.includes('not found')) {
+    return `${meta.label} was not found. Unlock or install the extension, then try again.`;
+  }
+
+  if (normalized.includes('resource unavailable') || normalized.includes('already pending')) {
+    return 'A wallet request is already open. Check your wallet extension popup.';
+  }
+
+  if (normalized.includes('user rejected') || normalized.includes('rejected')) {
+    return 'Connection request rejected.';
+  }
+
+  return message || `${meta.label} did not respond. Try another wallet or reopen the extension.`;
+}
+
 export function IdentityButton() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [pendingConnectorUid, setPendingConnectorUid] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const walletPickerRef = useRef<HTMLDivElement>(null);
@@ -117,17 +140,30 @@ export function IdentityButton() {
       setShowWalletPicker(false);
     } else {
       trigger('connect');
+      setConnectError(null);
       setShowWalletPicker(!showWalletPicker);
       setShowDropdown(false);
     }
   };
 
-  const handleConnectWallet = (connectorId: string) => {
-    const connector = connectors.find(c => c.id === connectorId);
-    if (connector) {
-      connect({ connector });
-      setShowWalletPicker(false);
-    }
+  const handleConnectWallet = (connector: Connector) => {
+    setConnectError(null);
+    setPendingConnectorUid(connector.uid);
+    trigger('connect');
+    connect(
+      { connector },
+      {
+        onSuccess: () => {
+          setShowWalletPicker(false);
+          setPendingConnectorUid(null);
+        },
+        onError: (error) => {
+          setConnectError(getWalletConnectErrorMessage(error, connector));
+          setShowWalletPicker(true);
+          setPendingConnectorUid(null);
+        },
+      }
+    );
   };
 
   const truncatedAddress = address
@@ -168,17 +204,24 @@ export function IdentityButton() {
             No wallet providers detected. Install a wallet extension or open in a wallet browser.
           </div>
         )}
+        {connectError ? (
+          <div className="mb-1 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-200">
+            {connectError}
+          </div>
+        ) : null}
         {uniqueConnectors.map(({ connector, meta }) => {
           const finalMeta = meta;
+          const isConnectingThisWallet = isPending && pendingConnectorUid === connector.uid;
 
           return (
             <button
               key={`${meta.key}:${connector.id}`}
-              onClick={() => handleConnectWallet(connector.id)}
-              className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn"
+              onClick={() => handleConnectWallet(connector)}
+              disabled={isPending}
+              className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn disabled:cursor-wait disabled:opacity-60"
             >
               <span className="text-xl group-hover/btn:scale-110 transition-transform">{finalMeta.icon}</span>
-              <span className="font-semibold">{finalMeta.label}</span>
+              <span className="font-semibold">{isConnectingThisWallet ? 'Connecting...' : finalMeta.label}</span>
             </button>
           );
         })}
