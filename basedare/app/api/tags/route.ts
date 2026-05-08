@@ -274,7 +274,12 @@ export async function POST(request: NextRequest) {
 
     if (!walletAddress) {
       return NextResponse.json(
-        { success: false, error: isManualRequest ? 'Wallet connection required' : 'Wallet session required' },
+        {
+          success: false,
+          error: isManualRequest
+            ? 'Wallet authorization required. Sign the BaseDare wallet prompt and try again.'
+            : 'Wallet session required',
+        },
         { status: 401 }
       );
     }

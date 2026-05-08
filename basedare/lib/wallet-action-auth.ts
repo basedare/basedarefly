@@ -28,6 +28,8 @@ type WalletActionAuthHeadersParams = {
   action: string;
   resource: string;
   allowSignPrompt?: boolean;
+  forceFreshSignature?: boolean;
+  signatureScope?: 'session' | 'action';
   signMessageAsync?: (args: { message: string }) => Promise<unknown>;
 };
 
@@ -150,6 +152,18 @@ function persistStoredAuth(payload: StoredWalletActionAuth) {
   );
 }
 
+export function clearWalletActionAuth(walletAddress: string, action: string, resource: string) {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(buildStorageKey(walletAddress, action, resource));
+}
+
+export function clearWalletSessionAuth(walletAddress: string) {
+  if (typeof window === 'undefined') return;
+  const storageKey = buildWalletSessionStorageKey(walletAddress);
+  window.localStorage.removeItem(storageKey);
+  window.sessionStorage.removeItem(storageKey);
+}
+
 export async function buildWalletActionAuthHeaders({
   walletAddress,
   sessionToken,
@@ -157,11 +171,14 @@ export async function buildWalletActionAuthHeaders({
   action,
   resource,
   allowSignPrompt = true,
+  forceFreshSignature = false,
+  signatureScope = 'session',
   signMessageAsync,
 }: WalletActionAuthHeadersParams): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   const normalizedWallet = walletAddress?.trim().toLowerCase() ?? null;
   const normalizedSessionWallet = sessionWallet?.trim().toLowerCase() ?? null;
+  const shouldForceFreshSignature = forceFreshSignature && Boolean(signMessageAsync);
 
   if (sessionToken) {
     headers.Authorization = `Bearer ${sessionToken}`;
@@ -169,19 +186,19 @@ export async function buildWalletActionAuthHeaders({
 
   if (!normalizedWallet) return headers;
 
-  if (sessionToken && normalizedSessionWallet === normalizedWallet) {
+  if (sessionToken && normalizedSessionWallet === normalizedWallet && !shouldForceFreshSignature) {
     return headers;
   }
 
-  const cachedWalletSession = readStoredWalletSession(normalizedWallet);
-  if (cachedWalletSession) {
+  const cachedWalletSession = shouldForceFreshSignature ? null : readStoredWalletSession(normalizedWallet);
+  if (cachedWalletSession && signatureScope !== 'action') {
     headers['x-basedare-wallet'] = normalizedWallet;
     headers['x-basedare-wallet-session-signature'] = cachedWalletSession.signature;
     headers['x-basedare-wallet-session-issued-at'] = cachedWalletSession.issuedAt;
     return headers;
   }
 
-  if (allowSignPrompt && signMessageAsync) {
+  if (allowSignPrompt && signMessageAsync && signatureScope !== 'action') {
     const issuedAt = new Date().toISOString();
     const signature = String(
       await signMessageAsync({
@@ -204,7 +221,7 @@ export async function buildWalletActionAuthHeaders({
     return headers;
   }
 
-  const cachedAuth = readStoredAuth(normalizedWallet, action, resource);
+  const cachedAuth = shouldForceFreshSignature ? null : readStoredAuth(normalizedWallet, action, resource);
   if (!cachedAuth && (!allowSignPrompt || !signMessageAsync)) {
     return headers;
   }

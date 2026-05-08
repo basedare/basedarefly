@@ -24,7 +24,11 @@ import {
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
-import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import {
+  buildWalletActionAuthHeaders,
+  clearWalletActionAuth,
+  clearWalletSessionAuth,
+} from '@/lib/wallet-action-auth';
 import { IdentityButton } from '@/components/IdentityButton';
 
 // Platform icons as SVG components
@@ -344,48 +348,64 @@ export function ClaimTagModule() {
     setSuccess(null);
 
     try {
-      const body: Record<string, string> = {
-        walletAddress: activeWallet,
-        tag: tag.startsWith('@') ? tag : `@${tag}`,
+      const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
+      const endpoint = '/api/tags';
+
+      const runClaimRequest = async (forceFreshSignature = false) => {
+        const body: Record<string, string> = {
+          walletAddress: activeWallet,
+          tag: normalizedTag,
+        };
+
+        const authHeaders = await buildWalletActionAuthHeaders({
+          walletAddress: activeWallet,
+          sessionToken,
+          sessionWallet,
+          action: 'tag:claim',
+          resource: normalizedTag.toLowerCase(),
+          forceFreshSignature,
+          signatureScope: forceFreshSignature ? 'action' : 'session',
+          signMessageAsync: address ? signMessageAsync : undefined,
+        });
+        const hasMatchingBearer = Boolean(authHeaders.Authorization && sessionWallet === activeWallet);
+        const hasWalletSignature = Boolean(authHeaders['x-basedare-wallet']);
+        if (!hasMatchingBearer && !hasWalletSignature) {
+          throw new Error('Wallet authorization missing. Reconnect your wallet and try again.');
+        }
+
+        // Keep the legacy platform field populated while the tag rail still expects it.
+        body.platform = 'twitter';
+        body.identityPlatform = selectedPlatform;
+        body.manualUsername = manualUsername;
+        body.manualCode = manualCode!;
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify(body),
+        });
+
+        let data: Record<string, unknown> = {};
+        try {
+          data = (await res.json()) as Record<string, unknown>;
+        } catch {
+          data = {};
+        }
+
+        return { res, data };
       };
 
-      const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
-      const authHeaders = await buildWalletActionAuthHeaders({
-        walletAddress: activeWallet,
-        sessionToken,
-        sessionWallet,
-        action: 'tag:claim',
-        resource: normalizedTag.toLowerCase(),
-        signMessageAsync: address ? signMessageAsync : undefined,
-      });
-      const hasMatchingBearer = Boolean(authHeaders.Authorization && sessionWallet === activeWallet);
-      const hasWalletSignature = Boolean(authHeaders['x-basedare-wallet']);
-      if (
-        !hasMatchingBearer &&
-        !hasWalletSignature
-      ) {
-        throw new Error('Wallet authorization missing. Reconnect your wallet and try again.');
-      }
-      const headers: HeadersInit = { 'Content-Type': 'application/json', ...authHeaders };
+      let { res, data } = await runClaimRequest(false);
+      const firstError = typeof data.error === 'string' ? data.error : '';
+      const shouldRetryWithFreshSignature =
+        res.status === 401 &&
+        Boolean(address) &&
+        /wallet|authorization|session/i.test(firstError);
 
-      const endpoint = '/api/tags';
-      // Keep the legacy platform field populated while the tag rail still expects it.
-      body.platform = 'twitter';
-      body.identityPlatform = selectedPlatform;
-      body.manualUsername = manualUsername;
-      body.manualCode = manualCode!;
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      });
-
-      let data: Record<string, unknown> = {};
-      try {
-        data = (await res.json()) as Record<string, unknown>;
-      } catch {
-        data = {};
+      if (shouldRetryWithFreshSignature) {
+        clearWalletSessionAuth(activeWallet);
+        clearWalletActionAuth(activeWallet, 'tag:claim', normalizedTag.toLowerCase());
+        ({ res, data } = await runClaimRequest(true));
       }
 
       if (res.ok && data.success === true) {

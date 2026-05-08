@@ -4,10 +4,8 @@ import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import {
   createPublicClient,
-  hashMessage,
   http,
   isAddress,
-  recoverMessageAddress,
   type Address,
   type Hex,
 } from 'viem';
@@ -27,21 +25,6 @@ const publicClient = createPublicClient({
   chain: activeChain,
   transport: http(rpcUrl),
 });
-
-const ERC1271_ABI = [
-  {
-    type: 'function',
-    name: 'isValidSignature',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'hash', type: 'bytes32' },
-      { name: 'signature', type: 'bytes' },
-    ],
-    outputs: [{ name: 'magicValue', type: 'bytes4' }],
-  },
-] as const;
-
-const ERC1271_MAGIC_VALUE = '0x1626ba7e';
 
 type WalletSession = {
   token?: string | null;
@@ -68,6 +51,26 @@ async function getVerifiedSessionWallet(request: NextRequest): Promise<string | 
   return normalizeWallet(session.walletAddress ?? session.user?.walletAddress ?? null);
 }
 
+async function verifyWalletMessage({
+  walletAddress,
+  message,
+  signature,
+}: {
+  walletAddress: string;
+  message: string;
+  signature: string;
+}): Promise<boolean> {
+  try {
+    return await publicClient.verifyMessage({
+      address: walletAddress as Address,
+      message,
+      signature: signature as Hex,
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function getVerifiedWalletSignature({
   request,
   walletAddress,
@@ -91,37 +94,14 @@ async function getVerifiedWalletSignature({
     return null;
   }
 
-  try {
-    const message = buildWalletActionMessage({
-      walletAddress,
-      action,
-      resource,
-      issuedAt,
-    });
-    const messageHash = hashMessage(message);
-    const address = walletAddress as Address;
+  const message = buildWalletActionMessage({
+    walletAddress,
+    action,
+    resource,
+    issuedAt,
+  });
 
-    const bytecode = await publicClient.getBytecode({ address });
-    if (bytecode && bytecode !== '0x') {
-      const result = await publicClient.readContract({
-        address,
-        abi: ERC1271_ABI,
-        functionName: 'isValidSignature',
-        args: [messageHash, signature as Hex],
-      });
-
-      return result === ERC1271_MAGIC_VALUE ? walletAddress : null;
-    }
-
-    const recovered = await recoverMessageAddress({
-      message,
-      signature: signature as Hex,
-    });
-
-    return recovered.toLowerCase() === walletAddress ? walletAddress : null;
-  } catch {
-    return null;
-  }
+  return (await verifyWalletMessage({ walletAddress, message, signature })) ? walletAddress : null;
 }
 
 async function getVerifiedWalletSessionSignature({
@@ -143,35 +123,12 @@ async function getVerifiedWalletSessionSignature({
     return null;
   }
 
-  try {
-    const message = buildWalletSessionMessage({
-      walletAddress,
-      issuedAt,
-    });
-    const messageHash = hashMessage(message);
-    const address = walletAddress as Address;
+  const message = buildWalletSessionMessage({
+    walletAddress,
+    issuedAt,
+  });
 
-    const bytecode = await publicClient.getBytecode({ address });
-    if (bytecode && bytecode !== '0x') {
-      const result = await publicClient.readContract({
-        address,
-        abi: ERC1271_ABI,
-        functionName: 'isValidSignature',
-        args: [messageHash, signature as Hex],
-      });
-
-      return result === ERC1271_MAGIC_VALUE ? walletAddress : null;
-    }
-
-    const recovered = await recoverMessageAddress({
-      message,
-      signature: signature as Hex,
-    });
-
-    return recovered.toLowerCase() === walletAddress ? walletAddress : null;
-  } catch {
-    return null;
-  }
+  return (await verifyWalletMessage({ walletAddress, message, signature })) ? walletAddress : null;
 }
 
 export async function getAuthorizedWalletForRequest(
