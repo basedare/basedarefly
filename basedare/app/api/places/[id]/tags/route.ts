@@ -403,7 +403,7 @@ export async function POST(
       },
     });
 
-    void alertPlaceTagSubmission({
+    const alertDelivered = await alertPlaceTagSubmission({
       tagId: tag.id,
       venueSlug: place.slug,
       venueName: place.name,
@@ -416,9 +416,11 @@ export async function POST(
       proofMediaUrl: tag.proofMediaUrl,
       firstMark: tag.firstMark,
       geoDistanceMeters,
-    }).catch((error) => {
-      console.error('[PLACE_TAGS_POST] Telegram alert failed:', error);
     });
+
+    if (!alertDelivered) {
+      console.error('[PLACE_TAGS_POST] Telegram alert was not delivered for pending tag:', tag.id);
+    }
 
     return NextResponse.json(
       {
@@ -429,6 +431,7 @@ export async function POST(
           proofMediaUrl: tag.proofMediaUrl,
           creatorTag: tag.creatorTag,
           firstMark: tag.firstMark,
+          adminAlertDelivered: alertDelivered,
           message: 'Tag submitted. It is now waiting for referee review.',
         },
       },
