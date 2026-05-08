@@ -643,6 +643,33 @@ const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 const currentLocationIconCache = new Map<string, string>();
 
+function browserCanStartMapRenderer() {
+  if (typeof document === 'undefined') return false;
+
+  try {
+    const canvas = document.createElement('canvas');
+    const context =
+      canvas.getContext('webgl2') ||
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl');
+    return Boolean(context);
+  } catch {
+    return false;
+  }
+}
+
+function getMapStartupErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return error;
+  }
+
+  return 'Map renderer could not start in this browser session.';
+}
+
 function getRadiusMetersForZoom(zoom: number) {
   if (zoom >= 15) return 2000;
   if (zoom >= 13) return 5000;
@@ -3550,18 +3577,36 @@ export default function RealWorldMap() {
     const container = mapCanvasRef.current;
     if (!container || mapInstanceRef.current) return undefined;
 
-    const map = new maplibregl.Map({
-      container,
-      style: OPENFREEMAP_LIBERTY_STYLE_URL,
-      center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
-      zoom: DEFAULT_ZOOM,
-      pitch: DEFAULT_MAP_PITCH,
-      bearing: DEFAULT_MAP_BEARING,
-      attributionControl: { compact: true },
-      dragRotate: true,
-      touchZoomRotate: true,
-      maxPitch: 75,
-    });
+    if (!browserCanStartMapRenderer()) {
+      setMapReady(false);
+      setMapRuntimeError(
+        'This browser could not start the 3D map renderer. Enable hardware acceleration, reload the grid, or open BaseDare in another browser.'
+      );
+      return undefined;
+    }
+
+    let map: MapLibreMap;
+
+    try {
+      map = new maplibregl.Map({
+        container,
+        style: OPENFREEMAP_LIBERTY_STYLE_URL,
+        center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
+        zoom: DEFAULT_ZOOM,
+        pitch: DEFAULT_MAP_PITCH,
+        bearing: DEFAULT_MAP_BEARING,
+        attributionControl: { compact: true },
+        dragRotate: true,
+        touchZoomRotate: true,
+        maxPitch: 75,
+      });
+    } catch (error) {
+      const message = getMapStartupErrorMessage(error);
+      console.error('[REAL_WORLD_MAP] MapLibre startup failed:', error);
+      setMapReady(false);
+      setMapRuntimeError(`Map renderer could not start. ${message}`);
+      return undefined;
+    }
 
     mapInstanceRef.current = map;
     map.dragRotate.enable();
