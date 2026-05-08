@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Wallet,
@@ -15,10 +15,8 @@ import {
   AlertTriangle,
   Copy,
   ExternalLink,
-  Zap,
   Gift,
   Clock,
-  MapPin,
   Share2,
   Camera,
   Music2,
@@ -27,6 +25,7 @@ import {
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { IdentityButton } from '@/components/IdentityButton';
 
 // Platform icons as SVG components
 const TwitterIcon = ({ className }: { className?: string }) => (
@@ -71,19 +70,6 @@ interface ExistingTag {
   isPrimary?: boolean;
   verificationMethod?: string | null;
   identityPlatform?: string | null;
-}
-
-interface CreatorFootprint {
-  handle: string;
-  displayHandle: string;
-  verified: boolean;
-  tags: string[];
-  stats: {
-    total: number;
-    completed: number;
-    live: number;
-    totalEarned: number;
-  };
 }
 
 const PLATFORMS: PlatformConfig[] = [
@@ -142,9 +128,6 @@ const raisedTileClass =
 const insetWellClass =
   "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)]";
 
-const softBadgeClass =
-  "inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-[linear-gradient(180deg,rgba(168,85,247,0.16)_0%,rgba(76,29,149,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-purple-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
-
 function isPlatform(value: string | null | undefined): value is Platform {
   return Boolean(value && PLATFORMS.some((platform) => platform.id === value));
 }
@@ -154,9 +137,12 @@ function sanitizeTagCandidate(value: string | null | undefined): string {
   return value.replace(/^@+/, '').replace(/[^a-zA-Z0-9_]/g, '');
 }
 
+function formatAddress(addr: string) {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
 export function ClaimTagModule() {
-  const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -166,6 +152,8 @@ export function ClaimTagModule() {
     (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.walletAddress?.toLowerCase() ??
     (session as { walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null)?.user?.walletAddress?.toLowerCase() ??
     null;
+  const activeWallet = address?.toLowerCase() ?? sessionWallet;
+  const walletReady = Boolean(activeWallet);
 
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [tag, setTag] = useState('');
@@ -186,22 +174,13 @@ export function ClaimTagModule() {
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [footprintLoading, setFootprintLoading] = useState(false);
-  const [footprintData, setFootprintData] = useState<CreatorFootprint | null>(null);
   const platformHandle = manualUsername.trim() || null;
-  const connectedPlatform = selectedPlatform;
   const isPlatformConnected = Boolean(selectedPlatform && platformHandle);
-  const normalizedPlatformHandle = platformHandle?.replace(/^@/, '').trim().toLowerCase() || null;
-  const hasMatchingVerifiedTag = Boolean(
-    normalizedPlatformHandle &&
-      existingTags.some((existingTag) => existingTag.tag.replace(/^@/, '').toLowerCase() === normalizedPlatformHandle)
-  );
   const orderedExistingTags = [...existingTags].sort((left, right) => {
     if (left.isPrimary && !right.isPrimary) return -1;
     if (!left.isPrimary && right.isPrimary) return 1;
     return left.tag.localeCompare(right.tag);
   });
-  const primaryPlatform = PLATFORMS.find((platform) => platform.id === 'instagram') ?? PLATFORMS[0];
 
   useEffect(() => {
     if (platformHandle && !tag) {
@@ -278,54 +257,18 @@ export function ClaimTagModule() {
 
   // Fetch existing tags for this wallet
   useEffect(() => {
-    if (address) {
-      fetch(`/api/tags?wallet=${address}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.tags) setExistingTags(data.tags);
-        })
-        .catch(console.error);
-    }
-  }, [address, success]);
-
-  useEffect(() => {
-    if (!platformHandle) {
-      setFootprintData(null);
-      setFootprintLoading(false);
+    if (!activeWallet) {
+      setExistingTags([]);
       return;
     }
 
-    let cancelled = false;
-    setFootprintLoading(true);
-
-    fetch(`/api/creator/${encodeURIComponent(platformHandle)}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || !data.success || !data.data) {
-          return null;
-        }
-        return data.data as CreatorFootprint;
-      })
+    fetch(`/api/tags?wallet=${activeWallet}`)
+      .then((res) => res.json())
       .then((data) => {
-        if (!cancelled) {
-          setFootprintData(data);
-        }
+        if (data.tags) setExistingTags(data.tags);
       })
-      .catch(() => {
-        if (!cancelled) {
-          setFootprintData(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setFootprintLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [platformHandle]);
+      .catch(console.error);
+  }, [activeWallet, success]);
 
   // Check tag availability
   const checkTagAvailability = useCallback(async (tagValue: string) => {
@@ -338,8 +281,8 @@ export function ClaimTagModule() {
     setChecking(true);
     try {
       const params = new URLSearchParams({ tag: tagValue });
-      if (address) {
-        params.set('wallet', address);
+      if (activeWallet) {
+        params.set('wallet', activeWallet);
       }
       const res = await fetch(`/api/tags?${params.toString()}`);
       const data = await res.json();
@@ -350,7 +293,7 @@ export function ClaimTagModule() {
     } finally {
       setChecking(false);
     }
-  }, [address]);
+  }, [activeWallet]);
 
   // Debounced tag check
   useEffect(() => {
@@ -373,18 +316,23 @@ export function ClaimTagModule() {
     }
   };
 
-  // Switch to manual verification mode
-  const enableManualVerification = (platform: Platform = 'twitter') => {
-    setSelectedPlatform(platform);
-    setUseManualVerification(true);
-    generateManualCode();
-  };
-
   const isManualMode = Boolean(selectedPlatform && useManualVerification);
 
   // Claim the tag
   const handleClaimTag = async () => {
-    if (!address || !tag) return;
+    if (!activeWallet) {
+      const message = 'Connect your wallet first, then claim your tag.';
+      setError(message);
+      toast({
+        variant: 'destructive',
+        title: 'Wallet Required',
+        description: message,
+        duration: 7000,
+      });
+      return;
+    }
+
+    if (!tag) return;
 
     // For manual verification, need username and code
     if (isManualMode && (!manualUsername || !manualCode)) return;
@@ -397,23 +345,30 @@ export function ClaimTagModule() {
 
     try {
       const body: Record<string, string> = {
-        walletAddress: address,
+        walletAddress: activeWallet,
         tag: tag.startsWith('@') ? tag : `@${tag}`,
       };
 
-      let endpoint = '/api/claim-tag';
       const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
       const authHeaders = await buildWalletActionAuthHeaders({
-        walletAddress: address,
+        walletAddress: activeWallet,
         sessionToken,
         sessionWallet,
         action: 'tag:claim',
         resource: normalizedTag.toLowerCase(),
-        signMessageAsync,
+        signMessageAsync: address ? signMessageAsync : undefined,
       });
+      const hasMatchingBearer = Boolean(authHeaders.Authorization && sessionWallet === activeWallet);
+      const hasWalletSignature = Boolean(authHeaders['x-basedare-wallet']);
+      if (
+        !hasMatchingBearer &&
+        !hasWalletSignature
+      ) {
+        throw new Error('Wallet authorization missing. Reconnect your wallet and try again.');
+      }
       const headers: HeadersInit = { 'Content-Type': 'application/json', ...authHeaders };
 
-      endpoint = '/api/tags';
+      const endpoint = '/api/tags';
       // Keep the legacy platform field populated while the tag rail still expects it.
       body.platform = 'twitter';
       body.identityPlatform = selectedPlatform;
@@ -472,8 +427,6 @@ export function ClaimTagModule() {
     }
   };
 
-  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
   const getPlatformConfig = (id: Platform) => PLATFORMS.find((p) => p.id === id)!;
 
   // Handle platform selection
@@ -487,44 +440,8 @@ export function ClaimTagModule() {
   }, []);
 
   return (
-    <div id="claim-tag-section" className="relative w-full max-w-2xl mx-auto">
-      <div className="flex-grow relative z-20">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 sm:mb-12"
-        >
-          <div className={`${softBadgeClass} mb-4`}>
-            <Zap className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-400 font-medium tracking-wide">CLAIM TAG</span>
-          </div>
-
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-3">
-            {inviteData ? (
-              <>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-green-400">
-                  ${inviteData.totalBounty.toLocaleString()}
-                </span>{' '}
-                Waiting For You!
-              </>
-            ) : (
-              <>
-                Claim Your{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-                  Tag
-                </span>
-              </>
-            )}
-          </h1>
-          <p className="text-gray-400 font-mono text-sm max-w-md mx-auto">
-            {inviteData
-              ? 'Verify your identity to unlock your pending bounties'
-              : 'Verify your identity and claim your unique creator tag to receive payouts'}
-          </p>
-        </motion.div>
-
-        <div className="max-w-xl mx-auto space-y-3 sm:space-y-4">
+    <div id="claim-tag-section" className="relative z-20 w-full max-w-xl mx-auto">
+      <div className="space-y-3 sm:space-y-4">
           {/* Invite Banner - Show pending bounties */}
           {inviteLoading && (
             <motion.div
@@ -620,31 +537,32 @@ export function ClaimTagModule() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={`${raisedTileClass} p-4 transition-all ${isConnected
+            className={`${raisedTileClass} p-4 transition-all ${walletReady
               ? 'border-green-500/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.08)_0%,rgba(10,18,11,0.96)_100%)]'
               : ''
               }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <div
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${isConnected ? 'bg-green-500/20 border border-green-500/30' : 'bg-white/5 border border-white/10'
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${walletReady ? 'bg-green-500/20 border border-green-500/30' : 'bg-white/5 border border-white/10'
                     }`}
                 >
-                  <Wallet className={`w-5 h-5 ${isConnected ? 'text-green-400' : 'text-gray-400'}`} />
+                  <Wallet className={`w-5 h-5 ${walletReady ? 'text-green-400' : 'text-gray-400'}`} />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white">Connect Wallet</h3>
                   <p className="text-xs text-gray-500 font-mono truncate">
-                    {isConnected ? formatAddress(address!) : 'Connect your wallet to continue'}
+                    {activeWallet ? formatAddress(activeWallet) : 'Required before claim'}
                   </p>
                 </div>
               </div>
-              {isConnected ? (
-                <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-              ) : (
-                <span className="text-[10px] text-yellow-400 font-mono shrink-0">Required</span>
-              )}
+              <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                {walletReady ? (
+                  <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+                ) : null}
+                <IdentityButton />
+              </div>
             </div>
           </motion.div>
 
@@ -656,7 +574,7 @@ export function ClaimTagModule() {
               isPlatformConnected
                 ? 'border-cyan-400/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.10)_0%,rgba(8,11,22,0.94)_100%)]'
                 : 'border-cyan-400/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.06)_0%,rgba(7,9,18,0.92)_100%)]'
-            } ${!isConnected ? 'opacity-50' : ''}`}
+            } ${!walletReady ? 'opacity-70' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 sm:gap-4">
@@ -681,38 +599,8 @@ export function ClaimTagModule() {
                   Connected
                 </div>
               ) : (
-                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Optional but powerful</span>
+                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Required</span>
               )}
-            </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className={`${raisedTileClass} p-4`}>
-                <div className="flex items-center gap-2 text-cyan-200">
-                  <Shield className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Identity</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-white">
-                  {isPlatformConnected ? `@${platformHandle}` : 'Connect your handle'}
-                </p>
-              </div>
-
-              <div className={`${raisedTileClass} p-4`}>
-                <div className="flex items-center gap-2 text-[#f5c518]">
-                  <Share2 className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Proof</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-white">One handle keeps wins clean</p>
-              </div>
-
-              <div className={`${raisedTileClass} p-4`}>
-                <div className="flex items-center gap-2 text-purple-200">
-                  <MapPin className="h-4 w-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Map</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-white">
-                  {inviteData ? 'Claim first, then wake the place up' : 'Place layer later'}
-                </p>
-              </div>
             </div>
 
             {!isPlatformConnected && !isManualMode && (
@@ -733,7 +621,7 @@ export function ClaimTagModule() {
                       type="button"
                       key={platform.id}
                       onClick={() => handlePlatformSelect(platform.id)}
-                      disabled={!isConnected}
+                      disabled={!walletReady}
                       className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${selectedPlatform === platform.id ? 'ring-2 ring-cyan-300/40' : ''} ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
@@ -741,85 +629,19 @@ export function ClaimTagModule() {
                     </button>
                   ))}
                 </div>
-
-                <div className={`mt-4 p-3 ${insetWellClass}`}>
-                  <p className="text-xs text-gray-400 mb-2">We verify it with a proof code.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => enableManualVerification(selectedPlatform ?? primaryPlatform.id)}
-                      disabled={!isConnected || !selectedPlatform}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${primaryPlatform.bgColor} ${primaryPlatform.borderColor} ${primaryPlatform.color} hover:opacity-80 disabled:opacity-50`}
-                    >
-                      Verify Handle
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
-
-            {(isPlatformConnected && connectedPlatform && !isManualMode) ? (
-              <div className={`mt-4 border-cyan-400/18 bg-cyan-400/[0.06] p-4 ${raisedTileClass}`}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const config = getPlatformConfig(connectedPlatform);
-                        return <config.Icon className={`w-5 h-5 shrink-0 ${config.color}`} />;
-                      })()}
-                      <span className="text-sm font-semibold text-white">@{platformHandle}</span>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.14em] text-yellow-300/80">
-                        Pending verification
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs leading-5 text-white/55">
-                      Review pending. Once approved, this becomes your anchored creator handle.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {!hasMatchingVerifiedTag && platformHandle ? (
-                      <button
-                        type="button"
-                        onClick={() => setTag(platformHandle)}
-                        className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                      >
-                        Use @{platformHandle}
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => router.push('/map')}
-                      className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
-                    >
-                      Open Map
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPlatform(null);
-                        setManualCode(null);
-                        setManualUsername('');
-                        setUseManualVerification(false);
-                      }}
-                      className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70 transition hover:border-white/20 hover:text-white"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
 
             {isManualMode && manualCode && selectedPlatform && (
               <div className={`mt-4 p-4 ${insetWellClass}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Manual Verification</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Proof Code</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Add this code to your profile so we can verify the handle.
+                      Add this code to your profile, pinned post, or story, then submit.
                     </p>
                   </div>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Manual proof</span>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Review</span>
                 </div>
 
               <div className="space-y-3 sm:space-y-4">
@@ -837,15 +659,12 @@ export function ClaimTagModule() {
                     <div className={`p-3 sm:p-4 ${config.bgColor} border ${config.borderColor} rounded-xl space-y-3`}>
                       <div className="flex items-center gap-2">
                         <config.Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
-                        <span className={`text-sm font-bold ${config.color}`}>{config.name} Manual Verification</span>
+                        <span className={`text-sm font-bold ${config.color}`}>{config.name}</span>
                       </div>
 
-                      <div className="text-xs sm:text-sm text-gray-300 space-y-1.5 sm:space-y-2">
-                        <p>1. Enter your handle</p>
-                        <p>2. Copy the code</p>
-                        <p>3. Put it in your bio, pinned post, or story</p>
-                        <p>4. Submit for review</p>
-                      </div>
+                      <p className="text-xs leading-5 text-gray-300">
+                        Enter the exact handle you want attached to this wallet.
+                      </p>
 
                       {/* Username Input */}
                       <div>
@@ -916,161 +735,12 @@ export function ClaimTagModule() {
             )}
           </motion.div>
 
-          {(isPlatformConnected || isManualMode || inviteData) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
-              className={`${raisedPanelClass} border-cyan-400/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.08)_0%,rgba(8,11,22,0.92)_100%)] p-4`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
-                    <Zap className="w-3 h-3" />
-                    Your Grid
-                  </div>
-                  <h3 className="mt-3 text-sm font-bold text-white">Suggested Footprint</h3>
-                  <p className="mt-1 text-xs text-white/55">
-                    Your linked handle powers payouts, routing, and map suggestions.
-                  </p>
-                </div>
-                {platformHandle ? (
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-mono text-white/70">
-                    @{platformHandle}
-                  </div>
-                ) : null}
-              </div>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                {platformHandle && !hasMatchingVerifiedTag ? (
-                  <button
-                    type="button"
-                    onClick={() => setTag(platformHandle)}
-                    className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                  >
-                    Use @{platformHandle}
-                  </button>
-                ) : (
-                <div className="rounded-full border border-green-400/25 bg-green-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-green-200 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  {hasMatchingVerifiedTag ? 'Handle anchored' : 'Identity ready'}
-                </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => router.push('/map')}
-                  className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
-                >
-                  Open map
-                </button>
-              </div>
-
-              {platformHandle ? (
-                <div className={`mt-4 p-4 ${insetWellClass}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 text-cyan-200">
-                        <MapPin className="h-4 w-4" />
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Live Footprint</span>
-                      </div>
-                      <p className="mt-3 text-sm font-semibold text-white">
-                        {footprintData ? `${footprintData.displayHandle} already has signal on the grid` : `Checking ${platformHandle} across the grid`}
-                      </p>
-                    </div>
-                    {footprintData?.verified ? (
-                      <div className="rounded-full border border-green-400/25 bg-green-400/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-green-200">
-                        Verified
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {footprintLoading ? (
-                      <p className="mt-3 text-xs leading-5 text-white/55">
-                        Pulling claimed tag and dare history.
-                      </p>
-                  ) : footprintData ? (
-                    <>
-                      <div className="mt-4 grid gap-2 sm:grid-cols-4">
-                        <div className={`${raisedTileClass} px-3 py-2`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Live</p>
-                          <p className="mt-2 text-lg font-black text-white">{footprintData.stats.live}</p>
-                        </div>
-                        <div className={`${raisedTileClass} px-3 py-2`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Completed</p>
-                          <p className="mt-2 text-lg font-black text-white">{footprintData.stats.completed}</p>
-                        </div>
-                        <div className={`${raisedTileClass} px-3 py-2`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Earned</p>
-                          <p className="mt-2 text-lg font-black text-white">${footprintData.stats.totalEarned.toLocaleString()}</p>
-                        </div>
-                        <div className={`${raisedTileClass} px-3 py-2`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Tags</p>
-                          <p className="mt-2 text-lg font-black text-white">{footprintData.tags.length}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {footprintData.tags.slice(0, 4).map((tagChip) => (
-                          <span
-                            key={tagChip}
-                            className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white/55"
-                          >
-                            #{tagChip}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/creator/${footprintData.handle.replace(/^@/, '').toLowerCase()}`)}
-                          className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                        >
-                          Open Creator Page
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => router.push('/map')}
-                          className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
-                        >
-                          View On Map
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-3 text-xs leading-5 text-white/55">
-                        No creator footprint yet. Claim once and the graph starts clean.
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {!hasMatchingVerifiedTag && platformHandle ? (
-                          <button
-                            type="button"
-                            onClick={() => setTag(platformHandle)}
-                            className="inline-flex items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
-                          >
-                            Claim @{platformHandle}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => router.push('/map')}
-                          className="inline-flex items-center justify-center rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-100 transition hover:border-purple-300/40 hover:bg-purple-400/16"
-                        >
-                          Open Map
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : null}
-            </motion.div>
-          )}
-
           {/* Step 3: Claim Tag */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={`${raisedPanelClass} p-4 transition-all ${(isConnected && isPlatformConnected) || (isConnected && isManualMode)
+            className={`${raisedPanelClass} p-4 transition-all ${walletReady && (isPlatformConnected || isManualMode)
               ? 'border-purple-500/30 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(11,9,20,0.96)_100%)]'
               : 'opacity-50'
               }`}
@@ -1096,7 +766,7 @@ export function ClaimTagModule() {
                   onChange={(e) => setTag(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                   placeholder={platformHandle || manualUsername || 'your_tag'}
                   disabled={
-                    !isConnected || (!isPlatformConnected && !isManualMode)
+                    !walletReady || (!isPlatformConnected && !isManualMode)
                   }
                   className="w-full pl-7 sm:pl-8 pr-10 sm:pr-12 py-2.5 sm:py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono disabled:opacity-50 shadow-[inset_0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]"
                   maxLength={20}
@@ -1150,7 +820,7 @@ export function ClaimTagModule() {
               <LiquidMetalButton
                 onClick={handleClaimTag}
                 disabled={
-                  !isConnected ||
+                  !walletReady ||
                   (!isPlatformConnected && !isManualMode) ||
                   !tag ||
                   (tagAvailable === false && !tagOwnedByCurrentWallet) ||
@@ -1223,31 +893,7 @@ export function ClaimTagModule() {
             </motion.div>
           )}
 
-          {/* Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="backdrop-blur-xl bg-black/20 border border-white/10 rounded-2xl p-4"
-          >
-            <h3 className="text-sm font-bold text-white mb-3">Why claim a tag?</h3>
-            <ul className="space-y-2 text-xs sm:text-sm text-gray-400">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 shrink-0 mt-0.5" />
-                <span>Receive 89% of bounty payouts when you complete dares</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 shrink-0 mt-0.5" />
-                <span>Your tag is verified and linked to your wallet</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400 shrink-0 mt-0.5" />
-                <span>Fans can stake dares on you directly</span>
-              </li>
-            </ul>
-          </motion.div>
         </div>
-      </div>
     </div>
   );
 }
