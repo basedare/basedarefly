@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BadgeDollarSign, MapPinned, RadioTower, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeDollarSign, MapPinned, RadioTower, Sparkles } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -56,6 +56,16 @@ export default async function CreatorCaptainsPage({ searchParams }: CreatorCapta
       </div>
 
       <div className="relative z-20 mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-24 sm:px-6 lg:py-28">
+        <div>
+          <Link
+            href="/creators"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(8,10,18,0.88)_100%)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/68 shadow-[0_14px_28px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:border-cyan-300/28 hover:text-cyan-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to creators
+          </Link>
+        </div>
+
         <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
           <div className="relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.025)_18%,rgba(9,8,18,0.92)_62%,rgba(5,5,12,0.98)_100%)] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.1)] sm:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,0.16),transparent_32%),radial-gradient(circle_at_85%_22%,rgba(245,197,24,0.14),transparent_34%),radial-gradient(circle_at_58%_100%,rgba(168,85,247,0.16),transparent_38%)]" />

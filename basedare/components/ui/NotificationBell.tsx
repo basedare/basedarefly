@@ -8,7 +8,6 @@ import { useSignMessage } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
-import SignalRoomCard from '@/components/SignalRoomCard';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import {
     NEARBY_RADIUS_OPTIONS,
@@ -611,8 +610,6 @@ export function NotificationBell() {
                                     )}
                                 </div>
                             )}
-
-                            <SignalRoomCard className="mx-4 my-3" compact />
 
                             <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(16,185,129,0.06),rgba(255,255,255,0.02))] px-3 py-3">
                                 <div className="mb-3 flex items-center justify-between gap-3">
