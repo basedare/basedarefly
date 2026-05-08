@@ -3,7 +3,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  const clearOldCaches = typeof caches === 'undefined'
+    ? Promise.resolve()
+    : caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+
+  event.waitUntil(Promise.all([clearOldCaches, self.clients.claim()]));
 });
 
 self.addEventListener('message', (event) => {

@@ -49,7 +49,7 @@ type TagPlaceButtonProps = {
   }) => void;
 };
 
-const ACCEPTED_MEDIA_COPY = 'Upload a short image or video proof from the place itself.';
+const ACCEPTED_MEDIA_COPY = 'Take a photo now or upload short image/video proof from the place itself.';
 
 type SessionShape = {
   token?: string | null;
@@ -514,12 +514,13 @@ export default function TagPlaceButton({
                       <label className="bd-puncture-well mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center transition hover:border-purple-300/34 hover:bg-purple-500/[0.06]">
                         <Upload className="h-6 w-6 text-purple-100" />
                         <p className="mt-3 text-sm font-semibold text-white">
-                          {file ? file.name : 'Upload image or video'}
+                          {file ? file.name : 'Take photo or upload proof'}
                         </p>
                         <p className="mt-2 text-xs text-white/45">{ACCEPTED_MEDIA_COPY}</p>
                         <input
                           type="file"
                           accept="image/*,video/*"
+                          capture="environment"
                           className="hidden"
                           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                         />

@@ -22,6 +22,7 @@ import MobileLightningFlash from "@/components/MobileLightningFlash";
 import PwaRegistrar from "@/components/PwaRegistrar";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import MobileIgnitionField from "@/components/MobileIgnitionField";
+import AppStabilityGuard from "@/components/AppStabilityGuard";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -124,6 +125,7 @@ export default function RootLayout({
 
         {/* Mobile-only periodic lightning flash */}
         <MobileLightningFlash />
+        <AppStabilityGuard />
         <PwaRegistrar />
         <PwaInstallPrompt />
 

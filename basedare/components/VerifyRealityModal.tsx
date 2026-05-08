@@ -65,6 +65,7 @@ export default function VerifyRealityModal({
                 <input
                   type="file"
                   accept="video/*,image/*"
+                  capture="environment"
                   className="block w-full text-xs font-mono text-white/60 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-white file:uppercase file:tracking-widest hover:file:bg-white/15"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />

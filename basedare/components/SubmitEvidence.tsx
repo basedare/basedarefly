@@ -657,6 +657,7 @@ export default function SubmitEvidence({
         ref={fileInputRef}
         type="file"
         accept="video/*,image/*"
+        capture="environment"
         onChange={handleFileInputChange}
         className="hidden"
       />

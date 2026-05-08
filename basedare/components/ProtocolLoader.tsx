@@ -11,6 +11,8 @@ interface LoaderProps {
 export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: LoaderProps) {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isShattering, setIsShattering] = useState(false);
+  const completionStartedRef = React.useRef(false);
+  const completionTimeoutRef = React.useRef<number | null>(null);
   const isOverlay = variant === 'overlay';
   const durationMs = isOverlay ? 1100 : 1800;
   const fullscreenMotion = isShattering
@@ -25,8 +27,13 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
   }, [loadingProgress]);
 
   const handleCompletion = React.useCallback(() => {
+    if (completionStartedRef.current) {
+      return;
+    }
+
+    completionStartedRef.current = true;
     setIsShattering(true);
-    setTimeout(() => onComplete(), isOverlay ? 380 : 650);
+    completionTimeoutRef.current = window.setTimeout(() => onComplete(), isOverlay ? 380 : 650);
   }, [isOverlay, onComplete]);
 
   useEffect(() => {
@@ -53,6 +60,14 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
 
     return () => window.cancelAnimationFrame(rafId);
   }, [durationMs, handleCompletion]);
+
+  useEffect(() => {
+    return () => {
+      if (completionTimeoutRef.current !== null) {
+        window.clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <motion.div

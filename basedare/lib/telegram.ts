@@ -298,6 +298,55 @@ ${htmlLink(appUrl(`/admin/local-signals?signalId=${encodeURIComponent(data.signa
   return sendMessage(message);
 }
 
+export async function alertPlaceTagSubmission(data: {
+  tagId: string;
+  venueSlug: string;
+  venueName: string;
+  city?: string | null;
+  country?: string | null;
+  creatorTag?: string | null;
+  walletAddress: string;
+  caption?: string | null;
+  vibeTags?: string[];
+  proofMediaUrl?: string | null;
+  firstMark?: boolean;
+  geoDistanceMeters?: number | null;
+}): Promise<boolean> {
+  const shortTagId = data.tagId.slice(0, 8);
+  const creator = data.creatorTag || formatOwnerWallet(data.walletAddress);
+  const location = [data.city, data.country].filter(Boolean).join(', ');
+  const tagList = data.vibeTags?.length
+    ? `\nTags: ${data.vibeTags.map((tag) => `#${escapeHtml(tag)}`).join(' ')}`
+    : '';
+  const distanceLine = data.geoDistanceMeters !== null && data.geoDistanceMeters !== undefined
+    ? `\nGPS: ${data.geoDistanceMeters}m from venue anchor`
+    : '';
+  const caption = compactText(data.caption, 220);
+
+  const message = [
+    '📍 <b>MARK NEEDS APPROVAL</b>',
+    '',
+    `<b>${escapeHtml(data.venueName)}</b>${location ? ` · ${escapeHtml(location)}` : ''}`,
+    data.firstMark ? '⚡ First mark candidate' : 'Memory-layer mark',
+    `ID: <code>${escapeHtml(shortTagId)}</code>`,
+    `Creator: ${escapeHtml(creator)}`,
+    caption ? `\nCaption: ${escapeHtml(caption)}` : null,
+    `${tagList}${distanceLine}`,
+    '',
+    data.proofMediaUrl ? htmlLink(data.proofMediaUrl, 'Open proof') : null,
+    htmlLink(appUrl(`/admin?tab=placeTags&placeTagId=${encodeURIComponent(data.tagId)}`), 'Open Chaos Inbox'),
+    htmlLink(appUrl(`/map?place=${encodeURIComponent(data.venueSlug)}`), 'Open map'),
+    '',
+    `Approve: <code>/placeapprove ${escapeHtml(shortTagId)}</code>`,
+    `Reject: <code>/placereject ${escapeHtml(shortTagId)} reason</code>`,
+    `Flag: <code>/placeflag ${escapeHtml(shortTagId)} reason</code>`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  return sendMessage(message);
+}
+
 export async function alertSignalRoomLocalSignal(signal: LocalSignalItem): Promise<boolean> {
   if (!TELEGRAM_SIGNAL_CHAT_ID) {
     return false;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, MessageCircle, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@/context/WalletContext';
@@ -14,11 +14,11 @@ import { GlobalSearch } from './ui/GlobalSearch';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
+  { name: "START", href: "/how-it-works" },
   { name: "CREATE", href: "/create" },
   { name: "Map", href: "/map" },
   { name: "DASHBOARD", href: "/dashboard" },
   { name: "CREATORS", href: "/creators" },
-  { name: "FAQ", href: "/faq" },
   { name: "VERIFY", href: "/verify" },
 ];
 
@@ -102,6 +102,18 @@ export default function Navbar() {
                 <div className="w-px h-5 bg-white/10 mx-3" />
 
                 {/* NOTIFICATIONS & CONNECT */}
+                <Link
+                  href="/chat"
+                  aria-label="Open messenger"
+                  title="Messenger"
+                  className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+                    pathname?.startsWith('/chat')
+                      ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
+                      : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1] hover:text-white'
+                  }`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Link>
                 <NotificationBell />
                 <div className="w-px h-5 bg-white/10 mx-2" />
                 <IdentityButton />
@@ -114,6 +126,18 @@ export default function Navbar() {
 
             {/* Mobile Connect Button & Bell - Visible on mobile, hidden on desktop */}
             <div className="md:hidden flex items-center gap-2">
+              <Link
+                href="/chat"
+                aria-label="Open messenger"
+                title="Messenger"
+                className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
+                  pathname?.startsWith('/chat')
+                    ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
+                    : 'border-white/10 bg-black/50 text-white/75 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1]'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Link>
               <NotificationBell />
               <div className="w-[120px] sm:w-[140px]">
                 <IdentityButton />

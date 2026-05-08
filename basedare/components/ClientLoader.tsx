@@ -1,9 +1,10 @@
 'use client';
 
-import { useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import ProtocolLoader from './ProtocolLoader';
 
 let hasProtocolLoadedInMemory = false;
+const LOADER_FAILSAFE_MS = 4500;
 
 function shouldShowProtocolLoader() {
   if (typeof window === 'undefined') {
@@ -18,39 +19,52 @@ function shouldShowProtocolLoader() {
 }
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(shouldShowProtocolLoader);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleComplete = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('protocol-loaded', 'true');
+    }
+    hasProtocolLoadedInMemory = true;
+    setIsLoading(false);
+  }, []);
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    const hasBeenLoaded = window.sessionStorage.getItem('protocol-loaded') === 'true';
-    if (hasBeenLoaded) {
-      hasProtocolLoadedInMemory = true;
-      if (isLoading) {
-        window.queueMicrotask(() => setIsLoading(false));
-      }
-    }
-  }, [isLoading]);
+    setIsHydrated(true);
 
-  const handleComplete = () => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('protocol-loaded', 'true');
+    if (shouldShowProtocolLoader()) {
+      setIsLoading(true);
+      return;
     }
-    hasProtocolLoadedInMemory = true;
-    setIsLoading(false);
-  };
+
+    window.queueMicrotask(handleComplete);
+  }, [handleComplete]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isHydrated || !isLoading) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(handleComplete, LOADER_FAILSAFE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [handleComplete, isHydrated, isLoading]);
+
+  const shouldMaskContent = isHydrated && isLoading;
 
   return (
     <>
       <div
-        aria-hidden={isLoading}
-        className={isLoading ? 'pointer-events-none opacity-0' : 'opacity-100'}
+        aria-hidden={shouldMaskContent}
+        className={shouldMaskContent ? 'pointer-events-none opacity-0' : 'opacity-100'}
       >
         {children}
       </div>
-      {isLoading ? <ProtocolLoader onComplete={handleComplete} variant="fullscreen" /> : null}
+      {shouldMaskContent ? <ProtocolLoader onComplete={handleComplete} variant="fullscreen" /> : null}
     </>
   );
 }

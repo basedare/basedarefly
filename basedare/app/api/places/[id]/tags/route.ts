@@ -12,6 +12,7 @@ import {
   validateSupportedMediaFile,
 } from '@/lib/media-upload';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
+import { alertPlaceTagSubmission } from '@/lib/telegram';
 
 type WalletSession = {
   token?: string;
@@ -258,6 +259,8 @@ export async function POST(
         id: true,
         slug: true,
         name: true,
+        city: true,
+        country: true,
         status: true,
         latitude: true,
         longitude: true,
@@ -398,6 +401,23 @@ export async function POST(
         creatorTag: true,
         firstMark: true,
       },
+    });
+
+    void alertPlaceTagSubmission({
+      tagId: tag.id,
+      venueSlug: place.slug,
+      venueName: place.name,
+      city: place.city,
+      country: place.country,
+      creatorTag: tag.creatorTag,
+      walletAddress,
+      caption,
+      vibeTags,
+      proofMediaUrl: tag.proofMediaUrl,
+      firstMark: tag.firstMark,
+      geoDistanceMeters,
+    }).catch((error) => {
+      console.error('[PLACE_TAGS_POST] Telegram alert failed:', error);
     });
 
     return NextResponse.json(
