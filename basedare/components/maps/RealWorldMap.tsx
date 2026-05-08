@@ -3719,9 +3719,9 @@ export default function RealWorldMap() {
       zoom: targetZoom ?? map.getZoom(),
       pitch: isMobileViewport ? 54 : DEFAULT_MAP_PITCH,
       bearing: map.getBearing() || DEFAULT_MAP_BEARING,
-      offset: targetOffset,
       duration: 900,
       essential: true,
+      ...(targetOffset ? { offset: targetOffset } : {}),
     });
   }, [isImmersiveMobile, isMobileViewport, mapReady, selectedPlacePanelExpanded, targetCenter, targetZoom]);
 
