@@ -917,6 +917,7 @@ export default function ActivationIntakesPage() {
                 const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
                 const canLaunch = intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED';
                 const receipt = intake.activationReceipt;
+                const isFirstSpark = intake.offerId === 'first-spark' || intake.packageId === 'pilot-drop';
                 const launchChecklist = [
                   {
                     label: 'Buyer',
@@ -1244,10 +1245,12 @@ export default function ActivationIntakesPage() {
                             <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                               <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
-                                  Buyer close room
+                                  {isFirstSpark ? 'First Spark close room' : 'Buyer close room'}
                                 </p>
                                 <p className="mt-1 text-xs font-bold leading-5 text-white/50">
-                                  One tokenized page for the route, payment reference, proof logic, and launch gates.
+                                  {isFirstSpark
+                                    ? 'One buyer-ready page for the pilot offer, payment action, proof promise, venue ask, and launch gates.'
+                                    : 'One tokenized page for the route, payment reference, proof logic, and launch gates.'}
                                   {intake.closeRoom.staleHours !== null && intake.closeRoom.staleHours >= 24
                                     ? ` ${intake.closeRoom.staleHours}h since sent without payment click.`
                                     : ''}
@@ -1275,7 +1278,7 @@ export default function ActivationIntakesPage() {
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/15"
                               >
                                 <Clipboard className="h-4 w-4" />
-                                {copiedId === `${intake.id}:close-room` ? 'Copied' : 'Copy room'}
+                                {copiedId === `${intake.id}:close-room` ? 'Copied' : isFirstSpark ? 'Copy pilot' : 'Copy room'}
                               </button>
                               <Link
                                 href={intake.closeRoom.href}
@@ -1283,7 +1286,7 @@ export default function ActivationIntakesPage() {
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.1]"
                               >
                                 <ExternalLink className="h-4 w-4" />
-                                Open room
+                                {isFirstSpark ? 'Open pilot' : 'Open room'}
                               </Link>
                               {intake.closeRoom.mailtoHref ? (
                                 <a
@@ -1291,7 +1294,7 @@ export default function ActivationIntakesPage() {
                                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-100 transition hover:bg-fuchsia-300/15"
                                 >
                                   <Mail className="h-4 w-4" />
-                                  Email room
+                                  {isFirstSpark ? 'Email pilot' : 'Email room'}
                                 </a>
                               ) : (
                                 <span className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/25">
@@ -1305,7 +1308,7 @@ export default function ActivationIntakesPage() {
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-300/20 bg-orange-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-orange-100 transition hover:bg-orange-300/15 disabled:opacity-45"
                               >
                                 {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                Send room
+                                {isFirstSpark ? 'Send pilot' : 'Send room'}
                               </button>
                             </div>
                           </div>

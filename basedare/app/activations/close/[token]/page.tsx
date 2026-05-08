@@ -11,8 +11,10 @@ import {
   FileText,
   Lock,
   MapPin,
+  ReceiptText,
   ShieldCheck,
   Sparkles,
+  Users,
 } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -57,10 +59,13 @@ export default async function ActivationCloseRoomPage({
   const target = closeRoom.venue || closeRoom.company || 'your activation';
   const mission = closeRoom.missionIdeas[0];
   const paymentReady = Boolean(closeRoom.paymentLink);
+  const paymentCtaLabel = closeRoom.isFirstSpark ? 'Approve + pay pilot' : 'Open payment';
   const steps = [
     {
       label: 'Route',
-      detail: closeRoom.positioningLine || `${target} gets a venue-aware creator mission and a proof receipt.`,
+      detail: closeRoom.isFirstSpark
+        ? 'First Spark route, creator mission, and proof path are packaged.'
+        : closeRoom.positioningLine || `${target} gets a venue-aware creator mission and a proof receipt.`,
       ready: true,
     },
     {
@@ -101,14 +106,16 @@ export default async function ActivationCloseRoomPage({
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/78">
                 <Sparkles className="h-4 w-4" />
-                BaseDare Close Room
+                {closeRoom.offerEyebrow}
               </div>
               <h1 className="mt-5 max-w-3xl text-4xl font-black uppercase italic leading-[0.94] tracking-[-0.06em] text-white sm:text-6xl">
-                {target}
+                {closeRoom.offerHeadline}
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-bold leading-6 text-white/60 sm:text-base">
-                One buyer-approved place for the Spark route, proof logic, payment reference, and launch gates.
-                BaseDare does not launch public commitments until payment and scope are confirmed.
+                {closeRoom.offerPromise}
+              </p>
+              <p className="mt-3 max-w-2xl rounded-[22px] border border-emerald-300/14 bg-emerald-300/[0.06] px-4 py-3 text-sm font-bold leading-6 text-emerald-50/72">
+                {closeRoom.riskReversal}
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -159,7 +166,7 @@ export default async function ActivationCloseRoomPage({
                     data-close-room-target="payment-link"
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-yellow-300/30 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.16em] text-black shadow-[0_7px_0_rgba(118,74,0,0.75)] transition hover:-translate-y-0.5"
                   >
-                    Open payment
+                    {paymentCtaLabel}
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 ) : (
@@ -173,6 +180,15 @@ export default async function ActivationCloseRoomPage({
                     <ArrowRight className="h-4 w-4" />
                   </a>
                 )}
+                <a
+                  href={closeRoom.approveHref}
+                  data-close-room-track="reply"
+                  data-close-room-target="approve-pilot"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.09] px-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/[0.13]"
+                >
+                  Approve pilot
+                  <CheckCircle2 className="h-4 w-4" />
+                </a>
                 <a
                   href={closeRoom.callHref}
                   data-close-room-track="reply"
@@ -203,6 +219,45 @@ export default async function ActivationCloseRoomPage({
               </div>
             </div>
           ))}
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/18 bg-yellow-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">
+              <ReceiptText className="h-4 w-4" />
+              What BaseDare brings
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {closeRoom.deliverables.map((item) => (
+                <div key={item} className={insetCardClass}>
+                  <div className="flex gap-3 px-4 py-4">
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-yellow-100/72" />
+                    <p className="text-sm font-bold leading-6 text-white/64">{item}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/70">
+              <Users className="h-4 w-4" />
+              Venue side
+            </div>
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+              Keep the buyer ask small.
+            </h2>
+            <div className="mt-5 grid gap-3">
+              {closeRoom.venueAsk.map((item) => (
+                <div key={item} className={insetCardClass}>
+                  <div className="flex gap-3 px-4 py-4">
+                    <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-cyan-100/70" />
+                    <p className="text-sm font-bold leading-6 text-white/62">{item}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_0.92fr]">

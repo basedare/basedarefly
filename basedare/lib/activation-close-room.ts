@@ -163,6 +163,12 @@ function defaultReplyEmail() {
   return process.env.BASEDARE_SALES_EMAIL?.trim() || process.env.NEXT_PUBLIC_BASEDARE_SALES_EMAIL?.trim() || 'hello@basedare.xyz';
 }
 
+function isFirstSparkCloseRoom(input: { packageId: string; budgetRange: string; metadata: MetadataRecord }) {
+  const activationAttribution = asRecord(input.metadata.activationAttribution);
+  const offerId = stringValue(input.metadata.offerId) || stringValue(activationAttribution.offerId);
+  return offerId === 'first-spark' || input.packageId === 'pilot-drop' || input.budgetRange === '500_1500';
+}
+
 function buildMailtoHref(input: { email: string; subject: string; body: string }) {
   const query = new URLSearchParams({
     subject: input.subject,
@@ -206,17 +212,24 @@ export function buildActivationCloseRoomAdminState(input: {
   const href = buildActivationCloseRoomHref(input.id);
   const absoluteHref = `${appBaseUrl()}${href}`;
   const target = input.assignedVenue || stringValue(input.metadata.venue) || input.company || 'your activation';
-  const subject = `BaseDare close room: ${target}`;
+  const packageId = stringValue(input.metadata.packageId);
+  const budgetRange = stringValue(input.metadata.budgetRange);
+  const isFirstSpark = isFirstSparkCloseRoom({ packageId, budgetRange, metadata: input.metadata });
+  const subject = `${isFirstSpark ? 'BaseDare First Spark close room' : 'BaseDare close room'}: ${target}`;
   const body = [
     `Hi ${input.contactName || 'there'},`,
     '',
-    `Here is the BaseDare close room for ${target}. It has the Spark route, payment reference, proof logic, and launch gates in one place:`,
+    isFirstSpark
+      ? `Here is the BaseDare First Spark close room for ${target}. It has the pilot offer, creator mission, payment reference, proof logic, and launch gates in one place:`
+      : `Here is the BaseDare close room for ${target}. It has the Spark route, payment reference, proof logic, and launch gates in one place:`,
     '',
     absoluteHref,
     '',
     input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
     '',
-    'Once payment and scope are confirmed, BaseDare opens the funded activation inside the app so creator proof, review, and payout state stay trackable.',
+    isFirstSpark
+      ? 'The venue approves the route, provides one simple perk or reward, and BaseDare handles setup, creator routing, proof flow, and recap.'
+      : 'Once payment and scope are confirmed, BaseDare opens the funded activation inside the app so creator proof, review, and payout state stay trackable.',
   ].filter((line): line is string => line !== null).join('\n');
 
   const sentAt = stringValue(operator.closeRoomSentAt);
@@ -251,20 +264,50 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
   const budgetRange = stringValue(metadata.budgetRange);
   const timeline = stringValue(metadata.timeline);
   const packageId = stringValue(metadata.packageId);
+  const isFirstSpark = isFirstSparkCloseRoom({ packageId, budgetRange, metadata });
   const amount = event.amount ?? numberValue(metadata.amount);
   const paymentLink = stringValue(operator.paymentLink) || defaultPaymentLink();
   const paymentReference = stringValue(operator.paymentReference) || `BD-${event.id.slice(0, 8).toUpperCase()}`;
   const target = venue || company || 'your activation';
   const closeRoomUrl = buildActivationCloseRoomAbsoluteHref(event.id);
-  const replySubject = `BaseDare close room: ${target}`;
+  const replySubject = `${isFirstSpark ? 'Approve BaseDare First Spark Pilot' : 'BaseDare close room'}: ${target}`;
   const replyBody = [
-    `BaseDare close room: ${target}`,
+    `${isFirstSpark ? 'BaseDare First Spark Pilot' : 'BaseDare close room'}: ${target}`,
     '',
     `Lead ID: ${event.id}`,
     paymentReference ? `Payment reference: ${paymentReference}` : null,
     '',
     `I reviewed the close room: ${closeRoomUrl}`,
+    '',
+    isFirstSpark ? 'I want to confirm the route, perk/reward, and payment path.' : 'I want to confirm scope/payment path.',
   ].filter((line): line is string => line !== null).join('\n');
+  const approvedReplyHref = buildMailtoHref({
+    email: defaultReplyEmail(),
+    subject: `${isFirstSpark ? 'Approve First Spark Pilot' : 'Approve activation'}: ${target}`,
+    body: [
+      `I approve the ${isFirstSpark ? 'First Spark Pilot' : 'BaseDare activation'} route for ${target}.`,
+      '',
+      `Lead ID: ${event.id}`,
+      paymentReference ? `Payment reference: ${paymentReference}` : null,
+      `Close room: ${closeRoomUrl}`,
+      '',
+      isFirstSpark
+        ? 'Confirmed: venue page, creator mission, QR/check-in proof path, proof recap, and one venue perk/reward to be finalized before launch.'
+        : 'Confirmed: route, payment path, proof flow, and launch checklist to be finalized before launch.',
+    ].filter((line): line is string => line !== null).join('\n'),
+  });
+  const firstSparkDeliverables = [
+    'Venue page and First Spark route',
+    'Creator mission packet',
+    'QR/check-in proof path',
+    'Proof recap / Spark Receipt',
+    'Rerun review if no verified proof lands',
+  ];
+  const venueAsk = [
+    'Approve the route',
+    'Provide one simple perk or reward',
+    'Confirm payment path before public launch',
+  ];
 
   return {
     id: event.id,
@@ -279,6 +322,24 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     buyerType: stringValue(metadata.buyerType),
     goal: stringValue(metadata.goal),
     packageId,
+    isFirstSpark,
+    offerTitle: isFirstSpark ? 'First Spark Pilot' : 'Grid Activation',
+    offerEyebrow: isFirstSpark ? 'First Spark Close + Payment Room' : 'BaseDare Close Room',
+    offerHeadline: isFirstSpark ? `Approve the first proof night at ${target}.` : `Approve the Spark route for ${target}.`,
+    offerPromise: isFirstSpark
+      ? 'BaseDare turns one venue into a live challenge spot with creator proof, QR/check-in signal, and a recap before asking for a recurring commitment.'
+      : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
+    riskReversal: isFirstSpark
+      ? 'If no verified proof lands, BaseDare reviews the route and reruns the activation path before asking you to scale.'
+      : 'Public launch waits until payment and scope are confirmed.',
+    deliverables: isFirstSpark ? firstSparkDeliverables : [
+      'Activation route',
+      'Creator proof logic',
+      'Payment reference',
+      'Launch checklist',
+      'Proof receipt path',
+    ],
+    venueAsk,
     packageLabel: PACKAGE_LABELS[packageId] || packageId || 'Activation package',
     budgetLabel: BUDGET_LABELS[budgetRange] || formatAmount(amount) || 'Budget to confirm',
     timelineLabel: TIMELINE_LABELS[timeline] || timeline || 'Timeline to confirm',
@@ -292,6 +353,7 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     repeatMetric: stringValue(activationBrief.repeatMetric),
     closeRoomUrl,
     replyHref: buildMailtoHref({ email: defaultReplyEmail(), subject: replySubject, body: replyBody }),
+    approveHref: approvedReplyHref,
     callHref:
       process.env.BASEDARE_CALENDAR_LINK?.trim() ||
       process.env.NEXT_PUBLIC_BASEDARE_CALENDAR_LINK?.trim() ||
