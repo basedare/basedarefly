@@ -28,6 +28,7 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  ShieldCheck,
   Sparkles,
   X,
   Zap,
@@ -38,7 +39,7 @@ import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
-import type { VenueLegend, VenueProfileSummary } from '@/lib/venue-types';
+import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import CosmicButton from '@/components/ui/CosmicButton';
 import SquircleLink from '@/components/ui/SquircleLink';
@@ -134,6 +135,9 @@ type SelectedPlace = {
   commandCenter?: VenueCommandCenter;
   mapModes?: VenueMapMode[];
   profile?: VenueProfileSummary;
+  checkInRadiusMeters?: number | null;
+  memorySummary?: VenueMemorySummary | null;
+  liveSession?: VenueSessionSummary | null;
 };
 
 type NearbyResponse = {
@@ -421,6 +425,9 @@ type VenueDetailResponse = {
       longitude: number;
       categories: string[];
       profile: VenueProfileSummary;
+      checkInRadiusMeters: number;
+      memorySummary: VenueMemorySummary | null;
+      liveSession: VenueSessionSummary | null;
       tagSummary: {
         approvedCount: number;
         heatScore: number;
@@ -474,6 +481,14 @@ type VenueDetailResponse = {
         claimRequestStatus: string | null;
       } | null;
     };
+  };
+};
+
+type VenueQrPayloadResponse = {
+  success: boolean;
+  error?: string;
+  data?: {
+    qrValue: string;
   };
 };
 
@@ -2751,6 +2766,8 @@ export default function RealWorldMap() {
   const [presenceSubmitting, setPresenceSubmitting] = useState(false);
   const [presenceSubmitState, setPresenceSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [activePresenceSignal, setActivePresenceSignal] = useState<ActivePresenceSignal | null>(null);
+  const [checkInLaunching, setCheckInLaunching] = useState(false);
+  const [checkInLaunchState, setCheckInLaunchState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -2773,6 +2790,10 @@ export default function RealWorldMap() {
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
+
+  useEffect(() => {
+    setCheckInLaunchState(null);
+  }, [selectedPlaceIdentity]);
   const nearbyFetchIdRef = useRef(0);
   const nearbyDareFetchIdRef = useRef(0);
   const localSignalFetchIdRef = useRef(0);
@@ -3176,6 +3197,9 @@ export default function RealWorldMap() {
           commandCenter: venue.commandCenter,
           mapModes: venue.mapModes,
           profile: venue.profile,
+          checkInRadiusMeters: venue.checkInRadiusMeters,
+          memorySummary: venue.memorySummary,
+          liveSession: venue.liveSession,
         });
         setSelectedPlaceActiveDares(venue.activeDares);
         setTargetCenter([venue.latitude, venue.longitude]);
@@ -3816,6 +3840,9 @@ export default function RealWorldMap() {
             commandCenter: venue.commandCenter,
             mapModes: venue.mapModes,
             profile: venue.profile,
+            checkInRadiusMeters: venue.checkInRadiusMeters,
+            memorySummary: venue.memorySummary,
+            liveSession: venue.liveSession,
           };
         });
       } catch (error) {
@@ -4931,6 +4958,53 @@ export default function RealWorldMap() {
     ]
   );
 
+  const handleLaunchVenueCheckIn = useCallback(async () => {
+    if (!selectedPlace || checkInLaunching) {
+      return;
+    }
+
+    triggerHaptic('selection');
+    setCheckInLaunching(true);
+    setCheckInLaunchState(null);
+
+    try {
+      const resolvedPlace =
+        selectedPlace.placeId && selectedPlace.slug
+          ? {
+              id: selectedPlace.placeId,
+              slug: selectedPlace.slug,
+              name: selectedPlace.name,
+            }
+          : await resolveSelectedPlaceForCommand();
+
+      const response = await fetch(`/api/venues/id/${encodeURIComponent(resolvedPlace.id)}/qr`, {
+        cache: 'no-store',
+      });
+      const payload = (await response.json().catch(() => null)) as VenueQrPayloadResponse | null;
+
+      if (!response.ok || !payload?.success || !payload.data?.qrValue) {
+        throw new Error(
+          payload?.error ??
+            'This venue needs a live BaseDare QR before trusted check-ins open.'
+        );
+      }
+
+      const handshakeUrl = new URL(payload.data.qrValue, window.location.origin);
+      router.push(`${handshakeUrl.pathname}${handshakeUrl.search}`);
+    } catch (error) {
+      setCheckInLaunchState({
+        type: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unable to open this venue check-in right now.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setCheckInLaunching(false);
+    }
+  }, [checkInLaunching, resolveSelectedPlaceForCommand, router, selectedPlace]);
+
   const handleSignalPresence = useCallback(async () => {
     if (!selectedPlace || presenceSubmitting) {
       return;
@@ -5803,11 +5877,29 @@ export default function RealWorldMap() {
       ) : null}
     </>
   );
+  const selectedPlaceActionRailGridClass = selectedPlace?.slug
+    ? isMobileViewport
+      ? 'grid-cols-3'
+      : 'grid-cols-1'
+    : isMobileViewport
+      ? 'grid-cols-2'
+      : 'grid-cols-1';
+  const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
+  const selectedCheckInStatusLabel =
+    selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
+      ? 'Checking'
+      : selectedCheckInLive
+        ? 'Live QR'
+        : 'QR required';
+  const selectedCheckInCountToday =
+    selectedPlace?.memorySummary?.checkInCount ??
+    selectedPlace?.commandCenter?.metrics.uniqueVisitorsToday ??
+    0;
   const selectedPlaceActionRail = selectedPlace ? (
     <div
       className={`venue-action-rail venue-action-rail--primary ${
         showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
-      } mt-3 grid gap-1.5 ${selectedPlace.slug ? 'grid-cols-3' : 'grid-cols-2'}`}
+      } mt-3 grid gap-1.5 ${selectedPlaceActionRailGridClass}`}
     >
       <TagPlaceButton
         placeId={selectedPlace.placeId}
@@ -5821,6 +5913,7 @@ export default function RealWorldMap() {
         externalPlaceId={selectedPlace.externalPlaceId}
         onPlaceResolved={(place) => {
           setSelectedPlace((current) => ({
+            ...(current ?? {}),
             placeId: place.id,
             slug: place.slug,
             name: place.name,
@@ -5878,6 +5971,7 @@ export default function RealWorldMap() {
         externalPlaceId={selectedPlace.externalPlaceId}
         onPlaceResolved={(place) => {
           setSelectedPlace((current) => ({
+            ...(current ?? {}),
             placeId: place.id,
             slug: place.slug,
             name: place.name,
@@ -5942,6 +6036,65 @@ export default function RealWorldMap() {
         >
           <span className="map-jelly-action-label">Open venue</span>
         </SquircleLink>
+      ) : null}
+    </div>
+  ) : null;
+  const selectedPlaceCheckInRail = selectedPlace?.slug ? (
+    <div className="map-panel-section mt-4 rounded-[24px] border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(8,14,20,0.88)_24%,rgba(4,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
+            <ShieldCheck className="h-3.5 w-3.5 text-cyan-200" />
+            Secure Check-In
+          </div>
+          <p className="mt-2 text-sm font-semibold text-white">
+            {selectedCheckInLive
+              ? 'Prove you are inside the venue.'
+              : 'Trusted check-ins need the venue QR.'}
+          </p>
+        </div>
+        <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+          {selectedCheckInStatusLabel}
+        </span>
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-white/58">
+        {selectedCheckInLive
+          ? 'QR + GPS adds verified place memory and unlocks venue proof. It does not move funds.'
+          : 'When the venue console is live, this opens BaseDare Secure Handshake for QR + GPS proof.'}
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-[18px] border border-white/8 bg-black/18 px-3 py-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/36">Radius</p>
+          <p className="mt-1 text-sm font-black text-white">{selectedPlace.checkInRadiusMeters ?? 120}m</p>
+        </div>
+        <div className="rounded-[18px] border border-white/8 bg-black/18 px-3 py-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/36">Today</p>
+          <p className="mt-1 text-sm font-black text-white">
+            {selectedCheckInCountToday} {selectedCheckInCountToday === 1 ? 'check-in' : 'check-ins'}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleLaunchVenueCheckIn}
+        disabled={checkInLaunching}
+        className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2)_0%,rgba(7,14,20,0.94)_100%)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:border-cyan-100/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+      >
+        {checkInLaunching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+        {checkInLaunching ? 'Opening' : selectedCheckInLive ? 'Check in now' : 'Find live QR'}
+      </button>
+
+      {checkInLaunchState ? (
+        <p
+          className={`mt-2 text-xs leading-5 ${
+            checkInLaunchState.type === 'error' ? 'text-rose-200/82' : 'text-cyan-100/78'
+          }`}
+        >
+          {checkInLaunchState.message}
+        </p>
       ) : null}
     </div>
   ) : null;
@@ -7091,6 +7244,8 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-sm text-white/78">{ceremonyState.body}</p>
                     </div>
                   ) : null}
+
+                  {selectedPlaceCheckInRail}
 
                   <div className="map-panel-section mt-4 rounded-[24px] border border-emerald-300/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12)_0%,rgba(8,15,14,0.88)_22%,rgba(4,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
                     <div className="flex items-start justify-between gap-3">
@@ -9763,6 +9918,13 @@ export default function RealWorldMap() {
           max-width: calc(100% + 3.75rem);
         }
 
+        @media (min-width: 768px) {
+          .venue-action-rail--primary {
+            width: 100%;
+            max-width: 100%;
+          }
+        }
+
         .venue-action-rail :global(.map-jelly-action > svg) {
           display: block;
         }
@@ -9787,10 +9949,21 @@ export default function RealWorldMap() {
           line-height: 1;
         }
 
+        @media (min-width: 768px) {
+          .venue-action-rail :global(.map-jelly-action > div svg) {
+            display: block !important;
+          }
+
+          .venue-action-rail :global(.map-jelly-action-label) {
+            font-size: 0.74rem !important;
+            letter-spacing: 0.08em !important;
+          }
+        }
+
         @media (min-width: 1180px) {
           .venue-action-rail :global(.map-jelly-action-label) {
-            font-size: 0.66rem !important;
-            letter-spacing: 0.035em !important;
+            font-size: 0.76rem !important;
+            letter-spacing: 0.08em !important;
           }
         }
 
