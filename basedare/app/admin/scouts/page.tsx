@@ -7,8 +7,11 @@ import {
   CheckCircle2,
   Clipboard,
   Copy,
+  ExternalLink,
+  FileText,
   Loader2,
   RefreshCw,
+  Rocket,
   ShieldCheck,
   UserRoundSearch,
   XCircle,
@@ -62,6 +65,44 @@ type ScoutLead = {
   };
   captainApplicationId: string;
   captainAppliedAt: string;
+  mission: {
+    token: string;
+    status: string;
+    missionPath: string;
+    missionUrl: string;
+    launchedAt: string;
+    launchedBy: string;
+    proofSubmittedAt: string;
+    activationOpenedAt: string;
+    packet: {
+      title: string;
+      objective: string;
+      prompts: string[];
+      proofChecklist: string[];
+      captionDraft: string;
+      referralAsk: string;
+      safetyRules: string[];
+    };
+    latestProof: {
+      bestVenueName: string;
+      city: string;
+      proofLinks: string[];
+      whyGoodFit: string;
+      momentDescription: string;
+      perkIdea: string;
+      ownerIntroStatus: string;
+      submittedAt: string;
+    };
+    pitchPacket: {
+      headline: string;
+      buyerPitch: string;
+      outreachDraft: string;
+      activationHref: string;
+      receiptBullets: string[];
+      venueName: string;
+      city: string;
+    };
+  };
   ageHours: number;
   occurredAt: string;
   updatedAt: string;
@@ -79,6 +120,10 @@ type ScoutPayload = {
     total: number;
     active: number;
     applied: number;
+    missionSent: number;
+    proofSubmitted: number;
+    pitchReady: number;
+    activationOpened: number;
     rewardDue: number;
     rewardPaid: number;
     highScore: number;
@@ -97,6 +142,8 @@ type DraftState = {
   rewardPaidAt?: string;
 };
 
+type ScoutLeadAction = 'launch_mission' | 'venue_pitch_ready' | 'activation_opened';
+
 const FILTERS: Array<{ key: StatusFilter; label: string }> = [
   { key: 'ALL', label: 'All' },
   ...SCOUT_CREATOR_LEAD_STATUSES.map((status) => ({ key: status, label: SCOUT_CREATOR_LEAD_STATUS_LABELS[status] })),
@@ -105,6 +152,10 @@ const FILTERS: Array<{ key: StatusFilter; label: string }> = [
 function statusClass(status: ScoutCreatorLeadStatus) {
   if (status === 'REWARD_PAID') return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
   if (status === 'REJECTED') return 'border-red-300/25 bg-red-400/10 text-red-100';
+  if (status === 'ACTIVATION_OPENED') return 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
+  if (status === 'VENUE_PITCH_READY') return 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100';
+  if (status === 'PROOF_SUBMITTED') return 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100';
+  if (status === 'MISSION_SENT') return 'border-purple-300/25 bg-purple-400/10 text-purple-100';
   if (status === 'CREATOR_APPLIED' || status === 'APPROVED') return 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100';
   if (status === 'REWARD_DUE' || status === 'CREATOR_EARNED') {
     return 'border-yellow-300/30 bg-yellow-300/10 text-yellow-100';
@@ -219,7 +270,7 @@ export default function AdminScoutsPage() {
     }
   }, [address, hasSessionAdminSecret, loadLeads]);
 
-  async function updateLead(id: string, patch: Partial<DraftState> & { status?: ScoutCreatorLeadStatus }) {
+  async function updateLead(id: string, patch: Partial<DraftState> & { status?: ScoutCreatorLeadStatus; action?: ScoutLeadAction }) {
     setUpdatingId(id);
     setError(null);
     try {
@@ -261,6 +312,18 @@ export default function AdminScoutsPage() {
   async function copyInvite(lead: ScoutLead) {
     await navigator.clipboard.writeText(lead.links.captainInviteUrl);
     setCopiedId(lead.id);
+  }
+
+  async function copyMission(lead: ScoutLead) {
+    if (!lead.mission.missionUrl) return;
+    await navigator.clipboard.writeText(lead.mission.missionUrl);
+    setCopiedId(`mission-${lead.id}`);
+  }
+
+  async function copyPitch(lead: ScoutLead) {
+    if (!lead.mission.pitchPacket.outreachDraft) return;
+    await navigator.clipboard.writeText(lead.mission.pitchPacket.outreachDraft);
+    setCopiedId(`pitch-${lead.id}`);
   }
 
   const visibleLeads = useMemo(() => {
@@ -337,7 +400,7 @@ export default function AdminScoutsPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+            <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/45 sm:grid-cols-6">
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2">
                 <span className="block text-lg text-white">{payload?.summary.total ?? 0}</span>
                 Total
@@ -345,6 +408,14 @@ export default function AdminScoutsPage() {
               <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-2">
                 <span className="block text-lg text-cyan-100">{payload?.summary.applied ?? 0}</span>
                 Applied
+              </div>
+              <div className="rounded-2xl border border-purple-300/15 bg-purple-300/[0.06] px-3 py-2">
+                <span className="block text-lg text-purple-100">{payload?.summary.missionSent ?? 0}</span>
+                Sent
+              </div>
+              <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-2">
+                <span className="block text-lg text-cyan-100">{payload?.summary.proofSubmitted ?? 0}</span>
+                Proof
               </div>
               <div className="rounded-2xl border border-yellow-300/15 bg-yellow-300/[0.06] px-3 py-2">
                 <span className="block text-lg text-yellow-100">{payload?.summary.rewardDue ?? 0}</span>
@@ -438,7 +509,7 @@ export default function AdminScoutsPage() {
                       {lead.creatorCity || 'Unknown city'} · {lead.creatorPlatformLabel} · {lead.relationshipStrengthLabel}
                     </p>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Scout</p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">
@@ -455,6 +526,12 @@ export default function AdminScoutsPage() {
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Captain app</p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">
                           {lead.captainApplicationId ? 'Applied' : 'Not yet'}
+                        </p>
+                      </div>
+                      <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Mission</p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-white/70">
+                          {lead.mission.latestProof.bestVenueName || lead.mission.status || 'Not launched'}
                         </p>
                       </div>
                     </div>
@@ -597,6 +674,115 @@ export default function AdminScoutsPage() {
                       {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clipboard className="h-4 w-4" />}
                       Save
                     </button>
+
+                    <div className="rounded-[22px] border border-purple-300/15 bg-purple-300/[0.055] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-100/62">
+                            Captain mission
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-6 text-white/70">
+                            {lead.mission.packet.title || 'Venue Scout Mission'}
+                          </p>
+                        </div>
+                        <Rocket className="h-5 w-5 shrink-0 text-purple-100" />
+                      </div>
+
+                      {lead.mission.missionUrl ? (
+                        <p className="mt-3 break-words text-xs font-semibold leading-5 text-purple-50/56">
+                          {lead.mission.missionUrl}
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-xs font-semibold leading-5 text-purple-50/56">
+                          Launch creates the proof link, mission packet, and first venue pitch path.
+                        </p>
+                      )}
+
+                      {lead.mission.latestProof.bestVenueName ? (
+                        <div className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/62">
+                            Proof target
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-6 text-cyan-50/74">
+                            {lead.mission.latestProof.bestVenueName} · {lead.mission.latestProof.city || lead.creatorCity}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {lead.mission.pitchPacket.headline ? (
+                        <div className="mt-3 rounded-2xl border border-yellow-300/15 bg-yellow-300/[0.06] p-3">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/62">
+                            Pitch packet
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-6 text-yellow-50/74">
+                            {lead.mission.pitchPacket.headline}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void updateLead(lead.id, { action: 'launch_mission' })}
+                          disabled={updating}
+                          className="inline-flex items-center justify-center gap-1 rounded-2xl border border-purple-300/20 bg-purple-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-purple-100 disabled:opacity-50"
+                        >
+                          <Rocket className="h-3.5 w-3.5" />
+                          Launch
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void copyMission(lead)}
+                          disabled={!lead.mission.missionUrl}
+                          className="inline-flex items-center justify-center gap-1 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/66 disabled:opacity-40"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          {copiedId === `mission-${lead.id}` ? 'Copied' : 'Copy link'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void updateLead(lead.id, { action: 'venue_pitch_ready' })}
+                          disabled={updating || !lead.mission.latestProof.bestVenueName}
+                          className="inline-flex items-center justify-center gap-1 rounded-2xl border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 disabled:opacity-40"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Pitch ready
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void updateLead(lead.id, { action: 'activation_opened' })}
+                          disabled={updating || !lead.mission.pitchPacket.activationHref}
+                          className="inline-flex items-center justify-center gap-1 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 disabled:opacity-40"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Opened
+                        </button>
+                      </div>
+
+                      {lead.mission.pitchPacket.outreachDraft || lead.mission.pitchPacket.activationHref ? (
+                        <div className="mt-2 grid gap-2">
+                          {lead.mission.pitchPacket.outreachDraft ? (
+                            <button
+                              type="button"
+                              onClick={() => void copyPitch(lead)}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/20 bg-yellow-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              {copiedId === `pitch-${lead.id}` ? 'Copied pitch' : 'Copy venue pitch'}
+                            </button>
+                          ) : null}
+                          {lead.mission.pitchPacket.activationHref ? (
+                            <Link
+                              href={lead.mission.pitchPacket.activationHref}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100"
+                            >
+                              <ArrowRight className="h-3.5 w-3.5" />
+                              First Spark route
+                            </Link>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <button

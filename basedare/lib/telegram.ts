@@ -912,6 +912,29 @@ ${htmlLink(appUrl(`/admin/scouts?leadId=${encodeURIComponent(data.leadId)}`), 'O
   return sendMessage(message);
 }
 
+export async function alertCaptainMissionProofSubmitted(data: {
+  leadId: string;
+  creatorHandle: string;
+  venueName: string;
+  city: string;
+  proofCount: number;
+  activationHref: string;
+}): Promise<boolean> {
+  const message = `
+⚡ <b>CAPTAIN MISSION PROOF</b>
+
+Creator: <code>${escapeHtml(data.creatorHandle || 'creator')}</code>
+Venue: <b>${escapeHtml(data.venueName)}</b>
+City: ${escapeHtml(data.city)}
+Proof links: ${data.proofCount}
+Lead: <code>${escapeHtml(data.leadId)}</code>
+
+${htmlLink(appUrl(`/admin/scouts?leadId=${encodeURIComponent(data.leadId)}`), 'Open scout queue')} · ${htmlLink(appUrl(data.activationHref), 'Open First Spark route')}
+`.trim();
+
+  return sendMessage(message);
+}
+
 export async function alertActivationIntakeStatusUpdate(data: {
   leadId: string;
   company: string;
