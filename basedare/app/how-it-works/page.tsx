@@ -1,13 +1,22 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
+  Bell,
   Wallet,
   Camera,
   BadgeCheck,
+  CheckCircle2,
+  ClipboardCheck,
   Zap,
   MapPin,
+  MessageSquare,
+  QrCode,
+  Route,
+  Store,
   Film,
   DollarSign,
   Target,
@@ -102,6 +111,77 @@ const BRAND_POINTS = [
     icon: BarChart3,
     title: "On-chain proof = measurable ROI",
     description: "Every completion is verifiable on-chain. Real proof, real metrics, no fake engagement.",
+  },
+];
+
+const QUICKSTART_TRACKS = [
+  {
+    audience: "Creator",
+    title: "Claim and prove a dare",
+    summary: "Start on the map, claim a nearby dare, then submit proof from the claimed-dare panel.",
+    href: "/map",
+    cta: "Open map",
+    pillClass: "border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-100",
+    iconClass: "text-cyan-300",
+    lineColor: "rgba(103,232,249,0.58)",
+    steps: [
+      { icon: MapPin, label: "Map", detail: "Open pins and nearby paid dares." },
+      { icon: Wallet, label: "Claim", detail: "Connect wallet and reserve the dare." },
+      { icon: QrCode, label: "Check in", detail: "Use proximity or QR when the venue asks." },
+      { icon: Camera, label: "Proof", detail: "Tap take photo/video on the claim." },
+    ],
+    targets: ["Nav: Map", "Place drawer", "Claim proof panel"],
+  },
+  {
+    audience: "Venue",
+    title: "Claim the place layer",
+    summary: "Find your venue, claim the console path, and let check-ins unlock the local room.",
+    href: "/map",
+    cta: "Find venue",
+    pillClass: "border-emerald-300/20 bg-emerald-400/[0.08] text-emerald-100",
+    iconClass: "text-emerald-300",
+    lineColor: "rgba(110,231,183,0.56)",
+    steps: [
+      { icon: Store, label: "Select", detail: "Open the venue from the map." },
+      { icon: QrCode, label: "Claim", detail: "Use the claim prompt on the place." },
+      { icon: MessageSquare, label: "Room", detail: "Checked-in users see the venue feed." },
+      { icon: Bell, label: "Signals", detail: "Watch marks, proof, and check-in alerts." },
+    ],
+    targets: ["Map pin", "Venue header", "Signal room"],
+  },
+  {
+    audience: "Brand",
+    title: "Launch an activation",
+    summary: "Use the Control side to define the story, proof target, budget, and creator route.",
+    href: "/activations",
+    cta: "Plan activation",
+    pillClass: "border-yellow-300/24 bg-yellow-400/[0.09] text-yellow-100",
+    iconClass: "text-yellow-300",
+    lineColor: "rgba(250,204,21,0.62)",
+    steps: [
+      { icon: Target, label: "Brief", detail: "Use Plan Activation from Control." },
+      { icon: MapPin, label: "Place", detail: "Pick the venue or city target." },
+      { icon: Users, label: "Route", detail: "Choose creator fit and payout." },
+      { icon: BarChart3, label: "Receipt", detail: "Track proof in Brand Portal." },
+    ],
+    targets: ["Control switch", "Plan Activation card", "Brand Portal"],
+  },
+  {
+    audience: "Operator",
+    title: "Review marks and alerts",
+    summary: "Moderate place proof, handle Telegram-backed approvals, and check push notification health.",
+    href: "/admin?tab=placeTags",
+    cta: "Open queue",
+    pillClass: "border-fuchsia-300/20 bg-fuchsia-400/[0.08] text-fuchsia-100",
+    iconClass: "text-fuchsia-300",
+    lineColor: "rgba(244,114,182,0.58)",
+    steps: [
+      { icon: ClipboardCheck, label: "Queue", detail: "Open Admin -> Place Tags." },
+      { icon: Camera, label: "Proof", detail: "Review the submitted photo/video." },
+      { icon: CheckCircle2, label: "Decide", detail: "Approve or reject from the panel." },
+      { icon: Bell, label: "Push", detail: "Use Admin -> Push for diagnostics." },
+    ],
+    targets: ["Admin tab bar", "Chaos inbox", "Push diagnostics"],
   },
 ];
 
@@ -235,6 +315,111 @@ export default function HowItWorksPage() {
                   Plan activations, operate the Brand Portal, and read measurable proof.
                 </p>
               </div>
+            </div>
+          </motion.div>
+
+          {/* ════════════════════════════════════════════
+              QUICKSTART GUIDE
+          ════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.24 }}
+            className={`${raisedPanelClass} mb-10 p-5 md:p-8`}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.08),transparent_30%),radial-gradient(circle_at_90%_18%,rgba(245,197,24,0.1),transparent_34%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/28 to-transparent" />
+
+            <div className="relative mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className={sectionLabelClass}>
+                  <Route className="h-4 w-4 text-fuchsia-300" />
+                  START HERE
+                </div>
+                <h2 className="mt-4 text-2xl font-black uppercase italic tracking-tight text-white md:text-3xl">
+                  Pick the <span className="text-cyan-300">Shortest Path</span>
+                </h2>
+                <p className="mt-3 max-w-2xl font-mono text-sm leading-6 text-gray-400">
+                  A visual route map for the live product. Each lane points at the exact surface to open first.
+                </p>
+              </div>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_24px_rgba(0,0,0,0.18)] transition hover:border-white/20 hover:text-white md:self-center"
+              >
+                Home control
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="relative grid gap-4 lg:grid-cols-2">
+              {QUICKSTART_TRACKS.map((track) => (
+                <div key={track.audience} className={`${softCardClass} p-4 md:p-5`}>
+                  <div
+                    className="pointer-events-none absolute inset-x-5 top-0 h-px"
+                    style={{ background: `linear-gradient(90deg, transparent, ${track.lineColor}, transparent)` }}
+                  />
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${track.pillClass}`}>
+                        {track.audience}
+                      </div>
+                      <h3 className="mt-3 text-xl font-black uppercase italic text-white">{track.title}</h3>
+                    </div>
+                    <Link
+                      href={track.href}
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-white/12 bg-black/30 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/78 transition hover:border-white/22 hover:text-white"
+                    >
+                      {track.cta}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+
+                  <p className="mt-3 font-mono text-xs leading-6 text-gray-400">{track.summary}</p>
+
+                  <div className={`${insetDentClass} mt-4 p-3`}>
+                    <div className="grid gap-2">
+                      {track.steps.map((step, index) => (
+                        <div key={step.label} className="grid grid-cols-[42px_1fr_22px] items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.025] px-3 py-3">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-black/35"
+                            style={{ boxShadow: `inset 5px 5px 10px rgba(0,0,0,0.38), 0 0 14px ${track.lineColor}` }}
+                          >
+                            <step.icon className={`h-5 w-5 ${track.iconClass}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-white/34">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                              <span className="truncate text-sm font-bold text-white">{step.label}</span>
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-gray-500">{step.detail}</p>
+                          </div>
+                          {index === track.steps.length - 1 ? (
+                            <CheckCircle2 className={`h-4 w-4 ${track.iconClass}`} />
+                          ) : (
+                            <ArrowRight className="h-4 w-4 text-white/28" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {track.targets.map((target) => (
+                      <span
+                        key={target}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/52"
+                      >
+                        <Route className={`h-3.5 w-3.5 ${track.iconClass}`} />
+                        {target}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </motion.div>
 
