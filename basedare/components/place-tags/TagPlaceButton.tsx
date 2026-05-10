@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { Crosshair, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
+import { Camera, Crosshair, Loader2, MapPin, Sparkles, Upload, Video, X } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useToast } from '@/components/ui/use-toast';
 import SquircleButton from '@/components/ui/SquircleButton';
@@ -50,6 +50,18 @@ type TagPlaceButtonProps = {
 };
 
 const ACCEPTED_MEDIA_COPY = 'Take a photo now or upload short image/video proof from the place itself.';
+const MAX_MARK_MEDIA_SIZE_BYTES = 120 * 1024 * 1024;
+const ACCEPTED_MARK_MEDIA_TYPES = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-matroska',
+  'video/3gpp',
+  'video/3gpp2',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+]);
 
 type SessionShape = {
   token?: string | null;
@@ -95,6 +107,9 @@ export default function TagPlaceButton({
   const [resolvedPlaceId, setResolvedPlaceId] = useState<string | null>(placeId ?? null);
   const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
   const [authChecking, setAuthChecking] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
   const { address: connectedWallet, isConnected } = useAccount();
@@ -227,6 +242,46 @@ export default function TagPlaceButton({
       cta: 'Reconnect session',
     };
   }, [authChecking, hasVerifiedSession, hasWalletConnection, hasWalletMismatch, sessionStatus, sessionToken, sessionWallet]);
+
+  function clearFileInputs() {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  }
+
+  function handleProofFileSelected(selectedFile: File | null | undefined) {
+    if (!selectedFile) return;
+
+    if (!ACCEPTED_MARK_MEDIA_TYPES.has(selectedFile.type.toLowerCase())) {
+      clearFileInputs();
+      setFile(null);
+      toast({
+        title: 'Unsupported media',
+        description: 'Use a JPG, PNG, GIF, MP4, WebM, MOV, or mobile camera video.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedFile.size > MAX_MARK_MEDIA_SIZE_BYTES) {
+      clearFileInputs();
+      setFile(null);
+      toast({
+        title: 'Proof is too large',
+        description: 'Keep proof media under 120MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+  }
 
   async function handleSubmit() {
     if (hasWalletMismatch) {
@@ -376,6 +431,7 @@ export default function TagPlaceButton({
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
       setFile(null);
+      clearFileInputs();
       setCaption('');
       setVibeTags('');
       toast({
@@ -511,20 +567,62 @@ export default function TagPlaceButton({
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
-                      <label className="bd-puncture-well mt-3 flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center transition hover:border-purple-300/34 hover:bg-purple-500/[0.06]">
-                        <Upload className="h-6 w-6 text-purple-100" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        className="hidden"
+                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                      />
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                      />
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                      />
+                      <div className="bd-puncture-well mt-3 flex min-h-[170px] flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center">
+                        <Camera className="h-6 w-6 text-purple-100" />
                         <p className="mt-3 text-sm font-semibold text-white">
-                          {file ? file.name : 'Take photo or upload proof'}
+                          {file ? file.name : 'Capture proof at the place'}
                         </p>
                         <p className="mt-2 text-xs text-white/45">{ACCEPTED_MEDIA_COPY}</p>
-                        <input
-                          type="file"
-                          accept="image/*,video/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                        />
-                      </label>
+                        <div className="mt-4 grid w-full gap-2">
+                          <button
+                            type="button"
+                            onClick={() => photoInputRef.current?.click()}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]"
+                          >
+                            <Camera className="h-3.5 w-3.5" />
+                            Take photo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => videoInputRef.current?.click()}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/18 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                            Record video
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.075] active:scale-[0.98]"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload existing
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-4">

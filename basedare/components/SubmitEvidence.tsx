@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw } from 'lucide-react';
+import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw, Camera, Video } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
 import { useToast } from '@/components/ui/use-toast';
@@ -63,6 +63,8 @@ export default function SubmitEvidence({
   const [appealText, setAppealText] = useState('');
   const [appealSubmitted, setAppealSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
@@ -276,7 +278,17 @@ export default function SubmitEvidence({
   };
 
   const handleFileSelect = (selectedFile: File) => {
-    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'image/jpeg', 'image/png', 'image/gif'];
+    const validTypes = [
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'video/x-matroska',
+      'video/3gpp',
+      'video/3gpp2',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+    ];
     if (!validTypes.includes(selectedFile.type)) {
       setError('Invalid file type. Please upload a video (MP4, WebM, MOV) or image (JPEG, PNG, GIF).');
       return;
@@ -481,6 +493,12 @@ export default function SubmitEvidence({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
   };
 
   const handleClick = () => {
@@ -657,6 +675,21 @@ export default function SubmitEvidence({
         ref={fileInputRef}
         type="file"
         accept="video/*,image/*"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
         capture="environment"
         onChange={handleFileInputChange}
         className="hidden"
@@ -823,7 +856,7 @@ export default function SubmitEvidence({
               <p className="text-xs font-mono text-gray-400 max-w-[240px]">
                 {isDragging
                   ? 'Release to upload'
-                  : `Upload one clear photo or short video from ${activationLabel}.`}
+                  : `Capture or upload one clear photo or short video from ${activationLabel}.`}
               </p>
             </div>
             {error && (
@@ -832,6 +865,41 @@ export default function SubmitEvidence({
                 {error}
               </div>
             )}
+            <div className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  photoInputRef.current?.click();
+                }}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-cyan-300/24 bg-cyan-400/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.14] active:scale-[0.98]"
+              >
+                <Camera className="h-4 w-4" />
+                Take photo
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  videoInputRef.current?.click();
+                }}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
+              >
+                <Video className="h-4 w-4" />
+                Record video
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 transition hover:bg-white/[0.08] active:scale-[0.98]"
+              >
+                <Upload className="h-4 w-4" />
+                Upload existing
+              </button>
+            </div>
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
                 <span>Venue visible</span>
