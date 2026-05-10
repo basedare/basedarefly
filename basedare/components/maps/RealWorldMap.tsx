@@ -17,6 +17,8 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Eye,
+  EyeOff,
   Flame,
   Loader2,
   LocateFixed,
@@ -28,8 +30,10 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  Send,
   ShieldCheck,
   Sparkles,
+  Users,
   X,
   Zap,
 } from 'lucide-react';
@@ -266,6 +270,50 @@ type ActivePresenceSignal = {
   visibility: VenuePresenceVisibility;
   durationMinutes: VenuePresenceDuration;
   expiresAt: string;
+};
+type VenueRoomAccess = {
+  unlocked: boolean;
+  mode: 'check-in' | 'proximity' | 'locked';
+  reason: string;
+  ttlHours: number;
+  radiusMeters: number;
+};
+type VenueRoomMessage = {
+  id: string;
+  walletLabel: string;
+  displayName: string;
+  avatarUrl: string | null;
+  body: string;
+  mine: boolean;
+  createdAt: string;
+  expiresAt: string;
+};
+type VenueRoomPresence = {
+  id: string;
+  walletLabel: string;
+  displayName: string;
+  avatarUrl: string | null;
+  source: string;
+  lastSeenAt: string;
+  expiresAt: string;
+};
+type VenueRoomSnapshot = {
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  access: VenueRoomAccess;
+  messages: VenueRoomMessage[];
+  whoHere: VenueRoomPresence[];
+  viewer: {
+    visible: boolean;
+  };
+};
+type VenueRoomResponse = {
+  success: boolean;
+  error?: string;
+  data?: VenueRoomSnapshot;
 };
 
 const LOCAL_SIGNAL_CATEGORIES = [
@@ -1693,6 +1741,26 @@ function getExpiryLabel(expiresAt: string | null) {
   return `ends in ${diffDays}d`;
 }
 
+function getCompactTimeAgo(value: string | null) {
+  if (!value) return 'now';
+
+  const diffMs = Date.now() - new Date(value).getTime();
+  if (diffMs <= 0) return 'now';
+
+  const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+  if (diffMinutes < 60) return `${diffMinutes}m`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+
+  return `${Math.round(diffHours / 24)}d`;
+}
+
+function getRoomInitial(label: string) {
+  const trimmed = label.trim().replace(/^@/, '');
+  return (trimmed[0] || '?').toUpperCase();
+}
+
 function getSparkBadge(approvedCount: number) {
   if (approvedCount <= 0) return '!';
   if (approvedCount > 9) return '9+';
@@ -2746,6 +2814,15 @@ export default function RealWorldMap() {
   const [activePresenceSignal, setActivePresenceSignal] = useState<ActivePresenceSignal | null>(null);
   const [checkInLaunching, setCheckInLaunching] = useState(false);
   const [checkInLaunchState, setCheckInLaunchState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
+  const [venueRoomAccess, setVenueRoomAccess] = useState<VenueRoomAccess | null>(null);
+  const [venueRoomMessages, setVenueRoomMessages] = useState<VenueRoomMessage[]>([]);
+  const [venueRoomWhoHere, setVenueRoomWhoHere] = useState<VenueRoomPresence[]>([]);
+  const [venueRoomLoading, setVenueRoomLoading] = useState(false);
+  const [venueRoomSending, setVenueRoomSending] = useState(false);
+  const [venueRoomPresenceUpdating, setVenueRoomPresenceUpdating] = useState(false);
+  const [venueRoomDraft, setVenueRoomDraft] = useState('');
+  const [venueRoomVisible, setVenueRoomVisible] = useState(false);
+  const [venueRoomState, setVenueRoomState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -3917,6 +3994,221 @@ export default function RealWorldMap() {
     []
   );
 
+  const applyVenueRoomSnapshot = useCallback((snapshot: VenueRoomSnapshot) => {
+    setVenueRoomAccess(snapshot.access);
+    setVenueRoomMessages(snapshot.messages);
+    setVenueRoomWhoHere(snapshot.whoHere);
+    setVenueRoomVisible(snapshot.viewer.visible);
+  }, []);
+
+  const loadSelectedVenueRoom = useCallback(
+    async (slug: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      try {
+        if (!silent) {
+          setVenueRoomLoading(true);
+        }
+        setVenueRoomState(null);
+
+        const params = new URLSearchParams({ limit: '20' });
+        if (address) {
+          params.set('walletAddress', address);
+        }
+        if (userLocation) {
+          params.set('lat', String(userLocation.latitude));
+          params.set('lng', String(userLocation.longitude));
+        }
+
+        const headers = address
+          ? await buildWalletActionAuthHeaders({
+              walletAddress: address,
+              action: 'venue-room:read',
+              resource: `venue:${slug}:room`,
+              allowSignPrompt: false,
+              signMessageAsync,
+            })
+          : {};
+
+        const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/room?${params.toString()}`, {
+          headers,
+          signal,
+        });
+        const payload = (await response.json().catch(() => null)) as VenueRoomResponse | null;
+
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(payload?.error || 'Unable to load venue room');
+        }
+
+        applyVenueRoomSnapshot(payload.data);
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        console.error('[REAL_WORLD_MAP] Venue room failed:', error);
+        setVenueRoomAccess(null);
+        setVenueRoomMessages([]);
+        setVenueRoomWhoHere([]);
+        setVenueRoomVisible(false);
+        setVenueRoomState({ type: 'error', message: 'Room unavailable right now.' });
+      } finally {
+        if (!signal?.aborted && !silent) {
+          setVenueRoomLoading(false);
+        }
+      }
+    },
+    [address, applyVenueRoomSnapshot, signMessageAsync, userLocation]
+  );
+
+  const handlePostVenueRoomMessage = useCallback(async () => {
+    const slug = selectedPlace?.slug;
+    const body = venueRoomDraft.trim();
+
+    if (!slug || venueRoomSending) {
+      return;
+    }
+
+    if (!address || !isConnected) {
+      setVenueRoomState({ type: 'error', message: 'Connect your wallet to post in this room.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    if (!body) {
+      setVenueRoomState({ type: 'error', message: 'Write something before posting.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    setVenueRoomSending(true);
+    setVenueRoomState(null);
+
+    try {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        action: 'venue-room:post',
+        resource: `venue:${slug}:room`,
+        allowSignPrompt: true,
+        signMessageAsync,
+      });
+
+      const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/room`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          body,
+          lat: userLocation?.latitude,
+          lng: userLocation?.longitude,
+          showInWhoHere: venueRoomVisible,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as VenueRoomResponse | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Unable to post in this venue room');
+      }
+
+      applyVenueRoomSnapshot(payload.data);
+      setVenueRoomDraft('');
+      setVenueRoomState({ type: 'info', message: `Posted. Room messages expire in ${payload.data.access.ttlHours}h.` });
+      triggerHaptic('success');
+    } catch (error) {
+      setVenueRoomState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to post in this venue room.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setVenueRoomSending(false);
+    }
+  }, [
+    address,
+    applyVenueRoomSnapshot,
+    isConnected,
+    selectedPlace?.slug,
+    signMessageAsync,
+    userLocation,
+    venueRoomDraft,
+    venueRoomSending,
+    venueRoomVisible,
+  ]);
+
+  const handleToggleVenueRoomVisibility = useCallback(async () => {
+    const slug = selectedPlace?.slug;
+    const nextVisible = !venueRoomVisible;
+
+    if (!slug || venueRoomPresenceUpdating) {
+      return;
+    }
+
+    if (!address || !isConnected) {
+      setVenueRoomState({ type: 'error', message: 'Connect your wallet to show up here.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    setVenueRoomPresenceUpdating(true);
+    setVenueRoomState(null);
+
+    try {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        action: 'venue-room:presence',
+        resource: `venue:${slug}:room`,
+        allowSignPrompt: true,
+        signMessageAsync,
+      });
+
+      const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/room/presence`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          visible: nextVisible,
+          lat: userLocation?.latitude,
+          lng: userLocation?.longitude,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as VenueRoomResponse | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Unable to update room visibility');
+      }
+
+      applyVenueRoomSnapshot(payload.data);
+      setVenueRoomState({
+        type: 'info',
+        message: nextVisible ? "You're visible in Who's Here." : "You're hidden from Who's Here.",
+      });
+      triggerHaptic('success');
+    } catch (error) {
+      setVenueRoomState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to update room visibility.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setVenueRoomPresenceUpdating(false);
+    }
+  }, [
+    address,
+    applyVenueRoomSnapshot,
+    isConnected,
+    selectedPlace?.slug,
+    signMessageAsync,
+    userLocation,
+    venueRoomPresenceUpdating,
+    venueRoomVisible,
+  ]);
+
   useEffect(() => {
     const placeId = selectedPlace?.placeId;
 
@@ -3949,6 +4241,26 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [loadSelectedPlaceVenueDetail, selectedPlace?.slug]);
+
+  useEffect(() => {
+    const slug = selectedPlace?.slug;
+
+    if (!slug) {
+      setVenueRoomAccess(null);
+      setVenueRoomMessages((current) => (current.length > 0 ? [] : current));
+      setVenueRoomWhoHere((current) => (current.length > 0 ? [] : current));
+      setVenueRoomLoading(false);
+      setVenueRoomDraft('');
+      setVenueRoomVisible(false);
+      setVenueRoomState(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    void loadSelectedVenueRoom(slug, controller.signal);
+
+    return () => controller.abort();
+  }, [address, loadSelectedVenueRoom, selectedPlace?.slug, userLocation?.latitude, userLocation?.longitude]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -6129,6 +6441,152 @@ export default function RealWorldMap() {
       ) : null}
     </div>
   ) : null;
+  const venueRoomUnlocked = Boolean(venueRoomAccess?.unlocked);
+  const selectedVenueRoomRail = selectedPlace?.slug ? (
+    <div className="map-panel-section mt-3 rounded-[22px] border border-violet-300/16 bg-[linear-gradient(180deg,rgba(168,85,247,0.12)_0%,rgba(10,8,18,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-violet-100/82">
+            <Users className="h-3.5 w-3.5 text-violet-200" />
+            Venue Room
+          </div>
+          <p className="mt-1.5 truncate text-sm font-semibold text-white">
+            {venueRoomUnlocked ? 'Live local feed.' : 'Check in or get nearby.'}
+          </p>
+        </div>
+        <span className="rounded-full border border-violet-300/20 bg-violet-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100">
+          {venueRoomAccess?.ttlHours ?? 24}h
+        </span>
+      </div>
+
+      <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Who&apos;s Here</span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/46">
+              {venueRoomWhoHere.length}
+            </span>
+          </div>
+          {venueRoomLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-100/70" /> : null}
+        </div>
+
+        <div className="mt-2 flex min-h-8 items-center gap-1.5 overflow-hidden">
+          {venueRoomWhoHere.length > 0 ? (
+            venueRoomWhoHere.slice(0, 5).map((person) => (
+              <div
+                key={person.id}
+                className="inline-flex min-w-0 max-w-[7.75rem] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] py-1 pl-1 pr-2 text-[10px] font-semibold text-white/72"
+                title={`${person.displayName} · ${getCompactTimeAgo(person.lastSeenAt)} ago`}
+              >
+                <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-violet-200/18 bg-violet-500/[0.14] text-[9px] font-black text-violet-100">
+                  {person.avatarUrl ? (
+                    <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    getRoomInitial(person.displayName)
+                  )}
+                </span>
+                <span className="truncate">{person.displayName}</span>
+              </div>
+            ))
+          ) : (
+            <span className="text-xs text-white/42">No visible tags yet.</span>
+          )}
+        </div>
+      </div>
+
+      {venueRoomUnlocked ? (
+        <div className="mt-2 space-y-2">
+          <div className="max-h-36 space-y-1.5 overflow-y-auto rounded-[18px] border border-white/8 bg-black/18 p-2">
+            {venueRoomMessages.length > 0 ? (
+              venueRoomMessages.slice(-4).map((message) => (
+                <div
+                  key={message.id}
+                  className={`rounded-[14px] border px-2.5 py-2 ${
+                    message.mine
+                      ? 'border-violet-300/20 bg-violet-500/[0.1]'
+                      : 'border-white/8 bg-white/[0.035]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.13em] text-white/58">
+                      {message.displayName}
+                    </span>
+                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
+                      {getCompactTimeAgo(message.createdAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-words text-xs leading-5 text-white/76">{message.body}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[14px] border border-white/8 bg-white/[0.03] px-3 py-3 text-xs text-white/46">
+                Room is quiet.
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <textarea
+              value={venueRoomDraft}
+              onChange={(event) => setVenueRoomDraft(event.target.value.slice(0, 280))}
+              rows={2}
+              maxLength={280}
+              placeholder="Drop a local signal..."
+              className="min-h-[48px] resize-none rounded-[16px] border border-white/10 bg-black/28 px-3 py-2 text-xs leading-5 text-white placeholder:text-white/28 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-10px_16px_rgba(0,0,0,0.2)] focus:border-violet-200/32"
+            />
+            <button
+              type="button"
+              onClick={handlePostVenueRoomMessage}
+              disabled={venueRoomSending || !venueRoomDraft.trim()}
+              className="inline-flex h-full min-h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-violet-300/24 bg-[linear-gradient(180deg,rgba(168,85,247,0.2)_0%,rgba(12,9,20,0.94)_100%)] text-violet-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-50 disabled:hover:translate-y-0"
+              aria-label="Post venue room message"
+              title="Post"
+            >
+              {venueRoomSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleVenueRoomVisibility}
+            disabled={venueRoomPresenceUpdating}
+            data-active={venueRoomVisible}
+            className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/52 transition hover:border-white/18 hover:text-white data-[active=true]:border-emerald-300/24 data-[active=true]:bg-emerald-500/[0.1] data-[active=true]:text-emerald-100 disabled:cursor-wait disabled:opacity-60"
+          >
+            {venueRoomPresenceUpdating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : venueRoomVisible ? (
+              <Eye className="h-3.5 w-3.5" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5" />
+            )}
+            {venueRoomVisible ? "Visible in Who's Here" : "Hidden from Who's Here"}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
+          <p className="min-w-0 text-xs leading-5 text-white/52">
+            {venueRoomAccess?.reason ?? 'Check in or get nearby to open this room.'}
+          </p>
+          <button
+            type="button"
+            onClick={requestApproximateLocation}
+            disabled={locating}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-violet-300/24 bg-violet-500/[0.1] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100 transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+            Locate
+          </button>
+        </div>
+      )}
+
+      {venueRoomState ? (
+        <p className={`mt-2 text-xs leading-5 ${venueRoomState.type === 'error' ? 'text-rose-200/82' : 'text-violet-100/76'}`}>
+          {venueRoomState.message}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <section
@@ -7279,6 +7737,8 @@ export default function RealWorldMap() {
                   {selectedPlaceCheckInRail}
 
                   {selectedPlacePresenceRail}
+
+                  {selectedVenueRoomRail}
 
                   <div className="map-command-console hidden">
                     <div className="map-command-console-header">

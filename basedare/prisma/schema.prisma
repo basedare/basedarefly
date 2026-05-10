@@ -163,6 +163,8 @@ model Venue {
   memories            VenueMemory[]
   placeTags           PlaceTag[]
   qrSessions          VenueQrSession[]
+  roomMessages        VenueRoomMessage[]
+  roomPresences       VenueRoomPresence[]
   reportEvents        VenueReportEvent[]
   reportLeads         VenueReportLead[]
   founderEvents       FounderEvent[]
@@ -357,6 +359,44 @@ model VenueQrSession {
 
   @@index([venueId, status])
   @@index([startedAt])
+}
+
+model VenueRoomMessage {
+  id            String   @id @default(cuid())
+  venueId       String
+  walletAddress String
+  displayName   String   @default("Anonymous")
+  avatarUrl     String?
+  body          String
+  expiresAt     DateTime
+  metadataJson  Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, expiresAt, createdAt])
+  @@index([venueId, walletAddress, createdAt])
+  @@index([walletAddress, createdAt])
+}
+
+model VenueRoomPresence {
+  id            String   @id @default(cuid())
+  venueId       String
+  walletAddress String
+  displayName   String   @default("Anonymous")
+  avatarUrl     String?
+  visibility    String   @default("PUBLIC")
+  source        String   @default("ROOM")
+  lastSeenAt    DateTime @default(now())
+  expiresAt     DateTime
+  metadataJson  Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, walletAddress])
+  @@index([venueId, visibility, expiresAt, lastSeenAt])
+  @@index([walletAddress, lastSeenAt])
 }
 
 model AppSettings {

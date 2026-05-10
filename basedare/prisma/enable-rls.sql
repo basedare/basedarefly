@@ -44,6 +44,8 @@ ALTER TABLE "PlaceTag"                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueCheckIn"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueMemory"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "VenueQrSession"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueRoomMessage"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "VenueRoomPresence"        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FounderEvent"             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
@@ -161,6 +163,16 @@ DROP POLICY IF EXISTS "service_role_all_VenueQrSession" ON "VenueQrSession";
 CREATE POLICY "service_role_all_VenueQrSession" ON "VenueQrSession"
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- VenueRoomMessage
+DROP POLICY IF EXISTS "service_role_all_VenueRoomMessage" ON "VenueRoomMessage";
+CREATE POLICY "service_role_all_VenueRoomMessage" ON "VenueRoomMessage"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- VenueRoomPresence
+DROP POLICY IF EXISTS "service_role_all_VenueRoomPresence" ON "VenueRoomPresence";
+CREATE POLICY "service_role_all_VenueRoomPresence" ON "VenueRoomPresence"
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
 -- FounderEvent
 DROP POLICY IF EXISTS "service_role_all_FounderEvent" ON "FounderEvent";
 CREATE POLICY "service_role_all_FounderEvent" ON "FounderEvent"
@@ -247,7 +259,7 @@ BEGIN
     'User', 'Dare', 'Referral', 'StreamerTag', 'Brand', 'Campaign',
     'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
     'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
-    'VenueMemory', 'VenueQrSession', 'FounderEvent', 'Comment', 'Vote', 'VoterPoints',
+    'VenueMemory', 'VenueQrSession', 'VenueRoomMessage', 'VenueRoomPresence', 'FounderEvent', 'Comment', 'Vote', 'VoterPoints',
     'Notification', 'InboxThread', 'InboxMessage', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
     'AppSettings', 'WebPushSubscription', 'WebPushDelivery', '_prisma_migrations'
   ]
