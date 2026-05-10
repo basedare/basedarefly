@@ -400,6 +400,10 @@ interface AdminPlace {
 
 interface PushDiagnosticsSummary {
   configured: boolean;
+  publicKeyConfigured: boolean;
+  privateKeyConfigured: boolean;
+  publicKeySource: string | null;
+  subject: string;
   activeSubscriptions: number;
   inactiveSubscriptions: number;
   freshLocationSubscriptions: number;
@@ -644,6 +648,10 @@ export default function AdminPage() {
   const [savingPlace, setSavingPlace] = useState(false);
   const [pushSummary, setPushSummary] = useState<PushDiagnosticsSummary>({
     configured: false,
+    publicKeyConfigured: false,
+    privateKeyConfigured: false,
+    publicKeySource: null,
+    subject: 'mailto:hello@basedare.xyz',
     activeSubscriptions: 0,
     inactiveSubscriptions: 0,
     freshLocationSubscriptions: 0,
@@ -4539,7 +4547,12 @@ export default function AdminPage() {
                 <div className={`mt-3 text-3xl font-black ${pushSummary.configured ? 'text-emerald-300' : 'text-red-300'}`}>
                   {pushSummary.configured ? 'Armed' : 'Missing'}
                 </div>
-                <div className="mt-1 text-xs text-white/45">VAPID public/private key status</div>
+                <div className="mt-1 text-xs text-white/45">
+                  Public {pushSummary.publicKeyConfigured ? 'yes' : 'no'} · private {pushSummary.privateKeyConfigured ? 'yes' : 'no'}
+                </div>
+                <div className="mt-2 truncate text-[10px] uppercase tracking-[0.16em] text-white/35">
+                  {pushSummary.publicKeySource || 'no public source'}
+                </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Active subscriptions</div>

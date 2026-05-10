@@ -33,8 +33,25 @@ export default function PwaRegistrar() {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
+        const activateWaitingWorker = () => {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        };
+
+        registration.addEventListener('updatefound', () => {
+          const installing = registration.installing;
+          if (!installing) return;
+
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed') {
+              activateWaitingWorker();
+            }
+          });
+        });
+
         if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          activateWaitingWorker();
         }
 
         registration.update().catch(() => {});

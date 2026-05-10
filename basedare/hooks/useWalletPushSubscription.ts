@@ -8,6 +8,11 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 export type PushTopic = 'wallet' | 'nearby' | 'campaigns' | 'venues';
+type PushLocationContext = {
+  latitude: number;
+  longitude: number;
+  radiusKm?: number;
+};
 
 export const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
   { id: 'wallet', label: 'Wallet' },
@@ -18,6 +23,8 @@ export const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
 
 export const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
 const PUSH_SUBSCRIPTION_CHANGED_EVENT = 'basedare:push-subscription-changed';
+const SERVICE_WORKER_READY_TIMEOUT_MS = 8_000;
+const GEOLOCATION_TIMEOUT_MS = 8_000;
 
 function announcePushSubscriptionChanged() {
   if (typeof window === 'undefined') return;
@@ -38,6 +45,102 @@ function getNotificationPermission(): NotificationPermission | 'unsupported' {
   return window.Notification.permission;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+async function parseJsonResponse(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  });
+}
+
+async function getReadyServiceWorkerRegistration() {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    throw new Error('Service workers are not supported in this browser.');
+  }
+
+  let registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) {
+    registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  } else {
+    registration.update().catch(() => {});
+  }
+
+  if (registration.active) {
+    return registration;
+  }
+
+  return withTimeout(
+    navigator.serviceWorker.ready,
+    SERVICE_WORKER_READY_TIMEOUT_MS,
+    'Service worker is not ready yet. Reload BaseDare and try again.'
+  );
+}
+
+async function getGeolocationPermissionState() {
+  if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+    return null;
+  }
+
+  try {
+    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+    return status.state;
+  } catch {
+    return null;
+  }
+}
+
+async function readCurrentPushLocation(radiusKm: number, options: { promptIfUnknown: boolean }) {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return null;
+  }
+
+  const permissionState = await getGeolocationPermissionState();
+  if (permissionState === 'denied' || (!options.promptIfUnknown && permissionState !== 'granted')) {
+    return null;
+  }
+
+  return withTimeout(
+    new Promise<PushLocationContext>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            radiusKm,
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 60_000,
+          timeout: GEOLOCATION_TIMEOUT_MS,
+        }
+      );
+    }),
+    GEOLOCATION_TIMEOUT_MS + 750,
+    'Location lookup timed out.'
+  ).catch(() => null);
+}
+
 export function useWalletPushSubscription() {
   const { address, sessionWallet } = useActiveWallet();
   const { data: session } = useSession();
@@ -47,6 +150,7 @@ export function useWalletPushSubscription() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushTesting, setPushTesting] = useState(false);
+  const [pushLocationBusy, setPushLocationBusy] = useState(false);
   const [pushMessage, setPushMessage] = useState<string | null>(null);
   const [pushEndpoint, setPushEndpoint] = useState<string | null>(null);
   const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
@@ -87,7 +191,7 @@ export function useWalletPushSubscription() {
     }
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyServiceWorkerRegistration();
       const subscription = await registration.pushManager.getSubscription();
       const headers = await getWalletAuthHeaders('push:read', false);
       const params = new URLSearchParams({ wallet: address });
@@ -95,9 +199,9 @@ export function useWalletPushSubscription() {
         params.set('endpoint', subscription.endpoint);
       }
       const res = await fetch(`/api/push/subscriptions?${params.toString()}`, { headers });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
-      if (data.success) {
+      if (data?.success) {
         setPushConfigured(Boolean(data.configured ?? vapidPublicKey));
         setPushEnabled(Boolean(subscription && data.subscribed));
         setPushEndpoint(subscription?.endpoint ?? null);
@@ -146,16 +250,37 @@ export function useWalletPushSubscription() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyServiceWorkerRegistration();
       let subscription = await registration.pushManager.getSubscription();
 
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        });
+      if (subscription && !pushEnabled) {
+        await subscription.unsubscribe().catch(() => {});
+        subscription = null;
       }
 
+      if (!subscription) {
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+        } catch (error) {
+          const currentSubscription = await registration.pushManager.getSubscription().catch(() => null);
+          if (!currentSubscription) {
+            throw error;
+          }
+
+          await currentSubscription.unsubscribe().catch(() => {});
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+        }
+      }
+
+      const location = pushTopics.includes('nearby')
+        ? await readCurrentPushLocation(nearbyRadiusKm, { promptIfUnknown: false })
+        : null;
       const headers = await getWalletAuthHeaders('push:write', true);
       const res = await fetch('/api/push/subscriptions', {
         method: 'POST',
@@ -165,26 +290,29 @@ export function useWalletPushSubscription() {
           subscription: subscription.toJSON(),
           topics: pushTopics,
           nearbyRadiusKm,
+          location,
         }),
       });
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to save subscription');
+      const data = await parseJsonResponse(res);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to save subscription');
       }
 
-      setPushConfigured(true);
+      setPushConfigured(Boolean(data.configured ?? true));
       setPushEnabled(true);
       setPushEndpoint(subscription.endpoint);
-      setPushMessage('Push alerts armed for this wallet.');
+      setPushMessage(data.configured === false
+        ? 'Device saved, but push delivery keys are missing on the server.'
+        : 'Push alerts armed for this wallet.');
       announcePushSubscriptionChanged();
     } catch (err) {
       console.error('Failed to enable push alerts', err);
-      setPushMessage('Could not enable push alerts right now.');
+      setPushMessage(getErrorMessage(err, 'Could not enable push alerts right now.'));
     } finally {
       setPushBusy(false);
     }
-  }, [address, getWalletAuthHeaders, nearbyRadiusKm, pushSupported, pushTopics, vapidPublicKey]);
+  }, [address, getWalletAuthHeaders, nearbyRadiusKm, pushEnabled, pushSupported, pushTopics, vapidPublicKey]);
 
   const disablePushSubscription = useCallback(async () => {
     if (!address || !pushSupported) {
@@ -195,7 +323,7 @@ export function useWalletPushSubscription() {
     setPushMessage(null);
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyServiceWorkerRegistration();
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -217,7 +345,7 @@ export function useWalletPushSubscription() {
       announcePushSubscriptionChanged();
     } catch (err) {
       console.error('Failed to disable push alerts', err);
-      setPushMessage('Could not pause push alerts right now.');
+      setPushMessage(getErrorMessage(err, 'Could not pause push alerts right now.'));
     } finally {
       setPushBusy(false);
     }
@@ -253,9 +381,9 @@ export function useWalletPushSubscription() {
           }),
         });
 
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to update push topics');
+        const data = await parseJsonResponse(res);
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || 'Failed to update push topics');
         }
 
         setPushTopics(data.topics);
@@ -263,7 +391,7 @@ export function useWalletPushSubscription() {
         announcePushSubscriptionChanged();
       } catch (err) {
         console.error('Failed to update push topics', err);
-        setPushMessage('Could not update alert categories right now.');
+        setPushMessage(getErrorMessage(err, 'Could not update alert categories right now.'));
       } finally {
         setPushBusy(false);
       }
@@ -292,9 +420,9 @@ export function useWalletPushSubscription() {
           }),
         });
 
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to update nearby radius');
+        const data = await parseJsonResponse(res);
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || 'Failed to update nearby radius');
         }
 
         setNearbyRadiusKm(radiusKm);
@@ -302,13 +430,54 @@ export function useWalletPushSubscription() {
         announcePushSubscriptionChanged();
       } catch (err) {
         console.error('Failed to update nearby radius', err);
-        setPushMessage('Could not update nearby alert radius right now.');
+        setPushMessage(getErrorMessage(err, 'Could not update nearby alert radius right now.'));
       } finally {
         setPushBusy(false);
       }
     },
     [address, getWalletAuthHeaders, nearbyRadiusKm, pushEnabled, pushEndpoint]
   );
+
+  const syncPushLocationContext = useCallback(async () => {
+    if (!address || !pushEnabled || !pushEndpoint) {
+      return;
+    }
+
+    setPushLocationBusy(true);
+    setPushMessage(null);
+
+    try {
+      const location = await readCurrentPushLocation(nearbyRadiusKm, { promptIfUnknown: true });
+      if (!location) {
+        throw new Error('Location access is unavailable for this browser.');
+      }
+
+      const headers = await getWalletAuthHeaders('push:write', true);
+      const res = await fetch('/api/push/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          wallet: address,
+          endpoint: pushEndpoint,
+          location,
+          nearbyRadiusKm,
+        }),
+      });
+
+      const data = await parseJsonResponse(res);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to update nearby alert location');
+      }
+
+      setPushMessage('Nearby alert location refreshed for this device.');
+      announcePushSubscriptionChanged();
+    } catch (err) {
+      console.error('Failed to update push location context', err);
+      setPushMessage(getErrorMessage(err, 'Could not update nearby alert location right now.'));
+    } finally {
+      setPushLocationBusy(false);
+    }
+  }, [address, getWalletAuthHeaders, nearbyRadiusKm, pushEnabled, pushEndpoint]);
 
   const sendTestPush = useCallback(async () => {
     if (!address || !pushEndpoint) {
@@ -329,15 +498,15 @@ export function useWalletPushSubscription() {
         }),
       });
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to send test push');
+      const data = await parseJsonResponse(res);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to send test push');
       }
 
       setPushMessage('Test push sent. Check this device now.');
     } catch (err) {
       console.error('Failed to send test push', err);
-      setPushMessage('Could not send a test push right now.');
+      setPushMessage(getErrorMessage(err, 'Could not send a test push right now.'));
     } finally {
       setPushTesting(false);
     }
@@ -351,6 +520,7 @@ export function useWalletPushSubscription() {
     pushConfigured,
     pushEnabled,
     pushEndpoint,
+    pushLocationBusy,
     pushMessage,
     pushSupported,
     pushTesting,
@@ -360,6 +530,7 @@ export function useWalletPushSubscription() {
     refreshPushState,
     sendTestPush,
     setPushMessage,
+    syncPushLocationContext,
     syncPushSubscription,
     togglePushTopic,
     updateNearbyRadius,

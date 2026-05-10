@@ -37,6 +37,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
     address,
     permission,
     pushBusy,
+    pushConfigured,
     pushEnabled,
     pushMessage,
     pushSupported,
@@ -110,6 +111,10 @@ export default function PushActivationCard({ className = '', compact = false }: 
               <p className="mt-2 text-xs font-semibold text-yellow-100/80">
                 Browser notifications are blocked. Re-enable them in site settings to receive alerts.
               </p>
+            ) : !pushConfigured ? (
+              <p className="mt-2 text-xs font-semibold text-yellow-100/80">
+                Push delivery keys need server configuration before alerts can send.
+              </p>
             ) : null}
           </div>
         </div>
@@ -118,7 +123,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
           <button
             type="button"
             onClick={() => void syncPushSubscription()}
-            disabled={pushBusy || permissionBlocked}
+            disabled={pushBusy || permissionBlocked || !pushConfigured}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-200/28 bg-[linear-gradient(180deg,rgba(103,232,249,0.22)_0%,rgba(8,145,178,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {pushBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}

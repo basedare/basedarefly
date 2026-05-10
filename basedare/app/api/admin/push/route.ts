@@ -3,7 +3,7 @@ import { isAddress } from 'viem';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
-import { PUSH_TOPICS, sendWalletPush, type PushTopic } from '@/lib/web-push';
+import { getPushDeliveryConfig, PUSH_TOPICS, sendWalletPush, type PushTopic } from '@/lib/web-push';
 
 function sanitizePushText(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
@@ -20,13 +20,6 @@ function sanitizePushTopic(value: unknown): PushTopic | null {
   return PUSH_TOPICS.includes(value as PushTopic) ? (value as PushTopic) : null;
 }
 
-function hasPushDeliveryConfig() {
-  return Boolean(
-    (process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)?.trim() &&
-    process.env.VAPID_PRIVATE_KEY?.trim()
-  );
-}
-
 export async function GET(request: NextRequest) {
   const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) {
@@ -34,6 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const deliveryConfig = getPushDeliveryConfig();
     const [subscriptions, recentDeliveries] = await Promise.all([
       prisma.webPushSubscription.findMany({
         orderBy: { updatedAt: 'desc' },
@@ -88,7 +82,11 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         summary: {
-          configured: hasPushDeliveryConfig(),
+          configured: deliveryConfig.configured,
+          publicKeyConfigured: deliveryConfig.publicKeyConfigured,
+          privateKeyConfigured: deliveryConfig.privateKeyConfigured,
+          publicKeySource: deliveryConfig.publicKeySource,
+          subject: deliveryConfig.subject,
           activeSubscriptions: activeSubscriptions.length,
           inactiveSubscriptions: inactiveSubscriptions.length,
           freshLocationSubscriptions: freshLocationCount,

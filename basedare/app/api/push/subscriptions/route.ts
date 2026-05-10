@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
+import { getPushDeliveryConfig } from '@/lib/web-push';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type PushKeys = {
@@ -129,6 +130,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const deliveryConfig = getPushDeliveryConfig();
+    const clientConfigured = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim());
+
     return NextResponse.json({
       success: true,
       subscribed: Boolean(subscription),
@@ -144,7 +148,10 @@ export async function GET(request: NextRequest) {
             }
           : null,
       updatedAt: subscription?.updatedAt ?? null,
-      configured: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+      configured: clientConfigured && deliveryConfig.configured,
+      clientConfigured,
+      deliveryConfigured: deliveryConfig.configured,
+      config: deliveryConfig,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -212,7 +219,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    const deliveryConfig = getPushDeliveryConfig();
+    const clientConfigured = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim());
+
+    return NextResponse.json({
+      success: true,
+      configured: clientConfigured && deliveryConfig.configured,
+      clientConfigured,
+      deliveryConfigured: deliveryConfig.configured,
+      config: deliveryConfig,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[PUSH] Subscribe failed:', message);
@@ -258,9 +274,13 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    const topics = body?.topics === undefined ? (existing?.topics ?? ['wallet', 'nearby']) : sanitizeTopics(body?.topics);
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Active push subscription not found' }, { status: 404 });
+    }
 
-    await prisma.webPushSubscription.updateMany({
+    const topics = body?.topics === undefined ? existing.topics : sanitizeTopics(body?.topics);
+
+    const updated = await prisma.webPushSubscription.updateMany({
       where: {
         wallet: lowerWallet,
         endpoint,
@@ -275,6 +295,10 @@ export async function PATCH(request: NextRequest) {
         lastSeenAt: new Date(),
       },
     });
+
+    if (updated.count === 0) {
+      return NextResponse.json({ success: false, error: 'Active push subscription not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, topics, nearbyRadiusKm: nearbyRadiusKm ?? location?.radiusKm ?? null });
   } catch (error: unknown) {
@@ -309,7 +333,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.webPushSubscription.updateMany({
+    const updated = await prisma.webPushSubscription.updateMany({
       where: {
         wallet: lowerWallet,
         endpoint,
@@ -319,6 +343,10 @@ export async function DELETE(request: NextRequest) {
         lastSeenAt: new Date(),
       },
     });
+
+    if (updated.count === 0) {
+      return NextResponse.json({ success: false, error: 'Push subscription not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

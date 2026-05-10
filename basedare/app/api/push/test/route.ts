@@ -39,16 +39,22 @@ export async function POST(request: NextRequest) {
             ? 'No active push device found for this wallet.'
             : result.reason === 'inactive'
               ? 'This device subscription is no longer active.'
-              : 'Test push failed.';
+              : result.reason === 'send_failed'
+                ? 'This browser subscription could not receive a push. Disable and re-enable alerts on this device.'
+                : 'Test push failed.';
 
       const status =
         result.reason === 'not_configured'
           ? 503
           : result.reason === 'not_found'
             ? 404
-            : 500;
+            : result.reason === 'inactive'
+              ? 410
+              : result.reason === 'send_failed'
+                ? 502
+                : 500;
 
-      return NextResponse.json({ success: false, error }, { status });
+      return NextResponse.json({ success: false, error, reason: result.reason }, { status });
     }
 
     return NextResponse.json({ success: true });

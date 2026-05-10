@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellRing, Check, MessageCircle, Smartphone, X } from 'lucide-react';
+import { Bell, BellRing, Check, MapPin, MessageCircle, Smartphone, X } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSession } from 'next-auth/react';
 import { useSignMessage } from 'wagmi';
@@ -99,12 +99,15 @@ export function NotificationBell() {
         disablePushSubscription,
         nearbyRadiusKm,
         pushBusy,
+        pushConfigured,
         pushEnabled,
+        pushLocationBusy,
         pushMessage,
         pushSupported,
         pushTesting,
         pushTopics,
         sendTestPush,
+        syncPushLocationContext,
         syncPushSubscription,
         togglePushTopic,
         updateNearbyRadius,
@@ -503,7 +506,13 @@ export function NotificationBell() {
                                             </div>
                                             <p className="mt-1 text-xs text-gray-400">
                                                 {vapidPublicKey
-                                                    ? (pushEnabled ? 'This device will get BaseDare alerts.' : 'Enable browser push for nearby and wallet alerts.')
+                                                    ? (
+                                                        !pushConfigured
+                                                            ? 'Delivery keys need server configuration before push can send.'
+                                                            : pushEnabled
+                                                                ? 'This device will get BaseDare alerts.'
+                                                                : 'Enable browser push for nearby and wallet alerts.'
+                                                    )
                                                     : 'Push delivery keys are not configured yet.'}
                                             </p>
                                         </div>
@@ -511,7 +520,7 @@ export function NotificationBell() {
                                             <button
                                                 type="button"
                                                 onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
-                                                disabled={pushBusy}
+                                                disabled={pushBusy || (!pushEnabled && !pushConfigured)}
                                                 className="min-h-9 shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50"
                                             >
                                                 {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
@@ -603,6 +612,15 @@ export function NotificationBell() {
                                                                 </button>
                                                             );
                                                         })}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void syncPushLocationContext()}
+                                                            disabled={pushBusy || pushLocationBusy}
+                                                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-300/15 active:scale-[0.98] disabled:opacity-50"
+                                                        >
+                                                            <MapPin className="h-3 w-3" />
+                                                            {pushLocationBusy ? 'Updating' : 'Update location'}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             )}

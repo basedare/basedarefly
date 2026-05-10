@@ -34,8 +34,28 @@ type StoredSubscription = {
   auth: string;
 };
 
-let vapidConfigured = false;
-let vapidAttempted = false;
+type PushPayloadInput = {
+  title: string;
+  body: string;
+  url: string;
+  topic: PushTopic;
+  kind?: string;
+};
+
+type PushDeliveryConfig = {
+  configured: boolean;
+  publicKeyConfigured: boolean;
+  privateKeyConfigured: boolean;
+  publicKeySource: 'VAPID_PUBLIC_KEY' | 'NEXT_PUBLIC_VAPID_PUBLIC_KEY' | null;
+  subject: string;
+};
+
+type RawPushDeliveryConfig = PushDeliveryConfig & {
+  publicKey: string;
+  privateKey: string;
+};
+
+let vapidConfiguredFor: string | null = null;
 
 const WALLET_PUSH_COOLDOWN_BY_TOPIC_MS: Record<Exclude<PushTopic, 'nearby'>, number> = {
   wallet: 1000 * 60 * 5,
@@ -43,24 +63,68 @@ const WALLET_PUSH_COOLDOWN_BY_TOPIC_MS: Record<Exclude<PushTopic, 'nearby'>, num
   venues: 1000 * 60 * 12,
 };
 
+function readPushDeliveryConfig(): RawPushDeliveryConfig {
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY?.trim();
+  const nextPublicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const publicKey = vapidPublicKey || nextPublicVapidKey || '';
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim() || '';
+  const subject = process.env.VAPID_SUBJECT?.trim() || 'mailto:hello@basedare.xyz';
+
+  return {
+    configured: Boolean(publicKey && privateKey),
+    publicKeyConfigured: Boolean(publicKey),
+    privateKeyConfigured: Boolean(privateKey),
+    publicKey,
+    privateKey,
+    subject,
+    publicKeySource: vapidPublicKey
+      ? 'VAPID_PUBLIC_KEY'
+      : nextPublicVapidKey
+        ? 'NEXT_PUBLIC_VAPID_PUBLIC_KEY'
+        : null,
+  };
+}
+
+export function getPushDeliveryConfig(): PushDeliveryConfig {
+  const config = readPushDeliveryConfig();
+  return {
+    configured: Boolean(config.publicKey && config.privateKey),
+    publicKeyConfigured: Boolean(config.publicKey),
+    privateKeyConfigured: Boolean(config.privateKey),
+    publicKeySource: config.publicKeySource,
+    subject: config.subject,
+  };
+}
+
 function configureWebPush() {
-  if (vapidAttempted) {
-    return vapidConfigured;
-  }
-
-  vapidAttempted = true;
-
-  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || 'mailto:hello@basedare.xyz';
-
-  if (!publicKey || !privateKey) {
+  const config = readPushDeliveryConfig();
+  if (!config.publicKey || !config.privateKey) {
     return false;
   }
 
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-  vapidConfigured = true;
+  const configKey = `${config.subject}:${config.publicKey}:${config.privateKey}`;
+  if (vapidConfiguredFor === configKey) {
+    return true;
+  }
+
+  webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
+  vapidConfiguredFor = configKey;
   return true;
+}
+
+function buildPushPayload(input: PushPayloadInput) {
+  const id = `push-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return JSON.stringify({
+    id,
+    title: input.title,
+    body: input.body,
+    url: input.url,
+    topic: input.topic,
+    kind: input.kind,
+    tag: `basedare-${input.topic}-${id}`,
+    timestamp: Date.now(),
+  });
 }
 
 async function recordPushDelivery(input: {
@@ -291,7 +355,7 @@ export async function sendWalletPush(input: SendWalletPushInput) {
     } satisfies PushSendResult;
   }
 
-  const payload = JSON.stringify({
+  const payload = buildPushPayload({
     title: input.title,
     body: input.body,
     url,
@@ -391,7 +455,7 @@ export async function sendNearbyDarePush(input: SendNearbyDarePushInput) {
     return;
   }
 
-  const payload = JSON.stringify({
+  const payload = buildPushPayload({
     title: input.title,
     body: input.body,
     url: input.url,
@@ -484,7 +548,7 @@ export async function sendTestPushToWalletDevice(input: {
     return { success: false as const, reason: 'not_found' as const };
   }
 
-  const payload = JSON.stringify({
+  const payload = buildPushPayload({
     title: 'BaseDare push armed',
     body: 'This device is ready for nearby dares, wallet updates, and venue alerts.',
     url: '/dashboard',
