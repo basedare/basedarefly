@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { createWalletNotification } from '@/lib/notifications';
 
 export const VENUE_ROOM_MESSAGE_TTL_HOURS = 24;
 export const VENUE_ROOM_ACCESS_WINDOW_HOURS = 24;
@@ -105,6 +106,10 @@ function isPublicCheckIn(metadataJson: Prisma.JsonValue | null | undefined) {
 function sanitizeRoomBody(value: string) {
   const compact = value.replace(/\s+/g, ' ').trim();
   return compact.slice(0, 280);
+}
+
+function trimNotificationBody(value: string) {
+  return value.length > 92 ? `${value.slice(0, 89)}...` : value;
 }
 
 async function findActiveVenueBySlug(slug: string): Promise<VenueRoomVenue | null> {
@@ -328,6 +333,46 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
     }));
 }
 
+async function notifyVenueRoomMessage(input: {
+  venueId: string;
+  venueSlug: string;
+  venueName: string;
+  senderWallet: string;
+  senderDisplayName: string;
+  body: string;
+  now: Date;
+}) {
+  const recipients = await prisma.venueRoomPresence.findMany({
+    where: {
+      venueId: input.venueId,
+      visibility: 'PUBLIC',
+      expiresAt: { gt: input.now },
+      walletAddress: { not: input.senderWallet },
+    },
+    orderBy: { lastSeenAt: 'desc' },
+    take: 16,
+    select: {
+      walletAddress: true,
+    },
+  });
+
+  if (recipients.length === 0) return;
+
+  const link = `/map?place=${encodeURIComponent(input.venueSlug)}&room=1`;
+  await Promise.all(
+    recipients.map((recipient) =>
+      createWalletNotification({
+        wallet: recipient.walletAddress,
+        type: 'VENUE_ROOM_MESSAGE',
+        title: `New signal at ${input.venueName}`,
+        message: `${input.senderDisplayName}: ${trimNotificationBody(input.body)}`,
+        link,
+        pushTopic: 'venues',
+      }).catch(() => null)
+    )
+  );
+}
+
 export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
   const now = new Date();
   const walletAddress = normalizeWallet(input.walletAddress);
@@ -485,6 +530,16 @@ export async function postVenueRoomMessage(input: VenueRoomWriteInput) {
         },
       });
     }
+  });
+
+  await notifyVenueRoomMessage({
+    venueId: venue.id,
+    venueSlug: venue.slug,
+    venueName: venue.name,
+    senderWallet: walletAddress,
+    senderDisplayName: actor.displayName,
+    body,
+    now,
   });
 
   return getVenueRoomSnapshot({

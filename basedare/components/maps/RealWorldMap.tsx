@@ -2822,6 +2822,7 @@ export default function RealWorldMap() {
   const [venueRoomPresenceUpdating, setVenueRoomPresenceUpdating] = useState(false);
   const [venueRoomDraft, setVenueRoomDraft] = useState('');
   const [venueRoomVisible, setVenueRoomVisible] = useState(false);
+  const [venueRoomExpanded, setVenueRoomExpanded] = useState(false);
   const [venueRoomState, setVenueRoomState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
@@ -2831,6 +2832,7 @@ export default function RealWorldMap() {
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
+  const deepLinkedRoomOpen = searchParams.get('room') === '1' || searchParams.get('open') === 'room';
   const controlSource = searchParams.get('source');
   const deepLinkedCampaignId = searchParams.get('campaignId');
   const deepLinkedDareShortId = searchParams.get('dare');
@@ -2992,8 +2994,17 @@ export default function RealWorldMap() {
       return;
     }
 
-    setSelectedPlacePanelExpanded(false);
-  }, [isMobileViewport, selectedPlaceIdentity]);
+    setSelectedPlacePanelExpanded(deepLinkedRoomOpen);
+  }, [deepLinkedRoomOpen, isMobileViewport, selectedPlaceIdentity]);
+
+  useEffect(() => {
+    if (!selectedPlaceIdentity) {
+      setVenueRoomExpanded(false);
+      return;
+    }
+
+    setVenueRoomExpanded(deepLinkedRoomOpen);
+  }, [deepLinkedRoomOpen, selectedPlaceIdentity]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -4115,6 +4126,7 @@ export default function RealWorldMap() {
 
       applyVenueRoomSnapshot(payload.data);
       setVenueRoomDraft('');
+      setVenueRoomExpanded(true);
       setVenueRoomState({ type: 'info', message: `Posted. Room messages expire in ${payload.data.access.ttlHours}h.` });
       triggerHaptic('success');
     } catch (error) {
@@ -4261,6 +4273,21 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [address, loadSelectedVenueRoom, selectedPlace?.slug, userLocation?.latitude, userLocation?.longitude]);
+
+  useEffect(() => {
+    const slug = selectedPlace?.slug;
+    if (!slug) return undefined;
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || venueRoomSending || venueRoomPresenceUpdating) {
+        return;
+      }
+
+      void loadSelectedVenueRoom(slug, undefined, { silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [loadSelectedVenueRoom, selectedPlace?.slug, venueRoomPresenceUpdating, venueRoomSending]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -6442,8 +6469,14 @@ export default function RealWorldMap() {
     </div>
   ) : null;
   const venueRoomUnlocked = Boolean(venueRoomAccess?.unlocked);
+  const visibleVenueRoomPeople = venueRoomWhoHere.slice(0, venueRoomExpanded ? 8 : 5);
+  const visibleVenueRoomMessages = venueRoomMessages.slice(venueRoomExpanded ? -10 : -4);
   const selectedVenueRoomRail = selectedPlace?.slug ? (
-    <div className="map-panel-section mt-3 rounded-[22px] border border-violet-300/16 bg-[linear-gradient(180deg,rgba(168,85,247,0.12)_0%,rgba(10,8,18,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+    <div
+      className={`map-panel-section mt-3 rounded-[22px] border border-violet-300/16 bg-[linear-gradient(180deg,rgba(168,85,247,0.12)_0%,rgba(10,8,18,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)] ${
+        venueRoomExpanded ? 'ring-1 ring-violet-200/18' : ''
+      }`}
+    >
       <div className="grid grid-cols-[1fr_auto] items-center gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-violet-100/82">
@@ -6454,9 +6487,24 @@ export default function RealWorldMap() {
             {venueRoomUnlocked ? 'Live local feed.' : 'Check in or get nearby.'}
           </p>
         </div>
-        <span className="rounded-full border border-violet-300/20 bg-violet-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100">
-          {venueRoomAccess?.ttlHours ?? 24}h
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="rounded-full border border-violet-300/20 bg-violet-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100">
+            {venueRoomAccess?.ttlHours ?? 24}h
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('selection');
+              setSelectedPlacePanelExpanded(true);
+              setVenueRoomExpanded((current) => !current);
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.045] text-white/60 transition hover:border-violet-200/28 hover:text-violet-100"
+            aria-label={venueRoomExpanded ? 'Compact venue room' : 'Expand venue room'}
+            title={venueRoomExpanded ? 'Compact room' : 'Expand room'}
+          >
+            {venueRoomExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
@@ -6472,7 +6520,7 @@ export default function RealWorldMap() {
 
         <div className="mt-2 flex min-h-8 items-center gap-1.5 overflow-hidden">
           {venueRoomWhoHere.length > 0 ? (
-            venueRoomWhoHere.slice(0, 5).map((person) => (
+            visibleVenueRoomPeople.map((person) => (
               <div
                 key={person.id}
                 className="inline-flex min-w-0 max-w-[7.75rem] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] py-1 pl-1 pr-2 text-[10px] font-semibold text-white/72"
@@ -6496,9 +6544,13 @@ export default function RealWorldMap() {
 
       {venueRoomUnlocked ? (
         <div className="mt-2 space-y-2">
-          <div className="max-h-36 space-y-1.5 overflow-y-auto rounded-[18px] border border-white/8 bg-black/18 p-2">
+          <div
+            className={`space-y-1.5 overflow-y-auto rounded-[18px] border border-white/8 bg-black/18 p-2 ${
+              venueRoomExpanded ? 'max-h-[22rem]' : 'max-h-36'
+            }`}
+          >
             {venueRoomMessages.length > 0 ? (
-              venueRoomMessages.slice(-4).map((message) => (
+              visibleVenueRoomMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`rounded-[14px] border px-2.5 py-2 ${
@@ -6529,10 +6581,12 @@ export default function RealWorldMap() {
             <textarea
               value={venueRoomDraft}
               onChange={(event) => setVenueRoomDraft(event.target.value.slice(0, 280))}
-              rows={2}
+              rows={venueRoomExpanded ? 3 : 2}
               maxLength={280}
               placeholder="Drop a local signal..."
-              className="min-h-[48px] resize-none rounded-[16px] border border-white/10 bg-black/28 px-3 py-2 text-xs leading-5 text-white placeholder:text-white/28 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-10px_16px_rgba(0,0,0,0.2)] focus:border-violet-200/32"
+              className={`resize-none rounded-[16px] border border-white/10 bg-black/28 px-3 py-2 text-xs leading-5 text-white placeholder:text-white/28 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-10px_16px_rgba(0,0,0,0.2)] focus:border-violet-200/32 ${
+                venueRoomExpanded ? 'min-h-[72px]' : 'min-h-[48px]'
+              }`}
             />
             <button
               type="button"
@@ -7578,7 +7632,19 @@ export default function RealWorldMap() {
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
-                  <div className={`flex flex-col overflow-hidden ${isImmersiveMobile ? 'max-h-[58dvh]' : isMobileViewport ? 'max-h-[82dvh]' : 'max-h-[52dvh] md:h-full md:max-h-none'}`}>
+                  <div
+                    className={`flex flex-col overflow-hidden ${
+                      isImmersiveMobile
+                        ? venueRoomExpanded
+                          ? 'max-h-[calc(100dvh-1rem)]'
+                          : 'max-h-[58dvh]'
+                        : isMobileViewport
+                          ? venueRoomExpanded
+                            ? 'max-h-[88dvh]'
+                            : 'max-h-[82dvh]'
+                          : 'max-h-[52dvh] md:h-full md:max-h-none'
+                    }`}
+                  >
                   <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
                     <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
                   <div className="flex items-start justify-between gap-5">

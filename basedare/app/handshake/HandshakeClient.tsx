@@ -11,6 +11,7 @@ import {
   Crosshair,
   Loader2,
   MapPin,
+  MessageSquare,
   Radio,
   ShieldCheck,
   Sparkles,
@@ -512,6 +513,21 @@ export default function HandshakeClient() {
                     <p className="mt-1 text-2xl font-black text-cyan-100">{result.memory.uniqueVisitorCount}</p>
                     <p className="text-xs text-white/42">unique today</p>
                   </div>
+                </div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <Link
+                    href={`/map?place=${encodeURIComponent(result.venueSlug)}&room=1&source=checkin`}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[20px] border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2),rgba(7,12,22,0.94))] px-4 text-sm font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-cyan-100/38"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Enter venue room
+                  </Link>
+                  <Link
+                    href={`/venues/${encodeURIComponent(result.venueSlug)}`}
+                    className="inline-flex min-h-12 items-center justify-center rounded-[20px] border border-white/10 bg-white/[0.045] px-4 text-xs font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/18 hover:bg-white/[0.075] hover:text-white"
+                  >
+                    Venue page
+                  </Link>
                 </div>
               </div>
             ) : null}
