@@ -280,28 +280,6 @@ const LOCAL_SIGNAL_CATEGORIES = [
   'other',
 ] as const;
 
-const PRESENCE_DURATION_OPTIONS: VenuePresenceDuration[] = [30, 60, 120];
-const PRESENCE_VISIBILITY_OPTIONS: Array<{
-  value: VenuePresenceVisibility;
-  label: string;
-  detail: string;
-}> = [
-  {
-    value: 'NEARBY',
-    label: 'Nearby',
-    detail: 'aggregate only',
-  },
-  {
-    value: 'PUBLIC',
-    label: 'Public',
-    detail: 'venue pulse',
-  },
-  {
-    value: 'PRIVATE',
-    label: 'Private',
-    detail: 'not counted',
-  },
-];
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 
 const SIGNAL_LAYER_KIND_ORDER: SignalLayerKind[] = ['drop', 'first', 'route', 'relic', 'intel'];
@@ -2761,8 +2739,8 @@ export default function RealWorldMap() {
   });
   const [localSignalSubmitting, setLocalSignalSubmitting] = useState(false);
   const [localSignalSubmitState, setLocalSignalSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [presenceDurationMinutes, setPresenceDurationMinutes] = useState<VenuePresenceDuration>(60);
-  const [presenceVisibility, setPresenceVisibility] = useState<VenuePresenceVisibility>('NEARBY');
+  const presenceDurationMinutes: VenuePresenceDuration = 60;
+  const presenceVisibility: VenuePresenceVisibility = 'NEARBY';
   const [presenceSubmitting, setPresenceSubmitting] = useState(false);
   const [presenceSubmitState, setPresenceSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [activePresenceSignal, setActivePresenceSignal] = useState<ActivePresenceSignal | null>(null);
@@ -5085,10 +5063,7 @@ export default function RealWorldMap() {
       }
       setPresenceSubmitState({
         type: 'success',
-        message:
-          presenceVisibility === 'PRIVATE'
-            ? 'Private presence saved. It will not be counted on the public map.'
-            : `Signal live at ${payload.data.venueName}. The map only shows aggregate presence.`,
+        message: `Signal live at ${payload.data.venueName}. The map only shows aggregate presence.`,
       });
       void fetchVenuePresence(userLocation.latitude, userLocation.longitude);
       triggerHaptic('success');
@@ -5878,12 +5853,10 @@ export default function RealWorldMap() {
     </>
   );
   const selectedPlaceActionRailGridClass = selectedPlace?.slug
-    ? isMobileViewport
-      ? 'grid-cols-3'
-      : 'grid-cols-1'
+    ? 'grid-cols-3'
     : isMobileViewport
       ? 'grid-cols-2'
-      : 'grid-cols-1';
+      : 'grid-cols-2';
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
   const selectedCheckInStatusLabel =
     selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
@@ -6040,17 +6013,15 @@ export default function RealWorldMap() {
     </div>
   ) : null;
   const selectedPlaceCheckInRail = selectedPlace?.slug ? (
-    <div className="map-panel-section mt-4 rounded-[24px] border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(8,14,20,0.88)_24%,rgba(4,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
-      <div className="flex items-start justify-between gap-3">
+    <div className="map-panel-section mt-3 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(7,12,18,0.9)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
             <ShieldCheck className="h-3.5 w-3.5 text-cyan-200" />
-            Secure Check-In
+            Check-In
           </div>
-          <p className="mt-2 text-sm font-semibold text-white">
-            {selectedCheckInLive
-              ? 'Prove you are inside the venue.'
-              : 'Trusted check-ins need the venue QR.'}
+          <p className="mt-1.5 truncate text-sm font-semibold text-white">
+            {selectedCheckInLive ? 'QR + GPS proof is live.' : 'Venue QR required.'}
           </p>
         </div>
         <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
@@ -6058,34 +6029,30 @@ export default function RealWorldMap() {
         </span>
       </div>
 
-      <p className="mt-3 text-xs leading-5 text-white/58">
-        {selectedCheckInLive
-          ? 'QR + GPS adds verified place memory and unlocks venue proof. It does not move funds.'
-          : 'When the venue console is live, this opens BaseDare Secure Handshake for QR + GPS proof.'}
-      </p>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-[18px] border border-white/8 bg-black/18 px-3 py-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/36">Radius</p>
-          <p className="mt-1 text-sm font-black text-white">{selectedPlace.checkInRadiusMeters ?? 120}m</p>
-        </div>
-        <div className="rounded-[18px] border border-white/8 bg-black/18 px-3 py-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/36">Today</p>
-          <p className="mt-1 text-sm font-black text-white">
-            {selectedCheckInCountToday} {selectedCheckInCountToday === 1 ? 'check-in' : 'check-ins'}
+      <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-1.5">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+              {selectedPlace.checkInRadiusMeters ?? 120}m
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+              {selectedCheckInCountToday} today
+            </span>
+          </div>
+          <p className="mt-1.5 truncate text-xs text-white/54">
+            {selectedCheckInLive ? 'Verified venue memory.' : 'Opens when the venue console is live.'}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleLaunchVenueCheckIn}
+          disabled={checkInLaunching}
+          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2)_0%,rgba(7,14,20,0.94)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-50 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:border-cyan-100/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        >
+          {checkInLaunching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          {checkInLaunching ? 'Opening' : selectedCheckInLive ? 'Check in' : 'QR'}
+        </button>
       </div>
-
-      <button
-        type="button"
-        onClick={handleLaunchVenueCheckIn}
-        disabled={checkInLaunching}
-        className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2)_0%,rgba(7,14,20,0.94)_100%)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:border-cyan-100/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-      >
-        {checkInLaunching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-        {checkInLaunching ? 'Opening' : selectedCheckInLive ? 'Check in now' : 'Find live QR'}
-      </button>
 
       {checkInLaunchState ? (
         <p
@@ -6094,6 +6061,70 @@ export default function RealWorldMap() {
           }`}
         >
           {checkInLaunchState.message}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
+  const selectedPresenceActiveCount =
+    selectedPresenceSummary?.activeCount ?? (activePresenceIsSelectedVenue ? 1 : 0);
+  const selectedPlacePresenceRail = selectedPlace ? (
+    <div className="map-panel-section mt-3 rounded-[22px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(16,185,129,0.1)_0%,rgba(7,13,13,0.9)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-emerald-100/82">
+            <LocateFixed className="h-3.5 w-3.5 text-emerald-200" />
+            Presence
+          </div>
+          <p className="mt-1.5 truncate text-sm font-semibold text-white">
+            {activePresenceIsSelectedVenue
+              ? `Live ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
+              : selectedPresenceActiveCount > 0
+                ? `${selectedPresenceActiveCount} nearby now.`
+                : 'Light this venue up.'}
+          </p>
+        </div>
+        <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
+          {selectedPresenceActiveCount} here
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-1.5">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+              {presenceDurationMinutes}m
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+              {presenceVisibility}
+            </span>
+          </div>
+          <p className="mt-1.5 truncate text-xs text-white/54">
+            {userLocation ? 'Approximate only. Exact location stays private.' : 'Location needed to signal.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+          disabled={presenceSubmitting}
+          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        >
+          {presenceSubmitting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : userLocation ? (
+            activePresenceIsSelectedVenue ? 'Refresh' : 'Signal'
+          ) : (
+            'Locate'
+          )}
+        </button>
+      </div>
+
+      {presenceSubmitState ? (
+        <p
+          className={`mt-2 text-xs leading-5 ${
+            presenceSubmitState.type === 'success' ? 'text-emerald-100/78' : 'text-rose-200/82'
+          }`}
+        >
+          {presenceSubmitState.message}
         </p>
       ) : null}
     </div>
@@ -7247,99 +7278,9 @@ export default function RealWorldMap() {
 
                   {selectedPlaceCheckInRail}
 
-                  <div className="map-panel-section mt-4 rounded-[24px] border border-emerald-300/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12)_0%,rgba(8,15,14,0.88)_22%,rgba(4,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-emerald-100/82">
-                          <LocateFixed className="h-3.5 w-3.5 text-emerald-200" />
-                          Signal Presence
-                        </div>
-                        <p className="mt-2 text-sm font-semibold text-white">
-                          {activePresenceIsSelectedVenue
-                            ? `You're live here ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
-                            : selectedPresenceSummary && selectedPresenceSummary.activeCount > 0
-                              ? `${selectedPresenceSummary.activeCount} active ${selectedPresenceSummary.activeCount === 1 ? 'signal' : 'signals'} near this venue.`
-                              : 'Light up this venue for the next wave.'}
-                        </p>
-                      </div>
-                      <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
-                        {selectedPresenceSummary?.activeCount ?? (activePresenceIsSelectedVenue ? 1 : 0)} here
-                      </span>
-                    </div>
+                  {selectedPlacePresenceRail}
 
-                    <div className="mt-3 grid grid-cols-3 gap-1.5">
-                      {PRESENCE_DURATION_OPTIONS.map((duration) => (
-                        <button
-                          key={`presence-duration:${duration}`}
-                          type="button"
-                          data-active={presenceDurationMinutes === duration}
-                          onClick={() => {
-                            setPresenceDurationMinutes(duration);
-                            triggerHaptic('selection');
-                          }}
-                          className="rounded-[16px] border border-white/10 bg-white/[0.04] px-2 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/48 transition hover:border-white/18 hover:text-white data-[active=true]:border-emerald-300/34 data-[active=true]:bg-emerald-500/[0.12] data-[active=true]:text-emerald-100"
-                        >
-                          {duration}m
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-2 grid grid-cols-3 gap-1.5">
-                      {PRESENCE_VISIBILITY_OPTIONS.map((option) => (
-                        <button
-                          key={`presence-visibility:${option.value}`}
-                          type="button"
-                          data-active={presenceVisibility === option.value}
-                          onClick={() => {
-                            setPresenceVisibility(option.value);
-                            triggerHaptic('selection');
-                          }}
-                          className="min-w-0 rounded-[16px] border border-white/10 bg-white/[0.035] px-2 py-2 text-left transition hover:border-white/18 data-[active=true]:border-cyan-300/32 data-[active=true]:bg-cyan-500/[0.1]"
-                        >
-                          <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/64">
-                            {option.label}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-white/34">
-                            {option.detail}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
-                      <p className="min-w-0 text-xs leading-5 text-white/58">
-                        {userLocation
-                          ? 'Approximate venue presence only. Exact location stays off the public map.'
-                          : 'Location is needed before this venue can light up.'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
-                        disabled={presenceSubmitting}
-                        className="inline-flex shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-                      >
-                        {presenceSubmitting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : userLocation ? (
-                          activePresenceIsSelectedVenue ? 'Refresh' : 'Signal'
-                        ) : (
-                          'Locate'
-                        )}
-                      </button>
-                    </div>
-
-                    {presenceSubmitState ? (
-                      <p
-                        className={`mt-2 text-xs leading-5 ${
-                          presenceSubmitState.type === 'success' ? 'text-emerald-100/78' : 'text-rose-200/82'
-                        }`}
-                      >
-                        {presenceSubmitState.message}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="map-command-console">
+                  <div className="map-command-console hidden">
                     <div className="map-command-console-header">
                       <div>
                         <p>Command layer</p>
@@ -7456,8 +7397,9 @@ export default function RealWorldMap() {
                       </span>
                     </div>
                     {selectedVenuePhotoItems.length > 0 ? (
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        {selectedVenuePhotoItems.map((photo, index) => (
+                      <>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {selectedVenuePhotoItems.slice(0, 2).map((photo, index) => (
                           <div
                             key={photo.id}
                             className={`group relative overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] shadow-[0_14px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] ${
@@ -7480,19 +7422,29 @@ export default function RealWorldMap() {
                               </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                        {selectedPlace.slug ? (
+                          <Link
+                            href={`/venues/${selectedPlace.slug}`}
+                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-200/34"
+                          >
+                            View full venue
+                            <ArrowLeft className="h-3 w-3 rotate-180" />
+                          </Link>
+                        ) : null}
+                      </>
                     ) : (
                       <div className="mt-3 rounded-[20px] border border-white/8 bg-white/[0.035] px-3 py-3">
-                        <p className="text-sm font-semibold text-white">No venue photos attached yet.</p>
-                        <p className="mt-1.5 text-sm leading-relaxed text-white/58">
-                          The next mark should capture the room, the entrance, or the signature moment so this venue becomes readable fast.
+                        <p className="text-sm font-semibold text-white">Photo slot open.</p>
+                        <p className="mt-1.5 text-xs leading-5 text-white/58">
+                          First approved mark can make this venue readable.
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className={`map-mobile-priority mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`hidden map-mobile-priority mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Flame className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -7519,7 +7471,7 @@ export default function RealWorldMap() {
                     </div>
                   </div>
 
-                  <div className={`map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`hidden map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                         <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
@@ -7553,7 +7505,7 @@ export default function RealWorldMap() {
                   </div>
 
                   {selectedCommandCenter ? (
-                    <div className={`map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
+                    <div className={`hidden map-mobile-secondary mt-4 ${mapPanelSectionClass}`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                           <LocateFixed className="h-3.5 w-3.5 text-cyan-200" />
@@ -7889,7 +7841,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`crossed-paths-section map-mobile-secondary bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
+                  <div className={`hidden crossed-paths-section map-mobile-secondary bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Flame className="h-3.5 w-3.5 text-cyan-200" />
                       Crossed Paths
@@ -8463,7 +8415,7 @@ export default function RealWorldMap() {
             right: 16px;
             bottom: 16px;
             left: auto;
-            width: min(340px, calc(100% - 88px));
+            width: min(420px, calc(100% - 88px));
             max-height: calc(100% - 32px);
           }
         }
