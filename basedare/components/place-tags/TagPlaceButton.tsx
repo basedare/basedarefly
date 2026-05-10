@@ -567,29 +567,6 @@ export default function TagPlaceButton({
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,video/*"
-                        className="hidden"
-                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
-                      />
-                      <input
-                        ref={photoInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
-                      />
-                      <input
-                        ref={videoInputRef}
-                        type="file"
-                        accept="video/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
-                      />
                       <div className="bd-puncture-well mt-3 flex min-h-[170px] flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center">
                         <Camera className="h-6 w-6 text-purple-100" />
                         <p className="mt-3 text-sm font-semibold text-white">
@@ -597,30 +574,41 @@ export default function TagPlaceButton({
                         </p>
                         <p className="mt-2 text-xs text-white/45">{ACCEPTED_MEDIA_COPY}</p>
                         <div className="mt-4 grid w-full gap-2">
-                          <button
-                            type="button"
-                            onClick={() => photoInputRef.current?.click()}
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]"
-                          >
+                          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]">
+                            <input
+                              ref={photoInputRef}
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="sr-only"
+                              onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                            />
                             <Camera className="h-3.5 w-3.5" />
                             Take photo
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => videoInputRef.current?.click()}
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/18 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
-                          >
+                          </label>
+                          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/18 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]">
+                            <input
+                              ref={videoInputRef}
+                              type="file"
+                              accept="video/*"
+                              capture="environment"
+                              className="sr-only"
+                              onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                            />
                             <Video className="h-3.5 w-3.5" />
                             Record video
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.075] active:scale-[0.98]"
-                          >
+                          </label>
+                          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.075] active:scale-[0.98]">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*,video/*"
+                              className="sr-only"
+                              onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                            />
                             <Upload className="h-3.5 w-3.5" />
                             Upload existing
-                          </button>
+                          </label>
                         </div>
                       </div>
                     </div>

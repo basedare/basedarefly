@@ -671,30 +671,6 @@ export default function SubmitEvidence({
         isDragging || status === 'uploading' || status === 'verifying' ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-100'
       }`} />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*,image/*"
-        onChange={handleFileInputChange}
-        className="hidden"
-      />
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileInputChange}
-        className="hidden"
-      />
-      <input
-        ref={videoInputRef}
-        type="file"
-        accept="video/*"
-        capture="environment"
-        onChange={handleFileInputChange}
-        className="hidden"
-      />
-
       <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
         {status === 'uploading' || status === 'verifying' ? (
           <>
@@ -865,40 +841,45 @@ export default function SubmitEvidence({
                 {error}
               </div>
             )}
-            <div className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  photoInputRef.current?.click();
-                }}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-cyan-300/24 bg-cyan-400/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.14] active:scale-[0.98]"
-              >
+            <div
+              className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-3"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/24 bg-cyan-400/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.14] active:scale-[0.98]">
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileInputChange}
+                  className="sr-only"
+                />
                 <Camera className="h-4 w-4" />
                 Take photo
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  videoInputRef.current?.click();
-                }}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
-              >
+              </label>
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]">
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  onChange={handleFileInputChange}
+                  className="sr-only"
+                />
                 <Video className="h-4 w-4" />
                 Record video
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 transition hover:bg-white/[0.08] active:scale-[0.98]"
-              >
+              </label>
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 transition hover:bg-white/[0.08] active:scale-[0.98]">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*,image/*"
+                  onChange={handleFileInputChange}
+                  className="sr-only"
+                />
                 <Upload className="h-4 w-4" />
                 Upload existing
-              </button>
+              </label>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-white/45">
