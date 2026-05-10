@@ -448,6 +448,8 @@ export async function POST(
           proofMediaUrl: tag.proofMediaUrl,
           creatorTag: tag.creatorTag,
           firstMark: tag.firstMark,
+          venueSlug: place.slug,
+          venueName: place.name,
           adminAlertDelivered: alertDelivered,
           message: 'Tag submitted. It is now waiting for referee review.',
         },

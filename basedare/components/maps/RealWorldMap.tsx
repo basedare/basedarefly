@@ -51,6 +51,7 @@ import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlac
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
+import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
 
 type SearchResult = {
   id: string;
@@ -270,6 +271,14 @@ type ActivePresenceSignal = {
   visibility: VenuePresenceVisibility;
   durationMinutes: VenuePresenceDuration;
   expiresAt: string;
+};
+type PresenceReceiptState = {
+  title: string;
+  detail: string;
+  href: string;
+  venueName: string;
+  timestamp: string;
+  tone: ReceiptShareTone;
 };
 type VenueRoomAccess = {
   unlocked: boolean;
@@ -1765,6 +1774,25 @@ function getRoomInitial(label: string) {
   return (trimmed[0] || '?').toUpperCase();
 }
 
+function getRoomReceiptTitle(receiptType: string | null) {
+  switch (receiptType) {
+    case 'check-in':
+      return 'Venue check-in receipt';
+    case 'presence':
+      return 'Presence receipt';
+    case 'mark-submitted':
+      return 'Mark receipt';
+    case 'proof-submitted':
+      return 'Proof receipt';
+    case 'proof-verified':
+      return 'Verified proof receipt';
+    case 'payout-queued':
+      return 'Payout receipt';
+    default:
+      return 'BaseDare receipt';
+  }
+}
+
 function getSparkBadge(approvedCount: number) {
   if (approvedCount <= 0) return '!';
   if (approvedCount > 9) return '9+';
@@ -2815,6 +2843,7 @@ export default function RealWorldMap() {
   const presenceVisibility: VenuePresenceVisibility = 'NEARBY';
   const [presenceSubmitting, setPresenceSubmitting] = useState(false);
   const [presenceSubmitState, setPresenceSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [presenceReceipt, setPresenceReceipt] = useState<PresenceReceiptState | null>(null);
   const [activePresenceSignal, setActivePresenceSignal] = useState<ActivePresenceSignal | null>(null);
   const [checkInLaunching, setCheckInLaunching] = useState(false);
   const [checkInLaunchState, setCheckInLaunchState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
@@ -5346,6 +5375,7 @@ export default function RealWorldMap() {
 
     setPresenceSubmitting(true);
     setPresenceSubmitState(null);
+    setPresenceReceipt(null);
 
     try {
       const resolvedPlace = await resolveSelectedPlaceForCommand();
@@ -5382,6 +5412,7 @@ export default function RealWorldMap() {
               venueName: string;
               visibility: VenuePresenceVisibility;
               durationMinutes: VenuePresenceDuration;
+              scannedAt: string;
               expiresAt: string;
             };
           }
@@ -5407,6 +5438,14 @@ export default function RealWorldMap() {
       setPresenceSubmitState({
         type: 'success',
         message: `Signal live at ${payload.data.venueName}. The map only shows aggregate presence.`,
+      });
+      setPresenceReceipt({
+        title: `Presence signaled at ${payload.data.venueName}`,
+        detail: `Approximate venue presence is live for ${payload.data.durationMinutes}m. Exact location stays private.`,
+        href: `/map?place=${encodeURIComponent(payload.data.venueSlug)}&room=1&source=presence`,
+        venueName: payload.data.venueName,
+        timestamp: payload.data.scannedAt,
+        tone: payload.data.visibility === 'PUBLIC' ? 'emerald' : 'cyan',
       });
       void fetchVenuePresence(userLocation.latitude, userLocation.longitude);
       triggerHaptic('success');
@@ -6470,6 +6509,18 @@ export default function RealWorldMap() {
           {presenceSubmitState.message}
         </p>
       ) : null}
+      {presenceReceipt ? (
+        <ReceiptShareCard
+          compact
+          title={presenceReceipt.title}
+          detail={presenceReceipt.detail}
+          href={presenceReceipt.href}
+          venueName={presenceReceipt.venueName}
+          timestamp={presenceReceipt.timestamp}
+          tone={presenceReceipt.tone}
+          className="mt-3"
+        />
+      ) : null}
     </div>
   ) : null;
   const venueRoomUnlocked = Boolean(venueRoomAccess?.unlocked);
@@ -6556,37 +6607,22 @@ export default function RealWorldMap() {
             {venueRoomMessages.length > 0 ? (
               visibleVenueRoomMessages.map((message) => {
                 if (message.kind === 'receipt') {
-                  const receiptToneClass =
-                    message.tone === 'emerald'
-                      ? 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-50'
-                      : message.tone === 'gold'
-                        ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#fff3b0]'
-                        : message.tone === 'cyan'
-                          ? 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-50'
-                          : 'border-violet-300/18 bg-violet-500/[0.08] text-violet-50';
-                  const receiptContent = (
-                    <div
-                      className={`rounded-[14px] border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${receiptToneClass}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
-                          <Sparkles className="h-3 w-3 shrink-0" />
-                          Activity
-                        </span>
-                        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
-                          {getCompactTimeAgo(message.createdAt)}
-                        </span>
-                      </div>
-                      <p className="mt-1 break-words text-xs font-semibold leading-5 text-white/78">{message.body}</p>
-                    </div>
-                  );
-
-                  return message.href ? (
-                    <Link key={message.id} href={message.href} className="block transition hover:-translate-y-[1px]">
-                      {receiptContent}
-                    </Link>
-                  ) : (
-                    <div key={message.id}>{receiptContent}</div>
+                  return (
+                    <ReceiptShareCard
+                      key={message.id}
+                      compact
+                      title={getRoomReceiptTitle(message.receiptType)}
+                      detail={message.body}
+                      href={message.href ?? (selectedPlace?.slug ? `/map?place=${encodeURIComponent(selectedPlace.slug)}&room=1` : '/map')}
+                      venueName={selectedPlace?.name ?? null}
+                      actorLabel={message.displayName}
+                      timestamp={message.createdAt}
+                      tone={
+                        message.tone === 'emerald' || message.tone === 'gold' || message.tone === 'cyan' || message.tone === 'violet'
+                          ? message.tone
+                          : 'violet'
+                      }
+                    />
                   );
                 }
 

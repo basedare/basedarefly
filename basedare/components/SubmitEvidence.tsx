@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
 import { useToast } from '@/components/ui/use-toast';
 import ShareWinButton from '@/components/ShareWinButton';
+import ReceiptShareCard from '@/components/ReceiptShareCard';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
 
@@ -165,6 +166,8 @@ export default function SubmitEvidence({
       ? `$${bountyAmount}`
       : null;
   const fileTypeLabel = file?.type.startsWith('video/') ? 'video' : file?.type.startsWith('image/') ? 'photo' : 'file';
+  const receiptHref = `/dare/${shortId || dareId}`;
+  const creatorLabel = streamerHandle ? `@${streamerHandle.replace(/^@/, '')}` : undefined;
 
   const handleVerifyUploadedProof = async (videoUrl: string, proofAuthHeaders: Record<string, string>) => {
     setStatus('verifying');
@@ -537,6 +540,17 @@ export default function SubmitEvidence({
               Your payout is processing now. Once settlement clears, this win strengthens the venue memory layer automatically.
             </p>
           </div>
+          <ReceiptShareCard
+            compact
+            title={`${activationLabel} proof approved`}
+            detail="Verified proof is now a reusable BaseDare receipt for the venue, creator, and payout rail."
+            href={receiptHref}
+            venueName={placeName}
+            actorLabel={creatorLabel}
+            tone="gold"
+            stats={payoutLabel ? [{ label: 'payout', value: payoutLabel }] : []}
+            className="w-full max-w-[340px]"
+          />
           <div className="pt-2">
             <ShareWinButton
               dare={dareTitle}
@@ -580,6 +594,21 @@ export default function SubmitEvidence({
                 : 'Your proof already cleared. The payout rail will keep retrying automatically until settlement lands.'}
             </p>
           </div>
+          <ReceiptShareCard
+            compact
+            title={isReview ? `${activationLabel} proof submitted` : `${activationLabel} payout queued`}
+            detail={
+              isReview
+                ? 'Proof is attached and waiting in the referee review rail.'
+                : 'Proof cleared. Settlement is queued and will retry automatically.'
+            }
+            href={receiptHref}
+            venueName={placeName}
+            actorLabel={creatorLabel}
+            tone={isReview ? 'violet' : 'gold'}
+            stats={payoutLabel ? [{ label: 'payout', value: payoutLabel }] : []}
+            className="w-full max-w-[340px]"
+          />
           <button
             onClick={handleRemove}
             className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-wider transition-colors"

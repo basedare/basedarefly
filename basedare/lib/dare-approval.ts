@@ -23,6 +23,7 @@ import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReasonForSelection } from '@/lib/sentinel';
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import { sendWalletPush } from '@/lib/web-push';
 
 const activeChain = getBaseChain();
@@ -40,6 +41,18 @@ const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 
 let lastRefereeBalanceAlertAt = 0;
+
+function shortWallet(wallet?: string | null) {
+  const normalized = wallet?.trim();
+  if (!normalized) return null;
+  return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+}
+
+function getDareReceiptActor(dare: Pick<Dare, 'streamerHandle' | 'claimRequestTag' | 'claimedBy' | 'targetWalletAddress'>) {
+  if (dare.streamerHandle) return dare.streamerHandle.startsWith('@') ? dare.streamerHandle : `@${dare.streamerHandle}`;
+  if (dare.claimRequestTag) return dare.claimRequestTag.startsWith('@') ? dare.claimRequestTag : `@${dare.claimRequestTag}`;
+  return shortWallet(dare.claimedBy ?? dare.targetWalletAddress) ?? 'Creator';
+}
 
 type RefereeBalanceClient = {
   getBalance: (args: { address: Address }) => Promise<bigint>;
@@ -567,6 +580,24 @@ export async function finalizeVerifiedDare(
     },
     occurredAt: verifiedAt,
   });
+
+  if (updatedDare.venueId) {
+    const actorLabel = getDareReceiptActor(updatedDare);
+    await publishVenueRoomReceipt({
+      venueId: updatedDare.venueId,
+      actorWallet: updatedDare.claimedBy ?? updatedDare.targetWalletAddress ?? null,
+      actorLabel,
+      receiptType: 'proof-verified',
+      sourceId: updatedDare.id,
+      body: `${actorLabel} cleared "${updatedDare.title}" for ${payout.streamer.toFixed(2)} USDC.`,
+      href: `/dare/${updatedDare.shortId || updatedDare.id}`,
+      tone: 'gold',
+    }).catch((receiptError) => {
+      const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+      console.error('[DARE_APPROVAL] Venue room receipt failed:', receiptMessage);
+      return null;
+    });
+  }
 
   alertVerification({
     dareId: updatedDare.id,

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import ReceiptShareCard from '@/components/ReceiptShareCard';
 
 type TagPlaceButtonProps = {
   placeId?: string;
@@ -103,6 +104,15 @@ export default function TagPlaceButton({
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<'idle' | 'success'>('idle');
   const [submittedFirstMark, setSubmittedFirstMark] = useState(false);
+  const [submittedReceipt, setSubmittedReceipt] = useState<{
+    title: string;
+    detail: string;
+    href: string;
+    venueName: string;
+    actorLabel: string | null;
+    timestamp: string;
+    tone: 'gold' | 'violet';
+  } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [resolvedPlaceId, setResolvedPlaceId] = useState<string | null>(placeId ?? null);
   const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
@@ -403,6 +413,8 @@ export default function TagPlaceButton({
           proofMediaUrl?: string | null;
           creatorTag?: string | null;
           firstMark?: boolean;
+          venueSlug?: string | null;
+          venueName?: string | null;
         };
       };
 
@@ -428,8 +440,25 @@ export default function TagPlaceButton({
       });
 
       triggerHaptic('success');
+      const submittedAt = new Date().toISOString();
+      const venueName = payload.data?.venueName || placeName;
+      const venueSlug = payload.data?.venueSlug ?? null;
+      const actorLabel = payload.data?.creatorTag
+        ? `@${payload.data.creatorTag.replace(/^@/, '')}`
+        : normalizedConnectedWallet ?? sessionWallet;
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
+      setSubmittedReceipt({
+        title: payload.data?.firstMark ? `First mark submitted at ${venueName}` : `Mark submitted at ${venueName}`,
+        detail: payload.data?.firstMark
+          ? 'This is waiting for referee review. If approved, it becomes the first public proof spark for the venue.'
+          : 'This is waiting for referee review. If approved, it upgrades the venue memory layer.',
+        href: venueSlug ? `/venues/${encodeURIComponent(venueSlug)}` : '/map',
+        venueName,
+        actorLabel,
+        timestamp: submittedAt,
+        tone: payload.data?.firstMark ? 'gold' : 'violet',
+      });
       setFile(null);
       clearFileInputs();
       setCaption('');
@@ -542,6 +571,19 @@ export default function TagPlaceButton({
                       Referees review the proof, then the map updates with your spark, heat, and recent mark.
                     </p>
                   </div>
+                  {submittedReceipt ? (
+                    <ReceiptShareCard
+                      compact
+                      title={submittedReceipt.title}
+                      detail={submittedReceipt.detail}
+                      href={submittedReceipt.href}
+                      venueName={submittedReceipt.venueName}
+                      actorLabel={submittedReceipt.actorLabel}
+                      timestamp={submittedReceipt.timestamp}
+                      tone={submittedReceipt.tone}
+                      className="mt-4"
+                    />
+                  ) : null}
                   <div className="mt-5 flex gap-3">
                     <button
                       type="button"
@@ -555,6 +597,7 @@ export default function TagPlaceButton({
                       onClick={() => {
                         setSubmitState('idle');
                         setSubmittedFirstMark(false);
+                        setSubmittedReceipt(null);
                       }}
                       className="rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100"
                     >

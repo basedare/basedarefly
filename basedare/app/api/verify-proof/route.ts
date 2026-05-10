@@ -16,6 +16,7 @@ import { createWalletNotification } from '@/lib/notifications';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 // Network selection based on environment
 const activeChain = getBaseChain();
@@ -39,6 +40,22 @@ const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 
 let lastRefereeBalanceAlertAt = 0;
+
+function shortWallet(wallet?: string | null) {
+  const normalized = wallet?.trim();
+  if (!normalized) return null;
+  return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+}
+
+function getProofReceiptActor(dare: Pick<FounderDareEventLike, 'streamerHandle'> & {
+  claimRequestTag?: string | null;
+  claimedBy?: string | null;
+  targetWalletAddress?: string | null;
+}) {
+  if (dare.streamerHandle) return dare.streamerHandle.startsWith('@') ? dare.streamerHandle : `@${dare.streamerHandle}`;
+  if (dare.claimRequestTag) return dare.claimRequestTag.startsWith('@') ? dare.claimRequestTag : `@${dare.claimRequestTag}`;
+  return shortWallet(dare.claimedBy ?? dare.targetWalletAddress) ?? 'Creator';
+}
 
 type RefereeBalanceClient = {
   getBalance: (args: { address: Address }) => Promise<bigint>;
@@ -364,6 +381,24 @@ async function markProofPendingPayoutFallback({
       fallback: true,
     },
   });
+
+  if (queuedDare.venueId) {
+    const actorLabel = getProofReceiptActor(queuedDare);
+    await publishVenueRoomReceipt({
+      venueId: queuedDare.venueId,
+      actorWallet: queuedDare.claimedBy ?? queuedDare.targetWalletAddress ?? null,
+      actorLabel,
+      receiptType: 'payout-queued',
+      sourceId: queuedDare.id,
+      body: `${actorLabel} cleared "${queuedDare.title}". Payout is queued for retry.`,
+      href: `/dare/${queuedDare.shortId || queuedDare.id}`,
+      tone: 'gold',
+    }).catch((receiptError) => {
+      const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+      console.error('[VERIFY_PROOF] Payout receipt failed:', receiptMessage);
+      return null;
+    });
+  }
 }
 
 // ============================================================================
@@ -564,6 +599,24 @@ export async function POST(req: NextRequest) {
           manualReview: true,
         },
       });
+
+      if (queuedDare.venueId) {
+        const actorLabel = getProofReceiptActor(queuedDare);
+        await publishVenueRoomReceipt({
+          venueId: queuedDare.venueId,
+          actorWallet: queuedDare.claimedBy ?? queuedDare.targetWalletAddress ?? null,
+          actorLabel,
+          receiptType: 'proof-submitted',
+          sourceId: queuedDare.id,
+          body: `${actorLabel} submitted proof for "${queuedDare.title}" and entered referee review.`,
+          href: `/dare/${queuedDare.shortId || queuedDare.id}`,
+          tone: 'violet',
+        }).catch((receiptError) => {
+          const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+          console.error('[VERIFY_PROOF] Review receipt failed:', receiptMessage);
+          return null;
+        });
+      }
 
       // Notify User it's under review
       if (dare.targetWalletAddress) {

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, formatDistance, isValidCoordinates } from '@/lib/geo';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 export const VENUE_PRESENCE_DURATIONS = [30, 60, 120] as const;
 export const VENUE_PRESENCE_VISIBILITIES = ['NEARBY', 'PUBLIC', 'PRIVATE'] as const;
@@ -60,6 +61,10 @@ function normalizeDuration(minutes: number): VenuePresenceDuration {
   if (minutes <= 30) return 30;
   if (minutes <= 60) return 60;
   return 120;
+}
+
+function shortWallet(wallet: string) {
+  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
 export async function createVenuePresenceSignal(input: {
@@ -219,6 +224,23 @@ export async function createVenuePresenceSignal(input: {
     });
 
     return checkIn;
+  });
+
+  const actorLabel = input.tag?.trim() || shortWallet(walletAddress);
+  await publishVenueRoomReceipt({
+    venueId: venue.id,
+    actorWallet: walletAddress,
+    actorLabel,
+    receiptType: 'presence',
+    sourceId: result.id,
+    body: `${actorLabel} signaled presence nearby for ${durationMinutes}m.`,
+    href: `/map?place=${encodeURIComponent(venue.slug)}&room=1`,
+    tone: input.visibility === 'PUBLIC' ? 'emerald' : 'cyan',
+    notify: false,
+  }).catch((receiptError) => {
+    const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+    console.error('[VENUE_PRESENCE] Room receipt failed:', receiptMessage);
+    return null;
   });
 
   return {

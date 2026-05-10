@@ -20,6 +20,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { IdentityButton } from '@/components/IdentityButton';
+import ReceiptShareCard from '@/components/ReceiptShareCard';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import type { VenueDetail } from '@/lib/venue-types';
@@ -514,6 +515,21 @@ export default function HandshakeClient() {
                     <p className="text-xs text-white/42">unique today</p>
                   </div>
                 </div>
+                <ReceiptShareCard
+                  compact
+                  title={`Checked in at ${venue?.name ?? 'this venue'}`}
+                  detail={`${result.proofLevel === 'QR_AND_GPS' ? 'QR + GPS proof confirmed' : 'QR proof confirmed'}${typeof result.geoDistanceMeters === 'number' ? ` from ${result.geoDistanceMeters}m away` : ''}.`}
+                  href={`/map?place=${encodeURIComponent(result.venueSlug)}&room=1&source=checkin`}
+                  venueName={venue?.name ?? result.venueSlug}
+                  actorLabel={creatorTag.trim() || walletLabel}
+                  timestamp={result.scannedAt}
+                  tone={result.proofLevel === 'QR_AND_GPS' ? 'emerald' : 'cyan'}
+                  stats={[
+                    { label: 'check-ins today', value: result.memory.checkInCount },
+                    { label: 'visitors', value: result.memory.uniqueVisitorCount },
+                  ]}
+                  className="mt-4"
+                />
                 <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
                   <Link
                     href={`/map?place=${encodeURIComponent(result.venueSlug)}&room=1&source=checkin`}
