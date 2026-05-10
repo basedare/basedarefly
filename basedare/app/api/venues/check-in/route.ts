@@ -13,6 +13,7 @@ import {
 } from '@/lib/venues';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 const VenueCheckInSchema = z.object({
   venueId: z.string().min(1),
@@ -305,6 +306,22 @@ export async function POST(request: NextRequest) {
         internalAuthorized: isInternalAuthorized,
       },
       occurredAt: result.checkIn.scannedAt,
+    });
+
+    const checkInActor = parsed.data.tag?.trim() || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+    await publishVenueRoomReceipt({
+      venueId: venue.id,
+      actorWallet: walletAddress,
+      actorLabel: checkInActor,
+      receiptType: 'check-in',
+      sourceId: result.checkIn.id,
+      body: `${checkInActor} checked in with ${proofLevel === 'QR_AND_GPS' ? 'QR + GPS proof' : 'QR proof'}.`,
+      href: `/map?place=${encodeURIComponent(venue.slug)}&room=1`,
+      tone: proofLevel === 'QR_AND_GPS' ? 'emerald' : 'cyan',
+    }).catch((receiptError) => {
+      const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+      console.error('[VENUE_CHECK_IN] Room receipt failed:', receiptMessage);
+      return null;
     });
 
     return NextResponse.json({

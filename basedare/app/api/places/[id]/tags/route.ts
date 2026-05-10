@@ -13,6 +13,7 @@ import {
 } from '@/lib/media-upload';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { alertPlaceTagSubmission } from '@/lib/telegram';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 type WalletSession = {
   token?: string;
@@ -421,6 +422,22 @@ export async function POST(
     if (!alertDelivered) {
       console.error('[PLACE_TAGS_POST] Telegram alert was not delivered for pending tag:', tag.id);
     }
+
+    const actorLabel = tag.creatorTag || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+    await publishVenueRoomReceipt({
+      venueId: place.id,
+      actorWallet: walletAddress,
+      actorLabel,
+      receiptType: 'mark-submitted',
+      sourceId: tag.id,
+      body: `${actorLabel} submitted ${tag.firstMark ? 'the first mark' : 'a new mark'} for referee review.`,
+      href: `/venues/${encodeURIComponent(place.slug)}`,
+      tone: tag.firstMark ? 'gold' : 'violet',
+    }).catch((receiptError) => {
+      const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+      console.error('[PLACE_TAGS_POST] Room receipt failed:', receiptMessage);
+      return null;
+    });
 
     return NextResponse.json(
       {

@@ -285,6 +285,10 @@ type VenueRoomMessage = {
   avatarUrl: string | null;
   body: string;
   mine: boolean;
+  kind: 'message' | 'receipt';
+  receiptType: string | null;
+  href: string | null;
+  tone: string | null;
   createdAt: string;
   expiresAt: string;
 };
@@ -6550,26 +6554,63 @@ export default function RealWorldMap() {
             }`}
           >
             {venueRoomMessages.length > 0 ? (
-              visibleVenueRoomMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`rounded-[14px] border px-2.5 py-2 ${
-                    message.mine
-                      ? 'border-violet-300/20 bg-violet-500/[0.1]'
-                      : 'border-white/8 bg-white/[0.035]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.13em] text-white/58">
-                      {message.displayName}
-                    </span>
-                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
-                      {getCompactTimeAgo(message.createdAt)}
-                    </span>
+              visibleVenueRoomMessages.map((message) => {
+                if (message.kind === 'receipt') {
+                  const receiptToneClass =
+                    message.tone === 'emerald'
+                      ? 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-50'
+                      : message.tone === 'gold'
+                        ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#fff3b0]'
+                        : message.tone === 'cyan'
+                          ? 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-50'
+                          : 'border-violet-300/18 bg-violet-500/[0.08] text-violet-50';
+                  const receiptContent = (
+                    <div
+                      className={`rounded-[14px] border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${receiptToneClass}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+                          <Sparkles className="h-3 w-3 shrink-0" />
+                          Activity
+                        </span>
+                        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
+                          {getCompactTimeAgo(message.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1 break-words text-xs font-semibold leading-5 text-white/78">{message.body}</p>
+                    </div>
+                  );
+
+                  return message.href ? (
+                    <Link key={message.id} href={message.href} className="block transition hover:-translate-y-[1px]">
+                      {receiptContent}
+                    </Link>
+                  ) : (
+                    <div key={message.id}>{receiptContent}</div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={message.id}
+                    className={`rounded-[14px] border px-2.5 py-2 ${
+                      message.mine
+                        ? 'border-violet-300/20 bg-violet-500/[0.1]'
+                        : 'border-white/8 bg-white/[0.035]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.13em] text-white/58">
+                        {message.displayName}
+                      </span>
+                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
+                        {getCompactTimeAgo(message.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 break-words text-xs leading-5 text-white/76">{message.body}</p>
                   </div>
-                  <p className="mt-1 break-words text-xs leading-5 text-white/76">{message.body}</p>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="rounded-[14px] border border-white/8 bg-white/[0.03] px-3 py-3 text-xs text-white/46">
                 Room is quiet.

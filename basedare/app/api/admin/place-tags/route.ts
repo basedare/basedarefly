@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 const ALLOWED_PLACE_TAG_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'] as const;
 
@@ -172,6 +173,24 @@ export async function PUT(request: NextRequest) {
         link: `/venues/${existingTag.venue.slug}`,
         pushTopic: 'venues',
       }).catch(() => {});
+
+      if (existingTag.status !== 'APPROVED') {
+        const actorLabel = existingTag.creatorTag || `${existingTag.walletAddress.slice(0, 6)}...${existingTag.walletAddress.slice(-4)}`;
+        await publishVenueRoomReceipt({
+          venueId: existingTag.venueId,
+          actorWallet: existingTag.walletAddress,
+          actorLabel,
+          receiptType: 'mark-approved',
+          sourceId: existingTag.id,
+          body: `${updatedTag.firstMark ? 'First mark verified' : 'Mark verified'} for ${actorLabel}.`,
+          href: `/venues/${encodeURIComponent(existingTag.venue.slug)}`,
+          tone: updatedTag.firstMark ? 'gold' : 'emerald',
+        }).catch((receiptError) => {
+          const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+          console.error('[ADMIN_PLACE_TAGS] Room receipt failed:', receiptMessage);
+          return null;
+        });
+      }
 
       console.log(`[ADMIN_PLACE_TAGS] APPROVED ${tagId} by ${reviewerWallet}`);
 

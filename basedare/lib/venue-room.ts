@@ -38,6 +38,10 @@ export type VenueRoomMessageSummary = {
   avatarUrl: string | null;
   body: string;
   mine: boolean;
+  kind: 'message' | 'receipt';
+  receiptType: string | null;
+  href: string | null;
+  tone: string | null;
   createdAt: string;
   expiresAt: string;
 };
@@ -74,12 +78,33 @@ type VenueRoomPresenceInput = VenueRoomSnapshotInput & {
   visible: boolean;
 };
 
+type VenueRoomReceiptInput = {
+  venueId: string;
+  actorWallet?: string | null;
+  actorLabel?: string | null;
+  body: string;
+  receiptType: string;
+  sourceId?: string | null;
+  href?: string | null;
+  tone?: 'cyan' | 'emerald' | 'gold' | 'violet';
+  notify?: boolean;
+};
+
 function normalizeWallet(value?: string | null) {
   return value?.trim().toLowerCase() || null;
 }
 
 function shortWallet(wallet: string) {
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
+function roomWalletLabel(wallet: string, metadataJson?: Prisma.JsonValue | null) {
+  const metadata = readMetadataRecord(metadataJson);
+  if (metadata.kind === 'receipt') {
+    return 'BaseDare';
+  }
+
+  return shortWallet(wallet);
 }
 
 function roomRadiusMeters(venue: Pick<VenueRoomVenue, 'checkInRadiusMeters'>) {
@@ -98,6 +123,12 @@ function readMetadataRecord(metadataJson: Prisma.JsonValue | null | undefined) {
   return metadataJson as Record<string, unknown>;
 }
 
+function readMetadataString(metadataJson: Prisma.JsonValue | null | undefined, key: string) {
+  const metadata = readMetadataRecord(metadataJson);
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function isPublicCheckIn(metadataJson: Prisma.JsonValue | null | undefined) {
   const metadata = readMetadataRecord(metadataJson);
   return metadata.roomVisible === true || metadata.visibility === 'PUBLIC';
@@ -110,6 +141,10 @@ function sanitizeRoomBody(value: string) {
 
 function trimNotificationBody(value: string) {
   return value.length > 92 ? `${value.slice(0, 89)}...` : value;
+}
+
+function systemWalletForReceipt(receiptType: string) {
+  return `system:${receiptType}`.slice(0, 120);
 }
 
 async function findActiveVenueBySlug(slug: string): Promise<VenueRoomVenue | null> {
@@ -223,18 +258,25 @@ function mapRoomMessage(
     displayName: string;
     avatarUrl: string | null;
     body: string;
+    metadataJson: Prisma.JsonValue | null;
     createdAt: Date;
     expiresAt: Date;
   },
   viewerWallet: string | null
 ): VenueRoomMessageSummary {
+  const kind = readMetadataString(message.metadataJson, 'kind') === 'receipt' ? 'receipt' : 'message';
+
   return {
     id: message.id,
-    walletLabel: shortWallet(message.walletAddress),
+    walletLabel: roomWalletLabel(message.walletAddress, message.metadataJson),
     displayName: message.displayName,
     avatarUrl: message.avatarUrl,
     body: message.body,
-    mine: Boolean(viewerWallet && message.walletAddress === viewerWallet),
+    mine: kind === 'message' && Boolean(viewerWallet && message.walletAddress === viewerWallet),
+    kind,
+    receiptType: readMetadataString(message.metadataJson, 'receiptType'),
+    href: readMetadataString(message.metadataJson, 'href'),
+    tone: readMetadataString(message.metadataJson, 'tone'),
     createdAt: message.createdAt.toISOString(),
     expiresAt: message.expiresAt.toISOString(),
   };
@@ -428,6 +470,7 @@ export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
         displayName: true,
         avatarUrl: true,
         body: true,
+        metadataJson: true,
         createdAt: true,
         expiresAt: true,
       },
@@ -549,6 +592,65 @@ export async function postVenueRoomMessage(input: VenueRoomWriteInput) {
     longitude: input.longitude,
     limit: input.limit,
   });
+}
+
+export async function publishVenueRoomReceipt(input: VenueRoomReceiptInput) {
+  const now = new Date();
+  const body = sanitizeRoomBody(input.body);
+
+  if (!body) return null;
+
+  const venue = await prisma.venue.findUnique({
+    where: { id: input.venueId },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      status: true,
+    },
+  });
+
+  if (!venue || venue.status !== 'ACTIVE') return null;
+
+  const displayName = input.actorLabel?.trim() || 'BaseDare';
+  const walletAddress = normalizeWallet(input.actorWallet) ?? systemWalletForReceipt(input.receiptType);
+  const expiresAt = addHours(now, VENUE_ROOM_MESSAGE_TTL_HOURS);
+
+  const message = await prisma.venueRoomMessage.create({
+    data: {
+      venueId: venue.id,
+      walletAddress,
+      displayName,
+      avatarUrl: null,
+      body,
+      expiresAt,
+      metadataJson: {
+        kind: 'receipt',
+        receiptType: input.receiptType,
+        sourceId: input.sourceId ?? null,
+        href: input.href ?? `/map?place=${encodeURIComponent(venue.slug)}&room=1`,
+        tone: input.tone ?? 'violet',
+        ttlHours: VENUE_ROOM_MESSAGE_TTL_HOURS,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (input.notify !== false) {
+    await notifyVenueRoomMessage({
+      venueId: venue.id,
+      venueSlug: venue.slug,
+      venueName: venue.name,
+      senderWallet: walletAddress,
+      senderDisplayName: 'BaseDare',
+      body,
+      now,
+    });
+  }
+
+  return message;
 }
 
 export async function setVenueRoomPresence(input: VenueRoomPresenceInput) {
