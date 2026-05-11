@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import ShareWinButton from '@/components/ShareWinButton';
 import ReceiptShareCard from '@/components/ReceiptShareCard';
 import CosmicButton from '@/components/ui/CosmicButton';
+import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
 
 type VerificationStatus =
@@ -63,9 +64,8 @@ export default function SubmitEvidence({
   } | null>(null);
   const [appealText, setAppealText] = useState('');
   const [appealSubmitted, setAppealSubmitted] = useState(false);
+  const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
@@ -349,6 +349,10 @@ export default function SubmitEvidence({
     }
   };
 
+  const handleCameraCapture = (capturedFile: File) => {
+    handleFileSelect(capturedFile);
+  };
+
   const handleUploadAndVerify = async () => {
     if (!file || !dareId) return;
 
@@ -495,12 +499,6 @@ export default function SubmitEvidence({
     setAppealSubmitted(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-    }
-    if (photoInputRef.current) {
-      photoInputRef.current.value = '';
-    }
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
     }
   };
 
@@ -874,30 +872,22 @@ export default function SubmitEvidence({
               className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-3"
               onClick={(event) => event.stopPropagation()}
             >
-              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/24 bg-cyan-400/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.14] active:scale-[0.98]">
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileInputChange}
-                  className="sr-only"
-                />
+              <button
+                type="button"
+                onClick={() => setCameraMode('photo')}
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/24 bg-cyan-400/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.14] active:scale-[0.98]"
+              >
                 <Camera className="h-4 w-4" />
                 Take photo
-              </label>
-              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]">
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/*"
-                  capture="environment"
-                  onChange={handleFileInputChange}
-                  className="sr-only"
-                />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCameraMode('video')}
+                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
+              >
                 <Video className="h-4 w-4" />
                 Record video
-              </label>
+              </button>
               <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 transition hover:bg-white/[0.08] active:scale-[0.98]">
                 <input
                   ref={fileInputRef}
@@ -932,6 +922,13 @@ export default function SubmitEvidence({
       <div className="absolute top-0 right-0 w-4 h-4 border-r-2 border-t-2 border-white/20" />
       <div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-white/20" />
       <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-white/20" />
+      <CameraCaptureModal
+        open={cameraMode !== null}
+        mode={cameraMode ?? 'photo'}
+        title={cameraMode === 'video' ? 'Record proof video' : 'Take proof photo'}
+        onClose={() => setCameraMode(null)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }

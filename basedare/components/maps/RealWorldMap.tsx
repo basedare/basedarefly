@@ -2545,6 +2545,12 @@ function escapeMarkerAttribute(value: string) {
     .replace(/>/g, '&gt;');
 }
 
+function getMarkerVenueLabel(value?: string | null) {
+  const normalized = value?.replace(/\s+/g, ' ').trim();
+  if (!normalized) return null;
+  return normalized.length > 30 ? `${normalized.slice(0, 27).trim()}...` : normalized;
+}
+
 function createPeebearMarkerHtml({
   pulse,
   approvedCount,
@@ -2552,6 +2558,7 @@ function createPeebearMarkerHtml({
   active,
   visualState,
   challengeLiveCount,
+  venueName,
   matched = false,
   compact = false,
   activated = false,
@@ -2564,6 +2571,7 @@ function createPeebearMarkerHtml({
   active: boolean;
   visualState: PlaceVisualState;
   challengeLiveCount: number;
+  venueName?: string | null;
   matched?: boolean;
   compact?: boolean;
   activated?: boolean;
@@ -2593,7 +2601,10 @@ function createPeebearMarkerHtml({
   const showActivatedMarkerChrome = activated && (!compact || active);
   const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
   const legendKey = visibleLegends.map((legend) => legend.key).join(',');
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}`;
+  const venueLabel = getMarkerVenueLabel(venueName);
+  const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
+  const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -2601,7 +2612,8 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+      ${safeVenueLabel ? `<span class="peebear-venue-label" title="${safeVenueTitle ?? safeVenueLabel}">${safeVenueLabel}</span>` : ''}
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
@@ -5153,7 +5165,7 @@ export default function RealWorldMap() {
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
   const showCompactSelectedPlacePanel = Boolean(
-    isImmersiveMobile && selectedPlace && !selectedPlacePanelExpanded
+    isMobileViewport && selectedPlace && !selectedPlacePanelExpanded
   );
   const selectedPlacePanelWrapClass = isMobileViewport
     ? `selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30 ${
@@ -5923,6 +5935,7 @@ export default function RealWorldMap() {
       active: true,
       visualState: selectedVisualState,
       challengeLiveCount: selectedPlace.activeDareCount ?? 0,
+      venueName: selectedPlace.name,
       matched: Boolean(showMatchedLayer && selectedPlaceMatch),
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
@@ -6070,6 +6083,7 @@ export default function RealWorldMap() {
           active: isActive,
           visualState,
           challengeLiveCount: place.activeDareCount,
+          venueName: place.name,
           matched: isMatchedVenue,
           compact,
           activated: activatedVenue,
@@ -11167,6 +11181,60 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact) {
           height: 112px;
+        }
+
+        .basedare-maplibre-map :global(.peebear-venue-label) {
+          position: absolute;
+          left: 50%;
+          top: -24px;
+          z-index: 12;
+          max-width: 138px;
+          transform: translateX(-50%);
+          overflow: hidden;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.16), transparent 44%),
+            linear-gradient(180deg, rgba(10, 12, 22, 0.94), rgba(4, 5, 12, 0.92));
+          padding: 4px 9px;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: 0.1em;
+          line-height: 1;
+          text-align: center;
+          text-overflow: ellipsis;
+          text-transform: uppercase;
+          white-space: nowrap;
+          box-shadow:
+            0 12px 20px rgba(0, 0, 0, 0.34),
+            0 0 16px rgba(34, 211, 238, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          pointer-events: none;
+          backdrop-filter: blur(12px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-active .peebear-venue-label) {
+          border-color: rgba(245, 197, 24, 0.42);
+          color: #fff4be;
+          box-shadow:
+            0 14px 24px rgba(0, 0, 0, 0.38),
+            0 0 20px rgba(245, 197, 24, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
+          top: -18px;
+          border-color: rgba(103, 232, 249, 0.34);
+          color: #d8fbff;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-venue-label) {
+          top: -20px;
+          max-width: 118px;
+          padding: 3px 7px;
+          font-size: 7px;
+          letter-spacing: 0.08em;
         }
 
         .basedare-maplibre-map :global(.venue-legend-stack) {

@@ -25,7 +25,6 @@ import PremiumBentoGrid from "@/components/PremiumBentoGrid";
 import HallOfShame from "@/components/HallOfShame";
 import BusinessDossier from "@/components/BusinessDossier";
 // Chat removed for MVP - LiveChatOverlay was here
-import HowItWorks from "@/components/HowItWorks";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import RealityShift from "@/components/RealityShift";
 import MatrixRain from "@/components/MatrixRain";
@@ -256,7 +255,6 @@ function HomeContent() {
                 </div>
               </div>
 
-              <HowItWorks />
               <div id="active-bounties" className="w-full flex justify-center py-20 z-30 px-4 md:px-6">
                 <div className="relative w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
                   <div className="pointer-events-none absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10">

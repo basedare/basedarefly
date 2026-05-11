@@ -12,6 +12,7 @@ import SquircleButton from '@/components/ui/SquircleButton';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import ReceiptShareCard from '@/components/ReceiptShareCard';
+import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 
 type TagPlaceButtonProps = {
   placeId?: string;
@@ -113,13 +114,12 @@ export default function TagPlaceButton({
     timestamp: string;
     tone: 'gold' | 'violet';
   } | null>(null);
+  const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const [mounted, setMounted] = useState(false);
   const [resolvedPlaceId, setResolvedPlaceId] = useState<string | null>(placeId ?? null);
   const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
   const [authChecking, setAuthChecking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
   const { address: connectedWallet, isConnected } = useAccount();
@@ -257,12 +257,6 @@ export default function TagPlaceButton({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    if (photoInputRef.current) {
-      photoInputRef.current.value = '';
-    }
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
   }
 
   function handleProofFileSelected(selectedFile: File | null | undefined) {
@@ -291,6 +285,11 @@ export default function TagPlaceButton({
     }
 
     setFile(selectedFile);
+  }
+
+  function handleCameraCapture(capturedFile: File) {
+    handleProofFileSelected(capturedFile);
+    clearFileInputs();
   }
 
   async function handleSubmit() {
@@ -617,30 +616,22 @@ export default function TagPlaceButton({
                         </p>
                         <p className="mt-2 text-xs text-white/45">{ACCEPTED_MEDIA_COPY}</p>
                         <div className="mt-4 grid w-full gap-2">
-                          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]">
-                            <input
-                              ref={photoInputRef}
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              className="sr-only"
-                              onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
-                            />
+                          <button
+                            type="button"
+                            onClick={() => setCameraMode('photo')}
+                            className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]"
+                          >
                             <Camera className="h-3.5 w-3.5" />
                             Take photo
-                          </label>
-                          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/18 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]">
-                            <input
-                              ref={videoInputRef}
-                              type="file"
-                              accept="video/*"
-                              capture="environment"
-                              className="sr-only"
-                              onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
-                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCameraMode('video')}
+                            className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/18 bg-fuchsia-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-100 transition hover:bg-fuchsia-400/[0.13] active:scale-[0.98]"
+                          >
                             <Video className="h-3.5 w-3.5" />
                             Record video
-                          </label>
+                          </button>
                           <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/[0.075] active:scale-[0.98]">
                             <input
                               ref={fileInputRef}
@@ -742,6 +733,13 @@ export default function TagPlaceButton({
                 </div>
               ) : null}
             </div>
+            <CameraCaptureModal
+              open={cameraMode !== null}
+              mode={cameraMode ?? 'photo'}
+              title={cameraMode === 'video' ? 'Record place proof' : 'Take place photo'}
+              onClose={() => setCameraMode(null)}
+              onCapture={handleCameraCapture}
+            />
           </div>
           </div>
         </div>,
