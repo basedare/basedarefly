@@ -11,8 +11,12 @@ type CameraCaptureModalProps = {
   title: string;
   onClose: () => void;
   onCapture: (file: File) => void;
+  onFallbackUpload?: () => void;
+  fallbackLabel?: string;
   maxDurationMs?: number;
 };
+
+type CameraPermissionState = PermissionState | 'unsupported' | 'unknown';
 
 const VIDEO_MIME_TYPES = [
   'video/mp4;codecs=h264',
@@ -34,12 +38,48 @@ function getVideoExtension(mimeType: string) {
   return mimeType.includes('mp4') ? 'mp4' : 'webm';
 }
 
+function getCameraPermissionCopy(permission: CameraPermissionState) {
+  if (permission === 'granted') return 'Camera allowed';
+  if (permission === 'denied') return 'Camera blocked';
+  if (permission === 'prompt') return 'Prompt ready';
+  if (permission === 'unsupported') return 'Permission unknown';
+  return 'Checking camera';
+}
+
+function getCameraErrorMessage(error: unknown) {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+      return 'Camera permission is blocked for this site. Allow Camera in browser settings, then reopen capture. Upload existing still works.';
+    }
+
+    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      return 'No camera was found on this device. Use upload existing instead.';
+    }
+
+    if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      return 'The camera is busy in another app. Close the other camera app or upload existing.';
+    }
+
+    if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+      return 'This camera could not satisfy the rear-camera request. Try again or upload existing.';
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return `Camera could not open. ${error.message}`;
+  }
+
+  return 'Camera could not open. Upload existing still works.';
+}
+
 export default function CameraCaptureModal({
   open,
   mode,
   title,
   onClose,
   onCapture,
+  onFallbackUpload,
+  fallbackLabel = 'Upload existing',
   maxDurationMs = 15000,
 }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -52,9 +92,49 @@ export default function CameraCaptureModal({
   const [capturing, setCapturing] = useState(false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<CameraPermissionState>('unknown');
+  const [streamActive, setStreamActive] = useState(false);
 
   const supportedVideoMimeType = useMemo(() => getSupportedVideoMimeType(), []);
+  const secureContext = typeof window === 'undefined' ? true : window.isSecureContext;
+  const hasCameraApi = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
   const canRecordVideo = mode === 'photo' || Boolean(supportedVideoMimeType);
+  const cameraReady = streamActive && !loading && !error;
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    setCameraPermission('unknown');
+
+    if (!navigator.permissions?.query) {
+      setCameraPermission('unsupported');
+      return undefined;
+    }
+
+    let cancelled = false;
+    let permissionStatus: PermissionStatus | null = null;
+
+    navigator.permissions
+      .query({ name: 'camera' as PermissionName })
+      .then((status) => {
+        if (cancelled) return;
+        permissionStatus = status;
+        setCameraPermission(status.state);
+        status.onchange = () => setCameraPermission(status.state);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCameraPermission('unsupported');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (permissionStatus) {
+        permissionStatus.onchange = null;
+      }
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -62,7 +142,12 @@ export default function CameraCaptureModal({
     let cancelled = false;
 
     const startCamera = async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
+      if (!secureContext) {
+        setError('Camera requires HTTPS or localhost. Open the secure BaseDare site, then retry. Upload existing still works.');
+        return;
+      }
+
+      if (!hasCameraApi) {
         setError('This browser does not expose direct camera access here. Use upload existing as a fallback.');
         return;
       }
@@ -86,13 +171,19 @@ export default function CameraCaptureModal({
         }
 
         streamRef.current = stream;
+        setStreamActive(true);
+        setCameraPermission('granted');
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => undefined);
         }
       } catch (cameraError) {
-        const message = cameraError instanceof Error ? cameraError.message : 'Camera permission was blocked.';
-        setError(`Camera could not open. ${message}`);
+        if (typeof DOMException !== 'undefined' && cameraError instanceof DOMException) {
+          if (cameraError.name === 'NotAllowedError' || cameraError.name === 'SecurityError') {
+            setCameraPermission('denied');
+          }
+        }
+        setError(getCameraErrorMessage(cameraError));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -115,11 +206,12 @@ export default function CameraCaptureModal({
       recorderRef.current = null;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      setStreamActive(false);
       chunksRef.current = [];
       setRecording(false);
       setCapturing(false);
     };
-  }, [open]);
+  }, [hasCameraApi, open, secureContext]);
 
   if (!open) {
     return null;
@@ -223,6 +315,26 @@ export default function CameraCaptureModal({
     }
   };
 
+  const handleFallbackUpload = () => {
+    onFallbackUpload?.();
+    onClose();
+  };
+
+  const statusPills = [
+    {
+      label: secureContext ? 'Secure site' : 'Needs HTTPS',
+      active: secureContext,
+    },
+    {
+      label: getCameraPermissionCopy(cameraPermission),
+      active: cameraPermission === 'granted' || cameraPermission === 'prompt' || cameraPermission === 'unsupported',
+    },
+    {
+      label: mode === 'video' ? (supportedVideoMimeType ? 'Video ready' : 'Video fallback') : 'Photo ready',
+      active: mode === 'photo' || Boolean(supportedVideoMimeType),
+    },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-[140] flex items-end bg-[rgba(1,3,10,0.72)] backdrop-blur-xl sm:items-center sm:justify-center sm:px-4"
@@ -284,30 +396,61 @@ export default function CameraCaptureModal({
               Use the rear camera when possible. Keep the venue and proof moment visible in-frame.
             </p>
           )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {statusPills.map((pill) => (
+              <span
+                key={pill.label}
+                className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] ${
+                  pill.active
+                    ? 'border-cyan-200/20 bg-cyan-400/[0.08] text-cyan-100'
+                    : 'border-amber-300/20 bg-amber-400/[0.08] text-amber-100'
+                }`}
+              >
+                {pill.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="border-t border-white/10 px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
-          {mode === 'photo' ? (
-            <button
-              type="button"
-              onClick={capturePhoto}
-              disabled={loading || capturing}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-cyan-200/28 bg-cyan-400/[0.12] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 transition hover:bg-cyan-400/[0.17] disabled:cursor-wait disabled:opacity-60"
-            >
-              {capturing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              Snap photo
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={recording ? stopRecording : startRecording}
-              disabled={loading || !canRecordVideo}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200/24 bg-fuchsia-400/[0.12] px-5 text-xs font-black uppercase tracking-[0.18em] text-fuchsia-50 transition hover:bg-fuchsia-400/[0.17] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {recording ? <Square className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-              {recording ? 'Stop recording' : 'Start recording'}
-            </button>
-          )}
+          <div className={`grid gap-2 ${onFallbackUpload ? 'sm:grid-cols-2' : ''}`}>
+            {mode === 'photo' ? (
+              <button
+                type="button"
+                onClick={capturePhoto}
+                disabled={!cameraReady || capturing}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-cyan-200/28 bg-cyan-400/[0.12] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 transition hover:bg-cyan-400/[0.17] disabled:cursor-wait disabled:opacity-60"
+              >
+                {capturing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                Snap photo
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={recording ? stopRecording : startRecording}
+                disabled={!cameraReady || !canRecordVideo}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200/24 bg-fuchsia-400/[0.12] px-5 text-xs font-black uppercase tracking-[0.18em] text-fuchsia-50 transition hover:bg-fuchsia-400/[0.17] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {recording ? <Square className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                {recording ? 'Stop recording' : 'Start recording'}
+              </button>
+            )}
+            {onFallbackUpload ? (
+              <button
+                type="button"
+                onClick={handleFallbackUpload}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.055] px-5 text-xs font-black uppercase tracking-[0.18em] text-white/76 transition hover:border-white/20 hover:bg-white/[0.085] hover:text-white"
+              >
+                {fallbackLabel}
+              </button>
+            ) : null}
+          </div>
+          {mode === 'video' && !supportedVideoMimeType ? (
+            <p className="mt-3 text-center text-[11px] leading-5 text-amber-100/68">
+              This browser cannot record video directly here. Upload an existing camera clip instead.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

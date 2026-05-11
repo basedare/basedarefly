@@ -739,6 +739,7 @@ export default function TagPlaceButton({
               title={cameraMode === 'video' ? 'Record place proof' : 'Take place photo'}
               onClose={() => setCameraMode(null)}
               onCapture={handleCameraCapture}
+              onFallbackUpload={() => fileInputRef.current?.click()}
             />
           </div>
           </div>

@@ -928,6 +928,7 @@ export default function SubmitEvidence({
         title={cameraMode === 'video' ? 'Record proof video' : 'Take proof photo'}
         onClose={() => setCameraMode(null)}
         onCapture={handleCameraCapture}
+        onFallbackUpload={() => fileInputRef.current?.click()}
       />
     </div>
   );
