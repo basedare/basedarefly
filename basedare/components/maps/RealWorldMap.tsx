@@ -4917,20 +4917,31 @@ export default function RealWorldMap() {
       }));
     }
 
+    const activatedPlaces = filteredNearbyPlaces.filter((place) => isVenueActivated(place.commandCenter));
+    const clusterablePlaces = filteredNearbyPlaces.filter((place) => !isVenueActivated(place.commandCenter));
+    const activatedMarkers = activatedPlaces.map((place): ClusteredNearbyMarker => ({
+      kind: 'place',
+      key: place.id,
+      place,
+    }));
+
     const roundedZoom = Math.max(0, Math.round(mapZoom));
     const cellSize = getClusterCellSize(roundedZoom);
 
-    if (cellSize <= 0) {
-      return filteredNearbyPlaces.map((place) => ({
-        kind: 'place',
-        key: place.id,
-        place,
-      }));
+    if (cellSize <= 0 || clusterablePlaces.length <= 1) {
+      return [
+        ...clusterablePlaces.map((place): ClusteredNearbyMarker => ({
+          kind: 'place',
+          key: place.id,
+          place,
+        })),
+        ...activatedMarkers,
+      ];
     }
 
     const buckets = new Map<string, NearbyPlace[]>();
 
-    filteredNearbyPlaces.forEach((place) => {
+    clusterablePlaces.forEach((place) => {
       const point = projectLatLngToWorldPoint(place.latitude, place.longitude, roundedZoom);
       const bucketX = Math.floor(point.x / cellSize);
       const bucketY = Math.floor(point.y / cellSize);
@@ -4988,7 +4999,7 @@ export default function RealWorldMap() {
       });
     });
 
-    return markers;
+    return [...markers, ...activatedMarkers];
   }, [filteredNearbyPlaces, mapZoom, matchedVenueIndex, showMatchedLayer]);
 
   const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
