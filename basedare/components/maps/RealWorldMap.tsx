@@ -4408,37 +4408,6 @@ export default function RealWorldMap() {
     );
   }, [mapZoom, userLocation, viewportCenter]);
 
-  const firstMarkState = useMemo(() => {
-    const approvedCount = selectedPlace?.approvedCount ?? 0;
-    const pendingCount = selectedPendingPlaceTags.length;
-
-    if (approvedCount <= 0 && pendingCount > 0) {
-      return {
-        label: 'First mark contested',
-        className:
-          'border-amber-300/35 bg-amber-500/[0.12] text-amber-100',
-      };
-    }
-
-    if (approvedCount <= 0) {
-      return {
-        label: 'First mark open',
-        className:
-          'border-[#f5c518]/38 bg-[linear-gradient(180deg,rgba(245,197,24,0.18)_0%,rgba(168,85,247,0.12)_100%)] text-[#f8dd72]',
-      };
-    }
-
-    if (approvedCount === 1) {
-      return {
-        label: 'First verified here',
-        className:
-          'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]',
-      };
-    }
-
-    return null;
-  }, [selectedPendingPlaceTags.length, selectedPlace?.approvedCount]);
-
   const proximityAccess = useMemo(() => {
     if (isCreatorSource || showBackToControl) {
       return {
@@ -5497,7 +5466,6 @@ export default function RealWorldMap() {
     signMessageAsync,
     userLocation,
   ]);
-  const showSelectedVisualBadge = !firstMarkState;
   const selectedPulseMeaning = useMemo(
     () =>
       getPulseMeaning({
@@ -7690,9 +7658,6 @@ export default function RealWorldMap() {
                               <p className="truncate text-[1.05rem] font-black leading-tight text-white">
                                 {selectedPlace.name}
                               </p>
-                              <p className="mt-1 line-clamp-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/58">
-                                {selectedVenueProfile?.tagline ?? selectedVisualCopy.label}
-                              </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-1.5">
                               <button
@@ -7750,7 +7715,7 @@ export default function RealWorldMap() {
                           : 'max-h-[52dvh] md:h-full md:max-h-none'
                     }`}
                   >
-                  <div className="selected-place-panel-header sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
+                  <div className="selected-place-panel-header sticky top-0 z-10 max-h-[50%] shrink-0 overflow-hidden rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
                     <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-white/15 md:mb-3 md:hidden" />
                   <div className="flex items-start justify-between gap-3 md:gap-5">
                     <div className="min-w-0 flex-1">
@@ -7778,72 +7743,6 @@ export default function RealWorldMap() {
                       <h3 className="text-[1.42rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
                         {selectedPlace.name}
                       </h3>
-                      {selectedVenueProfile ? (
-                        <div className="mt-3 hidden items-start gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.025)_46%,rgba(7,9,18,0.72)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)] md:flex">
-                          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/12 bg-black/35 text-xl shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)]">
-                            {selectedVenueProfile.profileImageUrl ? (
-                              <img
-                                src={selectedVenueProfile.profileImageUrl}
-                                alt=""
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <span aria-hidden="true">{selectedVenueProfile.primaryLegend.emoji}</span>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f8dd72]">
-                              {selectedVenueProfile.tagline}
-                            </p>
-                            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-white/62">
-                              {selectedVenueProfile.bio}
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {selectedVenueProfile.legends.map((legend) => (
-                                <span
-                                  key={`${selectedPlace.name}:${legend.key}`}
-                                  className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/62"
-                                >
-                                  <span aria-hidden="true">{legend.emoji}</span>
-                                  {legend.label}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-                      <div className="mt-2 hidden flex-wrap items-center gap-2 md:mt-3 md:flex">
-                        {firstMarkState ? (
-                          <span
-                            className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${firstMarkState.className}`}
-                          >
-                            {firstMarkState.label}
-                          </span>
-                        ) : null}
-                        {showSelectedVisualBadge ? (
-                          <span
-                            className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
-                              selectedVisualState === 'hot'
-                                ? 'border-rose-300/35 bg-rose-500/[0.12] text-rose-100'
-                                : selectedVisualState === 'active'
-                                  ? 'border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100'
-                                  : selectedVisualState === 'first-mark'
-                                    ? 'border-[#f5c518]/35 bg-[#f5c518]/[0.12] text-[#f8dd72]'
-                                    : selectedVisualState === 'pending'
-                                      ? 'border-amber-300/30 bg-amber-500/[0.12] text-amber-100'
-                                      : 'border-white/12 bg-white/[0.05] text-white/60'
-                            }`}
-                          >
-                            {selectedVisualCopy.label}
-                          </span>
-                        ) : null}
-                        {proximityAccess.label ? (
-                          <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                            {proximityAccess.label}
-                          </span>
-                        ) : null}
-                      </div>
                       <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                         <span className="line-clamp-1 min-w-0 md:line-clamp-2">
@@ -7884,7 +7783,7 @@ export default function RealWorldMap() {
                   </div>
 
                   <div
-                    className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
+                    className="selected-place-panel-content min-h-[50%] flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
 
@@ -11203,11 +11102,11 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue) {
-          height: 160px;
+          height: 170px;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact) {
-          height: 132px;
+          height: 140px;
         }
 
         .basedare-maplibre-map :global(.peebear-venue-label) {
@@ -11272,9 +11171,10 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
-          top: -4px;
-          min-width: 112px;
-          max-width: 184px;
+          top: -12px;
+          z-index: 18;
+          min-width: 122px;
+          max-width: 204px;
           overflow: visible;
           border-radius: 11px 11px 7px 7px;
           border-color: rgba(255, 244, 190, 0.72);
@@ -11283,7 +11183,7 @@ export default function RealWorldMap() {
             linear-gradient(180deg, rgba(255, 246, 183, 0.98), rgba(245, 197, 24, 0.98) 46%, rgba(148, 92, 12, 0.98) 100%);
           padding: 8px 13px 9px;
           color: rgba(22, 14, 0, 0.96);
-          font-size: 10.5px;
+          font-size: 11px;
           letter-spacing: 0.1em;
           line-height: 1.05;
           text-shadow:
@@ -11333,9 +11233,9 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-venue-label) {
-          top: -2px;
-          min-width: 96px;
-          max-width: 154px;
+          top: -8px;
+          min-width: 104px;
+          max-width: 168px;
           padding: 7px 11px 8px;
           font-size: 9px;
           letter-spacing: 0.08em;
@@ -11397,15 +11297,15 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-core) {
-          margin-top: 56px;
-          border-color: rgba(103, 232, 249, 0.74);
+          margin-top: 62px;
+          border-color: rgba(248, 221, 114, 0.82);
           background:
             radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.18) 0%, transparent 54%),
-            radial-gradient(circle at 60% 86%, rgba(34, 211, 238, 0.2) 0%, transparent 46%),
-            linear-gradient(180deg, rgba(13, 29, 47, 0.98), rgba(7, 9, 18, 0.99));
+            radial-gradient(circle at 62% 86%, rgba(245, 197, 24, 0.18) 0%, transparent 48%),
+            linear-gradient(180deg, rgba(41, 27, 8, 0.98), rgba(14, 10, 22, 0.99));
           box-shadow:
-            0 0 0 3px rgba(34, 211, 238, 0.16),
-            0 0 24px rgba(34, 211, 238, 0.3),
+            0 0 0 3px rgba(245, 197, 24, 0.15),
+            0 0 24px rgba(245, 197, 24, 0.26),
             0 0 34px rgba(184, 127, 255, 0.12),
             0 16px 28px rgba(0, 0, 0, 0.46),
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -11413,7 +11313,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-core) {
-          margin-top: 50px;
+          margin-top: 56px;
           height: 50px;
           width: 50px;
         }
@@ -11791,6 +11691,30 @@ export default function RealWorldMap() {
             inset 0 1px 0 rgba(255, 255, 255, 0.12),
             inset 0 -12px 16px rgba(0, 0, 0, 0.24);
           transform: scale(1.08) translateY(-2px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .map-pin-marker) {
+          border-color: rgba(248, 221, 114, 0.86);
+          background:
+            radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.22) 0%, transparent 54%),
+            radial-gradient(circle at 66% 76%, rgba(184, 127, 255, 0.16) 0%, transparent 50%),
+            linear-gradient(180deg, rgba(41, 27, 8, 0.98), rgba(14, 10, 24, 0.99));
+          box-shadow:
+            6px 8px 16px rgba(0, 0, 0, 0.86),
+            -2px -2px 7px rgba(255, 255, 255, 0.07),
+            0 0 0 2px rgba(245, 197, 24, 0.56),
+            0 0 24px rgba(245, 197, 24, 0.3),
+            0 18px 30px rgba(0, 0, 0, 0.48),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-head) {
+          width: 91%;
+          height: 91%;
+          filter:
+            drop-shadow(0 5px 9px rgba(0, 0, 0, 0.28))
+            drop-shadow(0 0 8px rgba(245, 197, 24, 0.14));
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-matched .peebear-core) {
