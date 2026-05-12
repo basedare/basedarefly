@@ -65,6 +65,14 @@ const ACCEPTED_MARK_MEDIA_TYPES = new Set([
   'image/gif',
 ]);
 
+function shouldUseNativePhoneCamera() {
+  if (typeof navigator === 'undefined') return false;
+  const userAgent = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const touchPoints = navigator.maxTouchPoints ?? 0;
+  return /Android|iPhone|iPad|iPod/i.test(userAgent) || (platform === 'MacIntel' && touchPoints > 1);
+}
+
 type SessionShape = {
   token?: string | null;
   walletAddress?: string | null;
@@ -120,6 +128,7 @@ export default function TagPlaceButton({
   const [fallbackSession, setFallbackSession] = useState<SessionShape | null>(null);
   const [authChecking, setAuthChecking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoCaptureInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
   const { address: connectedWallet, isConnected } = useAccount();
@@ -147,6 +156,7 @@ export default function TagPlaceButton({
       sessionWallet !== normalizedConnectedWallet
   );
   const effectivePlaceId = placeId ?? resolvedPlaceId;
+  const nativePhoneCamera = shouldUseNativePhoneCamera();
 
   useEffect(() => {
     setMounted(true);
@@ -257,6 +267,9 @@ export default function TagPlaceButton({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (photoCaptureInputRef.current) {
+      photoCaptureInputRef.current.value = '';
+    }
   }
 
   function handleProofFileSelected(selectedFile: File | null | undefined) {
@@ -290,6 +303,16 @@ export default function TagPlaceButton({
   function handleCameraCapture(capturedFile: File) {
     handleProofFileSelected(capturedFile);
     clearFileInputs();
+  }
+
+  function handleTakePhoto() {
+    triggerHaptic('selection');
+    if (nativePhoneCamera && photoCaptureInputRef.current) {
+      photoCaptureInputRef.current.click();
+      return;
+    }
+
+    setCameraMode('photo');
   }
 
   async function handleSubmit() {
@@ -618,12 +641,20 @@ export default function TagPlaceButton({
                         <div className="mt-4 grid w-full gap-2">
                           <button
                             type="button"
-                            onClick={() => setCameraMode('photo')}
+                            onClick={handleTakePhoto}
                             className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-cyan-300/22 bg-cyan-400/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/[0.13] active:scale-[0.98]"
                           >
                             <Camera className="h-3.5 w-3.5" />
                             Take photo
                           </button>
+                          <input
+                            ref={photoCaptureInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="sr-only"
+                            onChange={(event) => handleProofFileSelected(event.target.files?.[0])}
+                          />
                           <button
                             type="button"
                             onClick={() => setCameraMode('video')}

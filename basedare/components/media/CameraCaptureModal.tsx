@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, Camera, Loader2, Square, Video, X } from 'lucide-react';
 
 export type CameraCaptureMode = 'photo' | 'video';
@@ -100,6 +101,7 @@ export default function CameraCaptureModal({
   const hasCameraApi = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
   const canRecordVideo = mode === 'photo' || Boolean(supportedVideoMimeType);
   const cameraReady = streamActive && !loading && !error;
+  const portalTarget = typeof document === 'undefined' ? null : document.body;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -213,7 +215,7 @@ export default function CameraCaptureModal({
     };
   }, [hasCameraApi, open, secureContext]);
 
-  if (!open) {
+  if (!open || !portalTarget) {
     return null;
   }
 
@@ -335,7 +337,7 @@ export default function CameraCaptureModal({
     },
   ];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[140] flex items-end bg-[rgba(1,3,10,0.72)] backdrop-blur-xl sm:items-center sm:justify-center sm:px-4"
       onClick={onClose}
@@ -453,6 +455,7 @@ export default function CameraCaptureModal({
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 }
