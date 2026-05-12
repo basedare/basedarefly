@@ -51,7 +51,7 @@ type TagPlaceButtonProps = {
   }) => void;
 };
 
-const ACCEPTED_MEDIA_COPY = 'Take a photo now or upload short image/video proof from the place itself.';
+const ACCEPTED_MEDIA_COPY = 'Use the camera first. Upload is only a backup.';
 const MAX_MARK_MEDIA_SIZE_BYTES = 120 * 1024 * 1024;
 const ACCEPTED_MARK_MEDIA_TYPES = new Set([
   'video/mp4',
@@ -102,7 +102,7 @@ export default function TagPlaceButton({
   externalPlaceId,
   buttonClassName,
   buttonVariant = 'default',
-  buttonLabel = 'Mark',
+  buttonLabel = 'Take proof',
   onPlaceResolved,
   onTagSubmitted,
 }: TagPlaceButtonProps) {
@@ -220,14 +220,14 @@ export default function TagPlaceButton({
     if (geoLoading) return 'Locating you near this place...';
     if (geoError) return geoError;
     if (coordinates) return 'Location locked. Proof will be checked against this place.';
-    return 'We need your location to leave a verified mark.';
+    return 'We need your location to verify this proof.';
   }, [coordinates, geoError, geoLoading, geoSupported]);
 
   const authMessage = useMemo(() => {
     if (authChecking || sessionStatus === 'loading') {
       return {
         title: 'Checking session',
-        description: 'Verifying your wallet-backed session before this mark can hit the grid.',
+        description: 'Verifying your wallet-backed session before proof submission.',
         cta: 'Checking...',
       };
     }
@@ -243,7 +243,7 @@ export default function TagPlaceButton({
     if (hasWalletConnection && !hasVerifiedSession) {
       return {
         title: 'Wallet connected',
-        description: 'Your wallet is live. For now we will use the connected wallet and its verified primary tag to submit this mark.',
+        description: 'Your wallet is live. We will use it to submit this proof.',
         cta: 'Wallet ready',
       };
     }
@@ -319,7 +319,7 @@ export default function TagPlaceButton({
     if (hasWalletMismatch) {
       toast({
         title: 'Wallet mismatch',
-        description: 'Reconnect the same wallet you used for your current BaseDare session before leaving a mark.',
+        description: 'Reconnect the same wallet you used for your current BaseDare session before submitting proof.',
         variant: 'destructive',
       });
       return;
@@ -328,7 +328,7 @@ export default function TagPlaceButton({
     if (!canAuthenticate) {
       toast({
         title: 'Wallet required',
-        description: 'Connect the wallet that owns your creator tag before leaving a mark.',
+        description: 'Connect the wallet that owns your creator tag before submitting proof.',
         variant: 'destructive',
       });
       return;
@@ -337,7 +337,7 @@ export default function TagPlaceButton({
     if (!file) {
       toast({
         title: 'Proof required',
-        description: 'Upload an image or video from the place itself.',
+        description: 'Take a photo, record a video, or upload proof from the place.',
         variant: 'destructive',
       });
       return;
@@ -471,10 +471,10 @@ export default function TagPlaceButton({
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
       setSubmittedReceipt({
-        title: payload.data?.firstMark ? `First mark submitted at ${venueName}` : `Mark submitted at ${venueName}`,
+        title: payload.data?.firstMark ? `First proof submitted at ${venueName}` : `Proof submitted at ${venueName}`,
         detail: payload.data?.firstMark
-          ? 'This is waiting for referee review. If approved, it becomes the first public proof spark for the venue.'
-          : 'This is waiting for referee review. If approved, it upgrades the venue memory layer.',
+          ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
+          : 'This is waiting for review. If approved, the venue updates automatically.',
         href: venueSlug ? `/venues/${encodeURIComponent(venueSlug)}` : '/map',
         venueName,
         actorLabel,
@@ -486,13 +486,13 @@ export default function TagPlaceButton({
       setCaption('');
       setVibeTags('');
       toast({
-        title: 'Mark submitted',
-        description: payload.data?.message || `${placeName} is now waiting in the Chaos Inbox.`,
+        title: 'Proof submitted',
+        description: payload.data?.message || `${placeName} is waiting for review.`,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to submit place tag';
+      const message = error instanceof Error ? error.message : 'Failed to submit proof';
       toast({
-        title: 'Could not submit mark',
+        title: 'Could not submit proof',
         description: message,
         variant: 'destructive',
       });
@@ -560,11 +560,11 @@ export default function TagPlaceButton({
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-purple-100">
                     <Crosshair className="h-3.5 w-3.5" />
-                    Leave your mark
+                    Take proof
                   </div>
                   <h3 className="mt-4 text-2xl font-black text-white">{placeName}</h3>
                   <p className="mt-2 max-w-lg text-sm text-white/60">
-                    Verified marks turn places into living memory. Submit proof from the spot and we will route it into review.
+                    Take a photo or video from the spot. We check the location, then send it for review.
                   </p>
                 </div>
                 <button
@@ -580,17 +580,17 @@ export default function TagPlaceButton({
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               {submitState === 'success' ? (
                 <div className="bd-puncture-surface bd-puncture-surface--emerald rounded-[24px] border border-emerald-500/20 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Mark pending</p>
-                  <p className="mt-3 text-lg font-bold text-white">Your mark is in the Chaos Inbox.</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Proof pending</p>
+                  <p className="mt-3 text-lg font-bold text-white">Your proof is in review.</p>
                   <p className="mt-2 text-sm text-white/65">
                     {submittedFirstMark
-                      ? 'If this clears, you ignite the first spark here and wake the place up.'
-                      : 'If this clears, the place memory upgrades and the pulse climbs automatically.'}
+                      ? 'If this clears, you become the first verified proof here.'
+                      : 'If this clears, the venue updates automatically.'}
                   </p>
                   <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">What happens next</p>
                     <p className="mt-2 text-sm text-white/70">
-                      Referees review the proof, then the map updates with your spark, heat, and recent mark.
+                      Referees review it. If it passes, the map shows your verified proof.
                     </p>
                   </div>
                   {submittedReceipt ? (
@@ -758,7 +758,7 @@ export default function TagPlaceButton({
                       className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300/26 bg-purple-500/[0.12] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100 disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Submit mark
+                      Submit proof
                     </button>
                   </div>
                 </div>

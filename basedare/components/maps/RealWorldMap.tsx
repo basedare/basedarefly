@@ -877,11 +877,11 @@ function getMapLibreSignalLabel({
 }) {
   if (activeDareCount > 1) return `${activeDareCount} live`;
   if (activeDareCount === 1) return 'live dare';
-  if (matched) return 'matched';
-  if (approvedCount > 1) return `${approvedCount} marks`;
-  if (approvedCount === 1) return 'first mark';
+  if (matched) return 'for you';
+  if (approvedCount > 1) return `${approvedCount} proofs`;
+  if (approvedCount === 1) return 'first proof';
   if (visualState === 'pending') return 'pending';
-  return 'wake spot';
+  return 'no proof';
 }
 
 function getChaosLevelForPlace(place: NearbyPlace) {
@@ -1683,22 +1683,22 @@ function isCommunityActivation(dare: Pick<SelectedPlaceActiveDare, 'bounty' | 'm
 }
 
 function getActivationRewardLabel(dare: Pick<SelectedPlaceActiveDare, 'bounty' | 'missionTag' | 'isCommunitySpark'>) {
-  return isCommunityActivation(dare) ? 'Community Spark' : `${formatMapUsd(dare.bounty)} USDC`;
+  return isCommunityActivation(dare) ? 'Community dare' : `${formatMapUsd(dare.bounty)} USDC`;
 }
 
 function getLastSparkLabel(lastTaggedAt: string | null) {
-  if (!lastTaggedAt) return 'No sparks yet';
+  if (!lastTaggedAt) return 'No proof yet';
 
   const diffMs = Date.now() - new Date(lastTaggedAt).getTime();
   const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
 
-  if (diffMinutes < 60) return `Last spark ${diffMinutes}m ago`;
+  if (diffMinutes < 60) return `Last proof ${diffMinutes}m ago`;
 
   const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `Last spark ${diffHours}h ago`;
+  if (diffHours < 24) return `Last proof ${diffHours}h ago`;
 
   const diffDays = Math.round(diffHours / 24);
-  return `Last spark ${diffDays}d ago`;
+  return `Last proof ${diffDays}d ago`;
 }
 
 function formatCoordinateLabel(latitude: number, longitude: number) {
@@ -1821,29 +1821,29 @@ function getPlaceVisualCopy(state: PlaceVisualState) {
   switch (state) {
     case 'pending':
       return {
-        label: 'Contested',
-        description: 'A fresh mark is waiting for referee review before this venue can wake up.',
+        label: 'Proof pending',
+        description: 'A fresh proof is waiting for review.',
       };
     case 'first-mark':
       return {
-        label: 'First Spark',
-        description: 'This place just crossed from empty pin to real venue memory.',
+        label: 'First proof',
+        description: 'This venue has its first approved proof.',
       };
     case 'active':
       return {
         label: 'Verified',
-        description: 'Verified marks are stacking and the venue is starting to feel owned.',
+        description: 'Approved proofs are starting to stack here.',
       };
     case 'hot':
       return {
-        label: 'Legendary',
-        description: 'Recent verified activity is dense enough that the venue story is now obvious.',
+        label: 'Hot',
+        description: 'Recent proof activity is strong here.',
       };
     case 'unmarked':
     default:
       return {
-        label: 'Dormant',
-        description: 'No approved marks yet. The venue exists, but its memory layer is still empty.',
+        label: 'No proof yet',
+        description: 'No approved proof yet. Be first.',
       };
   }
 }
@@ -1861,28 +1861,28 @@ function getPulseMeaning({
 }) {
   if (pulse === 'blazing') {
     return {
-      label: 'Blazing',
-      description: `This venue is hot right now: ${approvedCount} verified sparks, heat ${heatScore}, and enough recent movement to feel active before you even arrive.`,
+      label: 'Hot',
+      description: `This venue is moving now: ${approvedCount} approved proofs, heat ${heatScore}, and recent activity.`,
     };
   }
 
   if (pulse === 'igniting') {
     return {
-      label: 'Igniting',
-      description: `Momentum is real here. Verified marks are stacking, heat is climbing, and ${activeDareCount > 0 ? 'live drops are helping it move' : 'another activation could push it into the hot tier'}.`,
+      label: 'Active',
+      description: `Proofs are stacking here${activeDareCount > 0 ? ', and a live dare is active' : ''}.`,
     };
   }
 
   if (pulse === 'simmering') {
     return {
-      label: 'Simmering',
-      description: `This venue has signal, but it still needs repetition. A few more verified sparks will make the story obvious.`,
+      label: 'Started',
+      description: 'This venue has approved proof, but still needs more activity.',
     };
   }
 
   return {
-    label: 'Dormant',
-    description: `The venue exists on the map, but no strong public memory loop is active yet. First mark or first funded drop wins the story.`,
+    label: 'No proof yet',
+    description: 'No approved proof yet. Take the first photo or fund the first dare.',
   };
 }
 
@@ -1902,7 +1902,7 @@ function getVenueTransformationState({
   if (approvedCount <= 0 && pendingCount > 0) {
     return {
       label: 'Contested',
-      description: 'A first mark is in review. One approval turns this from a dormant coordinate into a real BaseDare venue.',
+      description: 'A first proof is in review. One approval makes this venue verified.',
       level: 1,
       className: 'border-amber-300/28 bg-amber-500/[0.10] text-amber-100',
       activeBarClass: 'from-amber-300 to-[#f5c518] shadow-[0_0_16px_rgba(251,191,36,0.18)]',
@@ -1912,7 +1912,7 @@ function getVenueTransformationState({
   if (approvedCount <= 0) {
     return {
       label: 'Dormant',
-      description: 'The map knows this place exists, but nobody has anchored a verified memory here yet.',
+      description: 'This place is on the map, but nobody has verified proof here yet.',
       level: 1,
       className: 'border-white/12 bg-white/[0.04] text-white/62',
       activeBarClass: 'from-white/70 to-white/35',
@@ -1922,7 +1922,7 @@ function getVenueTransformationState({
   if (approvedCount === 1) {
     return {
       label: 'Awakening',
-      description: 'One verified spark is enough to make the venue real. Now it needs repetition to feel alive.',
+      description: 'One proof is verified. A few more will make the venue feel active.',
       level: 2,
       className: 'border-[#f5c518]/30 bg-[#f5c518]/[0.10] text-[#f8dd72]',
       activeBarClass: 'from-[#f5c518] to-[#f8dd72] shadow-[0_0_16px_rgba(245,197,24,0.18)]',
@@ -1932,7 +1932,7 @@ function getVenueTransformationState({
   if (approvedCount >= 8 || heatScore >= 60 || pulse === 'blazing') {
     return {
       label: 'Legendary',
-      description: 'This place has enough verified activity and heat to read like a true local legend node.',
+      description: 'This place has enough verified activity to stand out.',
       level: 5,
       className: 'border-rose-300/30 bg-rose-500/[0.10] text-rose-100',
       activeBarClass: 'from-rose-300 via-[#f5c518] to-cyan-200 shadow-[0_0_18px_rgba(251,113,133,0.24)]',
@@ -1942,7 +1942,7 @@ function getVenueTransformationState({
   if (approvedCount >= 4 || heatScore >= 24 || pulse === 'igniting') {
     return {
       label: 'Established',
-      description: 'The venue has enough recurring proof that its memory layer now changes how the place feels.',
+      description: 'The venue has recurring proof and visible activity.',
       level: 4,
       className: 'border-cyan-300/30 bg-cyan-500/[0.10] text-cyan-100',
       activeBarClass: 'from-cyan-300 to-sky-200 shadow-[0_0_16px_rgba(34,211,238,0.22)]',
@@ -1950,8 +1950,8 @@ function getVenueTransformationState({
   }
 
   return {
-    label: 'Building Memory',
-    description: 'The place is warming up. More verified marks will push it from interesting to undeniable.',
+    label: 'Proof started',
+    description: 'The place is warming up. More verified proof will make it obvious.',
     level: 3,
     className: 'border-[#b87fff]/30 bg-[#b87fff]/[0.10] text-[#edd8ff]',
     activeBarClass: 'from-[#b87fff] to-fuchsia-200 shadow-[0_0_16px_rgba(184,127,255,0.18)]',
@@ -1980,14 +1980,14 @@ function getVenueActivationMarkerLabel(commandCenter?: VenueCommandCenter | null
 function getVenueActivationActionCopy(commandCenter: VenueCommandCenter) {
   if (isVenueActivated(commandCenter)) {
     return {
-      label: 'Repeat activation',
-      detail: 'Fund another creator moment here',
+      label: 'Fund another dare',
+      detail: 'Put more money on this venue',
     };
   }
 
   return {
     label: 'Activate venue',
-    detail: 'Make this pin visibly sponsored',
+    detail: 'Put money on this venue',
   };
 }
 
@@ -2036,7 +2036,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
     key: 'late',
     label: 'Tonight',
     dateLabel,
-    prompt: 'Bars, music, late food, and nightlife signals.',
+    prompt: 'Bars, music, late food, and nightlife.',
   };
 }
 
@@ -2073,9 +2073,9 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (place.activeDareCount > 0) {
     return {
       kind: 'venue-memory' as const,
-      eyebrow: 'Live venue drop',
-      title: `${place.activeDareCount} mission${place.activeDareCount === 1 ? '' : 's'} moving at ${place.name}`,
-      detail: 'Money or proof activity is already moving here. This is the clearest path from map signal to real-world action.',
+      eyebrow: 'Live dare',
+      title: `${place.activeDareCount} active dare${place.activeDareCount === 1 ? '' : 's'} at ${place.name}`,
+      detail: 'A funded task is already live here.',
       actionLabel: 'View',
       tone: 'cyan' as HappeningTone,
     };
@@ -2084,10 +2084,10 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (approvedCount <= 0) {
     return {
       kind: 'first-spark' as const,
-      eyebrow: 'First mark open',
-      title: `Be first at ${place.name}`,
-      detail: 'No verified memory is anchored yet. The first person to mark it writes the opening legend.',
-      actionLabel: 'Mark',
+      eyebrow: 'First proof open',
+      title: `Be first to prove ${place.name}`,
+      detail: 'No approved proof yet. Take the first photo or video here.',
+      actionLabel: 'Proof',
       tone: 'purple' as HappeningTone,
     };
   }
@@ -2118,8 +2118,8 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
     return {
       kind: 'tourist-route' as const,
       eyebrow: 'Tonight',
-      title: `${place.name} has night signal`,
-      detail: 'Good candidate for “what should we do now?” traffic, creator clips, and late venue memory.',
+      title: `${place.name} is worth checking tonight`,
+      detail: 'Good candidate for late traffic, creator clips, and quick proof.',
       actionLabel: 'Open',
       tone: 'rose' as HappeningTone,
     };
@@ -2127,12 +2127,12 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
 
   return {
     kind: 'venue-memory' as const,
-    eyebrow: approvedCount > 1 ? 'Local memory' : 'First spark',
+    eyebrow: approvedCount > 1 ? 'Local proof' : 'First proof',
     title: `${place.name} is worth checking`,
     detail:
       approvedCount > 1
-        ? `${approvedCount} verified sparks already exist here. New users can see the story and add to it.`
-        : 'One verified spark exists here. Another mark can make the venue feel alive.',
+        ? `${approvedCount} approved proofs already exist here.`
+        : 'One approved proof exists here. Another one will make the venue feel active.',
     actionLabel: 'Open',
     tone: approvedCount > 1 ? ('gold' as HappeningTone) : ('purple' as HappeningTone),
   };
@@ -2303,11 +2303,11 @@ function getLocalEventHappenings(input: {
       eyebrow: 'Local board',
       title: 'Ask what is actually happening now',
       detail:
-        'Use the Signal Room for live local tips, public activations, venue signals, and quick operator routing.',
+        'Use the local board for live tips, public activations, venue notes, and quick operator routing.',
       timingLabel: input.window.label,
       distanceLabel: 'Siargao',
       rewardLabel: 'Public feed',
-      actionLabel: 'Signal Room',
+      actionLabel: 'Open board',
       href: SIGNAL_ROOM_URL,
       place: null,
       tone: 'purple',
@@ -2593,7 +2593,7 @@ function createPeebearMarkerHtml({
         : visualState === 'hot'
           ? 'HOT'
           : visualState === 'active'
-            ? 'ALIVE'
+            ? 'VERIFIED'
             : 'OPEN';
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const safeActivationBadgeLabel = escapeMarkerAttribute(activationBadgeLabel);
@@ -2637,7 +2637,7 @@ function createPeebearMarkerHtml({
         <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
       </div>
       <div class="peebear-meta">
-        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">PULSE ${Math.min(heatScore, 99)}</span>` : ''}
+        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">HEAT ${Math.min(heatScore, 99)}</span>` : ''}
         <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
       </div>
       <div class="peebear-shadow"></div>
@@ -2694,7 +2694,7 @@ function createFootprintMarkerHtml({
   const html = `
     <div class="peebear-footprint ${firstMark ? 'is-first' : ''} ${latest ? 'is-latest' : ''}">
       <span class="peebear-footprint-dot"></span>
-      <span class="peebear-footprint-label">${firstMark ? 'YOUR WIN' : 'YOUR MARK'}</span>
+      <span class="peebear-footprint-label">${firstMark ? 'FIRST PROOF' : 'YOUR PROOF'}</span>
     </div>
   `;
 
@@ -2747,7 +2747,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
       <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
         <Image
           src="/assets/peebear-head.png"
-          alt="PeeBear memory mark"
+          alt="PeeBear proof marker"
           fill
           sizes="96px"
           className="object-contain p-1.5"
@@ -3991,7 +3991,7 @@ export default function RealWorldMap() {
         const payload = (await response.json()) as PlaceTagsResponse;
 
         if (!response.ok || !payload.success || !payload.data) {
-          throw new Error('Failed to load place marks');
+          throw new Error('Failed to load place proof');
         }
 
         const nextApprovedCount = payload.data.approvedCount;
@@ -4017,14 +4017,14 @@ export default function RealWorldMap() {
             if (previousApprovedCount === 0 && nextApprovedCount === 1) {
               setCeremonyState({
                 kind: 'first-spark',
-                title: 'First spark unlocked',
-                body: `${current.name} just became real place memory. This spot is alive now.`,
+                title: 'First proof approved',
+                body: `${current.name} just got its first approved proof.`,
               });
             } else {
               setCeremonyState({
                 kind: 'alive-upgrade',
-                title: 'Place memory upgraded',
-                body: `${current.name} just absorbed a new verified mark and its pulse climbed.`,
+                title: 'Proof approved',
+                body: `${current.name} just added a new verified proof.`,
               });
             }
           }
@@ -4043,7 +4043,7 @@ export default function RealWorldMap() {
 
         console.error('[REAL_WORLD_MAP] Place tags failed:', error);
         setSelectedPlaceTags([]);
-        setSelectedPlaceTagsError('Unable to load recent marks right now.');
+        setSelectedPlaceTagsError('Unable to load recent proof right now.');
       } finally {
         if (!signal?.aborted && !silent) {
           setSelectedPlaceTagsLoading(false);
@@ -4610,13 +4610,13 @@ export default function RealWorldMap() {
   }, [footprintVenueIndex, liveVenueSlugSet, mapVenueFocus, matchedVenueIndex, nearbyPlaces, pulseFilter]);
   const activeMapFilterLabel = useMemo(() => {
     if (mapVenueFocus === 'live') return 'Live venues';
-    if (mapVenueFocus === 'matched') return 'Matched for you';
-    if (mapVenueFocus === 'footprint') return 'My footprint';
+    if (mapVenueFocus === 'matched') return 'For you';
+    if (mapVenueFocus === 'footprint') return 'My proofs';
     if (pulseFilter === 'verified') return 'Verified venues';
-    if (pulseFilter === 'unmarked') return 'Open first sparks';
-    if (pulseFilter === 'blazing') return 'Blazing venues';
-    if (pulseFilter === 'igniting') return 'Igniting venues';
-    if (pulseFilter === 'simmering') return 'Simmering venues';
+    if (pulseFilter === 'unmarked') return 'No proof yet';
+    if (pulseFilter === 'blazing') return 'Hot venues';
+    if (pulseFilter === 'igniting') return 'Active venues';
+    if (pulseFilter === 'simmering') return 'Started venues';
     return 'All venues';
   }, [mapVenueFocus, pulseFilter]);
   const activeMapFilterIsScoped = mapVenueFocus !== 'all' || pulseFilter !== 'all';
@@ -4761,19 +4761,19 @@ export default function RealWorldMap() {
       items.push({
         id: `live-dare:${dare.id}`,
         kind: 'live-dare',
-        eyebrow: dare.isCommunitySpark ? 'Community spark' : dare.isOpenBounty ? 'Open drop' : 'Live drop',
+        eyebrow: dare.isCommunitySpark ? 'Community dare' : dare.isOpenBounty ? 'Open dare' : 'Live dare',
         title: dare.title,
         detail: place
           ? dare.isCommunitySpark
-            ? `${place.name} has a free community mission live. Show up, help, and leave proof on the grid.`
-            : `${place.name} is active right now. Follow the signal, make the proof, and take the reward before the window closes.`
+            ? `${place.name} has a free community dare live. Show up, help, and leave proof.`
+            : `${place.name} is active right now. Make the proof and take the reward before the window closes.`
           : dare.locationLabel
             ? `Active near ${dare.locationLabel}.`
             : 'A live dare is moving nearby.',
         timingLabel: happeningWindow.label,
         distanceLabel: dare.distanceDisplay,
         rewardLabel: dare.isCommunitySpark ? 'Community' : `${formatMapUsd(dare.bounty)} USDC`,
-        actionLabel: 'Open Drop',
+        actionLabel: 'Open dare',
         href: dare.shortId ? `/dare/${dare.shortId}` : '/dares',
         place,
         tone: dare.isCommunitySpark ? 'green' : dare.bounty >= 100 ? 'gold' : 'cyan',
@@ -4786,17 +4786,17 @@ export default function RealWorldMap() {
       items.push({
         id: `approved-signal:${signal.id}`,
         kind: 'local-event',
-        eyebrow: 'Local signal',
+        eyebrow: 'Local tip',
         title: signal.title,
         detail:
           signal.notes ||
           (signal.venueName
             ? `${signal.venueName}${signal.city ? ` · ${signal.city}` : ''}`
-            : 'A reviewed local happening from the BaseDare Signal Room.'),
+            : 'A reviewed local happening from BaseDare.'),
         timingLabel: formatSignalTimingLabel(signal, happeningWindow.label),
         distanceLabel: signal.distanceDisplay,
         rewardLabel: signal.category,
-        actionLabel: signal.sourceUrl ? 'Source' : 'Signal Room',
+        actionLabel: signal.sourceUrl ? 'Source' : 'Open',
         href: signal.sourceUrl || SIGNAL_ROOM_URL,
         place: null,
         tone: getLocalSignalTone(signal.category),
@@ -4852,8 +4852,8 @@ export default function RealWorldMap() {
           place.activeDareCount > 0
             ? `${place.activeDareCount} live`
             : place.tagSummary.approvedCount > 0
-              ? `${place.tagSummary.approvedCount} spark${place.tagSummary.approvedCount === 1 ? '' : 's'}`
-              : 'First story',
+              ? `${place.tagSummary.approvedCount} proof${place.tagSummary.approvedCount === 1 ? '' : 's'}`
+              : 'First proof',
         actionLabel: copy.actionLabel,
         href: null,
         place,
@@ -5116,17 +5116,17 @@ export default function RealWorldMap() {
     },
     {
       value: 'blazing',
-      label: 'Blazing',
+      label: 'Hot',
       accentClass: 'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
     },
     {
       value: 'igniting',
-      label: 'Igniting',
+      label: 'Active',
       accentClass: 'data-[active=true]:border-cyan-300/45 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
     },
     {
       value: 'simmering',
-      label: 'Simmering',
+      label: 'Started',
       accentClass: 'data-[active=true]:border-amber-300/45 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
     },
     {
@@ -5136,7 +5136,7 @@ export default function RealWorldMap() {
     },
     {
       value: 'unmarked',
-      label: 'Unmarked',
+      label: 'No proof',
       accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
     },
   ];
@@ -5463,11 +5463,11 @@ export default function RealWorldMap() {
       }
       setPresenceSubmitState({
         type: 'success',
-        message: `Signal live at ${payload.data.venueName}. The map only shows aggregate presence.`,
+        message: `You're marked here at ${payload.data.venueName}. The map only shows approximate presence.`,
       });
       setPresenceReceipt({
-        title: `Presence signaled at ${payload.data.venueName}`,
-        detail: `Approximate venue presence is live for ${payload.data.durationMinutes}m. Exact location stays private.`,
+        title: `You're here at ${payload.data.venueName}`,
+        detail: `Visible for ${payload.data.durationMinutes}m. Exact location stays private.`,
         href: `/map?place=${encodeURIComponent(payload.data.venueSlug)}&room=1&source=presence`,
         venueName: payload.data.venueName,
         timestamp: payload.data.scannedAt,
@@ -5512,25 +5512,25 @@ export default function RealWorldMap() {
     const reasons: string[] = [];
 
     if ((selectedPlace?.activeDareCount ?? 0) > 0) {
-      reasons.push(`${selectedPlace?.activeDareCount} live ${selectedPlace?.activeDareCount === 1 ? 'drop is' : 'drops are'} active here right now.`);
+      reasons.push(`${selectedPlace?.activeDareCount} live ${selectedPlace?.activeDareCount === 1 ? 'dare is' : 'dares are'} active here right now.`);
     }
 
     if ((selectedPlace?.approvedCount ?? 0) > 0) {
-      reasons.push(`${selectedPlace?.approvedCount} verified ${selectedPlace?.approvedCount === 1 ? 'spark is' : 'sparks are'} already anchored here.`);
+      reasons.push(`${selectedPlace?.approvedCount} verified ${selectedPlace?.approvedCount === 1 ? 'proof is' : 'proofs are'} already here.`);
     }
 
     if (selectedPlaceMatch && showMatchedLayer) {
-      reasons.push('Your creator history already fits this venue, so the grid is routing you toward a stronger hit rate here.');
+      reasons.push('Your creator history already fits this venue.');
     }
 
     if (selectedCommandCenter?.sponsorReady) {
       reasons.push('This venue is sponsor-ready, so a brand can launch here without starting from zero.');
     } else if (selectedCommandCenter?.claimState === 'unclaimed') {
-      reasons.push('This venue is still claimable, which means the first operator here can shape the command layer.');
+      reasons.push('This venue is still claimable.');
     }
 
     if (!reasons.length) {
-      reasons.push('This is still an open story. A first verified spark or a first funded drop can define what this venue becomes.');
+      reasons.push('This venue still needs its first proof or first funded dare.');
     }
 
     return reasons.slice(0, 3);
@@ -5538,19 +5538,19 @@ export default function RealWorldMap() {
   const selectedVenueNextMove = useMemo(() => {
     if ((selectedPlace?.activeDareCount ?? 0) > 0) {
       return proximityAccess.canReveal
-        ? 'Open the live drop here now.'
+        ? 'Open the live dare here now.'
         : `Travel within ${PROXIMITY_REVEAL_METERS}m to unlock the full live brief.`;
     }
 
     if ((selectedPlace?.approvedCount ?? 0) <= 0) {
-      return 'Launch the first activation or land the first verified mark to wake this place up.';
+      return 'Fund the first dare or submit the first proof.';
     }
 
     if (selectedPlaceMatch && showMatchedLayer) {
-      return 'Use your existing fit here: route yourself in, or open the venue and chase the live signal.';
+      return 'Use your fit here: open the venue or chase the live dare.';
     }
 
-    return 'Open the venue card for the three real moves: mark, fund, or inspect the command view.';
+    return 'Open the venue for the three moves: prove, fund, or inspect.';
   }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
   const selectedPrimaryAction = useMemo(() => {
     if ((selectedPlace?.activeDareCount ?? 0) > 0) {
@@ -5560,7 +5560,7 @@ export default function RealWorldMap() {
           : null;
 
       return {
-        label: proximityAccess.canReveal ? 'Open the live drop' : 'Move closer to unlock',
+        label: proximityAccess.canReveal ? 'Open the live dare' : 'Move closer to unlock',
         detail: proximityAccess.canReveal
           ? 'A funded mission is already active here.'
           : `Full brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`,
@@ -5573,11 +5573,11 @@ export default function RealWorldMap() {
 
     if ((selectedPlace?.approvedCount ?? 0) <= 0) {
       return {
-        label: 'Fund the first drop',
-        detail: 'Make this signal worth chasing. The first funded drop gives people a reason to show up and prove it.',
+        label: 'Fund the first dare',
+        detail: 'Put money on this venue so people have a reason to show up and prove it.',
         tone: 'purple' as const,
         href: selectedFundDareHref,
-        actionLabel: selectedFundDareHref ? 'Fund drop' : 'Route + fund',
+        actionLabel: selectedFundDareHref ? 'Fund dare' : 'Route + fund',
         resolveAction: selectedFundDareHref ? null : 'fund' as SelectedCommandAction,
       };
     }
@@ -5591,13 +5591,13 @@ export default function RealWorldMap() {
     const nextSignalHref = selectedCommandCenter ? commandHref : selectedFundDareHref ?? selectedVenueHref;
 
     return {
-      label: selectedCommandCenter ? 'Run venue playbook' : 'Build the next signal',
+      label: selectedCommandCenter ? 'Open venue controls' : 'Fund the next dare',
       detail: selectedCommandCenter
-        ? 'Open rewards, proof memory, routing, and repeat plays.'
-        : 'Turn the existing memory into a funded drop people can chase tonight.',
+        ? 'Open rewards, proof, routing, and repeat plays.'
+        : 'Turn existing proof into a funded dare people can chase tonight.',
       tone: 'cyan' as const,
       href: nextSignalHref,
-      actionLabel: selectedCommandCenter ? 'Open' : selectedFundDareHref ? 'Fund drop' : 'Open venue',
+      actionLabel: selectedCommandCenter ? 'Open' : selectedFundDareHref ? 'Fund dare' : 'Open venue',
       resolveAction: nextSignalHref ? null : 'venue' as SelectedCommandAction,
     };
   }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedFundDareHref, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
@@ -5608,8 +5608,8 @@ export default function RealWorldMap() {
       selectedPlaceActiveDares.length === 0
         ? 'Fund'
         : rewardTotal > 0
-          ? `${formatMapUsd(rewardTotal)} USDC${hasCommunityActivation ? ' + spark' : ''}`
-          : 'Community Spark';
+          ? `${formatMapUsd(rewardTotal)} USDC${hasCommunityActivation ? ' + community' : ''}`
+          : 'Community dare';
     const primaryActivation =
       focusedCreatorActivation ?? featuredPaidActivation ?? visibleActiveDares[0] ?? null;
     const rewardHref =
@@ -5623,44 +5623,44 @@ export default function RealWorldMap() {
         : `${latestProof.walletAddress.slice(0, 6)}...${latestProof.walletAddress.slice(-4)}`
       : null;
     const proofDetail = latestProof
-      ? `${proofActor} left proof ${getLastSparkLabel(latestProof.submittedAt).replace('Last spark ', '')}.`
+      ? `${proofActor} left proof ${getLastSparkLabel(latestProof.submittedAt).replace('Last proof ', '')}.`
       : selectedPendingPlaceTags.length > 0
-        ? `${selectedPendingPlaceTags.length} mark${selectedPendingPlaceTags.length === 1 ? '' : 's'} waiting for referee review.`
-        : 'No approved proof yet. First mark owns the story.';
+        ? `${selectedPendingPlaceTags.length} proof${selectedPendingPlaceTags.length === 1 ? '' : 's'} waiting for review.`
+        : 'No approved proof yet. Be first.';
     const matchActive = Boolean(selectedPlaceMatch && showMatchedLayer);
 
     return [
       {
         id: 'reward',
-        eyebrow: selectedPlaceActiveDares.length > 0 ? 'Live reward' : 'Reward slot',
+        eyebrow: selectedPlaceActiveDares.length > 0 ? 'Live reward' : 'Fund slot',
         value: rewardValue,
         detail: primaryActivation
           ? proximityAccess.canReveal
             ? primaryActivation.title
             : `Brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`
-          : 'Fund the first drop here.',
+          : 'Fund the first dare here.',
         meta:
           selectedPlaceActiveDares.length > 0
             ? `${selectedPlaceActiveDares.length} active`
-            : 'first drop',
+            : 'first dare',
         href: rewardHref,
-        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund drop' : 'Fund',
+        actionLabel: primaryActivation?.shortId && proximityAccess.canReveal ? 'Open brief' : rewardHref ? 'Fund dare' : 'Fund',
         resolveAction: rewardHref ? null : 'fund' as SelectedCommandAction,
         tone: 'gold' as VenueCommandCardTone,
       },
       {
         id: 'proof',
-        eyebrow: 'Proof memory',
-        value: `${selectedPlace?.approvedCount ?? 0} spark${(selectedPlace?.approvedCount ?? 0) === 1 ? '' : 's'}`,
+        eyebrow: 'Proof',
+        value: `${selectedPlace?.approvedCount ?? 0} proof${(selectedPlace?.approvedCount ?? 0) === 1 ? '' : 's'}`,
         detail: proofDetail,
         meta:
           selectedPendingPlaceTags.length > 0
             ? `${selectedPendingPlaceTags.length} pending`
             : selectedPlace?.lastTaggedAt
               ? getLastSparkLabel(selectedPlace.lastTaggedAt)
-              : 'unclaimed story',
+              : 'no proof yet',
         href: selectedVenueHref,
-        actionLabel: selectedVenueHref ? 'Open memory' : 'Open',
+        actionLabel: selectedVenueHref ? 'Open proof' : 'Open',
         resolveAction: selectedVenueHref ? null : 'venue' as SelectedCommandAction,
         tone: 'cyan' as VenueCommandCardTone,
       },
@@ -5675,13 +5675,13 @@ export default function RealWorldMap() {
         detail: matchActive
           ? selectedPlaceMatch?.reasons[0] ?? 'Your creator history already fits this venue.'
           : isConnected
-            ? 'Enable matched signals to route yourself toward better venues.'
+            ? 'Show the venues that best fit you.'
             : 'Connect wallet to reveal creator-fit routing.',
         meta: matchActive
           ? `${selectedPlaceMatch?.campaignCount ?? 0} live`
           : showMatchedLayer
             ? 'scanning'
-            : 'match layer',
+            : 'for you',
         href:
           matchActive && selectedPlaceMatch?.dareShortId
             ? `/dare/${selectedPlaceMatch.dareShortId}`
@@ -5763,7 +5763,7 @@ export default function RealWorldMap() {
         id: 'presence',
         label: 'Here Now',
         count: activeVenuePresenceCount,
-        detail: venuePresenceLoading ? 'sync' : 'signals',
+        detail: venuePresenceLoading ? 'sync' : 'people',
         active: false,
         disabled: activeVenuePresenceCount === 0,
         className:
@@ -5834,9 +5834,9 @@ export default function RealWorldMap() {
       },
       {
         id: 'open',
-        label: 'Open',
+        label: 'No Proof',
         count: filterCounts.unmarked,
-        detail: 'firsts',
+        detail: 'open',
         active: pulseFilter === 'unmarked',
         disabled: false,
         className:
@@ -5851,9 +5851,9 @@ export default function RealWorldMap() {
       },
       {
         id: 'matched',
-        label: 'Matched',
+        label: 'For You',
         count: visibleMatchedVenueCount,
-        detail: isConnected ? 'you' : 'login',
+        detail: isConnected ? 'match' : 'login',
         active: mapVenueFocus === 'matched',
         disabled: !isConnected || visibleMatchedVenueCount === 0,
         className:
@@ -6331,13 +6331,14 @@ export default function RealWorldMap() {
           ]);
           setCeremonyState({
             kind: 'pending',
-            title: 'Your mark is pending',
+            title: 'Your proof is pending',
             body: tag.firstMark
-              ? 'If the proof clears, this place gets its first spark and enters the memory layer.'
-              : 'The proof is now waiting for referee review. If it clears, the place upgrades automatically.',
+              ? 'If the proof clears, this place gets its first verified proof.'
+              : 'The proof is waiting for review. If it clears, the venue updates automatically.',
           });
         }}
         buttonVariant="jelly"
+        buttonLabel="Take proof"
         buttonClassName="map-jelly-action"
       />
 
@@ -6395,8 +6396,8 @@ export default function RealWorldMap() {
             kind: 'alive-upgrade',
             title: 'Challenge live',
             body: result.isOpenBounty
-              ? 'This place now has an open bounty attached to it. The next verified completion can turn it into fresh memory.'
-              : 'The challenge is now live here. Once it clears, the place should upgrade with new memory automatically.',
+              ? 'This place now has an open bounty attached to it. The next verified completion updates the venue.'
+              : 'The challenge is now live here. Once it clears, the venue updates automatically.',
           });
         }}
         buttonVariant="jelly"
@@ -6431,7 +6432,7 @@ export default function RealWorldMap() {
             Check-In
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
-            {selectedCheckInLive ? 'QR + GPS proof is live.' : 'Venue QR required.'}
+            {selectedCheckInLive ? 'Scan the venue QR to check in.' : 'Venue QR is not live yet.'}
           </p>
         </div>
         <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
@@ -6450,7 +6451,7 @@ export default function RealWorldMap() {
             </span>
           </div>
           <p className="mt-1.5 truncate text-xs text-white/54">
-            {selectedCheckInLive ? 'Verified venue memory.' : 'Opens when the venue console is live.'}
+            {selectedCheckInLive ? 'Verified check-ins only.' : 'Opens when the venue QR is live.'}
           </p>
         </div>
         <button
@@ -6483,14 +6484,14 @@ export default function RealWorldMap() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-emerald-100/82">
             <LocateFixed className="h-3.5 w-3.5 text-emerald-200" />
-            Presence
+            Who&apos;s Here
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
             {activePresenceIsSelectedVenue
-              ? `Live ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
+              ? `You're here ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
               : selectedPresenceActiveCount > 0
                 ? `${selectedPresenceActiveCount} nearby now.`
-                : 'Light this venue up.'}
+                : 'Show that you are here.'}
           </p>
         </div>
         <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
@@ -6521,7 +6522,7 @@ export default function RealWorldMap() {
           {presenceSubmitting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : userLocation ? (
-            activePresenceIsSelectedVenue ? 'Refresh' : 'Signal'
+            activePresenceIsSelectedVenue ? 'Refresh' : "I'm here"
           ) : (
             'Locate'
           )}
@@ -6564,10 +6565,10 @@ export default function RealWorldMap() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-violet-100/82">
             <Users className="h-3.5 w-3.5 text-violet-200" />
-            Venue Room
+            Local Chat
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
-            {venueRoomUnlocked ? 'Live local feed.' : 'Check in or get nearby.'}
+            {venueRoomUnlocked ? 'Chat unlocked here.' : 'Check in or get nearby.'}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -6620,7 +6621,7 @@ export default function RealWorldMap() {
               </div>
             ))
           ) : (
-            <span className="text-xs text-white/42">No visible tags yet.</span>
+            <span className="text-xs text-white/42">No one visible yet.</span>
           )}
         </div>
       </div>
@@ -6688,7 +6689,7 @@ export default function RealWorldMap() {
               onChange={(event) => setVenueRoomDraft(event.target.value.slice(0, 280))}
               rows={venueRoomExpanded ? 3 : 2}
               maxLength={280}
-              placeholder="Drop a local signal..."
+              placeholder="Write a message..."
               className={`resize-none rounded-[16px] border border-white/10 bg-black/28 px-3 py-2 text-xs leading-5 text-white placeholder:text-white/28 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-10px_16px_rgba(0,0,0,0.2)] focus:border-violet-200/32 ${
                 venueRoomExpanded ? 'min-h-[72px]' : 'min-h-[48px]'
               }`}
@@ -6789,7 +6790,7 @@ export default function RealWorldMap() {
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
                 </div>
                 <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Sparks</p>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Dares</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
                 </div>
               </div>
@@ -6802,7 +6803,7 @@ export default function RealWorldMap() {
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
                 </div>
                 <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Sparks</p>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Dares</p>
                   <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
                 </div>
               </div>
@@ -6906,7 +6907,7 @@ export default function RealWorldMap() {
                 <div className="map-signal-rail">
                   <div className="map-signal-rail-label">
                     <span className="h-px w-4 rounded-full bg-cyan-200/70" />
-                    <span>Signals</span>
+                    <span>Quick picks</span>
                   </div>
                   <div className="map-signal-rail-scroll">
                     {signalRailOptions.map((option) => (
@@ -6954,7 +6955,7 @@ export default function RealWorldMap() {
                 <div className="map-active-filter-strip">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/34">
-                      Map focus
+                      Showing
                     </p>
                     <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-white/72">
                       {activeMapFilterLabel}
@@ -6982,10 +6983,10 @@ export default function RealWorldMap() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="hidden flex-wrap items-center gap-2">
                   <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f8dd72]/78">
                     <span className="h-px w-4 rounded-full bg-[#f5c518]/70" />
-                    <span>View mode</span>
+                    <span>Style</span>
                   </div>
                   {MAP_PRESET_OPTIONS.map((option) => (
                     <button
@@ -7009,7 +7010,7 @@ export default function RealWorldMap() {
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e3c8ff]/78">
                       <span className="h-px w-4 rounded-full bg-[#b87fff]/75" />
-                      <span>Creator lens</span>
+                      <span>My map</span>
                     </div>
                     <button
                       type="button"
@@ -7025,7 +7026,7 @@ export default function RealWorldMap() {
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
                     >
                       <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
-                      <span>My Footprint</span>
+                      <span>My Proofs</span>
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
                         {footprintStats?.totalMarks ?? footprintMarks.length}
                       </span>
@@ -7050,7 +7051,7 @@ export default function RealWorldMap() {
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
                     >
                       <span className="h-2 w-2 rounded-full bg-cyan-300" />
-                      <span>Matched For You</span>
+                      <span>For You</span>
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
                         {visibleMatchedVenueCount}
                       </span>
@@ -7075,7 +7076,7 @@ export default function RealWorldMap() {
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
             <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
-              MapLibre 3D Grid · Live Chaos Layer
+              3D Map
             </div>
             {isMobileViewport ? (
               <button
@@ -7106,9 +7107,9 @@ export default function RealWorldMap() {
                   <div className="flex items-center justify-between gap-3 px-1">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.26em] text-cyan-100/55">
-                        Signal legend
+                        Map legend
                       </p>
-                      <p className="mt-1 text-[10px] font-bold text-white/38">Read the venue layer fast</p>
+                      <p className="mt-1 text-[10px] font-bold text-white/38">Read pins fast</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.18em] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       Live grid
@@ -7123,7 +7124,7 @@ export default function RealWorldMap() {
                       </span>
                       <div className="min-w-0">
                         <p className="map-legend-title text-[#f8dd72]">Activated venue</p>
-                        <p className="map-legend-detail">Paid command layer visible</p>
+                        <p className="map-legend-detail">Funded venue</p>
                       </div>
                     </div>
                     <div className="map-legend-row map-legend-row--live">
@@ -7152,7 +7153,7 @@ export default function RealWorldMap() {
               <div
                 className={`pointer-events-none absolute left-3 z-[10] rounded-full border border-[#b87fff]/28 bg-[linear-gradient(180deg,rgba(184,127,255,0.18)_0%,rgba(16,10,28,0.88)_100%)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#e5c7ff] shadow-[0_10px_18px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] md:left-5 md:text-[10px] ${showNearbyDareTray ? nearbyDarePanelCollapsed ? 'bottom-[4.75rem] md:bottom-[6.4rem]' : 'bottom-[16.25rem] md:bottom-[18.9rem]' : 'bottom-3 md:bottom-5'}`}
               >
-                Your trace · {footprintMarks.length} verified marks
+                My proofs · {footprintMarks.length} verified
               </div>
             ) : null}
             {showNearbyDareTray ? (
@@ -7166,19 +7167,19 @@ export default function RealWorldMap() {
                   >
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Signal Layer
+                        Nearby
                       </p>
                       <p className="mt-1 truncate text-[11px] text-white/52">
                         {happeningLoading
-                          ? 'Scanning the local grid...'
+                          ? 'Scanning nearby...'
                           : mapHappenings.length > 0
-                            ? `${mapHappenings.length} signals · ${happeningWindow.label}`
+                            ? `${mapHappenings.length} items · ${happeningWindow.label}`
                             : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                        {happeningLoading ? 'scanning' : `${mapHappenings.length} signals`}
+                        {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
                       </div>
                       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
                         <ChevronUp className="h-4 w-4" />
@@ -7198,7 +7199,7 @@ export default function RealWorldMap() {
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {happeningLoading ? 'scanning' : `${mapHappenings.length} signals`}
+                      {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -7255,7 +7256,7 @@ export default function RealWorldMap() {
                         }}
                         className="inline-flex min-h-8 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/78 transition hover:border-cyan-200/34 hover:text-cyan-50"
                       >
-                        {showLocalSignalForm ? 'Close' : 'Drop signal'}
+                        {showLocalSignalForm ? 'Close' : 'Add tip'}
                       </button>
                       <button
                         type="button"
@@ -7301,7 +7302,7 @@ export default function RealWorldMap() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100/62">
-                            Local intel
+                            Local tip
                           </p>
                           <p className="mt-1 text-[12px] font-bold leading-snug text-white">
                             Tell tourists what is actually happening.
@@ -7396,7 +7397,7 @@ export default function RealWorldMap() {
                   ) : null}
                   {happeningLoading ? (
                     <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                      Scanning the local grid...
+                      Scanning nearby...
                     </div>
                   ) : (
                     mapHappenings.length > 0 ? (
@@ -7496,7 +7497,7 @@ export default function RealWorldMap() {
                     })
                     ) : (
                       <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                        No happenings surfaced in {nearbyDareRadiusKm}km yet. Move the map or drop the first mark.
+                        No happenings surfaced in {nearbyDareRadiusKm}km yet. Move the map or take the first proof.
                       </div>
                     )
                   )}
@@ -7504,7 +7505,7 @@ export default function RealWorldMap() {
                 ) : (
                   <div className="px-4 py-3 text-[11px] text-white/48">
                     {happeningLoading
-                      ? 'Scanning the local grid...'
+                      ? 'Scanning nearby...'
                       : mapHappenings.length > 0
                         ? `${mapHappenings[0].title}`
                         : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
@@ -7626,7 +7627,7 @@ export default function RealWorldMap() {
                   <Loader2 className="h-10 w-10 animate-spin text-cyan-200" />
                   <div>
                     <p className="text-sm uppercase tracking-[0.28em] text-cyan-200/80">Loading grid</p>
-                    <p className="mt-2 text-sm text-white/55">Spinning up the first open place-memory canvas.</p>
+                    <p className="mt-2 text-sm text-white/55">Spinning up the map.</p>
                   </div>
                 </div>
               </div>
@@ -8004,7 +8005,7 @@ export default function RealWorldMap() {
 
                   <div className="map-mobile-stats mt-4 grid grid-cols-2 gap-3">
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Sparks</p>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Proofs</p>
                       <p className="mt-2 text-[1.65rem] font-black leading-none text-white">{selectedPlace.approvedCount ?? 0}</p>
                     </div>
                     <div className={`${mapPanelMetricClass} stat-card bd-dent-surface bd-dent-surface--soft`}>
@@ -8217,7 +8218,7 @@ export default function RealWorldMap() {
                           </p>
                         </div>
                         <div className={`${mapPanelMetricClass} px-3 py-3`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Verified Marks</p>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Verified Proofs</p>
                           <p className="mt-2 text-xl font-black text-white">{selectedCommandCenter.metrics.approvedMarks}</p>
                         </div>
                         <div className={`${mapPanelMetricClass} px-3 py-3`}>
@@ -8293,15 +8294,15 @@ export default function RealWorldMap() {
                         </span>
                       </div>
                       <p className="mt-3 text-sm text-white/72">
-                        You&apos;ve left {selectedPlaceFootprintStats.totalMarks} verified {selectedPlaceFootprintStats.totalMarks === 1 ? 'mark' : 'marks'} here
+                        You&apos;ve left {selectedPlaceFootprintStats.totalMarks} verified {selectedPlaceFootprintStats.totalMarks === 1 ? 'proof' : 'proofs'} here
                         {selectedPlaceFootprintStats.firstMarks > 0
-                          ? ` and ignited ${selectedPlaceFootprintStats.firstMarks} ${selectedPlaceFootprintStats.firstMarks === 1 ? 'first spark' : 'first sparks'}`
+                          ? ` and created ${selectedPlaceFootprintStats.firstMarks} first ${selectedPlaceFootprintStats.firstMarks === 1 ? 'proof' : 'proofs'}`
                           : ''}
                         .
                       </p>
                       {selectedPlaceFootprintStats.lastMarkedAt ? (
                         <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/42">
-                          Last moved {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last spark ', '')}
+                          Last proof {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last proof ', '')}
                         </p>
                       ) : null}
                     </div>
@@ -8358,7 +8359,7 @@ export default function RealWorldMap() {
                           </p>
                           <p className="mt-2 text-sm text-white/65">
                             {isCommunityActivation(focusedCreatorActivation)
-                              ? 'This is a free community spark your dashboard pointed you to here.'
+                              ? 'This is a free community dare your dashboard pointed you to here.'
                               : 'This is the live paid activation your dashboard pointed you to here.'}
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -8488,7 +8489,7 @@ export default function RealWorldMap() {
                         {renderPulseLegend(selectedPulse, { compact: true })}
                       </span>
                       <span className={mapPanelInsetChipClass}>
-                        {selectedPlace.approvedCount ?? 0} sparks on record
+                        {selectedPlace.approvedCount ?? 0} proofs on record
                       </span>
                     </div>
                   </div>
@@ -8497,10 +8498,10 @@ export default function RealWorldMap() {
                     <div className="map-panel-section mt-4 rounded-[24px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.08)_0%,rgba(10,10,18,0.94)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-amber-200/80">
                         <Loader2 className="h-3.5 w-3.5" />
-                        Pending Marks
+                        Pending Proofs
                       </div>
                       <p className="mt-2 text-sm text-white/72">
-                        Your mark is pending referee review. Once it clears, this place upgrades automatically.
+                        Your proof is waiting for review. Once it clears, the venue updates automatically.
                       </p>
                       <div className="mt-3 space-y-3">
                         {selectedPendingPlaceTags.slice(0, 3).map((tag) => (
@@ -8525,18 +8526,18 @@ export default function RealWorldMap() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-3">
                                   <p className="truncate text-sm font-semibold text-white">
-                                    {tag.creatorTag ? `@${tag.creatorTag}` : 'Your pending mark'}
+                                    {tag.creatorTag ? `@${tag.creatorTag}` : 'Your pending proof'}
                                   </p>
                                   <span className="rounded-full border border-amber-300/18 bg-amber-500/[0.1] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-amber-100">
                                     pending
                                   </span>
                                 </div>
                                 <p className="mt-2 text-sm text-white/62">
-                                  {tag.caption || 'Mark submitted and waiting for referee review.'}
+                                  {tag.caption || 'Proof submitted and waiting for review.'}
                                 </p>
                                 {tag.firstMark ? (
                                   <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f8dd72]">
-                                    If approved, this becomes the first spark here.
+                                    If approved, this becomes the first proof here.
                                   </p>
                                 ) : null}
                                 {tag.vibeTags.length > 0 ? (
@@ -8741,7 +8742,7 @@ export default function RealWorldMap() {
                           </span>
                           {selectedPlace.approvedCount && selectedPlace.approvedCount > 0 ? (
                             <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
-                              venue memory already live
+                              venue already verified
                             </span>
                           ) : null}
                         </div>
@@ -8749,7 +8750,7 @@ export default function RealWorldMap() {
                           This place has presence, but no live mission to chase yet.
                         </p>
                         <p className="mt-1.5 text-sm leading-relaxed text-white/62">
-                          Fund the first challenge here and turn this venue from a memory node into an active hunting ground.
+                          Fund the first dare here and turn this venue into an active spot.
                         </p>
                       </div>
                     )}
@@ -8758,12 +8759,12 @@ export default function RealWorldMap() {
                   <div className={`mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
                       <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
-                      Recent Marks
+                      Recent Proofs
                     </div>
                     {selectedPlaceTagsLoading ? (
                       <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
                         <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
-                        Loading recent place memory...
+                        Loading recent proof...
                       </div>
                     ) : selectedPlaceTagsError ? (
                       <p className="mt-3 text-sm text-rose-200/80">{selectedPlaceTagsError}</p>
@@ -8789,11 +8790,11 @@ export default function RealWorldMap() {
                                 </div>
                                 {tag.firstMark ? (
                                   <div className="mt-1.5 inline-flex rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72]">
-                                    First spark
+                                    First proof
                                   </div>
                                 ) : null}
                                 <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-white/62">
-                                  {tag.caption || 'Verified mark submitted without a caption.'}
+                                  {tag.caption || 'Verified proof submitted without a caption.'}
                                 </p>
                                 {tag.vibeTags.length > 0 ? (
                                   <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -8819,7 +8820,7 @@ export default function RealWorldMap() {
                       </div>
                     ) : (
                       <p className="mt-3 text-sm text-white/55">
-                        No approved marks are live here yet. First verified mark wins the story.
+                        No approved proof is live here yet. Be first.
                       </p>
                     )}
                   </div>

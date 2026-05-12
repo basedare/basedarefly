@@ -226,11 +226,11 @@ export function buildVenueProfile(input: {
   const primaryLegend = legendList[0] ?? FALLBACK_LEGEND;
   const explicitBio = readString(metadata, ['bio', 'shortBio', 'profileBio', 'venueBio']);
   const tagline = readString(metadata, ['tagline', 'positioning', 'storyTagline']) ??
-    `${primaryLegend.label} node for real-world creator proof.`;
+    `Verified ${primaryLegend.label.toLowerCase()} venue.`;
   const bio = compactSentence(
     explicitBio ??
       input.description ??
-      `${input.name} is a ${legendList.map((legend) => legend.label.toLowerCase()).join(' + ')} node built for ${VENUE_LEGENDS[primaryLegend.key].story}.`
+      `${input.name} is a ${legendList.map((legend) => legend.label.toLowerCase()).join(' + ')} venue for local proof, dares, and check-ins.`
   );
 
   return {
