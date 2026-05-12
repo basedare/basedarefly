@@ -1831,7 +1831,7 @@ function getPlaceVisualCopy(state: PlaceVisualState) {
       };
     case 'active':
       return {
-        label: 'Memory Building',
+        label: 'Verified',
         description: 'Verified marks are stacking and the venue is starting to feel owned.',
       };
     case 'hot':
@@ -7749,12 +7749,12 @@ export default function RealWorldMap() {
                           : 'max-h-[52dvh] md:h-full md:max-h-none'
                     }`}
                   >
-                  <div className="sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
-                    <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15 md:hidden" />
-                  <div className="flex items-start justify-between gap-5">
+                  <div className="selected-place-panel-header sticky top-0 z-10 rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-4 md:pt-4">
+                    <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-white/15 md:mb-3 md:hidden" />
+                  <div className="flex items-start justify-between gap-3 md:gap-5">
                     <div className="min-w-0 flex-1">
                       {showBackToControl ? (
-                        <div className="mb-3">
+                        <div className="mb-2 md:mb-3">
                           <Link
                             href="/brands/portal"
                             className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
@@ -7764,7 +7764,7 @@ export default function RealWorldMap() {
                           </Link>
                         </div>
                       ) : isCreatorSource ? (
-                        <div className="mb-3">
+                        <div className="mb-2 md:mb-3">
                           <Link
                             href="/dashboard"
                             className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
@@ -7774,11 +7774,11 @@ export default function RealWorldMap() {
                           </Link>
                         </div>
                       ) : null}
-                      <h3 className="text-[1.55rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
+                      <h3 className="text-[1.42rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
                         {selectedPlace.name}
                       </h3>
                       {selectedVenueProfile ? (
-                        <div className="mt-3 flex items-start gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.025)_46%,rgba(7,9,18,0.72)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
+                        <div className="mt-3 hidden items-start gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.075)_0%,rgba(255,255,255,0.025)_46%,rgba(7,9,18,0.72)_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)] md:flex">
                           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/12 bg-black/35 text-xl shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)]">
                             {selectedVenueProfile.profileImageUrl ? (
                               <img
@@ -7812,7 +7812,7 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                       ) : null}
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <div className="mt-2 hidden flex-wrap items-center gap-2 md:mt-3 md:flex">
                         {firstMarkState ? (
                           <span
                             className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${firstMarkState.className}`}
@@ -7843,9 +7843,9 @@ export default function RealWorldMap() {
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-3 flex items-start gap-2 rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-2 text-sm leading-relaxed text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
-                        <span className="line-clamp-2 min-w-0">
+                        <span className="line-clamp-1 min-w-0 md:line-clamp-2">
                           {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                         </span>
                       </div>
@@ -8904,6 +8904,10 @@ export default function RealWorldMap() {
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: auto;
             touch-action: pan-y;
+          }
+
+          .selected-place-panel-header {
+            max-height: min(42dvh, 18.75rem);
           }
 
           .nearby-dare-tray-list {
@@ -10592,6 +10596,14 @@ export default function RealWorldMap() {
 
           .venue-action-rail :global(.map-action-button svg) {
             display: none;
+          }
+
+          .selected-place-panel-header .venue-action-rail--primary {
+            margin-top: 0.65rem;
+          }
+
+          .selected-place-panel-header .venue-action-rail :global(.map-action-button) {
+            min-height: 44px;
           }
         }
 
