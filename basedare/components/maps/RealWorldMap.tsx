@@ -2596,6 +2596,7 @@ function createPeebearMarkerHtml({
             ? 'ALIVE'
             : 'OPEN';
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
+  const safeActivationBadgeLabel = escapeMarkerAttribute(activationBadgeLabel);
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
   const showActivatedMarkerChrome = activated && (!compact || active);
@@ -2604,7 +2605,7 @@ function createPeebearMarkerHtml({
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${activationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -2613,7 +2614,13 @@ function createPeebearMarkerHtml({
 
   const html = `
     <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
-      ${safeVenueLabel ? `<span class="peebear-venue-label" title="${safeVenueTitle ?? safeVenueLabel}">${safeVenueLabel}</span>` : ''}
+      ${
+        safeVenueLabel
+          ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}">${
+              activated ? `<span class="peebear-venue-label-kicker">${safeActivationBadgeLabel}</span>` : ''
+            }<span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
+          : ''
+      }
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
@@ -2628,8 +2635,6 @@ function createPeebearMarkerHtml({
               .join('')}</span>`
           : ''
       }
-      ${showActivatedMarkerChrome ? `<span class="venue-building-badge" aria-hidden="true"><span class="venue-building-roof"></span><span class="venue-building-body"><span></span><span></span><span></span></span><span class="venue-building-base"></span></span>` : ''}
-      ${showActivatedMarkerChrome && !compact ? `<span class="venue-activation-pill">${activationBadgeLabel}</span>` : ''}
       <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
         <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
       </div>
@@ -7103,9 +7108,8 @@ export default function RealWorldMap() {
                   <div className="mt-3 space-y-2">
                     <div className="map-legend-row map-legend-row--activated">
                       <span className="map-legend-icon-well map-legend-icon-well--activated" aria-hidden="true">
-                        <span className="legend-building-mini" aria-hidden="true">
-                          <span className="legend-building-mini-roof" />
-                          <span className="legend-building-mini-body" />
+                        <span className="legend-venue-sign-mini" aria-hidden="true">
+                          <span className="legend-venue-sign-mini-face">NAME</span>
                         </span>
                       </span>
                       <div className="min-w-0">
@@ -10250,45 +10254,46 @@ export default function RealWorldMap() {
           line-height: 1.2;
         }
 
-        .legend-building-mini {
+        .legend-venue-sign-mini {
           position: relative;
-          display: inline-flex;
+          display: grid;
           height: 28px;
-          width: 28px;
+          width: 38px;
           flex: 0 0 auto;
-          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(34, 211, 238, 0.2));
+          place-items: center;
+          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 12px rgba(245, 197, 24, 0.24));
         }
 
-        .legend-building-mini--tight {
-          height: 18px;
-          width: 18px;
-          transform: scale(0.72);
-          transform-origin: center;
-          margin: -3px -2px;
-        }
-
-        .legend-building-mini-roof {
+        .legend-venue-sign-mini::after {
+          content: '';
           position: absolute;
-          left: 4px;
-          top: 1px;
-          width: 20px;
-          height: 13px;
-          clip-path: polygon(50% 0%, 100% 45%, 100% 64%, 0% 64%, 0% 45%);
-          background: linear-gradient(135deg, #d8fbff 0%, #67e8f9 52%, #5b21b6 100%);
+          left: 7px;
+          right: 7px;
+          bottom: 0;
+          height: 8px;
+          border-radius: 0 0 9999px 9999px;
+          background: linear-gradient(90deg, rgba(96, 62, 8, 0.2), rgba(248, 221, 114, 0.74), rgba(96, 62, 8, 0.2));
+          transform: perspective(36px) rotateX(58deg);
+          transform-origin: center top;
         }
 
-        .legend-building-mini-body {
-          position: absolute;
-          left: 6px;
-          top: 11px;
-          width: 16px;
-          height: 14px;
-          border-radius: 4px;
-          border: 1px solid rgba(103, 232, 249, 0.46);
+        .legend-venue-sign-mini-face {
+          position: relative;
+          z-index: 1;
+          border-radius: 8px 8px 6px 6px;
+          border: 1px solid rgba(255, 244, 190, 0.72);
           background:
-            linear-gradient(90deg, transparent 30%, rgba(190, 249, 255, 0.9) 30% 43%, transparent 43% 57%, rgba(34, 211, 238, 0.9) 57% 70%, transparent 70%),
-            linear-gradient(180deg, rgba(17, 34, 54, 0.96), rgba(7, 10, 18, 0.98));
-          box-shadow: 0 0 12px rgba(34, 211, 238, 0.2);
+            linear-gradient(180deg, rgba(255, 246, 183, 0.98), rgba(245, 197, 24, 0.96) 52%, rgba(139, 86, 12, 0.96));
+          padding: 5px 7px 4px;
+          color: rgba(22, 14, 0, 0.92);
+          font-size: 6px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          line-height: 1;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.65),
+            inset 0 -6px 8px rgba(74, 42, 0, 0.28),
+            0 0 0 2px rgba(245, 197, 24, 0.14);
         }
 
         .legend-live-dot,
@@ -11188,7 +11193,11 @@ export default function RealWorldMap() {
           left: 50%;
           top: -24px;
           z-index: 12;
+          display: inline-flex;
+          min-width: 0;
           max-width: 138px;
+          align-items: center;
+          justify-content: center;
           transform: translateX(-50%);
           overflow: hidden;
           border-radius: 9999px;
@@ -11214,6 +11223,23 @@ export default function RealWorldMap() {
           backdrop-filter: blur(12px);
         }
 
+        .basedare-maplibre-map :global(.peebear-venue-label-name) {
+          display: block;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .basedare-maplibre-map :global(.peebear-venue-label-kicker) {
+          display: block;
+          font-size: 5.5px;
+          font-weight: 950;
+          letter-spacing: 0.28em;
+          line-height: 1;
+          color: rgba(56, 34, 0, 0.7);
+        }
+
         .basedare-maplibre-map :global(.peebear-marker.is-active .peebear-venue-label) {
           border-color: rgba(245, 197, 24, 0.42);
           color: #fff4be;
@@ -11224,9 +11250,58 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
-          top: -18px;
-          border-color: rgba(103, 232, 249, 0.34);
-          color: #d8fbff;
+          top: 0;
+          min-width: 96px;
+          max-width: 158px;
+          flex-direction: column;
+          gap: 2px;
+          overflow: visible;
+          border-radius: 11px 11px 7px 7px;
+          border-color: rgba(255, 244, 190, 0.72);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.72), transparent 40%),
+            linear-gradient(180deg, rgba(255, 246, 183, 0.98), rgba(245, 197, 24, 0.98) 46%, rgba(148, 92, 12, 0.98) 100%);
+          padding: 6px 11px 7px;
+          color: rgba(22, 14, 0, 0.96);
+          font-size: 9.5px;
+          letter-spacing: 0.12em;
+          line-height: 1.05;
+          text-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.38),
+            0 2px 8px rgba(255, 248, 196, 0.28);
+          transform: translateX(-50%) perspective(120px) rotateX(8deg);
+          transform-origin: center bottom;
+          box-shadow:
+            0 16px 20px rgba(0, 0, 0, 0.42),
+            0 0 26px rgba(245, 197, 24, 0.32),
+            0 0 0 2px rgba(245, 197, 24, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.78),
+            inset 0 -9px 12px rgba(64, 37, 0, 0.28);
+          backdrop-filter: blur(8px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::before) {
+          content: '';
+          position: absolute;
+          inset: 1px 8px auto;
+          height: 1px;
+          border-radius: 9999px;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.74), transparent);
+          pointer-events: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::after) {
+          content: '';
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          bottom: -8px;
+          height: 8px;
+          border-radius: 0 0 9999px 9999px;
+          background: linear-gradient(90deg, rgba(68, 38, 0, 0.12), rgba(248, 221, 114, 0.78), rgba(68, 38, 0, 0.12));
+          transform: perspective(46px) rotateX(62deg);
+          transform-origin: center top;
+          pointer-events: none;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-venue-label) {
@@ -11235,6 +11310,19 @@ export default function RealWorldMap() {
           padding: 3px 7px;
           font-size: 7px;
           letter-spacing: 0.08em;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-venue-label) {
+          top: 0;
+          min-width: 82px;
+          max-width: 136px;
+          padding: 5px 9px 6px;
+          font-size: 8px;
+          letter-spacing: 0.09em;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-venue-label-kicker) {
+          display: none;
         }
 
         .basedare-maplibre-map :global(.venue-legend-stack) {
@@ -11310,130 +11398,18 @@ export default function RealWorldMap() {
           width: 50px;
         }
 
-        .basedare-maplibre-map :global(.venue-building-badge) {
-          position: absolute;
-          left: 50%;
-          top: 4px;
-          z-index: 5;
-          display: flex;
-          height: 46px;
-          width: 46px;
-          transform: translateX(-50%);
-          transform-style: preserve-3d;
-          filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 14px rgba(34, 211, 238, 0.32));
-          pointer-events: none;
-          transition: transform 180ms ease, filter 180ms ease;
-        }
-
-        .basedare-maplibre-map :global(.venue-building-roof) {
-          position: absolute;
-          left: 6px;
-          top: 2px;
-          width: 34px;
-          height: 22px;
-          clip-path: polygon(50% 0%, 100% 44%, 100% 64%, 0% 64%, 0% 44%);
-          border-radius: 4px 4px 2px 2px;
-          background:
-            linear-gradient(135deg, rgba(216, 251, 255, 0.98) 0%, rgba(103, 232, 249, 0.98) 46%, rgba(91, 33, 182, 0.98) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.5),
-            inset 0 -5px 8px rgba(18, 18, 70, 0.28);
-        }
-
-        .basedare-maplibre-map :global(.venue-building-body) {
-          position: absolute;
-          left: 9px;
-          top: 18px;
-          display: grid;
-          width: 28px;
-          height: 23px;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 3px;
-          border-radius: 7px 7px 5px 5px;
-          border: 1px solid rgba(103, 232, 249, 0.48);
-          background:
-            radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.18), transparent 54%),
-            linear-gradient(180deg, rgba(15, 34, 54, 0.96), rgba(7, 10, 18, 0.98));
-          padding: 6px 4px 4px;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.12),
-            inset 0 -8px 10px rgba(0, 0, 0, 0.3),
-            0 0 0 2px rgba(34, 211, 238, 0.12);
-        }
-
-        .basedare-maplibre-map :global(.venue-building-body span) {
-          border-radius: 2px;
-          background:
-            linear-gradient(180deg, rgba(216, 251, 255, 0.98), rgba(34, 211, 238, 0.82));
-          box-shadow: 0 0 8px rgba(34, 211, 238, 0.36);
-        }
-
-        .basedare-maplibre-map :global(.venue-building-base) {
-          position: absolute;
-          left: 5px;
-          bottom: 2px;
-          width: 36px;
-          height: 5px;
-          border-radius: 9999px;
-          background: linear-gradient(90deg, rgba(12, 43, 57, 0.24), rgba(103, 232, 249, 0.82), rgba(91, 33, 182, 0.24));
-          box-shadow: 0 0 12px rgba(34, 211, 238, 0.28);
-        }
-
-        .basedare-maplibre-map :global(.venue-activation-pill) {
-          position: absolute;
-          left: 50%;
-          top: 68px;
-          z-index: 6;
-          transform: translateX(-50%);
-          border-radius: 9999px;
-          border: 1px solid rgba(103, 232, 249, 0.42);
-          background:
-            linear-gradient(180deg, rgba(190, 249, 255, 0.18), rgba(34, 211, 238, 0.08)),
-            linear-gradient(180deg, rgba(7, 24, 38, 0.96), rgba(5, 8, 14, 0.98));
-          padding: 3px 8px;
-          font-size: 6.5px;
-          font-weight: 900;
-          line-height: 1;
-          letter-spacing: 0.16em;
-          color: #d8fbff;
-          white-space: nowrap;
-          box-shadow:
-            0 10px 18px rgba(0, 0, 0, 0.3),
-            0 0 16px rgba(34, 211, 238, 0.18),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          opacity: 0;
-          transition: opacity 160ms ease, transform 160ms ease;
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue:hover .venue-activation-pill),
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-active .venue-activation-pill) {
-          opacity: 1;
-          transform: translateX(-50%) translateY(-2px);
-        }
-
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-count) {
           left: auto;
-          right: 5px;
-          top: 0;
+          right: 2px;
+          top: 42px;
           z-index: 7;
           transform: scale(0.84);
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .peebear-count) {
-          right: -2px;
-          top: 0;
+          right: -4px;
+          top: 32px;
           transform: scale(0.74);
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .venue-building-badge) {
-          top: 5px;
-          transform: translateX(-50%) scale(0.86);
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue:hover .venue-building-badge),
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-active .venue-building-badge) {
-          transform: translateX(-50%) translateY(-3px) scale(1.04);
-          filter: drop-shadow(0 16px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 20px rgba(34, 211, 238, 0.44));
         }
 
         .basedare-maplibre-map :global(.peebear-match-badge) {

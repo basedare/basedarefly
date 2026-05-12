@@ -6,9 +6,11 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 import {
+  ArrowRight,
   CheckCircle2,
   Clock3,
   Crosshair,
+  Gift,
   Loader2,
   MapPin,
   MessageSquare,
@@ -23,7 +25,7 @@ import { IdentityButton } from '@/components/IdentityButton';
 import ReceiptShareCard from '@/components/ReceiptShareCard';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { triggerHaptic } from '@/lib/mobile-haptics';
-import type { VenueDetail } from '@/lib/venue-types';
+import type { VenueDetail, VenuePerkUnlock } from '@/lib/venue-types';
 
 type SessionShape = {
   token?: string | null;
@@ -57,10 +59,12 @@ type CheckInResult = {
     checkInCount: number;
     uniqueVisitorCount: number;
   };
+  perk: VenuePerkUnlock | null;
 };
 
 type CheckInMode = 'gps' | 'qr-only';
 type SubmitPhase = 'idle' | 'locating' | 'signing' | 'submitting' | 'success' | 'error';
+type VenueActiveDare = VenueDetail['activeDares'][number];
 
 const shellClass =
   'relative overflow-hidden rounded-[34px] border border-white/[0.1] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_18%,rgba(7,9,18,0.94)_100%)] shadow-[0_30px_90px_rgba(0,0,0,0.46),0_0_34px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.28)]';
@@ -141,10 +145,61 @@ function getStatusCopy(phase: SubmitPhase) {
     case 'success':
       return 'Presence confirmed.';
     case 'error':
-      return 'Handshake needs attention.';
+      return 'Venue pass needs attention.';
     default:
-      return 'Ready for secure venue proof.';
+      return 'Ready for verified venue proof.';
   }
+}
+
+function isOpenDare(dare: VenueActiveDare) {
+  return !dare.claimedBy && !dare.targetWalletAddress && dare.claimRequestStatus !== 'PENDING';
+}
+
+function getDareUrgencyLabel(expiresAt: string | null, nowMs: number) {
+  if (!expiresAt) return 'Open now';
+
+  const expiresMs = new Date(expiresAt).getTime();
+  if (!Number.isFinite(expiresMs)) return 'Open now';
+
+  const diffMs = expiresMs - nowMs;
+  if (diffMs <= 0) return 'Expires soon';
+
+  const minutes = Math.ceil(diffMs / 60_000);
+  if (minutes < 60) return `${minutes}m left`;
+
+  const hours = Math.ceil(diffMs / 3_600_000);
+  if (hours < 24) return `${hours}h left`;
+
+  return `${Math.ceil(hours / 24)}d left`;
+}
+
+function getDareSponsorLabel(dare: VenueActiveDare) {
+  return dare.brandName || dare.campaignTitle || dare.streamerHandle || 'Venue dare';
+}
+
+function scoreVenueDare(dare: VenueActiveDare, nowMs: number) {
+  let score = dare.bounty;
+
+  if (isOpenDare(dare)) score += 500;
+  if (dare.brandName || dare.campaignTitle) score += 140;
+  if (dare.isCommunitySpark) score += 60;
+  if (dare.claimRequestStatus === 'PENDING') score -= 160;
+  if (dare.claimedBy || dare.targetWalletAddress) score -= 220;
+
+  if (dare.expiresAt) {
+    const expiresMs = new Date(dare.expiresAt).getTime();
+    if (Number.isFinite(expiresMs)) {
+      const hoursRemaining = (expiresMs - nowMs) / 3_600_000;
+      if (hoursRemaining > 0 && hoursRemaining <= 6) score += 90;
+      if (hoursRemaining <= 0) score -= 320;
+    }
+  }
+
+  return score;
+}
+
+function getRecommendedVenueDare(dares: VenueActiveDare[], nowMs: number) {
+  return [...dares].sort((a, b) => scoreVenueDare(b, nowMs) - scoreVenueDare(a, nowMs))[0] ?? null;
 }
 
 export default function HandshakeClient() {
@@ -171,8 +226,12 @@ export default function HandshakeClient() {
   const activeWallet = liveWallet ?? sessionWallet;
   const isExpired = handshake ? nowMs > handshake.expiresAtMs : false;
   const msRemaining = handshake ? handshake.expiresAtMs - nowMs : 0;
-  const hasActiveDares = Boolean(venue?.activeDares.length);
-  const topDares = venue?.activeDares.slice(0, 3) ?? [];
+  const activeDares = venue?.activeDares ?? [];
+  const recommendedDare = getRecommendedVenueDare(activeDares, nowMs);
+  const visibleDares =
+    result && recommendedDare
+      ? activeDares.filter((dare) => dare.id !== recommendedDare.id).slice(0, 2)
+      : activeDares.slice(0, 3);
   const canSubmit =
     Boolean(handshake) &&
     Boolean(activeWallet) &&
@@ -224,7 +283,7 @@ export default function HandshakeClient() {
   const submitCheckIn = useCallback(
     async (mode: CheckInMode) => {
       if (!handshake) {
-        setError('This QR payload is missing required handshake fields.');
+        setError('This venue pass is missing required fields.');
         setPhase('error');
         return;
       }
@@ -340,7 +399,7 @@ export default function HandshakeClient() {
             {venue?.slug ? 'Venue page' : 'Open map'}
           </Link>
           <div className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/76">
-            Secure handshake
+            Venue pass
           </div>
         </div>
 
@@ -352,7 +411,7 @@ export default function HandshakeClient() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
                     <ShieldCheck className="h-3.5 w-3.5" />
-                    BaseDare Secure Handshake
+                    BaseDare Venue Pass
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/28 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/54">
                     <Clock3 className="h-3.5 w-3.5" />
@@ -401,13 +460,13 @@ export default function HandshakeClient() {
 
             {!handshake ? (
               <div className="mt-6 rounded-[24px] border border-red-400/18 bg-red-500/[0.08] p-4 text-sm text-red-100">
-                This QR is missing required fields. Scan the current venue QR from the BaseDare console.
+                This venue pass is missing required fields. Scan the current venue QR from the BaseDare console.
               </div>
             ) : null}
 
             {isExpired && handshake ? (
               <div className="mt-6 rounded-[24px] border border-amber-300/20 bg-amber-400/[0.08] p-4 text-sm text-amber-100">
-                This QR window has expired. The venue console rotates codes for safety; scan the fresh QR on-site.
+                This venue pass window has expired. The venue console rotates codes for safety; scan the fresh QR on-site.
               </div>
             ) : null}
 
@@ -515,6 +574,77 @@ export default function HandshakeClient() {
                     <p className="text-xs text-white/42">unique today</p>
                   </div>
                 </div>
+                {result.perk ? (
+                  <div className="mt-4 overflow-hidden rounded-[24px] border border-[#f8dd72]/28 bg-[linear-gradient(180deg,rgba(248,221,114,0.14),rgba(8,10,18,0.92))] p-4 shadow-[0_18px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-[#f8dd72]/26 bg-[#f8dd72]/12 text-[#f8dd72]">
+                        <Gift className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f8dd72]/72">
+                          Unlocked at {venue?.name ?? result.venueSlug}
+                        </p>
+                        <h2 className="mt-1 text-xl font-black text-white">{result.perk.title}</h2>
+                        {result.perk.description ? (
+                          <p className="mt-2 text-sm leading-5 text-white/62">{result.perk.description}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <div className="rounded-[18px] border border-white/10 bg-black/22 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/36">Staff code</p>
+                        <p className="mt-1 font-mono text-2xl font-black tracking-[0.12em] text-[#f8dd72]">
+                          {result.perk.redemptionCode}
+                        </p>
+                      </div>
+                      <div className="rounded-[18px] border border-white/10 bg-black/22 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/36">Expires</p>
+                        <p className="mt-1 text-sm font-bold text-white">
+                          {new Date(result.perk.expiresAt).toLocaleTimeString([], {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-white/48">
+                      Show this to staff to redeem.
+                    </p>
+                  </div>
+                ) : null}
+                {recommendedDare ? (
+                  <div className="mt-4 overflow-hidden rounded-[24px] border border-cyan-200/22 bg-[linear-gradient(180deg,rgba(34,211,238,0.16),rgba(248,221,114,0.08)_48%,rgba(8,10,18,0.94)_100%)] p-4 shadow-[0_18px_34px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/72">
+                          You are here now
+                        </p>
+                        <h2 className="mt-1 text-xl font-black leading-tight text-white">{recommendedDare.title}</h2>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-[#f8dd72] px-3 py-1.5 text-xs font-black text-black">
+                        ${Math.round(recommendedDare.bounty)}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/58">
+                        {getDareSponsorLabel(recommendedDare)}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/58">
+                        {getDareUrgencyLabel(recommendedDare.expiresAt, nowMs)}
+                      </span>
+                      <span className="rounded-full border border-emerald-200/18 bg-emerald-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/78">
+                        {isOpenDare(recommendedDare) ? 'Open to claim' : 'Watch live'}
+                      </span>
+                    </div>
+                    <Link
+                      href={`/dare/${recommendedDare.shortId}?source=venue-pass&venue=${encodeURIComponent(result.venueSlug)}`}
+                      className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[20px] border border-[#f8dd72]/32 bg-[#f8dd72] px-4 text-sm font-black uppercase tracking-[0.14em] text-black shadow-[0_16px_30px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:bg-[#ffe78f]"
+                    >
+                      Start this dare
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                ) : null}
                 <ReceiptShareCard
                   compact
                   title={`Checked in at ${venue?.name ?? 'this venue'}`}
@@ -555,13 +685,15 @@ export default function HandshakeClient() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/36">Live venue dares</p>
-                <h2 className="mt-1 text-xl font-black text-white">Next move</h2>
+                <h2 className="mt-1 text-xl font-black text-white">
+                  {result && recommendedDare ? 'More live moves' : 'Next move'}
+                </h2>
               </div>
               <Sparkles className="h-5 w-5 text-[#f8dd72]" />
             </div>
             <div className="mt-4 space-y-3">
-              {hasActiveDares ? (
-                topDares.map((dare) => (
+              {visibleDares.length > 0 ? (
+                visibleDares.map((dare) => (
                   <Link
                     key={dare.id}
                     href={`/dare/${dare.shortId}`}
@@ -578,6 +710,10 @@ export default function HandshakeClient() {
                     </p>
                   </Link>
                 ))
+              ) : result && recommendedDare ? (
+                <p className="rounded-[20px] border border-cyan-200/14 bg-cyan-300/[0.06] p-4 text-sm leading-6 text-cyan-50/62">
+                  The best live dare is queued above. Start it while the venue proof is fresh.
+                </p>
               ) : (
                 <p className="rounded-[20px] border border-white/10 bg-white/[0.035] p-4 text-sm leading-6 text-white/50">
                   No active dares here yet. Your check-in still adds place memory and gives the venue a measurable signal.

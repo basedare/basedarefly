@@ -296,9 +296,9 @@ export default async function VenueRecapPage(
       icon: <MapPin className="h-4 w-4" />,
     },
     {
-      label: 'Secure Handshake',
+      label: 'Venue Pass',
       title: venue.liveSession?.status === 'LIVE' ? 'QR rail live' : 'QR rail ready',
-      detail: `BaseDare Secure Handshakes support QR + GPS presence inside ${venue.checkInRadiusMeters}m with ${venue.qrRotationSeconds}s rotation.`,
+      detail: `BaseDare Venue Pass supports encrypted QR + GPS presence inside ${venue.checkInRadiusMeters}m with ${venue.qrRotationSeconds}s rotation.`,
       complete: Boolean(venue.liveSession) || venue.commandCenter.status === 'live',
       icon: <QrCode className="h-4 w-4" />,
     },

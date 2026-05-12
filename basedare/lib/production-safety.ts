@@ -1106,6 +1106,13 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     nextAction: 'Set INTERNAL_API_SECRET separately from ADMIN_SECRET for service-to-service calls.',
   });
   addEnvCheck(checks, {
+    id: 'env.venue-qr-secret',
+    label: 'Venue QR crypto secret',
+    env: 'VENUE_QR_SECRET',
+    severityWhenMissing: 'warn',
+    nextAction: 'Set VENUE_QR_SECRET to a dedicated high-entropy value before relying on Venue Passes at partner venues.',
+  });
+  addEnvCheck(checks, {
     id: 'env.pinata',
     label: 'Proof upload storage',
     env: 'PINATA_JWT',

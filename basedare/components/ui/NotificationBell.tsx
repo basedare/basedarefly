@@ -642,7 +642,7 @@ export function NotificationBell() {
                                             ) : null}
                                         </div>
                                         <p className="mt-1 text-xs text-gray-400">
-                                            Creator bids, collabs, venue handshakes, and support replies.
+                                            Creator bids, collabs, venue passes, and support replies.
                                         </p>
                                     </div>
                                     <Link

@@ -367,7 +367,7 @@ function ChatInbox() {
               BaseDare Inbox
             </p>
             <h1 className="mt-4 text-4xl font-black uppercase italic tracking-[-0.06em] sm:text-6xl">
-              Secure <span className="text-cyan-200">handshakes</span>
+              Private <span className="text-cyan-200">threads</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/55">
               Live message creators, venue owners, brands, and later support without leaking phone numbers
@@ -515,7 +515,7 @@ function ChatInbox() {
                     {activeThread ? activeThread.type : 'New thread'}
                   </p>
                   <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.04em] text-white">
-                    {activeThread?.subject || subject || 'Route a private handshake'}
+                    {activeThread?.subject || subject || 'Route a private thread'}
                   </h2>
                   <p className="mt-1 text-xs font-bold leading-5 text-white/42">
                     {activeThread

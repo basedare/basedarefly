@@ -377,7 +377,7 @@ export default async function VenueDetailPage(
             : currentPulseState.label,
       detail:
         venue.liveSession?.status === 'LIVE'
-          ? `Secure Handshake is live inside ${venue.checkInRadiusMeters}m. Scan, show up, and leave proof.`
+          ? `Venue Pass is live inside ${venue.checkInRadiusMeters}m. Scan, show up, and leave proof.`
           : venue.activeDares.length > 0
             ? `${venue.activeDares.length} funded drop${venue.activeDares.length === 1 ? '' : 's'} already make this venue actionable.`
             : 'The venue is visible on the grid. The next mark or funded drop wakes it up for everyone.',
@@ -891,7 +891,7 @@ export default async function VenueDetailPage(
                 )}
                 <div className="mt-4 rounded-[18px] border border-white/8 bg-black/20 px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/34">Secure Handshake</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/34">Venue Pass</span>
                     <span className="rounded-full border border-emerald-400/18 bg-emerald-500/[0.08] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-emerald-100">
                       {handshakeStatusLabel}
                     </span>

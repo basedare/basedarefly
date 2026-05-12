@@ -107,6 +107,22 @@ export type VenueCommandCenterSummary = {
   };
 };
 
+export type VenuePerkLite = {
+  enabled: boolean;
+  title: string;
+  description: string | null;
+  staffInstructions: string | null;
+  expiresInHours: number;
+  updatedAt: string | null;
+};
+
+export type VenuePerkUnlock = VenuePerkLite & {
+  checkInId: string;
+  redemptionCode: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+};
+
 export type VenueExperienceMode = {
   id: 'classic' | 'noir' | 'ar';
   status: 'live' | 'planned';
@@ -269,6 +285,7 @@ export type NearbyVenueItem = {
   memorySummary: VenueMemorySummary | null;
   profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
+  activePerk: VenuePerkLite | null;
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];
@@ -298,6 +315,7 @@ export type VenueDetail = {
   profile: VenueProfileSummary;
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
+  activePerk: VenuePerkLite | null;
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];
@@ -310,10 +328,12 @@ export type VenueDetail = {
     activeDares: number;
   };
   recentCheckIns: Array<{
+    id: string;
     tag: string | null;
     walletAddress: string;
     proofLevel: string;
     scannedAt: string;
+    perk: VenuePerkUnlock | null;
   }>;
   recentTags: VenueRecentTag[];
   timelineMoments: VenueTimelineMoment[];

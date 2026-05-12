@@ -489,7 +489,7 @@ export default function CreatorProfilePage() {
         profile?.identityStatus === 'REVOKED' ||
         profile?.identityStatus === 'SUSPENDED';
     const profileEditAuthMessage = normalizedConnectedWallet
-        ? 'One wallet session can authorize profile edits across BaseDare without repeated handshakes.'
+        ? 'One wallet session can authorize profile edits across BaseDare without repeated prompts.'
         : 'Connect the wallet that owns this verified creator tag to edit your bio or photo.';
 
     const getProfileEditHeaders = async (tagId: string): Promise<Record<string, string>> => {

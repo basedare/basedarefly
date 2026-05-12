@@ -58,7 +58,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do I need to scan a QR code to use BaseDare?",
-    a: "No. Relax. QR is **not** the whole app. Normal links are for normal discovery. QR is our **secure handshake** layer when a venue wants stronger proof that you actually showed up. Browse freely. Scan only when trust matters."
+    a: "No. Relax. QR is **not** the whole app. Normal links are for normal discovery. Venue Pass is the QR layer when a venue wants stronger proof that you actually showed up. Browse freely. Scan only when trust matters."
   },
   {
     q: "How do venue check-ins work?",

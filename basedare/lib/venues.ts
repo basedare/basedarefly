@@ -1,6 +1,13 @@
 import 'server-only';
 
-import { createHash, randomBytes } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'crypto';
 import { prisma } from '@/lib/prisma';
 import {
   calculateDistance,
@@ -19,6 +26,7 @@ import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import { buildVenueProfile } from '@/lib/venue-profile';
+import { getActiveVenuePerk, getVenuePerkSnapshot } from '@/lib/venue-perks';
 import { ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
 import type {
   VenueActivationInsight,
@@ -710,14 +718,167 @@ type VenueQrSessionRecord = {
   lastCheckInAt: Date | null;
 };
 
+type VenuePassTokenPayload = {
+  v: 1;
+  venueId: string;
+  sessionId: string;
+  scope: string;
+  sessionKeyHash: string;
+  windowStartedAt: string;
+  expiresAtMs: number;
+};
+
+const VENUE_PASS_TOKEN_VERSION = 'bdvp1';
+const VENUE_PASS_TOKEN_AAD = Buffer.from('basedare:venue-pass:v1', 'utf8');
+
 function getHandshakeSecret() {
   return (
+    process.env.VENUE_QR_SECRET ||
     process.env.INTERNAL_API_SECRET ||
     process.env.ADMIN_SECRET ||
     process.env.NEXTAUTH_SECRET ||
     process.env.CRON_SECRET ||
     null
   );
+}
+
+function getVenuePassKey() {
+  const secret = getHandshakeSecret();
+  if (!secret) {
+    throw new Error('Handshake secret is not configured');
+  }
+
+  return createHash('sha256')
+    .update(`basedare:venue-pass:${secret}`)
+    .digest();
+}
+
+function encodeTokenPart(input: Buffer) {
+  return input
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeTokenPart(input: string) {
+  const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+  const paddingLength = (4 - (normalized.length % 4)) % 4;
+  return Buffer.from(`${normalized}${'='.repeat(paddingLength)}`, 'base64');
+}
+
+function createVenueSessionKeyHash(sessionKey: string) {
+  const secret = getHandshakeSecret();
+  if (!secret) {
+    throw new Error('Handshake secret is not configured');
+  }
+
+  return createHash('sha256')
+    .update(['basedare:venue-pass-session', secret, sessionKey].join(':'))
+    .digest('hex');
+}
+
+function deriveVenuePassIv(input: {
+  venueId: string;
+  sessionId: string;
+  sessionKey: string;
+  scope: string;
+  windowStartedAt: Date;
+  expiresAt: Date;
+}) {
+  return createHmac('sha256', getVenuePassKey())
+    .update(
+      [
+        VENUE_PASS_TOKEN_VERSION,
+        input.venueId,
+        input.sessionId,
+        input.sessionKey,
+        input.scope,
+        input.windowStartedAt.toISOString(),
+        input.expiresAt.toISOString(),
+      ].join(':')
+    )
+    .digest()
+    .subarray(0, 12);
+}
+
+function encryptVenuePassToken(input: {
+  venueId: string;
+  sessionId: string;
+  sessionKey: string;
+  scope: string;
+  windowStartedAt: Date;
+  expiresAt: Date;
+}) {
+  const payload: VenuePassTokenPayload = {
+    v: 1,
+    venueId: input.venueId,
+    sessionId: input.sessionId,
+    scope: input.scope,
+    sessionKeyHash: createVenueSessionKeyHash(input.sessionKey),
+    windowStartedAt: input.windowStartedAt.toISOString(),
+    expiresAtMs: input.expiresAt.getTime(),
+  };
+  const key = getVenuePassKey();
+  const iv = deriveVenuePassIv(input);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  cipher.setAAD(VENUE_PASS_TOKEN_AAD);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(payload), 'utf8'),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag();
+
+  return [
+    VENUE_PASS_TOKEN_VERSION,
+    encodeTokenPart(iv),
+    encodeTokenPart(authTag),
+    encodeTokenPart(encrypted),
+  ].join('.');
+}
+
+function isVenuePassTokenPayload(input: unknown): input is VenuePassTokenPayload {
+  if (!input || typeof input !== 'object') return false;
+  const payload = input as Partial<VenuePassTokenPayload>;
+  return (
+    payload.v === 1 &&
+    typeof payload.venueId === 'string' &&
+    typeof payload.sessionId === 'string' &&
+    typeof payload.scope === 'string' &&
+    typeof payload.sessionKeyHash === 'string' &&
+    typeof payload.windowStartedAt === 'string' &&
+    typeof payload.expiresAtMs === 'number' &&
+    Number.isFinite(payload.expiresAtMs)
+  );
+}
+
+function decryptVenuePassToken(token: string) {
+  const parts = token.split('.');
+  if (parts.length !== 4 || parts[0] !== VENUE_PASS_TOKEN_VERSION) {
+    return null;
+  }
+
+  try {
+    const [, ivPart, authTagPart, encryptedPart] = parts;
+    const decipher = createDecipheriv('aes-256-gcm', getVenuePassKey(), decodeTokenPart(ivPart));
+    decipher.setAAD(VENUE_PASS_TOKEN_AAD);
+    decipher.setAuthTag(decodeTokenPart(authTagPart));
+    const decrypted = Buffer.concat([
+      decipher.update(decodeTokenPart(encryptedPart)),
+      decipher.final(),
+    ]);
+    const payload = JSON.parse(decrypted.toString('utf8')) as unknown;
+    return isVenuePassTokenPayload(payload) ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeTokenEquals(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function getRotationWindow(
@@ -738,7 +899,7 @@ function getRotationWindow(
   };
 }
 
-function createVenueHandshakeToken(input: {
+function createLegacyVenueHandshakeToken(input: {
   venueId: string;
   sessionId: string;
   sessionKey: string;
@@ -762,6 +923,17 @@ function createVenueHandshakeToken(input: {
       ].join(':')
     )
     .digest('hex');
+}
+
+function createVenueHandshakeToken(input: {
+  venueId: string;
+  sessionId: string;
+  sessionKey: string;
+  scope: string;
+  windowStartedAt: Date;
+  expiresAt: Date;
+}) {
+  return encryptVenuePassToken(input);
 }
 
 export function hashHandshakeToken(token: string) {
@@ -841,6 +1013,7 @@ export async function getVenueQrPayloadByVenueId(
     sessionKey: session.sessionKey,
     scope: session.scope,
     windowStartedAt: rotation.windowStartedAt,
+    expiresAt: rotation.expiresAt,
   });
 
   return {
@@ -904,8 +1077,46 @@ export async function validateVenueHandshakeToken(input: {
     previousWindowStartedAt,
   ];
 
+  if (input.token.startsWith(`${VENUE_PASS_TOKEN_VERSION}.`)) {
+    const payload = decryptVenuePassToken(input.token);
+    if (!payload) {
+      return { ok: false as const, reason: 'INVALID_TOKEN' };
+    }
+
+    const payloadWindowStartedAt = new Date(payload.windowStartedAt);
+    if (!Number.isFinite(payloadWindowStartedAt.getTime())) {
+      return { ok: false as const, reason: 'INVALID_TOKEN' };
+    }
+
+    const expectedExpiresAt = new Date(
+      payloadWindowStartedAt.getTime() + Math.max(15, session.rotationSeconds) * 1000
+    );
+    const sessionKeyHash = createVenueSessionKeyHash(session.sessionKey);
+    const isAcceptedWindow = candidateWindows.some(
+      (windowStartedAt) => windowStartedAt.getTime() === payloadWindowStartedAt.getTime()
+    );
+
+    if (
+      payload.venueId !== session.venueId ||
+      payload.sessionId !== session.id ||
+      payload.scope !== session.scope ||
+      payload.sessionKeyHash !== sessionKeyHash ||
+      payload.expiresAtMs !== expectedExpiresAt.getTime() ||
+      !isAcceptedWindow
+    ) {
+      return { ok: false as const, reason: 'INVALID_TOKEN' };
+    }
+
+    return {
+      ok: true as const,
+      session,
+      windowStartedAt: payloadWindowStartedAt,
+      expiresAt: expectedExpiresAt,
+    };
+  }
+
   for (const windowStartedAt of candidateWindows) {
-    const expected = createVenueHandshakeToken({
+    const expected = createLegacyVenueHandshakeToken({
       venueId: session.venueId,
       sessionId: session.id,
       sessionKey: session.sessionKey,
@@ -913,7 +1124,7 @@ export async function validateVenueHandshakeToken(input: {
       windowStartedAt,
     });
 
-    if (expected === input.token) {
+    if (safeTokenEquals(expected, input.token)) {
       const expiresAt = new Date(windowStartedAt.getTime() + Math.max(15, session.rotationSeconds) * 1000);
       return {
         ok: true as const,
@@ -1388,6 +1599,7 @@ export async function getNearbyVenues(input: {
         distanceDisplay: formatDistance(distanceKm),
         memorySummary: mapMemorySummary(venue.memories[0] ?? null),
         tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
+        activePerk: getActiveVenuePerk(venue.metadataJson),
         liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
         commandCenter,
         mapModes: buildVenueExperienceModes(),
@@ -1526,10 +1738,12 @@ export async function getVenueDetailBySlug(
       orderBy: { scannedAt: 'desc' },
       take: 5,
       select: {
+        id: true,
         walletAddress: true,
         tag: true,
         proofLevel: true,
         scannedAt: true,
+        metadataJson: true,
       },
     }),
     getRecentApprovedPlaceTagsByVenueId(venue.id, 12),
@@ -1581,6 +1795,7 @@ export async function getVenueDetailBySlug(
   const activeDares = venue.dares.map(mapActiveDare);
   const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length;
   const memorySummary = mapMemorySummary(venue.memories[0] ?? null);
+  const activePerk = getActiveVenuePerk(venue.metadataJson);
   const memoryHistory = venue.memories
     .map((memory) => mapMemorySummary(memory))
     .filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null);
@@ -1712,6 +1927,7 @@ export async function getVenueDetailBySlug(
     memorySummary,
     memoryHistory,
     tagSummary,
+    activePerk,
     liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
     commandCenter,
     mapModes: buildVenueExperienceModes(),
@@ -1724,10 +1940,12 @@ export async function getVenueDetailBySlug(
       activeDares: venue.dares.length,
     },
     recentCheckIns: recentCheckIns.map((checkIn) => ({
+      id: checkIn.id,
       walletAddress: checkIn.walletAddress,
       tag: checkIn.tag,
       proofLevel: checkIn.proofLevel,
       scannedAt: checkIn.scannedAt.toISOString(),
+      perk: getVenuePerkSnapshot(checkIn.metadataJson),
     })),
     recentTags: recentTagsWithOwnership,
     timelineMoments,

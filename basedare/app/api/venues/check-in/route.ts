@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { randomUUID } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
@@ -14,6 +16,11 @@ import {
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
+import {
+  buildVenuePerkUnlock,
+  getActiveVenuePerk,
+  writeVenuePerkSnapshotToMetadata,
+} from '@/lib/venue-perks';
 
 const VenueCheckInSchema = z.object({
   venueId: z.string().min(1),
@@ -120,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     if (!handshake.ok) {
       return NextResponse.json(
-        { success: false, error: 'Handshake token is invalid or expired', reason: handshake.reason },
+        { success: false, error: 'Venue pass is invalid or expired', reason: handshake.reason },
         { status: 401 }
       );
     }
@@ -180,10 +187,33 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const { start: dayStart, end: dayEnd } = getUtcDayWindow(now);
+    const activePerk = getActiveVenuePerk(venue.metadataJson);
 
     const result = await prisma.$transaction(async (tx) => {
+      const checkInId = randomUUID();
+      const perkUnlock = activePerk
+        ? buildVenuePerkUnlock({
+            perk: activePerk,
+            checkInId,
+            scannedAt: now,
+          })
+        : null;
+      const checkInMetadata = perkUnlock
+        ? writeVenuePerkSnapshotToMetadata(
+            {
+              internalAuthorized: isInternalAuthorized,
+              gpsProvided,
+            },
+            perkUnlock
+          )
+        : {
+            internalAuthorized: isInternalAuthorized,
+            gpsProvided,
+          };
+
       const checkIn = await tx.venueCheckIn.create({
         data: {
+          id: checkInId,
           venueId: venue.id,
           venueSessionId: handshake.session.id,
           walletAddress,
@@ -197,10 +227,7 @@ export async function POST(request: NextRequest) {
           scannedAt: now,
           windowStartAt: handshake.windowStartedAt,
           windowEndAt: handshake.expiresAt,
-          metadataJson: {
-            internalAuthorized: isInternalAuthorized,
-            gpsProvided,
-          },
+          metadataJson: checkInMetadata as Prisma.InputJsonObject,
         },
       });
 
@@ -283,7 +310,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return { checkIn, memory };
+      return { checkIn, memory, perkUnlock };
     });
 
     await recordFounderEventSafe({
@@ -341,6 +368,7 @@ export async function POST(request: NextRequest) {
           checkInCount: result.memory.checkInCount,
           uniqueVisitorCount: result.memory.uniqueVisitorCount,
         },
+        perk: result.perkUnlock,
       },
     });
   } catch (error) {

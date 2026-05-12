@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { Activity, BarChart3, CheckCircle2, Flame, Loader2, MapPin, PauseCircle, PlayCircle, RefreshCcw, Timer, Waves } from 'lucide-react';
-import type { VenueDetail, VenueQrPayload } from '@/lib/venue-types';
+import { Activity, BarChart3, CheckCircle2, Flame, Gift, Loader2, MapPin, Maximize2, PauseCircle, PlayCircle, RefreshCcw, TicketCheck, Timer, Waves, X } from 'lucide-react';
+import type { VenueDetail, VenuePerkLite, VenueQrPayload } from '@/lib/venue-types';
 import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
@@ -77,6 +77,14 @@ type VenueProfileDraft = {
   legendKeys: VenueLegendKey[];
 };
 
+type VenuePerkDraft = {
+  enabled: boolean;
+  title: string;
+  description: string;
+  staffInstructions: string;
+  expiresInHours: number;
+};
+
 function formatCompactAudience(value: number | null) {
   if (typeof value !== 'number' || value <= 0) return 'Building';
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
@@ -143,6 +151,16 @@ function inferTierByPayout(payout: number) {
   return 'SIP_MENTION';
 }
 
+function buildPerkDraft(perk: VenuePerkLite | null): VenuePerkDraft {
+  return {
+    enabled: perk?.enabled ?? false,
+    title: perk?.title ?? '',
+    description: perk?.description ?? '',
+    staffInstructions: perk?.staffInstructions ?? '',
+    expiresInHours: perk?.expiresInHours ?? 12,
+  };
+}
+
 export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -182,6 +200,14 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [perkDraft, setPerkDraft] = useState<VenuePerkDraft>(() => buildPerkDraft(venue.activePerk));
+  const [savedActivePerk, setSavedActivePerk] = useState<VenuePerkLite | null>(venue.activePerk);
+  const [savingPerk, setSavingPerk] = useState(false);
+  const [perkMessage, setPerkMessage] = useState<string | null>(null);
+  const [perkError, setPerkError] = useState<string | null>(null);
+  const [recentCheckIns, setRecentCheckIns] = useState(venue.recentCheckIns);
+  const [redeemingCheckInId, setRedeemingCheckInId] = useState<string | null>(null);
+  const [tvModeOpen, setTvModeOpen] = useState(false);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -189,6 +215,25 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!tvModeOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setTvModeOpen(false);
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [tvModeOpen]);
 
   const loadQr = useCallback(async (options?: { manual?: boolean }) => {
     if (options?.manual) {
@@ -399,6 +444,85 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
       setProfileError(error instanceof Error ? error.message : 'Unable to save venue identity');
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleSaveVenuePerk() {
+    if (savingPerk) return;
+
+    if (venue.commandCenter.claimState !== 'claimed') {
+      setPerkError('Claim this venue before editing its perk.');
+      return;
+    }
+
+    if (perkDraft.enabled && !perkDraft.title.trim()) {
+      setPerkError('Add a perk title before turning it on.');
+      return;
+    }
+
+    setSavingPerk(true);
+    setPerkError(null);
+    setPerkMessage(null);
+
+    try {
+      const response = await fetch(`/api/venues/${encodeURIComponent(venue.slug)}/perk`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify(perkDraft),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to save venue perk');
+      }
+
+      setSavedActivePerk(payload.data?.perk ?? null);
+      setPerkMessage(payload.data?.perk?.enabled ? 'Venue Pass perk is live.' : 'Venue Pass perk saved as inactive.');
+    } catch (error) {
+      setPerkError(error instanceof Error ? error.message : 'Unable to save venue perk');
+    } finally {
+      setSavingPerk(false);
+    }
+  }
+
+  async function handleRedeemPerk(checkInId: string) {
+    if (redeemingCheckInId) return;
+
+    setRedeemingCheckInId(checkInId);
+    setPerkError(null);
+    setPerkMessage(null);
+
+    try {
+      const response = await fetch(`/api/venues/check-in/${encodeURIComponent(checkInId)}/perk/redeem`, {
+        method: 'POST',
+        headers: {
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to redeem venue perk');
+      }
+
+      setRecentCheckIns((current) =>
+        current.map((checkIn) =>
+          checkIn.id === checkInId
+            ? {
+                ...checkIn,
+                perk: payload.data?.perk ?? checkIn.perk,
+              }
+            : checkIn
+        )
+      );
+      setPerkMessage('Perk redeemed and counted in venue memory.');
+    } catch (error) {
+      setPerkError(error instanceof Error ? error.message : 'Unable to redeem venue perk');
+    } finally {
+      setRedeemingCheckInId(null);
     }
   }
 
@@ -690,16 +814,26 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className={`${softCardClass} p-5 sm:p-8`}>
               <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-white/40">BaseDare Secure Handshake</p>
-                  <h2 className="mt-2 text-xl font-bold tracking-tight">Scan to check in to this venue</h2>
+                  <p className="text-xs uppercase tracking-[0.28em] text-white/40">BaseDare Venue Pass</p>
+                  <h2 className="mt-2 text-xl font-bold tracking-tight">Scan to verify this venue</h2>
                 </div>
-                <div className="rounded-full border border-fuchsia-400/20 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-sm font-medium text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.1)]">
-                  <span className="inline-flex items-center gap-2">
-                    <Timer className="h-4 w-4" />
-                    {hasLiveQr ? `Rotates in ${formatCountdown(secondsLeft)}` : 'QR offline'}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-full border border-fuchsia-400/20 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-sm font-medium text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    <span className="inline-flex items-center gap-2">
+                      <Timer className="h-4 w-4" />
+                      {hasLiveQr ? `Rotates in ${formatCountdown(secondsLeft)}` : 'QR offline'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTvModeOpen(true)}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/[0.1] px-4 text-xs font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-200/34 hover:bg-cyan-400/[0.15]"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    TV mode
+                  </button>
                 </div>
               </div>
 
@@ -718,7 +852,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                       Live QR locked
                     </p>
                     <p className="mt-3 text-sm leading-6 text-white/58">
-                      Start a protected venue session before guests can check in. Until then, no QR presence is accepted.
+                      Start a verified venue session before guests can check in. Until then, no QR presence is accepted.
                     </p>
                   </div>
                 )}
@@ -726,8 +860,8 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   {hasLiveQr && isLive
                     ? "Guests scan here to prove presence, light up the venue memory, and unlock live dares."
                     : hasLiveQr && isPaused
-                      ? 'The console is paused. Resume the session to re-enable trusted venue check-ins.'
-                      : 'No live venue session is active. This console is waiting for a protected operator session, not showing a fake QR.'}
+                      ? 'The console is paused. Resume the session to re-enable verified venue check-ins.'
+                      : 'No live venue session is active. This console is waiting for a verified operator session, not showing a fake QR.'}
                 </p>
                 {qrError ? (
                   <p className="mt-3 text-center text-xs uppercase tracking-[0.24em] text-rose-300/80">
@@ -757,6 +891,101 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   <p className="text-xs uppercase tracking-[0.25em] text-white/40">Active Dares</p>
                   <div className="mt-3 text-3xl font-black">{liveStats.activeDares}</div>
                 </div>
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Pass Perk</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">
+                      {savedActivePerk?.enabled ? savedActivePerk.title : 'Add one reason to scan'}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-white/58">
+                      Guests see this immediately after check-in. Staff can redeem it from recent presence.
+                    </p>
+                  </div>
+                  <div className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                    savedActivePerk?.enabled
+                      ? 'border-emerald-400/22 bg-emerald-500/[0.1] text-emerald-100'
+                      : 'border-white/10 bg-white/[0.04] text-white/50'
+                  }`}>
+                    {savedActivePerk?.enabled ? 'Live' : 'Inactive'}
+                  </div>
+                </div>
+
+                <label className="mt-4 flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/24 px-4 py-3 text-sm font-semibold text-white/76">
+                  <input
+                    type="checkbox"
+                    checked={perkDraft.enabled}
+                    onChange={(event) => setPerkDraft((current) => ({ ...current, enabled: event.target.checked }))}
+                    disabled={!canEditVenueProfile || savingPerk}
+                    className="h-4 w-4 accent-[#f8dd72]"
+                  />
+                  Unlock this perk after Venue Pass check-in
+                </label>
+
+                <div className="mt-4 grid gap-3">
+                  <input
+                    value={perkDraft.title}
+                    onChange={(event) => setPerkDraft((current) => ({ ...current, title: event.target.value }))}
+                    disabled={!canEditVenueProfile || savingPerk}
+                    maxLength={80}
+                    placeholder="Free shot, 10% off, priority table, happy hour unlock"
+                    className="min-h-12 rounded-[18px] border border-white/10 bg-black/28 px-4 text-sm font-semibold text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/34 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <textarea
+                    value={perkDraft.description}
+                    onChange={(event) => setPerkDraft((current) => ({ ...current, description: event.target.value }))}
+                    disabled={!canEditVenueProfile || savingPerk}
+                    maxLength={180}
+                    rows={2}
+                    placeholder="Optional public detail shown on the user's Venue Pass"
+                    className="rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/34 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <textarea
+                    value={perkDraft.staffInstructions}
+                    onChange={(event) => setPerkDraft((current) => ({ ...current, staffInstructions: event.target.value }))}
+                    disabled={!canEditVenueProfile || savingPerk}
+                    maxLength={180}
+                    rows={2}
+                    placeholder="Optional staff note: what to check before redeeming"
+                    className="rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/34 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <label className="rounded-[18px] border border-white/10 bg-black/24 px-4 py-3">
+                      <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-white/36">
+                        Valid hours
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={24}
+                        value={perkDraft.expiresInHours}
+                        onChange={(event) =>
+                          setPerkDraft((current) => ({
+                            ...current,
+                            expiresInHours: Math.max(1, Math.min(24, Number(event.target.value) || 12)),
+                          }))
+                        }
+                        disabled={!canEditVenueProfile || savingPerk}
+                        className="mt-2 w-full bg-transparent text-lg font-black text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveVenuePerk()}
+                      disabled={!canEditVenueProfile || savingPerk}
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[18px] border border-[#f8dd72]/24 bg-[#f8dd72]/[0.12] px-5 text-sm font-black uppercase tracking-[0.12em] text-[#f8dd72] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {savingPerk ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+                      Save perk
+                    </button>
+                  </div>
+                </div>
+
+                {perkMessage ? <p className="mt-3 text-sm text-emerald-200/86">{perkMessage}</p> : null}
+                {perkError ? <p className="mt-3 text-sm text-rose-200/86">{perkError}</p> : null}
               </div>
 
               <div className={`${softCardClass} p-5`}>
@@ -1336,22 +1565,52 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">Recent Presence</p>
                 <div className="mt-4 space-y-3">
-                  {venue.recentCheckIns.length > 0 ? (
-                    venue.recentCheckIns.map((checkIn) => (
+                  {recentCheckIns.length > 0 ? (
+                    recentCheckIns.map((checkIn) => (
                       <div
-                        key={`${checkIn.walletAddress}-${checkIn.scannedAt}`}
-                        className={`${insetCardClass} flex items-center justify-between px-4 py-3`}
+                        key={checkIn.id}
+                        className={`${insetCardClass} px-4 py-3`}
                       >
-                        <div>
-                          <p className="font-semibold text-white">{checkIn.tag ?? checkIn.walletAddress.slice(0, 10)}</p>
-                          <p className="text-xs uppercase tracking-[0.24em] text-white/35">{checkIn.proofLevel}</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-white">{checkIn.tag ?? checkIn.walletAddress.slice(0, 10)}</p>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/35">{checkIn.proofLevel}</p>
+                          </div>
+                          <p className="text-sm text-white/55">
+                            {new Date(checkIn.scannedAt).toLocaleTimeString([], {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
                         </div>
-                        <p className="text-sm text-white/55">
-                          {new Date(checkIn.scannedAt).toLocaleTimeString([], {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </p>
+                        {checkIn.perk ? (
+                          <div className="mt-3 rounded-[16px] border border-[#f8dd72]/18 bg-[#f8dd72]/[0.07] px-3 py-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-black text-white">{checkIn.perk.title}</p>
+                                <p className="mt-1 font-mono text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72]">
+                                  Code {checkIn.perk.redemptionCode}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleRedeemPerk(checkIn.id)}
+                                disabled={Boolean(checkIn.perk.redeemedAt) || redeemingCheckInId === checkIn.id}
+                                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[14px] border border-emerald-300/22 bg-emerald-400/[0.1] px-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:border-emerald-200/38 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-white/42"
+                              >
+                                {redeemingCheckInId === checkIn.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <TicketCheck className="h-3.5 w-3.5" />
+                                )}
+                                {checkIn.perk.redeemedAt ? 'Redeemed' : 'Redeem'}
+                              </button>
+                            </div>
+                            {checkIn.perk.staffInstructions ? (
+                              <p className="mt-2 text-xs leading-5 text-white/50">{checkIn.perk.staffInstructions}</p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     ))
                   ) : (
@@ -1363,6 +1622,123 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
           </div>
         </section>
       </div>
+      {tvModeOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${venue.name} Venue Pass TV mode`}
+          className="fixed inset-0 z-[120] overflow-y-auto bg-[#020204]/96 px-4 py-5 text-white backdrop-blur-2xl sm:px-6 lg:px-10"
+        >
+          <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.16),transparent_34%),radial-gradient(circle_at_12%_24%,rgba(248,221,114,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_34%)]" />
+          <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-7xl flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-100/58">BaseDare Venue Pass</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">{venue.name}</h2>
+                <p className="mt-2 text-sm font-bold text-white/48">
+                  {hasLiveQr ? `Live QR rotates in ${formatCountdown(secondsLeft)}` : 'QR is offline'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTvModeOpen(false)}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white/70 transition hover:border-white/24 hover:bg-white/[0.1] hover:text-white"
+                aria-label="Close TV mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-6 grid flex-1 gap-5 lg:grid-cols-[minmax(320px,0.92fr)_minmax(0,1fr)]">
+              <div className="flex flex-col items-center justify-center rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(4,6,12,0.92))] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                {hasLiveQr ? (
+                  <div className="rounded-[30px] border border-white/18 bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.48)]">
+                    <QRCodeSVG value={qrValue} size={320} level="H" includeMargin bgColor="#ffffff" fgColor="#09090b" />
+                  </div>
+                ) : (
+                  <div className="flex aspect-square w-full max-w-[352px] flex-col items-center justify-center rounded-[30px] border border-white/10 bg-black/32 text-center">
+                    <Waves className="h-12 w-12 text-cyan-100/70" />
+                    <p className="mt-4 text-xs font-black uppercase tracking-[0.28em] text-white/48">QR offline</p>
+                  </div>
+                )}
+                <div className="mt-5 grid w-full max-w-[420px] grid-cols-3 gap-2">
+                  <div className="rounded-[18px] border border-white/10 bg-black/28 px-3 py-3 text-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">Hour</p>
+                    <p className="mt-1 text-2xl font-black text-emerald-100">{liveStats.scansLastHour}</p>
+                  </div>
+                  <div className="rounded-[18px] border border-white/10 bg-black/28 px-3 py-3 text-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">Today</p>
+                    <p className="mt-1 text-2xl font-black text-cyan-100">{liveStats.uniqueVisitorsToday}</p>
+                  </div>
+                  <div className="rounded-[18px] border border-white/10 bg-black/28 px-3 py-3 text-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">Dares</p>
+                    <p className="mt-1 text-2xl font-black text-[#f8dd72]">{liveStats.activeDares}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-5 xl:grid-rows-[auto_1fr]">
+                <div className="rounded-[32px] border border-[#f8dd72]/20 bg-[linear-gradient(180deg,rgba(248,221,114,0.12),rgba(6,8,14,0.9))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-[#f8dd72]/24 bg-[#f8dd72]/12 text-[#f8dd72]">
+                      <Gift className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.25em] text-[#f8dd72]/64">Tonight unlock</p>
+                      <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-white">
+                        {savedActivePerk?.enabled ? savedActivePerk.title : 'No perk live yet'}
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-white/58">
+                        {savedActivePerk?.enabled
+                          ? savedActivePerk.description || `Check in at ${venue.name} to unlock this Venue Pass reward.`
+                          : 'Add a perk in the console to give guests a reason to scan.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(5,7,13,0.92))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.25em] text-white/38">Live presence</p>
+                      <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">Live check-ins</h3>
+                    </div>
+                    <Activity className="h-6 w-6 text-emerald-200" />
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {recentCheckIns.slice(0, 5).length > 0 ? (
+                      recentCheckIns.slice(0, 5).map((checkIn) => (
+                        <div
+                          key={`tv-${checkIn.id}`}
+                          className="flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/26 px-4 py-4"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-lg font-black text-white">{checkIn.tag ?? checkIn.walletAddress.slice(0, 10)}</p>
+                            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/36">
+                              {checkIn.perk?.redeemedAt ? 'Perk redeemed' : checkIn.perk ? `Perk code ${checkIn.perk.redemptionCode}` : checkIn.proofLevel}
+                            </p>
+                          </div>
+                          <p className="shrink-0 text-sm font-bold text-white/54">
+                            {new Date(checkIn.scannedAt).toLocaleTimeString([], {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[22px] border border-dashed border-white/12 bg-black/22 px-4 py-8 text-center text-sm font-bold text-white/44">
+                        Waiting for the first Venue Pass scan.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
