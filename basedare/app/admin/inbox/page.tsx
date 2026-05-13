@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BellRing, CheckCircle2, Inbox, Loader2, Lock, RefreshCw, RotateCcw, Send, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, BellRing, Check, CheckCircle2, CheckCheck, Inbox, Loader2, Lock, RefreshCw, RotateCcw, Send, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -22,6 +22,7 @@ type AdminSupportThread = {
   lastMessage: {
     body: string;
     fromAdmin: boolean;
+    deliveryState?: 'sent' | 'read' | null;
     createdAt: string;
   } | null;
 };
@@ -33,6 +34,8 @@ type AdminSupportMessage = {
   body: string;
   redacted: boolean;
   fromAdmin: boolean;
+  deliveryState?: 'sent' | 'read' | null;
+  readByRequester?: boolean;
   createdAt: string;
 };
 
@@ -54,6 +57,37 @@ function formatTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function AdminReceiptTicks({
+  state,
+  compact = false,
+}: {
+  state?: 'sent' | 'read' | null;
+  compact?: boolean;
+}) {
+  const read = state === 'read';
+  const Icon = read ? CheckCheck : Check;
+  const label = read ? 'Read' : 'Sent';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 align-middle ${
+        read
+          ? 'border-emerald-200/22 bg-emerald-300/10 text-emerald-100/78'
+          : 'border-white/10 bg-white/[0.04] text-white/32'
+      } ${compact ? 'mr-1.5 translate-y-[1px]' : ''}`}
+      title={read ? 'Read by the requester' : 'Sent, waiting for requester read'}
+      aria-label={read ? 'Read by the requester' : 'Sent, waiting for requester read'}
+    >
+      <Icon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+      {!compact ? (
+        <span className="text-[9px] font-black uppercase tracking-[0.14em]">
+          {label}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 export default function AdminInboxPage() {
@@ -394,6 +428,9 @@ export default function AdminInboxPage() {
                         </div>
                         {thread.lastMessage ? (
                           <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/45">
+                            {thread.lastMessage.fromAdmin ? (
+                              <AdminReceiptTicks state={thread.lastMessage.deliveryState} compact />
+                            ) : null}
                             {thread.lastMessage.fromAdmin ? 'Admin: ' : 'User: '}
                             {thread.lastMessage.body}
                           </p>
@@ -503,6 +540,9 @@ export default function AdminInboxPage() {
                           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/24">
                             {formatTime(entry.createdAt)}
                           </span>
+                          {entry.fromAdmin ? (
+                            <AdminReceiptTicks state={entry.deliveryState} />
+                          ) : null}
                           {entry.redacted ? (
                             <span className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-yellow-100/70">
                               Contact blocked

@@ -12,6 +12,8 @@ import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const ADMIN_INBOX_SENDER = 'basedare-admin';
+
 const SendMessageSchema = z.object({
   wallet: z.string().min(1),
   threadId: z.string().cuid().optional(),
@@ -26,6 +28,8 @@ const SendMessageSchema = z.object({
 });
 
 type InboxThreadRecord = Awaited<ReturnType<typeof fetchThreadsForWallet>>[number];
+
+type InboxDeliveryState = 'sent' | 'read';
 
 function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: string) {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
@@ -75,6 +79,38 @@ function walletLabel(wallet: string) {
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
+function getDeliveryPeers(input: {
+  senderWallet: string;
+  participantWallets: string[];
+  threadType: string;
+}) {
+  if (input.threadType === 'SUPPORT') {
+    return input.senderWallet === ADMIN_INBOX_SENDER
+      ? input.participantWallets.filter((wallet) => wallet !== ADMIN_INBOX_SENDER)
+      : [ADMIN_INBOX_SENDER];
+  }
+
+  return input.participantWallets.filter((wallet) => wallet !== input.senderWallet);
+}
+
+function getDeliveryState(input: {
+  senderWallet: string;
+  viewerWallet: string;
+  participantWallets: string[];
+  threadType: string;
+  readByWallets: string[];
+}): InboxDeliveryState | null {
+  if (input.senderWallet !== input.viewerWallet) return null;
+
+  const normalizedReaders = new Set(input.readByWallets.map((wallet) => wallet.toLowerCase()));
+  const deliveryPeers = getDeliveryPeers(input);
+  const readByEveryPeer =
+    deliveryPeers.length > 0 &&
+    deliveryPeers.every((wallet) => normalizedReaders.has(wallet.toLowerCase()));
+
+  return readByEveryPeer ? 'read' : 'sent';
+}
+
 async function authorizeInboxRequest(request: NextRequest, wallet: string, action: 'inbox:read' | 'inbox:write', resource: string) {
   return getAuthorizedWalletForRequest(request, {
     walletAddress: wallet,
@@ -117,6 +153,7 @@ async function fetchThreadsForWallet(wallet: string) {
           senderWallet: true,
           body: true,
           redacted: true,
+          readByWallets: true,
           createdAt: true,
         },
       },
@@ -181,6 +218,13 @@ function mapThread(thread: InboxThreadRecord, wallet: string, unreadCount: numbe
           body: lastMessage.body,
           redacted: lastMessage.redacted,
           mine: lastMessage.senderWallet === wallet,
+          deliveryState: getDeliveryState({
+            senderWallet: lastMessage.senderWallet,
+            viewerWallet: wallet,
+            participantWallets: thread.participantWallets,
+            threadType: thread.type,
+            readByWallets: lastMessage.readByWallets,
+          }),
           createdAt: lastMessage.createdAt.toISOString(),
         }
       : null,
@@ -339,10 +383,13 @@ async function resolveRecipient(input: {
   };
 }
 
-async function fetchActiveMessages(threadId: string, wallet: string) {
+async function fetchActiveMessages(
+  thread: { id: string; type: string; participantWallets: string[] },
+  wallet: string
+) {
   const messages = await prisma.inboxMessage.findMany({
     where: {
-      threadId,
+      threadId: thread.id,
     },
     orderBy: {
       createdAt: 'asc',
@@ -372,14 +419,30 @@ async function fetchActiveMessages(threadId: string, wallet: string) {
     )
   );
 
-  return messages.map((message) => ({
-    id: message.id,
-    senderWallet: message.senderWallet,
-    body: message.body,
-    redacted: message.redacted,
-    mine: message.senderWallet === wallet,
-    createdAt: message.createdAt.toISOString(),
-  }));
+  return messages.map((message) => {
+    const readByWallets =
+      message.senderWallet !== wallet && !message.readByWallets.includes(wallet)
+        ? [...message.readByWallets, wallet]
+        : message.readByWallets;
+    const deliveryState = getDeliveryState({
+      senderWallet: message.senderWallet,
+      viewerWallet: wallet,
+      participantWallets: thread.participantWallets,
+      threadType: thread.type,
+      readByWallets,
+    });
+
+    return {
+      id: message.id,
+      senderWallet: message.senderWallet,
+      body: message.body,
+      redacted: message.redacted,
+      mine: message.senderWallet === wallet,
+      deliveryState,
+      readByCounterpart: deliveryState === 'read',
+      createdAt: message.createdAt.toISOString(),
+    };
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -424,18 +487,18 @@ export async function GET(request: NextRequest) {
               messages: {
                 orderBy: { createdAt: 'desc' },
                 take: 1,
-                select: { id: true, senderWallet: true, body: true, redacted: true, createdAt: true },
+                select: { id: true, senderWallet: true, body: true, redacted: true, readByWallets: true, createdAt: true },
               },
             },
           })
         : threads[0] ?? null;
+    const messages = selectedThread ? await fetchActiveMessages(selectedThread, wallet) : [];
     const unreadCounts = await buildUnreadCountMap(wallet, selectedThread && !threadIds.includes(selectedThread.id) ? [...threadIds, selectedThread.id] : threadIds);
     const mappedThreads = threads.map((thread) => mapThread(thread, wallet, unreadCounts.get(thread.id) ?? 0));
     const activeThread =
       selectedThread
         ? mapThread(selectedThread, wallet, unreadCounts.get(selectedThread.id) ?? 0)
         : null;
-    const messages = selectedThread ? await fetchActiveMessages(selectedThread.id, wallet) : [];
 
     return NextResponse.json({
       success: true,
@@ -668,6 +731,8 @@ export async function POST(request: NextRequest) {
           body: message.body,
           redacted: message.redacted,
           mine: true,
+          deliveryState: 'sent' satisfies InboxDeliveryState,
+          readByCounterpart: false,
           createdAt: message.createdAt.toISOString(),
         },
       },

@@ -23,6 +23,7 @@ const AdminInboxStatusSchema = z.object({
 });
 
 type SupportThreadRecord = Awaited<ReturnType<typeof fetchSupportThreads>>[number];
+type AdminInboxDeliveryState = 'sent' | 'read';
 
 function asMetadataRecord(metadata: Prisma.JsonValue | null | undefined) {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
@@ -38,6 +39,21 @@ function readMetadataString(metadata: Prisma.JsonValue | null | undefined, key: 
 function walletLabel(wallet: string) {
   if (wallet === ADMIN_INBOX_SENDER) return 'BaseDare Admin';
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
+function getAdminDeliveryState(input: {
+  senderWallet: string;
+  participantWallets: string[];
+  readByWallets: string[];
+}): AdminInboxDeliveryState | null {
+  if (input.senderWallet !== ADMIN_INBOX_SENDER) return null;
+
+  const normalizedReaders = new Set(input.readByWallets.map((wallet) => wallet.toLowerCase()));
+  const readByEveryRequester =
+    input.participantWallets.length > 0 &&
+    input.participantWallets.every((wallet) => normalizedReaders.has(wallet.toLowerCase()));
+
+  return readByEveryRequester ? 'read' : 'sent';
 }
 
 function sanitizeMessageBody(value: string) {
@@ -90,6 +106,7 @@ async function fetchSupportThreads() {
           senderWallet: true,
           body: true,
           redacted: true,
+          readByWallets: true,
           createdAt: true,
         },
       },
@@ -147,16 +164,21 @@ function mapSupportThread(thread: SupportThreadRecord, unreadCount: number) {
           body: lastMessage.body,
           redacted: lastMessage.redacted,
           fromAdmin: lastMessage.senderWallet === ADMIN_INBOX_SENDER,
+          deliveryState: getAdminDeliveryState({
+            senderWallet: lastMessage.senderWallet,
+            participantWallets: thread.participantWallets,
+            readByWallets: lastMessage.readByWallets,
+          }),
           createdAt: lastMessage.createdAt.toISOString(),
         }
       : null,
   };
 }
 
-async function fetchMessages(threadId: string) {
+async function fetchMessages(thread: { id: string; participantWallets: string[] }) {
   const messages = await prisma.inboxMessage.findMany({
     where: {
-      threadId,
+      threadId: thread.id,
     },
     orderBy: {
       createdAt: 'asc',
@@ -191,15 +213,30 @@ async function fetchMessages(threadId: string) {
     )
   );
 
-  return messages.map((message) => ({
-    id: message.id,
-    senderWallet: message.senderWallet,
-    senderLabel: walletLabel(message.senderWallet),
-    body: message.body,
-    redacted: message.redacted,
-    fromAdmin: message.senderWallet === ADMIN_INBOX_SENDER,
-    createdAt: message.createdAt.toISOString(),
-  }));
+  return messages.map((message) => {
+    const readByWallets =
+      message.senderWallet !== ADMIN_INBOX_SENDER &&
+      !message.readByWallets.includes(ADMIN_INBOX_SENDER)
+        ? [...message.readByWallets, ADMIN_INBOX_SENDER]
+        : message.readByWallets;
+    const deliveryState = getAdminDeliveryState({
+      senderWallet: message.senderWallet,
+      participantWallets: thread.participantWallets,
+      readByWallets,
+    });
+
+    return {
+      id: message.id,
+      senderWallet: message.senderWallet,
+      senderLabel: walletLabel(message.senderWallet),
+      body: message.body,
+      redacted: message.redacted,
+      fromAdmin: message.senderWallet === ADMIN_INBOX_SENDER,
+      deliveryState,
+      readByRequester: deliveryState === 'read',
+      createdAt: message.createdAt.toISOString(),
+    };
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -230,17 +267,17 @@ export async function GET(request: NextRequest) {
             messages: {
               orderBy: { createdAt: 'desc' },
               take: 1,
-              select: { id: true, senderWallet: true, body: true, redacted: true, createdAt: true },
+              select: { id: true, senderWallet: true, body: true, redacted: true, readByWallets: true, createdAt: true },
             },
           },
         })
       : threads[0] ?? null;
+    const messages = selectedThread ? await fetchMessages(selectedThread) : [];
     const unreadCounts = await buildUnreadCountMap(
       selectedThread && !threadIds.includes(selectedThread.id) ? [...threadIds, selectedThread.id] : threadIds
     );
     const mappedThreads = threads.map((thread) => mapSupportThread(thread, unreadCounts.get(thread.id) ?? 0));
     const activeThread = selectedThread ? mapSupportThread(selectedThread, unreadCounts.get(selectedThread.id) ?? 0) : null;
-    const messages = selectedThread ? await fetchMessages(selectedThread.id) : [];
 
     return NextResponse.json({
       success: true,
@@ -458,6 +495,8 @@ export async function POST(request: NextRequest) {
           body: message.body,
           redacted: message.redacted,
           fromAdmin: true,
+          deliveryState: 'sent' satisfies AdminInboxDeliveryState,
+          readByRequester: false,
           createdAt: message.createdAt.toISOString(),
         },
       },

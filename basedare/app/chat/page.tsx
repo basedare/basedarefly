@@ -8,7 +8,9 @@ import { useSignMessage } from 'wagmi';
 import {
   ArrowRight,
   BellRing,
+  Check,
   CheckCircle2,
+  CheckCheck,
   Inbox,
   Loader2,
   Lock,
@@ -37,6 +39,7 @@ type InboxThread = {
   lastMessage: {
     body: string;
     mine: boolean;
+    deliveryState?: 'sent' | 'read' | null;
     createdAt: string;
   } | null;
   context: {
@@ -53,6 +56,8 @@ type InboxMessage = {
   body: string;
   redacted: boolean;
   mine: boolean;
+  deliveryState?: 'sent' | 'read' | null;
+  readByCounterpart?: boolean;
   createdAt: string;
 };
 
@@ -93,6 +98,37 @@ function threadCounterpartLabel(thread: InboxThread) {
   if (thread.type === 'SUPPORT') return 'BaseDare Support';
   const labels = thread.counterpartWallets.map(shortWallet).filter(Boolean);
   return labels.length ? labels.join(', ') : 'BaseDare thread';
+}
+
+function ReceiptTicks({
+  state,
+  compact = false,
+}: {
+  state?: 'sent' | 'read' | null;
+  compact?: boolean;
+}) {
+  const read = state === 'read';
+  const Icon = read ? CheckCheck : Check;
+  const label = read ? 'Read' : 'Sent';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 align-middle ${
+        read
+          ? 'border-cyan-200/22 bg-cyan-300/10 text-cyan-100/78'
+          : 'border-white/10 bg-white/[0.04] text-white/32'
+      } ${compact ? 'mr-1.5 translate-y-[1px]' : ''}`}
+      title={read ? 'Read by the other participant' : 'Sent, waiting to be read'}
+      aria-label={read ? 'Read by the other participant' : 'Sent, waiting to be read'}
+    >
+      <Icon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+      {!compact ? (
+        <span className="text-[9px] font-black uppercase tracking-[0.14em]">
+          {label}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function initialTarget(searchParams: URLSearchParams) {
@@ -492,6 +528,9 @@ function ChatInbox() {
                         </div>
                         {thread.lastMessage ? (
                           <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/45">
+                            {thread.lastMessage.mine ? (
+                              <ReceiptTicks state={thread.lastMessage.deliveryState} compact />
+                            ) : null}
                             {thread.lastMessage.mine ? 'You: ' : ''}
                             {thread.lastMessage.body}
                           </p>
@@ -595,6 +634,9 @@ function ChatInbox() {
                           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/24">
                             {formatTime(entry.createdAt)}
                           </span>
+                          {entry.mine ? (
+                            <ReceiptTicks state={entry.deliveryState} />
+                          ) : null}
                           {entry.redacted ? (
                             <span className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-yellow-100/70">
                               Contact blocked
