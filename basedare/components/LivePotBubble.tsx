@@ -123,29 +123,32 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     let isActive = true;
     const controller = new AbortController();
 
-    fetch('/api/live-pot', {
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (isActive && payload?.success && payload?.data?.creatorPool) {
-          setPool(payload.data.creatorPool);
-        }
+    const timeoutId = window.setTimeout(() => {
+      fetch('/api/live-pot', {
+        signal: controller.signal,
+        cache: 'no-store',
       })
-      .catch((error: unknown) => {
-        if ((error as { name?: string }).name !== 'AbortError') {
-          console.warn('[CreatorPool] Failed to load', error);
-        }
-      })
-      .finally(() => {
-        if (isActive) {
-          setPoolLoadSettled(true);
-        }
-      });
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (isActive && payload?.success && payload?.data?.creatorPool) {
+            setPool(payload.data.creatorPool);
+          }
+        })
+        .catch((error: unknown) => {
+          if ((error as { name?: string }).name !== 'AbortError') {
+            console.warn('[CreatorPool] Failed to load', error);
+          }
+        })
+        .finally(() => {
+          if (isActive) {
+            setPoolLoadSettled(true);
+          }
+        });
+    }, 1600);
 
     return () => {
       isActive = false;
+      window.clearTimeout(timeoutId);
       controller.abort();
     };
   }, [pathname]);

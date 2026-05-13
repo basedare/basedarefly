@@ -122,18 +122,30 @@ function HomeContent() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchDares = async () => {
       try {
         const response = await fetch('/api/dares');
-        if (response.ok) {
+        if (response.ok && !cancelled) {
           const data = await response.json();
           setDares(data);
         }
       } catch (error) {
-        console.error('Failed to fetch dares:', error);
+        if (!cancelled) {
+          console.error('Failed to fetch dares:', error);
+        }
       }
     };
-    fetchDares();
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchDares();
+    }, 1200);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   return (

@@ -123,35 +123,28 @@ export default function Navbar() {
                 >
                   <MessageCircle className="h-4 w-4" />
                 </Link>
-                <NotificationBell />
-                <div className="w-px h-5 bg-white/10 mx-2" />
-                <IdentityButton />
               </div>
             </GlassSurface>
           </div>
 
           {/* 3. RIGHT SIDE ACTIONS */}
-          <div className="flex items-center gap-2 md:gap-4 z-50">
-
-            {/* Mobile Connect Button & Bell - Visible on mobile, hidden on desktop */}
-            <div className="md:hidden flex items-center gap-2">
-              <Link
-                href="/chat"
-                prefetch={NAV_LINK_PREFETCH}
-                aria-label="Open messenger"
-                title="Messenger"
-                className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
-                  pathname?.startsWith('/chat')
-                    ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
-                    : 'border-white/10 bg-black/50 text-white/75 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1]'
-                }`}
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Link>
-              <NotificationBell />
-              <div className="w-[108px] min-w-0 sm:w-[140px]">
-                <IdentityButton />
-              </div>
+          <div className="flex items-center gap-2 md:gap-3 z-50">
+            <Link
+              href="/chat"
+              prefetch={NAV_LINK_PREFETCH}
+              aria-label="Open messenger"
+              title="Messenger"
+              className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors md:hidden ${
+                pathname?.startsWith('/chat')
+                  ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
+                  : 'border-white/10 bg-black/50 text-white/75 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1]'
+              }`}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Link>
+            <NotificationBell />
+            <div className="w-[108px] min-w-0 sm:w-[140px] md:w-auto">
+              <IdentityButton />
             </div>
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
