@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { getPushDeliveryConfig } from '@/lib/web-push';
+import { getPushClientConfig } from '@/lib/web-push';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type PushKeys = {
@@ -89,6 +89,23 @@ function sanitizeNearbyRadius(input: unknown): number | undefined {
   return radiusKm;
 }
 
+function buildPushConfigResponse() {
+  const config = getPushClientConfig();
+
+  return {
+    configured: config.configured,
+    clientConfigured: config.clientConfigured,
+    deliveryConfigured: config.deliveryConfigured,
+    config: {
+      configured: config.configured,
+      publicKeyConfigured: config.publicKeyConfigured,
+      privateKeyConfigured: config.privateKeyConfigured,
+      publicKeySource: config.publicKeySource,
+      subject: config.subject,
+    },
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const wallet = request.nextUrl.searchParams.get('wallet');
@@ -130,8 +147,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const deliveryConfig = getPushDeliveryConfig();
-    const clientConfigured = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim());
+    const pushConfig = buildPushConfigResponse();
 
     return NextResponse.json({
       success: true,
@@ -148,10 +164,7 @@ export async function GET(request: NextRequest) {
             }
           : null,
       updatedAt: subscription?.updatedAt ?? null,
-      configured: clientConfigured && deliveryConfig.configured,
-      clientConfigured,
-      deliveryConfigured: deliveryConfig.configured,
-      config: deliveryConfig,
+      ...pushConfig,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -219,15 +232,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const deliveryConfig = getPushDeliveryConfig();
-    const clientConfigured = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim());
+    const pushConfig = buildPushConfigResponse();
 
     return NextResponse.json({
       success: true,
-      configured: clientConfigured && deliveryConfig.configured,
-      clientConfigured,
-      deliveryConfigured: deliveryConfig.configured,
-      config: deliveryConfig,
+      ...pushConfig,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

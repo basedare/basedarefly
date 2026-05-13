@@ -37,7 +37,9 @@ export default function PushActivationCard({ className = '', compact = false }: 
     address,
     permission,
     pushBusy,
+    pushClientConfigured,
     pushConfigured,
+    pushDeliveryConfigured,
     pushEnabled,
     pushMessage,
     pushSupported,
@@ -62,11 +64,19 @@ export default function PushActivationCard({ className = '', compact = false }: 
     setDismissed(true);
   };
 
-  if (!walletKey || !pushSupported || !vapidPublicKey || pushEnabled || dismissed) {
+  if (!walletKey || !pushSupported || pushEnabled || dismissed) {
     return null;
   }
 
   const permissionBlocked = permission === 'denied';
+  const configBlocked = !vapidPublicKey || !pushClientConfigured || !pushDeliveryConfigured || !pushConfigured;
+  const setupMessage = !vapidPublicKey || !pushClientConfigured
+    ? 'Push browser key is missing in server configuration.'
+    : !pushDeliveryConfigured
+      ? 'Push delivery key is missing in server configuration.'
+      : !pushConfigured
+        ? 'Push delivery keys need server configuration before alerts can send.'
+        : null;
 
   return (
     <section
@@ -111,20 +121,20 @@ export default function PushActivationCard({ className = '', compact = false }: 
               <p className="mt-2 text-xs font-semibold text-yellow-100/80">
                 Browser notifications are blocked. Re-enable them in site settings to receive alerts.
               </p>
-            ) : !pushConfigured ? (
+            ) : setupMessage ? (
               <p className="mt-2 text-xs font-semibold text-yellow-100/80">
-                Push delivery keys need server configuration before alerts can send.
+                {setupMessage}
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="grid w-full shrink-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-[auto_auto] sm:items-center">
           <button
             type="button"
             onClick={() => void syncPushSubscription()}
-            disabled={pushBusy || permissionBlocked || !pushConfigured}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-200/28 bg-[linear-gradient(180deg,rgba(103,232,249,0.22)_0%,rgba(8,145,178,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={pushBusy || permissionBlocked || configBlocked}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full border border-cyan-200/28 bg-[linear-gradient(180deg,rgba(103,232,249,0.22)_0%,rgba(8,145,178,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:tracking-[0.18em]"
           >
             {pushBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
             Arm alerts
@@ -132,7 +142,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
           <button
             type="button"
             onClick={dismiss}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] px-4 text-xs font-bold uppercase tracking-[0.18em] text-white/55 transition hover:bg-white/[0.07] hover:text-white/75"
+            className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full border border-white/10 bg-white/[0.035] px-4 text-xs font-bold uppercase tracking-[0.14em] text-white/55 transition hover:bg-white/[0.07] hover:text-white/75 sm:w-auto sm:tracking-[0.18em]"
           >
             Not now
           </button>

@@ -14,6 +14,15 @@ type PushLocationContext = {
   radiusKm?: number;
 };
 
+type PushRuntimeConfig = {
+  success?: boolean;
+  publicKey?: string | null;
+  configured?: boolean;
+  clientConfigured?: boolean;
+  deliveryConfigured?: boolean;
+  publicKeySource?: string | null;
+};
+
 export const PUSH_TOPIC_LABELS: Array<{ id: PushTopic; label: string }> = [
   { id: 'wallet', label: 'Wallet' },
   { id: 'nearby', label: 'Nearby' },
@@ -145,8 +154,11 @@ export function useWalletPushSubscription() {
   const { address, sessionWallet } = useActiveWallet();
   const { data: session } = useSession();
   const { signMessageAsync } = useSignMessage();
+  const bundledVapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? '';
   const [pushSupported, setPushSupported] = useState(false);
-  const [pushConfigured, setPushConfigured] = useState(Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY));
+  const [pushConfigured, setPushConfigured] = useState(Boolean(bundledVapidPublicKey));
+  const [pushClientConfigured, setPushClientConfigured] = useState(Boolean(bundledVapidPublicKey));
+  const [pushDeliveryConfigured, setPushDeliveryConfigured] = useState(Boolean(bundledVapidPublicKey));
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushTesting, setPushTesting] = useState(false);
@@ -156,8 +168,11 @@ export function useWalletPushSubscription() {
   const [pushTopics, setPushTopics] = useState<PushTopic[]>(['wallet', 'nearby']);
   const [nearbyRadiusKm, setNearbyRadiusKm] = useState<number>(5);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported' | 'unknown'>('unknown');
+  const [vapidPublicKey, setVapidPublicKey] = useState(bundledVapidPublicKey);
+  const [pushPublicKeySource, setPushPublicKeySource] = useState<string | null>(
+    bundledVapidPublicKey ? 'NEXT_PUBLIC_VAPID_PUBLIC_KEY' : null
+  );
 
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
 
   const getWalletAuthHeaders = useCallback(
@@ -177,12 +192,57 @@ export function useWalletPushSubscription() {
     [address, sessionToken, sessionWallet, signMessageAsync]
   );
 
+  const refreshPushConfig = useCallback(async () => {
+    const fallbackKey = bundledVapidPublicKey;
+
+    try {
+      const res = await fetch('/api/push/config', { cache: 'no-store' });
+      const data = (await parseJsonResponse(res)) as PushRuntimeConfig | null;
+
+      if (res.ok && data?.success) {
+        const nextPublicKey = typeof data.publicKey === 'string' ? data.publicKey.trim() : fallbackKey;
+        const nextClientConfigured = Boolean(data.clientConfigured ?? nextPublicKey);
+        const nextDeliveryConfigured = Boolean(data.deliveryConfigured ?? data.configured);
+        const nextConfigured = Boolean(data.configured ?? (nextClientConfigured && nextDeliveryConfigured));
+
+        setVapidPublicKey(nextPublicKey);
+        setPushClientConfigured(nextClientConfigured);
+        setPushDeliveryConfigured(nextDeliveryConfigured);
+        setPushConfigured(nextConfigured);
+        setPushPublicKeySource(data.publicKeySource ?? (nextPublicKey ? 'VAPID_PUBLIC_KEY' : null));
+
+        return {
+          publicKey: nextPublicKey,
+          configured: nextConfigured,
+          clientConfigured: nextClientConfigured,
+          deliveryConfigured: nextDeliveryConfigured,
+        };
+      }
+    } catch (err) {
+      console.error('Failed to read push config', err);
+    }
+
+    setVapidPublicKey(fallbackKey);
+    setPushClientConfigured(Boolean(fallbackKey));
+    setPushDeliveryConfigured(Boolean(fallbackKey));
+    setPushConfigured(Boolean(fallbackKey));
+    setPushPublicKeySource(fallbackKey ? 'NEXT_PUBLIC_VAPID_PUBLIC_KEY' : null);
+
+    return {
+      publicKey: fallbackKey,
+      configured: Boolean(fallbackKey),
+      clientConfigured: Boolean(fallbackKey),
+      deliveryConfigured: Boolean(fallbackKey),
+    };
+  }, [bundledVapidPublicKey]);
+
   const refreshPushState = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setPushSupported(supported);
     setPermission(getNotificationPermission());
+    const runtimeConfig = supported ? await refreshPushConfig() : null;
 
     if (!supported || !address) {
       setPushEnabled(false);
@@ -202,7 +262,11 @@ export function useWalletPushSubscription() {
       const data = await parseJsonResponse(res);
 
       if (data?.success) {
-        setPushConfigured(Boolean(data.configured ?? vapidPublicKey));
+        const nextClientConfigured = Boolean(data.clientConfigured ?? runtimeConfig?.clientConfigured);
+        const nextDeliveryConfigured = Boolean(data.deliveryConfigured ?? runtimeConfig?.deliveryConfigured);
+        setPushClientConfigured(nextClientConfigured);
+        setPushDeliveryConfigured(nextDeliveryConfigured);
+        setPushConfigured(Boolean(data.configured ?? (nextClientConfigured && nextDeliveryConfigured)));
         setPushEnabled(Boolean(subscription && data.subscribed));
         setPushEndpoint(subscription?.endpoint ?? null);
         setPushTopics(Array.isArray(data.topics) ? data.topics : ['wallet', 'nearby']);
@@ -210,13 +274,15 @@ export function useWalletPushSubscription() {
         return;
       }
 
-      setPushConfigured(Boolean(vapidPublicKey));
+      setPushClientConfigured(Boolean(runtimeConfig?.clientConfigured));
+      setPushDeliveryConfigured(Boolean(runtimeConfig?.deliveryConfigured));
+      setPushConfigured(Boolean(runtimeConfig?.configured));
       setPushEnabled(false);
       setPushEndpoint(subscription?.endpoint ?? null);
     } catch (err) {
       console.error('Failed to read push state', err);
     }
-  }, [address, getWalletAuthHeaders, vapidPublicKey]);
+  }, [address, getWalletAuthHeaders, refreshPushConfig]);
 
   useEffect(() => {
     void refreshPushState();
@@ -234,7 +300,7 @@ export function useWalletPushSubscription() {
   }, [refreshPushState]);
 
   const syncPushSubscription = useCallback(async () => {
-    if (!address || !pushSupported || !vapidPublicKey) {
+    if (!address || !pushSupported) {
       return;
     }
 
@@ -242,6 +308,19 @@ export function useWalletPushSubscription() {
     setPushMessage(null);
 
     try {
+      const runtimeConfig = await refreshPushConfig();
+      const activeVapidPublicKey = runtimeConfig.publicKey || vapidPublicKey;
+
+      if (!activeVapidPublicKey) {
+        setPushMessage('Push browser key is not configured yet.');
+        return;
+      }
+
+      if (!runtimeConfig.deliveryConfigured) {
+        setPushMessage('Push server delivery key is not configured yet.');
+        return;
+      }
+
       const nextPermission = await window.Notification.requestPermission();
       setPermission(nextPermission);
 
@@ -262,7 +341,7 @@ export function useWalletPushSubscription() {
         try {
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            applicationServerKey: urlBase64ToUint8Array(activeVapidPublicKey),
           });
         } catch (error) {
           const currentSubscription = await registration.pushManager.getSubscription().catch(() => null);
@@ -273,7 +352,7 @@ export function useWalletPushSubscription() {
           await currentSubscription.unsubscribe().catch(() => {});
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            applicationServerKey: urlBase64ToUint8Array(activeVapidPublicKey),
           });
         }
       }
@@ -299,7 +378,11 @@ export function useWalletPushSubscription() {
         throw new Error(data?.error || 'Failed to save subscription');
       }
 
-      setPushConfigured(Boolean(data.configured ?? true));
+      const nextClientConfigured = Boolean(data.clientConfigured ?? true);
+      const nextDeliveryConfigured = Boolean(data.deliveryConfigured ?? true);
+      setPushClientConfigured(nextClientConfigured);
+      setPushDeliveryConfigured(nextDeliveryConfigured);
+      setPushConfigured(Boolean(data.configured ?? (nextClientConfigured && nextDeliveryConfigured)));
       setPushEnabled(true);
       setPushEndpoint(subscription.endpoint);
       setPushMessage(data.configured === false
@@ -312,7 +395,7 @@ export function useWalletPushSubscription() {
     } finally {
       setPushBusy(false);
     }
-  }, [address, getWalletAuthHeaders, nearbyRadiusKm, pushEnabled, pushSupported, pushTopics, vapidPublicKey]);
+  }, [address, getWalletAuthHeaders, nearbyRadiusKm, pushEnabled, pushSupported, pushTopics, refreshPushConfig, vapidPublicKey]);
 
   const disablePushSubscription = useCallback(async () => {
     if (!address || !pushSupported) {
@@ -517,7 +600,9 @@ export function useWalletPushSubscription() {
     nearbyRadiusKm,
     permission,
     pushBusy,
+    pushClientConfigured,
     pushConfigured,
+    pushDeliveryConfigured,
     pushEnabled,
     pushEndpoint,
     pushLocationBusy,
@@ -525,6 +610,7 @@ export function useWalletPushSubscription() {
     pushSupported,
     pushTesting,
     pushTopics,
+    pushPublicKeySource,
     vapidPublicKey,
     disablePushSubscription,
     refreshPushState,

@@ -1169,7 +1169,7 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     nextAction:
       hasVapidPublicKey && hasVapidPrivateKey
         ? undefined
-        : 'Set NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY before relying on production push delivery.',
+        : 'Set VAPID_PUBLIC_KEY (or NEXT_PUBLIC_VAPID_PUBLIC_KEY) and VAPID_PRIVATE_KEY before relying on production push delivery.',
   });
 
   let settlement: MoneyRailsSettlementSnapshot | null = null;

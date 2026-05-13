@@ -99,7 +99,9 @@ export function NotificationBell() {
         disablePushSubscription,
         nearbyRadiusKm,
         pushBusy,
+        pushClientConfigured,
         pushConfigured,
+        pushDeliveryConfigured,
         pushEnabled,
         pushLocationBusy,
         pushMessage,
@@ -113,6 +115,14 @@ export function NotificationBell() {
         updateNearbyRadius,
         vapidPublicKey,
     } = useWalletPushSubscription();
+    const pushCanEnable = Boolean(vapidPublicKey && pushClientConfigured && pushDeliveryConfigured && pushConfigured);
+    const pushStatusText = !vapidPublicKey || !pushClientConfigured
+        ? 'Push browser key is not configured yet.'
+        : !pushDeliveryConfigured
+            ? 'Push server delivery key is not configured yet.'
+            : pushEnabled
+                ? 'This device will get BaseDare alerts.'
+                : 'Enable browser push for nearby and wallet alerts.';
 
     const formatNotificationTime = (value: string) =>
         new Date(value).toLocaleDateString([], {
@@ -505,28 +515,20 @@ export function NotificationBell() {
                                                 Mobile Push
                                             </div>
                                             <p className="mt-1 text-xs text-gray-400">
-                                                {vapidPublicKey
-                                                    ? (
-                                                        !pushConfigured
-                                                            ? 'Delivery keys need server configuration before push can send.'
-                                                            : pushEnabled
-                                                                ? 'This device will get BaseDare alerts.'
-                                                                : 'Enable browser push for nearby and wallet alerts.'
-                                                    )
-                                                    : 'Push delivery keys are not configured yet.'}
+                                                {pushStatusText}
                                             </p>
                                         </div>
                                         {vapidPublicKey ? (
                                             <button
                                                 type="button"
                                                 onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
-                                                disabled={pushBusy || (!pushEnabled && !pushConfigured)}
-                                                className="min-h-9 shrink-0 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50"
+                                                disabled={pushBusy || (!pushEnabled && !pushCanEnable)}
+                                                className="min-h-9 w-full shrink-0 whitespace-nowrap rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:min-w-[104px] sm:tracking-[0.18em]"
                                             >
                                                 {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
                                             </button>
                                         ) : (
-                                            <div className="min-h-9 shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                                            <div className="min-h-9 w-full shrink-0 whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/45 sm:w-auto sm:min-w-[104px] sm:tracking-[0.18em]">
                                                 Soon
                                             </div>
                                         )}

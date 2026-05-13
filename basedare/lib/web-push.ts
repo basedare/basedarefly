@@ -50,6 +50,12 @@ type PushDeliveryConfig = {
   subject: string;
 };
 
+export type PushClientConfig = PushDeliveryConfig & {
+  publicKey: string | null;
+  clientConfigured: boolean;
+  deliveryConfigured: boolean;
+};
+
 type RawPushDeliveryConfig = PushDeliveryConfig & {
   publicKey: string;
   privateKey: string;
@@ -93,6 +99,23 @@ export function getPushDeliveryConfig(): PushDeliveryConfig {
     privateKeyConfigured: Boolean(config.privateKey),
     publicKeySource: config.publicKeySource,
     subject: config.subject,
+  };
+}
+
+export function getPushClientConfig(): PushClientConfig {
+  const config = readPushDeliveryConfig();
+  const publicKeyConfigured = Boolean(config.publicKey);
+  const privateKeyConfigured = Boolean(config.privateKey);
+
+  return {
+    configured: publicKeyConfigured && privateKeyConfigured,
+    publicKeyConfigured,
+    privateKeyConfigured,
+    publicKeySource: config.publicKeySource,
+    subject: config.subject,
+    publicKey: config.publicKey || null,
+    clientConfigured: publicKeyConfigured,
+    deliveryConfigured: privateKeyConfigured,
   };
 }
 
