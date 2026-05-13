@@ -46,7 +46,6 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import CosmicButton from '@/components/ui/CosmicButton';
-import SquircleLink from '@/components/ui/SquircleLink';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
@@ -6231,10 +6230,10 @@ export default function RealWorldMap() {
     </>
   );
   const selectedPlaceActionRailGridClass = selectedPlace?.slug
-    ? 'grid-cols-3'
+    ? 'venue-action-rail--three'
     : isMobileViewport
-      ? 'grid-cols-2'
-      : 'grid-cols-2';
+      ? 'venue-action-rail--two'
+      : 'venue-action-rail--two';
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
   const selectedCheckInStatusLabel =
     selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
@@ -6250,7 +6249,7 @@ export default function RealWorldMap() {
     <div
       className={`venue-action-rail venue-action-rail--primary ${
         showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
-      } mt-3 grid gap-1.5 ${selectedPlaceActionRailGridClass}`}
+      } mt-3 grid ${selectedPlaceActionRailGridClass}`}
     >
       <TagPlaceButton
         placeId={selectedPlace.placeId}
@@ -6305,9 +6304,9 @@ export default function RealWorldMap() {
               : 'The proof is waiting for review. If it clears, the venue updates automatically.',
           });
         }}
-        buttonVariant="jelly"
+        buttonVariant="default"
         buttonLabel="Take proof"
-        buttonClassName="map-jelly-action"
+        buttonClassName="map-primary-action-button map-primary-action-button--proof"
       />
 
       <CreatePlaceChallengeButton
@@ -6368,26 +6367,22 @@ export default function RealWorldMap() {
               : 'The challenge is now live here. Once it clears, the venue updates automatically.',
           });
         }}
-        buttonVariant="jelly"
-        buttonClassName="map-jelly-action"
+        buttonVariant="default"
+        buttonClassName="map-primary-action-button map-primary-action-button--fund"
       />
 
       {selectedPlace.slug ? (
-        <SquircleLink
+        <Link
           href={`/venues/${selectedPlace.slug}${
             isCreatorSource
               ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
               : ''
           }`}
-          tone="purple"
-          label="Open venue"
-          fullWidth
-          height={44}
-          className="map-jelly-action"
-          labelClassName="text-[0.62rem] tracking-[0.06em] sm:text-[0.76rem]"
+          className="map-primary-action-button map-primary-action-button--venue"
+          aria-label={`Open venue page for ${selectedPlace.name}`}
         >
-          <span className="map-jelly-action-label">Open venue</span>
-        </SquircleLink>
+          <span>Open venue</span>
+        </Link>
       ) : null}
     </div>
   ) : null;
@@ -7749,7 +7744,6 @@ export default function RealWorldMap() {
                           {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
                         </span>
                       </div>
-                      {selectedPlaceActionRail}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {isImmersiveMobile ? (
@@ -7780,6 +7774,7 @@ export default function RealWorldMap() {
                       </button>
                     </div>
                   </div>
+                  {selectedPlaceActionRail}
                   </div>
 
                   <div
@@ -8785,6 +8780,38 @@ export default function RealWorldMap() {
           background: rgba(245, 197, 24, 0.32);
         }
 
+        .venue-action-rail--primary {
+          width: 100%;
+          gap: clamp(0.28rem, 1.25vw, 0.5rem);
+        }
+
+        .venue-action-rail :global(.map-jelly-action) {
+          width: 100% !important;
+          min-width: 0;
+          justify-self: stretch;
+          transform: translateZ(0);
+        }
+
+        .venue-action-rail :global(.map-jelly-action > div) {
+          padding-right: 0.38rem;
+          padding-left: 0.38rem;
+        }
+
+        .venue-action-rail :global(.map-jelly-action-label) {
+          min-width: 0;
+          max-width: 100%;
+          gap: 0.22rem;
+          overflow: visible;
+          font-size: clamp(0.52rem, 2.25vw, 0.68rem);
+          letter-spacing: 0.065em;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .venue-action-rail :global(.map-jelly-action-label > svg) {
+          display: none !important;
+        }
+
         @media (max-width: 767px) {
           .selected-place-panel-wrap {
             bottom: calc(0.75rem + env(safe-area-inset-bottom));
@@ -8817,6 +8844,7 @@ export default function RealWorldMap() {
 
           .map-signal-rail {
             align-items: flex-start;
+            flex-wrap: nowrap;
             gap: 0.4rem;
           }
 
@@ -8828,11 +8856,15 @@ export default function RealWorldMap() {
 
           .map-signal-rail-scroll {
             margin-right: -1rem;
+            flex-wrap: nowrap;
+            overflow-x: auto;
             padding-right: 1rem;
           }
 
           .map-signal-pill {
-            min-width: 6.35rem;
+            min-width: 7.4rem;
+            min-height: 2.85rem;
+            flex-basis: 7.4rem;
             padding: 0.42rem 0.62rem 0.42rem 0.42rem;
           }
 
@@ -8840,6 +8872,16 @@ export default function RealWorldMap() {
             min-width: 1.85rem;
             height: 1.85rem;
             font-size: 0.72rem;
+          }
+
+          .map-signal-pill-main span:first-child {
+            font-size: 0.56rem;
+            letter-spacing: 0.08em;
+          }
+
+          .map-signal-pill-main span:last-child {
+            font-size: 0.5rem;
+            letter-spacing: 0.08em;
           }
 
           .map-active-filter-strip {
@@ -8941,6 +8983,11 @@ export default function RealWorldMap() {
           .venue-action-rail :global(.map-jelly-action) {
             transform: translateZ(0);
           }
+
+          .venue-action-rail :global(.map-jelly-action-label) {
+            font-size: clamp(0.5rem, 2.42vw, 0.64rem);
+            letter-spacing: 0.055em;
+          }
         }
 
         @media (min-width: 768px) {
@@ -9028,7 +9075,9 @@ export default function RealWorldMap() {
 
         .map-signal-rail {
           display: flex;
-          align-items: center;
+          width: 100%;
+          align-items: flex-start;
+          flex-wrap: wrap;
           gap: 0.65rem;
           max-width: 100%;
         }
@@ -9048,9 +9097,11 @@ export default function RealWorldMap() {
 
         .map-signal-rail-scroll {
           display: flex;
+          flex: 1 1 min(46rem, 100%);
           min-width: 0;
+          flex-wrap: wrap;
           gap: 0.5rem;
-          overflow-x: auto;
+          overflow: visible;
           padding: 0.15rem 0.15rem 0.35rem;
           scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
@@ -9083,8 +9134,9 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-width: 7.25rem;
-          flex: 0 0 auto;
+          min-width: 8.4rem;
+          min-height: 3.05rem;
+          flex: 0 1 clamp(8.4rem, 10.6vw, 10.65rem);
           align-items: center;
           gap: 0.55rem;
           overflow: hidden;
@@ -9093,7 +9145,7 @@ export default function RealWorldMap() {
           background:
             radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), transparent 36%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
-          padding: 0.48rem 0.72rem 0.48rem 0.5rem;
+          padding: 0.5rem 0.74rem 0.48rem 0.5rem;
           color: rgba(255, 255, 255, 0.58);
           box-shadow:
             0 12px 22px rgba(0, 0, 0, 0.22),
@@ -9151,23 +9203,28 @@ export default function RealWorldMap() {
           z-index: 1;
           display: flex;
           min-width: 0;
+          max-width: 100%;
           flex-direction: column;
           align-items: flex-start;
           gap: 0.12rem;
-          white-space: nowrap;
+          white-space: normal;
         }
 
         .map-signal-pill-main span:first-child {
-          font-size: 0.66rem;
+          max-width: 100%;
+          font-size: 0.62rem;
           font-weight: 900;
-          letter-spacing: 0.18em;
+          letter-spacing: 0.1em;
+          line-height: 1.02;
           text-transform: uppercase;
         }
 
         .map-signal-pill-main span:last-child {
-          font-size: 0.58rem;
+          max-width: 100%;
+          font-size: 0.54rem;
           font-weight: 800;
-          letter-spacing: 0.16em;
+          letter-spacing: 0.1em;
+          line-height: 1.05;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.38);
         }
@@ -9728,21 +9785,25 @@ export default function RealWorldMap() {
           position: relative;
           z-index: 1;
           display: inline-flex;
-          width: fit-content;
+          width: 100%;
+          min-width: 6.7rem;
+          max-width: 7.8rem;
           align-items: center;
           justify-content: center;
           gap: 0.3rem;
           border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.18);
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.055));
-          padding: 0.4rem 0.56rem;
+          padding: 0.44rem 0.64rem;
           color: rgba(255, 255, 255, 0.86);
-          font-size: 0.54rem;
+          font-size: 0.52rem;
           font-weight: 850;
-          letter-spacing: 0.13em;
-          line-height: 1;
+          letter-spacing: 0.08em;
+          line-height: 1.06;
+          text-align: center;
           text-transform: uppercase;
-          white-space: nowrap;
+          white-space: normal;
+          overflow-wrap: normal;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
         }
 
@@ -10524,6 +10585,192 @@ export default function RealWorldMap() {
         .selected-place-compact-dock :global(.map-jelly-action-label) {
           font-size: 0.58rem !important;
           letter-spacing: 0.055em !important;
+        }
+
+        .venue-action-rail--primary {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-right: 0;
+          margin-left: 0;
+          align-items: stretch;
+          justify-items: stretch;
+          gap: clamp(0.24rem, 0.64vw, 0.42rem) !important;
+        }
+
+        .venue-action-rail--primary :global(.map-jelly-action) {
+          display: block;
+          width: 100% !important;
+          max-width: 100%;
+          min-width: 0;
+          justify-self: stretch;
+        }
+
+        .venue-action-rail--primary :global(.map-jelly-action > div) {
+          padding-right: clamp(0.22rem, 0.7vw, 0.42rem) !important;
+          padding-left: clamp(0.22rem, 0.7vw, 0.42rem) !important;
+        }
+
+        .venue-action-rail--primary :global(.map-jelly-action-label) {
+          display: flex;
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.14rem;
+          overflow: hidden;
+          text-align: center;
+          text-overflow: clip;
+          text-wrap: balance;
+          white-space: normal;
+          overflow-wrap: normal;
+          font-size: clamp(0.5rem, 1.24vw, 0.62rem) !important;
+          letter-spacing: 0.018em !important;
+          line-height: 1.04;
+        }
+
+        .venue-action-rail--primary :global(.map-jelly-action-label > svg),
+        .venue-action-rail--primary :global(.map-jelly-action > div svg) {
+          display: none !important;
+        }
+
+        .selected-place-panel-header .venue-action-rail--primary {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--three {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr));
+        }
+
+        .venue-action-rail--primary.venue-action-rail--two {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr));
+        }
+
+        :global(.venue-action-rail--primary) {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-right: 0 !important;
+          margin-left: 0 !important;
+          align-items: stretch !important;
+          justify-items: stretch !important;
+          gap: clamp(0.24rem, 0.64vw, 0.42rem) !important;
+        }
+
+        :global(.venue-action-rail--primary.venue-action-rail--three) {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr)) !important;
+        }
+
+        :global(.venue-action-rail--primary.venue-action-rail--two) {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr)) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button) {
+          position: relative !important;
+          display: flex !important;
+          min-width: 0 !important;
+          width: 100% !important;
+          min-height: 52px !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: hidden !important;
+          border: 1px solid rgba(255, 255, 255, 0.18) !important;
+          border-radius: 999px !important;
+          padding: 0.7rem clamp(0.28rem, 0.68vw, 0.58rem) 0.64rem !important;
+          text-align: center !important;
+          font-size: clamp(0.52rem, 0.62vw, 0.64rem) !important;
+          font-weight: 900 !important;
+          line-height: 1.05 !important;
+          letter-spacing: 0.018em !important;
+          text-transform: uppercase !important;
+          box-shadow:
+            0 12px 22px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.34),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.28) !important;
+          transform: translateZ(0);
+          transition:
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            transform 160ms ease;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button::before) {
+          content: '';
+          position: absolute;
+          inset: 4px 20% auto;
+          height: 4px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.32);
+          opacity: 0.78;
+          pointer-events: none;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button:hover) {
+          transform: translateY(-1px) translateZ(0);
+          box-shadow:
+            0 16px 26px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.38),
+            inset 0 -13px 18px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button > span) {
+          position: relative !important;
+          z-index: 1 !important;
+          display: block !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          overflow: visible !important;
+          white-space: normal !important;
+          text-align: center !important;
+          text-wrap: balance;
+          overflow-wrap: normal;
+          font-size: inherit !important;
+          letter-spacing: inherit !important;
+          line-height: 1.05 !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button > svg) {
+          display: none !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--proof) {
+          color: #111827 !important;
+          border-color: rgba(226, 240, 255, 0.72) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8), transparent 36%),
+            linear-gradient(180deg, #f8fbff 0%, #e6eef8 55%, #a9b8c9 100%) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--fund) {
+          color: #15120c !important;
+          border-color: rgba(255, 232, 122, 0.72) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.62), transparent 36%),
+            linear-gradient(180deg, #ffe36a 0%, #f5c518 52%, #8a5a00 100%) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--venue) {
+          color: #fff6ff !important;
+          border-color: rgba(236, 189, 255, 0.62) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.38), transparent 36%),
+            linear-gradient(180deg, #c785ff 0%, #934fd7 52%, #4b1d78 100%) !important;
+        }
+
+        @media (max-width: 767px) {
+          :global(.venue-action-rail--primary) {
+            gap: 0.24rem !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button) {
+            min-height: 48px !important;
+            padding-right: 0.24rem !important;
+            padding-left: 0.24rem !important;
+            font-size: clamp(0.46rem, 2.05vw, 0.56rem) !important;
+            letter-spacing: 0.01em !important;
+          }
+
         }
 
         .map-panel-shell::before {
