@@ -248,6 +248,7 @@ function HomeContent() {
                 <div className="mt-6 flex justify-center">
                   <Link
                     href="/map"
+                    prefetch={false}
                     className="font-mono text-xs md:text-sm tracking-[0.08em] text-[#F5C518] hover:text-white transition-colors"
                   >
                     See what&apos;s happening near you →

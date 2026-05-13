@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { playSound, preloadAllSounds, type SoundEffect } from '@/lib/sounds';
+import { playSound, type SoundEffect } from '@/lib/sounds';
 import { triggerHaptic, type HapticPattern } from '@/lib/haptics';
 
 const STORAGE_KEY = 'basedare_sound_enabled';
@@ -72,8 +72,6 @@ export function useFeedback(): UseFeedbackReturn {
     if (stored !== null) {
       setSoundEnabledState(stored === 'true');
     }
-    // Preload sounds for instant playback
-    preloadAllSounds();
   }, []);
 
   const setSoundEnabled = useCallback((enabled: boolean) => {

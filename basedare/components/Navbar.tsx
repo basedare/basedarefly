@@ -22,6 +22,8 @@ const NAV_LINKS = [
   { name: "VERIFY", href: "/verify" },
 ];
 
+const NAV_LINK_PREFETCH = false;
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -42,6 +44,7 @@ export default function Navbar() {
           <div className="flex items-center gap-3 z-50 flex-shrink-0">
             <Link
               href="/"
+              prefetch={NAV_LINK_PREFETCH}
               className="relative group block"
             >
               {/* Very subtle ambient glow */}
@@ -88,6 +91,7 @@ export default function Navbar() {
                     <Link
                       key={link.name}
                       href={link.href}
+                      prefetch={NAV_LINK_PREFETCH}
                       className="relative z-10 rounded-full px-3 py-2.5 text-[9px] font-black tracking-[0.14em] text-gray-400 transition-colors hover:text-white lg:px-4 lg:text-[10px] lg:tracking-[0.18em] xl:px-5 xl:tracking-[0.2em]"
                     >
                       {isActive && (
@@ -108,6 +112,7 @@ export default function Navbar() {
                 {/* NOTIFICATIONS & CONNECT */}
                 <Link
                   href="/chat"
+                  prefetch={NAV_LINK_PREFETCH}
                   aria-label="Open messenger"
                   title="Messenger"
                   className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
@@ -132,6 +137,7 @@ export default function Navbar() {
             <div className="md:hidden flex items-center gap-2">
               <Link
                 href="/chat"
+                prefetch={NAV_LINK_PREFETCH}
                 aria-label="Open messenger"
                 title="Messenger"
                 className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
@@ -189,6 +195,7 @@ export default function Navbar() {
                   >
                     <Link
                       href={link.href}
+                      prefetch={NAV_LINK_PREFETCH}
                       onClick={() => setIsOpen(false)}
                       className="relative block rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
                     >

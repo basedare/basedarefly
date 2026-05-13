@@ -2900,9 +2900,21 @@ export default function RealWorldMap() {
     setCheckInLaunchState(null);
   }, [selectedPlaceIdentity]);
   const nearbyFetchIdRef = useRef(0);
+  const nearbyPlaceFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
+  const nearbyPlaceFetchInFlightKeyRef = useRef<string | null>(null);
+  const nearbyPlaceFetchControllerRef = useRef<AbortController | null>(null);
   const nearbyDareFetchIdRef = useRef(0);
+  const nearbyDareFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
+  const nearbyDareFetchInFlightKeyRef = useRef<string | null>(null);
+  const nearbyDareFetchControllerRef = useRef<AbortController | null>(null);
   const localSignalFetchIdRef = useRef(0);
+  const localSignalFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
+  const localSignalFetchInFlightKeyRef = useRef<string | null>(null);
+  const localSignalFetchControllerRef = useRef<AbortController | null>(null);
   const venuePresenceFetchIdRef = useRef(0);
+  const venuePresenceFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
+  const venuePresenceFetchInFlightKeyRef = useRef<string | null>(null);
+  const venuePresenceFetchControllerRef = useRef<AbortController | null>(null);
   const lastPushLocationSyncRef = useRef<{
     latitude: number;
     longitude: number;
@@ -2913,6 +2925,15 @@ export default function RealWorldMap() {
   const skipNextMapClickRef = useRef(false);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      nearbyPlaceFetchControllerRef.current?.abort();
+      nearbyDareFetchControllerRef.current?.abort();
+      localSignalFetchControllerRef.current?.abort();
+      venuePresenceFetchControllerRef.current?.abort();
+    };
+  }, []);
   const lastAutoFocusedFilterRef = useRef<string | null>(null);
   const hasUserLocation = Boolean(userLocation);
 
@@ -3381,16 +3402,32 @@ export default function RealWorldMap() {
   }, [searchQuery]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
+    const radiusMeters = getRadiusMetersForZoom(zoom);
+    const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusMeters}`;
+    const cached = nearbyPlaceFetchCacheRef.current;
+    const now = Date.now();
+
+    if (
+      nearbyPlaceFetchInFlightKeyRef.current === requestKey ||
+      (cached?.key === requestKey && now - cached.fetchedAt < 30_000)
+    ) {
+      return;
+    }
+
+    nearbyPlaceFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    nearbyPlaceFetchControllerRef.current = controller;
+    nearbyPlaceFetchInFlightKeyRef.current = requestKey;
     const requestId = ++nearbyFetchIdRef.current;
+
     try {
-      const radiusMeters = getRadiusMetersForZoom(zoom);
       const url = new URL('/api/venues/nearby', window.location.origin);
       url.searchParams.set('lat', String(latitude));
       url.searchParams.set('lng', String(longitude));
       url.searchParams.set('radiusMeters', String(radiusMeters));
       url.searchParams.set('limit', '24');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { signal: controller.signal });
       const payload = (await response.json()) as NearbyResponse;
 
       if (!response.ok || !payload.success || !payload.data?.venues) {
@@ -3417,24 +3454,51 @@ export default function RealWorldMap() {
 
       if (requestId === nearbyFetchIdRef.current) {
         setNearbyPlaces(nextVenues);
+        nearbyPlaceFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error('[REAL_WORLD_MAP] Nearby places failed:', error);
+    } finally {
+      if (nearbyPlaceFetchInFlightKeyRef.current === requestKey) {
+        nearbyPlaceFetchInFlightKeyRef.current = null;
+      }
+      if (nearbyPlaceFetchControllerRef.current === controller) {
+        nearbyPlaceFetchControllerRef.current = null;
+      }
     }
   }, []);
 
   const fetchNearbyDares = useCallback(async (latitude: number, longitude: number, zoom: number) => {
+    const radiusKm = Math.max(getDareRadiusKmForZoom(zoom), nearbyDareRadiusKm);
+    const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusKm}`;
+    const cached = nearbyDareFetchCacheRef.current;
+    const now = Date.now();
+
+    if (
+      nearbyDareFetchInFlightKeyRef.current === requestKey ||
+      (cached?.key === requestKey && now - cached.fetchedAt < 30_000)
+    ) {
+      return;
+    }
+
+    nearbyDareFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    nearbyDareFetchControllerRef.current = controller;
+    nearbyDareFetchInFlightKeyRef.current = requestKey;
     const requestId = ++nearbyDareFetchIdRef.current;
+
     try {
       setNearbyDaresLoading(true);
-      const radiusKm = Math.max(getDareRadiusKmForZoom(zoom), nearbyDareRadiusKm);
       const url = new URL('/api/dares/nearby', window.location.origin);
       url.searchParams.set('lat', String(latitude));
       url.searchParams.set('lng', String(longitude));
       url.searchParams.set('radius', String(radiusKm));
       url.searchParams.set('limit', '8');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { signal: controller.signal });
       const payload = (await response.json()) as NearbyDaresResponse;
 
       if (!response.ok || !payload.success || !payload.data?.dares) {
@@ -3443,13 +3507,23 @@ export default function RealWorldMap() {
 
       if (requestId === nearbyDareFetchIdRef.current) {
         setNearbyDares(payload.data.dares);
+        nearbyDareFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error('[REAL_WORLD_MAP] Nearby dares failed:', error);
       if (requestId === nearbyDareFetchIdRef.current) {
         setNearbyDares([]);
       }
     } finally {
+      if (nearbyDareFetchInFlightKeyRef.current === requestKey) {
+        nearbyDareFetchInFlightKeyRef.current = null;
+      }
+      if (nearbyDareFetchControllerRef.current === controller) {
+        nearbyDareFetchControllerRef.current = null;
+      }
       if (requestId === nearbyDareFetchIdRef.current) {
         setNearbyDaresLoading(false);
       }
@@ -3457,16 +3531,33 @@ export default function RealWorldMap() {
   }, [nearbyDareRadiusKm]);
 
   const fetchLocalSignals = useCallback(async (latitude: number, longitude: number) => {
+    const radiusKm = Math.max(nearbyDareRadiusKm, 12);
+    const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusKm}`;
+    const cached = localSignalFetchCacheRef.current;
+    const now = Date.now();
+
+    if (
+      localSignalFetchInFlightKeyRef.current === requestKey ||
+      (cached?.key === requestKey && now - cached.fetchedAt < 30_000)
+    ) {
+      return;
+    }
+
+    localSignalFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    localSignalFetchControllerRef.current = controller;
+    localSignalFetchInFlightKeyRef.current = requestKey;
     const requestId = ++localSignalFetchIdRef.current;
+
     try {
       setLocalSignalsLoading(true);
       const url = new URL('/api/local-signals', window.location.origin);
       url.searchParams.set('lat', String(latitude));
       url.searchParams.set('lng', String(longitude));
-      url.searchParams.set('radiusKm', String(Math.max(nearbyDareRadiusKm, 12)));
+      url.searchParams.set('radiusKm', String(radiusKm));
       url.searchParams.set('limit', '8');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { signal: controller.signal });
       const payload = (await response.json()) as LocalSignalsResponse;
 
       if (!response.ok || !payload.success || !payload.data?.signals) {
@@ -3475,13 +3566,23 @@ export default function RealWorldMap() {
 
       if (requestId === localSignalFetchIdRef.current) {
         setLocalSignals(payload.data.signals);
+        localSignalFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error('[REAL_WORLD_MAP] Local signals failed:', error);
       if (requestId === localSignalFetchIdRef.current) {
         setLocalSignals([]);
       }
     } finally {
+      if (localSignalFetchInFlightKeyRef.current === requestKey) {
+        localSignalFetchInFlightKeyRef.current = null;
+      }
+      if (localSignalFetchControllerRef.current === controller) {
+        localSignalFetchControllerRef.current = null;
+      }
       if (requestId === localSignalFetchIdRef.current) {
         setLocalSignalsLoading(false);
       }
@@ -3489,16 +3590,33 @@ export default function RealWorldMap() {
   }, [nearbyDareRadiusKm]);
 
   const fetchVenuePresence = useCallback(async (latitude: number, longitude: number) => {
+    const radiusKm = Math.max(nearbyDareRadiusKm, 8);
+    const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusKm}`;
+    const cached = venuePresenceFetchCacheRef.current;
+    const now = Date.now();
+
+    if (
+      venuePresenceFetchInFlightKeyRef.current === requestKey ||
+      (cached?.key === requestKey && now - cached.fetchedAt < 30_000)
+    ) {
+      return;
+    }
+
+    venuePresenceFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    venuePresenceFetchControllerRef.current = controller;
+    venuePresenceFetchInFlightKeyRef.current = requestKey;
     const requestId = ++venuePresenceFetchIdRef.current;
+
     try {
       setVenuePresenceLoading(true);
       const url = new URL('/api/venues/presence', window.location.origin);
       url.searchParams.set('lat', String(latitude));
       url.searchParams.set('lng', String(longitude));
-      url.searchParams.set('radiusKm', String(Math.max(nearbyDareRadiusKm, 8)));
+      url.searchParams.set('radiusKm', String(radiusKm));
       url.searchParams.set('limit', '30');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { signal: controller.signal });
       const payload = (await response.json()) as VenuePresenceResponse;
 
       if (!response.ok || !payload.success || !payload.data?.signals) {
@@ -3507,13 +3625,23 @@ export default function RealWorldMap() {
 
       if (requestId === venuePresenceFetchIdRef.current) {
         setVenuePresenceSignals(payload.data.signals);
+        venuePresenceFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error('[REAL_WORLD_MAP] Venue presence failed:', error);
       if (requestId === venuePresenceFetchIdRef.current) {
         setVenuePresenceSignals([]);
       }
     } finally {
+      if (venuePresenceFetchInFlightKeyRef.current === requestKey) {
+        venuePresenceFetchInFlightKeyRef.current = null;
+      }
+      if (venuePresenceFetchControllerRef.current === controller) {
+        venuePresenceFetchControllerRef.current = null;
+      }
       if (requestId === venuePresenceFetchIdRef.current) {
         setVenuePresenceLoading(false);
       }
