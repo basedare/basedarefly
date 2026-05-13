@@ -62,6 +62,7 @@ type RawPushDeliveryConfig = PushDeliveryConfig & {
 };
 
 let vapidConfiguredFor: string | null = null;
+const BASE64URL_SECRET_RE = /^[A-Za-z0-9_-]+={0,2}$/;
 
 const WALLET_PUSH_COOLDOWN_BY_TOPIC_MS: Record<Exclude<PushTopic, 'nearby'>, number> = {
   wallet: 1000 * 60 * 5,
@@ -69,12 +70,23 @@ const WALLET_PUSH_COOLDOWN_BY_TOPIC_MS: Record<Exclude<PushTopic, 'nearby'>, num
   venues: 1000 * 60 * 12,
 };
 
+function cleanEnvValue(value: string | undefined) {
+  return (value ?? '').trim().replace(/^['"]+|['"]+$/g, '').trim();
+}
+
+function readBase64UrlEnv(name: string, options: { minLength?: number; maxLength?: number } = {}) {
+  const value = cleanEnvValue(process.env[name]);
+  const minLength = options.minLength ?? 1;
+  const maxLength = options.maxLength ?? 200;
+  return value.length >= minLength && value.length <= maxLength && BASE64URL_SECRET_RE.test(value) ? value : '';
+}
+
 function readPushDeliveryConfig(): RawPushDeliveryConfig {
-  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY?.trim();
-  const nextPublicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const vapidPublicKey = readBase64UrlEnv('VAPID_PUBLIC_KEY', { minLength: 80, maxLength: 120 });
+  const nextPublicVapidKey = readBase64UrlEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', { minLength: 80, maxLength: 120 });
   const publicKey = vapidPublicKey || nextPublicVapidKey || '';
-  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim() || '';
-  const subject = process.env.VAPID_SUBJECT?.trim() || 'mailto:hello@basedare.xyz';
+  const privateKey = readBase64UrlEnv('VAPID_PRIVATE_KEY', { minLength: 30, maxLength: 80 });
+  const subject = cleanEnvValue(process.env.VAPID_SUBJECT) || 'mailto:hello@basedare.xyz';
 
   return {
     configured: Boolean(publicKey && privateKey),

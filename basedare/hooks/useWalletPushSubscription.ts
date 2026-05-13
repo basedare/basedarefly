@@ -34,15 +34,26 @@ export const NEARBY_RADIUS_OPTIONS = [2, 5, 10, 20] as const;
 const PUSH_SUBSCRIPTION_CHANGED_EVENT = 'basedare:push-subscription-changed';
 const SERVICE_WORKER_READY_TIMEOUT_MS = 8_000;
 const GEOLOCATION_TIMEOUT_MS = 8_000;
+const BASE64URL_PUBLIC_KEY_RE = /^[A-Za-z0-9_-]+={0,2}$/;
 
 function announcePushSubscriptionChanged() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGED_EVENT));
 }
 
+function cleanVapidPublicKey(value: string | null | undefined) {
+  const key = (value ?? '').trim().replace(/^['"]+|['"]+$/g, '').trim();
+  return key.length >= 80 && key.length <= 120 && BASE64URL_PUBLIC_KEY_RE.test(key) ? key : '';
+}
+
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const cleanKey = cleanVapidPublicKey(base64String);
+  if (!cleanKey) {
+    throw new Error('Push browser key is malformed. Check VAPID_PUBLIC_KEY.');
+  }
+
+  const padding = '='.repeat((4 - (cleanKey.length % 4)) % 4);
+  const base64 = (cleanKey + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
@@ -154,7 +165,7 @@ export function useWalletPushSubscription() {
   const { address, sessionWallet } = useActiveWallet();
   const { data: session } = useSession();
   const { signMessageAsync } = useSignMessage();
-  const bundledVapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ?? '';
+  const bundledVapidPublicKey = cleanVapidPublicKey(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushConfigured, setPushConfigured] = useState(Boolean(bundledVapidPublicKey));
   const [pushClientConfigured, setPushClientConfigured] = useState(Boolean(bundledVapidPublicKey));
@@ -200,10 +211,10 @@ export function useWalletPushSubscription() {
       const data = (await parseJsonResponse(res)) as PushRuntimeConfig | null;
 
       if (res.ok && data?.success) {
-        const nextPublicKey = typeof data.publicKey === 'string' ? data.publicKey.trim() : fallbackKey;
-        const nextClientConfigured = Boolean(data.clientConfigured ?? nextPublicKey);
+        const nextPublicKey = cleanVapidPublicKey(data.publicKey) || fallbackKey;
+        const nextClientConfigured = Boolean(nextPublicKey && (data.clientConfigured ?? true));
         const nextDeliveryConfigured = Boolean(data.deliveryConfigured ?? data.configured);
-        const nextConfigured = Boolean(data.configured ?? (nextClientConfigured && nextDeliveryConfigured));
+        const nextConfigured = Boolean(nextClientConfigured && nextDeliveryConfigured && (data.configured ?? true));
 
         setVapidPublicKey(nextPublicKey);
         setPushClientConfigured(nextClientConfigured);
