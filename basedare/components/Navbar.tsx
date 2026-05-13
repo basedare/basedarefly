@@ -31,8 +31,12 @@ export default function Navbar() {
   return (
     <>
       {/* === NAVBAR (Z-50 to stay above everything) === */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-4 overflow-x-hidden">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
+      <nav className="fixed top-0 left-0 right-0 z-50 overflow-x-hidden px-4 py-4 md:px-6">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-full border-b border-white/[0.035] bg-[linear-gradient(180deg,rgba(4,5,12,0.88)_0%,rgba(4,5,12,0.58)_58%,rgba(4,5,12,0)_100%)] backdrop-blur-[2px]"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 mx-auto flex max-w-[92rem] items-center justify-between gap-2 md:gap-4">
 
           {/* 1. LOGO */}
           <div className="flex items-center gap-3 z-50 flex-shrink-0">
@@ -63,7 +67,7 @@ export default function Navbar() {
           </div>
 
           {/* 2. DESKTOP MENU (Hidden on Mobile) - With GlassSurface */}
-          <div className="hidden md:flex">
+          <div className="hidden min-w-0 flex-1 justify-center md:flex">
             <GlassSurface
               width="auto"
               height="auto"
@@ -75,16 +79,16 @@ export default function Navbar() {
               backgroundOpacity={0.02}
               saturation={1.8}
               distortionScale={-180}
-              className="w-max max-w-fit"
+              className="max-w-full"
             >
-              <div className="p-1.5 flex items-center gap-1">
+              <div className="flex min-w-0 items-center gap-1 p-1.5">
                 {NAV_LINKS.map((link) => {
                   const isActive = pathname === link.href;
                   return (
                     <Link
                       key={link.name}
                       href={link.href}
-                      className="relative px-5 py-2.5 rounded-full text-[10px] font-black tracking-[0.2em] text-gray-400 hover:text-white transition-colors z-10"
+                      className="relative z-10 rounded-full px-3 py-2.5 text-[9px] font-black tracking-[0.14em] text-gray-400 transition-colors hover:text-white lg:px-4 lg:text-[10px] lg:tracking-[0.18em] xl:px-5 xl:tracking-[0.2em]"
                     >
                       {isActive && (
                         <motion.div
@@ -139,7 +143,7 @@ export default function Navbar() {
                 <MessageCircle className="h-4 w-4" />
               </Link>
               <NotificationBell />
-              <div className="w-[120px] sm:w-[140px]">
+              <div className="w-[108px] min-w-0 sm:w-[140px]">
                 <IdentityButton />
               </div>
             </div>

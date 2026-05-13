@@ -51,6 +51,7 @@ import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
+import PushActivationCard from '@/components/PushActivationCard';
 
 type SearchResult = {
   id: string;
@@ -6716,7 +6717,7 @@ export default function RealWorldMap() {
       className={
         isImmersiveMobile
           ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
-          : 'relative z-20 px-4 pb-20 pt-10 sm:px-6 sm:pb-24 sm:pt-12 md:px-10 md:pb-24 md:pt-12'
+          : 'relative z-20 px-4 pb-20 pt-24 sm:px-6 sm:pb-24 sm:pt-28 md:px-10 md:pb-24 md:pt-28'
       }
     >
       <div className={isImmersiveMobile ? 'h-full w-full' : 'mx-auto max-w-7xl'}>
@@ -6905,7 +6906,7 @@ export default function RealWorldMap() {
                         setPulseFilter(option.value);
                         triggerHaptic('selection');
                       }}
-                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                      className={`map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
                     >
                       <span>{option.label}</span>
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
@@ -6986,7 +6987,7 @@ export default function RealWorldMap() {
                         setShowFootprintLayer(nextFocus === 'footprint');
                         triggerHaptic('selection');
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
+                      className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
                     >
                       <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
                       <span>My Proofs</span>
@@ -7011,7 +7012,7 @@ export default function RealWorldMap() {
                         setShowMatchedLayer(nextFocus === 'matched');
                         triggerHaptic('selection');
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
+                      className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
                     >
                       <span className="h-2 w-2 rounded-full bg-cyan-300" />
                       <span>For You</span>
@@ -7024,6 +7025,10 @@ export default function RealWorldMap() {
               </div>
             </div>
           </div>
+
+          {!isImmersiveMobile ? (
+            <PushActivationCard compact className="my-4" />
+          ) : null}
 
           <div
             ref={mapViewportRef}
@@ -10771,6 +10776,150 @@ export default function RealWorldMap() {
             letter-spacing: 0.01em !important;
           }
 
+        }
+
+        .map-filter-pill {
+          min-width: 0;
+          max-width: 100%;
+          min-height: 2.25rem;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .map-filter-pill > span {
+          min-width: 0;
+          line-height: 1;
+        }
+
+        .map-filter-pill > span:first-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .venue-action-rail--primary {
+          display: grid !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          grid-auto-rows: minmax(54px, auto);
+          align-items: stretch !important;
+          justify-items: stretch !important;
+          gap: clamp(0.42rem, 0.78vw, 0.65rem) !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--three,
+        :global(.venue-action-rail--primary.venue-action-rail--three) {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--two,
+        :global(.venue-action-rail--primary.venue-action-rail--two) {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button) {
+          min-width: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          min-height: 54px !important;
+          padding: 0.74rem clamp(0.45rem, 0.82vw, 0.82rem) 0.66rem !important;
+          border-radius: 999px !important;
+          white-space: nowrap !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button > span) {
+          display: inline-flex !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: visible !important;
+          text-align: center !important;
+          white-space: nowrap !important;
+          font-size: clamp(0.58rem, 0.72vw, 0.7rem) !important;
+          letter-spacing: 0.052em !important;
+          line-height: 1 !important;
+        }
+
+        @media (max-width: 767px) {
+          .map-signal-rail-scroll {
+            scroll-padding-right: 1rem;
+          }
+
+          .map-filter-pill {
+            min-height: 2.15rem;
+            padding-right: 0.72rem;
+            padding-left: 0.72rem;
+            font-size: 10px;
+            letter-spacing: 0.13em;
+          }
+
+          .venue-action-rail--primary {
+            grid-auto-rows: minmax(50px, auto);
+            gap: 0.34rem !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button) {
+            min-height: 50px !important;
+            padding: 0.68rem 0.36rem 0.6rem !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button > span) {
+            font-size: clamp(0.52rem, 2.25vw, 0.64rem) !important;
+            letter-spacing: 0.036em !important;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .venue-action-rail--primary.venue-action-rail--three,
+          :global(.venue-action-rail--primary.venue-action-rail--three) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button--venue) {
+            grid-column: 1 / -1;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button > span) {
+            font-size: clamp(0.58rem, 3.3vw, 0.68rem) !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .map-container-wrapper:not(.map-container-wrapper--immersive) {
+            height: 64dvh !important;
+            min-height: 420px !important;
+          }
+
+          .map-panel-shell,
+          .venue-action-rail,
+          .nearby-dare-tray,
+          .map-signal-pill,
+          :global(.map-action-button),
+          :global(.map-primary-action-button) {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+          }
+
+          .map-panel-shell,
+          .map-panel-section,
+          .map-mobile-secondary {
+            content-visibility: auto;
+            contain-intrinsic-size: 220px;
+          }
+
+          .map-panel-section,
+          .map-mobile-secondary,
+          .map-mobile-stats .stat-card {
+            animation: none !important;
+          }
+
+          .selected-place-panel-header {
+            max-height: none;
+          }
+
+          .selected-place-panel-content {
+            min-height: 0;
+          }
         }
 
         .map-panel-shell::before {

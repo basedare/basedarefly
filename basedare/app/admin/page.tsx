@@ -4576,6 +4576,27 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {!pushSummary.configured ? (
+              <div className="rounded-2xl border border-amber-300/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.12),rgba(8,10,20,0.78))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100/70">
+                      Push setup needed
+                    </div>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
+                      Users can save devices once the public browser key exists. Actual delivery starts when the private server key is present.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 sm:grid-cols-2 lg:w-[32rem]">
+                    <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2">npm run push:keys</div>
+                    <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2">VAPID_PUBLIC_KEY</div>
+                    <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2">VAPID_PRIVATE_KEY</div>
+                    <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2">VAPID_SUBJECT</div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="rounded-2xl border border-cyan-300/15 bg-cyan-500/[0.06] p-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>

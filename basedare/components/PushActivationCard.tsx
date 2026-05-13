@@ -69,11 +69,13 @@ export default function PushActivationCard({ className = '', compact = false }: 
   }
 
   const permissionBlocked = permission === 'denied';
-  const configBlocked = !vapidPublicKey || !pushClientConfigured || !pushDeliveryConfigured || !pushConfigured;
+  const canRegisterDevice = Boolean(vapidPublicKey && pushClientConfigured);
+  const deliveryPending = canRegisterDevice && (!pushDeliveryConfigured || !pushConfigured);
+  const configBlocked = !canRegisterDevice;
   const setupMessage = !vapidPublicKey || !pushClientConfigured
     ? 'Push browser key is missing in server configuration.'
-    : !pushDeliveryConfigured
-      ? 'Push delivery key is missing in server configuration.'
+    : deliveryPending
+      ? 'This device can be saved now. Delivery starts when the server key is added.'
       : !pushConfigured
         ? 'Push delivery keys need server configuration before alerts can send.'
         : null;
@@ -137,7 +139,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
             className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full border border-cyan-200/28 bg-[linear-gradient(180deg,rgba(103,232,249,0.22)_0%,rgba(8,145,178,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:tracking-[0.18em]"
           >
             {pushBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            Arm alerts
+            {deliveryPending ? 'Save device' : 'Arm alerts'}
           </button>
           <button
             type="button"

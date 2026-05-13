@@ -19,13 +19,13 @@ This scorecard tracks outcomes, not activity theater.
 | --- | ---: | --- |
 | Venue leads in vault | 6 | Seeded from current Siargao pilot surface |
 | Qualified venue leads | 3 | Strongest initial fits: Siargao Beach Club, Hideaway, Cloud 9 Boardwalk |
-| Outreach drafts ready for review | 1 | Spark Audit invite draft |
+| Outreach drafts ready for review | 4 | Spark Audit invite plus three venue-specific audits |
 | Warm venue replies | 0 | Not sent yet |
 | Venue calls booked | 0 | Not started |
 | Venue pilots active | 0 | Not started |
 | Creator leads in vault | 0 | Queue exists, not populated |
 | Sponsor leads in vault | 0 | Queue exists, not populated |
-| Active experiments | 1 | Siargao venue pilot loop |
+| Active experiments | 2 | Siargao venue pilot loop plus demo-safe pilot |
 | Validated insights | 0 | Candidate insights logged only |
 | Follow-ups overdue | 0 | No sent outreach yet |
 
@@ -47,4 +47,3 @@ Questions to answer at week end:
 - Which product issue blocked growth?
 - Which memory record saved repeated work?
 - What should the Brain stop doing?
-

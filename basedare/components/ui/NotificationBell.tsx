@@ -115,11 +115,15 @@ export function NotificationBell() {
         updateNearbyRadius,
         vapidPublicKey,
     } = useWalletPushSubscription();
-    const pushCanEnable = Boolean(vapidPublicKey && pushClientConfigured && pushDeliveryConfigured && pushConfigured);
+    const pushCanRegister = Boolean(vapidPublicKey && pushClientConfigured);
+    const pushCanDeliver = Boolean(pushDeliveryConfigured && pushConfigured);
+    const pushDeliveryPending = pushCanRegister && !pushCanDeliver;
     const pushStatusText = !vapidPublicKey || !pushClientConfigured
         ? 'Push browser key is not configured yet.'
-        : !pushDeliveryConfigured
-            ? 'Push server delivery key is not configured yet.'
+        : pushDeliveryPending
+            ? pushEnabled
+                ? 'This device is saved. Delivery starts when the server key is added.'
+                : 'Save this device now. Delivery starts when the server key is added.'
             : pushEnabled
                 ? 'This device will get BaseDare alerts.'
                 : 'Enable browser push for nearby and wallet alerts.';
@@ -522,7 +526,7 @@ export function NotificationBell() {
                                             <button
                                                 type="button"
                                                 onClick={() => void (pushEnabled ? disablePushSubscription() : syncPushSubscription())}
-                                                disabled={pushBusy || (!pushEnabled && !pushCanEnable)}
+                                                disabled={pushBusy || (!pushEnabled && !pushCanRegister)}
                                                 className="min-h-9 w-full shrink-0 whitespace-nowrap rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:min-w-[104px] sm:tracking-[0.18em]"
                                             >
                                                 {pushBusy ? 'Working...' : (pushEnabled ? 'Disable' : 'Enable')}
@@ -573,10 +577,10 @@ export function NotificationBell() {
                                                 <button
                                                     type="button"
                                                     onClick={() => void sendTestPush()}
-                                                    disabled={pushTesting || pushBusy}
+                                                    disabled={pushTesting || pushBusy || !pushCanDeliver}
                                                     className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-400/14 active:scale-[0.98] disabled:opacity-50"
                                                 >
-                                                    {pushTesting ? 'Sending...' : 'Test Push'}
+                                                    {pushTesting ? 'Sending...' : pushCanDeliver ? 'Test Push' : 'Needs Keys'}
                                                 </button>
                                             </div>
 

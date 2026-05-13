@@ -33,6 +33,7 @@ Turn the current Siargao venue-map work into a repeatable acquisition loop:
 | 2 | Prepare Siargao venue pilot outreach | codex | READY_FOR_REVIEW | Draft a Spark Audit invite for venue owners |
 | 3 | Create a venue lead queue from current map pins | codex | ACTIVE | Rank top targets by activation fit |
 | 4 | Preserve product learnings from map polish | codex | ACTIVE | Log city and copy insights |
+| 5 | Build a demo-safe pilot pack | codex | READY_FOR_REVIEW | Review three venue-specific Spark Audits |
 
 ## Safe Automatic Work
 
@@ -55,4 +56,3 @@ Turn the current Siargao venue-map work into a repeatable acquisition loop:
 - [ ] New leads deduped.
 - [ ] Drafts marked with review status.
 - [ ] Reusable insights logged.
-

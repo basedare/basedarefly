@@ -81,10 +81,10 @@ function useButtonWidth(label: string, icon: boolean, square: boolean, fullWidth
     if (fullWidth) return 160;
 
     const compactLabel = label.trim().toUpperCase();
-    const estimatedTextWidth = compactLabel.length * 8.7;
-    const paddingWidth = icon ? 78 : 58;
+    const estimatedTextWidth = compactLabel.length * 9.8;
+    const paddingWidth = icon ? 86 : 68;
 
-    return Math.max(120, Math.ceil((estimatedTextWidth + paddingWidth) * 1.04));
+    return Math.max(132, Math.ceil((estimatedTextWidth + paddingWidth) * 1.08));
   }, [fullWidth, icon, label, square]);
 }
 
@@ -293,13 +293,13 @@ export default function SquircleButton({
         ) : (
           <div
             className={cn(
-              'relative z-10 flex items-center justify-center whitespace-nowrap font-black uppercase',
-              square ? 'text-[1.45rem]' : 'gap-2 text-[0.95rem] tracking-[0.08em]',
+              'relative z-10 flex min-w-0 max-w-full items-center justify-center text-center font-black uppercase leading-[1.02]',
+              square ? 'text-[1.45rem]' : 'gap-1.5 text-[0.9rem] tracking-[0.055em]',
               tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white'
             )}
           >
             {icon ? <span className="flex shrink-0 items-center justify-center">{icon}</span> : null}
-            {!square ? <span>{labelText}</span> : null}
+            {!square ? <span className="min-w-0 max-w-full whitespace-normal text-balance leading-[1.02]">{labelText}</span> : null}
           </div>
         )}
       </div>

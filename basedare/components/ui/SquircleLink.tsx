@@ -75,9 +75,9 @@ function useLinkWidth(label: string, fullWidth: boolean) {
     if (fullWidth) return 190;
 
     const compactLabel = label.trim().toUpperCase();
-    const estimatedTextWidth = compactLabel.length * 8.7;
+    const estimatedTextWidth = compactLabel.length * 9.8;
 
-    return Math.max(124, Math.ceil((estimatedTextWidth + 62) * 1.04));
+    return Math.max(136, Math.ceil((estimatedTextWidth + 72) * 1.08));
   }, [fullWidth, label]);
 }
 
@@ -254,13 +254,17 @@ export default function SquircleLink({
       >
         <div
           className={cn(
-            'relative z-10 flex items-center justify-center gap-2 whitespace-nowrap font-black uppercase tracking-[0.08em]',
-            height >= 48 ? 'text-[0.92rem]' : 'text-[0.82rem]',
+            'relative z-10 flex min-w-0 max-w-full items-center justify-center gap-1.5 text-center font-black uppercase leading-[1.02] tracking-[0.055em]',
+            height >= 48 ? 'text-[0.9rem]' : 'text-[0.8rem]',
             tone === 'yellow' || tone === 'amber' ? 'text-[#15120c]' : white ? 'text-[#3b82f6]' : 'text-white',
             labelClassName
           )}
         >
-          {children ?? labelText}
+          {children ?? (
+            <span className="min-w-0 max-w-full whitespace-normal text-balance leading-[1.02]">
+              {labelText}
+            </span>
+          )}
         </div>
       </div>
       <span className="sr-only">{labelText}</span>

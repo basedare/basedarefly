@@ -316,11 +316,6 @@ export function useWalletPushSubscription() {
         return;
       }
 
-      if (!runtimeConfig.deliveryConfigured) {
-        setPushMessage('Push server delivery key is not configured yet.');
-        return;
-      }
-
       const nextPermission = await window.Notification.requestPermission();
       setPermission(nextPermission);
 
