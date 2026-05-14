@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
@@ -27,6 +27,7 @@ type TagPlaceButtonProps = {
   buttonClassName?: string;
   buttonVariant?: 'default' | 'jelly';
   buttonLabel?: string;
+  autoOpenKey?: string | number | null;
   onPlaceResolved?: (place: {
     id: string;
     slug: string;
@@ -103,6 +104,7 @@ export default function TagPlaceButton({
   buttonClassName,
   buttonVariant = 'default',
   buttonLabel = 'Take proof',
+  autoOpenKey = null,
   onPlaceResolved,
   onTagSubmitted,
 }: TagPlaceButtonProps) {
@@ -129,6 +131,7 @@ export default function TagPlaceButton({
   const [authChecking, setAuthChecking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoCaptureInputRef = useRef<HTMLInputElement>(null);
+  const lastAutoOpenKeyRef = useRef<string | number | null>(null);
   const { toast } = useToast();
   const { data: session, status: sessionStatus } = useSession();
   const { address: connectedWallet, isConnected } = useAccount();
@@ -501,12 +504,20 @@ export default function TagPlaceButton({
     }
   }
 
-  const openComposer = () => {
+  const openComposer = useCallback(() => {
     triggerHaptic('selection');
     setOpen(true);
     setSubmitState('idle');
     setSubmittedFirstMark(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || autoOpenKey === null || autoOpenKey === undefined) return;
+    if (lastAutoOpenKeyRef.current === autoOpenKey) return;
+
+    lastAutoOpenKeyRef.current = autoOpenKey;
+    openComposer();
+  }, [autoOpenKey, mounted, openComposer]);
 
   return (
     <>

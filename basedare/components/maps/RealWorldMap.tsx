@@ -2817,6 +2817,7 @@ export default function RealWorldMap() {
   const [venuePresenceLoading, setVenuePresenceLoading] = useState(false);
   const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [proofAutoOpenKey, setProofAutoOpenKey] = useState<string | null>(null);
   const [selectedPlacePanelExpanded, setSelectedPlacePanelExpanded] = useState(false);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -4960,6 +4961,54 @@ export default function RealWorldMap() {
 
     return items.slice(0, 5);
   }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  const firstProofStartPlace = useMemo(() => {
+    const happeningPlace = mapHappenings.find(
+      (happening) => happening.place && happening.rewardLabel === 'First proof'
+    )?.place;
+
+    if (happeningPlace) {
+      return happeningPlace;
+    }
+
+    const origin = userLocation ?? viewportCenter;
+    const candidates = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+    const unmarked = candidates.filter((place) => place.tagSummary.approvedCount <= 0);
+    const pool = unmarked.length > 0 ? unmarked : candidates;
+
+    if (pool.length === 0) {
+      return null;
+    }
+
+    return [...pool].sort((a, b) => {
+      if (!origin) {
+        return b.activeDareCount - a.activeDareCount || b.tagSummary.heatScore - a.tagSummary.heatScore;
+      }
+
+      const distanceA = calculateDistance(origin.latitude, origin.longitude, a.latitude, a.longitude);
+      const distanceB = calculateDistance(origin.latitude, origin.longitude, b.latitude, b.longitude);
+      return distanceA - distanceB;
+    })[0];
+  }, [filteredNearbyPlaces, mapHappenings, nearbyPlaces, userLocation, viewportCenter]);
+  const handleStartFirstProof = useCallback(() => {
+    if (!firstProofStartPlace) {
+      setPulseFilter('unmarked');
+      setMapVenueFocus('all');
+      setShowMatchedLayer(false);
+      setShowFootprintLayer(false);
+      requestApproximateLocation();
+      return;
+    }
+
+    focusExistingPlace(firstProofStartPlace);
+    setSelectedPlacePanelExpanded(true);
+    setNearbyDarePanelCollapsed(true);
+
+    const nextAutoOpenKey = `${firstProofStartPlace.id}:${Date.now()}`;
+    setProofAutoOpenKey(nextAutoOpenKey);
+    window.setTimeout(() => {
+      setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
+    }, 1200);
+  }, [firstProofStartPlace, focusExistingPlace, requestApproximateLocation]);
   const signalLayerCounts = useMemo(() => {
     const counts: Record<SignalLayerKind, number> = {
       drop: 0,
@@ -6436,6 +6485,7 @@ export default function RealWorldMap() {
         buttonVariant="default"
         buttonLabel="Take proof"
         buttonClassName="map-primary-action-button map-primary-action-button--proof"
+        autoOpenKey={proofAutoOpenKey}
       />
 
       <CreatePlaceChallengeButton
@@ -7241,6 +7291,29 @@ export default function RealWorldMap() {
                         <p className="map-legend-detail">Claim or fund the first move</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+                <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[24px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-[#f5c518]/26 bg-[#f5c518]/[0.11] text-[#fff3b0] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#f8dd72]/78">
+                        Start here
+                      </p>
+                      <p className="mt-1 truncate text-sm font-black text-white">
+                        {firstProofStartPlace ? firstProofStartPlace.name : 'Find nearby proof'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleStartFirstProof}
+                      disabled={locating}
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-[#f5c518]/38 bg-[linear-gradient(180deg,#fff0a8_0%,#f5c518_54%,#8a5a00_100%)] px-3.5 text-[11px] font-black uppercase text-[#171103] shadow-[0_12px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-10px_14px_rgba(93,52,0,0.28)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
+                    >
+                      {locating ? 'Finding' : firstProofStartPlace ? 'Take proof' : 'Locate'}
+                    </button>
                   </div>
                 </div>
               </>
@@ -11047,6 +11120,66 @@ export default function RealWorldMap() {
 
           .selected-place-panel-content {
             min-height: 0;
+          }
+        }
+
+        .venue-action-rail--primary,
+        :global(.venue-action-rail--primary) {
+          gap: 0.5rem !important;
+          grid-auto-rows: minmax(3.4rem, auto) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button) {
+          min-height: 3.4rem !important;
+          padding: 0.68rem 0.5rem 0.62rem !important;
+          letter-spacing: 0 !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button > span) {
+          overflow: hidden !important;
+          text-overflow: clip !important;
+          white-space: nowrap !important;
+          font-size: 0.66rem !important;
+          letter-spacing: 0 !important;
+          line-height: 1 !important;
+        }
+
+        @media (max-width: 520px) {
+          .venue-action-rail--primary,
+          :global(.venue-action-rail--primary) {
+            gap: 0.42rem !important;
+            grid-auto-rows: minmax(3.15rem, auto) !important;
+          }
+
+          .venue-action-rail--primary.venue-action-rail--three,
+          :global(.venue-action-rail--primary.venue-action-rail--three) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button) {
+            min-height: 3.15rem !important;
+            padding: 0.62rem 0.42rem 0.56rem !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button--venue) {
+            grid-column: 1 / -1;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button > span) {
+            font-size: 0.62rem !important;
+          }
+        }
+
+        @media (max-width: 350px) {
+          .venue-action-rail--primary.venue-action-rail--three,
+          .venue-action-rail--primary.venue-action-rail--two,
+          :global(.venue-action-rail--primary.venue-action-rail--three),
+          :global(.venue-action-rail--primary.venue-action-rail--two) {
+            grid-template-columns: 1fr !important;
+          }
+
+          :global(.venue-action-rail--primary .map-primary-action-button--venue) {
+            grid-column: auto;
           }
         }
 

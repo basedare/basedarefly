@@ -9,7 +9,8 @@ import { useAccount, useSignMessage } from 'wagmi';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
     Heart, TrendingUp, Target, Award, AlertCircle,
-    MessageCircle, Star,
+    MessageCircle, Star, Camera, MapPin, Briefcase, Radio,
+    ShieldCheck, Images,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -106,6 +107,20 @@ interface CreatorProfile {
             count: number;
         } | null;
     };
+    gallery: Array<{
+        id: string;
+        url: string;
+        type: string;
+        caption: string | null;
+        submittedAt: string;
+        venue: {
+            id: string;
+            slug: string;
+            name: string;
+            city: string | null;
+            country: string | null;
+        };
+    }>;
     recent: RecentDare[];
 }
 
@@ -186,6 +201,39 @@ const insetCardClass =
 const pillClass =
     'inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]';
 
+type AvailabilitySignal = {
+    label: string;
+    detail: string;
+    radius: string;
+    dotClass: string;
+    badgeClass: string;
+};
+
+const BASE_MISSION_SKILLS = [
+    'Venue scouting',
+    'Proof capture',
+    'Local clips',
+    'Fast turnaround',
+];
+
+const TAG_SKILL_MAP: Record<string, string> = {
+    beach: 'Beach/outdoor',
+    cafe: 'Food content',
+    coffee: 'Food content',
+    food: 'Food content',
+    nightlife: 'Nightlife',
+    bar: 'Nightlife',
+    fitness: 'Fitness',
+    gym: 'Fitness',
+    event: 'Event hosting',
+    events: 'Event hosting',
+    comedy: 'Comedy',
+    travel: 'Venue scouting',
+    tourist: 'Venue scouting',
+    product: 'Product demo',
+    music: 'Event hosting',
+};
+
 function DareMiniCard({ dare }: { dare: RecentDare }) {
     const router = useRouter();
     const lifecycle = getDareLifecycleModel(dare);
@@ -222,6 +270,77 @@ function DareMiniCard({ dare }: { dare: RecentDare }) {
             </div>
         </motion.div>
     );
+}
+
+function getCreatorAvailability(profile: CreatorProfile | null): AvailabilitySignal {
+    const liveCount = profile?.stats?.live ?? 0;
+    const approvedCount = profile?.stats?.approved ?? 0;
+    const venueReach = profile?.businessMetrics?.venueReach ?? 0;
+    const verified = Boolean(profile?.verified);
+
+    if (liveCount > 0) {
+        return {
+            label: 'Ready now',
+            detail: `${liveCount} live ${liveCount === 1 ? 'brief' : 'briefs'} on the board`,
+            radius: 'Coarse area only',
+            dotClass: 'bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.7)]',
+            badgeClass: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+        };
+    }
+
+    if (approvedCount > 0 || venueReach > 0) {
+        return {
+            label: 'Available tonight',
+            detail: 'Invite window open for venue missions',
+            radius: venueReach > 0 ? `${venueReach} venue ${venueReach === 1 ? 'signal' : 'signals'}` : 'Area shared after invite',
+            dotClass: 'bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,0.7)]',
+            badgeClass: 'border-cyan-300/30 bg-cyan-400/10 text-cyan-100',
+        };
+    }
+
+    if (verified) {
+        return {
+            label: 'Open this week',
+            detail: 'Verified creator, availability pending',
+            radius: 'Area shared after invite',
+            dotClass: 'bg-[#f5c518] shadow-[0_0_16px_rgba(245,197,24,0.6)]',
+            badgeClass: 'border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f9e27a]',
+        };
+    }
+
+    return {
+        label: 'Building',
+        detail: 'Needs first accepted proof',
+        radius: 'No live location shown',
+        dotClass: 'bg-white/35',
+        badgeClass: 'border-white/10 bg-white/[0.04] text-white/58',
+    };
+}
+
+function getCreatorMissionSkills(profile: CreatorProfile | null): string[] {
+    const skills = new Set<string>();
+    (profile?.tags || []).forEach((tag) => {
+        const normalized = tag.toLowerCase();
+        Object.entries(TAG_SKILL_MAP).forEach(([keyword, label]) => {
+            if (normalized.includes(keyword)) skills.add(label);
+        });
+    });
+
+    if ((profile?.contribution?.uniqueVenues ?? 0) > 0) skills.add('Venue scouting');
+    if ((profile?.contribution?.firstMarks ?? 0) > 0) skills.add('First sparks');
+    if ((profile?.stats?.approved ?? 0) > 0) skills.add('Proof capture');
+    if ((profile?.stats?.acceptRate ?? 0) >= 70) skills.add('Reliable clearing');
+    if ((profile?.reviews?.count ?? 0) > 0) skills.add('Host reviewed');
+
+    BASE_MISSION_SKILLS.forEach((skill) => skills.add(skill));
+
+    return Array.from(skills).slice(0, 8);
+}
+
+function isImageMedia(type: string | null | undefined, url: string | null | undefined): boolean {
+    const normalizedType = type?.toUpperCase() ?? '';
+    if (normalizedType.includes('IMAGE')) return true;
+    return Boolean(url && /\.(avif|gif|jpe?g|png|webp)(\?|$)/i.test(url));
 }
 
 function ProfileSkeleton() {
@@ -303,10 +422,14 @@ export default function CreatorProfilePage() {
     const normalizedConnectedWallet = address?.toLowerCase() ?? null;
 
     useEffect(() => {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 3200);
+
         const load = async () => {
             try {
                 const res = await fetch(`/api/creator/${encodeURIComponent(decodedTag)}`, {
                     cache: 'no-store',
+                    signal: controller.signal,
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
@@ -336,18 +459,29 @@ export default function CreatorProfilePage() {
                         businessMetrics: { venueReach: 0, firstSparkRate: 0, averageEarnedPerWin: 0 },
                         reviews: { count: 0, averageRating: null, recent: [] },
                         contribution: { totalMarks: 0, firstMarks: 0, uniqueVenues: 0, lastMarkedAt: null, topVenue: null },
+                        gallery: [],
                         recent: [],
                     });
                 } else {
                     throw new Error(data?.error || 'Failed to load creator profile');
                 }
             } catch {
-                setError('Failed to load creator profile');
+                if (!controller.signal.aborted) {
+                    setError('Failed to load creator profile');
+                } else {
+                    setError('Creator profile is loading slowly. Try refreshing in a moment.');
+                }
             } finally {
+                window.clearTimeout(timeoutId);
                 setLoading(false);
             }
         };
         load();
+
+        return () => {
+            window.clearTimeout(timeoutId);
+            controller.abort();
+        };
     }, [decodedTag, displayTag]);
 
     useEffect(() => {
@@ -491,6 +625,21 @@ export default function CreatorProfilePage() {
     const profileEditAuthMessage = normalizedConnectedWallet
         ? 'One wallet session can authorize profile edits across BaseDare without repeated prompts.'
         : 'Connect the wallet that owns this verified creator tag to edit your bio or photo.';
+    const availability = getCreatorAvailability(profile);
+    const missionSkills = getCreatorMissionSkills(profile);
+    const coarseAreaLabel = profile?.contribution?.topVenue?.city
+        ? `${profile.contribution.topVenue.city}${profile.contribution.topVenue.country ? `, ${profile.contribution.topVenue.country}` : ''}`
+        : 'Area shared after invite';
+    const inviteMissionParams = new URLSearchParams({
+        streamer: displayTag,
+        title: `Creator mission for ${displayTag}`,
+        source: 'creator-passport',
+    });
+    const inviteMissionHref = `/create?${inviteMissionParams.toString()}`;
+    const latestDare = profile?.recent?.[0] ?? null;
+    const galleryItems = profile?.gallery ?? [];
+    const primaryGalleryItem = galleryItems[0] ?? null;
+    const secondaryGalleryItem = galleryItems[1] ?? null;
 
     const getProfileEditHeaders = async (tagId: string): Promise<Record<string, string>> => {
         if (!normalizedConnectedWallet) {
@@ -692,6 +841,25 @@ export default function CreatorProfilePage() {
                                             <CheckCircle className="w-4 h-4 text-white" />
                                         </div>
                                     )}
+                                    {isOwner ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setProfileEditorError(null);
+                                                setProfileEditorNotice(null);
+                                                setProfileAvatarFrame({
+                                                    scale: clamp(profile?.pfpScale ?? 1, 1, 2.5),
+                                                    offsetX: clamp(profile?.pfpOffsetX ?? 50, 0, 100),
+                                                    offsetY: clamp(profile?.pfpOffsetY ?? 50, 0, 100),
+                                                });
+                                                setShowProfileEditor(true);
+                                            }}
+                                            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                                        >
+                                            <Camera className="h-3.5 w-3.5" />
+                                            {avatarImg ? 'Update photo' : 'Add photo'}
+                                        </button>
+                                    ) : null}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -750,18 +918,25 @@ export default function CreatorProfilePage() {
 
                                     <div className="mt-5 flex flex-wrap gap-2">
                                         <Link
+                                            href={inviteMissionHref}
+                                            className="inline-flex min-h-[2.75rem] flex-1 items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18 sm:flex-none"
+                                        >
+                                            <Briefcase className="h-3.5 w-3.5" />
+                                            Invite to mission
+                                        </Link>
+                                        <Link
                                             href={creatorInboxHref}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16"
+                                            className="inline-flex min-h-[2.75rem] flex-1 items-center justify-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/16 sm:flex-none"
                                         >
                                             <MessageCircle className="h-3.5 w-3.5" />
-                                            Message / bid
+                                            Message
                                         </Link>
                                         <Link
                                             href={`/create?streamer=${encodeURIComponent(displayTag)}`}
-                                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
+                                            className="inline-flex min-h-[2.75rem] flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/68 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white sm:flex-none"
                                         >
                                             <Zap className="h-3.5 w-3.5" />
-                                            Dare {displayTag}
+                                            Dare
                                         </Link>
                                     </div>
 
@@ -812,6 +987,14 @@ export default function CreatorProfilePage() {
                                 <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Quick Read</p>
                                 <div className="mt-4 space-y-3">
                                     <div className={`${insetCardClass} px-4 py-3`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Availability</p>
+                                            <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
+                                        </div>
+                                        <p className="mt-1 text-lg font-black text-white">{availability.label}</p>
+                                        <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.radius}</p>
+                                    </div>
+                                    <div className={`${insetCardClass} px-4 py-3`}>
                                         <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Settled</p>
                                         <p className="mt-1 text-2xl font-black text-emerald-300">{stats?.completed ?? 0}</p>
                                     </div>
@@ -828,6 +1011,214 @@ export default function CreatorProfilePage() {
                                         <p className="mt-1 text-2xl font-black text-cyan-200">{businessMetrics?.venueReach ?? 0}</p>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={`${softCardClass} p-5 sm:p-6`}>
+                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)] ${availability.badgeClass}`}>
+                                <Radio className="h-3.5 w-3.5" />
+                                Creator Passport
+                            </div>
+                            <h2 className="mt-4 text-lg font-black text-white">Ready for verified missions</h2>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
+                                Availability, skills, proof, and venue memory in one compact page. Exact location stays private until the creator accepts an invite.
+                            </p>
+                        </div>
+                        <Link
+                            href={inviteMissionHref}
+                            className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18"
+                        >
+                            <Briefcase className="h-3.5 w-3.5" />
+                            Invite to mission
+                        </Link>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+                        <div className={`${insetCardClass} p-4`}>
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">Availability</p>
+                                        <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
+                                    </div>
+                                    <p className="mt-2 text-2xl font-black text-white">{availability.label}</p>
+                                    <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.detail}</p>
+                                </div>
+
+                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
+                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">
+                                        <MapPin className="h-3.5 w-3.5 text-cyan-200" />
+                                        Area
+                                    </div>
+                                    <p className="mt-2 text-lg font-black text-white">{coarseAreaLabel}</p>
+                                    <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.radius}</p>
+                                </div>
+
+                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
+                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">
+                                        <ShieldCheck className="h-3.5 w-3.5 text-[#f9e27a]" />
+                                        Reliability
+                                    </div>
+                                    <p className="mt-2 text-lg font-black text-white">{stats?.acceptRate ?? 0}% clear</p>
+                                    <p className="mt-1 text-[11px] leading-5 text-white/46">{stats?.approved ?? 0} accepted proofs</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-white/32 font-black">Mission skills</p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {missionSkills.map((skill) => (
+                                        <span
+                                            key={skill}
+                                            className="inline-flex min-h-[2rem] items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/68"
+                                        >
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                                {[
+                                    { label: 'Missions completed', value: stats?.completed ?? 0, tone: 'text-emerald-300' },
+                                    { label: 'Venues marked', value: profile?.contribution?.uniqueVenues ?? 0, tone: 'text-cyan-200' },
+                                    { label: 'No-shows', value: 'Not tracked yet', tone: 'text-white/72' },
+                                ].map((item) => (
+                                    <div key={item.label} className="rounded-[18px] border border-white/[0.06] bg-black/20 px-3 py-3">
+                                        <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">{item.label}</p>
+                                        <p className={`mt-1 text-sm font-black ${item.tone}`}>{item.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={`${insetCardClass} p-4`}>
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">
+                                    <Images className="h-3.5 w-3.5 text-fuchsia-200" />
+                                    Proof gallery
+                                </div>
+                                {isOwner ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setProfileEditorError(null);
+                                            setProfileEditorNotice(null);
+                                            setProfileAvatarFrame({
+                                                scale: clamp(profile?.pfpScale ?? 1, 1, 2.5),
+                                                offsetX: clamp(profile?.pfpOffsetX ?? 50, 0, 100),
+                                                offsetY: clamp(profile?.pfpOffsetY ?? 50, 0, 100),
+                                            });
+                                            setShowProfileEditor(true);
+                                        }}
+                                        className="inline-flex min-h-[2rem] items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-300/40"
+                                    >
+                                        Add photo
+                                    </button>
+                                ) : null}
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                {primaryGalleryItem ? (
+                                    <Link
+                                        href={`/map?place=${encodeURIComponent(primaryGalleryItem.venue.slug)}`}
+                                        className="relative overflow-hidden rounded-[18px] border border-white/[0.07] bg-white/[0.035] aspect-square"
+                                    >
+                                        {isImageMedia(primaryGalleryItem.type, primaryGalleryItem.url) ? (
+                                            // eslint-disable-next-line @next/next/no-img-element -- approved proof media is stored on configurable media gateways.
+                                            <img
+                                                src={primaryGalleryItem.url}
+                                                alt={primaryGalleryItem.caption || primaryGalleryItem.venue.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.25),transparent_38%),linear-gradient(135deg,rgba(88,28,135,0.7),rgba(3,7,18,0.95))] px-3 text-center text-xs font-black uppercase tracking-[0.16em] text-cyan-100">
+                                                Proof clip
+                                            </div>
+                                        )}
+                                        <span className="absolute bottom-2 left-2 rounded-full border border-black/30 bg-black/55 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/78">
+                                            {primaryGalleryItem.venue.name}
+                                        </span>
+                                    </Link>
+                                ) : (
+                                    <div className="relative overflow-hidden rounded-[18px] border border-white/[0.07] bg-white/[0.035] aspect-square">
+                                        {avatarImg ? (
+                                            // eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways.
+                                            <img
+                                                src={avatarImg}
+                                                alt={`${displayTag} profile`}
+                                                className="h-full w-full object-cover"
+                                                style={getAvatarStyle(savedAvatarFrame)}
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-700/70 to-yellow-500/50 text-3xl font-black text-white">
+                                                {plainTag.slice(0, 1).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <span className="absolute bottom-2 left-2 rounded-full border border-black/30 bg-black/55 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/78">
+                                            Profile
+                                        </span>
+                                    </div>
+                                )}
+
+                                {secondaryGalleryItem ? (
+                                    <Link
+                                        href={`/map?place=${encodeURIComponent(secondaryGalleryItem.venue.slug)}`}
+                                        className="relative overflow-hidden rounded-[18px] border border-white/[0.07] bg-white/[0.035] aspect-square"
+                                    >
+                                        {isImageMedia(secondaryGalleryItem.type, secondaryGalleryItem.url) ? (
+                                            // eslint-disable-next-line @next/next/no-img-element -- approved proof media is stored on configurable media gateways.
+                                            <img
+                                                src={secondaryGalleryItem.url}
+                                                alt={secondaryGalleryItem.caption || secondaryGalleryItem.venue.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_30%,rgba(245,197,24,0.24),transparent_38%),linear-gradient(135deg,rgba(82,26,95,0.75),rgba(3,7,18,0.95))] px-3 text-center text-xs font-black uppercase tracking-[0.16em] text-[#f9e27a]">
+                                                Proof clip
+                                            </div>
+                                        )}
+                                        <span className="absolute bottom-2 left-2 rounded-full border border-black/30 bg-black/55 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/78">
+                                            {secondaryGalleryItem.venue.name}
+                                        </span>
+                                    </Link>
+                                ) : (
+                                    <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-3 py-3">
+                                        <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">Top venue</p>
+                                        <p className="mt-2 line-clamp-3 text-sm font-black leading-5 text-white">
+                                            {profile?.contribution?.topVenue?.name || 'Venue slot open'}
+                                        </p>
+                                        <p className="mt-2 text-[11px] leading-5 text-white/45">
+                                            {profile?.contribution?.topVenue
+                                                ? `${profile.contribution.topVenue.count} verified ${profile.contribution.topVenue.count === 1 ? 'mark' : 'marks'}`
+                                                : 'First venue proof will land here.'}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-3 py-3">
+                                    <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">Latest mission</p>
+                                    <p className="mt-2 line-clamp-3 text-sm font-black leading-5 text-white">
+                                        {latestDare?.title || 'Mission slot open'}
+                                    </p>
+                                    <p className="mt-2 text-[11px] leading-5 text-white/45">
+                                        {latestDare ? `${latestDare.status.toLowerCase()} proof` : 'Invite them to start a new proof trail.'}
+                                    </p>
+                                </div>
+
+                                <Link
+                                    href={inviteMissionHref}
+                                    className="flex min-h-[7.5rem] flex-col justify-between rounded-[18px] border border-[#f5c518]/20 bg-[#f5c518]/10 px-3 py-3 transition hover:border-[#f5c518]/35"
+                                >
+                                    <p className="text-[9px] uppercase tracking-[0.18em] text-[#f9e27a]/80 font-black">Next slot</p>
+                                    <p className="text-sm font-black leading-5 text-white">Send a paid mission invite</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a]">Launch</p>
+                                </Link>
                             </div>
                         </div>
                     </div>

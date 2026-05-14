@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, UserRoundPlus } from "lucide-react";
+import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, UserRoundPlus, MapPin, Clock, Briefcase, Radio } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
@@ -69,28 +69,110 @@ function getCreatorAvatarStyle(creator: Creator): React.CSSProperties {
   };
 }
 
+function getCreatorAvailability(creator: Creator): {
+  label: string;
+  detail: string;
+  dotClass: string;
+  badgeClass: string;
+} {
+  if ((creator.stats?.live ?? 0) > 0) {
+    return {
+      label: "Ready now",
+      detail: `${creator.stats?.live ?? 0} live brief${(creator.stats?.live ?? 0) === 1 ? "" : "s"}`,
+      dotClass: "bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.7)]",
+      badgeClass: "border-emerald-300/30 bg-emerald-400/10 text-emerald-100",
+    };
+  }
+
+  if ((creator.stats?.approved ?? creator.completedDares) > 0 || (creator.businessMetrics?.venueReach ?? 0) > 0) {
+    return {
+      label: "Available tonight",
+      detail: "Good for venue missions",
+      dotClass: "bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.7)]",
+      badgeClass: "border-cyan-300/30 bg-cyan-400/10 text-cyan-100",
+    };
+  }
+
+  return {
+    label: "Open this week",
+    detail: "Invite to confirm window",
+    dotClass: "bg-[#f5c518] shadow-[0_0_14px_rgba(245,197,24,0.6)]",
+    badgeClass: "border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f9e27a]",
+  };
+}
+
+function getCreatorAreaLabel(creator: Creator): string {
+  const tags = creator.tags?.map((tag) => tag.toLowerCase()) ?? [];
+  const knownArea = tags.find((tag) =>
+    ["siargao", "sydney", "bondi", "manila", "general luna", "bali"].some((area) => tag.includes(area))
+  );
+
+  if (knownArea) return knownArea.replace(/\b\w/g, (letter) => letter.toUpperCase());
+  if ((creator.businessMetrics?.venueReach ?? 0) > 0) return "Venue circuit";
+  return "Area shared after invite";
+}
+
+function getCreatorSkillChips(creator: Creator): string[] {
+  const tags = creator.tags?.map((tag) => tag.toLowerCase()) ?? [];
+  const skills = new Set<string>();
+
+  tags.forEach((tag) => {
+    if (tag.includes("food") || tag.includes("cafe") || tag.includes("coffee")) skills.add("Food");
+    if (tag.includes("beach") || tag.includes("surf")) skills.add("Beach");
+    if (tag.includes("night") || tag.includes("bar")) skills.add("Nightlife");
+    if (tag.includes("event")) skills.add("Events");
+    if (tag.includes("fitness") || tag.includes("gym")) skills.add("Fitness");
+  });
+
+  if ((creator.businessMetrics?.venueReach ?? 0) > 0) skills.add("Venue scout");
+  if ((creator.businessMetrics?.firstMarks ?? 0) > 0) skills.add("First spark");
+  if ((creator.stats?.acceptRate ?? 0) >= 70) skills.add("Reliable");
+
+  ["Proof", "Local clips"].forEach((skill) => skills.add(skill));
+  return Array.from(skills).slice(0, 4);
+}
+
 export default function CreatorsPage() {
   const [creators, setCreators] = React.useState<Creator[]>([]);
   const [loadingCreators, setLoadingCreators] = React.useState(true);
+  const [creatorFetchFailed, setCreatorFetchFailed] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filterMode, setFilterMode] = React.useState<"all" | "verified">("all");
   const [sortMode, setSortMode] = React.useState<"trust" | "earned" | "dares" | "az">("trust");
 
   React.useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 2800);
+
     async function fetchCreators() {
       try {
-        const res = await fetch("/api/creators", { cache: "no-store" });
+        const res = await fetch("/api/creators", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
         const data = await res.json();
-        if (data.success) {
+        if (!cancelled && data.success) {
           setCreators(data.data);
+          setCreatorFetchFailed(false);
         }
       } catch (err) {
-        console.error("Failed to fetch creators", err);
+        if (!cancelled && !controller.signal.aborted) {
+          console.error("Failed to fetch creators", err);
+        }
+        if (!cancelled) setCreatorFetchFailed(true);
       } finally {
-        setLoadingCreators(false);
+        window.clearTimeout(timeoutId);
+        if (!cancelled) setLoadingCreators(false);
       }
     }
     fetchCreators();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   const STREAMER_IMAGES: Record<string, string> = {
@@ -138,6 +220,18 @@ export default function CreatorsPage() {
     });
   }, [creators, filterMode, searchQuery, sortMode]);
 
+  const availableCreators = React.useMemo(() => {
+    return [...creators]
+      .sort((a, b) => {
+        const liveDelta = (b.stats?.live ?? 0) - (a.stats?.live ?? 0);
+        if (liveDelta !== 0) return liveDelta;
+        const venueDelta = (b.businessMetrics?.venueReach ?? 0) - (a.businessMetrics?.venueReach ?? 0);
+        if (venueDelta !== 0) return venueDelta;
+        return (b.trust?.score ?? 0) - (a.trust?.score ?? 0);
+      })
+      .slice(0, 3);
+  }, [creators]);
+
   return (
     <div className="relative min-h-screen flex flex-col">
       <LiquidBackground />
@@ -174,7 +268,7 @@ export default function CreatorsPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
-                <Link href="/captains" className="flex-1">
+                <Link href="/captains?source=creators-page" className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
@@ -203,6 +297,167 @@ export default function CreatorsPage() {
                     Leaderboard
                   </motion.button>
                 </Link>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="max-w-5xl mx-auto mb-10"
+        >
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+            <div className="relative">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-100 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                    <Radio className="h-3.5 w-3.5" />
+                    Creator availability
+                  </div>
+                  <h2 className="mt-4 text-xl font-black tracking-tight text-white italic">
+                    Creators ready near a venue
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+                    Invite people by area, proof record, and skill. Exact live location stays private until a mission is accepted.
+                  </p>
+                </div>
+                <Link
+                  href="/create?source=available-creators&title=First%20Spark%20creator%20mission"
+                  className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18"
+                >
+                  <Briefcase className="h-3.5 w-3.5" />
+                  Launch mission
+                </Link>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                {loadingCreators
+                  ? [1, 2, 3].map((item) => (
+                    <div key={item} className={`h-44 animate-pulse ${insetCardClass}`} />
+                  ))
+                  : availableCreators.length > 0 ? availableCreators.map((creator) => {
+                    const plainTag = creator.tag.replace("@", "").toLowerCase();
+                    const profileAvatar = creator.pfpUrl?.trim() || null;
+                    const avatarImg = profileAvatar || STREAMER_IMAGES[plainTag];
+                    const availability = getCreatorAvailability(creator);
+                    const inviteParams = new URLSearchParams({
+                      streamer: creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`,
+                      title: `Creator mission for ${creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}`,
+                      source: "available-creators",
+                    });
+
+                    return (
+                      <div key={`ready-${creator.tag}`} className={`${insetCardClass} p-4`}>
+                        <div className="flex items-start gap-3">
+                          <Link href={`/creator/${plainTag}`} className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
+                            {profileAvatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways.
+                              <img
+                                src={profileAvatar}
+                                alt={creator.tag}
+                                className="h-full w-full object-cover"
+                                style={getCreatorAvatarStyle(creator)}
+                              />
+                            ) : avatarImg ? (
+                              <Image
+                                src={avatarImg}
+                                alt={creator.tag}
+                                fill
+                                sizes="56px"
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-yellow-500 text-xl font-black text-white">
+                                {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
+                              </div>
+                            )}
+                          </Link>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
+                              <p className="truncate text-sm font-black text-white">
+                                {creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}
+                              </p>
+                            </div>
+                            <div className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${availability.badgeClass}`}>
+                              {availability.label}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-[10px]">
+                          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.035] px-3 py-2">
+                            <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
+                              <MapPin className="h-3 w-3 text-cyan-200" />
+                              Area
+                            </div>
+                            <p className="mt-1 font-black text-white/78">{getCreatorAreaLabel(creator)}</p>
+                          </div>
+                          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.035] px-3 py-2">
+                            <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
+                              <Clock className="h-3 w-3 text-[#f9e27a]" />
+                              Record
+                            </div>
+                            <p className="mt-1 font-black text-white/78">{creator.stats?.approved ?? creator.completedDares} proofs</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {getCreatorSkillChips(creator).map((skill) => (
+                            <span key={`${creator.tag}-${skill}`} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/58">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <Link
+                            href={`/creator/${plainTag}`}
+                            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/70 transition hover:border-white/20 hover:text-white"
+                          >
+                            Passport
+                          </Link>
+                          <Link
+                            href={`/create?${inviteParams.toString()}`}
+                            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
+                          >
+                            Invite
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <div className={`${insetCardClass} p-5 md:col-span-3`}>
+                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-sm font-black text-white">
+                            {creatorFetchFailed ? "Creator rail is loading slowly." : "No creator availability signal yet."}
+                          </p>
+                          <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-white/52">
+                            The captain intake still works. Route founding creators here first, then missions can use live availability once the backend responds.
+                          </p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
+                          <Link
+                            href="/captains?source=creators-empty-state"
+                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100 transition hover:border-cyan-200/40"
+                          >
+                            Apply as Captain
+                          </Link>
+                          <button
+                            onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-center text-[10px] font-black uppercase tracking-[0.13em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
+                          >
+                            Claim tag
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -284,14 +539,26 @@ export default function CreatorsPage() {
               ) : filteredCreators.length === 0 ? (
                 <div className={`${insetCardClass} p-8 text-center`}>
                   <p className="text-gray-500 font-mono text-xs">
-                    {creators.length === 0 ? "No creators verified yet. Be the first!" : "No creators match that search yet."}
+                    {creatorFetchFailed
+                      ? "Creator API is slow right now. The captain intake and tag claim rails still work."
+                      : creators.length === 0
+                        ? "No creators verified yet. Be the first!"
+                        : "No creators match that search yet."}
                   </p>
-                  <button
-                    onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-                    className="inline-flex items-center gap-2 mt-4 rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-4 py-2 text-purple-300 text-sm font-bold tracking-wide hover:border-purple-400/35 hover:text-purple-200 transition-colors italic"
-                  >
-                    Claim your tag <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
+                    <Link
+                      href="/captains?source=creators-empty-state"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
+                    >
+                      Apply as Captain <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-purple-300 transition hover:border-purple-400/35 hover:text-purple-200"
+                    >
+                      Claim your tag <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="relative">

@@ -286,7 +286,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
                   onClick={() =>
                     setForm((current) => ({ ...current, categories: toggleCategory(current.categories, category) }))
                   }
-                  className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${
+                  className={`min-h-11 rounded-2xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-[0.1em] transition ${
                     active
                       ? 'border-cyan-300/35 bg-cyan-300/[0.12] text-cyan-100'
                       : 'border-white/10 bg-white/[0.035] text-white/42 hover:text-white'
@@ -409,7 +409,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[20px] border border-yellow-200/30 bg-[linear-gradient(180deg,#ffe66f_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.22),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-yellow-200/30 bg-[linear-gradient(180deg,#ffe66f_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.22),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Apply as captain

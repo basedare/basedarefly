@@ -28,6 +28,8 @@ import BusinessDossier from "@/components/BusinessDossier";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import RealityShift from "@/components/RealityShift";
 import MatrixRain from "@/components/MatrixRain";
+import ActiveVenueRail from "@/components/home/ActiveVenueRail";
+import ReadyCreatorsRail from "@/components/home/ReadyCreatorsRail";
 
 // === FIXED IMPORT PATH ===
 import { useIgnition } from "@/app/context/IgnitionContext";
@@ -123,18 +125,23 @@ function HomeContent() {
 
   useEffect(() => {
     let cancelled = false;
+    let controller: AbortController | null = null;
 
     const fetchDares = async () => {
+      controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller?.abort(), 2600);
       try {
-        const response = await fetch('/api/dares');
+        const response = await fetch('/api/dares', { signal: controller.signal });
         if (response.ok && !cancelled) {
           const data = await response.json();
           setDares(data);
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           console.error('Failed to fetch dares:', error);
         }
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     };
 
@@ -144,6 +151,7 @@ function HomeContent() {
 
     return () => {
       cancelled = true;
+      controller?.abort();
       window.clearTimeout(timeoutId);
     };
   }, []);
@@ -263,7 +271,7 @@ function HomeContent() {
                     prefetch={false}
                     className="font-mono text-xs md:text-sm tracking-[0.08em] text-[#F5C518] hover:text-white transition-colors"
                   >
-                    See what&apos;s happening near you →
+                    Start with nearby proof →
                   </Link>
                 </div>
               </div>
@@ -296,6 +304,10 @@ function HomeContent() {
 
           </div>
               </div>
+
+              <ActiveVenueRail />
+
+              <ReadyCreatorsRail />
 
               {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
               <TruthProtocol />

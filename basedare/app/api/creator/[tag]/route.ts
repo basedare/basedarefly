@@ -137,6 +137,20 @@ export async function GET(
                 count: number;
             } | null,
         };
+        let gallery: Array<{
+            id: string;
+            url: string;
+            type: string;
+            caption: string | null;
+            submittedAt: string;
+            venue: {
+                id: string;
+                slug: string;
+                name: string;
+                city: string | null;
+                country: string | null;
+            };
+        }> = [];
 
         try {
             const approvedMarks = await prisma.placeTag.findMany({
@@ -146,7 +160,11 @@ export async function GET(
                 },
                 orderBy: { submittedAt: 'asc' },
                 select: {
+                    id: true,
+                    caption: true,
                     firstMark: true,
+                    proofMediaUrl: true,
+                    proofType: true,
                     submittedAt: true,
                     venueId: true,
                     venue: {
@@ -191,6 +209,18 @@ export async function GET(
                 lastMarkedAt: approvedMarks.at(-1)?.submittedAt.toISOString() ?? null,
                 topVenue,
             };
+            gallery = approvedMarks
+                .filter((mark) => Boolean(mark.proofMediaUrl))
+                .slice(-6)
+                .reverse()
+                .map((mark) => ({
+                    id: mark.id,
+                    url: mark.proofMediaUrl,
+                    type: mark.proofType,
+                    caption: mark.caption,
+                    submittedAt: mark.submittedAt.toISOString(),
+                    venue: mark.venue,
+                }));
         } catch (error) {
             if (!isPlaceTagTableMissingError(error)) {
                 throw error;
@@ -291,6 +321,7 @@ export async function GET(
                     averageEarnedPerWin,
                 },
                 contribution,
+                gallery,
                 recent,
             },
         });
