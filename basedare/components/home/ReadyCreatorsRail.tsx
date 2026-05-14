@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Briefcase, CheckCircle2, MapPin, Radio, ShieldCheck, Sparkles } from 'lucide-react';
+import { buildCreatorMissionActivationHref } from '@/lib/mission-routing';
 
 type CreatorFromApi = {
   tag: string;
@@ -51,7 +52,12 @@ const fallbackCreators: ReadyCreatorCard[] = [
     skills: ['Nightlife', 'Food', 'Beach proof'],
     tone: 'gold',
     passportHref: '/captains?source=home-ready-creators',
-    inviteHref: '/captains?source=home-ready-creators',
+    inviteHref: buildCreatorMissionActivationHref({
+      creator: '@founding-captain',
+      source: 'home-ready-creators',
+      city: 'Siargao / city pilots',
+      skills: ['Nightlife', 'Food', 'Beach proof'],
+    }),
   },
   {
     key: 'venue-scouts',
@@ -62,7 +68,12 @@ const fallbackCreators: ReadyCreatorCard[] = [
     skills: ['Venue scout', 'First spark', 'QR proof'],
     tone: 'cyan',
     passportHref: '/creators',
-    inviteHref: '/map?source=ready-creators',
+    inviteHref: buildCreatorMissionActivationHref({
+      creator: '@venue-scout',
+      source: 'home-ready-creators',
+      city: 'Local radius',
+      skills: ['Venue scout', 'First spark', 'QR proof'],
+    }),
   },
   {
     key: 'proof-creators',
@@ -73,7 +84,12 @@ const fallbackCreators: ReadyCreatorCard[] = [
     skills: ['UGC', 'Fast clips', 'Check-ins'],
     tone: 'emerald',
     passportHref: '/creators',
-    inviteHref: '/create?source=home-ready-creators&mode=venue-activation',
+    inviteHref: buildCreatorMissionActivationHref({
+      creator: '@proof-creator',
+      source: 'home-ready-creators',
+      city: 'Area shared after invite',
+      skills: ['UGC', 'Fast clips', 'Check-ins'],
+    }),
   },
 ];
 
@@ -147,25 +163,27 @@ function mapCreators(creators: CreatorFromApi[]) {
       const tag = normalizeTag(creator.tag);
       const liveCount = creator.stats?.live ?? 0;
       const approved = creator.stats?.approved ?? creator.completedDares;
-      const inviteParams = new URLSearchParams({
-        streamer: tag,
-        title: `Creator mission for ${tag}`,
-        source: 'home-ready-creators',
-      });
+      const skills = getSkills(creator);
+      const area = getAreaLabel(creator);
 
       return {
         key: tag,
         name: tag,
-        area: getAreaLabel(creator),
+        area,
         availability: liveCount > 0 ? 'Ready now' : approved > 0 ? 'Available tonight' : 'Open this week',
         metric:
           (creator.businessMetrics?.venueReach ?? 0) > 0
             ? `${creator.businessMetrics?.venueReach ?? 0} venues marked`
             : `${approved} proofs accepted`,
-        skills: getSkills(creator),
+        skills,
         tone: index === 0 ? 'gold' : index === 1 ? 'cyan' : 'emerald',
         passportHref: `/creator/${plainTag(tag)}`,
-        inviteHref: `/create?${inviteParams.toString()}`,
+        inviteHref: buildCreatorMissionActivationHref({
+          creator: tag,
+          source: 'home-ready-creators',
+          city: area,
+          skills,
+        }),
       };
     });
 }

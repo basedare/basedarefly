@@ -16,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import { buildCreatorMissionActivationHref } from '@/lib/mission-routing';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 // Streamer images from existing assets
@@ -630,16 +631,23 @@ export default function CreatorProfilePage() {
     const coarseAreaLabel = profile?.contribution?.topVenue?.city
         ? `${profile.contribution.topVenue.city}${profile.contribution.topVenue.country ? `, ${profile.contribution.topVenue.country}` : ''}`
         : 'Area shared after invite';
-    const inviteMissionParams = new URLSearchParams({
-        streamer: displayTag,
-        title: `Creator mission for ${displayTag}`,
-        source: 'creator-passport',
-    });
-    const inviteMissionHref = `/create?${inviteMissionParams.toString()}`;
     const latestDare = profile?.recent?.[0] ?? null;
     const galleryItems = profile?.gallery ?? [];
     const primaryGalleryItem = galleryItems[0] ?? null;
     const secondaryGalleryItem = galleryItems[1] ?? null;
+    const inviteMissionHref = buildCreatorMissionActivationHref({
+        creator: displayTag,
+        source: 'creator-passport',
+        venueName: profile?.contribution?.topVenue?.name ?? null,
+        venueSlug: profile?.contribution?.topVenue?.slug ?? null,
+        city: coarseAreaLabel !== 'Area shared after invite' ? coarseAreaLabel : null,
+        skills: missionSkills,
+    });
+    const missionPacket = [
+        { label: 'Seed crew', value: '3 creators' },
+        { label: 'Proof stack', value: 'QR + coarse GPS + photo/clip' },
+        { label: 'Guest loop', value: 'First 25 check-ins unlock a perk' },
+    ];
 
     const getProfileEditHeaders = async (tagId: string): Promise<Record<string, string>> => {
         if (!normalizedConnectedWallet) {
@@ -1081,6 +1089,15 @@ export default function CreatorProfilePage() {
                                         </span>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                                {missionPacket.map((item) => (
+                                    <div key={item.label} className="rounded-[18px] border border-cyan-200/[0.08] bg-cyan-300/[0.035] px-3 py-3">
+                                        <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-100/48 font-black">{item.label}</p>
+                                        <p className="mt-1.5 text-xs font-black leading-5 text-white/76">{item.value}</p>
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="mt-4 grid gap-2 sm:grid-cols-3">

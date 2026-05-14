@@ -5,6 +5,7 @@ import {
   type ActiveVenueCard,
   type ActiveVenueTone,
 } from '@/lib/home-active-venues';
+import { buildVenueMissionActivationHref } from '@/lib/mission-routing';
 import { prisma } from '@/lib/prisma';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
 
@@ -74,16 +75,25 @@ function buildGuestMission(categories: string[], venueName: string) {
   };
 }
 
-function buildMissionHref(input: { slug: string; name: string; goal: 'foot_traffic' | 'ugc' | 'repeat_visits' }) {
-  const params = new URLSearchParams({
+function buildMissionHref(input: {
+  slug: string;
+  name: string;
+  area: string;
+  goal: 'foot_traffic' | 'ugc' | 'repeat_visits';
+  missionTitle: string;
+  guestMission: string;
+  perkLabel: string;
+}) {
+  return buildVenueMissionActivationHref({
     source: 'active-venues',
     venueSlug: input.slug,
     venueName: input.name,
+    city: input.area,
     goal: input.goal,
-    offer: 'first-spark',
+    missionTitle: input.missionTitle,
+    guestMission: input.guestMission,
+    perkLabel: input.perkLabel,
   });
-
-  return `/activations?${params.toString()}#activation-intake`;
 }
 
 async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
@@ -185,15 +195,19 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
               ? 'Partner ready'
               : 'Pilot-ready';
 
+    const area = [venue.city, venue.country].filter(Boolean).join(', ') || 'Local venue';
+    const missionTitle = liveMission?.title ?? guestMission.title;
+    const perkLabel = activePerk?.title ?? guestMission.perk;
+
     return {
       slug: venue.slug,
       name: venue.name,
-      area: [venue.city, venue.country].filter(Boolean).join(', ') || 'Local venue',
+      area,
       tone: getVenueTone(venue.categories, index),
       statusLabel,
-      missionTitle: liveMission?.title ?? guestMission.title,
+      missionTitle,
       guestMission: guestMission.mission,
-      perkLabel: activePerk?.title ?? guestMission.perk,
+      perkLabel,
       checkInsToday,
       proofCount,
       activityLabel: hasLiveSession ? 'QR rail live' : hasPerk ? 'Perk rail live' : 'Guest loop ready',
@@ -201,7 +215,11 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
       missionHref: buildMissionHref({
         slug: venue.slug,
         name: venue.name,
+        area,
         goal: hasLiveSession || hasPerk ? 'foot_traffic' : proofCount > 0 ? 'ugc' : 'repeat_visits',
+        missionTitle,
+        guestMission: guestMission.mission,
+        perkLabel,
       }),
     };
   });

@@ -1,3 +1,5 @@
+import { buildVenueMissionActivationHref } from '@/lib/mission-routing';
+
 export type ActiveVenueTone = 'gold' | 'cyan' | 'emerald' | 'purple';
 
 export type ActiveVenueCard = {
@@ -30,8 +32,16 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     proofCount: 2,
     activityLabel: 'Venue memory online',
     primaryHref: '/map?place=hideaway&source=active-venues',
-    missionHref:
-      '/activations?source=active-venues&venueSlug=hideaway&venueName=Hideaway&goal=repeat_visits&offer=first-spark#activation-intake',
+    missionHref: buildVenueMissionActivationHref({
+      source: 'active-venues',
+      venueSlug: 'hideaway',
+      venueName: 'Hideaway',
+      city: 'General Luna',
+      goal: 'repeat_visits',
+      missionTitle: 'First Spark night route',
+      guestMission: 'Check in tonight and unlock the crew receipt.',
+      perkLabel: 'Entry/status perk',
+    }),
   },
   {
     slug: 'siargao-beach-club',
@@ -46,8 +56,16 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     proofCount: 5,
     activityLabel: 'QR rail ready',
     primaryHref: '/map?place=siargao-beach-club&source=active-venues',
-    missionHref:
-      '/activations?source=active-venues&venueSlug=siargao-beach-club&venueName=Siargao%20Beach%20Club&goal=foot_traffic&offer=first-spark#activation-intake',
+    missionHref: buildVenueMissionActivationHref({
+      source: 'active-venues',
+      venueSlug: 'siargao-beach-club',
+      venueName: 'Siargao Beach Club',
+      city: 'General Luna',
+      goal: 'foot_traffic',
+      missionTitle: 'Creator plus guest check-in',
+      guestMission: 'First 25 check-ins unlock tonight\'s venue perk.',
+      perkLabel: 'Happy-hour unlock',
+    }),
   },
   {
     slug: 'cloud-9-boardwalk',
@@ -62,8 +80,16 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     proofCount: 1,
     activityLabel: 'Proof seed live',
     primaryHref: '/map?place=cloud-9-boardwalk&source=active-venues',
-    missionHref:
-      '/activations?source=active-venues&venueSlug=cloud-9-boardwalk&venueName=Cloud%209%20Boardwalk&goal=ugc&offer=first-spark#activation-intake',
+    missionHref: buildVenueMissionActivationHref({
+      source: 'active-venues',
+      venueSlug: 'cloud-9-boardwalk',
+      venueName: 'Cloud 9 Boardwalk',
+      city: 'Catangnan',
+      goal: 'ugc',
+      missionTitle: 'Surf proof loop',
+      guestMission: 'Scan the hidden QR and vote for the best surf proof.',
+      perkLabel: 'Local status stamp',
+    }),
   },
   {
     slug: 'the-cat-and-gun',
@@ -78,8 +104,16 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     proofCount: 1,
     activityLabel: 'Guest loop ready',
     primaryHref: '/map?place=the-cat-and-gun&source=active-venues',
-    missionHref:
-      '/activations?source=active-venues&venueSlug=the-cat-and-gun&venueName=The%20Cat%20%26%20Gun&goal=ugc&offer=first-spark#activation-intake',
+    missionHref: buildVenueMissionActivationHref({
+      source: 'active-venues',
+      venueSlug: 'the-cat-and-gun',
+      venueName: 'The Cat & Gun',
+      city: 'Catangnan',
+      goal: 'ugc',
+      missionTitle: 'Food and match-night proof',
+      guestMission: 'Vote for the best order and share a receipt card.',
+      perkLabel: 'Secret menu signal',
+    }),
   },
 ];
 

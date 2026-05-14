@@ -98,6 +98,15 @@ type ActivationsPageProps = {
     buyerType?: string;
     offer?: string;
     auditBrief?: string;
+    missionType?: string;
+    missionTitle?: string;
+    creatorSlots?: string;
+    payout?: string;
+    timeWindow?: string;
+    proofRequired?: string;
+    contentRequired?: string;
+    guestMission?: string;
+    perkLabel?: string;
   }>;
 };
 
@@ -355,6 +364,15 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               routedBuyerType={resolvedSearchParams.buyerType || null}
               routedOfferId={routedOfferId}
               routedAuditBrief={resolvedSearchParams.auditBrief || null}
+              routedMissionType={resolvedSearchParams.missionType || null}
+              routedMissionTitle={resolvedSearchParams.missionTitle || null}
+              routedCreatorSlots={resolvedSearchParams.creatorSlots || null}
+              routedPayout={resolvedSearchParams.payout || null}
+              routedTimeWindow={resolvedSearchParams.timeWindow || null}
+              routedProofRequired={resolvedSearchParams.proofRequired || null}
+              routedContentRequired={resolvedSearchParams.contentRequired || null}
+              routedGuestMission={resolvedSearchParams.guestMission || null}
+              routedPerkLabel={resolvedSearchParams.perkLabel || null}
             />
           </div>
         </section>

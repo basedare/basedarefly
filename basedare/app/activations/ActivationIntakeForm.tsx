@@ -29,6 +29,15 @@ type IntakeState = {
   routedVenueId: string;
   routedVenueSlug: string;
   routedSource: string;
+  routedMissionType: string;
+  routedMissionTitle: string;
+  routedCreatorSlots: string;
+  routedPayout: string;
+  routedTimeWindow: string;
+  routedProofRequired: string;
+  routedContentRequired: string;
+  routedGuestMission: string;
+  routedPerkLabel: string;
   offerId: '' | 'first-spark';
   brandMemory: Required<ActivationBrandMemoryInput>;
 };
@@ -51,6 +60,15 @@ const INITIAL_STATE: IntakeState = {
   routedVenueId: '',
   routedVenueSlug: '',
   routedSource: '',
+  routedMissionType: '',
+  routedMissionTitle: '',
+  routedCreatorSlots: '',
+  routedPayout: '',
+  routedTimeWindow: '',
+  routedProofRequired: '',
+  routedContentRequired: '',
+  routedGuestMission: '',
+  routedPerkLabel: '',
   offerId: '',
   brandMemory: {
     originStory: '',
@@ -97,6 +115,10 @@ const SOURCE_LABELS: Record<string, string> = {
   scout: 'Creator radar',
   'spark-audit': 'Spark audit generator',
   'venue-scout-command': 'Venue scout command',
+  'creator-passport': 'Creator passport',
+  'available-creators': 'Available creators',
+  'home-ready-creators': 'Ready creators rail',
+  'active-venues': 'Active venues',
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
@@ -128,6 +150,15 @@ type ActivationIntakeFormProps = {
   routedBuyerType?: string | null;
   routedOfferId?: string | null;
   routedAuditBrief?: string | null;
+  routedMissionType?: string | null;
+  routedMissionTitle?: string | null;
+  routedCreatorSlots?: string | null;
+  routedPayout?: string | null;
+  routedTimeWindow?: string | null;
+  routedProofRequired?: string | null;
+  routedContentRequired?: string | null;
+  routedGuestMission?: string | null;
+  routedPerkLabel?: string | null;
 };
 
 export default function ActivationIntakeForm({
@@ -143,6 +174,15 @@ export default function ActivationIntakeForm({
   routedBuyerType,
   routedOfferId,
   routedAuditBrief,
+  routedMissionType,
+  routedMissionTitle,
+  routedCreatorSlots,
+  routedPayout,
+  routedTimeWindow,
+  routedProofRequired,
+  routedContentRequired,
+  routedGuestMission,
+  routedPerkLabel,
 }: ActivationIntakeFormProps) {
   const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
   const [submitting, setSubmitting] = useState(false);
@@ -155,6 +195,8 @@ export default function ActivationIntakeForm({
     form.routedVenueId ||
     form.routedVenueSlug ||
     form.routedSource ||
+    form.routedMissionTitle ||
+    form.routedGuestMission ||
     form.offerId ||
     routedVenue ||
     routedCity ||
@@ -163,7 +205,16 @@ export default function ActivationIntakeForm({
     routedGoal ||
     routedBuyerType ||
     routedOfferId ||
-    routedAuditBrief
+    routedAuditBrief ||
+    routedMissionType ||
+    routedMissionTitle ||
+    routedCreatorSlots ||
+    routedPayout ||
+    routedTimeWindow ||
+    routedProofRequired ||
+    routedContentRequired ||
+    routedGuestMission ||
+    routedPerkLabel
   );
 
   useEffect(() => {
@@ -179,7 +230,16 @@ export default function ActivationIntakeForm({
       !routedGoal &&
       !routedBuyerType &&
       !routedOfferId &&
-      !routedAuditBrief
+      !routedAuditBrief &&
+      !routedMissionType &&
+      !routedMissionTitle &&
+      !routedCreatorSlots &&
+      !routedPayout &&
+      !routedTimeWindow &&
+      !routedProofRequired &&
+      !routedContentRequired &&
+      !routedGuestMission &&
+      !routedPerkLabel
     ) return;
 
     const normalizedCreator = routedCreator
@@ -198,6 +258,15 @@ export default function ActivationIntakeForm({
     const buyerType = isBuyerType(routedBuyerType) ? routedBuyerType : null;
     const offerId = routedOfferId === 'first-spark' ? 'first-spark' : null;
     const normalizedAuditBrief = routedAuditBrief?.trim() || null;
+    const normalizedMissionType = routedMissionType?.trim() || null;
+    const normalizedMissionTitle = routedMissionTitle?.trim() || null;
+    const normalizedCreatorSlots = routedCreatorSlots?.trim() || null;
+    const normalizedPayout = routedPayout?.trim() || null;
+    const normalizedTimeWindow = routedTimeWindow?.trim() || null;
+    const normalizedProofRequired = routedProofRequired?.trim() || null;
+    const normalizedContentRequired = routedContentRequired?.trim() || null;
+    const normalizedGuestMission = routedGuestMission?.trim() || null;
+    const normalizedPerkLabel = routedPerkLabel?.trim() || null;
     const contextKey = [
       normalizedCreator,
       normalizedVenue,
@@ -211,19 +280,20 @@ export default function ActivationIntakeForm({
       buyerType,
       offerId,
       normalizedAuditBrief,
+      normalizedMissionType,
+      normalizedMissionTitle,
+      normalizedCreatorSlots,
+      normalizedPayout,
+      normalizedTimeWindow,
+      normalizedProofRequired,
+      normalizedContentRequired,
+      normalizedGuestMission,
+      normalizedPerkLabel,
     ].filter(Boolean).join('|');
     if (routedContextRef.current === contextKey) return;
 
     routedContextRef.current = contextKey;
     setForm((current) => {
-      if (
-        normalizedCreator &&
-        current.notes.includes(normalizedCreator) &&
-        (!normalizedVenue || current.venue.includes(normalizedVenue))
-      ) {
-        return current;
-      }
-
       return {
         ...current,
         city: current.city || normalizedCity || '',
@@ -237,6 +307,15 @@ export default function ActivationIntakeForm({
         routedVenueId: normalizedVenueId ?? current.routedVenueId,
         routedVenueSlug: normalizedVenueSlug ?? current.routedVenueSlug,
         routedSource: normalizedSource ?? current.routedSource,
+        routedMissionType: normalizedMissionType ?? current.routedMissionType,
+        routedMissionTitle: normalizedMissionTitle ?? current.routedMissionTitle,
+        routedCreatorSlots: normalizedCreatorSlots ?? current.routedCreatorSlots,
+        routedPayout: normalizedPayout ?? current.routedPayout,
+        routedTimeWindow: normalizedTimeWindow ?? current.routedTimeWindow,
+        routedProofRequired: normalizedProofRequired ?? current.routedProofRequired,
+        routedContentRequired: normalizedContentRequired ?? current.routedContentRequired,
+        routedGuestMission: normalizedGuestMission ?? current.routedGuestMission,
+        routedPerkLabel: normalizedPerkLabel ?? current.routedPerkLabel,
         offerId: offerId ?? current.offerId,
         notes: [
           current.notes.trim(),
@@ -246,6 +325,15 @@ export default function ActivationIntakeForm({
           normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
           normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
           normalizedCity ? `Target city: ${normalizedCity}` : null,
+          normalizedMissionType ? `Mission type: ${normalizedMissionType}` : null,
+          normalizedMissionTitle ? `Mission title: ${normalizedMissionTitle}` : null,
+          normalizedCreatorSlots ? `Creator slots: ${normalizedCreatorSlots}` : null,
+          normalizedPayout ? `Payout: ${normalizedPayout}` : null,
+          normalizedTimeWindow ? `Time window: ${normalizedTimeWindow}` : null,
+          normalizedProofRequired ? `Proof required: ${normalizedProofRequired}` : null,
+          normalizedContentRequired ? `Content required: ${normalizedContentRequired}` : null,
+          normalizedGuestMission ? `Guest mission: ${normalizedGuestMission}` : null,
+          normalizedPerkLabel ? `Venue perk: ${normalizedPerkLabel}` : null,
           normalizedAuditBrief ? `Spark Audit:\n${normalizedAuditBrief}` : null,
           normalizedSource ? `Source: ${normalizedSource}` : 'Source: Control activation route',
         ]
@@ -266,6 +354,15 @@ export default function ActivationIntakeForm({
     routedVenueSlug,
     routedOfferId,
     routedAuditBrief,
+    routedMissionType,
+    routedMissionTitle,
+    routedCreatorSlots,
+    routedPayout,
+    routedTimeWindow,
+    routedProofRequired,
+    routedContentRequired,
+    routedGuestMission,
+    routedPerkLabel,
   ]);
 
   const trackFormStart = () => {
@@ -286,6 +383,12 @@ export default function ActivationIntakeForm({
         goal: form.goal,
         buyerType: form.buyerType,
         offerId: form.offerId || undefined,
+      },
+      metadata: {
+        missionType: form.routedMissionType || undefined,
+        missionTitle: form.routedMissionTitle || undefined,
+        creatorSlots: form.routedCreatorSlots || undefined,
+        guestMission: form.routedGuestMission || undefined,
       },
     });
   };
@@ -316,13 +419,52 @@ export default function ActivationIntakeForm({
         form.venue ? ['Target', form.venue] : null,
         form.city ? ['City', form.city] : null,
         form.routedCreator ? ['Creator route', form.routedCreator] : null,
+        form.routedMissionTitle ? ['Mission', form.routedMissionTitle] : null,
+        form.routedCreatorSlots ? ['Slots', form.routedCreatorSlots] : null,
+        form.routedGuestMission ? ['Guest loop', form.routedGuestMission] : null,
         form.routedSource ? ['Source', SOURCE_LABELS[form.routedSource] || form.routedSource] : null,
         ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
         ['Package', PACKAGE_LABELS[form.packageId]],
         ['Goal', GOAL_LABELS[form.goal]],
         form.offerId === 'first-spark' ? ['Offer', 'First Spark Pilot'] : null,
       ].filter((item): item is [string, string] => Boolean(item)),
-    [form.budgetRange, form.city, form.goal, form.offerId, form.packageId, form.routedCreator, form.routedSource, form.venue]
+    [
+      form.budgetRange,
+      form.city,
+      form.goal,
+      form.offerId,
+      form.packageId,
+      form.routedCreator,
+      form.routedCreatorSlots,
+      form.routedGuestMission,
+      form.routedMissionTitle,
+      form.routedSource,
+      form.venue,
+    ]
+  );
+
+  const missionBriefItems = useMemo(
+    () =>
+      [
+        form.routedMissionType ? ['Type', form.routedMissionType] : null,
+        form.routedCreatorSlots ? ['Creator slots', form.routedCreatorSlots] : null,
+        form.routedPayout ? ['Payout', form.routedPayout] : null,
+        form.routedTimeWindow ? ['Window', form.routedTimeWindow] : null,
+        form.routedProofRequired ? ['Proof', form.routedProofRequired] : null,
+        form.routedContentRequired ? ['Content', form.routedContentRequired] : null,
+        form.routedGuestMission ? ['Guest mission', form.routedGuestMission] : null,
+        form.routedPerkLabel ? ['Perk', form.routedPerkLabel] : null,
+      ].filter((item): item is [string, string] => Boolean(item)),
+    [
+      form.routedContentRequired,
+      form.routedCreatorSlots,
+      form.routedGuestMission,
+      form.routedMissionType,
+      form.routedPayout,
+      form.routedPerkLabel,
+      form.routedProofRequired,
+      form.routedTimeWindow,
+    ]
   );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -348,6 +490,13 @@ export default function ActivationIntakeForm({
           offerId: form.offerId || undefined,
         },
         metadata: {
+          missionType: form.routedMissionType || undefined,
+          missionTitle: form.routedMissionTitle || undefined,
+          creatorSlots: form.routedCreatorSlots || undefined,
+          payout: form.routedPayout || undefined,
+          timeWindow: form.routedTimeWindow || undefined,
+          guestMission: form.routedGuestMission || undefined,
+          perkLabel: form.routedPerkLabel || undefined,
           hasBrandMemory: Boolean(
             form.brandMemory.originStory ||
             form.brandMemory.audience ||
@@ -447,6 +596,26 @@ export default function ActivationIntakeForm({
               >
                 <span className="text-white/32">{label}:</span> {value}
               </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {missionBriefItems.length > 0 ? (
+        <div className="rounded-[26px] border border-cyan-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/72">Mission invite</p>
+          <h3 className="mt-2 text-lg font-black leading-6 text-white">
+            {form.routedMissionTitle || 'First Spark mission route'}
+          </h3>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {missionBriefItems.map(([label, value]) => (
+              <div
+                key={`${label}-${value}`}
+                className="rounded-[18px] border border-white/[0.08] bg-black/26 px-3 py-3"
+              >
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">{label}</p>
+                <p className="mt-1.5 text-xs font-bold leading-5 text-white/66">{value}</p>
+              </div>
             ))}
           </div>
         </div>

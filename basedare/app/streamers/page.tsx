@@ -9,6 +9,7 @@ import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 import { ClaimTagModule } from "@/components/ClaimTagModule";
+import { buildCreatorMissionActivationHref } from "@/lib/mission-routing";
 
 type Creator = {
   tag: string;
@@ -52,6 +53,13 @@ const insetCardClass =
 
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
+
+const launchCreatorMissionHref = buildCreatorMissionActivationHref({
+  creator: "@founding-captain",
+  source: "available-creators",
+  city: "Founding city",
+  skills: ["Venue scouting", "Proof capture", "Local clips"],
+});
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -325,7 +333,7 @@ export default function CreatorsPage() {
                   </p>
                 </div>
                 <Link
-                  href="/create?source=available-creators&title=First%20Spark%20creator%20mission"
+                  href={launchCreatorMissionHref}
                   className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18"
                 >
                   <Briefcase className="h-3.5 w-3.5" />
@@ -343,10 +351,14 @@ export default function CreatorsPage() {
                     const profileAvatar = creator.pfpUrl?.trim() || null;
                     const avatarImg = profileAvatar || STREAMER_IMAGES[plainTag];
                     const availability = getCreatorAvailability(creator);
-                    const inviteParams = new URLSearchParams({
-                      streamer: creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`,
-                      title: `Creator mission for ${creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`}`,
+                    const creatorTag = creator.tag.startsWith("@") ? creator.tag : `@${creator.tag}`;
+                    const creatorArea = getCreatorAreaLabel(creator);
+                    const creatorSkills = getCreatorSkillChips(creator);
+                    const inviteHref = buildCreatorMissionActivationHref({
+                      creator: creatorTag,
                       source: "available-creators",
+                      city: creatorArea,
+                      skills: creatorSkills,
                     });
 
                     return (
@@ -407,7 +419,7 @@ export default function CreatorsPage() {
                         </div>
 
                         <div className="mt-3 flex flex-wrap gap-1.5">
-                          {getCreatorSkillChips(creator).map((skill) => (
+                          {creatorSkills.map((skill) => (
                             <span key={`${creator.tag}-${skill}`} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/58">
                               {skill}
                             </span>
@@ -422,7 +434,7 @@ export default function CreatorsPage() {
                             Passport
                           </Link>
                           <Link
-                            href={`/create?${inviteParams.toString()}`}
+                            href={inviteHref}
                             className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
                           >
                             Invite
