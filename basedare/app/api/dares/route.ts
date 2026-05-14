@@ -4,6 +4,21 @@ import { isAddress } from 'viem';
 import { reconcileFundingDares } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 
+const PUBLIC_DARE_QUERY_TIMEOUT_MS = 900;
+const PUBLIC_DARE_FALLBACK_COOLDOWN_MS = 30_000;
+let publicDareFallbackUntil = 0;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Public dare query timed out')), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 function toPublicDare(dare: {
   id: string;
   title: string;
@@ -89,15 +104,23 @@ function toPublicDare(dare: {
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const includeAll = searchParams.get('includeAll') === 'true';
-    const includeExpired = searchParams.get('includeExpired') === 'true';
-    const onlyExpired = searchParams.get('onlyExpired') === 'true';
-    const onlyOpen = searchParams.get('onlyOpen') === 'true';
-    const userAddress = searchParams.get('userAddress');
-    const role = searchParams.get('role'); // 'staker' | 'creator' | undefined (both)
+  const { searchParams } = new URL(request.url);
+  const includeAll = searchParams.get('includeAll') === 'true';
+  const includeExpired = searchParams.get('includeExpired') === 'true';
+  const onlyExpired = searchParams.get('onlyExpired') === 'true';
+  const onlyOpen = searchParams.get('onlyOpen') === 'true';
+  const userAddress = searchParams.get('userAddress');
+  const role = searchParams.get('role'); // 'staker' | 'creator' | undefined (both)
+  const canUsePublicFallback = !includeAll && !includeExpired && !onlyExpired && !onlyOpen && !userAddress && !role;
 
+  if (canUsePublicFallback && Date.now() < publicDareFallbackUntil) {
+    const response = NextResponse.json([]);
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    response.headers.set('X-BaseDare-Data-Source', 'fallback');
+    return response;
+  }
+
+  try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     const now = new Date();
@@ -158,11 +181,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch dares from database
-    const dares = await prisma.dare.findMany({
+    const dareQuery = prisma.dare.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: 100, // Limit results for performance
     });
+    const dares = await (canUsePublicFallback
+      ? withTimeout(dareQuery, PUBLIC_DARE_QUERY_TIMEOUT_MS)
+      : dareQuery);
     const reconciledDares = await reconcileFundingDares(dares);
     const stakerAvatarMap = await getStakerAvatarMap(reconciledDares.map((dare) => dare.stakerAddress));
 
@@ -200,6 +226,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(formattedDares);
   } catch (error) {
     console.error("Database fetch error:", error);
+    if (canUsePublicFallback) {
+      publicDareFallbackUntil = Date.now() + PUBLIC_DARE_FALLBACK_COOLDOWN_MS;
+      const response = NextResponse.json([]);
+      response.headers.set('Cache-Control', 'no-store, max-age=0');
+      response.headers.set('X-BaseDare-Data-Source', 'fallback');
+      return response;
+    }
     return NextResponse.json({ error: 'Failed to fetch dares' }, { status: 500 });
   }
 }

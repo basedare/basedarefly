@@ -1,39 +1,40 @@
 ---
 type: daily_control
-date: 2026-05-13
+date: 2026-05-14
 status: ACTIVE
 owner: codex
-primary_objective: "Turn the Siargao map and venue layer into a pilot-ready growth loop."
+primary_objective: "Close the disconnected product loops and keep the venue-growth surface shippable."
 created_at: 2026-05-13
-updated_at: 2026-05-13
+updated_at: 2026-05-14
 ---
 
 # Today
 
 ## Objective
 
-Turn the current Siargao venue-map work into a repeatable acquisition loop:
+Close the work that was left fuzzy by connection drops, then keep the Siargao venue-map work moving as a repeatable acquisition loop:
 
 1. tighten the visible venue layer
-2. identify the best local pilot targets
-3. draft review-ready outreach
+2. keep public pages responsive when local DB credentials fail
+3. make venue and creator rails visible and reviewable
 4. store what we learn
 
 ## Active Context
 
-- The app is currently focused on Siargao venue density, map pin accuracy, mobile polish, push notifications, and place-memory UX.
+- The app is currently focused on Siargao venue density, map pin accuracy, mobile polish, push notifications, place-memory UX, and homepage marketplace rails.
 - Recent map corrections matter because venue trust starts with pins that feel locally correct.
 - The most useful v1 Brain work is venue acquisition, creator scouting, outreach drafts, and follow-up memory.
+- Local slow-loading checks pointed to bad local Postgres credentials plus cold Next dev compilation, not a production outage.
 
 ## Top Priorities
 
 | Rank | Priority | Owner | Status | Next action |
 | --- | --- | --- | --- | --- |
-| 1 | Build the Brain vault memory system | codex | ACTIVE | Scaffold durable Markdown memory with templates |
-| 2 | Prepare Siargao venue pilot outreach | codex | READY_FOR_REVIEW | Draft a Spark Audit invite for venue owners |
-| 3 | Create a venue lead queue from current map pins | codex | ACTIVE | Rank top targets by activation fit |
-| 4 | Preserve product learnings from map polish | codex | ACTIVE | Log city and copy insights |
-| 5 | Build a demo-safe pilot pack | codex | READY_FOR_REVIEW | Review three venue-specific Spark Audits |
+| 1 | Build the Brain vault memory system | codex | DONE | Vault, templates, control notes, and playbooks are in repo |
+| 2 | Finish homepage marketplace rails | codex | DONE | Active Venues and Ready Creators are rendered on home |
+| 3 | Reduce public page/API stalls | codex | DONE | Lazy home chunks and fast public fallbacks added |
+| 4 | Tighten map action buttons | codex | DONE | Venue action rail stretches buttons and fits labels |
+| 5 | Prepare Siargao venue pilot outreach | codex | READY_FOR_REVIEW | Review Spark Audit invite before sending |
 
 ## Safe Automatic Work
 

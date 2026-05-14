@@ -2,38 +2,43 @@
 
 import React, { Suspense, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
 import GlitchText from "@/components/GlitchText";
-import MetallicText from "@/components/MetallicText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
-import LiquidBackground from "@/components/LiquidBackground";
-import GradualBlurOverlay from "@/components/GradualBlurOverlay";
-import PeeBearConveyor from "@/components/PeeBearConveyor";
-import PeeBearOrb from "@/components/PeeBearOrb";
-import Lightning from "@/components/Lightning";
 
 // === FEATURE COMPONENTS ===
-import HeroEllipticalStream from "@/components/HeroEllipticalStream";
-import TruthProtocol from "@/components/TruthProtocol";
-import Feed from "@/components/Feed";
-import PremiumBentoGrid from "@/components/PremiumBentoGrid";
-import HallOfShame from "@/components/HallOfShame";
-import BusinessDossier from "@/components/BusinessDossier";
 // Chat removed for MVP - LiveChatOverlay was here
-import ParticleNetwork from "@/components/ParticleNetwork";
-import RealityShift from "@/components/RealityShift";
-import MatrixRain from "@/components/MatrixRain";
 import ActiveVenueRail from "@/components/home/ActiveVenueRail";
 import ReadyCreatorsRail from "@/components/home/ReadyCreatorsRail";
 
-// === FIXED IMPORT PATH ===
-import { useIgnition } from "@/app/context/IgnitionContext";
 import { useView } from "@/app/context/ViewContext";
+
+const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
+  loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
+});
+const PremiumBentoGrid = dynamic(() => import("@/components/PremiumBentoGrid"), {
+  loading: () => <div className="min-h-[24rem] w-full rounded-[28px] border border-white/10 bg-white/[0.025]" aria-hidden="true" />,
+});
+const TruthProtocol = dynamic(() => import("@/components/TruthProtocol"));
+const HallOfShame = dynamic(() => import("@/components/HallOfShame"));
+const BusinessDossier = dynamic(() => import("@/components/BusinessDossier"));
+const MetallicText = dynamic(() => import("@/components/MetallicText"), {
+  loading: () => <div className="h-full w-full" aria-hidden="true" />,
+});
+const ParticleNetwork = dynamic(() => import("@/components/ParticleNetwork"));
+const LiquidBackground = dynamic(() => import("@/components/LiquidBackground"));
+const GradualBlurOverlay = dynamic(() => import("@/components/GradualBlurOverlay"));
+const PeeBearConveyor = dynamic(() => import("@/components/PeeBearConveyor"));
+const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
+const Lightning = dynamic(() => import("@/components/Lightning"));
+const RealityShift = dynamic(() => import("@/components/RealityShift"));
+const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
 
 interface Dare {
   id: string;
@@ -55,7 +60,7 @@ function HomeContent() {
   const [dares, setDares] = useState<Dare[]>([]);
   // Chat removed for MVP
   const [dareInput, setDareInput] = useState('');
-  const [selectedStreamer, setSelectedStreamer] = useState('');
+  const [, setSelectedStreamer] = useState('');
   const [showDossier, setShowDossier] = useState(false);
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);

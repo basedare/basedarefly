@@ -11,9 +11,11 @@ import { getActiveVenuePerk } from '@/lib/venue-perks';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const ACTIVE_VENUE_QUERY_TIMEOUT_MS = 900;
+const ACTIVE_VENUE_QUERY_TIMEOUT_MS = 700;
+const ACTIVE_VENUE_FALLBACK_COOLDOWN_MS = 30_000;
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED', 'PAID', 'COMPLETED'] as const;
+let activeVenueFallbackUntil = 0;
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -206,6 +208,18 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
 }
 
 export async function GET() {
+  if (Date.now() < activeVenueFallbackUntil) {
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        venues: cloneActiveVenueFallbacks(),
+        source: 'fallback',
+      },
+    });
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    return response;
+  }
+
   try {
     const venues = await withTimeout(fetchActiveVenues(), ACTIVE_VENUE_QUERY_TIMEOUT_MS);
     const response = NextResponse.json({
@@ -219,6 +233,7 @@ export async function GET() {
     return response;
   } catch (error) {
     console.error('[ACTIVE_VENUES] Falling back:', error instanceof Error ? error.message : error);
+    activeVenueFallbackUntil = Date.now() + ACTIVE_VENUE_FALLBACK_COOLDOWN_MS;
     const response = NextResponse.json({
       success: true,
       data: {

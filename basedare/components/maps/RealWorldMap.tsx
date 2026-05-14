@@ -11125,23 +11125,53 @@ export default function RealWorldMap() {
 
         .venue-action-rail--primary,
         :global(.venue-action-rail--primary) {
+          display: grid !important;
+          width: 100% !important;
+          max-width: 100% !important;
           gap: 0.5rem !important;
-          grid-auto-rows: minmax(3.4rem, auto) !important;
+          grid-auto-rows: minmax(3.45rem, auto) !important;
+          align-items: stretch !important;
+          justify-items: stretch !important;
+          overflow: visible !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--three,
+        :global(.venue-action-rail--primary.venue-action-rail--three) {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--two,
+        :global(.venue-action-rail--primary.venue-action-rail--two) {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button) {
-          min-height: 3.4rem !important;
-          padding: 0.68rem 0.5rem 0.62rem !important;
+          container-type: inline-size;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          height: 100% !important;
+          min-height: 3.45rem !important;
+          padding: 0.68rem 0.42rem 0.62rem !important;
           letter-spacing: 0 !important;
+          overflow: hidden !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button > span) {
-          overflow: hidden !important;
+          display: inline-flex !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: visible !important;
           text-overflow: clip !important;
-          white-space: nowrap !important;
-          font-size: 0.66rem !important;
+          text-wrap: balance;
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+          font-size: clamp(0.52rem, 8cqw, 0.66rem) !important;
           letter-spacing: 0 !important;
-          line-height: 1 !important;
+          line-height: 1.02 !important;
         }
 
         @media (max-width: 520px) {
@@ -11158,7 +11188,7 @@ export default function RealWorldMap() {
 
           :global(.venue-action-rail--primary .map-primary-action-button) {
             min-height: 3.15rem !important;
-            padding: 0.62rem 0.42rem 0.56rem !important;
+            padding: 0.58rem 0.34rem 0.52rem !important;
           }
 
           :global(.venue-action-rail--primary .map-primary-action-button--venue) {
@@ -11166,7 +11196,7 @@ export default function RealWorldMap() {
           }
 
           :global(.venue-action-rail--primary .map-primary-action-button > span) {
-            font-size: 0.62rem !important;
+            font-size: clamp(0.5rem, 10cqw, 0.62rem) !important;
           }
         }
 

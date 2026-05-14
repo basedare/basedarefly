@@ -6,7 +6,7 @@ period_end: 2026-05-17
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-05-13
+updated_at: 2026-05-14
 ---
 
 # Scorecard
@@ -28,6 +28,7 @@ This scorecard tracks outcomes, not activity theater.
 | Active experiments | 2 | Siargao venue pilot loop plus demo-safe pilot |
 | Validated insights | 0 | Candidate insights logged only |
 | Follow-ups overdue | 0 | No sent outreach yet |
+| Product loops closed | 5 | Brain vault, active venues rail, ready creators rail, public API fallbacks, map action button fit |
 
 ## Quality Bar
 
