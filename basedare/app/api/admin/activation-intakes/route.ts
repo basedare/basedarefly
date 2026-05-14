@@ -385,6 +385,55 @@ function buildCreatorRecommendations(input: {
 
 type MissionIdea = ReturnType<typeof getMissionIdeas>[number];
 type CreatorRecommendation = ReturnType<typeof buildCreatorRecommendations>[number];
+type RoutedMissionPacket = {
+  missionType: string;
+  missionTitle: string;
+  creatorSlots: string;
+  payout: string;
+  timeWindow: string;
+  proofRequired: string;
+  contentRequired: string;
+  guestMission: string;
+  perkLabel: string;
+};
+
+function getRoutedMissionPacket(metadata: MetadataRecord): RoutedMissionPacket {
+  const attribution = asRecord(metadata.activationAttribution);
+
+  return {
+    missionType: stringValue(metadata.routedMissionType) || stringValue(attribution.missionType),
+    missionTitle: stringValue(metadata.routedMissionTitle) || stringValue(attribution.missionTitle),
+    creatorSlots: stringValue(metadata.routedCreatorSlots) || stringValue(attribution.creatorSlots),
+    payout: stringValue(metadata.routedPayout) || stringValue(attribution.payout),
+    timeWindow: stringValue(metadata.routedTimeWindow) || stringValue(attribution.timeWindow),
+    proofRequired: stringValue(metadata.routedProofRequired) || stringValue(attribution.proofRequired),
+    contentRequired: stringValue(metadata.routedContentRequired) || stringValue(attribution.contentRequired),
+    guestMission: stringValue(metadata.routedGuestMission) || stringValue(attribution.guestMission),
+    perkLabel: stringValue(metadata.routedPerkLabel) || stringValue(attribution.perkLabel),
+  };
+}
+
+function hasRoutedMissionPacket(packet: RoutedMissionPacket) {
+  return Object.values(packet).some(Boolean);
+}
+
+function buildRoutedMissionLines(packet: RoutedMissionPacket) {
+  const creatorLane = [
+    packet.creatorSlots ? `${packet.creatorSlots} slots` : null,
+    packet.payout,
+    packet.timeWindow,
+  ].filter(Boolean).join(' / ');
+
+  return [
+    packet.missionTitle ? `Mission: ${packet.missionTitle}` : null,
+    packet.missionType ? `Type: ${packet.missionType}` : null,
+    packet.guestMission ? `Guest loop: ${packet.guestMission}` : null,
+    packet.perkLabel ? `Perk: ${packet.perkLabel}` : null,
+    packet.proofRequired ? `Proof: ${packet.proofRequired}` : null,
+    packet.contentRequired ? `Content: ${packet.contentRequired}` : null,
+    creatorLane ? `Creator lane: ${creatorLane}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
 
 function buildSparkRoutePacket(input: {
   company: string;
@@ -399,15 +448,24 @@ function buildSparkRoutePacket(input: {
   proofLogic: string;
   repeatMetric: string;
   missionIdeas: MissionIdea[];
+  missionRoute: RoutedMissionPacket;
   creatorRecommendations: CreatorRecommendation[];
 }) {
   const target = input.venue || input.company || 'the target venue';
   const cityLine = input.city ? ` in ${input.city}` : '';
-  const missionLines = input.missionIdeas.length
-    ? input.missionIdeas
-        .slice(0, 3)
-        .map((mission, index) => `${index + 1}. ${mission.title}: ${mission.detail}`)
+  const hasMissionRoute = hasRoutedMissionPacket(input.missionRoute);
+  const routedMissionLine = input.missionRoute.missionTitle
+    ? `1. ${input.missionRoute.missionTitle}: ${input.missionRoute.guestMission || input.missionRoute.contentRequired || input.missionRoute.proofRequired || 'Run the routed BaseDare mission.'}`
+    : null;
+  const missionLines = input.missionIdeas.length || routedMissionLine
+    ? [
+        routedMissionLine,
+        ...input.missionIdeas
+          .slice(0, routedMissionLine ? 2 : 3)
+          .map((mission, index) => `${index + (routedMissionLine ? 2 : 1)}. ${mission.title}: ${mission.detail}`),
+      ].filter((line): line is string => Boolean(line))
     : ['1. Signature ritual proof: film the moment that makes this place non-interchangeable.'];
+  const missionRouteLines = buildRoutedMissionLines(input.missionRoute);
   const creatorLines = input.creatorRecommendations.length
     ? input.creatorRecommendations.slice(0, 3).map((creator, index) => {
         const reasons = creator.reasons.length ? ` (${creator.reasons.join(', ')})` : '';
@@ -434,6 +492,9 @@ function buildSparkRoutePacket(input: {
     input.offerId === 'first-spark'
       ? '- First Spark offer: venue approves the route and provides one perk; BaseDare runs setup, proof flow, and recap. If no verified proof lands, review and rerun the route.'
       : null,
+    hasMissionRoute ? '' : null,
+    hasMissionRoute ? 'Routed mission packet:' : null,
+    ...missionRouteLines.map((line) => `- ${line}`),
     '',
     'Suggested first missions:',
     ...missionLines,
@@ -501,12 +562,16 @@ function buildPaymentPacket(input: {
   paymentLink: string;
   paymentReference: string;
   missionIdeas: MissionIdea[];
+  missionRoute: RoutedMissionPacket;
   creatorRecommendations: CreatorRecommendation[];
 }) {
   const name = input.contactName || 'there';
   const target = input.venue || input.company || 'your activation';
   const firstCreator = input.creatorRecommendations[0]?.tag || 'creator shortlist pending';
   const firstMission = input.missionIdeas[0];
+  const firstMissionTitle = input.missionRoute.missionTitle || firstMission?.title;
+  const firstMissionDetail = input.missionRoute.guestMission || input.missionRoute.contentRequired || firstMission?.detail;
+  const missionRouteLines = buildRoutedMissionLines(input.missionRoute);
   const paymentLine = input.paymentLink
     ? input.paymentLink
     : '[Insert Stripe/manual invoice/USDC payment link here before sending]';
@@ -525,7 +590,8 @@ function buildPaymentPacket(input: {
     'Activation route:',
     `- Venue: ${target}`,
     `- First creator route: ${firstCreator}`,
-    `- First proof mission: ${firstMission ? `${firstMission.title} - ${firstMission.detail}` : 'final mission brief confirmed after payment'}`,
+    `- First proof mission: ${firstMissionTitle ? `${firstMissionTitle}${firstMissionDetail ? ` - ${firstMissionDetail}` : ''}` : 'final mission brief confirmed after payment'}`,
+    ...missionRouteLines.map((line) => `- ${line}`),
     '',
     'What happens after payment:',
     '1. BaseDare opens the funded venue activation inside the app.',
@@ -963,6 +1029,7 @@ function mapIntakeEvent(event: {
   const routedVenueId = stringValue(metadata.routedVenueId);
   const routedVenueSlug = stringValue(metadata.routedVenueSlug);
   const routedSource = stringValue(metadata.routedSource);
+  const missionRoute = getRoutedMissionPacket(metadata);
   const activationAttribution = asRecord(metadata.activationAttribution);
   const offerId = stringValue(metadata.offerId) || stringValue(activationAttribution.offerId);
   const assignedCreator = stringValue(operator.assignedCreator);
@@ -1008,7 +1075,7 @@ function mapIntakeEvent(event: {
     venue: assignedVenue,
     city,
     goal,
-    notes,
+    notes: [notes, ...buildRoutedMissionLines(missionRoute)].join(' '),
     amount,
   });
   const replyDraft = buildReplyDraft({
@@ -1032,6 +1099,7 @@ function mapIntakeEvent(event: {
     proofLogic,
     repeatMetric,
     missionIdeas,
+    missionRoute,
     creatorRecommendations,
   });
   const invoiceMemo = buildInvoiceMemo({
@@ -1057,6 +1125,7 @@ function mapIntakeEvent(event: {
     paymentLink,
     paymentReference,
     missionIdeas,
+    missionRoute,
     creatorRecommendations,
   });
   const activationReceipt = buildActivationReceipt({
@@ -1102,6 +1171,7 @@ function mapIntakeEvent(event: {
     website,
     notes,
     routeContext,
+    missionRoute,
     amount,
     ageHours,
     occurredAt: event.occurredAt.toISOString(),

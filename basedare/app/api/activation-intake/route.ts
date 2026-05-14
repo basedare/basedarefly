@@ -43,6 +43,15 @@ const ActivationAttributionSchema = z
     budgetRange: z.string().max(80).optional().nullable(),
     goal: z.string().max(80).optional().nullable(),
     buyerType: z.string().max(80).optional().nullable(),
+    missionType: z.string().max(80).optional().nullable(),
+    missionTitle: z.string().max(180).optional().nullable(),
+    creatorSlots: z.string().max(80).optional().nullable(),
+    payout: z.string().max(120).optional().nullable(),
+    timeWindow: z.string().max(160).optional().nullable(),
+    proofRequired: z.string().max(240).optional().nullable(),
+    contentRequired: z.string().max(260).optional().nullable(),
+    guestMission: z.string().max(260).optional().nullable(),
+    perkLabel: z.string().max(180).optional().nullable(),
     utmSource: z.string().max(120).optional().nullable(),
     utmMedium: z.string().max(120).optional().nullable(),
     utmCampaign: z.string().max(160).optional().nullable(),
@@ -71,6 +80,15 @@ const ActivationIntakeSchema = z.object({
   routedVenueId: z.string().max(120).optional().default(''),
   routedVenueSlug: z.string().max(180).optional().default(''),
   routedSource: z.string().max(80).optional().default(''),
+  routedMissionType: z.string().max(80).optional().default(''),
+  routedMissionTitle: z.string().max(180).optional().default(''),
+  routedCreatorSlots: z.string().max(80).optional().default(''),
+  routedPayout: z.string().max(120).optional().default(''),
+  routedTimeWindow: z.string().max(160).optional().default(''),
+  routedProofRequired: z.string().max(240).optional().default(''),
+  routedContentRequired: z.string().max(260).optional().default(''),
+  routedGuestMission: z.string().max(260).optional().default(''),
+  routedPerkLabel: z.string().max(180).optional().default(''),
   offerId: z.string().max(80).optional().default(''),
   funnelSessionKey: z.string().max(200).optional().default(''),
   activationAttribution: ActivationAttributionSchema,
@@ -128,6 +146,15 @@ export async function POST(request: NextRequest) {
     const routedVenueId = normalizeText(input.routedVenueId || '');
     const routedVenueSlug = normalizeText(input.routedVenueSlug || '');
     const routedSource = normalizeText(input.routedSource || '');
+    const routedMissionType = normalizeText(input.routedMissionType || '');
+    const routedMissionTitle = normalizeText(input.routedMissionTitle || '');
+    const routedCreatorSlots = normalizeText(input.routedCreatorSlots || '');
+    const routedPayout = normalizeText(input.routedPayout || '');
+    const routedTimeWindow = normalizeText(input.routedTimeWindow || '');
+    const routedProofRequired = normalizeText(input.routedProofRequired || '');
+    const routedContentRequired = normalizeText(input.routedContentRequired || '');
+    const routedGuestMission = normalizeText(input.routedGuestMission || '');
+    const routedPerkLabel = normalizeText(input.routedPerkLabel || '');
     const offerId = normalizeText(input.offerId || '');
     const funnelSessionKey = normalizeText(input.funnelSessionKey || '');
     const activationAttribution = {
@@ -139,6 +166,15 @@ export async function POST(request: NextRequest) {
       venueName: normalizeText(input.activationAttribution.venueName || ''),
       creator: normalizeText(input.activationAttribution.creator || ''),
       offerId: normalizeText(input.activationAttribution.offerId || offerId),
+      missionType: normalizeText(input.activationAttribution.missionType || routedMissionType),
+      missionTitle: normalizeText(input.activationAttribution.missionTitle || routedMissionTitle),
+      creatorSlots: normalizeText(input.activationAttribution.creatorSlots || routedCreatorSlots),
+      payout: normalizeText(input.activationAttribution.payout || routedPayout),
+      timeWindow: normalizeText(input.activationAttribution.timeWindow || routedTimeWindow),
+      proofRequired: normalizeText(input.activationAttribution.proofRequired || routedProofRequired),
+      contentRequired: normalizeText(input.activationAttribution.contentRequired || routedContentRequired),
+      guestMission: normalizeText(input.activationAttribution.guestMission || routedGuestMission),
+      perkLabel: normalizeText(input.activationAttribution.perkLabel || routedPerkLabel),
       funnelSessionKey,
     };
     const notes = input.notes.trim();
@@ -185,6 +221,15 @@ export async function POST(request: NextRequest) {
           routedVenueId,
           routedVenueSlug,
           routedSource,
+          routedMissionType,
+          routedMissionTitle,
+          routedCreatorSlots,
+          routedPayout,
+          routedTimeWindow,
+          routedProofRequired,
+          routedContentRequired,
+          routedGuestMission,
+          routedPerkLabel,
           offerId,
           funnelSessionKey,
           activationAttribution,
@@ -215,6 +260,15 @@ export async function POST(request: NextRequest) {
       routedCreator,
       routedVenueSlug,
       routedSource,
+      routedMissionType,
+      routedMissionTitle,
+      routedCreatorSlots,
+      routedPayout,
+      routedTimeWindow,
+      routedProofRequired,
+      routedContentRequired,
+      routedGuestMission,
+      routedPerkLabel,
       offerId,
       brandMemory,
       activationBrief,

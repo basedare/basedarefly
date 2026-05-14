@@ -761,6 +761,15 @@ export async function alertActivationIntake(data: {
   routedCreator?: string | null;
   routedVenueSlug?: string | null;
   routedSource?: string | null;
+  routedMissionType?: string | null;
+  routedMissionTitle?: string | null;
+  routedCreatorSlots?: string | null;
+  routedPayout?: string | null;
+  routedTimeWindow?: string | null;
+  routedProofRequired?: string | null;
+  routedContentRequired?: string | null;
+  routedGuestMission?: string | null;
+  routedPerkLabel?: string | null;
   brandMemory?: ActivationBrandMemoryInput | null;
   activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
@@ -810,6 +819,20 @@ export async function alertActivationIntake(data: {
     ?.slice(0, 3)
     .map((mission) => `• ${escapeHtml(mission.title)} - ${escapeHtml(compactText(mission.detail, 100))}`)
     .join('\n');
+  const routedLane = [
+    data.routedCreatorSlots ? `${compactText(data.routedCreatorSlots, 40)} slots` : null,
+    data.routedPayout ? compactText(data.routedPayout, 70) : null,
+    data.routedTimeWindow ? compactText(data.routedTimeWindow, 90) : null,
+  ].filter(Boolean).join(' · ');
+  const missionRoutePreview = [
+    data.routedMissionTitle ? `Mission: ${compactText(data.routedMissionTitle, 120)}` : null,
+    data.routedMissionType ? `Type: ${compactText(data.routedMissionType, 60)}` : null,
+    data.routedGuestMission ? `Guest loop: ${compactText(data.routedGuestMission, 130)}` : null,
+    data.routedPerkLabel ? `Perk: ${compactText(data.routedPerkLabel, 90)}` : null,
+    data.routedProofRequired ? `Proof: ${compactText(data.routedProofRequired, 130)}` : null,
+    data.routedContentRequired ? `Content: ${compactText(data.routedContentRequired, 130)}` : null,
+    routedLane ? `Creator lane: ${routedLane}` : null,
+  ].filter(Boolean);
 
   const message = `
 💸 <b>PAID ACTIVATION INTAKE</b>
@@ -817,6 +840,7 @@ export async function alertActivationIntake(data: {
 <b>${escapeHtml(data.company)}</b>
 ${details.join('\n')}
 ${notes ? `\nNote: ${escapeHtml(notes)}` : ''}
+${missionRoutePreview.length ? `\n<b>Mission Route</b>\n${missionRoutePreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
 ${memoryPreview.length ? `\n<b>Brand Memory</b>\n${memoryPreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
 ${activationBrief ? `\n<b>Activation Brief</b>\n${escapeHtml(compactText(activationBrief.positioningLine, 160))}` : ''}
 ${missionPreview ? `\n${missionPreview}` : ''}

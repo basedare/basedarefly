@@ -66,6 +66,17 @@ type ActivationIntake = {
     venueHref: string | null;
     mapHref: string | null;
   };
+  missionRoute: {
+    missionType: string;
+    missionTitle: string;
+    creatorSlots: string;
+    payout: string;
+    timeWindow: string;
+    proofRequired: string;
+    contentRequired: string;
+    guestMission: string;
+    perkLabel: string;
+  };
   amount: number | null;
   ageHours: number;
   occurredAt: string;
@@ -327,9 +338,56 @@ function nextActionState(value: string) {
   };
 }
 
+function hasMissionRoute(route: ActivationIntake['missionRoute']) {
+  return Object.values(route || {}).some(Boolean);
+}
+
+function buildMissionRouteMemoLines(route: ActivationIntake['missionRoute']) {
+  const creatorLane = [
+    route?.creatorSlots ? `${route.creatorSlots} slots` : null,
+    route?.payout,
+    route?.timeWindow,
+  ].filter(Boolean).join(' / ');
+
+  return [
+    route?.missionType ? `Type: ${route.missionType}` : null,
+    route?.guestMission ? `Guest loop: ${route.guestMission}` : null,
+    route?.perkLabel ? `Perk: ${route.perkLabel}` : null,
+    route?.proofRequired ? `Proof: ${route.proofRequired}` : null,
+    route?.contentRequired ? `Content: ${route.contentRequired}` : null,
+    creatorLane ? `Creator lane: ${creatorLane}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
+
+function getLaunchMissionTitle(intake: ActivationIntake, assignedVenue: string) {
+  return (
+    intake.missionRoute?.missionTitle ||
+    intake.missionIdeas[0]?.title ||
+    `Activate ${assignedVenue || intake.venue || intake.company || 'this venue'}`
+  );
+}
+
+function getLaunchMissionDetail(intake: ActivationIntake) {
+  return (
+    intake.missionRoute?.guestMission ||
+    intake.missionRoute?.contentRequired ||
+    intake.missionIdeas[0]?.detail ||
+    intake.proofLogic
+  );
+}
+
+function getLaunchProofTarget(intake: ActivationIntake) {
+  return (
+    intake.missionRoute?.proofRequired ||
+    intake.missionIdeas[0]?.proofMetric ||
+    intake.proofLogic ||
+    'Proof must show place, action, story cue, and a timestamp-worthy signal.'
+  );
+}
+
 function buildLaunchHref(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
   const venueName = assignedVenue || intake.venue || intake.company;
-  const firstMission = intake.missionIdeas[0]?.title || `Activate ${venueName || 'this venue'}`;
+  const firstMission = getLaunchMissionTitle(intake, assignedVenue);
   const params = new URLSearchParams();
   params.set('mode', 'venue-activation');
   params.set('source', 'activation-intake-launch');
@@ -347,8 +405,8 @@ function buildBrandPortalLaunchHref(intake: ActivationIntake, assignedVenue: str
     return buildLaunchHref(intake, assignedVenue, assignedCreator);
   }
 
-  const venueName = assignedVenue || intake.venue || intake.company;
-  const firstMission = intake.missionIdeas[0]?.title || `Activate ${venueName || 'this venue'}`;
+  const firstMission = getLaunchMissionTitle(intake, assignedVenue);
+  const objective = getLaunchMissionDetail(intake);
   const params = new URLSearchParams();
   params.set('venue', intake.routeContext.venueSlug);
   params.set('compose', '1');
@@ -358,16 +416,16 @@ function buildBrandPortalLaunchHref(intake: ActivationIntake, assignedVenue: str
   params.set('title', firstMission);
   if (assignedCreator) params.set('creator', assignedCreator);
   if (intake.amount) params.set('payout', String(intake.amount));
-  if (intake.proofLogic || intake.missionIdeas[0]?.detail) {
-    params.set('objective', intake.missionIdeas[0]?.detail || intake.proofLogic);
-  }
+  if (objective) params.set('objective', objective);
   return `/brands/portal?${params.toString()}`;
 }
 
 function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
   const target = assignedVenue || intake.venue || intake.company || 'Activation target';
   const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'Creator shortlist pending';
-  const mission = intake.missionIdeas[0];
+  const missionTitle = getLaunchMissionTitle(intake, assignedVenue);
+  const missionDetail = getLaunchMissionDetail(intake);
+  const missionRouteLines = buildMissionRouteMemoLines(intake.missionRoute);
 
   return [
     `BaseDare launch handoff - ${target}`,
@@ -380,10 +438,11 @@ function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string,
     `Timeline: ${intake.timelineLabel}`,
     '',
     'Launch mission:',
-    mission ? `${mission.title}: ${mission.detail}` : 'Use the venue-aware mission generator before funding.',
+    `${missionTitle}${missionDetail ? `: ${missionDetail}` : ''}`,
+    ...(missionRouteLines.length ? ['', 'Routed guest/perk loop:', ...missionRouteLines.map((line) => `- ${line}`)] : []),
     '',
     'Proof target:',
-    mission?.proofMetric || intake.proofLogic || 'Creator proof must show the place, action, story cue, and timestamp-worthy signal.',
+    getLaunchProofTarget(intake),
     '',
     'Human gates before launch:',
     '- Buyer confirmed route and budget.',
@@ -915,6 +974,11 @@ export default function ActivationIntakesPage() {
                 const actionState = nextActionState(nextActionAt || intake.nextActionAt);
                 const launchHref = buildBrandPortalLaunchHref(intake, assignedVenue, assignedCreator);
                 const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
+                const routedMissionLines = buildMissionRouteMemoLines(intake.missionRoute);
+                const hasRoutedMission = hasMissionRoute(intake.missionRoute);
+                const launchMissionTitle = getLaunchMissionTitle(intake, assignedVenue);
+                const launchMissionDetail = getLaunchMissionDetail(intake);
+                const launchProofTarget = getLaunchProofTarget(intake);
                 const canLaunch = intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED';
                 const receipt = intake.activationReceipt;
                 const isFirstSpark = intake.offerId === 'first-spark' || intake.packageId === 'pilot-drop';
@@ -1030,6 +1094,68 @@ export default function ActivationIntakesPage() {
                                 Open map pin
                               </Link>
                             ) : null}
+                          </div>
+                        ) : null}
+
+                        {hasRoutedMission ? (
+                          <div className="mt-5 rounded-[1.5rem] border border-emerald-200/14 bg-[linear-gradient(135deg,rgba(16,185,129,0.11),rgba(0,0,0,0.36)_50%,rgba(34,211,238,0.08))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/60">
+                                  Mission route
+                                </p>
+                                <h3 className="mt-2 text-lg font-black leading-6 text-white">
+                                  {intake.missionRoute.missionTitle || launchMissionTitle}
+                                </h3>
+                              </div>
+                              <span className="rounded-full border border-emerald-200/18 bg-emerald-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
+                                {intake.missionRoute.missionType || 'guest mission'}
+                              </span>
+                            </div>
+
+                            {intake.missionRoute.guestMission || launchMissionDetail ? (
+                              <p className="mt-3 text-sm font-bold leading-6 text-white/64">
+                                {intake.missionRoute.guestMission || launchMissionDetail}
+                              </p>
+                            ) : null}
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                              {[
+                                { label: 'Perk', value: intake.missionRoute.perkLabel },
+                                { label: 'Proof', value: intake.missionRoute.proofRequired },
+                                { label: 'Content', value: intake.missionRoute.contentRequired },
+                                { label: 'Window', value: intake.missionRoute.timeWindow },
+                              ].filter((item) => item.value).map((item) => (
+                                <div key={`${intake.id}-route-${item.label}`} className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/34">{item.label}</p>
+                                  <p className="mt-1 text-xs font-bold leading-5 text-white/66">{item.value}</p>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {[intake.missionRoute.creatorSlots ? `${intake.missionRoute.creatorSlots} slots` : '', intake.missionRoute.payout, intake.missionRoute.timeWindow]
+                                .filter(Boolean)
+                                .map((chip) => (
+                                  <span
+                                    key={`${intake.id}-route-chip-${chip}`}
+                                    className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/70"
+                                  >
+                                    {chip}
+                                  </span>
+                                ))}
+                              <button
+                                type="button"
+                                onClick={() => void copyText(
+                                  `${intake.id}:mission-route`,
+                                  [`Mission: ${intake.missionRoute.missionTitle || launchMissionTitle}`, ...routedMissionLines].join('\n')
+                                )}
+                                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 transition hover:bg-white/[0.08] hover:text-white"
+                              >
+                                <Clipboard className="h-3.5 w-3.5" />
+                                {copiedId === `${intake.id}:mission-route` ? 'Copied' : 'Copy route'}
+                              </button>
+                            </div>
                           </div>
                         ) : null}
 
@@ -1406,12 +1532,10 @@ export default function ActivationIntakesPage() {
                                   First funded mission
                                 </p>
                                 <p className="mt-1 text-sm font-black leading-5 text-white">
-                                  {intake.missionIdeas[0]?.title || `Activate ${assignedVenue || intake.venue || intake.company || 'this venue'}`}
+                                  {launchMissionTitle}
                                 </p>
                                 <p className="mt-1 text-xs font-bold leading-5 text-white/48">
-                                  {intake.missionIdeas[0]?.proofMetric ||
-                                    intake.proofLogic ||
-                                    'Proof must show place, action, story cue, and a timestamp-worthy signal.'}
+                                  {launchProofTarget}
                                 </p>
                               </div>
                             </div>
