@@ -5,8 +5,8 @@ import {
   type ActiveVenueCard,
   type ActiveVenueTone,
 } from '@/lib/home-active-venues';
-import { buildVenueMissionActivationHref } from '@/lib/mission-routing';
 import { prisma } from '@/lib/prisma';
+import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
 
 export const dynamic = 'force-dynamic';
@@ -45,54 +45,18 @@ function getVenueTone(categories: string[], index: number): ActiveVenueTone {
   return index % 2 === 0 ? 'purple' : 'cyan';
 }
 
-function buildGuestMission(categories: string[], venueName: string) {
-  const normalized = categories.map((category) => category.toLowerCase());
-  if (normalized.some((category) => category.includes('night') || category.includes('bar'))) {
-    return {
-      mission: 'Check in tonight and unlock the crew receipt.',
-      perk: 'Entry/status perk',
-      title: `${venueName} night check-in`,
-    };
-  }
-  if (normalized.some((category) => category.includes('surf') || category.includes('beach'))) {
-    return {
-      mission: 'Scan the hidden QR and vote for the best proof.',
-      perk: 'Local status stamp',
-      title: `${venueName} surf proof loop`,
-    };
-  }
-  if (normalized.some((category) => category.includes('food') || category.includes('cafe') || category.includes('coffee'))) {
-    return {
-      mission: 'Vote for the best order and share a receipt card.',
-      perk: 'Secret menu signal',
-      title: `${venueName} food proof`,
-    };
-  }
-  return {
-    mission: 'Check in, bring a friend, and collect the venue receipt.',
-    perk: 'Crowd unlock',
-    title: `${venueName} guest mission`,
-  };
-}
-
 function buildMissionHref(input: {
   slug: string;
   name: string;
   area: string;
-  goal: 'foot_traffic' | 'ugc' | 'repeat_visits';
-  missionTitle: string;
-  guestMission: string;
-  perkLabel: string;
+  mission: ReturnType<typeof buildVenueGuestMission>;
 }) {
-  return buildVenueMissionActivationHref({
+  return buildVenueGuestMissionActivationHref({
     source: 'active-venues',
     venueSlug: input.slug,
     venueName: input.name,
     city: input.area,
-    goal: input.goal,
-    missionTitle: input.missionTitle,
-    guestMission: input.guestMission,
-    perkLabel: input.perkLabel,
+    mission: input.mission,
   });
 }
 
@@ -132,6 +96,7 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
         take: 1,
         select: {
           id: true,
+          status: true,
           lastCheckInAt: true,
         },
       },
@@ -177,12 +142,18 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
   return venues.slice(0, 4).map((venue, index) => {
     const memory = venue.memories[0] ?? null;
     const activePerk = getActiveVenuePerk(venue.metadataJson);
-    const guestMission = buildGuestMission(venue.categories, venue.name);
     const checkInsToday = Math.max(memory?.checkInCount ?? 0, venue.checkIns.length);
     const proofCount = Math.max(memory?.proofCount ?? 0, venue.placeTags.length);
     const liveMission = venue.dares[0] ?? null;
     const hasLiveSession = venue.qrSessions.length > 0;
     const hasPerk = Boolean(activePerk);
+    const guestMission = buildVenueGuestMission({
+      venueName: venue.name,
+      categories: venue.categories,
+      activePerk,
+      liveSession: venue.qrSessions[0] ?? null,
+      hasActiveDrops: venue.dares.length > 0,
+    });
     const statusLabel = liveMission
       ? 'Live mission'
       : hasPerk
@@ -196,8 +167,8 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
               : 'Pilot-ready';
 
     const area = [venue.city, venue.country].filter(Boolean).join(', ') || 'Local venue';
-    const missionTitle = liveMission?.title ?? guestMission.title;
-    const perkLabel = activePerk?.title ?? guestMission.perk;
+    const missionTitle = liveMission?.title ?? guestMission.missionTitle;
+    const perkLabel = activePerk?.title ?? guestMission.perkLabel;
 
     return {
       slug: venue.slug,
@@ -206,7 +177,7 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
       tone: getVenueTone(venue.categories, index),
       statusLabel,
       missionTitle,
-      guestMission: guestMission.mission,
+      guestMission: guestMission.guestMission,
       perkLabel,
       checkInsToday,
       proofCount,
@@ -216,10 +187,12 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
         slug: venue.slug,
         name: venue.name,
         area,
-        goal: hasLiveSession || hasPerk ? 'foot_traffic' : proofCount > 0 ? 'ugc' : 'repeat_visits',
-        missionTitle,
-        guestMission: guestMission.mission,
-        perkLabel,
+        mission: {
+          ...guestMission,
+          missionTitle,
+          perkLabel,
+          goal: hasLiveSession || hasPerk ? 'foot_traffic' : proofCount > 0 ? 'ugc' : guestMission.goal,
+        },
       }),
     };
   });

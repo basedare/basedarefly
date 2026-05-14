@@ -1,4 +1,4 @@
-import { buildVenueMissionActivationHref } from '@/lib/mission-routing';
+import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
 
 export type ActiveVenueTone = 'gold' | 'cyan' | 'emerald' | 'purple';
 
@@ -18,7 +18,16 @@ export type ActiveVenueCard = {
   missionHref: string;
 };
 
-export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
+type ActiveVenueFallbackSeed = Omit<ActiveVenueCard, 'guestMission' | 'missionHref' | 'perkLabel'> & {
+  categories: string[];
+  goalOverride?: ReturnType<typeof buildVenueGuestMission>['goal'];
+  guestMissionOverride?: string;
+  hasActiveDrops?: boolean;
+  isLive?: boolean;
+  perkLabel?: string;
+};
+
+const ACTIVE_VENUE_FALLBACK_SEEDS: ActiveVenueFallbackSeed[] = [
   {
     slug: 'hideaway',
     name: 'Hideaway',
@@ -26,22 +35,12 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     tone: 'gold',
     statusLabel: 'Pilot-ready',
     missionTitle: 'First Spark night route',
-    guestMission: 'Check in tonight and unlock the crew receipt.',
-    perkLabel: 'Entry/status perk',
+    categories: ['nightlife', 'bar'],
     checkInsToday: 5,
     proofCount: 2,
     activityLabel: 'Venue memory online',
     primaryHref: '/map?place=hideaway&source=active-venues',
-    missionHref: buildVenueMissionActivationHref({
-      source: 'active-venues',
-      venueSlug: 'hideaway',
-      venueName: 'Hideaway',
-      city: 'General Luna',
-      goal: 'repeat_visits',
-      missionTitle: 'First Spark night route',
-      guestMission: 'Check in tonight and unlock the crew receipt.',
-      perkLabel: 'Entry/status perk',
-    }),
+    goalOverride: 'repeat_visits',
   },
   {
     slug: 'siargao-beach-club',
@@ -50,22 +49,15 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     tone: 'cyan',
     statusLabel: 'Live venue',
     missionTitle: 'Creator plus guest check-in',
-    guestMission: 'First 25 check-ins unlock tonight\'s venue perk.',
+    categories: ['beach', 'tourism'],
+    guestMissionOverride: 'First 25 check-ins unlock tonight\'s venue perk.',
     perkLabel: 'Happy-hour unlock',
     checkInsToday: 3,
     proofCount: 5,
     activityLabel: 'QR rail ready',
     primaryHref: '/map?place=siargao-beach-club&source=active-venues',
-    missionHref: buildVenueMissionActivationHref({
-      source: 'active-venues',
-      venueSlug: 'siargao-beach-club',
-      venueName: 'Siargao Beach Club',
-      city: 'General Luna',
-      goal: 'foot_traffic',
-      missionTitle: 'Creator plus guest check-in',
-      guestMission: 'First 25 check-ins unlock tonight\'s venue perk.',
-      perkLabel: 'Happy-hour unlock',
-    }),
+    goalOverride: 'foot_traffic',
+    isLive: true,
   },
   {
     slug: 'cloud-9-boardwalk',
@@ -74,22 +66,12 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     tone: 'emerald',
     statusLabel: 'First mark',
     missionTitle: 'Surf proof loop',
-    guestMission: 'Scan the hidden QR and vote for the best surf proof.',
-    perkLabel: 'Local status stamp',
+    categories: ['surf', 'beach'],
     checkInsToday: 1,
     proofCount: 1,
     activityLabel: 'Proof seed live',
     primaryHref: '/map?place=cloud-9-boardwalk&source=active-venues',
-    missionHref: buildVenueMissionActivationHref({
-      source: 'active-venues',
-      venueSlug: 'cloud-9-boardwalk',
-      venueName: 'Cloud 9 Boardwalk',
-      city: 'Catangnan',
-      goal: 'ugc',
-      missionTitle: 'Surf proof loop',
-      guestMission: 'Scan the hidden QR and vote for the best surf proof.',
-      perkLabel: 'Local status stamp',
-    }),
+    goalOverride: 'ugc',
   },
   {
     slug: 'the-cat-and-gun',
@@ -98,24 +80,63 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = [
     tone: 'purple',
     statusLabel: 'Crowd mission',
     missionTitle: 'Food and match-night proof',
-    guestMission: 'Vote for the best order and share a receipt card.',
-    perkLabel: 'Secret menu signal',
+    categories: ['food', 'bar'],
     checkInsToday: 2,
     proofCount: 1,
     activityLabel: 'Guest loop ready',
     primaryHref: '/map?place=the-cat-and-gun&source=active-venues',
-    missionHref: buildVenueMissionActivationHref({
-      source: 'active-venues',
-      venueSlug: 'the-cat-and-gun',
-      venueName: 'The Cat & Gun',
-      city: 'Catangnan',
-      goal: 'ugc',
-      missionTitle: 'Food and match-night proof',
-      guestMission: 'Vote for the best order and share a receipt card.',
-      perkLabel: 'Secret menu signal',
-    }),
+    goalOverride: 'ugc',
   },
 ];
+
+export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = ACTIVE_VENUE_FALLBACK_SEEDS.map((venue) => {
+  const mission = buildVenueGuestMission({
+    venueName: venue.name,
+    categories: venue.categories,
+    activePerk: venue.perkLabel
+      ? {
+          enabled: true,
+          title: venue.perkLabel,
+          description: null,
+          staffInstructions: null,
+          expiresInHours: 24,
+          updatedAt: null,
+        }
+      : null,
+    liveSession: venue.isLive ? { status: 'LIVE' } : null,
+    hasActiveDrops: venue.hasActiveDrops,
+  });
+  const guestMission = venue.guestMissionOverride ?? mission.guestMission;
+  const perkLabel = venue.perkLabel ?? mission.perkLabel;
+
+  return {
+    slug: venue.slug,
+    name: venue.name,
+    area: venue.area,
+    tone: venue.tone,
+    statusLabel: venue.statusLabel,
+    missionTitle: venue.missionTitle,
+    guestMission,
+    perkLabel,
+    checkInsToday: venue.checkInsToday,
+    proofCount: venue.proofCount,
+    activityLabel: venue.activityLabel,
+    primaryHref: venue.primaryHref,
+    missionHref: buildVenueGuestMissionActivationHref({
+      source: 'active-venues',
+      venueSlug: venue.slug,
+      venueName: venue.name,
+      city: venue.area,
+      mission: {
+        ...mission,
+        goal: venue.goalOverride ?? mission.goal,
+        guestMission,
+        missionTitle: venue.missionTitle,
+        perkLabel,
+      },
+    }),
+  };
+});
 
 export function cloneActiveVenueFallbacks() {
   return ACTIVE_VENUE_FALLBACKS.map((venue) => ({ ...venue }));

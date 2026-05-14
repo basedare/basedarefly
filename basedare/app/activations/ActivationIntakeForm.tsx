@@ -119,6 +119,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'available-creators': 'Available creators',
   'home-ready-creators': 'Ready creators rail',
   'active-venues': 'Active venues',
+  'venue-guest-mission': 'Venue guest mission',
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {

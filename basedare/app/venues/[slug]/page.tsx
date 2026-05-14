@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, CheckCircle2, Clock3, Flame, MapPin, ShieldCheck, Sparkles, Waves } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle2, Clock3, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -12,6 +12,7 @@ import {
   buildVenueChallengeCreateHref,
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
+import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
@@ -266,6 +267,26 @@ export default async function VenueDetailPage(
     offerId: 'first-spark',
     source: 'venue',
   });
+  const venueAreaLabel = [venue.city, venue.country].filter(Boolean).join(', ') || null;
+  const venueGuestMission = buildVenueGuestMission({
+    venueName: venue.name,
+    categories: venue.categories,
+    activePerk: venue.activePerk,
+    liveSession: venue.liveSession,
+    hasActiveDrops: venue.activeDares.length > 0,
+  });
+  const guestMissionHref = buildVenueGuestMissionActivationHref({
+    source: 'venue-guest-mission',
+    venueName: venue.name,
+    venueSlug: venue.slug,
+    city: venueAreaLabel,
+    mission: venueGuestMission,
+  });
+  const guestMissionProofSteps = [
+    venueGuestMission.proofLabel,
+    venue.activePerk ? `Unlock: ${venue.activePerk.title}` : `Perk: ${venueGuestMission.perkLabel}`,
+    venue.liveSession?.status === 'LIVE' ? 'QR rail is live' : 'Receipt-ready loop',
+  ];
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
   const venueRecapHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
   const creatorContribution = venue.creatorContribution;
@@ -524,6 +545,17 @@ export default async function VenueDetailPage(
                         First Spark
                         <Sparkles className="h-4 w-4" />
                       </SquircleLink>
+                      <SquircleLink
+                        href={guestMissionHref}
+                        label="Guest Mission"
+                        tone="teal"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
+                      >
+                        Guest Mission
+                        <Users className="h-4 w-4" />
+                      </SquircleLink>
                     </div>
                   </div>
                   <div className={`${softCardClass} hidden px-5 py-4 md:block`}>
@@ -607,6 +639,95 @@ export default async function VenueDetailPage(
                 <div className={`${insetCardClass} px-4 py-4`}>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Verified marks</p>
                   <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.14),transparent_33%),radial-gradient(circle_at_92%_18%,rgba(16,185,129,0.11),transparent_30%),radial-gradient(circle_at_70%_100%,rgba(245,197,24,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_45%,rgba(0,0,0,0.24)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
+            <div className="relative grid gap-5 lg:grid-cols-[0.92fr_1.08fr_0.76fr] lg:items-stretch">
+              <div className="flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
+                    <Users className="h-4 w-4" />
+                    Guest Mission
+                  </div>
+                  <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-white">
+                    {venueGuestMission.missionTitle}
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-white/62">
+                    {venueGuestMission.guestMission}
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[venueGuestMission.statusLabel, venueGuestMission.urgencyLabel, ...venueGuestMission.chips].slice(0, 5).map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {guestMissionProofSteps.map((step, index) => (
+                  <div key={step} className={`${insetCardClass} flex min-h-[8.25rem] flex-col px-4 py-4`}>
+                    <span className="grid h-8 w-8 place-items-center rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.08] text-sm font-black text-cyan-100">
+                      {index + 1}
+                    </span>
+                    <p className="mt-4 text-sm font-black leading-5 text-white">{step}</p>
+                    <p className="mt-2 text-xs leading-5 text-white/48">
+                      {index === 0
+                        ? 'Proof stays tied to the place.'
+                        : index === 1
+                          ? 'Access or status beats heavy discounting.'
+                          : 'Receipts make the night repeatable.'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className={`${insetCardClass} flex flex-col px-4 py-4`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">Venue perk</p>
+                    <h3 className="mt-2 text-lg font-black leading-6 text-white">{venueGuestMission.perkLabel}</h3>
+                  </div>
+                  <span className="rounded-full border border-emerald-300/18 bg-emerald-500/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100">
+                    crowd loop
+                  </span>
+                </div>
+                <p className="mt-3 flex-1 text-sm leading-6 text-white/56">
+                  {venue.activePerk?.description ??
+                    'A lightweight access or status reward gives guests a reason to scan without making the product feel like coupons.'}
+                </p>
+                <div className="mt-4 grid gap-2">
+                  <SquircleLink
+                    href={mapHref}
+                    label="Join On Map"
+                    tone="teal"
+                    fullWidth
+                    height={42}
+                    labelClassName="text-[0.7rem] tracking-[0.08em] sm:text-[0.76rem]"
+                  >
+                    Join On Map
+                    <ArrowRight className="h-4 w-4" />
+                  </SquircleLink>
+                  <SquircleLink
+                    href={guestMissionHref}
+                    label="Launch Guest Mission"
+                    tone="yellow"
+                    fullWidth
+                    height={42}
+                    labelClassName="text-[0.62rem] tracking-[0.045em] sm:text-[0.72rem] sm:tracking-[0.07em]"
+                  >
+                    Launch Guest Mission
+                    <Sparkles className="h-4 w-4" />
+                  </SquircleLink>
                 </div>
               </div>
             </div>
