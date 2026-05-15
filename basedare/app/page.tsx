@@ -14,8 +14,7 @@ import InitProtocolButton from "@/components/InitProtocolButton";
 
 // === FEATURE COMPONENTS ===
 // Chat removed for MVP - LiveChatOverlay was here
-import ActiveVenueRail from "@/components/home/ActiveVenueRail";
-import ReadyCreatorsRail from "@/components/home/ReadyCreatorsRail";
+import HomeMarketSignal from "@/components/home/HomeMarketSignal";
 
 import { useView } from "@/app/context/ViewContext";
 
@@ -310,9 +309,7 @@ function HomeContent() {
           </div>
               </div>
 
-              <ActiveVenueRail />
-
-              <ReadyCreatorsRail />
+              <HomeMarketSignal />
 
               {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
               <TruthProtocol />
