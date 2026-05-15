@@ -1,5 +1,6 @@
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+self.addEventListener('install', () => {
+  // Let the new worker wait until open tabs naturally reload or navigate.
+  // Forcing skipWaiting here made fresh deploys feel like the homepage reloaded twice.
 });
 
 self.addEventListener('activate', (event) => {
@@ -7,7 +8,7 @@ self.addEventListener('activate', (event) => {
     ? Promise.resolve()
     : caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
 
-  event.waitUntil(Promise.all([clearOldCaches, self.clients.claim()]));
+  event.waitUntil(clearOldCaches);
 });
 
 self.addEventListener('message', (event) => {
