@@ -29,8 +29,26 @@ function isRecoverableRuntimeLoadError(text: string): boolean {
     'importing a module script failed',
     'module script load',
     'dynamically imported module',
-    '/_next/static/',
   ].some((needle) => normalized.includes(needle));
+}
+
+function getFailedStaticAssetUrl(event: Event): string | null {
+  const target = event.target;
+
+  if (target instanceof HTMLScriptElement) {
+    return target.src || null;
+  }
+
+  if (target instanceof HTMLLinkElement && target.rel === 'stylesheet') {
+    return target.href || null;
+  }
+
+  return null;
+}
+
+function isRecoverableStaticAssetFailure(event: Event): boolean {
+  const failedUrl = getFailedStaticAssetUrl(event);
+  return Boolean(failedUrl?.includes('/_next/static/'));
 }
 
 function recoverFromRuntimeLoadError(reason: string) {
@@ -51,7 +69,16 @@ function recoverFromRuntimeLoadError(reason: string) {
 
 export default function AppStabilityGuard() {
   useEffect(() => {
-    const handleWindowError = (event: ErrorEvent) => {
+    const handleWindowError = (event: ErrorEvent | Event) => {
+      if (isRecoverableStaticAssetFailure(event)) {
+        recoverFromRuntimeLoadError(getFailedStaticAssetUrl(event) ?? 'next static asset failed');
+        return;
+      }
+
+      if (!('message' in event)) {
+        return;
+      }
+
       const message = [event.message, event.filename, getErrorText(event.error)]
         .filter(Boolean)
         .join(' ');
@@ -69,11 +96,11 @@ export default function AppStabilityGuard() {
       }
     };
 
-    window.addEventListener('error', handleWindowError);
+    window.addEventListener('error', handleWindowError, true);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
-      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('error', handleWindowError, true);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
