@@ -124,20 +124,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!FORCE_SIMULATION) {
-            const moneyRailConfigError = getLiveMoneyRailConfigError();
-            if (moneyRailConfigError) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        error: moneyRailConfigError,
-                        code: 'MONEY_RAILS_NOT_READY',
-                    },
-                    { status: 503 }
-                );
-            }
-        }
-
         const {
             missionMode,
             missionTag,
@@ -192,6 +178,20 @@ export async function POST(request: NextRequest) {
                 { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
                 { status: 401 }
             );
+        }
+
+        if (!FORCE_SIMULATION) {
+            const moneyRailConfigError = getLiveMoneyRailConfigError();
+            if (moneyRailConfigError) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: moneyRailConfigError,
+                        code: 'MONEY_RAILS_NOT_READY',
+                    },
+                    { status: 503 }
+                );
+            }
         }
 
         const placeContext = await resolveCanonicalBountyPlaceContext({
