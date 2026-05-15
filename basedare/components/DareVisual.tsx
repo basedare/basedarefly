@@ -24,7 +24,7 @@ export default function DareVisual({ imageUrl, streamerName, type = 'unknown' }:
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden border border-white/10 backdrop-blur-md bg-[radial-gradient(circle_at_20%_20%,rgba(124,58,237,0.22),transparent_42%),radial-gradient(circle_at_80%_20%,rgba(250,204,21,0.14),transparent_45%),linear-gradient(140deg,rgba(11,14,30,0.30),rgba(11,14,30,0.10))]">
         <img
-          src="/assets/peebear-head.png"
+          src="/assets/peebear-head.webp"
           loading="lazy"
           decoding="async"
           className="w-32 h-32 object-contain opacity-50 grayscale group-hover:grayscale-0 transition-all duration-500"

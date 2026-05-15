@@ -45,7 +45,7 @@ self.addEventListener('push', (event) => {
   const notificationId = payload.id || `push-${Date.now()}`;
   const options = {
     body: payload.body || 'A new BaseDare alert is waiting for you.',
-    icon: '/assets/basedare-logo.png',
+    icon: '/assets/basedare-icon-192.png',
     badge: '/assets/basedaresolid.png',
     tag: payload.tag || `basedare-${payload.topic || 'signal'}-${notificationId}`,
     renotify: true,

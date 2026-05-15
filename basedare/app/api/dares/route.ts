@@ -6,6 +6,7 @@ import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 
 const PUBLIC_DARE_QUERY_TIMEOUT_MS = 900;
 const PUBLIC_DARE_FALLBACK_COOLDOWN_MS = 30_000;
+const PUBLIC_DARE_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=60';
 let publicDareFallbackUntil = 0;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -194,12 +195,14 @@ export async function GET(request: NextRequest) {
 
     // If includeAll (Dashboard mode), return public-safe dare objects
     if (includeAll) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         reconciledDares.map((dare) => ({
           ...toPublicDare(dare),
           imageUrl: resolveDareImageUrl(dare, stakerAvatarMap),
         }))
       );
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
     }
 
     // Otherwise, format for the public feed (legacy format)
@@ -223,7 +226,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(formattedDares);
+    const response = NextResponse.json(formattedDares);
+    response.headers.set('Cache-Control', canUsePublicFallback ? PUBLIC_DARE_CACHE_HEADER : 'private, no-store');
+    return response;
   } catch (error) {
     console.error("Database fetch error:", error);
     if (canUsePublicFallback) {

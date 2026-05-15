@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getPushClientConfig } from '@/lib/web-push';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export async function GET() {
   const config = getPushClientConfig();
@@ -21,7 +21,7 @@ export async function GET() {
     },
     {
       headers: {
-        'Cache-Control': 'no-store',
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=1800',
       },
     }
   );

@@ -204,7 +204,7 @@ export default function FAQPage() {
                   </div>
                   <div className="absolute inset-[16%] faq-mobile-peebear">
                     <Image
-                      src="/assets/peebear-head.png"
+                      src="/assets/peebear-head.webp"
                       alt="BaseDare Bear"
                       fill
                       className="object-contain"

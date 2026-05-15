@@ -51,7 +51,7 @@ export default function Navbar() {
               <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <img
-                src="/assets/BASEDAREGOO.png"
+                src="/assets/BASEDAREGOO.webp"
                 alt="BaseDare"
                 className={`relative h-8 max-h-[32px] w-auto object-contain md:h-[56px] md:max-h-none transition-all duration-300 hover:scale-105 ${isControlMode
                   ? 'grayscale contrast-110 brightness-95'

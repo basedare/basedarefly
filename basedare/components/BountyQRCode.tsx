@@ -70,7 +70,7 @@ export default function BountyQRCode({
             bgColor="#ffffff"
             fgColor="#0a0a0a"
             imageSettings={{
-              src: '/assets/peebear-head.png',
+              src: '/assets/peebear-head.webp',
               height: size * 0.28,
               width: size * 0.28,
               excavate: true,
@@ -109,7 +109,7 @@ export default function BountyQRCode({
           bgColor="#ffffff"
           fgColor="#0a0a0a"
           imageSettings={{
-            src: '/assets/peebear-head.png',
+            src: '/assets/peebear-head.webp',
             height: size * 0.28,
             width: size * 0.28,
             excavate: true,

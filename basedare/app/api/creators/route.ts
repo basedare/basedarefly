@@ -12,6 +12,7 @@ export const revalidate = 0;
 
 const CREATOR_QUERY_TIMEOUT_MS = 1000;
 const CREATOR_FALLBACK_COOLDOWN_MS = 30_000;
+const CREATOR_CACHE_HEADER = 'public, max-age=30, stale-while-revalidate=120';
 let creatorFallbackUntil = 0;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -115,7 +116,7 @@ function fallbackResponse(tagFilter: string | undefined, warning: string) {
         source: 'fallback',
         warning,
     });
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    response.headers.set('Cache-Control', CREATOR_CACHE_HEADER);
     return response;
 }
 
@@ -316,7 +317,7 @@ export async function GET(request: NextRequest) {
             data: hydratedStreamers,
             source: 'database',
         });
-        response.headers.set('Cache-Control', 'no-store, max-age=0');
+        response.headers.set('Cache-Control', CREATOR_CACHE_HEADER);
         return response;
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : 'Failed to fetch creators';

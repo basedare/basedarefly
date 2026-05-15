@@ -46,7 +46,7 @@ export default function Footer() {
               {/* BASEDARE LOGO - Centered on mobile */}
               <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
                 <img
-                  src="/assets/BASEDAREGOO.png"
+                  src="/assets/BASEDAREGOO.webp"
                   alt="BaseDare"
                   className={`h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 transition-all duration-500 ${
                     isControlMode

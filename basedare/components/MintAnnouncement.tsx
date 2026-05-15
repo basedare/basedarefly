@@ -6,7 +6,7 @@ export default function MintAnnouncement() {
   return (
     <section className="w-full bg-[#FFD700] text-black overflow-hidden py-3 border-y-4 border-black relative z-40">
       {/* Texture Overlay */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 opacity-20 pointer-events-none [background-image:repeating-linear-gradient(45deg,rgba(0,0,0,0.18)_0_1px,transparent_1px_9px),repeating-linear-gradient(-45deg,rgba(0,0,0,0.12)_0_1px,transparent_1px_9px)]" />
       
       <div className="flex whitespace-nowrap animate-marquee">
          {/* Repeated Content for seamless loop */}
@@ -35,4 +35,3 @@ export default function MintAnnouncement() {
     </section>
   );
 }
-

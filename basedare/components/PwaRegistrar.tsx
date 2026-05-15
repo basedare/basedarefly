@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { getClientPerformanceHints, runAfterFirstInteraction, runAfterPageIdle } from '@/lib/client-performance';
 
 const SW_RELOAD_KEY = 'basedare:sw-controller-reload-at';
 const SW_RELOAD_COOLDOWN_MS = 30_000;
@@ -29,7 +30,12 @@ export default function PwaRegistrar() {
       window.location.reload();
     };
 
+    let started = false;
+
     const register = async () => {
+      if (started) return;
+      started = true;
+
       try {
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
@@ -61,9 +67,19 @@ export default function PwaRegistrar() {
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-    void register();
+    const hints = getClientPerformanceHints();
+    const cancelInteraction = runAfterFirstInteraction(() => {
+      void register();
+    });
+    const cancelIdle = hints.saveData
+      ? () => {}
+      : runAfterPageIdle(() => {
+          void register();
+        }, hints.isMobileViewport ? 7000 : 3500);
 
     return () => {
+      cancelInteraction();
+      cancelIdle();
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);

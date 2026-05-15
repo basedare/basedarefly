@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { shouldPreferLightweightClient } from '@/lib/client-performance';
 
 interface LightningProps {
   hue?: number;
@@ -16,18 +17,80 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (shouldPreferLightweightClient()) return;
+
+    let animationId: number | null = null;
+    let disposed = false;
+    let gl: WebGLRenderingContext | null = null;
+    let vertexShader: WebGLShader | null = null;
+    let fragmentShader: WebGLShader | null = null;
+    let program: WebGLProgram | null = null;
+    let vertexBuffer: WebGLBuffer | null = null;
 
     const resizeCanvas = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const width = Math.max(1, Math.floor(canvas.clientWidth * pixelRatio));
+      const height = Math.max(1, Math.floor(canvas.clientHeight * pixelRatio));
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    const gl = canvas.getContext('webgl');
+    const cleanup = () => {
+      disposed = true;
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+      }
+
+      if (!gl) return;
+
+      try {
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        if (vertexBuffer) {
+          gl.deleteBuffer(vertexBuffer);
+        }
+        if (program) {
+          if (vertexShader) {
+            gl.detachShader(program, vertexShader);
+          }
+          if (fragmentShader) {
+            gl.detachShader(program, fragmentShader);
+          }
+          gl.deleteProgram(program);
+        }
+        if (vertexShader) {
+          gl.deleteShader(vertexShader);
+        }
+        if (fragmentShader) {
+          gl.deleteShader(fragmentShader);
+        }
+        gl.useProgram(null);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
+      } catch (error) {
+        console.warn('[Lightning] WebGL cleanup failed', error);
+      } finally {
+        canvas.width = 1;
+        canvas.height = 1;
+      }
+    };
+
+    gl = canvas.getContext('webgl', {
+      alpha: true,
+      antialias: false,
+      depth: false,
+      failIfMajorPerformanceCaveat: true,
+      powerPreference: 'low-power',
+      preserveDrawingBuffer: false,
+      stencil: false,
+    });
     if (!gl) {
-      console.error('WebGL not supported');
-      return;
+      cleanup();
+      return undefined;
     }
 
     const vertexShaderSource = `
@@ -130,27 +193,42 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
       return shader;
     };
 
-    const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
-    const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
-    if (!vertexShader || !fragmentShader) return;
+    vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+    fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+    if (!vertexShader || !fragmentShader) {
+      cleanup();
+      return undefined;
+    }
 
-    const program = gl.createProgram();
-    if (!program) return;
+    program = gl.createProgram();
+    if (!program) {
+      cleanup();
+      return undefined;
+    }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Program linking error:', gl.getProgramInfoLog(program));
-      return;
+      cleanup();
+      return undefined;
     }
     gl.useProgram(program);
 
     const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
-    const vertexBuffer = gl.createBuffer();
+    vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer) {
+      cleanup();
+      return undefined;
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
     const aPosition = gl.getAttribLocation(program, 'aPosition');
+    if (aPosition < 0) {
+      cleanup();
+      return undefined;
+    }
     gl.enableVertexAttribArray(aPosition);
     gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 
@@ -163,9 +241,9 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     const uSizeLocation = gl.getUniformLocation(program, 'uSize');
 
     const startTime = performance.now();
-    let animationId: number;
 
     const render = () => {
+      if (disposed || !gl) return;
       resizeCanvas();
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);
@@ -181,10 +259,7 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     };
     animationId = requestAnimationFrame(render);
 
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(animationId);
-    };
+    return cleanup;
   }, [hue, xOffset, speed, intensity, size]);
 
   return (

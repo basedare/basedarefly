@@ -14,6 +14,7 @@ export const revalidate = 0;
 
 const ACTIVE_VENUE_QUERY_TIMEOUT_MS = 700;
 const ACTIVE_VENUE_FALLBACK_COOLDOWN_MS = 30_000;
+const ACTIVE_VENUE_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=90';
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED', 'PAID', 'COMPLETED'] as const;
 let activeVenueFallbackUntil = 0;
@@ -207,7 +208,7 @@ export async function GET() {
         source: 'fallback',
       },
     });
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    response.headers.set('Cache-Control', ACTIVE_VENUE_CACHE_HEADER);
     return response;
   }
 
@@ -220,7 +221,7 @@ export async function GET() {
         source: venues.length > 0 ? 'database' : 'fallback',
       },
     });
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    response.headers.set('Cache-Control', ACTIVE_VENUE_CACHE_HEADER);
     return response;
   } catch (error) {
     console.error('[ACTIVE_VENUES] Falling back:', error instanceof Error ? error.message : error);
@@ -232,7 +233,7 @@ export async function GET() {
         source: 'fallback',
       },
     });
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    response.headers.set('Cache-Control', ACTIVE_VENUE_CACHE_HEADER);
     return response;
   }
 }

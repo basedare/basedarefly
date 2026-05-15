@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import ProtocolLoader from './ProtocolLoader';
+import { getClientPerformanceHints, shouldPreferLightweightClient } from '@/lib/client-performance';
 
 let hasProtocolLoadedInMemory = false;
-const LOADER_FAILSAFE_MS = 4500;
+const LOADER_FAILSAFE_MS = 1800;
 
 function shouldShowProtocolLoader() {
   if (typeof window === 'undefined') {
@@ -12,6 +13,11 @@ function shouldShowProtocolLoader() {
   }
 
   if (hasProtocolLoadedInMemory) {
+    return false;
+  }
+
+  const hints = getClientPerformanceHints();
+  if (hints.isMobileViewport || shouldPreferLightweightClient()) {
     return false;
   }
 

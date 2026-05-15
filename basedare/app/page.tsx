@@ -12,11 +12,8 @@ import GlitchText from "@/components/GlitchText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 
-// === FEATURE COMPONENTS ===
-// Chat removed for MVP - LiveChatOverlay was here
-import HomeMarketSignal from "@/components/home/HomeMarketSignal";
-
 import { useView } from "@/app/context/ViewContext";
+import { getClientPerformanceHints, runAfterPageIdle } from "@/lib/client-performance";
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -38,6 +35,9 @@ const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
 const Lightning = dynamic(() => import("@/components/Lightning"));
 const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
+const HomeMarketSignal = dynamic(() => import("@/components/home/HomeMarketSignal"), {
+  loading: () => null,
+});
 
 interface Dare {
   id: string;
@@ -65,10 +65,18 @@ function HomeContent() {
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
   const [isLightningRoar, setIsLightningRoar] = useState(false);
   const [showViewToggle, setShowViewToggle] = useState(false);
+  const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowViewToggle(true), 320);
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    const hints = getClientPerformanceHints();
+    return runAfterPageIdle(() => {
+      setShowBelowFoldSections(true);
+    }, hints.isMobileViewport ? 2800 : 1200);
   }, []);
 
   // Custom view setter that triggers transitions
@@ -284,7 +292,7 @@ function HomeContent() {
                 <div className="relative w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
                   <div className="pointer-events-none absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10">
                     <img
-                      src="/assets/honey-drip.png"
+                      src="/assets/honey-drip.webp"
                       alt=""
                       width={184}
                       height={98}
@@ -309,14 +317,18 @@ function HomeContent() {
           </div>
               </div>
 
-              <HomeMarketSignal />
+              {showBelowFoldSections ? (
+                <>
+                  <HomeMarketSignal />
 
-              {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
-              <TruthProtocol />
+                  {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
+                  <TruthProtocol />
 
-              <div className="w-full border-t border-white/5 bg-black/50">
-                  <HallOfShame />
-              </div>
+                  <div className="w-full border-t border-white/5 bg-black/50">
+                      <HallOfShame />
+                  </div>
+                </>
+              ) : null}
             </div>
           </motion.div>
         )}

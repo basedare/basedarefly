@@ -13,7 +13,7 @@ type ProfileCardProps = {
 };
 
 const ProfileCard = ({
-  avatarUrl = '/assets/peebear-head.png',
+  avatarUrl = '/assets/peebear-head.webp',
   logoUrl = '/assets/basedaresolid.png',
   name = 'MANAGER',
   title = 'Chief Honey Officer',

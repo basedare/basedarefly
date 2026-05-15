@@ -13,6 +13,7 @@ export function triggerHaptic(pattern: HapticPattern = 'selection') {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
   if (!('vibrate' in navigator)) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
 
   try {
     navigator.vibrate(PATTERNS[pattern]);

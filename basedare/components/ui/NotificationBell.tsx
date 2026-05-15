@@ -14,6 +14,7 @@ import {
     PUSH_TOPIC_LABELS,
     useWalletPushSubscription,
 } from '@/hooks/useWalletPushSubscription';
+import { runAfterPageIdle } from '@/lib/client-performance';
 
 interface Notification {
     id: string;
@@ -86,6 +87,8 @@ export function NotificationBell() {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const previousAddressRef = useRef<string | null>(null);
+    const idleFetchedAddressRef = useRef<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
 
@@ -114,7 +117,7 @@ export function NotificationBell() {
         togglePushTopic,
         updateNearbyRadius,
         vapidPublicKey,
-    } = useWalletPushSubscription();
+    } = useWalletPushSubscription({ enabled: isOpen });
     const pushCanRegister = Boolean(vapidPublicKey && pushClientConfigured);
     const pushCanDeliver = Boolean(pushDeliveryConfigured && pushConfigured);
     const pushDeliveryPending = pushCanRegister && !pushCanDeliver;
@@ -218,31 +221,52 @@ export function NotificationBell() {
         }
     }, [address, getWalletAuthHeaders]);
 
-    // Polling every 30s
+    // Keep the root shell quiet: load the badge after idle, then hydrate the
+    // heavier action center and inbox only when the bell opens.
     useEffect(() => {
-        if (address) {
-            void fetchNotifications(false);
-            void fetchActionCenter();
-            void fetchInboxSummary(false);
-            const intervalId = setInterval(() => {
-                void fetchNotifications(false);
-                void fetchActionCenter();
-                void fetchInboxSummary(false);
-            }, 30000);
-            return () => clearInterval(intervalId);
-        } else {
+        if (!address) {
+            previousAddressRef.current = null;
+            idleFetchedAddressRef.current = null;
+            setNotifications([]);
+            setActionItems([]);
+            setActionSummary(null);
+            setInboxSummary(null);
+            return undefined;
+        }
+
+        if (previousAddressRef.current !== address) {
+            previousAddressRef.current = address;
+            idleFetchedAddressRef.current = null;
             setNotifications([]);
             setActionItems([]);
             setActionSummary(null);
             setInboxSummary(null);
         }
-    }, [address, fetchActionCenter, fetchInboxSummary, fetchNotifications]);
+
+        return runAfterPageIdle(() => {
+            if (idleFetchedAddressRef.current === address) return;
+            idleFetchedAddressRef.current = address;
+            void fetchNotifications(false);
+        }, 2600);
+    }, [address, fetchNotifications]);
 
     useEffect(() => {
         if (!isOpen || !address) return;
         void fetchNotifications(false);
         void fetchActionCenter();
         void fetchInboxSummary(false);
+    }, [address, fetchActionCenter, fetchInboxSummary, fetchNotifications, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !address) return undefined;
+
+        const intervalId = window.setInterval(() => {
+            void fetchNotifications(false);
+            void fetchActionCenter();
+            void fetchInboxSummary(false);
+        }, 60000);
+
+        return () => window.clearInterval(intervalId);
     }, [address, fetchActionCenter, fetchInboxSummary, fetchNotifications, isOpen]);
 
     // Click outside to close

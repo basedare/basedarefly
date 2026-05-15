@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getNearbyVenues } from '@/lib/venues';
+import { encodeGeohash } from '@/lib/geo';
 
 const NearbyVenueQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
@@ -8,8 +9,41 @@ const NearbyVenueQuerySchema = z.object({
   radiusMeters: z.coerce.number().min(100).max(25000).default(3000),
   limit: z.coerce.number().min(1).max(30).default(12),
 });
+const NEARBY_VENUES_TIMEOUT_MS = 1200;
+const NEARBY_VENUES_CACHE_HEADER = 'public, max-age=15, stale-while-revalidate=60';
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function nearbyVenuesFallback(queryGeohash: string | null, message: string) {
+  const response = NextResponse.json({
+    success: true,
+    data: {
+      venues: [],
+      count: 0,
+      queryLocation: {
+        geohash: queryGeohash,
+      },
+    },
+    source: 'fallback',
+    warning: message,
+  });
+  response.headers.set('Cache-Control', NEARBY_VENUES_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', 'fallback');
+  return response;
+}
 
 export async function GET(request: NextRequest) {
+  let fallbackGeohash: string | null = null;
+
   try {
     const { searchParams } = new URL(request.url);
     const query = NearbyVenueQuerySchema.safeParse({
@@ -33,9 +67,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = await getNearbyVenues(query.data);
+    fallbackGeohash = encodeGeohash(
+      query.data.lat,
+      query.data.lng,
+      query.data.radiusMeters > 5000 ? 5 : 6
+    );
 
-    return NextResponse.json({
+    const result = await withTimeout(
+      getNearbyVenues(query.data),
+      NEARBY_VENUES_TIMEOUT_MS,
+      'Nearby venues query timed out'
+    );
+
+    const response = NextResponse.json({
       success: true,
       data: {
         venues: result.venues,
@@ -45,12 +89,12 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    response.headers.set('Cache-Control', NEARBY_VENUES_CACHE_HEADER);
+    response.headers.set('X-BaseDare-Data-Source', 'database');
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[VENUES_NEARBY] Query failed:', message);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch nearby venues' },
-      { status: 500 }
-    );
+    return nearbyVenuesFallback(fallbackGeohash, 'Nearby venues are temporarily warming up.');
   }
 }

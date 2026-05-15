@@ -71,7 +71,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
               <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <img
-                src="/assets/BASEDAREGOO.png"
+                src="/assets/BASEDAREGOO.webp"
                 alt="BASEDARE"
                 className="relative h-8 w-auto object-contain transition-all duration-300 hover:scale-105"
                 style={{

@@ -174,7 +174,7 @@ export default function WaitlistClient({
               <div className="relative hidden shrink-0 sm:block">
                 <div className="absolute -inset-5 rounded-full bg-purple-500/20 blur-2xl" />
                 <img
-                  src="/assets/peebear-head.png"
+                  src="/assets/peebear-head.webp"
                   alt="BaseDare Signal Bear"
                   className="vault-peebear relative z-10 h-24 w-24 object-contain md:h-32 md:w-32"
                 />
@@ -184,7 +184,7 @@ export default function WaitlistClient({
             <div className="relative mt-8 max-w-2xl space-y-5">
               <div className="sm:hidden">
                 <img
-                  src="/assets/peebear-head.png"
+                  src="/assets/peebear-head.webp"
                   alt="BaseDare Signal Bear"
                   className="vault-peebear mx-auto h-24 w-24 object-contain"
                 />

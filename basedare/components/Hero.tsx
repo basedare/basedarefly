@@ -16,7 +16,7 @@ export default function Hero() {
             <div className="absolute inset-0 bg-[#FFD700] rounded-full blur-[50px] opacity-20 animate-pulse" />
             {/* Standard img tag is more stable for simple assets than Next/Image with complex props */}
             <img 
-              src="/assets/peebear-head.png" 
+              src="/assets/peebear-head.webp" 
               alt="Peebear" 
               className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
             />

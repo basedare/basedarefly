@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { getClientPerformanceHints, runAfterPageIdle, shouldPreferLightweightClient } from '@/lib/client-performance';
 
 // Lazy load Lightning to avoid SSR issues with WebGL
 const Lightning = dynamic(() => import('./Lightning'), { ssr: false });
+const ENABLE_PERIODIC_MOBILE_LIGHTNING = process.env.NEXT_PUBLIC_ENABLE_MOBILE_LIGHTNING === 'true';
 
 /**
  * MobileLightningFlash - Periodic lightning effect for mobile pages
@@ -18,6 +20,7 @@ export default function MobileLightningFlash() {
   const pathname = usePathname();
   const [isFlashing, setIsFlashing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [canFlash, setCanFlash] = useState(false);
 
   // Skip on home page - it has its own PeeBear-triggered lightning
   const isHomePage = pathname === '/';
@@ -25,7 +28,17 @@ export default function MobileLightningFlash() {
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const hints = getClientPerformanceHints();
+      const nextIsMobile = hints.isMobileViewport;
+      setIsMobile(nextIsMobile);
+      setCanFlash(
+        ENABLE_PERIODIC_MOBILE_LIGHTNING &&
+          nextIsMobile &&
+          !hints.prefersReducedMotion &&
+          !hints.saveData &&
+          !hints.slowConnection &&
+          !hints.isLowMemory
+      );
     };
 
     checkMobile();
@@ -33,34 +46,40 @@ export default function MobileLightningFlash() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Lightning flash cycle - every 9 seconds, flash for 0.8s
+  // Lightning flash cycle: opt-in and idle-gated so mobile pages do not
+  // create surprise WebGL contexts while the route is still warming.
   useEffect(() => {
-    // Skip if not mobile or if on home page
-    if (!isMobile || isHomePage) return;
+    if (!canFlash || isHomePage || shouldPreferLightweightClient()) return;
 
+    let flashTimeout: ReturnType<typeof setTimeout> | null = null;
+    let initialDelay: ReturnType<typeof setTimeout> | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     const triggerFlash = () => {
+      if (document.visibilityState === 'hidden') return;
       setIsFlashing(true);
-      setTimeout(() => setIsFlashing(false), 800);
+      flashTimeout = setTimeout(() => setIsFlashing(false), 650);
     };
 
-    // Initial delay before first flash (randomize a bit)
-    const initialDelay = setTimeout(() => {
-      triggerFlash();
-    }, 5000 + Math.random() * 2000);
+    const cancelIdle = runAfterPageIdle(() => {
+      initialDelay = setTimeout(() => {
+        triggerFlash();
+      }, 9000 + Math.random() * 4000);
 
-    // Repeating flash every 9 seconds
-    const interval = setInterval(() => {
-      triggerFlash();
-    }, 9000);
+      interval = setInterval(() => {
+        triggerFlash();
+      }, 30000);
+    }, 7000);
 
     return () => {
-      clearTimeout(initialDelay);
-      clearInterval(interval);
+      cancelIdle();
+      if (flashTimeout) clearTimeout(flashTimeout);
+      if (initialDelay) clearTimeout(initialDelay);
+      if (interval) clearInterval(interval);
     };
-  }, [isMobile, isHomePage]);
+  }, [canFlash, isHomePage]);
 
   // Don't render on desktop or home page
-  if (!isMobile || isHomePage) return null;
+  if (!isMobile || !canFlash || isHomePage) return null;
 
   return (
     <AnimatePresence>

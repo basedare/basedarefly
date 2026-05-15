@@ -236,7 +236,9 @@ export default function HallOfShame() {
                            className="rep-bar h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-300" 
                            style={{ width: `${((reputation[item.id] || item.initialRep) / 1000) * 100}%` }}
                         />
-                        {criticalCards.includes(item.id) && <div className="rep-cracks absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cracked-ground.png')] opacity-50 mix-blend-overlay" />}
+                        {criticalCards.includes(item.id) && (
+                          <div className="rep-cracks absolute inset-0 opacity-50 mix-blend-overlay [background-image:repeating-linear-gradient(135deg,rgba(255,255,255,0.28)_0_1px,transparent_1px_7px)]" />
+                        )}
                      </div>
                   </div>
 
@@ -333,7 +335,7 @@ export default function HallOfShame() {
                )}
                
                {/* SCRATCH TEXTURE */}
-               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/scratch-ink.png')] pointer-events-none mix-blend-overlay" />
+               <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay [background-image:repeating-linear-gradient(105deg,rgba(255,255,255,0.32)_0_1px,transparent_1px_11px),repeating-linear-gradient(17deg,rgba(255,0,0,0.24)_0_1px,transparent_1px_17px)]" />
             </div>
             );
          })}

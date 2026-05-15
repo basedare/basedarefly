@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAccount, useReconnect } from 'wagmi';
+import { getClientPerformanceHints, runAfterFirstInteraction, runAfterPageIdle } from '@/lib/client-performance';
 
 const RECONNECT_COOLDOWN_MS = 2500;
 
@@ -39,7 +40,10 @@ export default function WalletAutoReconnect() {
       }
     };
 
-    const bootId = window.setTimeout(attemptReconnect, 180);
+    const hints = getClientPerformanceHints();
+    const cancelBoot = hints.saveData
+      ? runAfterFirstInteraction(attemptReconnect)
+      : runAfterPageIdle(attemptReconnect, hints.isMobileViewport ? 4200 : 1600);
 
     window.addEventListener('focus', attemptReconnect);
     window.addEventListener('pageshow', attemptReconnect);
@@ -47,7 +51,7 @@ export default function WalletAutoReconnect() {
     document.addEventListener('visibilitychange', handleVisible);
 
     return () => {
-      window.clearTimeout(bootId);
+      cancelBoot();
       window.removeEventListener('focus', attemptReconnect);
       window.removeEventListener('pageshow', attemptReconnect);
       window.removeEventListener('online', attemptReconnect);

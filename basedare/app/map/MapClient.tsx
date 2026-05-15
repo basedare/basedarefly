@@ -452,7 +452,7 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                         }`}
                       >
                         <Image
-                          src="/assets/peebear-head.png"
+                          src="/assets/peebear-head.webp"
                           alt="PeeBear pin"
                           width={42}
                           height={42}

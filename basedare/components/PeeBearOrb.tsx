@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getClientPerformanceHints, runAfterPageIdle, shouldPreferLightweightClient } from '@/lib/client-performance';
 
 interface PeeBearOrbProps {
   onRoarChange?: (isRoaring: boolean) => void;
@@ -15,8 +16,27 @@ interface PeeBearOrbProps {
  */
 export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrbProps) {
   const [isRoaring, setIsRoaring] = useState(false);
+  const [allowMotion, setAllowMotion] = useState(true);
+  const [allowLightning, setAllowLightning] = useState(false);
+  const [canPlayVideo, setCanPlayVideo] = useState(false);
   const roarCountRef = useRef(0);
   const nextLightningRoarRef = useRef(2); // First lightning on 2nd roar
+
+  useEffect(() => {
+    const hints = getClientPerformanceHints();
+    const lightweight = shouldPreferLightweightClient();
+    setAllowMotion(!lightweight);
+    setAllowLightning(!hints.isMobileViewport && !lightweight);
+
+    if (lightweight) {
+      setCanPlayVideo(false);
+      return undefined;
+    }
+
+    return runAfterPageIdle(() => {
+      setCanPlayVideo(true);
+    }, hints.isMobileViewport ? 3200 : 1400);
+  }, []);
 
   // Notify parent of roar state changes
   useEffect(() => {
@@ -25,11 +45,19 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
 
   // Roar cycle: calm for 4s, then roar for 1.5s, repeat
   useEffect(() => {
+    if (!allowMotion) {
+      setIsRoaring(false);
+      onLightningRoar?.(false);
+      return undefined;
+    }
+
+    let roarEndTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const roarCycle = () => {
       roarCountRef.current += 1;
 
       // Check if this roar should trigger lightning
-      const shouldTriggerLightning = roarCountRef.current >= nextLightningRoarRef.current;
+      const shouldTriggerLightning = allowLightning && roarCountRef.current >= nextLightningRoarRef.current;
 
       if (shouldTriggerLightning) {
         // Reset counter and set next lightning to 2-3 roars away
@@ -42,7 +70,7 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
       setIsRoaring(true);
 
       // End roar after 1.5s
-      setTimeout(() => {
+      roarEndTimeout = setTimeout(() => {
         setIsRoaring(false);
         if (shouldTriggerLightning) {
           onLightningRoar?.(false);
@@ -63,8 +91,10 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
     return () => {
       clearTimeout(initialDelay);
       clearInterval(interval);
+      if (roarEndTimeout) clearTimeout(roarEndTimeout);
+      onLightningRoar?.(false);
     };
-  }, [onLightningRoar]);
+  }, [allowLightning, allowMotion, onLightningRoar]);
 
   return (
     <div className="relative w-[220px] h-[220px] flex items-center justify-center">
@@ -72,7 +102,7 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
       <motion.div
         className="absolute inset-0 rounded-full"
         animate={{
-          scale: isRoaring ? 1.3 : 1.1,
+          scale: allowMotion ? (isRoaring ? 1.3 : 1.1) : 1,
           opacity: isRoaring ? 0.6 : 0.3,
         }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -89,13 +119,11 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
           background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.05) 50%, transparent 55%)',
           backgroundSize: '200% 200%',
         }}
-        animate={{
-          backgroundPosition: ['0% 0%', '200% 200%'],
-        }}
+        animate={allowMotion ? { backgroundPosition: ['0% 0%', '200% 200%'] } : { backgroundPosition: '0% 0%' }}
         transition={{
           duration: 3,
           ease: 'linear',
-          repeat: Infinity,
+          repeat: allowMotion ? Infinity : 0,
           repeatDelay: 2,
         }}
       />
@@ -111,23 +139,37 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
             exit={{ opacity: 0, scale: 1.05 }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
           >
-            <motion.video
-              src="/assets/OrbLiquidLoop.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-contain drop-shadow-2xl"
-              animate={{
-                scale: [1, 1.02, 1],
-                y: [0, -4, 0],
-              }}
-              transition={{
-                duration: 4,
-                ease: 'easeInOut',
-                repeat: Infinity,
-              }}
-            />
+            {canPlayVideo ? (
+              <motion.video
+                src="/assets/OrbLiquidLoop.mp4"
+                poster="/assets/OrbLiquid.webp"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="none"
+                className="w-full h-full object-contain drop-shadow-2xl"
+                animate={allowMotion ? { scale: [1, 1.02, 1], y: [0, -4, 0] } : { scale: 1, y: 0 }}
+                transition={{
+                  duration: 4,
+                  ease: 'easeInOut',
+                  repeat: allowMotion ? Infinity : 0,
+                }}
+              />
+            ) : (
+              <motion.img
+                src="/assets/OrbLiquid.webp"
+                alt="PeeBear Orb"
+                decoding="async"
+                className="w-full h-full object-contain drop-shadow-2xl"
+                animate={allowMotion ? { scale: [1, 1.01, 1], y: [0, -2, 0] } : { scale: 1, y: 0 }}
+                transition={{
+                  duration: 4,
+                  ease: 'easeInOut',
+                  repeat: allowMotion ? Infinity : 0,
+                }}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -144,7 +186,7 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
             <motion.img
-              src="/assets/BurstingOrb.png"
+              src="/assets/BurstingOrb.webp"
               alt="PeeBear Roaring"
               className="w-full h-full object-contain drop-shadow-2xl"
               animate={{

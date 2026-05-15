@@ -33,6 +33,69 @@ const ACTIVE_DARE_STATUSES = [
 const PAID_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
 const ACTIVE_VENUE_CAMPAIGN_STATUSES = ['FUNDING', 'RECRUITING', 'LIVE', 'ACTIVE', 'VERIFYING'];
 const PAID_CAMPAIGN_SLOT_STATUSES = ['VERIFIED', 'PAID'];
+const LIVE_POT_QUERY_TIMEOUT_MS = 1600;
+const LIVE_POT_MEMORY_TTL_MS = 30_000;
+const LIVE_POT_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=90';
+
+let cachedLivePotPayload: unknown | null = null;
+let cachedLivePotPayloadAt = 0;
+
+function withLivePotTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error('Live pot query timed out')),
+      LIVE_POT_QUERY_TIMEOUT_MS
+    );
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function livePotResponse(payload: unknown, source: 'database' | 'memory' | 'stale' | 'fallback') {
+  const response = NextResponse.json(payload);
+  response.headers.set('Cache-Control', LIVE_POT_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', source);
+  return response;
+}
+
+function livePotFallbackPayload(error: string) {
+  return {
+    success: true,
+    data: {
+      pot: {
+        balance: 0,
+        totalDeposited: 0,
+        totalDistributed: 0,
+        totalSlashed: 0,
+        lastDepositAt: null,
+        lastDistributionAt: null,
+      },
+      weekly: {
+        deposited: 0,
+        distributed: 0,
+      },
+      creatorPool: {
+        total: 0,
+        liveDares: { amount: 0, count: 0 },
+        venueActivations: { amount: 0, count: 0 },
+        paidOut: { amount: 0, count: 0 },
+        topEarningVenue: null,
+        fundedBy: ['Brands', 'Venues', 'Dare creators'],
+        updatedAt: new Date().toISOString(),
+      },
+      recentTransactions: [],
+      feeStructure: {
+        p2p: FEE_CONFIG.P2P,
+        b2b: FEE_CONFIG.B2B,
+        weeklyRewards: FEE_CONFIG.WEEKLY_REWARDS,
+      },
+      fallbackReason: error,
+    },
+  };
+}
 
 function money(value: number | null | undefined) {
   return Math.round((value ?? 0) * 100) / 100;
@@ -94,8 +157,7 @@ async function getOrCreateLivePot() {
 // ============================================================================
 // GET /api/live-pot - Get current pot stats
 // ============================================================================
-export async function GET() {
-  try {
+async function buildLivePotPayload() {
     const pot = await getOrCreateLivePot();
 
     // Get recent transactions
@@ -210,7 +272,7 @@ export async function GET() {
     );
     const topVenueAmount = money(topVenueRows[0]?._sum.bounty);
 
-    return NextResponse.json({
+    return {
       success: true,
       data: {
         pot: {
@@ -259,14 +321,29 @@ export async function GET() {
           weeklyRewards: FEE_CONFIG.WEEKLY_REWARDS,
         },
       },
-    });
+    };
+}
+
+export async function GET() {
+  const cachedAge = Date.now() - cachedLivePotPayloadAt;
+  if (cachedLivePotPayload && cachedAge < LIVE_POT_MEMORY_TTL_MS) {
+    return livePotResponse(cachedLivePotPayload, 'memory');
+  }
+
+  try {
+    const payload = await withLivePotTimeout(buildLivePotPayload());
+    cachedLivePotPayload = payload;
+    cachedLivePotPayloadAt = Date.now();
+    return livePotResponse(payload, 'database');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[LIVE-POT] Failed to fetch:', message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
+
+    if (cachedLivePotPayload) {
+      return livePotResponse(cachedLivePotPayload, 'stale');
+    }
+
+    return livePotResponse(livePotFallbackPayload(message), 'fallback');
   }
 }
 

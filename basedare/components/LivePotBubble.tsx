@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
+import { getClientPerformanceHints, runAfterFirstInteraction, runAfterPageIdle } from '@/lib/client-performance';
 
 interface LivePotBubbleProps {
   className?: string;
@@ -63,14 +64,34 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const [translateY, setTranslateY] = useState(0);
   const [triggerBounce, setTriggerBounce] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isReadyToRender, setIsReadyToRender] = useState(false);
   const [pool, setPool] = useState<CreatorPoolSummary | null>(null);
   const [poolLoadSettled, setPoolLoadSettled] = useState(false);
   const potRef = useRef<HTMLButtonElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0);
 
+  useEffect(() => {
+    setIsReadyToRender(false);
+    if (pathname !== '/') return undefined;
+
+    const hints = getClientPerformanceHints();
+    const run = () => setIsReadyToRender(true);
+    const cancelInteraction = hints.saveData || hints.isLowMemory ? runAfterFirstInteraction(run) : () => {};
+    const cancelIdle = hints.saveData || hints.isLowMemory
+      ? () => {}
+      : runAfterPageIdle(run, hints.isMobileViewport ? 5200 : 2200);
+
+    return () => {
+      cancelInteraction();
+      cancelIdle();
+    };
+  }, [pathname]);
+
   // THE ELEVATOR SCRIPT (GPU-Accelerated + Basketball Bounce)
   useEffect(() => {
+    if (pathname !== '/' || !isReadyToRender) return undefined;
+
     const updatePosition = () => {
       const footer = document.getElementById('site-footer');
       const pot = potRef.current;
@@ -115,18 +136,20 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       window.removeEventListener('resize', onScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [triggerBounce]);
+  }, [isReadyToRender, pathname, triggerBounce]);
 
   useEffect(() => {
-    if (pathname !== '/') return;
+    if (pathname !== '/' || !isReadyToRender) return undefined;
 
     let isActive = true;
     const controller = new AbortController();
+    let abortTimeoutId: number | null = null;
+    const hints = getClientPerformanceHints();
 
     const timeoutId = window.setTimeout(() => {
+      abortTimeoutId = window.setTimeout(() => controller.abort(), 1800);
       fetch('/api/live-pot', {
         signal: controller.signal,
-        cache: 'no-store',
       })
         .then((response) => (response.ok ? response.json() : null))
         .then((payload) => {
@@ -140,18 +163,24 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
           }
         })
         .finally(() => {
+          if (abortTimeoutId) {
+            window.clearTimeout(abortTimeoutId);
+          }
           if (isActive) {
             setPoolLoadSettled(true);
           }
         });
-    }, 1600);
+    }, hints.isMobileViewport ? 1800 : 650);
 
     return () => {
       isActive = false;
       window.clearTimeout(timeoutId);
+      if (abortTimeoutId) {
+        window.clearTimeout(abortTimeoutId);
+      }
       controller.abort();
     };
-  }, [pathname]);
+  }, [isReadyToRender, pathname]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -166,7 +195,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen]);
 
-  if (pathname !== '/') {
+  if (pathname !== '/' || !isReadyToRender) {
     return null;
   }
 

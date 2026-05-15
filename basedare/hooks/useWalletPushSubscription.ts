@@ -161,7 +161,8 @@ async function readCurrentPushLocation(radiusKm: number, options: { promptIfUnkn
   ).catch(() => null);
 }
 
-export function useWalletPushSubscription() {
+export function useWalletPushSubscription(options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const { address, sessionWallet } = useActiveWallet();
   const { data: session } = useSession();
   const { signMessageAsync } = useSignMessage();
@@ -207,7 +208,7 @@ export function useWalletPushSubscription() {
     const fallbackKey = bundledVapidPublicKey;
 
     try {
-      const res = await fetch('/api/push/config', { cache: 'no-store' });
+      const res = await fetch('/api/push/config');
       const data = (await parseJsonResponse(res)) as PushRuntimeConfig | null;
 
       if (res.ok && data?.success) {
@@ -249,6 +250,7 @@ export function useWalletPushSubscription() {
 
   const refreshPushState = useCallback(async () => {
     if (typeof window === 'undefined') return;
+    if (!enabled) return;
 
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setPushSupported(supported);
@@ -293,14 +295,16 @@ export function useWalletPushSubscription() {
     } catch (err) {
       console.error('Failed to read push state', err);
     }
-  }, [address, getWalletAuthHeaders, refreshPushConfig]);
+  }, [address, enabled, getWalletAuthHeaders, refreshPushConfig]);
 
   useEffect(() => {
+    if (!enabled) return;
     void refreshPushState();
-  }, [refreshPushState]);
+  }, [enabled, refreshPushState]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!enabled) return;
 
     const handleChanged = () => {
       void refreshPushState();
@@ -308,7 +312,7 @@ export function useWalletPushSubscription() {
 
     window.addEventListener(PUSH_SUBSCRIPTION_CHANGED_EVENT, handleChanged);
     return () => window.removeEventListener(PUSH_SUBSCRIPTION_CHANGED_EVENT, handleChanged);
-  }, [refreshPushState]);
+  }, [enabled, refreshPushState]);
 
   const syncPushSubscription = useCallback(async () => {
     if (!address || !pushSupported) {

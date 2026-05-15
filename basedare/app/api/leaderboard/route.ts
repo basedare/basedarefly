@@ -6,6 +6,42 @@ import { normalizeCreatorHandle, toDisplayCreatorHandle } from '@/lib/creator-st
 // LEADERBOARD API
 // Get rankings for creators and scouts with competition metrics
 // ============================================================================
+const LEADERBOARD_TIMEOUT_MS = 1400;
+const LEADERBOARD_CACHE_HEADER = 'public, max-age=30, stale-while-revalidate=120';
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function leaderboardResponse(payload: unknown, source: 'database' | 'fallback') {
+  const response = NextResponse.json(payload);
+  response.headers.set('Cache-Control', LEADERBOARD_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', source);
+  return response;
+}
+
+function leaderboardFallback(period: string, type: string, message: string) {
+  return leaderboardResponse(
+    {
+      success: true,
+      data: {
+        period,
+        type,
+        leaderboard: [],
+      },
+      source: 'fallback',
+      warning: message,
+    },
+    'fallback'
+  );
+}
 
 // Helper to get week boundaries
 function getWeekBoundaries(date: Date = new Date()): { start: Date; end: Date } {
@@ -33,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     if (type === 'CREATOR') {
       // Get top creators by completed dare volume
-      const topCreators = await prisma.dare.groupBy({
+      const topCreators = await withTimeout(prisma.dare.groupBy({
         by: ['streamerHandle'],
         where: {
           status: 'VERIFIED',
@@ -44,10 +80,10 @@ export async function GET(request: NextRequest) {
         _count: { id: true },
         orderBy: { _sum: { bounty: 'desc' } },
         take: limit,
-      });
+      }), LEADERBOARD_TIMEOUT_MS, 'Creator leaderboard query timed out');
 
       // Also get B2B campaign completions
-      const campaignCompletions = await prisma.campaignSlot.groupBy({
+      const campaignCompletions = await withTimeout(prisma.campaignSlot.groupBy({
         by: ['creatorHandle'],
         where: {
           status: { in: ['VERIFIED', 'PAID'] },
@@ -55,7 +91,7 @@ export async function GET(request: NextRequest) {
         },
         _sum: { totalPayout: true },
         _count: { id: true },
-      });
+      }), LEADERBOARD_TIMEOUT_MS, 'Campaign leaderboard query timed out');
 
       // Merge P2P and B2B stats
       const creatorMap = new Map<string, {
@@ -117,7 +153,7 @@ export async function GET(request: NextRequest) {
           rewardTier: index < 3 ? ['🥇 GOLD', '🥈 SILVER', '🥉 BRONZE'][index] : null,
         }));
 
-      return NextResponse.json({
+      return leaderboardResponse({
         success: true,
         data: {
           period,
@@ -126,12 +162,12 @@ export async function GET(request: NextRequest) {
           type: 'CREATOR',
           leaderboard,
         },
-      });
+      }, 'database');
     }
 
     if (type === 'SCOUT') {
       // Get top scouts by successful placements
-      const topScouts = await prisma.scout.findMany({
+      const topScouts = await withTimeout(prisma.scout.findMany({
         where: {
           successfulSlots: { gt: 0 },
         },
@@ -157,7 +193,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      });
+      }), LEADERBOARD_TIMEOUT_MS, 'Scout leaderboard query timed out');
 
       const leaderboard = topScouts.map((s, index) => ({
         rank: index + 1,
@@ -176,14 +212,14 @@ export async function GET(request: NextRequest) {
         rewardTier: index < 3 ? ['🥇 GOLD', '🥈 SILVER', '🥉 BRONZE'][index] : null,
       }));
 
-      return NextResponse.json({
+      return leaderboardResponse({
         success: true,
         data: {
           period,
           type: 'SCOUT',
           leaderboard,
         },
-      });
+      }, 'database');
     }
 
     return NextResponse.json(
@@ -193,9 +229,11 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[LEADERBOARD] Failed to fetch:', message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
+    const { searchParams } = new URL(request.url);
+    return leaderboardFallback(
+      searchParams.get('period') || 'WEEKLY',
+      searchParams.get('type') || 'CREATOR',
+      'Leaderboard is temporarily warming up.'
     );
   }
 }

@@ -6,7 +6,7 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 const HDRI_URL =
   'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/moonless_golf_2k.hdr';
-const PEEBEAR_TEXTURE_URL = '/assets/peebear-head.png';
+const PEEBEAR_TEXTURE_URL = '/assets/peebear-head.webp';
 
 type PeeBearGlassProps = {
   className?: string;

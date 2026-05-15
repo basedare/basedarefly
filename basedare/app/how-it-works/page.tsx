@@ -114,6 +114,33 @@ const BRAND_POINTS = [
   },
 ];
 
+const ROLE_GLOSSARY = [
+  {
+    icon: Camera,
+    title: "Creators",
+    description: "Claim missions, show up, and submit proof for payout.",
+    color: "text-cyan-300",
+  },
+  {
+    icon: Users,
+    title: "Guests",
+    description: "Check in, vote, unlock perks, and turn a venue night into receipts.",
+    color: "text-emerald-300",
+  },
+  {
+    icon: Route,
+    title: "Captains",
+    description: "Vetted local creators/operators who scout venues and launch first proof loops.",
+    color: "text-yellow-300",
+  },
+  {
+    icon: Store,
+    title: "Venues",
+    description: "Host missions, perks, QR rails, and local rooms.",
+    color: "text-purple-300",
+  },
+];
+
 const QUICKSTART_TRACKS = [
   {
     audience: "Creator",
@@ -273,6 +300,42 @@ export default function HowItWorksPage() {
                 </p>
               </div>
             ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className={`${softCardClass} mb-10 p-4 md:p-5`}
+          >
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/24 to-transparent" />
+            <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
+                  Roles
+                </p>
+                <h2 className="mt-2 text-xl font-black uppercase italic tracking-tight text-white md:text-2xl">
+                  Who moves the grid?
+                </h2>
+              </div>
+              <p className="max-w-2xl font-mono text-xs leading-6 text-gray-400">
+                Captains are the local bridge: trusted operators who help venues and creators turn real places into proof-backed missions.
+              </p>
+            </div>
+
+            <div className="relative mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {ROLE_GLOSSARY.map((role) => (
+                <div key={role.title} className={`${insetDentClass} p-4`}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-black/30">
+                      <role.icon className={`h-4 w-4 ${role.color}`} />
+                    </div>
+                    <h3 className="text-sm font-black uppercase tracking-[0.14em] text-white">{role.title}</h3>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-gray-500">{role.description}</p>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           <motion.div

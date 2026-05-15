@@ -119,7 +119,7 @@ export default function OrbitingDares({ dares = [], setActiveChat }: OrbitingDar
         >
           <div className="absolute inset-0 bg-yellow-500/10 blur-[80px] rounded-full animate-pulse" />
           <Image
-            src="/assets/peebear-head.png"
+            src="/assets/peebear-head.webp"
             alt="PeeBear Mascot"
             fill
             className="object-contain drop-shadow-[0_0_50px_rgba(234,179,8,0.4)]"

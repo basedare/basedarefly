@@ -34,7 +34,7 @@ const LIVE_TARGETS = [
     bounty: "500 USDC", 
     time: "00:30m left", 
     streamer: "@AdinRoss",
-    imgUrl: "/assets/adinross.png",
+    imgUrl: "/assets/adinross.webp",
     emoji: "💔",
     isVulnerable: false,
     minLevel: 0

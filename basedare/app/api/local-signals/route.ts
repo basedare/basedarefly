@@ -18,6 +18,8 @@ const LocalSignalQuerySchema = z.object({
   radiusKm: z.coerce.number().min(0.2).max(100).default(15),
   limit: z.coerce.number().min(1).max(25).default(10),
 });
+const LOCAL_SIGNALS_TIMEOUT_MS = 1200;
+const LOCAL_SIGNALS_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=90';
 
 const LocalSignalPostSchema = z.object({
   title: z.string().min(3).max(140),
@@ -36,6 +38,32 @@ const LocalSignalPostSchema = z.object({
 
 function cleanText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function localSignalsFallback(message: string) {
+  const response = NextResponse.json({
+    success: true,
+    data: {
+      signals: [],
+      count: 0,
+    },
+    source: 'fallback',
+    warning: message,
+  });
+  response.headers.set('Cache-Control', LOCAL_SIGNALS_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', 'fallback');
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -60,14 +88,14 @@ export async function GET(request: NextRequest) {
         ? { latitude: parsed.data.lat, longitude: parsed.data.lng }
         : null;
 
-    const events = await prisma.founderEvent.findMany({
+    const events = await withTimeout(prisma.founderEvent.findMany({
       where: {
         eventType: LOCAL_SIGNAL_EVENT_TYPE,
         status: 'APPROVED',
       },
       orderBy: [{ occurredAt: 'desc' }],
       take: 100,
-    });
+    }), LOCAL_SIGNALS_TIMEOUT_MS, 'Local signals query timed out');
 
     const signals = events
       .map((event) => serializeLocalSignal(event, origin))
@@ -81,19 +109,19 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, parsed.data.limit);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         signals,
         count: signals.length,
       },
     });
+    response.headers.set('Cache-Control', LOCAL_SIGNALS_CACHE_HEADER);
+    response.headers.set('X-BaseDare-Data-Source', 'database');
+    return response;
   } catch (error) {
     console.error('[LOCAL_SIGNALS] Failed to load public signals:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to load local signals' },
-      { status: 500 }
-    );
+    return localSignalsFallback('Local signals are temporarily warming up.');
   }
 }
 

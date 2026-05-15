@@ -37,7 +37,7 @@ export function StakeCard() {
               <div className="flex flex-col items-center gap-4 mb-8">
                 {/* Peebear Head - No Circle, Just the Head, Bigger */}
                 <img 
-                  src="/assets/peebear-head.png" 
+                  src="/assets/peebear-head.webp" 
                   alt="PeeBear" 
                   className="w-[77px] h-[77px] md:w-96 md:h-96 object-contain drop-shadow-[0_0_30px_rgba(250,204,21,0.4)]" 
                 />

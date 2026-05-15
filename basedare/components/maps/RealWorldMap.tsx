@@ -1,5 +1,6 @@
 'use client';
 
+import 'maplibre-gl/dist/maplibre-gl.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -2634,7 +2635,7 @@ function createPeebearMarkerHtml({
           : ''
       }
       <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
-        <img src="/assets/peebear-head.png" alt="PeeBear pin" class="peebear-head" />
+        <img src="/assets/peebear-head.webp" alt="PeeBear pin" class="peebear-head" />
       </div>
       <div class="peebear-meta">
         ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">HEAT ${Math.min(heatScore, 99)}</span>` : ''}
@@ -2746,7 +2747,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
     return (
       <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(184,127,255,0.12)_45%,rgba(7,9,18,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
         <Image
-          src="/assets/peebear-head.png"
+          src="/assets/peebear-head.webp"
           alt="PeeBear proof marker"
           fill
           sizes="96px"

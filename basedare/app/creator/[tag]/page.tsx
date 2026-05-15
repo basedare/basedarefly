@@ -23,8 +23,8 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 const STREAMER_IMAGES: Record<string, string> = {
     kaicenat: '/assets/KAICENAT.jpeg',
     'kai cenat': '/assets/KAICENAT.jpeg',
-    adinross: '/assets/adinross.png',
-    'adin ross': '/assets/adinross.png',
+    adinross: '/assets/adinross.webp',
+    'adin ross': '/assets/adinross.webp',
     ishowspeed: '/assets/Ishowspeed.jpg',
     speed: '/assets/Ishowspeed.jpg',
 };

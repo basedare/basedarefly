@@ -131,7 +131,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
 
           {/* PeeBear with floating animation */}
           <motion.img
-            src="/assets/peebear-head.png"
+            src="/assets/peebear-head.webp"
             alt="BaseDare God"
             width={800}
             height={800}

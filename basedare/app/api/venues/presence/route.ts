@@ -14,6 +14,8 @@ const PresenceQuerySchema = z.object({
   radiusKm: z.coerce.number().min(0.5).max(25).default(8),
   limit: z.coerce.number().min(1).max(50).default(30),
 });
+const VENUE_PRESENCE_TIMEOUT_MS = 1200;
+const VENUE_PRESENCE_CACHE_HEADER = 'public, max-age=15, stale-while-revalidate=60';
 
 const PresencePostSchema = z.object({
   venueId: z.string().min(1),
@@ -27,6 +29,32 @@ const PresencePostSchema = z.object({
 
 function getPresenceAuthResource(venueId: string) {
   return `venue:${venueId}:presence`;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function venuePresenceFallback(message: string) {
+  const response = NextResponse.json({
+    success: true,
+    data: {
+      signals: [],
+      count: 0,
+    },
+    source: 'fallback',
+    warning: message,
+  });
+  response.headers.set('Cache-Control', VENUE_PRESENCE_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', 'fallback');
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -53,27 +81,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const signals = await getActiveVenuePresence({
-      latitude: parsed.data.lat,
-      longitude: parsed.data.lng,
-      radiusKm: parsed.data.radiusKm,
-      limit: parsed.data.limit,
-    });
+    const signals = await withTimeout(
+      getActiveVenuePresence({
+        latitude: parsed.data.lat,
+        longitude: parsed.data.lng,
+        radiusKm: parsed.data.radiusKm,
+        limit: parsed.data.limit,
+      }),
+      VENUE_PRESENCE_TIMEOUT_MS,
+      'Venue presence query timed out'
+    );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         signals,
         count: signals.length,
       },
     });
+    response.headers.set('Cache-Control', VENUE_PRESENCE_CACHE_HEADER);
+    response.headers.set('X-BaseDare-Data-Source', 'database');
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[VENUE_PRESENCE] Query failed:', message);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch venue presence' },
-      { status: 500 }
-    );
+    return venuePresenceFallback('Venue presence is temporarily warming up.');
   }
 }
 

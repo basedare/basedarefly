@@ -75,7 +75,7 @@ export default function FirstActionSelector() {
       <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(24,20,42,0.4),rgba(8,9,18,0.95))] px-4 py-5 shadow-[14px_18px_48px_rgba(0,0,0,0.36),-8px_-8px_20px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl md:px-5 md:py-6">
         <div className="pointer-events-none absolute right-4 top-[-2px] z-20 hidden xl:block">
           <Image
-            src="/assets/honey-drip.png"
+            src="/assets/honey-drip.webp"
             alt=""
             width={148}
             height={82}

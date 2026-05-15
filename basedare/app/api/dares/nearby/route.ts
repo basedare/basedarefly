@@ -16,6 +16,37 @@ const NearbyQuerySchema = z.object({
   radius: z.coerce.number().min(0.5).max(50).default(10),
   limit: z.coerce.number().min(1).max(50).default(20),
 });
+const NEARBY_DARES_TIMEOUT_MS = 1200;
+const NEARBY_DARES_CACHE_HEADER = 'public, max-age=15, stale-while-revalidate=60';
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function nearbyFallback(queryGeohash: string | null, message: string) {
+  const response = NextResponse.json({
+    success: true,
+    data: {
+      dares: [],
+      count: 0,
+      queryLocation: {
+        geohash: queryGeohash,
+      },
+    },
+    source: 'fallback',
+    warning: message,
+  });
+  response.headers.set('Cache-Control', NEARBY_DARES_CACHE_HEADER);
+  response.headers.set('X-BaseDare-Data-Source', 'fallback');
+  return response;
+}
 
 function getBoundingBox(lat: number, lng: number, radiusKm: number) {
   const latDelta = radiusKm / 111;
@@ -36,6 +67,8 @@ function getBoundingBox(lat: number, lng: number, radiusKm: number) {
  * Privacy-first: Never returns raw lat/lng, only distance.
  */
 export async function GET(request: NextRequest) {
+  let fallbackGeohash: string | null = null;
+
   try {
     const { searchParams } = new URL(request.url);
     const now = new Date();
@@ -74,6 +107,7 @@ export async function GET(request: NextRequest) {
 
     // Get geohash for the query location
     const queryGeohash = encodeGeohash(lat, lng, 6);
+    fallbackGeohash = queryGeohash;
     const neighborHashes = getNeighborGeohashes(queryGeohash);
     const bounds = getBoundingBox(lat, lng, radius);
 
@@ -83,7 +117,7 @@ export async function GET(request: NextRequest) {
 
     // Query both explicit nearby dares and venue-anchored active dares so
     // the discovery layer doesn't miss missions that are attached to a place.
-    const dares = await prisma.dare.findMany({
+    const dares = await withTimeout(prisma.dare.findMany({
       where: {
         NOT: {
           OR: [
@@ -141,7 +175,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
       take: limit * 4, // Fetch more to filter by actual distance
-    });
+    }), NEARBY_DARES_TIMEOUT_MS, 'Nearby dare query timed out');
 
     // Filter by actual distance and calculate display values
     const nearbyDares = dares
@@ -186,7 +220,7 @@ export async function GET(request: NextRequest) {
       `[NEARBY] Found ${nearbyDares.length} dares within ${radius}km of (${lat}, ${lng})`
     );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         dares: nearbyDares,
@@ -197,12 +231,12 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    response.headers.set('Cache-Control', NEARBY_DARES_CACHE_HEADER);
+    response.headers.set('X-BaseDare-Data-Source', 'database');
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[NEARBY] Query failed:', message);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch nearby dares' },
-      { status: 500 }
-    );
+    return nearbyFallback(fallbackGeohash, 'Nearby dares are temporarily warming up.');
   }
 }

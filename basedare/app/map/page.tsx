@@ -2,8 +2,6 @@ import LiquidBackground from "@/components/LiquidBackground";
 import RealWorldMapClient from './RealWorldMapClient';
 import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: 'BaseDare Map — Find Live Dares Near You',
   description:
