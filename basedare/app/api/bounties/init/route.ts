@@ -15,6 +15,8 @@ import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/se
 
 const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
+const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const OPEN_BOUNTY_TAGS = ['@everyone', '@anyone', '@all'];
 const LEGACY_TAG_MAP: Record<string, Address> = {
     '@KaiCenat': '0x1234567890123456789012345678901234567890',
@@ -98,6 +100,18 @@ function getPlatformWalletFallback(): Address | null {
     return platformWallet && isAddress(platformWallet) ? (platformWallet as Address) : null;
 }
 
+function getLiveMoneyRailConfigError(): string | null {
+    if (!isAddress(BOUNTY_CONTRACT_ADDRESS ?? '')) {
+        return 'NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS is missing or invalid for live funding.';
+    }
+
+    if (!isAddress(USDC_ADDRESS ?? '')) {
+        return 'NEXT_PUBLIC_USDC_ADDRESS is missing or invalid for live funding.';
+    }
+
+    return null;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -108,6 +122,20 @@ export async function POST(request: NextRequest) {
                 { success: false, error: validation.error.issues[0].message },
                 { status: 400 }
             );
+        }
+
+        if (!FORCE_SIMULATION) {
+            const moneyRailConfigError = getLiveMoneyRailConfigError();
+            if (moneyRailConfigError) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: moneyRailConfigError,
+                        code: 'MONEY_RAILS_NOT_READY',
+                    },
+                    { status: 503 }
+                );
+            }
         }
 
         const {

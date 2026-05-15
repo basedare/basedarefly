@@ -4,11 +4,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { Prisma, type Dare } from '@prisma/client';
-import { isAddress } from 'viem';
+import { createPublicClient, http, isAddress, type Address } from 'viem';
 
 import rlsTables from '@/config/rls-tables.json';
+import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { prisma } from '@/lib/prisma';
+import { getRefereeAccount } from '@/lib/referee-wallet';
 import { SIGNAL_ROOM_CHAT_ID, SIGNAL_ROOM_URL_FALLBACK } from '@/lib/signal-room';
 
 export type ProductionSafetySeverity = 'pass' | 'warn' | 'block';
@@ -153,6 +155,65 @@ const STUCK_FUNDING_AFTER_MS = 15 * 60 * 1000;
 const QUEUE_ITEM_LIMIT = 8;
 const LIVE_VENUE_CAMPAIGN_STATUSES = ['LIVE', 'RECRUITING', 'ACTIVE'];
 const LIVE_VENUE_DARE_STATUSES = ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'VERIFIED', 'PENDING_PAYOUT'];
+const EXPECTED_BOUNTY_PLATFORM_FEE_PERCENT = 4;
+const EXPECTED_BOUNTY_REFERRAL_FEE_PERCENT = 0;
+const EXPECTED_BOUNTY_TOTAL_FEE_PERCENT = 4;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+const MONEY_RAILS_PREFLIGHT_ABI = [
+  {
+    inputs: [],
+    name: 'USDC',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'PLATFORM_WALLET',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'AI_REFEREE_ADDRESS',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformFeePercent',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'referralFeePercent',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalFeePercent',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+] as const;
+
+const ERC20_METADATA_ABI = [
+  {
+    inputs: [],
+    name: 'decimals',
+    outputs: [{ name: '', type: 'uint8' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
 
 const MONEY_QUEUE_SELECT = {
   id: true,
@@ -209,6 +270,21 @@ function hoursUntil(date: Date | null | undefined, now: Date) {
 
 function isBlank(value: string | null | undefined) {
   return !value || value.trim().length === 0;
+}
+
+function normalizeAddress(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? null;
+}
+
+function addressesMatch(left: string | null | undefined, right: string | null | undefined) {
+  const normalizedLeft = normalizeAddress(left);
+  const normalizedRight = normalizeAddress(right);
+  return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight);
+}
+
+function shortAddress(value: string | null | undefined) {
+  if (!value) return 'not configured';
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
 function dareHref(row: SettlementDareRow) {
@@ -435,6 +511,201 @@ async function checkCronSchedules(checks: ProductionSafetyCheck[]) {
       severity: 'warn',
       detail: `Could not read vercel.json: ${message}`,
       nextAction: 'Confirm cron declarations in Vercel before production settlement.',
+    });
+  }
+}
+
+async function checkOnchainMoneyRails(
+  checks: ProductionSafetyCheck[],
+  input: {
+    simulationMode: boolean;
+  }
+) {
+  const bountyAddress = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;
+  const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS;
+  const platformWalletAddress = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS;
+  const severityWhenLive: ProductionSafetySeverity = input.simulationMode ? 'warn' : 'block';
+
+  if (!isAddress(bountyAddress ?? '') || !isAddress(usdcAddress ?? '')) {
+    checks.push({
+      id: 'chain.money-bytecode',
+      label: 'Money rail bytecode',
+      severity: 'block',
+      detail: 'Skipping on-chain money rail verification because the bounty or USDC address is missing/invalid.',
+      nextAction: 'Set valid bounty and USDC addresses for the selected network.',
+    });
+    return;
+  }
+
+  const publicClient = createPublicClient({
+    chain: getBaseChain(),
+    transport: http(getBaseRpcUrl()),
+  });
+
+  try {
+    const [bountyBytecode, usdcBytecode] = await Promise.all([
+      publicClient.getBytecode({ address: bountyAddress as Address }),
+      publicClient.getBytecode({ address: usdcAddress as Address }),
+    ]);
+
+    const bountyHasCode = Boolean(bountyBytecode && bountyBytecode !== '0x');
+    const usdcHasCode = Boolean(usdcBytecode && usdcBytecode !== '0x');
+
+    checks.push({
+      id: 'chain.money-bytecode',
+      label: 'Money rail bytecode',
+      severity: bountyHasCode && usdcHasCode ? 'pass' : severityWhenLive,
+      detail: `Bounty bytecode ${bountyHasCode ? 'found' : 'missing'} at ${shortAddress(
+        bountyAddress
+      )}; USDC bytecode ${usdcHasCode ? 'found' : 'missing'} at ${shortAddress(usdcAddress)}.`,
+      nextAction:
+        bountyHasCode && usdcHasCode
+          ? undefined
+          : 'Confirm the configured addresses are deployed on the selected Base network before accepting live spend.',
+    });
+
+    if (!bountyHasCode || !usdcHasCode) {
+      return;
+    }
+
+    const [
+      bountyUsdcAddress,
+      bountyPlatformWallet,
+      bountyRefereeAddress,
+      usdcDecimals,
+    ] = await Promise.all([
+      publicClient.readContract({
+        address: bountyAddress as Address,
+        abi: MONEY_RAILS_PREFLIGHT_ABI,
+        functionName: 'USDC',
+      }),
+      publicClient.readContract({
+        address: bountyAddress as Address,
+        abi: MONEY_RAILS_PREFLIGHT_ABI,
+        functionName: 'PLATFORM_WALLET',
+      }),
+      publicClient.readContract({
+        address: bountyAddress as Address,
+        abi: MONEY_RAILS_PREFLIGHT_ABI,
+        functionName: 'AI_REFEREE_ADDRESS',
+      }),
+      publicClient.readContract({
+        address: usdcAddress as Address,
+        abi: ERC20_METADATA_ABI,
+        functionName: 'decimals',
+      }),
+    ]);
+
+    const bountyUsdcMatches = addressesMatch(String(bountyUsdcAddress), usdcAddress);
+    const usdcHasSixDecimals = Number(usdcDecimals) === 6;
+    checks.push({
+      id: 'chain.usdc-binding',
+      label: 'USDC binding',
+      severity: bountyUsdcMatches && usdcHasSixDecimals ? 'pass' : severityWhenLive,
+      detail: `Bounty contract points to ${shortAddress(String(bountyUsdcAddress))}; configured USDC is ${shortAddress(
+        usdcAddress
+      )}; token decimals ${Number(usdcDecimals)}.`,
+      nextAction:
+        bountyUsdcMatches && usdcHasSixDecimals
+          ? undefined
+          : 'Use the bounty contract deployed with the configured 6-decimal USDC token for this network.',
+    });
+
+    const platformMatches =
+      isAddress(platformWalletAddress ?? '') && addressesMatch(String(bountyPlatformWallet), platformWalletAddress);
+    checks.push({
+      id: 'chain.platform-wallet',
+      label: 'Platform fee wallet',
+      severity: platformMatches ? 'pass' : severityWhenLive,
+      detail: `Bounty platform wallet is ${shortAddress(String(bountyPlatformWallet))}; configured platform wallet is ${shortAddress(
+        platformWalletAddress
+      )}.`,
+      nextAction: platformMatches
+        ? undefined
+        : 'Align NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS with the deployed bounty contract before selling live activations.',
+    });
+
+    let expectedRefereeAddress: string | null = null;
+    let refereeError: string | null = null;
+    try {
+      expectedRefereeAddress = getRefereeAccount(platformWalletAddress).address;
+    } catch (error) {
+      refereeError = error instanceof Error ? error.message : 'Could not derive referee wallet address.';
+    }
+
+    const refereeConfigured = normalizeAddress(String(bountyRefereeAddress)) !== ZERO_ADDRESS;
+    const refereeMatches = expectedRefereeAddress
+      ? addressesMatch(String(bountyRefereeAddress), expectedRefereeAddress)
+      : false;
+    checks.push({
+      id: 'chain.referee-wallet',
+      label: 'Referee contract authority',
+      severity: refereeConfigured && refereeMatches ? 'pass' : severityWhenLive,
+      detail: refereeError
+        ? `Could not derive expected referee wallet: ${refereeError}`
+        : `Bounty referee is ${shortAddress(String(bountyRefereeAddress))}; configured referee wallet derives to ${shortAddress(
+            expectedRefereeAddress
+          )}.`,
+      nextAction:
+        refereeConfigured && refereeMatches
+          ? undefined
+          : 'Call setAIRefereeAddress with the dedicated referee hot wallet before relying on payout or refund settlement.',
+    });
+
+    try {
+      const [platformFee, referralFee, totalFee] = await Promise.all([
+        publicClient.readContract({
+          address: bountyAddress as Address,
+          abi: MONEY_RAILS_PREFLIGHT_ABI,
+          functionName: 'platformFeePercent',
+        }),
+        publicClient.readContract({
+          address: bountyAddress as Address,
+          abi: MONEY_RAILS_PREFLIGHT_ABI,
+          functionName: 'referralFeePercent',
+        }),
+        publicClient.readContract({
+          address: bountyAddress as Address,
+          abi: MONEY_RAILS_PREFLIGHT_ABI,
+          functionName: 'totalFeePercent',
+        }),
+      ]);
+
+      const feeMatches =
+        Number(platformFee) === EXPECTED_BOUNTY_PLATFORM_FEE_PERCENT &&
+        Number(referralFee) === EXPECTED_BOUNTY_REFERRAL_FEE_PERCENT &&
+        Number(totalFee) === EXPECTED_BOUNTY_TOTAL_FEE_PERCENT;
+
+      checks.push({
+        id: 'chain.bounty-fees',
+        label: 'Bounty fee schedule',
+        severity: feeMatches ? 'pass' : severityWhenLive,
+        detail: `Contract fees are platform ${Number(platformFee)}%, referral ${Number(referralFee)}%, total ${Number(
+          totalFee
+        )}%. App settlement copy expects platform ${EXPECTED_BOUNTY_PLATFORM_FEE_PERCENT}%, referral ${EXPECTED_BOUNTY_REFERRAL_FEE_PERCENT}%, total ${EXPECTED_BOUNTY_TOTAL_FEE_PERCENT}%.`,
+        nextAction: feeMatches
+          ? undefined
+          : 'Point NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS at the V2 bounty contract or update app payout copy and fee expectations.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown fee metadata error';
+      checks.push({
+        id: 'chain.bounty-fees',
+        label: 'Bounty fee schedule',
+        severity: severityWhenLive,
+        detail: `Could not read V2 bounty fee metadata: ${message}`,
+        nextAction:
+          'Use a bounty contract that exposes platformFeePercent/referralFeePercent/totalFeePercent so operators can verify payout math before launch.',
+      });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown chain verification error';
+    checks.push({
+      id: 'chain.money-read',
+      label: 'Money rail chain reads',
+      severity: severityWhenLive,
+      detail: `Could not verify on-chain money rails: ${message}`,
+      nextAction: 'Confirm RPC access for the selected Base network and rerun production safety before live spend.',
     });
   }
 }
@@ -1206,6 +1477,7 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
   });
 
   await Promise.all([
+    checkOnchainMoneyRails(checks, { simulationMode }),
     checkRlsCoverage(checks),
     checkRls(checks),
     checkCronSchedules(checks),
