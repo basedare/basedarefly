@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -22,12 +23,14 @@ import {
 } from '@/lib/creator-captains';
 import { buildMissionActivationHref } from '@/lib/mission-routing';
 import { prisma } from '@/lib/prisma';
+import { buildCaptainMissionPath } from '@/lib/scout-creator-leads';
 import { alertCreatorCaptainStatusUpdate } from '@/lib/telegram';
 
 const CaptainStatusSchema = z.enum(CREATOR_CAPTAIN_STATUSES);
 const CaptainUpdateSchema = z.object({
   id: z.string().min(1),
   status: CaptainStatusSchema.optional(),
+  action: z.enum(['launch_mission']).optional(),
   operatorNote: z.string().max(1200).nullable().optional(),
   nextActionAt: z.string().datetime().nullable().optional(),
   suggestedVenue: z.string().max(180).nullable().optional(),
@@ -87,6 +90,43 @@ function buildMailtoHref(input: { email: string; subject: string; body: string }
   return `mailto:${encodeURIComponent(input.email)}?${query.toString()}`;
 }
 
+function buildCaptainProofMissionPacket(input: {
+  creatorName: string;
+  primaryHandle: string;
+  city: string;
+  categories: string[];
+  helpModes: string[];
+  venueLead: string;
+}) {
+  const dispatch = buildCreatorCaptainMissionPacket(input);
+  const creator = input.primaryHandle || input.creatorName || 'Captain';
+  const city = input.city || 'your city';
+
+  return {
+    title: dispatch.title,
+    objective: dispatch.firstMission,
+    prompts: [
+      dispatch.firstMission,
+      dispatch.operatorAsk,
+      'Submit one venue proof packet: best venue, proof links, why it fits, mission moment, perk idea, and intro status.',
+    ],
+    proofChecklist: [
+      ...dispatch.checklist,
+      'At least one proof/media link',
+      'No private-customer filming without permission',
+    ].slice(0, 6),
+    captionDraft: `Running a BaseDare captain mission in ${city}. Real venue, real proof, real route. ${creator}`.trim(),
+    referralAsk:
+      'If you know the owner, manager, host, bartender, promoter, or local operator, ask whether they would look at a 7-day creator proof pilot.',
+    safetyRules: [
+      'No illegal, reckless, harassing, or unsafe dares.',
+      'Do not expose exact private location or film private customers without permission.',
+      'Only make truthful claims about BaseDare, creator pay, and venue outcomes.',
+      'Paid or sponsored venue promotions must be clearly disclosed when applicable.',
+    ],
+  };
+}
+
 function mapCaptainEvent(event: {
   id: string;
   title: string | null;
@@ -101,6 +141,8 @@ function mapCaptainEvent(event: {
   const operator = asRecord(metadata.operator);
   const priority = asRecord(metadata.priority);
   const scoutAttribution = asRecord(metadata.scoutAttribution);
+  const mission = asRecord(metadata.mission);
+  const latestProof = asRecord(mission.latestProof);
   const categories = stringArrayValue(metadata.categories);
   const helpModes = stringArrayValue(metadata.helpModes);
   const categoriesLabel = categories
@@ -201,6 +243,15 @@ function mapCaptainEvent(event: {
       updatedAt: stringValue(operator.updatedAt),
     },
     missionPacket,
+    mission: {
+      token: stringValue(mission.token),
+      status: stringValue(mission.status),
+      missionPath: stringValue(mission.missionPath),
+      missionUrl: stringValue(mission.missionUrl),
+      launchedAt: stringValue(mission.launchedAt),
+      proofSubmittedAt: stringValue(mission.proofSubmittedAt),
+      latestProofVenue: stringValue(latestProof.bestVenueName),
+    },
     ageHours: hoursSince(event.occurredAt),
     occurredAt: event.occurredAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
@@ -309,13 +360,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const currentStatus = normalizeCaptainStatus(event.status);
-    const nextStatus = input.status ?? currentStatus;
+    let nextStatus = input.status ?? currentStatus;
     const metadata = asRecord(event.metadataJson);
     const existingOperator = asRecord(metadata.operator);
+    const existingMission = asRecord(metadata.mission);
     const nextOperator: MetadataRecord = {
       ...existingOperator,
       updatedAt: new Date().toISOString(),
       updatedBy: auth.walletAddress,
+    };
+    let nextMission: MetadataRecord = {
+      ...existingMission,
     };
 
     if (input.operatorNote !== undefined) nextOperator.operatorNote = cleanOptional(input.operatorNote);
@@ -323,11 +378,43 @@ export async function PUT(request: NextRequest) {
     if (input.suggestedVenue !== undefined) nextOperator.suggestedVenue = cleanOptional(input.suggestedVenue);
     if (input.firstMission !== undefined) nextOperator.firstMission = cleanOptional(input.firstMission);
 
+    if (input.action === 'launch_mission') {
+      const primaryHandle = stringValue(metadata.primaryHandle);
+      const creatorName = stringValue(metadata.creatorName);
+      const city = stringValue(metadata.city);
+      const categories = stringArrayValue(metadata.categories);
+      const helpModes = stringArrayValue(metadata.helpModes);
+      const venueLead = stringValue(metadata.venueLead);
+      const token = stringValue(existingMission.token) || randomUUID().replace(/-/g, '');
+      const missionPath = buildCaptainMissionPath({ token });
+      const missionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz'}${missionPath}`;
+
+      nextMission = {
+        ...nextMission,
+        token,
+        missionPath,
+        missionUrl,
+        status: 'MISSION_SENT',
+        launchedAt: stringValue(existingMission.launchedAt) || new Date().toISOString(),
+        launchedBy: auth.walletAddress,
+        packet: buildCaptainProofMissionPacket({
+          creatorName,
+          primaryHandle,
+          city,
+          categories,
+          helpModes,
+          venueLead,
+        }),
+      };
+      nextStatus = input.status ?? (currentStatus === 'NEW' || currentStatus === 'SHORTLISTED' ? 'CONTACTED' : currentStatus);
+    }
+
     const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
     const nextMetadata = JSON.parse(
       JSON.stringify({
         ...metadata,
         operator: nextOperator,
+        mission: nextMission,
         statusHistory:
           nextStatus !== currentStatus
             ? [

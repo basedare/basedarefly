@@ -7,6 +7,7 @@ import {
   findCaptainMissionEventByToken,
   mapCaptainMissionEvent,
 } from '@/lib/captain-missions-server';
+import { CREATOR_CAPTAIN_EVENT_TYPE } from '@/lib/creator-captains';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import {
@@ -182,12 +183,13 @@ export async function POST(
     const updated = await prisma.founderEvent.update({
       where: { id: event.id },
       data: {
-        status: 'PROOF_SUBMITTED',
-        href: '/admin/scouts',
+        status: event.eventType === CREATOR_CAPTAIN_EVENT_TYPE ? event.status || 'CONTACTED' : 'PROOF_SUBMITTED',
+        href: event.eventType === CREATOR_CAPTAIN_EVENT_TYPE ? '/admin/creator-captains' : '/admin/scouts',
         metadataJson: nextMetadata,
       },
       select: {
         id: true,
+        eventType: true,
         title: true,
         status: true,
         metadataJson: true,

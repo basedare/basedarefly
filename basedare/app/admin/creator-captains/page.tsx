@@ -71,6 +71,15 @@ type CreatorCaptain = {
     checklist: string[];
     chips: string[];
   };
+  mission: {
+    token: string;
+    status: string;
+    missionPath: string;
+    missionUrl: string;
+    launchedAt: string;
+    proofSubmittedAt: string;
+    latestProofVenue: string;
+  };
   ageHours: number;
   occurredAt: string;
   updatedAt: string;
@@ -206,7 +215,7 @@ export default function AdminCreatorCaptainsPage() {
     }
   }, [address, hasSessionAdminSecret, loadCaptains]);
 
-  async function updateCaptain(id: string, patch: Partial<DraftState> & { status?: CreatorCaptainStatus }) {
+  async function updateCaptain(id: string, patch: Partial<DraftState> & { status?: CreatorCaptainStatus; action?: 'launch_mission' }) {
     setUpdatingId(id);
     setError(null);
     try {
@@ -540,6 +549,34 @@ export default function AdminCreatorCaptainsPage() {
                       </button>
                     </div>
 
+                    {captain.mission.missionUrl ? (
+                      <div className="rounded-[22px] border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100/62">
+                              Proof mission
+                            </p>
+                            <h3 className="mt-2 text-sm font-black leading-5 text-white">
+                              {captain.mission.proofSubmittedAt ? 'Proof submitted' : 'Mission link ready'}
+                            </h3>
+                          </div>
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-100/58" />
+                        </div>
+                        <p className="mt-3 text-xs font-semibold leading-5 text-white/58">
+                          {captain.mission.latestProofVenue
+                            ? `${captain.mission.latestProofVenue} is ready for venue pitch review.`
+                            : 'Send this private link to collect the venue proof packet.'}
+                        </p>
+                        <a
+                          href={captain.mission.missionUrl}
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/34"
+                        >
+                          Open mission link
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    ) : null}
+
                     <label>
                       <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         Suggested venue
@@ -657,6 +694,15 @@ export default function AdminCreatorCaptainsPage() {
                     </div>
 
                     <div className="grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void updateCaptain(captain.id, { action: 'launch_mission' })}
+                        disabled={updating}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-emerald-100 disabled:opacity-50"
+                      >
+                        {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                        {captain.mission.missionUrl ? 'Refresh mission link' : 'Launch proof mission'}
+                      </button>
                       {captain.links.replyMailtoHref ? (
                         <a
                           href={captain.links.replyMailtoHref}

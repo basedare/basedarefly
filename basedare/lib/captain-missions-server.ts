@@ -8,6 +8,7 @@ import {
   isRecord,
   stringValue,
 } from '@/lib/scout-creator-leads';
+import { CREATOR_CAPTAIN_EVENT_TYPE } from '@/lib/creator-captains';
 
 type MetadataRecord = Record<string, unknown>;
 
@@ -26,6 +27,7 @@ function cleanToken(value: string) {
 
 export function mapCaptainMissionEvent(event: {
   id: string;
+  eventType: string;
   title: string | null;
   status: string | null;
   metadataJson: Prisma.JsonValue | null;
@@ -42,9 +44,10 @@ export function mapCaptainMissionEvent(event: {
     id: event.id,
     title: event.title || 'Captain mission',
     status: event.status || 'MISSION_SENT',
-    creatorHandle: stringValue(metadata.creatorHandle),
+    eventType: event.eventType,
+    creatorHandle: stringValue(metadata.creatorHandle) || stringValue(metadata.primaryHandle),
     creatorName: stringValue(metadata.creatorName),
-    creatorCity: stringValue(metadata.creatorCity),
+    creatorCity: stringValue(metadata.creatorCity) || stringValue(metadata.city),
     scoutCode: stringValue(metadata.scoutCode),
     scoutHandle: stringValue(metadata.scoutHandle),
     mission: {
@@ -91,7 +94,9 @@ export async function findCaptainMissionEventByToken(token: string) {
 
   const events = await prisma.founderEvent.findMany({
     where: {
-      eventType: SCOUT_CREATOR_LEAD_EVENT_TYPE,
+      eventType: {
+        in: [SCOUT_CREATOR_LEAD_EVENT_TYPE, CREATOR_CAPTAIN_EVENT_TYPE],
+      },
       status: {
         notIn: ['REJECTED', 'REWARD_PAID'],
       },
@@ -102,6 +107,7 @@ export async function findCaptainMissionEventByToken(token: string) {
     take: 300,
     select: {
       id: true,
+      eventType: true,
       title: true,
       status: true,
       metadataJson: true,
