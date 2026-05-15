@@ -20,6 +20,15 @@ export const CREATOR_CAPTAIN_CATEGORIES = [
   'music',
 ] as const;
 
+export const CREATOR_CAPTAIN_HELP_MODES = [
+  'venue_scout',
+  'warm_intro',
+  'qr_setup',
+  'crowd_starter',
+  'proof_runner',
+  'recap_runner',
+] as const;
+
 export const CREATOR_CAPTAIN_PLATFORMS = [
   'tiktok',
   'instagram',
@@ -54,6 +63,7 @@ export const CREATOR_CAPTAIN_PAYOUTS = [
 
 export type CreatorCaptainStatus = (typeof CREATOR_CAPTAIN_STATUSES)[number];
 export type CreatorCaptainCategory = (typeof CREATOR_CAPTAIN_CATEGORIES)[number];
+export type CreatorCaptainHelpMode = (typeof CREATOR_CAPTAIN_HELP_MODES)[number];
 export type CreatorCaptainPlatform = (typeof CREATOR_CAPTAIN_PLATFORMS)[number];
 export type CreatorCaptainAudienceSize = (typeof CREATOR_CAPTAIN_AUDIENCE_SIZES)[number];
 export type CreatorCaptainAvailability = (typeof CREATOR_CAPTAIN_AVAILABILITY)[number];
@@ -77,6 +87,15 @@ export const CREATOR_CAPTAIN_CATEGORY_LABELS: Record<CreatorCaptainCategory, str
   fitness: 'Fitness',
   web3: 'Base/Web3',
   music: 'Music',
+};
+
+export const CREATOR_CAPTAIN_HELP_MODE_LABELS: Record<CreatorCaptainHelpMode, string> = {
+  venue_scout: 'Venue scout',
+  warm_intro: 'Warm intro',
+  qr_setup: 'QR setup',
+  crowd_starter: 'Crowd starter',
+  proof_runner: 'Proof runner',
+  recap_runner: 'Recap runner',
 };
 
 export const CREATOR_CAPTAIN_PLATFORM_LABELS: Record<CreatorCaptainPlatform, string> = {
@@ -122,6 +141,7 @@ export type CreatorCaptainApplicationInput = {
   audienceSize: CreatorCaptainAudienceSize;
   contentStyle: string;
   dareIdeas: string;
+  helpModes: CreatorCaptainHelpMode[];
   availability: CreatorCaptainAvailability;
   expectedPayout: CreatorCaptainPayout;
   walletAddress: string;
@@ -160,7 +180,15 @@ export function normalizeCaptainStatus(value: unknown): CreatorCaptainStatus {
 
 export function scoreCreatorCaptain(input: Pick<
   CreatorCaptainApplicationInput,
-  'audienceSize' | 'categories' | 'availability' | 'city' | 'primaryHandle' | 'venueLead' | 'contentStyle' | 'dareIdeas'
+  | 'audienceSize'
+  | 'categories'
+  | 'helpModes'
+  | 'availability'
+  | 'city'
+  | 'primaryHandle'
+  | 'venueLead'
+  | 'contentStyle'
+  | 'dareIdeas'
 >) {
   const reasons: string[] = [];
   let score = 20;
@@ -177,6 +205,26 @@ export function scoreCreatorCaptain(input: Pick<
   if (input.categories.some((category) => ['nightlife', 'food', 'travel', 'street', 'challenge'].includes(category))) {
     score += 14;
     reasons.push('high-fit real-world content lane');
+  }
+
+  if (input.helpModes.includes('warm_intro')) {
+    score += 10;
+    reasons.push('can make warm venue intros');
+  }
+
+  if (input.helpModes.some((mode) => ['qr_setup', 'proof_runner'].includes(mode))) {
+    score += 8;
+    reasons.push('can run proof/check-in ops');
+  }
+
+  if (input.helpModes.includes('crowd_starter')) {
+    score += 6;
+    reasons.push('can start crowd energy');
+  }
+
+  if (input.helpModes.includes('venue_scout')) {
+    score += 6;
+    reasons.push('can scout real venues');
   }
 
   if (input.availability === 'this_week') {
@@ -217,4 +265,3 @@ export function scoreCreatorCaptain(input: Pick<
     reasons: reasons.length ? reasons : ['needs operator review'],
   };
 }
-

@@ -8,6 +8,7 @@ import {
   CREATOR_CAPTAIN_AVAILABILITY_LABELS,
   CREATOR_CAPTAIN_CATEGORY_LABELS,
   CREATOR_CAPTAIN_EVENT_TYPE,
+  CREATOR_CAPTAIN_HELP_MODE_LABELS,
   CREATOR_CAPTAIN_PLATFORM_LABELS,
   CREATOR_CAPTAIN_PAYOUT_LABELS,
   CREATOR_CAPTAIN_STATUS_LABELS,
@@ -93,8 +94,12 @@ function mapCaptainEvent(event: {
   const priority = asRecord(metadata.priority);
   const scoutAttribution = asRecord(metadata.scoutAttribution);
   const categories = stringArrayValue(metadata.categories);
+  const helpModes = stringArrayValue(metadata.helpModes);
   const categoriesLabel = categories
     .map((category) => formatLabel(CREATOR_CAPTAIN_CATEGORY_LABELS, category))
+    .join(', ');
+  const helpModesLabel = helpModes
+    .map((mode) => formatLabel(CREATOR_CAPTAIN_HELP_MODE_LABELS, mode))
     .join(', ');
   const status = normalizeCaptainStatus(event.status);
   const creatorName = stringValue(metadata.creatorName);
@@ -127,6 +132,8 @@ function mapCaptainEvent(event: {
     socialLinks: stringValue(metadata.socialLinks),
     categories,
     categoriesLabel,
+    helpModes,
+    helpModesLabel,
     audienceSize,
     audienceLabel: formatLabel(CREATOR_CAPTAIN_AUDIENCE_LABELS, audienceSize),
     contentStyle: stringValue(metadata.contentStyle),

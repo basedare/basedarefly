@@ -18,18 +18,18 @@ export const metadata: Metadata = {
 const signalSteps = [
   {
     icon: MapPinned,
-    title: 'Real places',
-    copy: 'We route missions into venues, landmarks, events, and city spots people can actually visit.',
+    title: 'Scout the room',
+    copy: 'Name real venues, warm intros, access points, and small local details that make a mission possible.',
   },
   {
     icon: BadgeDollarSign,
-    title: 'Paid prompts',
-    copy: 'The goal is funded missions, venue perks, sponsor drops, and repeat work once proof is visible.',
+    title: 'Help the night run',
+    copy: 'Creators make content. Guests create crowd energy. Captains make the offline setup easier.',
   },
   {
     icon: RadioTower,
-    title: 'Proof loop',
-    copy: 'Your completion becomes a map signal, venue proof, and a recap asset that can sell the next activation.',
+    title: 'Close the proof loop',
+    copy: 'QR setup, proof capture, local routing, and recaps turn a good place into the next activation.',
   },
 ];
 
@@ -82,7 +82,7 @@ export default async function CreatorCaptainsPage({ searchParams }: CreatorCapta
               </h1>
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/62">
                 Get routed into real-world missions that create proof, clips, venue heat, and repeat paid work.
-                BaseDare needs creators who can make the map feel alive.
+                BaseDare needs trusted local creators and operators who can make the offline world easier to activate.
               </p>
 
               <div className="mt-7 grid gap-3">

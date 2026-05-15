@@ -16,6 +16,7 @@ import {
   CREATOR_CAPTAIN_AUDIENCE_LABELS,
   CREATOR_CAPTAIN_AVAILABILITY_LABELS,
   CREATOR_CAPTAIN_CATEGORY_LABELS,
+  CREATOR_CAPTAIN_HELP_MODE_LABELS,
   CREATOR_CAPTAIN_PLATFORM_LABELS,
   CREATOR_CAPTAIN_PAYOUT_LABELS,
 } from '@/lib/creator-captains';
@@ -860,6 +861,7 @@ export async function alertCreatorCaptainApplication(data: {
   primaryHandle: string;
   primaryPlatform: string;
   categories: string[];
+  helpModes?: string[];
   audienceSize: string;
   availability: string;
   expectedPayout: string;
@@ -870,11 +872,15 @@ export async function alertCreatorCaptainApplication(data: {
   const categoryLine = data.categories
     .map((category) => CREATOR_CAPTAIN_CATEGORY_LABELS[category as keyof typeof CREATOR_CAPTAIN_CATEGORY_LABELS] || category)
     .join(', ');
+  const helpModeLine = (data.helpModes || [])
+    .map((helpMode) => CREATOR_CAPTAIN_HELP_MODE_LABELS[helpMode as keyof typeof CREATOR_CAPTAIN_HELP_MODE_LABELS] || helpMode)
+    .join(', ');
   const details = [
     `Contact: ${escapeHtml(data.creatorName)} &lt;${escapeHtml(data.email)}&gt;`,
     `Handle: <code>${escapeHtml(data.primaryHandle)}</code> · Platform: ${escapeHtml(CREATOR_CAPTAIN_PLATFORM_LABELS[data.primaryPlatform as keyof typeof CREATOR_CAPTAIN_PLATFORM_LABELS] || data.primaryPlatform)}`,
     `City: ${escapeHtml(data.city)} · Audience: ${escapeHtml(CREATOR_CAPTAIN_AUDIENCE_LABELS[data.audienceSize as keyof typeof CREATOR_CAPTAIN_AUDIENCE_LABELS] || data.audienceSize)}`,
     `Lane: ${escapeHtml(categoryLine || 'unknown')} · Available: ${escapeHtml(CREATOR_CAPTAIN_AVAILABILITY_LABELS[data.availability as keyof typeof CREATOR_CAPTAIN_AVAILABILITY_LABELS] || data.availability)}`,
+    helpModeLine ? `Captain help: ${escapeHtml(helpModeLine)}` : null,
     `Expected payout: ${escapeHtml(CREATOR_CAPTAIN_PAYOUT_LABELS[data.expectedPayout as keyof typeof CREATOR_CAPTAIN_PAYOUT_LABELS] || data.expectedPayout)}`,
     data.venueLead ? `Venue lead: ${escapeHtml(compactText(data.venueLead, 180))}` : null,
     `Priority: ${data.priorityScore}/100 · ${escapeHtml(data.priorityReasons.join(', '))}`,

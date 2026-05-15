@@ -39,6 +39,7 @@ type CreatorCaptain = {
   primaryPlatformLabel: string;
   socialLinks: string;
   categoriesLabel: string;
+  helpModesLabel: string;
   audienceLabel: string;
   contentStyle: string;
   dareIdeas: string;
@@ -414,6 +415,10 @@ export default function AdminCreatorCaptainsPage() {
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">{captain.categoriesLabel || 'No lane set'}</p>
                       </div>
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Captain help</p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-white/70">{captain.helpModesLabel || 'Not selected'}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-white/10 bg-black/22 p-4 md:col-span-2">
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Availability / payout</p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">
                           {captain.availabilityLabel} · {captain.expectedPayoutLabel}

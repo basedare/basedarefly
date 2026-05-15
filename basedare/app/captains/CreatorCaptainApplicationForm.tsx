@@ -10,6 +10,8 @@ import {
   CREATOR_CAPTAIN_AVAILABILITY_LABELS,
   CREATOR_CAPTAIN_CATEGORIES,
   CREATOR_CAPTAIN_CATEGORY_LABELS,
+  CREATOR_CAPTAIN_HELP_MODE_LABELS,
+  CREATOR_CAPTAIN_HELP_MODES,
   CREATOR_CAPTAIN_PLATFORM_LABELS,
   CREATOR_CAPTAIN_PLATFORMS,
   CREATOR_CAPTAIN_PAYOUT_LABELS,
@@ -17,6 +19,7 @@ import {
   type CreatorCaptainAudienceSize,
   type CreatorCaptainAvailability,
   type CreatorCaptainCategory,
+  type CreatorCaptainHelpMode,
   type CreatorCaptainPlatform,
   type CreatorCaptainPayout,
 } from '@/lib/creator-captains';
@@ -29,6 +32,7 @@ type FormState = {
   primaryPlatform: CreatorCaptainPlatform;
   socialLinks: string;
   categories: CreatorCaptainCategory[];
+  helpModes: CreatorCaptainHelpMode[];
   audienceSize: CreatorCaptainAudienceSize;
   contentStyle: string;
   dareIdeas: string;
@@ -50,6 +54,7 @@ const INITIAL_FORM: FormState = {
   primaryPlatform: 'tiktok',
   socialLinks: '',
   categories: ['nightlife'],
+  helpModes: ['venue_scout', 'proof_runner'],
   audienceSize: '10k_50k',
   contentStyle: '',
   dareIdeas: '',
@@ -78,6 +83,13 @@ function toggleCategory(current: CreatorCaptainCategory[], category: CreatorCapt
     return current.length === 1 ? current : current.filter((item) => item !== category);
   }
   return [...current, category].slice(0, 4);
+}
+
+function toggleHelpMode(current: CreatorCaptainHelpMode[], helpMode: CreatorCaptainHelpMode) {
+  if (current.includes(helpMode)) {
+    return current.length === 1 ? current : current.filter((item) => item !== helpMode);
+  }
+  return [...current, helpMode].slice(0, 4);
 }
 
 function buildInitialForm(props: CreatorCaptainApplicationFormProps): FormState {
@@ -293,6 +305,34 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
                   }`}
                 >
                   {CREATOR_CAPTAIN_CATEGORY_LABELS[category]}
+                </button>
+              );
+            })}
+          </div>
+        </label>
+
+        <label>
+          <span className={labelClass}>Captain help</span>
+          <p className="-mt-1 mb-3 text-xs font-semibold leading-5 text-white/42">
+            Pick the offline jobs you can safely help with. Exact live location stays private.
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {CREATOR_CAPTAIN_HELP_MODES.map((helpMode) => {
+              const active = form.helpModes.includes(helpMode);
+              return (
+                <button
+                  key={helpMode}
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({ ...current, helpModes: toggleHelpMode(current.helpModes, helpMode) }))
+                  }
+                  className={`min-h-11 rounded-2xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-[0.1em] transition ${
+                    active
+                      ? 'border-yellow-300/35 bg-yellow-300/[0.12] text-yellow-100'
+                      : 'border-white/10 bg-white/[0.035] text-white/42 hover:text-white'
+                  }`}
+                >
+                  {CREATOR_CAPTAIN_HELP_MODE_LABELS[helpMode]}
                 </button>
               );
             })}
