@@ -74,7 +74,7 @@ interface InboxSummary {
     threads: InboxSummaryThread[];
 }
 
-export function NotificationBell() {
+export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolean }) {
     const { address, sessionWallet } = useActiveWallet();
     const { data: session } = useSession();
     const { signMessageAsync } = useSignMessage();
@@ -82,14 +82,13 @@ export function NotificationBell() {
     const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
     const [inboxSummary, setInboxSummary] = useState<InboxSummary | null>(null);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const [isHovered, setIsHovered] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const previousAddressRef = useRef<string | null>(null);
     const idleFetchedAddressRef = useRef<string | null>(null);
-    const [mounted, setMounted] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
 
     const unreadCount = notifications.length;
@@ -170,10 +169,6 @@ export function NotificationBell() {
         },
         [address, sessionToken, sessionWallet, signMessageAsync]
     );
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     const fetchNotifications = useCallback(async (allowSignPrompt = false) => {
         if (!address) return;
@@ -386,7 +381,7 @@ export function NotificationBell() {
             </button>
 
             {/* Dropdown */}
-            {mounted && createPortal(
+            {typeof document !== 'undefined' && createPortal(
             <AnimatePresence>
                 {isOpen && (
                     <motion.div

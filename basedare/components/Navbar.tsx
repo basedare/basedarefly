@@ -5,11 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
-import { useWallet } from '@/context/WalletContext';
 import { useView } from '@/app/context/ViewContext';
 import GlassSurface from './GlassSurface';
 import { IdentityButton } from './IdentityButton';
-import { NotificationBell } from './ui/NotificationBell';
+import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
 import { GlobalSearch } from './ui/GlobalSearch';
 
 const NAV_LINKS = [
@@ -28,7 +27,6 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { isControlMode } = useView();
-  useWallet();
 
   return (
     <>
@@ -142,7 +140,7 @@ export default function Navbar() {
             >
               <MessageCircle className="h-4 w-4" />
             </Link>
-            <NotificationBell />
+            <DeferredNotificationBell />
             <div className="w-[108px] min-w-0 sm:w-[140px] md:w-auto">
               <IdentityButton />
             </div>
