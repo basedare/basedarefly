@@ -63,6 +63,14 @@ type CreatorCaptain = {
     suggestedVenue: string;
     firstMission: string;
   };
+  missionPacket: {
+    title: string;
+    suggestedVenue: string;
+    firstMission: string;
+    operatorAsk: string;
+    checklist: string[];
+    chips: string[];
+  };
   ageHours: number;
   occurredAt: string;
   updatedAt: string;
@@ -232,6 +240,18 @@ export default function AdminCreatorCaptainsPage() {
     } finally {
       setUpdatingId(null);
     }
+  }
+
+  function applyMissionPacket(captain: CreatorCaptain) {
+    setDrafts((current) => ({
+      ...current,
+      [captain.id]: {
+        ...current[captain.id],
+        suggestedVenue: current[captain.id]?.suggestedVenue || captain.missionPacket.suggestedVenue,
+        firstMission: captain.missionPacket.firstMission,
+        operatorNote: current[captain.id]?.operatorNote || captain.missionPacket.operatorAsk,
+      },
+    }));
   }
 
   const visibleCaptains = useMemo(() => {
@@ -477,6 +497,49 @@ export default function AdminCreatorCaptainsPage() {
                   </div>
 
                   <aside className="grid gap-3 rounded-[24px] border border-white/10 bg-black/24 p-4">
+                    <div className="rounded-[22px] border border-cyan-300/15 bg-cyan-300/[0.055] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/62">
+                            Dispatch packet
+                          </p>
+                          <h3 className="mt-2 text-sm font-black leading-5 text-white">
+                            {captain.missionPacket.title}
+                          </h3>
+                        </div>
+                        <Sparkles className="h-4 w-4 shrink-0 text-cyan-100/58" />
+                      </div>
+                      <p className="mt-3 text-xs font-semibold leading-5 text-white/58">
+                        {captain.missionPacket.firstMission}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {captain.missionPacket.chips.map((chip) => (
+                          <span
+                            key={chip}
+                            className="rounded-full border border-white/10 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/48"
+                          >
+                            {chip}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-3 grid gap-1.5">
+                        {captain.missionPacket.checklist.slice(0, 3).map((item) => (
+                          <p key={item} className="flex items-start gap-2 text-[11px] font-bold leading-4 text-cyan-50/62">
+                            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-100/60" />
+                            {item}
+                          </p>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applyMissionPacket(captain)}
+                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/34"
+                      >
+                        <Clipboard className="h-3.5 w-3.5" />
+                        Use packet
+                      </button>
+                    </div>
+
                     <label>
                       <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         Suggested venue
@@ -608,7 +671,7 @@ export default function AdminCreatorCaptainsPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-white/60 hover:text-white"
                       >
                         <Sparkles className="h-4 w-4" />
-                        Create mission
+                        Open activation route
                       </Link>
                     </div>
                   </aside>

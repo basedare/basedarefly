@@ -149,6 +149,15 @@ export type CreatorCaptainApplicationInput = {
   referralSource: string;
 };
 
+export type CreatorCaptainMissionPacket = {
+  title: string;
+  suggestedVenue: string;
+  firstMission: string;
+  operatorAsk: string;
+  checklist: string[];
+  chips: string[];
+};
+
 export function normalizeText(value: string | null | undefined) {
   return (value || '').replace(/\s+/g, ' ').trim();
 }
@@ -176,6 +185,95 @@ export function normalizeCaptainStatus(value: unknown): CreatorCaptainStatus {
   return CREATOR_CAPTAIN_STATUSES.includes(value as CreatorCaptainStatus)
     ? (value as CreatorCaptainStatus)
     : 'NEW';
+}
+
+function firstMatchingHelpMode(helpModes: string[], priority: CreatorCaptainHelpMode[]) {
+  return priority.find((mode) => helpModes.includes(mode));
+}
+
+function firstMatchingCategory(categories: string[], priority: CreatorCaptainCategory[]) {
+  return priority.find((category) => categories.includes(category));
+}
+
+export function buildCreatorCaptainMissionPacket(input: {
+  creatorName?: string | null;
+  primaryHandle?: string | null;
+  city?: string | null;
+  categories?: string[] | null;
+  helpModes?: string[] | null;
+  venueLead?: string | null;
+}) {
+  const creator = normalizeCreatorHandle(input.primaryHandle) || normalizeText(input.creatorName) || 'this captain';
+  const city = normalizeText(input.city) || 'their local area';
+  const suggestedVenue = normalizeText(input.venueLead) || `${city} venue shortlist`;
+  const categories = (input.categories || []).filter((category): category is CreatorCaptainCategory =>
+    CREATOR_CAPTAIN_CATEGORIES.includes(category as CreatorCaptainCategory)
+  );
+  const helpModes = (input.helpModes || []).filter((mode): mode is CreatorCaptainHelpMode =>
+    CREATOR_CAPTAIN_HELP_MODES.includes(mode as CreatorCaptainHelpMode)
+  );
+  const primaryHelp = firstMatchingHelpMode(helpModes, [
+    'warm_intro',
+    'qr_setup',
+    'proof_runner',
+    'crowd_starter',
+    'recap_runner',
+    'venue_scout',
+  ]);
+  const primaryLane = firstMatchingCategory(categories, ['nightlife', 'food', 'travel', 'street', 'music', 'fitness']);
+  const laneLabel = primaryLane ? CREATOR_CAPTAIN_CATEGORY_LABELS[primaryLane].toLowerCase() : 'local venue';
+
+  const packetByHelpMode: Record<CreatorCaptainHelpMode, Omit<CreatorCaptainMissionPacket, 'suggestedVenue' | 'chips'>> = {
+    warm_intro: {
+      title: 'Warm venue intro route',
+      firstMission: `Use ${creator} to make one warm intro at ${suggestedVenue}; confirm the decision maker, one simple perk, and whether a 7-day First Spark Pilot is welcome.`,
+      operatorAsk: 'Ask for the owner/manager contact, best intro path, and one low-cost perk the venue could offer.',
+      checklist: ['Decision maker named', 'Perk idea captured', 'Intro permission confirmed'],
+    },
+    qr_setup: {
+      title: 'QR proof setup test',
+      firstMission: `Send ${creator} to test the QR/check-in path at ${suggestedVenue}; capture signage context, scan friction, and one clean proof moment without exposing exact private location.`,
+      operatorAsk: 'Ask them to report scan friction, staff placement, and whether the venue can keep a QR visible.',
+      checklist: ['QR placement photo', 'Scan/check-in tested', 'Staff or venue note captured'],
+    },
+    proof_runner: {
+      title: 'Proof runner mission',
+      firstMission: `Route ${creator} to capture one safe proof loop at ${suggestedVenue}: arrival signal, venue context, proof clip/photo, and a short recap note for operator review.`,
+      operatorAsk: 'Ask for one proof asset, one venue context shot, and the clearest next activation angle.',
+      checklist: ['Arrival proof', 'Venue context', 'Recap note'],
+    },
+    crowd_starter: {
+      title: 'Guest loop starter',
+      firstMission: `Use ${creator} to seed a small guest mission at ${suggestedVenue}: check in, bring one friend, capture crowd energy, and suggest the lightest perk that would make guests join.`,
+      operatorAsk: 'Ask what guests would actually do, what perk feels natural, and whether the room has repeatable energy.',
+      checklist: ['Guest action named', 'Crowd signal captured', 'Perk fit noted'],
+    },
+    recap_runner: {
+      title: 'Spark receipt runner',
+      firstMission: `Have ${creator} turn ${suggestedVenue} into a Spark Receipt: 3 proof points, one useful venue quote or observation, and the next mission recommendation.`,
+      operatorAsk: 'Ask for a tight recap that can be pasted into the venue pitch without extra rewriting.',
+      checklist: ['3 proof points', 'Venue quote/observation', 'Next mission recommendation'],
+    },
+    venue_scout: {
+      title: 'Venue scout shortlist',
+      firstMission: `Ask ${creator} to scout 3 ${laneLabel} candidates in ${city}; pick one venue, explain why it can move, and attach one proof/media signal.`,
+      operatorAsk: 'Ask for venue names, fit reason, proof/media, and whether any warm intro exists.',
+      checklist: ['3 venue names', 'Best venue picked', 'Proof/media signal'],
+    },
+  };
+
+  const selected = packetByHelpMode[primaryHelp || 'venue_scout'];
+  const chips = [
+    primaryHelp ? CREATOR_CAPTAIN_HELP_MODE_LABELS[primaryHelp] : 'Venue scout',
+    primaryLane ? CREATOR_CAPTAIN_CATEGORY_LABELS[primaryLane] : 'Local venue',
+    city,
+  ].slice(0, 3);
+
+  return {
+    ...selected,
+    suggestedVenue,
+    chips,
+  };
 }
 
 export function scoreCreatorCaptain(input: Pick<

@@ -13,12 +13,14 @@ import {
   CREATOR_CAPTAIN_PAYOUT_LABELS,
   CREATOR_CAPTAIN_STATUS_LABELS,
   CREATOR_CAPTAIN_STATUSES,
+  buildCreatorCaptainMissionPacket,
   isRecord,
   normalizeCaptainStatus,
   stringArrayValue,
   stringValue,
   type CreatorCaptainStatus,
 } from '@/lib/creator-captains';
+import { buildMissionActivationHref } from '@/lib/mission-routing';
 import { prisma } from '@/lib/prisma';
 import { alertCreatorCaptainStatusUpdate } from '@/lib/telegram';
 
@@ -56,7 +58,10 @@ function buildReplyDraft(input: {
   primaryHandle: string;
   city: string;
   categoriesLabel: string;
+  helpModesLabel: string;
   availabilityLabel: string;
+  missionTitle: string;
+  firstMission: string;
 }) {
   const name = input.creatorName || input.primaryHandle || 'there';
   const cityLine = input.city ? ` in ${input.city}` : '';
@@ -64,10 +69,13 @@ function buildReplyDraft(input: {
     `Yo ${name}, thanks for applying to be a BaseDare Founding Dare Captain.`,
     '',
     `Your lane looks like ${input.categoriesLabel}${cityLine}. The next step is a simple pilot: one real-world mission, one proof moment, and one recap we can use to pitch venues.`,
-    `If you are still available ${input.availabilityLabel.toLowerCase()}, send the best handle to contact you on and one place you would actually film at this week.`,
+    input.helpModesLabel ? `You marked: ${input.helpModesLabel}.` : null,
+    `Suggested first mission: ${input.missionTitle}.`,
+    input.firstMission,
+    `If you are still available ${input.availabilityLabel.toLowerCase()}, send the best handle to contact you on and whether this first mission is realistic this week.`,
     '',
     'BaseDare is building paid IRL missions, not generic influencer posts. We want creators who can make the map feel alive.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 function buildMailtoHref(input: { email: string; subject: string; body: string }) {
@@ -110,12 +118,42 @@ function mapCaptainEvent(event: {
   const audienceSize = stringValue(metadata.audienceSize);
   const availability = stringValue(metadata.availability);
   const expectedPayout = stringValue(metadata.expectedPayout);
+  const missionPacket = buildCreatorCaptainMissionPacket({
+    creatorName,
+    primaryHandle,
+    city,
+    categories,
+    helpModes,
+    venueLead: stringValue(metadata.venueLead),
+  });
+  const activationHref = buildMissionActivationHref({
+    source: 'creator-captain-admin',
+    creator: primaryHandle || creatorName,
+    venueName: missionPacket.suggestedVenue,
+    city,
+    goal: 'foot_traffic',
+    buyerType: 'venue',
+    packageId: 'pilot-drop',
+    offer: 'first-spark',
+    missionType: 'hybrid',
+    missionTitle: missionPacket.title,
+    creatorSlots: 1,
+    payout: formatLabel(CREATOR_CAPTAIN_PAYOUT_LABELS, expectedPayout),
+    timeWindow: formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
+    proofRequired: missionPacket.checklist.join('; '),
+    contentRequired: missionPacket.firstMission,
+    guestMission: 'Guests check in, collect a receipt, and unlock one simple venue perk.',
+    perkLabel: 'Venue provides one access/status perk',
+  });
   const replyDraft = buildReplyDraft({
     creatorName,
     primaryHandle,
     city,
     categoriesLabel: categoriesLabel || 'creator missions',
+    helpModesLabel,
     availabilityLabel: formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
+    missionTitle: missionPacket.title,
+    firstMission: missionPacket.firstMission,
   });
 
   return {
@@ -162,6 +200,7 @@ function mapCaptainEvent(event: {
       updatedBy: stringValue(operator.updatedBy),
       updatedAt: stringValue(operator.updatedAt),
     },
+    missionPacket,
     ageHours: hoursSince(event.occurredAt),
     occurredAt: event.occurredAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
@@ -172,7 +211,7 @@ function mapCaptainEvent(event: {
         body: replyDraft,
       }),
       creatorSearchHref: primaryHandle ? `/creators?search=${encodeURIComponent(primaryHandle.replace(/^@/, ''))}` : '/creators',
-      createHref: `/create?mode=venue-activation&source=creator-captain&streamer=${encodeURIComponent(primaryHandle || creatorName)}`,
+      createHref: activationHref,
     },
     replyDraft,
   };
