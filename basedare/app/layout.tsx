@@ -11,8 +11,7 @@ import "./global.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import LivePotBubble from "@/components/LivePotBubble";
-import LivePotPortal from "@/components/LivePotPortal";
+import DeferredLivePotBubble from "@/components/DeferredLivePotBubble";
 import { LiquidFilter } from "@/components/ui/LiquidFilter";
 import ClientLoader from "@/components/ClientLoader";
 import BackgroundLayers from "@/components/BackgroundLayers";
@@ -140,9 +139,7 @@ export default function RootLayout({
                   </main>
                   <Footer />
                 </div>
-                <LivePotPortal>
-                  <LivePotBubble />
-                </LivePotPortal>
+                <DeferredLivePotBubble />
               </IgnitionProvider>
             </ViewProvider>
             <Toaster />
