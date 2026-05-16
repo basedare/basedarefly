@@ -21,6 +21,9 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 // Streamer images from existing assets
 const STREAMER_IMAGES: Record<string, string> = {
+    basedare: '/assets/peebear-head.webp',
+    basedarebear: '/assets/peebear-head.webp',
+    peebear: '/assets/peebear-head.webp',
     kaicenat: '/assets/KAICENAT.jpeg',
     'kai cenat': '/assets/KAICENAT.jpeg',
     adinross: '/assets/adinross.webp',
@@ -188,6 +191,27 @@ function getAvatarStyle(frame: AvatarFrame): CSSProperties {
         transform: `scale(${frame.scale})`,
         transformOrigin: 'center center',
     };
+}
+
+function CreatorAvatarFallback({
+    plainTag,
+    compact = false,
+}: {
+    plainTag: string;
+    compact?: boolean;
+}) {
+    return (
+        <div
+            className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[radial-gradient(circle_at_24%_18%,rgba(255,255,255,0.24),transparent_18%),linear-gradient(135deg,rgba(126,34,206,0.9)_0%,rgba(245,197,24,0.86)_54%,rgba(239,68,68,0.82)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-16px_28px_rgba(0,0,0,0.28)] ${compact ? 'text-3xl' : 'text-4xl'}`}
+            aria-label="Profile photo pending"
+        >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_78%,rgba(0,0,0,0.38),transparent_38%)]" />
+            <Camera className={`absolute ${compact ? 'right-3 top-3 h-4 w-4' : 'right-4 top-4 h-5 w-5'} text-white/44`} />
+            <span className="relative z-10 font-black drop-shadow-[0_2px_10px_rgba(0,0,0,0.42)]">
+                {plainTag.slice(0, 1).toUpperCase()}
+            </span>
+        </div>
+    );
 }
 
 const raisedPanelClass =
@@ -840,8 +864,8 @@ export default function CreatorProfilePage() {
                                             />
                                         </div>
                                     ) : (
-                                        <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-purple-600 via-yellow-500 to-red-500 flex items-center justify-center text-4xl font-black text-white shadow-[0_18px_28px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.08)] border border-white/10">
-                                            {plainTag.slice(0, 1).toUpperCase()}
+                                        <div className="w-24 h-24 md:w-28 md:h-28 rounded-full shadow-[0_18px_28px_rgba(0,0,0,0.28),0_0_24px_rgba(168,85,247,0.08)]">
+                                            <CreatorAvatarFallback plainTag={plainTag} />
                                         </div>
                                     )}
                                     {profile?.verified && (
@@ -1173,8 +1197,8 @@ export default function CreatorProfilePage() {
                                                 style={getAvatarStyle(savedAvatarFrame)}
                                             />
                                         ) : (
-                                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-700/70 to-yellow-500/50 text-3xl font-black text-white">
-                                                {plainTag.slice(0, 1).toUpperCase()}
+                                            <div className="flex h-full w-full items-center justify-center bg-black/30 p-3">
+                                                <CreatorAvatarFallback plainTag={plainTag} compact />
                                             </div>
                                         )}
                                         <span className="absolute bottom-2 left-2 rounded-full border border-black/30 bg-black/55 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/78">
