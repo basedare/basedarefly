@@ -18,12 +18,13 @@ interface SearchResponse {
 }
 
 interface GlobalSearchProps {
+    defaultOpen?: boolean;
     isDesktopApp?: boolean;
 }
 
-export function GlobalSearch({ isDesktopApp = false }: GlobalSearchProps) {
+export function GlobalSearch({ defaultOpen = false, isDesktopApp = false }: GlobalSearchProps) {
     void isDesktopApp;
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResponse>({ streamers: [], dares: [] });
     const [isLoading, setIsLoading] = useState(false);

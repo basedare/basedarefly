@@ -9,7 +9,7 @@ import { useView } from '@/app/context/ViewContext';
 import GlassSurface from './GlassSurface';
 import { IdentityButton } from './IdentityButton';
 import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
-import { GlobalSearch } from './ui/GlobalSearch';
+import { DeferredGlobalSearch } from './ui/DeferredGlobalSearch';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
@@ -161,7 +161,7 @@ export default function Navbar() {
           Fixed to the left, parallel to the ViewToggle (which is top-24 right-6)
           ============================================ */}
       <div className="hidden md:block fixed top-24 left-6 z-[90]">
-        <GlobalSearch isDesktopApp />
+        <DeferredGlobalSearch isDesktopApp />
       </div>
 
       {/* === MOBILE MENU OVERLAY === */}
@@ -234,7 +234,7 @@ export default function Navbar() {
 
             {/* Mobile Search Button (Under FAQ) */}
             <div className="mt-6 w-full flex justify-center">
-              <GlobalSearch />
+              <DeferredGlobalSearch />
             </div>
 
             {/* Mobile Connect Button */}
