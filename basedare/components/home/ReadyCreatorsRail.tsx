@@ -302,10 +302,11 @@ export default function ReadyCreatorsRail() {
                   </Link>
                   <Link
                     href={creator.inviteHref}
+                    aria-label={`Launch mission for ${creator.name}`}
                     className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] transition ${tone.cta}`}
                   >
                     <Briefcase className="h-3.5 w-3.5" />
-                    Invite
+                    Launch
                   </Link>
                 </div>
               </article>

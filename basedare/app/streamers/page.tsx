@@ -103,7 +103,7 @@ function getCreatorAvailability(creator: Creator): {
 
   return {
     label: "Open this week",
-    detail: "Invite to confirm window",
+    detail: "Mission window open",
     dotClass: "bg-[#f5c518] shadow-[0_0_14px_rgba(245,197,24,0.6)]",
     badgeClass: "border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f9e27a]",
   };
@@ -329,7 +329,7 @@ export default function CreatorsPage() {
                     Creators ready near a venue
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                    Invite people by area, proof record, and skill. Exact live location stays private until a mission is accepted.
+                    Route creators by area, proof record, and skill. Exact live location stays private until a mission is accepted.
                   </p>
                 </div>
                 <Link
@@ -437,7 +437,7 @@ export default function CreatorsPage() {
                             href={inviteHref}
                             className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
                           >
-                            Invite
+                            Launch
                           </Link>
                         </div>
                       </div>

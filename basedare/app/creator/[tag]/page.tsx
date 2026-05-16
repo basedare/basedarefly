@@ -954,7 +954,7 @@ export default function CreatorProfilePage() {
                                             className="inline-flex min-h-[2.75rem] flex-1 items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18 sm:flex-none"
                                         >
                                             <Briefcase className="h-3.5 w-3.5" />
-                                            Invite to mission
+                                            Launch mission
                                         </Link>
                                         <Link
                                             href={creatorInboxHref}
@@ -1066,7 +1066,7 @@ export default function CreatorProfilePage() {
                             className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18"
                         >
                             <Briefcase className="h-3.5 w-3.5" />
-                            Invite to mission
+                            Launch mission
                         </Link>
                     </div>
 
@@ -1248,7 +1248,7 @@ export default function CreatorProfilePage() {
                                         {latestDare?.title || 'Mission slot open'}
                                     </p>
                                     <p className="mt-2 text-[11px] leading-5 text-white/45">
-                                        {latestDare ? `${latestDare.status.toLowerCase()} proof` : 'Invite them to start a new proof trail.'}
+                                        {latestDare ? `${latestDare.status.toLowerCase()} proof` : 'Launch a mission to start a new proof trail.'}
                                     </p>
                                 </div>
 
@@ -1257,7 +1257,7 @@ export default function CreatorProfilePage() {
                                     className="flex min-h-[7.5rem] flex-col justify-between rounded-[18px] border border-[#f5c518]/20 bg-[#f5c518]/10 px-3 py-3 transition hover:border-[#f5c518]/35"
                                 >
                                     <p className="text-[9px] uppercase tracking-[0.18em] text-[#f9e27a]/80 font-black">Next slot</p>
-                                    <p className="text-sm font-black leading-5 text-white">Send a paid mission invite</p>
+                                    <p className="text-sm font-black leading-5 text-white">Launch a paid mission</p>
                                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a]">Launch</p>
                                 </Link>
                             </div>
