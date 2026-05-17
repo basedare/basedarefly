@@ -28,7 +28,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.78134,
     longitude: 126.15625,
     timezone: 'Asia/Manila',
-    categories: ['nightlife', 'boardwalk', 'dock', 'bar', 'siargao', 'general-luna'],
+    categories: ['nightlife', 'boardwalk', 'dock', 'bar', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
   {
     slug: 'siargao-beach-club',
@@ -41,7 +41,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.78578,
     longitude: 126.16048,
     timezone: 'Asia/Manila',
-    categories: ['nightlife', 'music', 'beach-club', 'bar', 'siargao', 'general-luna'],
+    categories: ['nightlife', 'music', 'beach-club', 'bar', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
   {
     slug: 'cloud-9-boardwalk',
@@ -54,7 +54,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.81276,
     longitude: 126.16408,
     timezone: 'Asia/Manila',
-    categories: ['surf', 'boardwalk', 'iconic', 'beach', 'siargao', 'catangnan'],
+    categories: ['surf', 'boardwalk', 'iconic', 'beach', 'sunrise', 'morning', 'siargao', 'catangnan'],
   },
   {
     slug: 'the-cat-and-gun',
@@ -67,7 +67,18 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.8093625,
     longitude: 126.1598594,
     timezone: 'Asia/Manila',
-    categories: ['cafe', 'coffee', 'sports-bar', 'food', 'siargao', 'catangnan'],
+    categories: [
+      'cafe',
+      'coffee',
+      'breakfast',
+      'brunch',
+      'lunch',
+      'sports-bar',
+      'food',
+      'work-friendly',
+      'siargao',
+      'catangnan',
+    ],
   },
   {
     slug: 'shaka-siargao',
@@ -80,7 +91,19 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.81255,
     longitude: 126.15965,
     timezone: 'Asia/Manila',
-    categories: ['cafe', 'healthy', 'surf-view', 'cloud-9', 'siargao', 'catangnan'],
+    categories: [
+      'cafe',
+      'coffee',
+      'breakfast',
+      'brunch',
+      'smoothie-bowl',
+      'healthy',
+      'surf-view',
+      'morning',
+      'cloud-9',
+      'siargao',
+      'catangnan',
+    ],
   },
   {
     slug: 'kermit-siargao',
@@ -93,7 +116,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.79895,
     longitude: 126.1582,
     timezone: 'Asia/Manila',
-    categories: ['restaurant', 'surf-camp', 'pizza', 'social', 'siargao', 'general-luna'],
+    categories: ['restaurant', 'surf-camp', 'pizza', 'lunch', 'dinner', 'social', 'siargao', 'general-luna'],
   },
   {
     slug: 'bravo-restaurant-siargao',
@@ -106,7 +129,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.79315,
     longitude: 126.1609,
     timezone: 'Asia/Manila',
-    categories: ['restaurant', 'beachfront', 'bar', 'dinner', 'siargao', 'general-luna'],
+    categories: ['restaurant', 'beachfront', 'bar', 'breakfast', 'brunch', 'dinner', 'siargao', 'general-luna'],
   },
   {
     slug: 'harana-surf-resort',
@@ -119,7 +142,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.80795,
     longitude: 126.16125,
     timezone: 'Asia/Manila',
-    categories: ['surf', 'resort', 'restaurant', 'catangnan', 'siargao', 'tuason'],
+    categories: ['surf', 'resort', 'restaurant', 'breakfast', 'lunch', 'catangnan', 'siargao', 'tuason'],
   },
   {
     slug: 'white-beard-coffee-siargao',
@@ -132,7 +155,17 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.7909,
     longitude: 126.15855,
     timezone: 'Asia/Manila',
-    categories: ['coffee', 'breakfast', 'cafe', 'poblacion', 'siargao', 'general-luna'],
+    categories: [
+      'coffee',
+      'breakfast',
+      'brunch',
+      'cafe',
+      'morning',
+      'work-friendly',
+      'poblacion',
+      'siargao',
+      'general-luna',
+    ],
   },
   {
     slug: 'las-barricas-siargao',
@@ -145,7 +178,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.7897,
     longitude: 126.16055,
     timezone: 'Asia/Manila',
-    categories: ['restaurant', 'tapas', 'tacos', 'dinner', 'siargao', 'general-luna'],
+    categories: ['restaurant', 'tapas', 'tacos', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
   {
     slug: 'barrel-siargao',
@@ -158,7 +191,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.7898,
     longitude: 126.1621,
     timezone: 'Asia/Manila',
-    categories: ['sports-bar', 'beachfront', 'nightlife', 'food', 'siargao', 'general-luna'],
+    categories: ['sports-bar', 'beachfront', 'nightlife', 'food', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
   {
     slug: 'general-luna-island-hopping-dock',
@@ -171,7 +204,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.78115,
     longitude: 126.15645,
     timezone: 'Asia/Manila',
-    categories: ['dock', 'island-hopping', 'tourism', 'boats', 'siargao', 'general-luna'],
+    categories: ['dock', 'island-hopping', 'tourism', 'boats', 'morning', 'siargao', 'general-luna'],
   },
   {
     slug: 'tuason-point',
@@ -184,7 +217,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.8094,
     longitude: 126.1683,
     timezone: 'Asia/Manila',
-    categories: ['surf', 'reef-break', 'catangnan', 'advanced', 'siargao', 'tuason'],
+    categories: ['surf', 'reef-break', 'sunrise', 'morning', 'catangnan', 'advanced', 'siargao', 'tuason'],
   },
   {
     slug: 'malinao-beach',
@@ -197,7 +230,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     latitude: 9.7684925,
     longitude: 126.1289878,
     timezone: 'Asia/Manila',
-    categories: ['beach', 'quiet', 'malinao', 'tourism', 'siargao', 'general-luna'],
+    categories: ['beach', 'quiet', 'sunset', 'malinao', 'tourism', 'siargao', 'general-luna'],
   },
 ];
 
@@ -221,6 +254,21 @@ const SIARGAO_QUERY_TOKENS = [
   'island hopping',
   'tuason',
   'malinao',
+  'breakfast',
+  'brunch',
+  'coffee',
+  'cafe',
+  'morning',
+  'lunch',
+  'dinner',
+  'late night',
+  'late-night',
+  'food',
+  'restaurant',
+  'beach',
+  'surf',
+  'work friendly',
+  'work-friendly',
 ];
 
 export function getCuratedVenueSlugsForQuery(query: string) {

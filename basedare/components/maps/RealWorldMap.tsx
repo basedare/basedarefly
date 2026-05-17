@@ -16,24 +16,31 @@ import maplibregl, {
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
   ArrowLeft,
+  Bike,
+  Camera,
   ChevronDown,
   ChevronUp,
   Eye,
   EyeOff,
   Flame,
+  ImageIcon,
   Loader2,
   LocateFixed,
   MapPin,
   Maximize2,
   Minimize2,
+  Move,
   Minus,
+  Navigation,
   Plus,
   RotateCcw,
   RotateCw,
+  Save,
   Search,
   Send,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Users,
   X,
   Zap,
@@ -67,8 +74,13 @@ type SearchResult = {
   country: string | null;
   latitude: number;
   longitude: number;
+  categories?: string[];
   activeDareCount?: number;
   approvedCount?: number;
+  recentCheckInCount?: number;
+  hasActivePerk?: boolean;
+  intentLabels?: string[];
+  matchReason?: string | null;
   lastTaggedAt?: string | null;
 };
 
@@ -159,6 +171,71 @@ type SearchResponse = {
     results: SearchResult[];
   };
 };
+
+const MAP_INTENT_SEARCH_CHIPS = ['Breakfast', 'Coffee', 'Food', 'Beach', 'Night'];
+const PRIVATE_MAP_SPOTS_STORAGE_KEY = 'basedare.privateMapSpots.v1';
+const PRIVATE_MAP_SPOT_LIMIT = 12;
+const PRIVATE_MAP_SPOT_LABELS = ['Bike', 'Scooter', 'Bag', 'Meetup'];
+
+type PrivateMapSpot = {
+  id: string;
+  label: string;
+  note: string;
+  latitude: number;
+  longitude: number;
+  landmark: string | null;
+  photoDataUrl: string | null;
+  corrected: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SaveSpotDraft = {
+  label: string;
+  note: string;
+  latitude: number;
+  longitude: number;
+  landmark: string | null;
+  photoDataUrl: string | null;
+  corrected: boolean;
+};
+
+function createPrivateMapSpotId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `spot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readPrivateSpotPhoto(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error ?? new Error('Unable to read photo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadPrivateMapSpots() {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const raw = window.localStorage.getItem(PRIVATE_MAP_SPOTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as PrivateMapSpot[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((spot) => Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude))
+      .slice(0, PRIVATE_MAP_SPOT_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function persistPrivateMapSpots(spots: PrivateMapSpot[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PRIVATE_MAP_SPOTS_STORAGE_KEY, JSON.stringify(spots.slice(0, PRIVATE_MAP_SPOT_LIMIT)));
+}
 
 type ResolvePlaceResponse = {
   success: boolean;
@@ -2704,6 +2781,27 @@ function createFootprintMarkerHtml({
   return html;
 }
 
+function createPrivateSpotMarkerHtml({
+  label,
+  hasPhoto,
+  active,
+}: {
+  label: string;
+  hasPhoto: boolean;
+  active: boolean;
+}) {
+  const safeLabel = escapeMarkerAttribute(label || 'Spot');
+  return `
+    <div class="private-spot-marker ${active ? 'is-active' : ''}" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;filter:drop-shadow(0 14px 24px rgba(0,0,0,.42));">
+      <span style="max-width:92px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:linear-gradient(180deg,rgba(8,9,18,.94),rgba(3,4,9,.96));padding:4px 8px;font-size:9px;font-weight:900;letter-spacing:.14em;color:rgba(255,255,255,.84);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeLabel}</span>
+      <span style="position:relative;display:grid;width:${active ? 46 : 40}px;height:${active ? 46 : 40}px;place-items:center;border-radius:16px;border:1px solid rgba(255,216,94,.46);background:linear-gradient(180deg,rgba(255,216,94,.24),rgba(9,8,16,.94));box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 ${active ? 28 : 18}px rgba(255,200,0,.26);">
+        <span style="font-size:10px;font-weight:900;letter-spacing:.08em;line-height:1;color:rgba(255,255,255,.88);">${hasPhoto ? 'PHOTO' : 'PIN'}</span>
+      </span>
+      <span style="width:15px;height:7px;border-radius:999px;background:rgba(255,216,94,.34);filter:blur(2px);"></span>
+    </div>
+  `;
+}
+
 function createPlaceClusterMarkerHtml({
   count,
   pulse,
@@ -2841,6 +2939,11 @@ export default function RealWorldMap() {
   const [selectedPlaceActiveDaresLoading, setSelectedPlaceActiveDaresLoading] = useState(false);
   const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
   const [pendingPlaceTags, setPendingPlaceTags] = useState<PendingPlaceTagItem[]>([]);
+  const [privateMapSpots, setPrivateMapSpots] = useState<PrivateMapSpot[]>([]);
+  const [saveSpotDraft, setSaveSpotDraft] = useState<SaveSpotDraft | null>(null);
+  const [saveSpotPhotoLoading, setSaveSpotPhotoLoading] = useState(false);
+  const [saveSpotState, setSaveSpotState] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
+  const saveSpotPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapVenueFocus, setMapVenueFocus] = useState<MapVenueFocus>('all');
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
@@ -2896,6 +2999,10 @@ export default function RealWorldMap() {
       `${selectedPlace.latitude.toFixed(5)}:${selectedPlace.longitude.toFixed(5)}`
     : null;
   const showStartProofDock = !selectedPlace && (!isMobileViewport || !startProofDockDismissed);
+
+  useEffect(() => {
+    setPrivateMapSpots(loadPrivateMapSpots());
+  }, []);
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
@@ -3842,6 +3949,191 @@ export default function RealWorldMap() {
     });
   }, []);
 
+  const getPrivateSpotLandmark = useCallback(
+    (latitude: number, longitude: number, fallbackName?: string | null) => {
+      const explicitName = fallbackName?.trim();
+      if (explicitName && explicitName.toLowerCase() !== 'dropped pin') {
+        return explicitName;
+      }
+
+      const nearest = nearbyPlaces
+        .map((place) => ({
+          place,
+          distanceKm: calculateDistance(latitude, longitude, place.latitude, place.longitude),
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+      if (nearest && nearest.distanceKm <= 0.25) {
+        return nearest.place.name;
+      }
+
+      return formatCoordinateLabel(latitude, longitude);
+    },
+    [nearbyPlaces]
+  );
+
+  const openSaveSpotDraft = useCallback(
+    (source?: SelectedPlace | null) => {
+      const map = mapInstanceRef.current;
+      const mapCenter = map?.getCenter();
+      const latitude = source?.latitude ?? userLocation?.latitude ?? mapCenter?.lat ?? viewportCenter?.latitude ?? DEFAULT_CENTER[0];
+      const longitude = source?.longitude ?? userLocation?.longitude ?? mapCenter?.lng ?? viewportCenter?.longitude ?? DEFAULT_CENTER[1];
+      const landmark = getPrivateSpotLandmark(latitude, longitude, source?.name ?? null);
+
+      triggerHaptic('selection');
+      setSaveSpotDraft({
+        label: 'Bike',
+        note: '',
+        latitude,
+        longitude,
+        landmark,
+        photoDataUrl: null,
+        corrected: false,
+      });
+      setSaveSpotState({
+        type: 'info',
+        message: 'Add a quick photo. Drag the private pin if GPS needs a tiny correction.',
+      });
+      setSelectedPlace({
+        name: 'Save spot',
+        address: `Private pin · ${landmark}`,
+        latitude,
+        longitude,
+        placeSource: 'PRIVATE_SAVE_SPOT',
+        mapModes: DEFAULT_VENUE_MAP_MODES,
+      });
+      setTargetCenter([latitude, longitude]);
+      setTargetZoom(Math.max(Math.round(mapZoom), 16));
+      setSelectedPlacePanelExpanded(true);
+      setNearbyDarePanelCollapsed(true);
+    },
+    [getPrivateSpotLandmark, mapZoom, userLocation, viewportCenter]
+  );
+
+  const handleSaveSpotPhotoChange = useCallback(async (file: File | null) => {
+    if (!file) return;
+
+    try {
+      setSaveSpotPhotoLoading(true);
+      const photoDataUrl = await readPrivateSpotPhoto(file);
+      setSaveSpotDraft((current) => (current ? { ...current, photoDataUrl } : current));
+      setSaveSpotState({
+        type: 'info',
+        message: 'Photo attached. Save when the pin looks right.',
+      });
+      triggerHaptic('success');
+    } catch (error) {
+      console.error('[REAL_WORLD_MAP] Save spot photo failed:', error);
+      setSaveSpotState({ type: 'error', message: 'Could not attach that photo.' });
+      triggerHaptic('warning');
+    } finally {
+      setSaveSpotPhotoLoading(false);
+      if (saveSpotPhotoInputRef.current) {
+        saveSpotPhotoInputRef.current.value = '';
+      }
+    }
+  }, []);
+
+  const handlePrivateSpotDragEnd = useCallback(
+    (latitude: number, longitude: number) => {
+      setSaveSpotDraft((current) =>
+        current
+          ? {
+              ...current,
+              latitude,
+              longitude,
+              landmark: getPrivateSpotLandmark(latitude, longitude, null),
+              corrected: true,
+            }
+          : current
+      );
+      setSelectedPlace((current) =>
+        current?.placeSource === 'PRIVATE_SAVE_SPOT'
+          ? {
+              ...current,
+              latitude,
+              longitude,
+              address: `Private pin · ${formatCoordinateLabel(latitude, longitude)}`,
+            }
+          : current
+      );
+      setSaveSpotState({ type: 'info', message: 'Pin corrected. Save the spot when it looks right.' });
+    },
+    [getPrivateSpotLandmark]
+  );
+
+  const handleSavePrivateSpot = useCallback(() => {
+    if (!saveSpotDraft) return;
+
+    const now = new Date().toISOString();
+    const nextSpot: PrivateMapSpot = {
+      id: createPrivateMapSpotId(),
+      label: saveSpotDraft.label.trim() || 'Spot',
+      note: saveSpotDraft.note.trim(),
+      latitude: saveSpotDraft.latitude,
+      longitude: saveSpotDraft.longitude,
+      landmark: saveSpotDraft.landmark,
+      photoDataUrl: saveSpotDraft.photoDataUrl,
+      corrected: saveSpotDraft.corrected,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const nextSpots = [nextSpot, ...privateMapSpots.filter((spot) => spot.id !== nextSpot.id)].slice(
+      0,
+      PRIVATE_MAP_SPOT_LIMIT
+    );
+
+    setPrivateMapSpots(nextSpots);
+    persistPrivateMapSpots(nextSpots);
+    setSaveSpotDraft(null);
+    setSaveSpotState({ type: 'success', message: `${nextSpot.label} saved privately on this device.` });
+    setSelectedPlace({
+      name: nextSpot.label,
+      address: `Private spot · ${nextSpot.landmark ?? formatCoordinateLabel(nextSpot.latitude, nextSpot.longitude)}`,
+      latitude: nextSpot.latitude,
+      longitude: nextSpot.longitude,
+      placeSource: 'PRIVATE_SAVED_SPOT',
+      externalPlaceId: `private:${nextSpot.id}`,
+      mapModes: DEFAULT_VENUE_MAP_MODES,
+    });
+    setTargetCenter([nextSpot.latitude, nextSpot.longitude]);
+    setTargetZoom(17);
+    triggerHaptic('success');
+  }, [privateMapSpots, saveSpotDraft]);
+
+  const focusPrivateSpot = useCallback((spot: PrivateMapSpot) => {
+    triggerHaptic('selection');
+    setSaveSpotDraft(null);
+    setSaveSpotState(null);
+    setSelectedPlace({
+      name: spot.label,
+      address: `Private spot · ${spot.landmark ?? formatCoordinateLabel(spot.latitude, spot.longitude)}`,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
+      placeSource: 'PRIVATE_SAVED_SPOT',
+      externalPlaceId: `private:${spot.id}`,
+      mapModes: DEFAULT_VENUE_MAP_MODES,
+    });
+    setTargetCenter([spot.latitude, spot.longitude]);
+    setTargetZoom(17);
+    setSelectedPlacePanelExpanded(true);
+  }, []);
+
+  const deletePrivateSpot = useCallback(
+    (spotId: string) => {
+      const nextSpots = privateMapSpots.filter((spot) => spot.id !== spotId);
+      setPrivateMapSpots(nextSpots);
+      persistPrivateMapSpots(nextSpots);
+      setSelectedPlace((current) =>
+        current?.placeSource === 'PRIVATE_SAVED_SPOT' && current.externalPlaceId === `private:${spotId}`
+          ? null
+          : current
+      );
+      triggerHaptic('selection');
+    },
+    [privateMapSpots]
+  );
+
   const handleViewportChangeRef = useRef(handleViewportChange);
   const handleMapClickRef = useRef(handleMapClick);
   const mapPresetRef = useRef(mapPreset);
@@ -4724,6 +5016,21 @@ export default function RealWorldMap() {
       return true;
     });
   }, [footprintVenueIndex, liveVenueSlugSet, mapVenueFocus, matchedVenueIndex, nearbyPlaces, pulseFilter]);
+  const latestPrivateMapSpot = privateMapSpots[0] ?? null;
+  const selectedPrivateMapSpot = useMemo(() => {
+    if (!selectedPlace || selectedPlace.placeSource !== 'PRIVATE_SAVED_SPOT') {
+      return null;
+    }
+
+    return (
+      privateMapSpots.find((spot) => selectedPlace.externalPlaceId === `private:${spot.id}`) ??
+      privateMapSpots.find(
+        (spot) =>
+          Math.abs(spot.latitude - selectedPlace.latitude) < 0.000001 &&
+          Math.abs(spot.longitude - selectedPlace.longitude) < 0.000001
+      ) ?? null
+    );
+  }, [privateMapSpots, selectedPlace]);
   const activeMapFilterLabel = useMemo(() => {
     if (mapVenueFocus === 'live') return 'Live venues';
     if (mapVenueFocus === 'matched') return 'For you';
@@ -5027,6 +5334,21 @@ export default function RealWorldMap() {
       setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
     }, 1200);
   }, [firstProofStartPlace, focusExistingPlace, requestApproximateLocation]);
+
+  const openProofForSelectedPlace = useCallback(() => {
+    if (!selectedPlace) {
+      handleStartFirstProof();
+      return;
+    }
+
+    setSelectedPlacePanelExpanded(true);
+    const nextAutoOpenKey = `${selectedPlaceIdentity ?? 'selected'}:${Date.now()}`;
+    setProofAutoOpenKey(nextAutoOpenKey);
+    window.setTimeout(() => {
+      setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
+    }, 1200);
+  }, [handleStartFirstProof, selectedPlace, selectedPlaceIdentity]);
+
   const signalLayerCounts = useMemo(() => {
     const counts: Record<SignalLayerKind, number> = {
       drop: 0,
@@ -6189,6 +6511,8 @@ export default function RealWorldMap() {
       className,
       anchor,
       onClick,
+      draggable = false,
+      onDragEnd,
     }: {
       latitude: number;
       longitude: number;
@@ -6196,6 +6520,8 @@ export default function RealWorldMap() {
       className: string;
       anchor: PositionAnchor;
       onClick: () => void;
+      draggable?: boolean;
+      onDragEnd?: (latitude: number, longitude: number) => void;
     }) => {
       const element = createMarkerElement(html, className);
       element.addEventListener('click', (event) => {
@@ -6214,8 +6540,35 @@ export default function RealWorldMap() {
         .setLngLat([longitude, latitude])
         .addTo(map);
 
+      if (draggable) {
+        marker.setDraggable(true);
+        marker.on('dragend', () => {
+          const lngLat = marker.getLngLat();
+          onDragEnd?.(lngLat.lat, lngLat.lng);
+        });
+      }
+
       nextMarkers.push(marker);
     };
+
+    privateMapSpots.forEach((spot) => {
+      const active =
+        Boolean(selectedPlace?.externalPlaceId === `private:${spot.id}`) ||
+        Boolean(saveSpotDraft && Math.abs(saveSpotDraft.latitude - spot.latitude) < 0.000001);
+
+      addMarker({
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+        html: createPrivateSpotMarkerHtml({
+          label: spot.label,
+          hasPhoto: Boolean(spot.photoDataUrl),
+          active,
+        }),
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--private-spot',
+        anchor: 'bottom',
+        onClick: () => focusPrivateSpot(spot),
+      });
+    });
 
     clusteredNearbyMarkers.forEach((marker) => {
       if (marker.kind === 'cluster') {
@@ -6323,16 +6676,28 @@ export default function RealWorldMap() {
     }
 
     if (selectedPlace && selectedPlaceNeedsDedicatedMarker && selectedPlaceMarkerHtml) {
+      const privateSpotCorrectionMode = Boolean(
+        saveSpotDraft && selectedPlace.placeSource === 'PRIVATE_SAVE_SPOT'
+      );
+
       addMarker({
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
-        html: selectedPlaceMarkerHtml,
+        latitude: privateSpotCorrectionMode ? saveSpotDraft!.latitude : selectedPlace.latitude,
+        longitude: privateSpotCorrectionMode ? saveSpotDraft!.longitude : selectedPlace.longitude,
+        html: privateSpotCorrectionMode
+          ? createPrivateSpotMarkerHtml({
+              label: saveSpotDraft!.label,
+              hasPhoto: Boolean(saveSpotDraft!.photoDataUrl),
+              active: true,
+            })
+          : selectedPlaceMarkerHtml,
         className: 'basedare-maplibre-marker basedare-maplibre-marker--selected',
         anchor: 'bottom',
         onClick: () => {
           setTargetCenter([selectedPlace.latitude, selectedPlace.longitude]);
           setTargetZoom(15);
         },
+        draggable: privateSpotCorrectionMode,
+        onDragEnd: handlePrivateSpotDragEnd,
       });
     }
 
@@ -6351,6 +6716,10 @@ export default function RealWorldMap() {
     mapReady,
     mapZoom,
     matchedVenueIndex,
+    privateMapSpots,
+    focusPrivateSpot,
+    handlePrivateSpotDragEnd,
+    saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
     selectedPlaceNeedsDedicatedMarker,
@@ -6430,6 +6799,8 @@ export default function RealWorldMap() {
     : isMobileViewport
       ? 'venue-action-rail--two'
       : 'venue-action-rail--two';
+  const selectedPlaceIsPrivateSpot =
+    selectedPlace?.placeSource === 'PRIVATE_SAVE_SPOT' || selectedPlace?.placeSource === 'PRIVATE_SAVED_SPOT';
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
   const selectedCheckInStatusLabel =
     selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
@@ -6441,7 +6812,7 @@ export default function RealWorldMap() {
     selectedPlace?.memorySummary?.checkInCount ??
     selectedPlace?.commandCenter?.metrics.uniqueVisitorsToday ??
     0;
-  const selectedPlaceActionRail = selectedPlace ? (
+  const selectedPlaceActionRail = selectedPlace && !selectedPlaceIsPrivateSpot ? (
     <div
       className={`venue-action-rail venue-action-rail--primary ${
         showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
@@ -6583,6 +6954,176 @@ export default function RealWorldMap() {
       ) : null}
     </div>
   ) : null;
+  const selectedSaveSpotRail =
+    saveSpotDraft || selectedPrivateMapSpot ? (
+      <div className="map-panel-section mt-3 rounded-[22px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(16,185,129,0.1)_0%,rgba(7,12,15,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+        <input
+          ref={saveSpotPhotoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(event) => void handleSaveSpotPhotoChange(event.target.files?.[0] ?? null)}
+        />
+
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-emerald-100/82">
+              <Bike className="h-3.5 w-3.5 text-emerald-200" />
+              Private Spot
+            </div>
+            <p className="mt-1.5 text-sm font-semibold text-white">
+              {saveSpotDraft ? 'Save something you need to find later.' : 'Saved on this device.'}
+            </p>
+          </div>
+          {saveSpotDraft ? (
+            <span className="shrink-0 rounded-full border border-emerald-300/18 bg-emerald-400/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/74">
+              Drag pin
+            </span>
+          ) : null}
+        </div>
+
+        {saveSpotDraft ? (
+          <div className="mt-3 space-y-3">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {PRIVATE_MAP_SPOT_LABELS.map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setSaveSpotDraft((current) => (current ? { ...current, label } : current))}
+                  data-active={saveSpotDraft.label === label}
+                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-emerald-200/28 hover:text-emerald-100 data-[active=true]:border-emerald-200/34 data-[active=true]:bg-emerald-300/[0.1] data-[active=true]:text-emerald-50"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-[86px_1fr] gap-3">
+              <button
+                type="button"
+                onClick={() => saveSpotPhotoInputRef.current?.click()}
+                disabled={saveSpotPhotoLoading}
+                className="relative flex min-h-[86px] items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-black/24 text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]"
+                aria-label="Add parking photo"
+              >
+                {saveSpotDraft.photoDataUrl ? (
+                  <img src={saveSpotDraft.photoDataUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : saveSpotPhotoLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Camera className="h-5 w-5" />
+                )}
+                <span className="absolute bottom-1.5 left-1.5 rounded-full border border-white/10 bg-black/54 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/70">
+                  Photo
+                </span>
+              </button>
+
+              <div className="min-w-0 space-y-2">
+                <div className="rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+                  <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/36">
+                    <Move className="h-3 w-3" />
+                    Pin
+                  </div>
+                  <p className="mt-1 truncate text-xs font-semibold text-white/76">
+                    {saveSpotDraft.landmark ?? formatCoordinateLabel(saveSpotDraft.latitude, saveSpotDraft.longitude)}
+                  </p>
+                </div>
+                <input
+                  value={saveSpotDraft.note}
+                  onChange={(event) =>
+                    setSaveSpotDraft((current) =>
+                      current ? { ...current, note: event.target.value.slice(0, 80) } : current
+                    )
+                  }
+                  placeholder="Optional clue: by entrance, under palm..."
+                  className="w-full rounded-[16px] border border-white/8 bg-black/22 px-3 py-2 text-xs text-white outline-none placeholder:text-white/28 focus:border-emerald-200/28"
+                />
+              </div>
+            </div>
+
+            {saveSpotState ? (
+              <p
+                className={`text-xs leading-5 ${
+                  saveSpotState.type === 'error'
+                    ? 'text-rose-200/82'
+                    : saveSpotState.type === 'success'
+                      ? 'text-emerald-100/80'
+                      : 'text-white/48'
+                }`}
+              >
+                {saveSpotState.message}
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-[1fr_1fr] gap-2">
+              <button
+                type="button"
+                onClick={() => setSaveSpotDraft(null)}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.045] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/58 transition hover:border-white/18 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePrivateSpot}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-emerald-200/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.22)_0%,rgba(7,13,13,0.94)_100%)] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-50 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-emerald-100/40"
+              >
+                <Save className="h-3.5 w-3.5" />
+                Save
+              </button>
+            </div>
+          </div>
+        ) : selectedPrivateMapSpot ? (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-[72px_1fr] gap-3 rounded-[18px] border border-white/8 bg-black/18 p-2.5">
+              <div className="relative h-[72px] overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.045]">
+                {selectedPrivateMapSpot.photoDataUrl ? (
+                  <img src={selectedPrivateMapSpot.photoDataUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-white/40">
+                    <ImageIcon className="h-5 w-5" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-white">{selectedPrivateMapSpot.label}</p>
+                <p className="mt-1 truncate text-xs text-white/50">
+                  {selectedPrivateMapSpot.landmark ?? formatCoordinateLabel(selectedPrivateMapSpot.latitude, selectedPrivateMapSpot.longitude)}
+                </p>
+                {selectedPrivateMapSpot.note ? (
+                  <p className="mt-1 line-clamp-2 text-xs text-white/62">{selectedPrivateMapSpot.note}</p>
+                ) : null}
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/34">
+                  {getCompactTimeAgo(selectedPrivateMapSpot.createdAt)} ago
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${selectedPrivateMapSpot.latitude},${selectedPrivateMapSpot.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-50 transition hover:border-cyan-100/36"
+              >
+                <Navigation className="h-3.5 w-3.5" />
+                Navigate
+              </a>
+              <button
+                type="button"
+                onClick={() => deletePrivateSpot(selectedPrivateMapSpot.id)}
+                className="inline-flex min-h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.045] text-white/52 transition hover:border-rose-200/30 hover:text-rose-100"
+                aria-label="Delete saved spot"
+                title="Delete"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    ) : null;
   const selectedPlaceCheckInRail = selectedPlace?.slug ? (
     <div className="map-panel-section mt-3 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(7,12,18,0.9)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
       <div className="grid grid-cols-[1fr_auto] items-center gap-3">
@@ -7002,11 +7543,76 @@ export default function RealWorldMap() {
                       setSearchResults([]);
                     }, 120);
                   }}
-                  placeholder="Search any place or address..."
+                  placeholder="Search breakfast, coffee, beach..."
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
                 />
                 {searching ? <Loader2 className="h-4 w-4 animate-spin text-white/45" /> : null}
               </div>
+
+              {!searchQuery.trim() ? (
+                <>
+                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {MAP_INTENT_SEARCH_CHIPS.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => setSearchQuery(chip.toLowerCase())}
+                        className="shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.08] hover:text-cyan-100"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <span className="shrink-0 self-center text-[9px] font-black uppercase tracking-[0.22em] text-white/34">
+                      Tag map
+                    </span>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSaveSpotDraft(null);
+                        setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
+                      }}
+                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      Venue
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={openProofForSelectedPlace}
+                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-yellow-200/18 bg-yellow-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/80 transition hover:border-yellow-100/32 hover:text-yellow-50"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Proof
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => openSaveSpotDraft(selectedPlace)}
+                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
+                    >
+                      <Bike className="h-3 w-3" />
+                      Save spot
+                    </button>
+                    {latestPrivateMapSpot ? (
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => focusPrivateSpot(latestPrivateMapSpot)}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-white/18 hover:text-white"
+                      >
+                        <Navigation className="h-3 w-3" />
+                        {latestPrivateMapSpot.label}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
 
               {searchResults.length > 0 ? (
                 <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
@@ -7028,7 +7634,7 @@ export default function RealWorldMap() {
                           country: result.country,
                           latitude: result.latitude,
                           longitude: result.longitude,
-                          categories: undefined,
+                          categories: result.categories,
                           placeSource: result.placeSource,
                           externalPlaceId: result.externalPlaceId,
                           approvedCount:
@@ -7052,9 +7658,14 @@ export default function RealWorldMap() {
                       className="flex w-full items-start gap-3 border-b border-white/6 px-4 py-3 text-left transition hover:bg-white/[0.05] last:border-b-0"
                     >
                       <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">{result.name}</p>
-                        <p className="mt-1 text-xs text-white/45">{result.displayName}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{result.name}</p>
+                        {result.matchReason ? (
+                          <p className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-cyan-100/70">
+                            {result.matchReason}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 line-clamp-2 text-xs text-white/45">{result.displayName}</p>
                       </div>
                     </button>
                   ))}
@@ -7924,6 +8535,7 @@ export default function RealWorldMap() {
                         </div>
                       </div>
                       {selectedPlaceActionRail}
+                      {selectedSaveSpotRail}
                     </div>
                   </div>
                 ) : (
@@ -8032,6 +8644,8 @@ export default function RealWorldMap() {
                       <p className="mt-2 text-sm text-white/78">{ceremonyState.body}</p>
                     </div>
                   ) : null}
+
+                  {selectedSaveSpotRail}
 
                   {selectedPlaceCheckInRail}
 

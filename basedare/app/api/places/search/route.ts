@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isValidCoordinates } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
 import { ensureCuratedVenueRecords, getCuratedVenueSlugsForQuery } from '@/lib/curated-venues';
+import { getActiveVenuePerk } from '@/lib/venue-perks';
 
 export const runtime = 'nodejs';
 
@@ -30,6 +31,104 @@ type NominatimResult = {
   display_name: string;
   address?: NominatimAddress;
 };
+
+type SearchIntent = {
+  key: string;
+  label: string;
+  aliases: string[];
+  categories: string[];
+};
+
+const RECENT_PLACE_ACTIVITY_HOURS = 24;
+const NOMINATIM_TIMEOUT_MS = 900;
+
+const SEARCH_INTENTS: SearchIntent[] = [
+  {
+    key: 'breakfast',
+    label: 'Breakfast',
+    aliases: ['breakfast', 'brunch', 'morning', 'smoothie bowl', 'smoothie', 'acai', 'pancake'],
+    categories: ['breakfast', 'brunch', 'morning', 'smoothie-bowl', 'cafe', 'coffee', 'healthy'],
+  },
+  {
+    key: 'coffee',
+    label: 'Coffee',
+    aliases: ['coffee', 'cafe', 'work', 'laptop', 'wifi', 'wi-fi'],
+    categories: ['coffee', 'cafe', 'work-friendly', 'breakfast', 'brunch'],
+  },
+  {
+    key: 'food',
+    label: 'Food',
+    aliases: ['food', 'eat', 'restaurant', 'lunch', 'dinner', 'late food', 'late night'],
+    categories: ['food', 'restaurant', 'lunch', 'dinner', 'late-night', 'pizza', 'tacos', 'tapas'],
+  },
+  {
+    key: 'beach',
+    label: 'Beach',
+    aliases: ['beach', 'sunset', 'sunrise', 'surf', 'swim'],
+    categories: ['beach', 'surf', 'sunset', 'sunrise', 'surf-view', 'boardwalk'],
+  },
+  {
+    key: 'nightlife',
+    label: 'Night',
+    aliases: ['bar', 'bars', 'drink', 'drinks', 'night', 'nightlife', 'party', 'late'],
+    categories: ['bar', 'nightlife', 'late-night', 'music', 'beach-club', 'sports-bar'],
+  },
+  {
+    key: 'perk',
+    label: 'Perk',
+    aliases: ['perk', 'perks', 'mission', 'reward', 'deal', 'unlock'],
+    categories: ['perks', 'mission', 'reward'],
+  },
+];
+
+function normalizeIntentToken(input: string) {
+  return input.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
+function getSearchIntents(query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [];
+
+  return SEARCH_INTENTS.filter((intent) =>
+    intent.aliases.some((alias) => normalized.includes(alias))
+  );
+}
+
+function getCategorySearchTokens(query: string) {
+  const queryTokens = query
+    .split(/\s+/)
+    .map(normalizeIntentToken)
+    .filter((token) => token.length >= 2);
+  const intentTokens = getSearchIntents(query).flatMap((intent) => intent.categories);
+
+  return Array.from(new Set([...queryTokens, ...intentTokens]));
+}
+
+function getIntentLabelsForCategories(categories: string[] = []) {
+  const categorySet = new Set(categories.map(normalizeIntentToken));
+  return SEARCH_INTENTS
+    .filter((intent) => intent.categories.some((category) => categorySet.has(normalizeIntentToken(category))))
+    .map((intent) => intent.label)
+    .slice(0, 3);
+}
+
+function getMatchReason(input: {
+  intentLabels: string[];
+  recentCheckInCount: number;
+  activeDareCount: number;
+  approvedCount: number;
+  hasActivePerk: boolean;
+}) {
+  const signals = [
+    ...input.intentLabels.slice(0, 2),
+    input.recentCheckInCount > 0 ? `${input.recentCheckInCount} recent check-in${input.recentCheckInCount === 1 ? '' : 's'}` : null,
+    input.approvedCount > 0 ? `${input.approvedCount} proof${input.approvedCount === 1 ? '' : 's'}` : null,
+    input.activeDareCount > 0 ? 'Take proof here' : null,
+    input.hasActivePerk ? 'Perk live' : null,
+  ].filter(Boolean);
+
+  return signals.slice(0, 3).join(' · ') || null;
+}
 
 function getPlaceName(result: NominatimResult) {
   const firstSegment = result.display_name.split(',')[0]?.trim();
@@ -75,6 +174,9 @@ async function searchKnownPlaces(query: string) {
   await ensureCuratedVenueRecords(getCuratedVenueSlugsForQuery(query));
 
   const normalizedSlugQuery = query.toLowerCase().replace(/\s+/g, '-');
+  const categoryTokens = getCategorySearchTokens(query);
+  const intentKeys = getSearchIntents(query).map((intent) => intent.key);
+  const recentSince = new Date(Date.now() - RECENT_PLACE_ACTIVITY_HOURS * 60 * 60 * 1000);
   const tokens = query
     .split(/\s+/)
     .map((token) => token.trim())
@@ -88,6 +190,38 @@ async function searchKnownPlaces(query: string) {
     { address: { contains: token, mode: 'insensitive' as const } },
   ]);
 
+  const categoryClauses =
+    categoryTokens.length > 0
+      ? [
+          { categories: { hasSome: categoryTokens } },
+          {
+            placeTags: {
+              some: {
+                status: 'APPROVED',
+                vibeTags: { hasSome: categoryTokens },
+              },
+            },
+          },
+        ]
+      : [];
+
+  const liveIntentClauses = intentKeys.includes('perk')
+    ? [
+        {
+          dares: {
+            some: {
+              NOT: {
+                OR: [
+                  { status: { in: ['EXPIRED', 'FAILED', 'VERIFIED'] } },
+                  { expiresAt: { lt: new Date() } },
+                ],
+              },
+            },
+          },
+        },
+      ]
+    : [];
+
   const venues = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
@@ -97,6 +231,8 @@ async function searchKnownPlaces(query: string) {
         { city: { contains: query, mode: 'insensitive' } },
         { country: { contains: query, mode: 'insensitive' } },
         { address: { contains: query, mode: 'insensitive' } },
+        ...categoryClauses,
+        ...liveIntentClauses,
         ...tokenClauses,
       ],
     },
@@ -109,6 +245,15 @@ async function searchKnownPlaces(query: string) {
       country: true,
       latitude: true,
       longitude: true,
+      categories: true,
+      metadataJson: true,
+      checkIns: {
+        where: {
+          status: 'CONFIRMED',
+          scannedAt: { gte: recentSince },
+        },
+        select: { id: true },
+      },
       dares: {
         where: {
           NOT: {
@@ -125,7 +270,7 @@ async function searchKnownPlaces(query: string) {
       { isPartner: 'desc' },
       { updatedAt: 'desc' },
     ],
-    take: 6,
+    take: 12,
   });
 
   const tagSummaryMap = await prisma.placeTag.groupBy({
@@ -152,23 +297,100 @@ async function searchKnownPlaces(query: string) {
     ])
   );
 
-  return venues.map((venue) => ({
-    id: venue.id,
-    externalPlaceId: `venue:${venue.slug}`,
-    placeSource: 'BASEDARE_VENUE',
-    name: venue.name,
-    displayName: [venue.name, venue.address, venue.city, venue.country].filter(Boolean).join(', '),
-    address: venue.address,
-    city: venue.city,
-    country: venue.country,
-    latitude: venue.latitude,
-    longitude: venue.longitude,
-    slug: venue.slug,
-    placeId: venue.id,
-    activeDareCount: venue.dares.length,
-    approvedCount: tagSummaryByVenueId.get(venue.id)?.approvedCount ?? 0,
-    lastTaggedAt: tagSummaryByVenueId.get(venue.id)?.lastTaggedAt ?? null,
-  }));
+  return venues
+    .map((venue) => {
+      const approvedCount = tagSummaryByVenueId.get(venue.id)?.approvedCount ?? 0;
+      const activeDareCount = venue.dares.length;
+      const recentCheckInCount = venue.checkIns.length;
+      const intentLabels = getIntentLabelsForCategories(venue.categories);
+      const hasActivePerk = getActiveVenuePerk(venue.metadataJson) !== null;
+      const exactNameMatch = venue.name.toLowerCase().includes(query.toLowerCase());
+      const categoryMatchCount = categoryTokens.filter((token) =>
+        venue.categories.map(normalizeIntentToken).includes(token)
+      ).length;
+      const score =
+        (exactNameMatch ? 120 : 0) +
+        categoryMatchCount * 30 +
+        activeDareCount * 22 +
+        recentCheckInCount * 14 +
+        approvedCount * 8 +
+        (hasActivePerk ? 18 : 0);
+
+      return {
+        id: venue.id,
+        externalPlaceId: `venue:${venue.slug}`,
+        placeSource: 'BASEDARE_VENUE',
+        name: venue.name,
+        displayName: [venue.name, venue.address, venue.city, venue.country].filter(Boolean).join(', '),
+        address: venue.address,
+        city: venue.city,
+        country: venue.country,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        slug: venue.slug,
+        placeId: venue.id,
+        categories: venue.categories,
+        activeDareCount,
+        approvedCount,
+        recentCheckInCount,
+        hasActivePerk,
+        intentLabels,
+        matchReason: getMatchReason({
+          intentLabels,
+          recentCheckInCount,
+          activeDareCount,
+          approvedCount,
+          hasActivePerk,
+        }),
+        lastTaggedAt: tagSummaryByVenueId.get(venue.id)?.lastTaggedAt ?? null,
+        score,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, 8)
+    .map((venue) => {
+      const { score, ...result } = venue;
+      void score;
+      return result;
+    });
+}
+
+async function searchNominatim(query: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NOMINATIM_TIMEOUT_MS);
+
+  try {
+    const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
+    nominatimUrl.searchParams.set('format', 'jsonv2');
+    nominatimUrl.searchParams.set('addressdetails', '1');
+    nominatimUrl.searchParams.set('limit', '6');
+    nominatimUrl.searchParams.set('dedupe', '1');
+    nominatimUrl.searchParams.set('q', query);
+
+    const response = await fetch(nominatimUrl.toString(), {
+      headers: {
+        'User-Agent': 'BaseDare/1.0 (https://www.basedare.xyz)',
+        'Accept-Language': 'en',
+      },
+      signal: controller.signal,
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Nominatim returned ${response.status}`);
+    }
+
+    const payload = (await response.json()) as NominatimResult[];
+    return payload
+      .map(normalizeResult)
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn('[PLACES_SEARCH] Nominatim fallback skipped:', message);
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -185,31 +407,7 @@ export async function GET(request: NextRequest) {
 
     const [knownPlaces, nominatimResults] = await Promise.all([
       searchKnownPlaces(query.data.q),
-      (async () => {
-        const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
-        nominatimUrl.searchParams.set('format', 'jsonv2');
-        nominatimUrl.searchParams.set('addressdetails', '1');
-        nominatimUrl.searchParams.set('limit', '6');
-        nominatimUrl.searchParams.set('dedupe', '1');
-        nominatimUrl.searchParams.set('q', query.data.q);
-
-        const response = await fetch(nominatimUrl.toString(), {
-          headers: {
-            'User-Agent': 'BaseDare/1.0 (https://www.basedare.xyz)',
-            'Accept-Language': 'en',
-          },
-          next: { revalidate: 3600 },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Nominatim returned ${response.status}`);
-        }
-
-        const payload = (await response.json()) as NominatimResult[];
-        return payload
-          .map(normalizeResult)
-          .filter((item): item is NonNullable<typeof item> => item !== null);
-      })(),
+      searchNominatim(query.data.q),
     ]);
 
     const seen = new Set<string>();
