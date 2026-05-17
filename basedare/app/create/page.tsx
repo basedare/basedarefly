@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Zap, Wallet, Clock, Users, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info } from "lucide-react";
+import { Zap, Wallet, Clock, Users, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info, ShieldCheck, RotateCcw } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useSignMessage } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { FundButton } from '@coinbase/onchainkit/fund';
@@ -20,7 +20,7 @@ import { USDC_ABI } from '@/abis/BaseDareBounty';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { BOUNTY_CREATE_WINDOW_MS, buildBountyCreateMessage } from '@/lib/bounty-create-auth';
-import { USDC_ADDRESS, CONTRACT_VALIDATION } from '@/lib/contracts';
+import { USDC_ADDRESS, CONTRACT_VALIDATION, NETWORK_CONFIG } from '@/lib/contracts';
 import { submitBountyCreation } from '@/lib/bounty-flow';
 import { trackClientEvent } from '@/lib/analytics';
 import {
@@ -282,15 +282,51 @@ function CreateDareContent() {
         venuePrefill.mode === 'venue-challenge' ||
         venuePrefill.mode === 'venue-activation')
   );
+  const normalizedWatchAmount = Math.max(0, Number.isFinite(Number(watchAmount)) ? Number(watchAmount) : 0);
   const checkoutRewardLabel = isCommunitySpark
     ? 'Free Spark'
-    : `${Math.max(0, Number.isFinite(Number(watchAmount)) ? Number(watchAmount) : 0).toLocaleString()} USDC`;
+    : `${normalizedWatchAmount.toLocaleString()} USDC`;
   const checkoutWindowLabel = `${watchTimeValue || 24} ${watchTimeUnit || 'Hours'}`;
   const checkoutProofLabel = isCommunitySpark
     ? 'Public proof'
     : watchRequireSentinel
       ? 'Sentinel proof'
       : 'Venue proof';
+  const fundingPreview = isCommunitySpark
+    ? {
+        eyebrow: 'Free proof rail',
+        title: 'No money leaves your wallet.',
+        body: 'Community Sparks create local proof and reputation, without payout or refund handling.',
+        toneClass: 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100',
+        cards: [
+          { label: 'Spend', value: '0 USDC', icon: Wallet },
+          { label: 'Proof', value: 'Public', icon: CheckCircle },
+          { label: 'Close', value: 'Review', icon: ShieldCheck },
+        ],
+      }
+    : isSimulationMode
+      ? {
+          eyebrow: 'Simulation rail',
+          title: 'Database-only test launch.',
+          body: 'Use this to test the workflow. No USDC escrow, payout, or refund transaction runs.',
+          toneClass: 'border-yellow-300/18 bg-yellow-500/[0.08] text-yellow-100',
+          cards: [
+            { label: 'Spend', value: '0 USDC', icon: Wallet },
+            { label: 'Mode', value: 'Test', icon: ShieldCheck },
+            { label: 'Proof', value: checkoutProofLabel, icon: CheckCircle },
+          ],
+        }
+      : {
+          eyebrow: 'Funding receipt',
+          title: `${checkoutRewardLabel} on ${NETWORK_CONFIG.chainName}.`,
+          body: 'USDC is approved and funded first. Payout waits for approved proof; unclaimed or expired dares stay refund-trackable.',
+          toneClass: 'border-[#f5c518]/20 bg-[#f5c518]/[0.075] text-[#f8dd72]',
+          cards: [
+            { label: 'Fund', value: checkoutRewardLabel, icon: Wallet },
+            { label: 'Proof', value: checkoutProofLabel, icon: ShieldCheck },
+            { label: 'Fallback', value: 'Refund', icon: RotateCcw },
+          ],
+        };
   const handleGeneratorContextChange = useCallback(
     ({ mode, tag }: { mode: 'IRL' | 'STREAM'; tag: string }) => {
       if (getValues('sparkType') === 'COMMUNITY') {
@@ -1411,6 +1447,46 @@ function CreateDareContent() {
                   {errors.timeValue && (
                     <p className="text-red-400 text-xs md:text-sm">{errors.timeValue.message}</p>
                   )}
+                </div>
+              </div>
+
+              <div className={`rounded-[22px] border px-4 py-4 shadow-[0_16px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.2)] ${fundingPreview.toneClass}`}>
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] opacity-75">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {fundingPreview.eyebrow}
+                    </div>
+                    <p className="mt-2 text-base font-black text-white md:text-lg">
+                      {fundingPreview.title}
+                    </p>
+                    <p className="mt-1 max-w-2xl text-xs leading-5 text-white/58 md:text-sm">
+                      {fundingPreview.body}
+                    </p>
+                  </div>
+                  <span className="w-fit shrink-0 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/52">
+                    {isConnected ? 'Wallet connected' : 'Connect to fund'}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {fundingPreview.cards.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <div
+                        key={item.label}
+                        className="min-w-0 rounded-[17px] border border-white/10 bg-black/20 px-2.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_14px_rgba(0,0,0,0.18)] md:px-3"
+                      >
+                        <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/38 md:text-[9px]">
+                          <Icon className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        <p className="mt-2 truncate text-[11px] font-black uppercase tracking-[0.08em] text-white md:text-sm">
+                          {item.value}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
