@@ -8,6 +8,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from 'crypto';
+import { cache } from 'react';
 import { prisma } from '@/lib/prisma';
 import {
   calculateDistance,
@@ -27,7 +28,7 @@ import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import { buildVenueProfile } from '@/lib/venue-profile';
 import { getActiveVenuePerk, getVenuePerkSnapshot } from '@/lib/venue-perks';
-import { ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
+import { CURATED_SIARGAO_VENUES, ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
 import type {
   VenueActivationInsight,
   VenueRoiSnapshot,
@@ -46,6 +47,9 @@ import type {
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
+const CURATED_VENUE_DETAIL_TIMEOUT_MS = 900;
+const CURATED_VENUE_DETAIL_FALLBACK_COOLDOWN_MS = 30_000;
+const CURATED_VENUE_DETAIL_TIMEOUT = Symbol('curated-venue-detail-timeout');
 const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
   {
     id: 'classic',
@@ -66,6 +70,131 @@ const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
     description: 'LocAR-powered venue twins and floating bounty overlays are planned next.',
   },
 ];
+
+type VenueDetailFallbackGlobal = typeof globalThis & {
+  __basedareCuratedVenueDetailFallbackUntil?: number;
+};
+
+function getCuratedVenueDetailFallbackUntil() {
+  return (globalThis as VenueDetailFallbackGlobal).__basedareCuratedVenueDetailFallbackUntil ?? 0;
+}
+
+function setCuratedVenueDetailFallbackCooldown() {
+  (globalThis as VenueDetailFallbackGlobal).__basedareCuratedVenueDetailFallbackUntil =
+    Date.now() + CURATED_VENUE_DETAIL_FALLBACK_COOLDOWN_MS;
+}
+
+
+function buildEmptyVenueReportPipeline(): VenueDetail['reportPipeline'] {
+  const emptyStage = { active: false, at: null };
+
+  return {
+    summary: 'No venue report activity yet.',
+    opens: 0,
+    shares: 0,
+    contacts: 0,
+    lastTouchedAt: null,
+    stages: {
+      shared: emptyStage,
+      contacted: emptyStage,
+      claimStarted: emptyStage,
+      activationLaunched: emptyStage,
+      repeatLaunched: emptyStage,
+    },
+  };
+}
+
+function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
+  const venue = CURATED_SIARGAO_VENUES.find((item) => item.slug === slug);
+  if (!venue) return null;
+
+  const memorySummary = null;
+  const memoryHistory: VenueDetail['memoryHistory'] = [];
+  const tagSummary = {
+    approvedCount: 0,
+    heatScore: 0,
+    lastTaggedAt: null,
+  };
+  const activeDares: VenueDetail['activeDares'] = [];
+  const featuredPaidActivation = null;
+  const activationInsight = buildVenueActivationInsight({
+    featuredPaidActivation,
+    memorySummary,
+    memoryHistory,
+    paidActivationCount: 0,
+  });
+  const topCreators: VenueDetail['topCreators'] = [];
+
+  return {
+    id: `curated:${venue.slug}`,
+    slug: venue.slug,
+    name: venue.name,
+    description: venue.description,
+    profile: buildVenueProfile({
+      name: venue.name,
+      description: venue.description,
+      categories: venue.categories,
+      city: venue.city,
+      country: venue.country,
+      metadataJson: null,
+    }),
+    address: venue.address,
+    city: venue.city,
+    country: venue.country,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+    timezone: venue.timezone,
+    categories: venue.categories,
+    status: 'ACTIVE',
+    isPartner: false,
+    partnerTier: null,
+    qrMode: 'ROTATING',
+    qrRotationSeconds: 60,
+    checkInRadiusMeters: 120,
+    memorySummary,
+    memoryHistory,
+    tagSummary,
+    activePerk: null,
+    liveSession: null,
+    commandCenter: buildVenueCommandCenterSummary({
+      slug: venue.slug,
+      isPartner: false,
+      activeCampaignCount: 0,
+      hasLiveSession: false,
+      paidActivationCount: 0,
+      activeChallengeCount: 0,
+      totalLiveFundingUsd: 0,
+      approvedMarks: 0,
+      claimedBy: null,
+      claimRequestStatus: null,
+      claimRequestTag: null,
+      uniqueVisitorsToday: null,
+      scansLastHour: null,
+    }),
+    mapModes: buildVenueExperienceModes(),
+    activationInsight,
+    roiSnapshot: buildVenueRoiSnapshot({
+      memoryHistory,
+      topCreators,
+      activationInsight,
+    }),
+    reportPipeline: buildEmptyVenueReportPipeline(),
+    liveStats: {
+      scansLastHour: 0,
+      uniqueVisitorsToday: 0,
+      activeDares: 0,
+    },
+    recentCheckIns: [],
+    recentTags: [],
+    timelineMoments: [],
+    topCreators,
+    creatorContribution: null,
+    activeDares,
+    paidActivationCount: 0,
+    featuredPaidActivation,
+    consoleUrl: `/venues/${venue.slug}/console`,
+  };
+}
 
 function startOfDay(date: Date) {
   const next = new Date(date);
@@ -1617,7 +1746,7 @@ export async function getNearbyVenues(input: {
   };
 }
 
-export async function getVenueDetailBySlug(
+async function getVenueDetailBySlugFromDatabase(
   slug: string,
   creatorWalletAddress?: string | null
 ): Promise<VenueDetail | null> {
@@ -1957,3 +2086,43 @@ export async function getVenueDetailBySlug(
     consoleUrl: `/venues/${venue.slug}/console`,
   };
 }
+
+export const getVenueDetailBySlug = cache(async function getVenueDetailBySlug(
+  slug: string,
+  creatorWalletAddress: string | null = null
+): Promise<VenueDetail | null> {
+  const curatedFallback = buildCuratedVenueDetailFallback(slug);
+
+  if (curatedFallback) {
+    if (Date.now() < getCuratedVenueDetailFallbackUntil()) {
+      return curatedFallback;
+    }
+
+    const detailPromise = getVenueDetailBySlugFromDatabase(slug, creatorWalletAddress);
+    void detailPromise.catch(() => null);
+
+    try {
+      const result = await Promise.race([
+        detailPromise,
+        new Promise<typeof CURATED_VENUE_DETAIL_TIMEOUT>((resolve) => {
+          setTimeout(() => resolve(CURATED_VENUE_DETAIL_TIMEOUT), CURATED_VENUE_DETAIL_TIMEOUT_MS);
+        }),
+      ]);
+
+      if (result === CURATED_VENUE_DETAIL_TIMEOUT) {
+        console.warn('[VENUE_DETAIL] Using curated fallback: venue detail query timed out');
+        setCuratedVenueDetailFallbackCooldown();
+        return curatedFallback;
+      }
+
+      return result ?? curatedFallback;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown venue detail error';
+      console.warn('[VENUE_DETAIL] Using curated fallback:', message);
+      setCuratedVenueDetailFallbackCooldown();
+      return curatedFallback;
+    }
+  }
+
+  return getVenueDetailBySlugFromDatabase(slug, creatorWalletAddress);
+});

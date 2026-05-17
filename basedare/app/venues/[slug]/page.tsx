@@ -12,7 +12,7 @@ import {
   buildVenueChallengeCreateHref,
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
-import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
+import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
@@ -82,17 +82,6 @@ function formatVenueLogbookDate(value: string) {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function getLogbookSourceLabel(source?: string | null) {
-  switch (source) {
-    case 'DARE_COMPLETION':
-      return 'verified dare';
-    case 'DIRECT_TAG':
-      return 'place mark';
-    default:
-      return 'venue memory';
-  }
 }
 
 function getReviewSlaClass(tone: string) {
@@ -267,7 +256,6 @@ export default async function VenueDetailPage(
     offerId: 'first-spark',
     source: 'venue',
   });
-  const venueAreaLabel = [venue.city, venue.country].filter(Boolean).join(', ') || null;
   const venueGuestMission = buildVenueGuestMission({
     venueName: venue.name,
     categories: venue.categories,
@@ -275,13 +263,7 @@ export default async function VenueDetailPage(
     liveSession: venue.liveSession,
     hasActiveDrops: venue.activeDares.length > 0,
   });
-  const guestMissionHref = buildVenueGuestMissionActivationHref({
-    source: 'venue-guest-mission',
-    venueName: venue.name,
-    venueSlug: venue.slug,
-    city: venueAreaLabel,
-    mission: venueGuestMission,
-  });
+  const guestMissionPageHref = `/venues/${encodeURIComponent(venue.slug)}/guest-mission`;
   const guestMissionProofSteps = [
     venueGuestMission.proofLabel,
     venue.activePerk ? `Unlock: ${venue.activePerk.title}` : `Perk: ${venueGuestMission.perkLabel}`,
@@ -398,26 +380,26 @@ export default async function VenueDetailPage(
             : currentPulseState.label,
       detail:
         venue.liveSession?.status === 'LIVE'
-          ? `Venue Pass is live inside ${venue.checkInRadiusMeters}m. Scan, show up, and leave proof.`
+          ? `Venue Pass is live inside ${venue.checkInRadiusMeters}m. Scan in and leave proof.`
           : venue.activeDares.length > 0
-            ? `${venue.activeDares.length} funded drop${venue.activeDares.length === 1 ? '' : 's'} already make this venue actionable.`
-            : 'The venue is visible on the grid. The next mark or funded drop wakes it up for everyone.',
+            ? `${venue.activeDares.length} reward challenge${venue.activeDares.length === 1 ? '' : 's'} make this venue actionable.`
+            : 'The venue is visible. The next mark or reward wakes it up.',
       tone: 'cyan',
       href: mapHref,
       actionLabel: 'Open map',
     },
     {
-      label: 'Money Drop',
+      label: 'Reward',
       value:
         venue.activeDares.length > 0
           ? `$${totalActiveChallengeFunding.toFixed(0)} live`
           : 'Open slot',
       detail: primaryLiveDrop
         ? `${primaryLiveDrop.title} is the current paid path into this venue.`
-        : 'No funded drop is live yet. First funder gets the cleanest signal on this place.',
+        : 'No reward challenge is live yet. First sponsor gets the cleanest signal.',
       tone: 'gold',
       href: primaryLiveDrop?.shortId ? `/dare/${primaryLiveDrop.shortId}` : fundChallengeHref,
-      actionLabel: primaryLiveDrop ? 'Open drop' : 'Fund first',
+      actionLabel: primaryLiveDrop ? 'Open' : 'Sponsor',
     },
     {
       label: 'First Mark',
@@ -507,9 +489,9 @@ export default async function VenueDetailPage(
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Leave a mark here</h2>
+                    <h2 className="mt-2 text-2xl font-black text-white">Make this place live</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Verified marks are the fastest way to make this place feel alive. Funded drops can stack on top.
+                      Leave proof, sponsor a reward, or open a guest loop.
                     </p>
                     <div className="mt-5 grid gap-2">
                       <VenueMarkButton
@@ -520,40 +502,40 @@ export default async function VenueDetailPage(
                         address={venue.address}
                         city={venue.city}
                         country={venue.country}
-                        buttonLabel="Leave mark"
+                        buttonLabel="Take proof"
                         buttonVariant="jelly"
                       />
                       <SquircleLink
                         href={fundChallengeHref}
-                        label="Fund dare"
+                        label="Sponsor"
                         tone="yellow"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        Fund dare
+                        Sponsor
                         <ArrowRight className="h-4 w-4" />
                       </SquircleLink>
                       <SquircleLink
                         href={activateVenueHref}
-                        label="First Spark"
+                        label="Pilot"
                         tone="purple"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        First Spark
+                        Pilot
                         <Sparkles className="h-4 w-4" />
                       </SquircleLink>
                       <SquircleLink
-                        href={guestMissionHref}
-                        label="Guest Mission"
+                        href={guestMissionPageHref}
+                        label="Guest Loop"
                         tone="teal"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
                       >
-                        Guest Mission
+                        Guest Loop
                         <Users className="h-4 w-4" />
                       </SquircleLink>
                     </div>
@@ -623,13 +605,13 @@ export default async function VenueDetailPage(
                   </div>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
                 <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Live drops</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Challenges</p>
                   <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
                 </div>
                 <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Live funding</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Rewards</p>
                   <p className="mt-2 text-2xl font-black">${totalActiveChallengeFunding.toFixed(0)}</p>
                 </div>
                 <div className={`${insetCardClass} px-4 py-4`}>
@@ -637,7 +619,7 @@ export default async function VenueDetailPage(
                   <p className={`mt-2 text-2xl font-black ${currentPulseState.className}`}>{venue.tagSummary.heatScore}</p>
                 </div>
                 <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Verified marks</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Proofs</p>
                   <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
                 </div>
               </div>
@@ -647,12 +629,12 @@ export default async function VenueDetailPage(
           <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.14),transparent_33%),radial-gradient(circle_at_92%_18%,rgba(16,185,129,0.11),transparent_30%),radial-gradient(circle_at_70%_100%,rgba(245,197,24,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_45%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
-            <div className="relative grid gap-5 lg:grid-cols-[0.92fr_1.08fr_0.76fr] lg:items-stretch">
-              <div className="flex flex-col justify-between">
+            <div className="relative grid gap-5 lg:grid-cols-[1fr_0.82fr] lg:items-center">
+              <div>
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
                     <Users className="h-4 w-4" />
-                    Guest Mission
+                    Guest Loop
                   </div>
                   <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-white">
                     {venueGuestMission.missionTitle}
@@ -661,8 +643,8 @@ export default async function VenueDetailPage(
                     {venueGuestMission.guestMission}
                   </p>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {[venueGuestMission.statusLabel, venueGuestMission.urgencyLabel, ...venueGuestMission.chips].slice(0, 5).map((chip) => (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {[venueGuestMission.statusLabel, venueGuestMission.urgencyLabel, venueGuestMission.perkLabel].map((chip) => (
                     <span
                       key={chip}
                       className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
@@ -673,59 +655,39 @@ export default async function VenueDetailPage(
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                {guestMissionProofSteps.map((step, index) => (
-                  <div key={step} className={`${insetCardClass} flex min-h-[8.25rem] flex-col px-4 py-4`}>
-                    <span className="grid h-8 w-8 place-items-center rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.08] text-sm font-black text-cyan-100">
-                      {index + 1}
-                    </span>
-                    <p className="mt-4 text-sm font-black leading-5 text-white">{step}</p>
-                    <p className="mt-2 text-xs leading-5 text-white/48">
-                      {index === 0
-                        ? 'Proof stays tied to the place.'
-                        : index === 1
-                          ? 'Access or status beats heavy discounting.'
-                          : 'Receipts make the night repeatable.'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className={`${insetCardClass} flex flex-col px-4 py-4`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">Venue perk</p>
-                    <h3 className="mt-2 text-lg font-black leading-6 text-white">{venueGuestMission.perkLabel}</h3>
-                  </div>
-                  <span className="rounded-full border border-emerald-300/18 bg-emerald-500/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100">
-                    crowd loop
-                  </span>
+              <div className={`${insetCardClass} px-4 py-4`}>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">How it works</p>
+                <div className="mt-3 grid gap-2">
+                  {guestMissionProofSteps.slice(0, 3).map((step, index) => (
+                    <div key={step} className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/[0.035] px-3 py-2">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-cyan-200/16 bg-cyan-300/[0.08] text-xs font-black text-cyan-100">
+                        {index + 1}
+                      </span>
+                      <p className="min-w-0 text-sm font-black leading-5 text-white">{step}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-3 flex-1 text-sm leading-6 text-white/56">
-                  {venue.activePerk?.description ??
-                    'A lightweight access or status reward gives guests a reason to scan without making the product feel like coupons.'}
-                </p>
-                <div className="mt-4 grid gap-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <SquircleLink
                     href={mapHref}
-                    label="Join On Map"
+                    label="Open Map"
                     tone="teal"
                     fullWidth
                     height={42}
                     labelClassName="text-[0.7rem] tracking-[0.08em] sm:text-[0.76rem]"
                   >
-                    Join On Map
+                    Open Map
                     <ArrowRight className="h-4 w-4" />
                   </SquircleLink>
                   <SquircleLink
-                    href={guestMissionHref}
-                    label="Launch Guest Mission"
+                    href={guestMissionPageHref}
+                    label="Mission"
                     tone="yellow"
                     fullWidth
                     height={42}
-                    labelClassName="text-[0.62rem] tracking-[0.045em] sm:text-[0.72rem] sm:tracking-[0.07em]"
+                    labelClassName="text-[0.66rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
                   >
-                    Launch Guest Mission
+                    Mission
                     <Sparkles className="h-4 w-4" />
                   </SquircleLink>
                 </div>
@@ -1032,9 +994,9 @@ export default async function VenueDetailPage(
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Live Drops</p>
-                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">Fund a drop here</h2>
+                    <h2 className="mt-2 text-xl font-bold sm:text-2xl">Sponsor a venue challenge</h2>
                     <p className="mt-3 hidden max-w-2xl text-sm text-white/60 sm:block">
-                      This is the public money layer. Challenges can run here whether the venue is activated or not.
+                      Put up a reward so someone can prove something happened at this venue.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:gap-3">

@@ -234,17 +234,17 @@ export default function ReadyCreatorsRail() {
               Ready Creators
             </div>
             <h3 className="mt-4 text-2xl font-black italic tracking-tight text-white md:text-3xl">
-              People who can turn a venue into proof.
+              People ready to seed proof.
             </h3>
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/55">
-              Creator missions seed the night. Guest missions make it feel alive. Exact creator location stays private.
+              Route creators into missions without exposing exact live location.
             </p>
           </div>
           <Link
             href="/captains?source=home-ready-creators"
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/50"
           >
-            Apply as Captain
+            Apply captain
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -276,8 +276,8 @@ export default function ReadyCreatorsRail() {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/34">Signal</p>
-                    <p className="mt-1 text-sm font-black leading-5 text-white">{creator.metric}</p>
+                    <p className="text-sm font-black leading-5 text-white">{creator.metric}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">Private radius</p>
                   </div>
                 </div>
 
@@ -298,15 +298,15 @@ export default function ReadyCreatorsRail() {
                     href={creator.passportHref}
                     className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] text-white/72 transition hover:border-white/20 hover:text-white"
                   >
-                    Passport
+                    Profile
                   </Link>
                   <Link
                     href={creator.inviteHref}
-                    aria-label={`Launch mission for ${creator.name}`}
+                    aria-label={`Invite ${creator.name} to a mission`}
                     className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] transition ${tone.cta}`}
                   >
                     <Briefcase className="h-3.5 w-3.5" />
-                    Launch
+                    Invite
                   </Link>
                 </div>
               </article>
@@ -317,7 +317,7 @@ export default function ReadyCreatorsRail() {
         {usingFallback ? (
           <p className="mt-4 flex items-center justify-center gap-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/32">
             <Sparkles className="h-3.5 w-3.5" />
-            Captain-ready placeholders shown while creator data warms up.
+            Creator seeds shown while live data warms up.
           </p>
         ) : null}
       </div>

@@ -22,7 +22,6 @@ const PremiumBentoGrid = dynamic(() => import("@/components/PremiumBentoGrid"), 
   loading: () => <div className="min-h-[24rem] w-full rounded-[28px] border border-white/10 bg-white/[0.025]" aria-hidden="true" />,
 });
 const TruthProtocol = dynamic(() => import("@/components/TruthProtocol"));
-const HallOfShame = dynamic(() => import("@/components/HallOfShame"));
 const BusinessDossier = dynamic(() => import("@/components/BusinessDossier"));
 const MetallicText = dynamic(() => import("@/components/MetallicText"), {
   loading: () => <div className="h-full w-full" aria-hidden="true" />,
@@ -323,10 +322,6 @@ function HomeContent() {
 
                   {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
                   <TruthProtocol />
-
-                  <div className="w-full border-t border-white/5 bg-black/50">
-                      <HallOfShame />
-                  </div>
                 </>
               ) : null}
             </div>

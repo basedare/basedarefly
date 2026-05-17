@@ -343,6 +343,7 @@ const LOCAL_SIGNAL_CATEGORIES = [
 ] as const;
 
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
+const START_PROOF_DOCK_DISMISSED_KEY = 'basedare:map-start-proof-dismissed';
 
 const SIGNAL_LAYER_KIND_ORDER: SignalLayerKind[] = ['drop', 'first', 'route', 'relic', 'intel'];
 
@@ -2442,28 +2443,28 @@ function getSignalFundConfig(happening: MapHappening) {
     }
   > = {
     drop: {
-      label: 'Fund more',
-      title: `Fund another drop at ${place.name}`,
+      label: 'Sponsor',
+      title: `Sponsor another venue challenge at ${place.name}`,
       payout: 80,
     },
     first: {
-      label: 'Fund first',
-      title: `Fund the first story at ${place.name}`,
+      label: 'Sponsor',
+      title: `Sponsor the first proof reward at ${place.name}`,
       payout: 60,
     },
     route: {
-      label: 'Fund route',
-      title: `Fund a route proof at ${place.name}`,
+      label: 'Sponsor',
+      title: `Sponsor a route proof challenge at ${place.name}`,
       payout: 60,
     },
     relic: {
-      label: 'Fund next',
-      title: `Fund the next proof at ${place.name}`,
+      label: 'Sponsor',
+      title: `Sponsor the next proof reward at ${place.name}`,
       payout: 60,
     },
     intel: {
-      label: 'Fund signal',
-      title: `Fund this signal at ${place.name}`,
+      label: 'Sponsor',
+      title: `Sponsor this local signal at ${place.name}`,
       payout: 60,
     },
   };
@@ -2878,6 +2879,7 @@ export default function RealWorldMap() {
   const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
+  const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
@@ -2893,6 +2895,7 @@ export default function RealWorldMap() {
       selectedPlace.slug ??
       `${selectedPlace.latitude.toFixed(5)}:${selectedPlace.longitude.toFixed(5)}`
     : null;
+  const showStartProofDock = !selectedPlace && (!isMobileViewport || !startProofDockDismissed);
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
@@ -2992,6 +2995,20 @@ export default function RealWorldMap() {
 
     mediaQuery.addListener(syncViewportMode);
     return () => mediaQuery.removeListener(syncViewportMode);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    setStartProofDockDismissed(window.localStorage.getItem(START_PROOF_DOCK_DISMISSED_KEY) === '1');
+  }, []);
+
+  const dismissStartProofDock = useCallback(() => {
+    setStartProofDockDismissed(true);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(START_PROOF_DOCK_DISMISSED_KEY, '1');
+    }
   }, []);
 
   useEffect(() => {
@@ -7247,7 +7264,7 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {!selectedPlace ? (
+            {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[26px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
                   <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/42 to-transparent" />
@@ -7295,6 +7312,16 @@ export default function RealWorldMap() {
                   </div>
                 </div>
                 <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[24px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
+                  {isMobileViewport ? (
+                    <button
+                      type="button"
+                      onClick={dismissStartProofDock}
+                      aria-label="Hide start suggestion"
+                      className="absolute -right-2 -top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : null}
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-[#f5c518]/26 bg-[#f5c518]/[0.11] text-[#fff3b0] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
                       <Sparkles className="h-4 w-4" />

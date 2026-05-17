@@ -563,14 +563,14 @@ export default async function VenueRecapPage(
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>
                       <p className="text-sm leading-6 text-white/58">
-                        No public proof moment has landed yet. Fund the first drop or run the venue QR console to create the first receipt object.
+                        No public proof moment has landed yet. Sponsor the first proof reward or run the venue QR console to create the first receipt.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Link
                           href={fundNextDropHref}
                           className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
                         >
-                          Fund first drop
+                          Sponsor reward
                           <ArrowRight className="h-4 w-4" />
                         </Link>
                         <Link

@@ -120,6 +120,31 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const routedSource = resolvedSearchParams.source || null;
   const routedOfferId = resolvedSearchParams.offer === 'first-spark' ? 'first-spark' : null;
   const isFirstSparkOffer = routedOfferId === 'first-spark';
+  const isVenueGuestMissionRoute =
+    routedSource === 'venue-guest-mission' || resolvedSearchParams.missionType === 'guest';
+  const heroEyebrow = isVenueGuestMissionRoute
+    ? 'Guest Mission'
+    : isFirstSparkOffer
+      ? 'First Spark Pilot'
+      : 'Grid Activation OS';
+  const heroTitle = isVenueGuestMissionRoute
+    ? 'Launch a simple guest mission.'
+    : isFirstSparkOffer
+      ? 'Run the first proof night.'
+      : 'Own the grid. Prove the movement.';
+  const heroDetail = isVenueGuestMissionRoute
+    ? 'Pick the venue, the guest action, and one lightweight perk. BaseDare keeps the mission short, proofable, and receipt-ready.'
+    : isFirstSparkOffer
+      ? 'BaseDare sets up the venue page, creator mission, QR/check-in proof path, and recap. The venue only needs to approve the route and provide one simple perk or reward.'
+      : 'BaseDare connects venues, creators, fans, and brands through Brand Memory, smart dares, proof verification, payout rails, and analytics that show whether real-world action actually happened.';
+  const heroMetrics = isVenueGuestMissionRoute
+    ? [
+        { label: 'Venue', value: routedVenue ?? 'Selected' },
+        { label: 'Guest action', value: resolvedSearchParams.guestMission ? 'Check in' : 'One loop' },
+        { label: 'Perk', value: resolvedSearchParams.perkLabel ?? 'Simple reward' },
+        { label: 'Output', value: 'Receipt' },
+      ]
+    : buyerMetrics;
 
   return (
     <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 sm:px-6 lg:py-12">
@@ -157,15 +182,13 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
                 <BadgeDollarSign className="h-4 w-4" />
-                {isFirstSparkOffer ? 'First Spark Pilot' : 'Grid Activation OS'}
+                {heroEyebrow}
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
-                {isFirstSparkOffer ? 'Run the first proof night.' : 'Own the grid. Prove the movement.'}
+                {heroTitle}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/64 sm:text-lg">
-                {isFirstSparkOffer
-                  ? 'BaseDare sets up the venue page, creator mission, QR/check-in proof path, and recap. The venue only needs to approve the route and provide one simple perk or reward.'
-                  : 'BaseDare connects venues, creators, fans, and brands through Brand Memory, smart dares, proof verification, payout rails, and analytics that show whether real-world action actually happened.'}
+                {heroDetail}
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -177,31 +200,42 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                   <SquircleLink
                     href="#activation-intake"
                     tone="yellow"
-                    label={isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
+                    label={isVenueGuestMissionRoute ? 'Start Guest Mission' : isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
                     fullWidth
                     height={44}
                   >
                     <span className="flex items-center justify-center gap-2 text-[0.78rem] tracking-[0.08em] text-[#15120c]">
-                      {isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
+                      {isVenueGuestMissionRoute ? 'Start Guest Mission' : isFirstSparkOffer ? 'Start First Spark Pilot' : 'Launch Grid Activation'}
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </SquircleLink>
                 </div>
-                <Link
-                  href="/brands/portal"
-                  data-activation-track="open-brand-portal-hero"
-                  data-activation-channel="hero"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
-                >
-                  Open Brand Portal
-                </Link>
+                {isVenueGuestMissionRoute && routedVenueSlug ? (
+                  <Link
+                    href={`/venues/${encodeURIComponent(routedVenueSlug)}/guest-mission`}
+                    data-activation-track="back-to-guest-mission"
+                    data-activation-channel="hero"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                  >
+                    View Mission
+                  </Link>
+                ) : (
+                  <Link
+                    href="/brands/portal"
+                    data-activation-track="open-brand-portal-hero"
+                    data-activation-channel="hero"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                  >
+                    Open Brand Portal
+                  </Link>
+                )}
               </div>
             </div>
 
             <div className={`${softCardClass} p-5`}>
               <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
               <div className="grid gap-3 sm:grid-cols-2">
-                {buyerMetrics.map((metric) => (
+                {heroMetrics.map((metric) => (
                   <div key={metric.label} className={`${insetCardClass} px-4 py-4`}>
                     <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{metric.label}</div>
                     <div className="mt-2 text-2xl font-black text-white">{metric.value}</div>
@@ -214,14 +248,16 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                   Venue Spark Receipt
                 </div>
                 <p className="mt-3 text-sm leading-6 text-white/62">
-                  This is the killer product for venues: their story turns into real creator missions, people come in,
-                  proof gets captured, and the next marketing spend has a reason to exist.
+                  {isVenueGuestMissionRoute
+                    ? 'Guest missions should feel light: scan in, do one action, unlock one perk, and leave a receipt the venue can repeat.'
+                    : 'This is the killer product for venues: their story turns into real creator missions, people come in, proof gets captured, and the next marketing spend has a reason to exist.'}
                 </p>
               </div>
             </div>
           </div>
         </section>
 
+        {!isVenueGuestMissionRoute ? (
         <section className="mt-8 grid gap-4 lg:grid-cols-3">
           {packages.map((activationPackage) => (
             <div
@@ -250,7 +286,9 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             </div>
           ))}
         </section>
+        ) : null}
 
+        {!isVenueGuestMissionRoute ? (
         <section className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className={`${softCardClass} p-6`}>
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
@@ -300,7 +338,9 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             </div>
           </div>
         </section>
+        ) : null}
 
+        {!isVenueGuestMissionRoute ? (
         <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {proofLoop.map((step, index) => (
             <div key={step.title} className={`${softCardClass} p-5`}>
@@ -313,8 +353,9 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             </div>
           ))}
         </section>
+        ) : null}
 
-        <SparkAuditGenerator />
+        {!isVenueGuestMissionRoute ? <SparkAuditGenerator /> : null}
 
         <section id="activation-intake" className="mt-8 grid gap-6 lg:grid-cols-[0.84fr_1.16fr]">
           <div className={`${raisedPanelClass} p-6`}>
@@ -327,7 +368,9 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
               {isFirstSparkOffer ? 'Approve the first pilot route.' : 'Tell us what should happen anywhere.'}
             </h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
-              {isFirstSparkOffer
+              {isVenueGuestMissionRoute
+                ? 'Keep it narrow: one venue, one guest action, one perk, one recap. More fields can wait until the pilot proves people actually join.'
+                : isFirstSparkOffer
                 ? 'The smallest venue action is simple: approve the route, name the perk, and let BaseDare handle creator routing, proof, and recap. If no verified proof lands, the operator route gets reviewed and rerun.'
                 : 'The fastest paid path is a narrow pilot: one buyer, one venue or event, one Brand Memory, one proof target, one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the model is the same.'}
             </p>

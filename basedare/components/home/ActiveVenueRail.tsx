@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowRight, MapPin, QrCode, Sparkles, Ticket, UsersRound } from 'lucide-react';
+import { ArrowRight, MapPin, QrCode, Sparkles, UsersRound } from 'lucide-react';
 
 import { cloneActiveVenueFallbacks, type ActiveVenueCard, type ActiveVenueTone } from '@/lib/home-active-venues';
 
@@ -86,10 +86,10 @@ export default function ActiveVenueRail() {
               Active Venues
             </div>
             <h3 className="mt-4 text-2xl font-black italic tracking-tight text-white md:text-3xl">
-              Places where missions can happen now.
+              Places ready for action.
             </h3>
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-white/55">
-              Guest missions turn check-ins, perks, proof, and receipts into venue energy without forcing every activation to be a paid creator buy.
+              Open a venue, start a guest loop, or sponsor a reward.
             </p>
           </div>
           <Link
@@ -97,7 +97,7 @@ export default function ActiveVenueRail() {
             prefetch={false}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-center text-[11px] font-black uppercase tracking-[0.16em] text-white/72 transition hover:border-cyan-300/28 hover:text-cyan-100"
           >
-            Open venue map
+            Open map
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -108,7 +108,7 @@ export default function ActiveVenueRail() {
             return (
               <article
                 key={venue.slug}
-                className="relative flex min-h-[22rem] flex-col overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.018)_18%,rgba(7,8,16,0.95)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                className="relative flex min-h-[18rem] flex-col overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.018)_18%,rgba(7,8,16,0.95)_100%)] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
               >
                 <div className={`pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b ${tone.glow}`} />
                 <div className="relative flex items-start justify-between gap-3">
@@ -128,30 +128,31 @@ export default function ActiveVenueRail() {
                 </div>
 
                 <div className="relative mt-5 rounded-[20px] border border-white/[0.08] bg-black/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/34">Guest mission</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/34">Guest loop</p>
                   <p className="mt-2 text-sm font-black leading-5 text-white">{venue.missionTitle}</p>
-                  <p className="mt-2 text-sm font-semibold leading-5 text-white/56">{venue.guestMission}</p>
+                  <p className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-white/56">{venue.guestMission}</p>
                 </div>
 
-                <div className="relative mt-3 grid grid-cols-3 gap-2">
+                <div className="relative mt-3 grid grid-cols-2 gap-2">
                   <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] px-3 py-2">
                     <UsersRound className="h-3.5 w-3.5 text-cyan-100/70" />
                     <p className="mt-2 text-lg font-black text-white tabular-nums">{venue.checkInsToday}</p>
-                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/32">Check-ins</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/32">Checks</p>
                   </div>
                   <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] px-3 py-2">
                     <QrCode className="h-3.5 w-3.5 text-[#f9e27a]/80" />
                     <p className="mt-2 text-lg font-black text-white tabular-nums">{venue.proofCount}</p>
                     <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/32">Proofs</p>
                   </div>
-                  <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] px-3 py-2">
-                    <Ticket className="h-3.5 w-3.5 text-emerald-100/70" />
-                    <p className="mt-2 text-[11px] font-black leading-4 text-white">{venue.perkLabel}</p>
-                  </div>
                 </div>
 
-                <div className="relative mt-4 rounded-full border border-white/[0.07] bg-black/24 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
-                  {venue.activityLabel}
+                <div className="relative mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/[0.07] bg-black/24 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/42">
+                    {venue.perkLabel}
+                  </span>
+                  <span className="rounded-full border border-white/[0.07] bg-black/24 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/42">
+                    {venue.activityLabel}
+                  </span>
                 </div>
 
                 <div className="relative mt-auto grid grid-cols-2 gap-2 pt-4">
@@ -160,13 +161,13 @@ export default function ActiveVenueRail() {
                     prefetch={false}
                     className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] text-white/72 transition hover:border-white/20 hover:text-white"
                   >
-                    Open venue
+                    Open
                   </Link>
                   <Link
                     href={venue.missionHref}
                     className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] transition ${tone.cta}`}
                   >
-                    Launch mission
+                    Mission
                   </Link>
                 </div>
               </article>
@@ -176,7 +177,7 @@ export default function ActiveVenueRail() {
 
         {usingFallback ? (
           <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/32">
-            Fast venue seed shown while live venue memory warms up.
+            Venue seeds shown while live data warms up.
           </p>
         ) : null}
       </div>

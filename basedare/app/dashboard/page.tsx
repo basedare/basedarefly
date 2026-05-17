@@ -1848,7 +1848,7 @@ export default function Dashboard() {
 
         <details className={`${softCardClass} group order-9 mt-2`}>
           <summary className={`${sectionBarClass} m-3 flex min-h-[56px] cursor-pointer list-none items-center justify-between sm:px-6`}>
-            <span className="text-lg font-black uppercase tracking-[0.12em] text-white">Fund signal</span>
+            <span className="text-lg font-black uppercase tracking-[0.12em] text-white">Sponsor signal</span>
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 group-open:hidden">Expand</span>
             <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 group-open:block">Collapse</span>
           </summary>

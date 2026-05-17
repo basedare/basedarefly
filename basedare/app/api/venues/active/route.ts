@@ -6,7 +6,7 @@ import {
   type ActiveVenueTone,
 } from '@/lib/home-active-venues';
 import { prisma } from '@/lib/prisma';
-import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
+import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
 
 export const dynamic = 'force-dynamic';
@@ -44,21 +44,6 @@ function getVenueTone(categories: string[], index: number): ActiveVenueTone {
     return 'emerald';
   }
   return index % 2 === 0 ? 'purple' : 'cyan';
-}
-
-function buildMissionHref(input: {
-  slug: string;
-  name: string;
-  area: string;
-  mission: ReturnType<typeof buildVenueGuestMission>;
-}) {
-  return buildVenueGuestMissionActivationHref({
-    source: 'active-venues',
-    venueSlug: input.slug,
-    venueName: input.name,
-    city: input.area,
-    mission: input.mission,
-  });
 }
 
 async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
@@ -184,17 +169,7 @@ async function fetchActiveVenues(): Promise<ActiveVenueCard[]> {
       proofCount,
       activityLabel: hasLiveSession ? 'QR rail live' : hasPerk ? 'Perk rail live' : 'Guest loop ready',
       primaryHref: `/map?place=${encodeURIComponent(venue.slug)}&source=active-venues`,
-      missionHref: buildMissionHref({
-        slug: venue.slug,
-        name: venue.name,
-        area,
-        mission: {
-          ...guestMission,
-          missionTitle,
-          perkLabel,
-          goal: hasLiveSession || hasPerk ? 'foot_traffic' : proofCount > 0 ? 'ugc' : guestMission.goal,
-        },
-      }),
+      missionHref: `/venues/${encodeURIComponent(venue.slug)}/guest-mission`,
     };
   });
 }

@@ -1,4 +1,4 @@
-import { buildVenueGuestMission, buildVenueGuestMissionActivationHref } from '@/lib/venue-guest-missions';
+import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
 
 export type ActiveVenueTone = 'gold' | 'cyan' | 'emerald' | 'purple';
 
@@ -122,19 +122,7 @@ export const ACTIVE_VENUE_FALLBACKS: ActiveVenueCard[] = ACTIVE_VENUE_FALLBACK_S
     proofCount: venue.proofCount,
     activityLabel: venue.activityLabel,
     primaryHref: venue.primaryHref,
-    missionHref: buildVenueGuestMissionActivationHref({
-      source: 'active-venues',
-      venueSlug: venue.slug,
-      venueName: venue.name,
-      city: venue.area,
-      mission: {
-        ...mission,
-        goal: venue.goalOverride ?? mission.goal,
-        guestMission,
-        missionTitle: venue.missionTitle,
-        perkLabel,
-      },
-    }),
+    missionHref: `/venues/${encodeURIComponent(venue.slug)}/guest-mission`,
   };
 });
 
