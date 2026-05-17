@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isValidCoordinates } from '@/lib/geo';
+import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
 import { ensureCuratedVenueRecords, getCuratedVenueSlugsForQuery } from '@/lib/curated-venues';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
@@ -9,6 +9,8 @@ export const runtime = 'nodejs';
 
 const SearchSchema = z.object({
   q: z.string().trim().min(2).max(120),
+  lat: z.coerce.number().optional(),
+  lon: z.coerce.number().optional(),
 });
 
 type NominatimAddress = {
@@ -37,6 +39,11 @@ type SearchIntent = {
   label: string;
   aliases: string[];
   categories: string[];
+};
+
+type SearchOrigin = {
+  latitude: number;
+  longitude: number;
 };
 
 const RECENT_PLACE_ACTIVITY_HOURS = 24;
@@ -170,7 +177,7 @@ function normalizeResult(result: NominatimResult) {
   };
 }
 
-async function searchKnownPlaces(query: string) {
+async function searchKnownPlaces(query: string, origin: SearchOrigin | null) {
   await ensureCuratedVenueRecords(getCuratedVenueSlugsForQuery(query));
 
   const normalizedSlugQuery = query.toLowerCase().replace(/\s+/g, '-');
@@ -308,9 +315,14 @@ async function searchKnownPlaces(query: string) {
       const categoryMatchCount = categoryTokens.filter((token) =>
         venue.categories.map(normalizeIntentToken).includes(token)
       ).length;
+      const distanceKm = origin
+        ? calculateDistance(origin.latitude, origin.longitude, venue.latitude, venue.longitude)
+        : null;
+      const distanceScore = distanceKm === null ? 0 : Math.max(0, 90 - distanceKm * 9);
       const score =
         (exactNameMatch ? 120 : 0) +
         categoryMatchCount * 30 +
+        distanceScore +
         activeDareCount * 22 +
         recentCheckInCount * 14 +
         approvedCount * 8 +
@@ -355,17 +367,33 @@ async function searchKnownPlaces(query: string) {
     });
 }
 
-async function searchNominatim(query: string) {
+async function searchNominatim(query: string, origin: SearchOrigin | null) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), NOMINATIM_TIMEOUT_MS);
 
   try {
+    const intentSearch = getSearchIntents(query).length > 0;
     const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
     nominatimUrl.searchParams.set('format', 'jsonv2');
     nominatimUrl.searchParams.set('addressdetails', '1');
     nominatimUrl.searchParams.set('limit', '6');
     nominatimUrl.searchParams.set('dedupe', '1');
     nominatimUrl.searchParams.set('q', query);
+    if (origin) {
+      const delta = intentSearch ? 0.18 : 0.08;
+      nominatimUrl.searchParams.set(
+        'viewbox',
+        [
+          (origin.longitude - delta).toFixed(5),
+          (origin.latitude + delta).toFixed(5),
+          (origin.longitude + delta).toFixed(5),
+          (origin.latitude - delta).toFixed(5),
+        ].join(',')
+      );
+      if (intentSearch) {
+        nominatimUrl.searchParams.set('bounded', '1');
+      }
+    }
 
     const response = await fetch(nominatimUrl.toString(), {
       headers: {
@@ -396,7 +424,11 @@ async function searchNominatim(query: string) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = SearchSchema.safeParse({ q: searchParams.get('q') ?? '' });
+    const query = SearchSchema.safeParse({
+      q: searchParams.get('q') ?? '',
+      lat: searchParams.get('lat') ?? undefined,
+      lon: searchParams.get('lon') ?? undefined,
+    });
 
     if (!query.success) {
       return NextResponse.json(
@@ -405,9 +437,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const origin =
+      query.data.lat !== undefined &&
+      query.data.lon !== undefined &&
+      isValidCoordinates(query.data.lat, query.data.lon)
+        ? { latitude: query.data.lat, longitude: query.data.lon }
+        : null;
+
     const [knownPlaces, nominatimResults] = await Promise.all([
-      searchKnownPlaces(query.data.q),
-      searchNominatim(query.data.q),
+      searchKnownPlaces(query.data.q, origin),
+      searchNominatim(query.data.q, origin),
     ]);
 
     const seen = new Set<string>();

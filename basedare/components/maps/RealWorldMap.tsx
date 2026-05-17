@@ -3498,7 +3498,13 @@ export default function RealWorldMap() {
     const timeout = setTimeout(async () => {
       try {
         setSearching(true);
-        const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmed)}`, {
+        const searchOrigin = userLocation ?? viewportCenter;
+        const params = new URLSearchParams({ q: trimmed });
+        if (searchOrigin) {
+          params.set('lat', searchOrigin.latitude.toFixed(6));
+          params.set('lon', searchOrigin.longitude.toFixed(6));
+        }
+        const response = await fetch(`/api/places/search?${params.toString()}`, {
           signal: controller.signal,
         });
         const payload = (await response.json()) as SearchResponse;
@@ -3525,7 +3531,7 @@ export default function RealWorldMap() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [searchQuery]);
+  }, [searchQuery, userLocation, viewportCenter]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
     const radiusMeters = getRadiusMetersForZoom(zoom);
