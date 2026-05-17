@@ -2153,6 +2153,13 @@ export default function AdminPage() {
                 Founder Scoreboard
               </Link>
               <Link
+                href="/admin/mission-control"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
+              >
+                <Play className="w-4 h-4 inline mr-2" />
+                Mission Control
+              </Link>
+              <Link
                 href="/admin/daily-command-loop"
                 className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
               >
