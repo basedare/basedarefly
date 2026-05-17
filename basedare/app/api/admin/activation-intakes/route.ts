@@ -1060,6 +1060,9 @@ function mapIntakeEvent(event: {
   const positioningLine = stringValue(activationBrief.positioningLine);
   const proofLogic = stringValue(activationBrief.proofLogic);
   const repeatMetric = stringValue(activationBrief.repeatMetric);
+  const intakeIntent = stringValue(metadata.intakeIntent);
+  const duplicateCount = numberValue(metadata.duplicateCount) ?? 0;
+  const lastSubmittedAt = stringValue(metadata.lastSubmittedAt || metadata.submittedAt);
   const routeContext = {
     source: routedSource,
     creator: routedCreator,
@@ -1149,6 +1152,27 @@ function mapIntakeEvent(event: {
     paymentReference,
   });
   const subjectTarget = company || assignedVenue || 'activation';
+  const closeLoopSummary =
+    missionRoute.guestMission ||
+    missionRoute.missionTitle ||
+    positioningLine ||
+    `${assignedVenue || company || 'Venue'} wants ${goal ? goal.replace(/_/g, ' ') : 'a pilot'}.`;
+  const closeLoopNextAction =
+    status === 'NEW'
+      ? 'Reply with the shortest pilot route: venue, guest action, perk, and proof receipt.'
+      : status === 'QUALIFIED'
+        ? 'Assign creator/venue route and move toward payment packet.'
+        : status === 'NEEDS_INFO'
+          ? 'Ask only for the missing venue, timing, perk, or contact detail.'
+          : status === 'READY_TO_INVOICE'
+            ? 'Send payment packet and keep launch blocked until paid.'
+            : status === 'PAYMENT_SENT'
+              ? 'Confirm funds before launch.'
+              : status === 'PAID_CONFIRMED'
+                ? 'Launch the approved route.'
+                : status === 'LAUNCHED'
+                  ? 'Track proof and send receipt.'
+                  : 'No next action unless reopened.';
 
   return {
     id: event.id,
@@ -1186,6 +1210,13 @@ function mapIntakeEvent(event: {
     positioningLine,
     proofLogic,
     repeatMetric,
+    closeLoop: {
+      intent: intakeIntent || (missionRoute.guestMission ? 'guest_mission' : offerId === 'first-spark' ? 'first_spark_pilot' : 'activation'),
+      summary: closeLoopSummary,
+      nextAction: closeLoopNextAction,
+      duplicateCount,
+      lastSubmittedAt,
+    },
     creatorRecommendations,
     replyDraft,
     sparkRoutePacket,

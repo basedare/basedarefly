@@ -83,6 +83,10 @@ const INITIAL_STATE: IntakeState = {
 const inputClass =
   'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
 const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
+const detailsClass =
+  'rounded-[24px] border border-white/[0.08] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
+const summaryClass =
+  'cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white';
 
 const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
   '500_1500': '$500-$1.5k',
@@ -297,6 +301,7 @@ export default function ActivationIntakeForm({
     setForm((current) => {
       return {
         ...current,
+        company: current.company || normalizedVenue || '',
         city: current.city || normalizedCity || '',
         venue: current.venue || normalizedVenue || '',
         budgetRange: budgetRange ?? (offerId === 'first-spark' ? '500_1500' : current.budgetRange),
@@ -414,6 +419,14 @@ export default function ActivationIntakeForm({
   };
 
   const storyBrief = useMemo(() => buildActivationStoryBrief(form), [form]);
+  const isPilotCloseLoop = Boolean(
+    hasRoutedContext ||
+    form.offerId === 'first-spark' ||
+    form.routedMissionType === 'guest' ||
+    form.routedGuestMission
+  );
+  const primaryActionLabel = isPilotCloseLoop ? 'Send pilot request' : 'Route activation request';
+  const routingActionLabel = isPilotCloseLoop ? 'Sending pilot request' : 'Routing request';
   const routeReceiptItems = useMemo(
     () =>
       [
@@ -579,10 +592,10 @@ export default function ActivationIntakeForm({
         <div className="rounded-[28px] border border-yellow-200/16 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_45px_rgba(0,0,0,0.24)] sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Route receipt</p>
-              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">We already know where this should go.</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Pilot request</p>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Most of this is already filled.</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-white/58">
-                Confirm the buyer details below. BaseDare keeps the inferred venue, source, and activation lane attached to the operator queue.
+                Confirm the venue, goal, and contact. BaseDare keeps the source attached for the operator queue.
               </p>
             </div>
             <div className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/76">
@@ -599,6 +612,23 @@ export default function ActivationIntakeForm({
               </span>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {isPilotCloseLoop ? (
+        <div className="grid gap-2 rounded-[24px] border border-cyan-200/12 bg-cyan-300/[0.045] p-3 sm:grid-cols-3">
+          {[
+            ['1', 'Place', form.venue || 'Venue selected'],
+            ['2', 'Goal', GOAL_LABELS[form.goal]],
+            ['3', 'Contact', form.email || 'Reply route'],
+          ].map(([step, title, detail]) => (
+            <div key={title} className="rounded-[18px] border border-white/[0.08] bg-black/26 px-3 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100/56">
+                {step} / {title}
+              </p>
+              <p className="mt-1 text-xs font-bold leading-5 text-white/66">{detail}</p>
+            </div>
+          ))}
         </div>
       ) : null}
 
@@ -733,6 +763,51 @@ export default function ActivationIntakeForm({
         />
       </div>
 
+      {isPilotCloseLoop ? (
+        <details className={detailsClass}>
+          <summary className={summaryClass}>Budget and package</summary>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className={labelClass}>Budget range</label>
+              <select
+                value={form.budgetRange}
+                onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
+                className={inputClass}
+              >
+                <option className="bg-[#080814]" value="500_1500">$500-$1.5k</option>
+                <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k</option>
+                <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
+                <option className="bg-[#080814]" value="15000_plus">$15k+</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Timeline</label>
+              <select
+                value={form.timeline}
+                onChange={(event) => updateField('timeline', event.target.value as IntakeState['timeline'])}
+                className={inputClass}
+              >
+                <option className="bg-[#080814]" value="this_week">This week</option>
+                <option className="bg-[#080814]" value="this_month">This month</option>
+                <option className="bg-[#080814]" value="next_90_days">Next 90 days</option>
+                <option className="bg-[#080814]" value="exploring">Exploring</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Package</label>
+              <select
+                value={form.packageId}
+                onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
+                className={inputClass}
+              >
+                <option className="bg-[#080814]" value="pilot-drop">Venue Spark Pilot</option>
+                <option className="bg-[#080814]" value="local-signal">Always-On Spark</option>
+                <option className="bg-[#080814]" value="city-takeover">Global Challenge Drop</option>
+              </select>
+            </div>
+          </div>
+        </details>
+      ) : (
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className={labelClass}>Budget range</label>
@@ -773,6 +848,7 @@ export default function ActivationIntakeForm({
           </select>
         </div>
       </div>
+      )}
 
       <div>
         <label className={labelClass}>Primary goal</label>
@@ -790,7 +866,11 @@ export default function ActivationIntakeForm({
         </select>
       </div>
 
-      <div className="rounded-[28px] border border-purple-200/14 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_16%,rgba(7,6,14,0.78))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.22)] sm:p-5">
+      <details className={detailsClass} open={!isPilotCloseLoop}>
+        <summary className={summaryClass}>
+          {isPilotCloseLoop ? 'Optional story details' : 'Brand Memory'}
+        </summary>
+        <div className="mt-4 rounded-[28px] border border-purple-200/14 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_16%,rgba(7,6,14,0.78))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.22)] sm:p-5">
         <div className="flex items-start gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-purple-200/18 bg-purple-300/[0.1] text-purple-100">
             <Sparkles className="h-5 w-5" />
@@ -893,7 +973,8 @@ export default function ActivationIntakeForm({
             ))}
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
       <div>
         <label className={labelClass}>What should the activation prove?</label>
@@ -901,7 +982,11 @@ export default function ActivationIntakeForm({
           value={form.notes}
           onChange={(event) => updateField('notes', event.target.value)}
           className={`${inputClass} min-h-32 resize-none leading-6`}
-          placeholder="Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity."
+          placeholder={
+            isPilotCloseLoop
+              ? 'Example: First 25 check-ins unlock a simple perk; BaseDare captures proof and a recap receipt.'
+              : 'Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity.'
+          }
         />
       </div>
 
@@ -915,14 +1000,14 @@ export default function ActivationIntakeForm({
         type="submit"
         disabled={submitting}
         tone="yellow"
-        label={submitting ? 'Routing request' : 'Route activation request'}
+        label={submitting ? routingActionLabel : primaryActionLabel}
         fullWidth
         height={48}
         className="w-full"
       >
         <span className="flex items-center justify-center gap-2 text-[0.76rem] font-black uppercase tracking-[0.1em] text-[#15120c] sm:text-[0.82rem]">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {submitting ? 'Routing request' : 'Route activation request'}
+          {submitting ? routingActionLabel : primaryActionLabel}
         </span>
       </SquircleButton>
     </form>

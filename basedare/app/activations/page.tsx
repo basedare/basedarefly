@@ -375,12 +375,18 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                 : 'The fastest paid path is a narrow pilot: one buyer, one venue or event, one Brand Memory, one proof target, one budget, and one repeat decision after the Spark Receipt. Siargao, Sydney, London, NYC: the model is the same.'}
             </p>
             <div className="mt-5 space-y-3">
-              {[
-                ['Budget', 'Creator payout pool plus BaseDare activation fee.'],
-                ['Place', 'A venue, district, event, or launch moment.'],
-                ['Brand Memory', 'Story, audience, rituals, vibe, and what creators should avoid.'],
-                ['Proof target', 'What action or content should be verified.'],
-              ].map(([label, detail]) => (
+              {(isVenueGuestMissionRoute
+                ? [
+                    ['Place', routedVenue || 'Confirm the venue.'],
+                    ['Guest action', resolvedSearchParams.guestMission || 'One check-in, vote, scan, or proof loop.'],
+                    ['Contact', 'Leave one reliable reply path for the pilot route.'],
+                  ]
+                : [
+                    ['Budget', 'Creator payout pool plus BaseDare activation fee.'],
+                    ['Place', 'A venue, district, event, or launch moment.'],
+                    ['Brand Memory', 'Story, audience, rituals, vibe, and what creators should avoid.'],
+                    ['Proof target', 'What action or content should be verified.'],
+                  ]).map(([label, detail]) => (
                 <div key={label} className="flex gap-3">
                   <MapPin className="mt-1 h-4 w-4 shrink-0 text-yellow-200" />
                   <div>

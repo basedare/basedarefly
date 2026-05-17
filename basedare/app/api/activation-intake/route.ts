@@ -106,6 +106,41 @@ function normalizeText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function metadataNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function dedupeToken(value: string) {
+  return (
+    normalizeText(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 90) || 'unknown'
+  );
+}
+
+function buildStableIntakeDedupeKey(input: {
+  email: string;
+  company: string;
+  venue: string;
+  routedVenueSlug: string;
+  routedSource: string;
+  attributionSource: string;
+}) {
+  const target = input.routedVenueSlug || input.venue || input.company;
+  const source = input.routedSource || input.attributionSource || 'site';
+  return `activation-intake:${dedupeToken(input.email)}:${dedupeToken(target)}:${dedupeToken(source)}`;
+}
+
 export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
   const rateLimit = checkRateLimit(clientIp, {
@@ -190,61 +225,16 @@ export async function POST(request: NextRequest) {
       brandMemory,
     });
     const amount = BUDGET_FLOORS[input.budgetRange];
-
-    const event = await prisma.founderEvent.create({
-      data: {
-        eventType: 'ACTIVATION_INTAKE',
-        source: routedSource || activationAttribution.source || 'site',
-        subjectType: 'activation_lead',
-        subjectId: null,
-        dedupeKey: `activation-intake:${Date.now()}:${randomUUID()}`,
-        title: `${company} wants a paid activation`,
-        amount,
-        status: 'NEW',
-        actor: input.email.toLowerCase(),
-        href: '/admin/activation-intakes',
-        venueSlug: routedVenueSlug || activationAttribution.venueSlug || null,
-        metadataJson: {
-          company,
-          contactName,
-          email: input.email.toLowerCase(),
-          buyerType: input.buyerType,
-          city,
-          venue,
-          budgetRange: input.budgetRange,
-          timeline: input.timeline,
-          goal: input.goal,
-          packageId: input.packageId,
-          website,
-          notes,
-          routedCreator,
-          routedVenueId,
-          routedVenueSlug,
-          routedSource,
-          routedMissionType,
-          routedMissionTitle,
-          routedCreatorSlots,
-          routedPayout,
-          routedTimeWindow,
-          routedProofRequired,
-          routedContentRequired,
-          routedGuestMission,
-          routedPerkLabel,
-          offerId,
-          funnelSessionKey,
-          activationAttribution,
-          brandMemory,
-          activationBrief,
-          clientIp,
-        } satisfies Prisma.InputJsonValue,
-      },
-      select: {
-        id: true,
-      },
+    const stableDedupeKey = buildStableIntakeDedupeKey({
+      email: input.email.toLowerCase(),
+      company,
+      venue,
+      routedVenueSlug: routedVenueSlug || activationAttribution.venueSlug,
+      routedSource,
+      attributionSource: activationAttribution.source,
     });
-
-    void alertActivationIntake({
-      leadId: event.id,
+    const submittedAt = new Date().toISOString();
+    const metadataJson = {
       company,
       contactName,
       email: input.email.toLowerCase(),
@@ -258,6 +248,7 @@ export async function POST(request: NextRequest) {
       website,
       notes,
       routedCreator,
+      routedVenueId,
       routedVenueSlug,
       routedSource,
       routedMissionType,
@@ -270,16 +261,116 @@ export async function POST(request: NextRequest) {
       routedGuestMission,
       routedPerkLabel,
       offerId,
+      funnelSessionKey,
+      activationAttribution,
       brandMemory,
       activationBrief,
-    }).catch((error) => {
-      console.error('[ACTIVATION_INTAKE] Telegram alert failed:', error);
+      clientIp,
+      submittedAt,
+      intakeDedupeKey: stableDedupeKey,
+      intakeIntent:
+        routedMissionType === 'guest' || routedGuestMission
+          ? 'guest_mission'
+          : offerId === 'first-spark'
+            ? 'first_spark_pilot'
+            : 'activation',
+    } satisfies Prisma.InputJsonValue;
+
+    const existing = await prisma.founderEvent.findUnique({
+      where: { dedupeKey: stableDedupeKey },
+      select: {
+        id: true,
+        status: true,
+        metadataJson: true,
+      },
     });
+    const shouldMergeExisting = Boolean(existing && !['LAUNCHED', 'REJECTED'].includes(existing.status || ''));
+
+    const event = shouldMergeExisting
+      ? await prisma.founderEvent.update({
+          where: { id: existing!.id },
+          data: {
+            source: routedSource || activationAttribution.source || 'site',
+            title: `${company} wants a paid activation`,
+            amount,
+            actor: input.email.toLowerCase(),
+            href: '/admin/activation-intakes',
+            venueSlug: routedVenueSlug || activationAttribution.venueSlug || null,
+            metadataJson: JSON.parse(
+              JSON.stringify({
+                ...asRecord(existing!.metadataJson),
+                ...metadataJson,
+                firstSubmittedAt: asRecord(existing!.metadataJson).firstSubmittedAt || submittedAt,
+                lastSubmittedAt: submittedAt,
+                duplicateCount: metadataNumber(asRecord(existing!.metadataJson).duplicateCount) + 1,
+                duplicateMerged: true,
+              })
+            ) as Prisma.InputJsonValue,
+          },
+          select: {
+            id: true,
+          },
+        })
+      : await prisma.founderEvent.create({
+          data: {
+            eventType: 'ACTIVATION_INTAKE',
+            source: routedSource || activationAttribution.source || 'site',
+            subjectType: 'activation_lead',
+            subjectId: null,
+            dedupeKey: existing ? `${stableDedupeKey}:${Date.now()}:${randomUUID()}` : stableDedupeKey,
+            title: `${company} wants a paid activation`,
+            amount,
+            status: 'NEW',
+            actor: input.email.toLowerCase(),
+            href: '/admin/activation-intakes',
+            venueSlug: routedVenueSlug || activationAttribution.venueSlug || null,
+            metadataJson,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+    if (!shouldMergeExisting) {
+      void alertActivationIntake({
+        leadId: event.id,
+        company,
+        contactName,
+        email: input.email.toLowerCase(),
+        buyerType: input.buyerType,
+        city,
+        venue,
+        budgetRange: input.budgetRange,
+        timeline: input.timeline,
+        goal: input.goal,
+        packageId: input.packageId,
+        website,
+        notes,
+        routedCreator,
+        routedVenueSlug,
+        routedSource,
+        routedMissionType,
+        routedMissionTitle,
+        routedCreatorSlots,
+        routedPayout,
+        routedTimeWindow,
+        routedProofRequired,
+        routedContentRequired,
+        routedGuestMission,
+        routedPerkLabel,
+        offerId,
+        brandMemory,
+        activationBrief,
+      }).catch((error) => {
+        console.error('[ACTIVATION_INTAKE] Telegram alert failed:', error);
+      });
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         id: event.id,
+        merged: Boolean(shouldMergeExisting),
       },
     });
   } catch (error: unknown) {

@@ -90,6 +90,13 @@ type ActivationIntake = {
   positioningLine: string;
   proofLogic: string;
   repeatMetric: string;
+  closeLoop: {
+    intent: string;
+    summary: string;
+    nextAction: string;
+    duplicateCount: number;
+    lastSubmittedAt: string;
+  };
   replyDraft: string;
   sparkRoutePacket: string;
   invoiceMemo: string;
@@ -1059,6 +1066,26 @@ export default function ActivationIntakesPage() {
                               <p className="mt-2 text-sm font-black text-white/82">{value}</p>
                             </div>
                           ))}
+                        </div>
+
+                        <div className="mt-4 rounded-[1.5rem] border border-cyan-200/12 bg-[linear-gradient(135deg,rgba(34,211,238,0.08),rgba(0,0,0,0.34)_58%,rgba(250,204,21,0.06))] p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/62">
+                              Close loop
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="rounded-full border border-white/10 bg-black/28 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/52">
+                                {intake.closeLoop.intent.replace(/_/g, ' ')}
+                              </span>
+                              {intake.closeLoop.duplicateCount > 0 ? (
+                                <span className="rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/70">
+                                  merged x{intake.closeLoop.duplicateCount + 1}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <p className="mt-3 text-sm font-bold leading-6 text-white/70">{intake.closeLoop.summary}</p>
+                          <p className="mt-2 text-xs font-bold leading-5 text-white/46">{intake.closeLoop.nextAction}</p>
                         </div>
 
                         {(intake.routeContext.source || intake.routeContext.creator || intake.routeContext.venueHref || intake.routeContext.mapHref) ? (
