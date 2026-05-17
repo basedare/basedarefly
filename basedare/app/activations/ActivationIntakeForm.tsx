@@ -189,11 +189,107 @@ export default function ActivationIntakeForm({
   routedGuestMission,
   routedPerkLabel,
 }: ActivationIntakeFormProps) {
-  const [form, setForm] = useState<IntakeState>(INITIAL_STATE);
+  const initialNormalizedCreator = routedCreator
+    ? routedCreator.startsWith('@')
+      ? routedCreator
+      : `@${routedCreator}`
+    : null;
+  const initialNormalizedVenue = routedVenue?.trim() || null;
+  const initialNormalizedVenueId = routedVenueId?.trim() || null;
+  const initialNormalizedVenueSlug = routedVenueSlug?.trim() || null;
+  const initialNormalizedCity = routedCity?.trim() || null;
+  const initialNormalizedSource = routedSource?.trim() || null;
+  const initialBudgetRange = isBudgetRange(routedBudgetRange) ? routedBudgetRange : null;
+  const initialPackageId = isPackageId(routedPackageId) ? routedPackageId : null;
+  const initialGoal = isGoal(routedGoal) ? routedGoal : null;
+  const initialBuyerType = isBuyerType(routedBuyerType) ? routedBuyerType : null;
+  const initialOfferId = routedOfferId === 'first-spark' ? 'first-spark' : null;
+  const initialNormalizedAuditBrief = routedAuditBrief?.trim() || null;
+  const initialNormalizedMissionType = routedMissionType?.trim() || null;
+  const initialNormalizedMissionTitle = routedMissionTitle?.trim() || null;
+  const initialNormalizedCreatorSlots = routedCreatorSlots?.trim() || null;
+  const initialNormalizedPayout = routedPayout?.trim() || null;
+  const initialNormalizedTimeWindow = routedTimeWindow?.trim() || null;
+  const initialNormalizedProofRequired = routedProofRequired?.trim() || null;
+  const initialNormalizedContentRequired = routedContentRequired?.trim() || null;
+  const initialNormalizedGuestMission = routedGuestMission?.trim() || null;
+  const initialNormalizedPerkLabel = routedPerkLabel?.trim() || null;
+  const initialContextKey = [
+    initialNormalizedCreator,
+    initialNormalizedVenue,
+    initialNormalizedVenueId,
+    initialNormalizedVenueSlug,
+    initialNormalizedCity,
+    initialNormalizedSource,
+    initialBudgetRange,
+    initialPackageId,
+    initialGoal,
+    initialBuyerType,
+    initialOfferId,
+    initialNormalizedAuditBrief,
+    initialNormalizedMissionType,
+    initialNormalizedMissionTitle,
+    initialNormalizedCreatorSlots,
+    initialNormalizedPayout,
+    initialNormalizedTimeWindow,
+    initialNormalizedProofRequired,
+    initialNormalizedContentRequired,
+    initialNormalizedGuestMission,
+    initialNormalizedPerkLabel,
+  ].filter(Boolean).join('|');
+  const initialFormState: IntakeState = initialContextKey
+    ? {
+        ...INITIAL_STATE,
+        company: initialNormalizedVenue || '',
+        city: initialNormalizedCity || '',
+        venue: initialNormalizedVenue || '',
+        budgetRange: initialBudgetRange ?? (initialOfferId === 'first-spark' ? '500_1500' : INITIAL_STATE.budgetRange),
+        timeline: initialOfferId === 'first-spark' ? 'this_week' : INITIAL_STATE.timeline,
+        packageId: initialPackageId ?? (initialOfferId === 'first-spark' ? 'pilot-drop' : INITIAL_STATE.packageId),
+        goal: initialGoal ?? (initialOfferId === 'first-spark' ? 'foot_traffic' : INITIAL_STATE.goal),
+        buyerType: initialBuyerType ?? (initialOfferId === 'first-spark' ? 'venue' : INITIAL_STATE.buyerType),
+        routedCreator: initialNormalizedCreator || '',
+        routedVenueId: initialNormalizedVenueId || '',
+        routedVenueSlug: initialNormalizedVenueSlug || '',
+        routedSource: initialNormalizedSource || '',
+        routedMissionType: initialNormalizedMissionType || '',
+        routedMissionTitle: initialNormalizedMissionTitle || '',
+        routedCreatorSlots: initialNormalizedCreatorSlots || '',
+        routedPayout: initialNormalizedPayout || '',
+        routedTimeWindow: initialNormalizedTimeWindow || '',
+        routedProofRequired: initialNormalizedProofRequired || '',
+        routedContentRequired: initialNormalizedContentRequired || '',
+        routedGuestMission: initialNormalizedGuestMission || '',
+        routedPerkLabel: initialNormalizedPerkLabel || '',
+        offerId: initialOfferId || '',
+        notes: [
+          initialOfferId === 'first-spark'
+            ? 'Offer: First Spark Pilot. Venue provides one perk or reward; BaseDare handles setup, creator routing, QR/check-in proof path, and recap. If no verified proof lands, review and rerun the route.'
+            : null,
+          initialNormalizedCreator ? `Preferred creator: ${initialNormalizedCreator}` : null,
+          initialNormalizedVenue ? `Target venue: ${initialNormalizedVenue}` : null,
+          initialNormalizedCity ? `Target city: ${initialNormalizedCity}` : null,
+          initialNormalizedMissionType ? `Mission type: ${initialNormalizedMissionType}` : null,
+          initialNormalizedMissionTitle ? `Mission title: ${initialNormalizedMissionTitle}` : null,
+          initialNormalizedCreatorSlots ? `Creator slots: ${initialNormalizedCreatorSlots}` : null,
+          initialNormalizedPayout ? `Payout: ${initialNormalizedPayout}` : null,
+          initialNormalizedTimeWindow ? `Time window: ${initialNormalizedTimeWindow}` : null,
+          initialNormalizedProofRequired ? `Proof required: ${initialNormalizedProofRequired}` : null,
+          initialNormalizedContentRequired ? `Content required: ${initialNormalizedContentRequired}` : null,
+          initialNormalizedGuestMission ? `Guest mission: ${initialNormalizedGuestMission}` : null,
+          initialNormalizedPerkLabel ? `Venue perk: ${initialNormalizedPerkLabel}` : null,
+          initialNormalizedAuditBrief ? `Spark Audit:\n${initialNormalizedAuditBrief}` : null,
+          initialNormalizedSource ? `Source: ${initialNormalizedSource}` : 'Source: Control activation route',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      }
+    : INITIAL_STATE;
+  const [form, setForm] = useState<IntakeState>(() => initialFormState);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const routedContextRef = useRef<string | null>(null);
+  const routedContextRef = useRef<string | null>(initialContextKey || null);
   const formStartTrackedRef = useRef(false);
   const hasRoutedContext = Boolean(
     form.routedCreator ||
@@ -480,6 +576,16 @@ export default function ActivationIntakeForm({
       form.routedTimeWindow,
     ]
   );
+  const visibleRouteReceiptItems = isPilotCloseLoop
+    ? routeReceiptItems
+        .filter(([label]) => label === 'Target' || label === 'City' || label === 'Guest loop' || label === 'Offer')
+        .slice(0, 4)
+    : routeReceiptItems;
+  const visibleMissionBriefItems = isPilotCloseLoop
+    ? missionBriefItems
+        .filter(([label]) => label === 'Guest mission' || label === 'Perk' || label === 'Window' || label === 'Proof')
+        .slice(0, 4)
+    : missionBriefItems;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -593,9 +699,9 @@ export default function ActivationIntakeForm({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Pilot request</p>
-              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Most of this is already filled.</h3>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Review and send.</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-white/58">
-                Confirm the venue, goal, and contact. BaseDare keeps the source attached for the operator queue.
+                Confirm the essentials. The source stays attached in the background.
               </p>
             </div>
             <div className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/76">
@@ -603,7 +709,7 @@ export default function ActivationIntakeForm({
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {routeReceiptItems.map(([label, value]) => (
+            {visibleRouteReceiptItems.map(([label, value]) => (
               <span
                 key={`${label}-${value}`}
                 className="rounded-full border border-white/[0.09] bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58"
@@ -632,20 +738,38 @@ export default function ActivationIntakeForm({
         </div>
       ) : null}
 
-      {missionBriefItems.length > 0 ? (
+      {visibleMissionBriefItems.length > 0 ? (
         <div className="rounded-[26px] border border-cyan-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/72">Mission invite</p>
           <h3 className="mt-2 text-lg font-black leading-6 text-white">
             {form.routedMissionTitle || 'First Spark mission route'}
           </h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {missionBriefItems.map(([label, value]) => (
+          <div className={isPilotCloseLoop ? 'mt-3 flex flex-wrap gap-2' : 'mt-3 grid gap-2 sm:grid-cols-2'}>
+            {visibleMissionBriefItems.map(([label, value]) => (
               <div
                 key={`${label}-${value}`}
-                className="rounded-[18px] border border-white/[0.08] bg-black/26 px-3 py-3"
+                className={
+                  isPilotCloseLoop
+                    ? 'rounded-full border border-white/[0.08] bg-black/26 px-3 py-1.5'
+                    : 'rounded-[18px] border border-white/[0.08] bg-black/26 px-3 py-3'
+                }
               >
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">{label}</p>
-                <p className="mt-1.5 text-xs font-bold leading-5 text-white/66">{value}</p>
+                <p
+                  className={
+                    isPilotCloseLoop
+                      ? 'text-[10px] font-black uppercase tracking-[0.14em] text-white/58'
+                      : 'text-[9px] font-black uppercase tracking-[0.18em] text-white/34'
+                  }
+                >
+                  {isPilotCloseLoop ? (
+                    <>
+                      <span className="text-white/32">{label}:</span> {value}
+                    </>
+                  ) : (
+                    label
+                  )}
+                </p>
+                {!isPilotCloseLoop ? <p className="mt-1.5 text-xs font-bold leading-5 text-white/66">{value}</p> : null}
               </div>
             ))}
           </div>
@@ -653,21 +777,11 @@ export default function ActivationIntakeForm({
       ) : null}
 
       {form.offerId === 'first-spark' ? (
-        <div className="rounded-[26px] border border-emerald-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(16,185,129,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="rounded-[22px] border border-emerald-200/14 bg-emerald-300/[0.055] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/72">Founding venue offer</p>
-          <p className="mt-2 text-sm font-black leading-6 text-white">
-            BaseDare runs setup, creator routing, QR/check-in proof, and recap. You approve the route and provide one perk.
+          <p className="mt-1.5 text-sm font-bold leading-6 text-white/70">
+            BaseDare handles setup, routing, proof, and recap after this route is approved.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {['venue page', 'creator mission', 'proof receipt', 'rerun review if no proof'].map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-white/[0.09] bg-black/24 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/52"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
         </div>
       ) : null}
 
@@ -694,7 +808,7 @@ export default function ActivationIntakeForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={`grid gap-4 ${isPilotCloseLoop ? '' : 'sm:grid-cols-2'}`}>
         <div>
           <label className={labelClass}>Work email</label>
           <input
@@ -706,6 +820,7 @@ export default function ActivationIntakeForm({
             placeholder="you@company.com"
           />
         </div>
+        {!isPilotCloseLoop ? (
         <div>
           <label className={labelClass}>Website / social</label>
           <input
@@ -715,6 +830,7 @@ export default function ActivationIntakeForm({
             placeholder="https://..."
           />
         </div>
+        ) : null}
       </div>
 
       <input
@@ -726,6 +842,18 @@ export default function ActivationIntakeForm({
         aria-hidden="true"
       />
 
+      {isPilotCloseLoop ? (
+        <div>
+          <label className={labelClass}>City</label>
+          <input
+            required
+            value={form.city}
+            onChange={(event) => updateField('city', event.target.value)}
+            className={inputClass}
+            placeholder="Siargao, London, NYC, Sydney"
+          />
+        </div>
+      ) : (
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Buyer type</label>
@@ -752,7 +880,9 @@ export default function ActivationIntakeForm({
           />
         </div>
       </div>
+      )}
 
+      {!isPilotCloseLoop ? (
       <div>
         <label className={labelClass}>Target venue or event</label>
         <input
@@ -762,6 +892,7 @@ export default function ActivationIntakeForm({
           placeholder="Specific venue, event, district, or leave open"
         />
       </div>
+      ) : null}
 
       {isPilotCloseLoop ? (
         <details className={detailsClass}>
@@ -866,9 +997,10 @@ export default function ActivationIntakeForm({
         </select>
       </div>
 
-      <details className={detailsClass} open={!isPilotCloseLoop}>
+      {!isPilotCloseLoop ? (
+      <details className={detailsClass}>
         <summary className={summaryClass}>
-          {isPilotCloseLoop ? 'Optional story details' : 'Brand Memory'}
+          Optional story details
         </summary>
         <div className="mt-4 rounded-[28px] border border-purple-200/14 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_16%,rgba(7,6,14,0.78))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.22)] sm:p-5">
         <div className="flex items-start gap-3">
@@ -975,16 +1107,17 @@ export default function ActivationIntakeForm({
         </div>
         </div>
       </details>
+      ) : null}
 
       <div>
-        <label className={labelClass}>What should the activation prove?</label>
+        <label className={labelClass}>{isPilotCloseLoop ? 'Anything else?' : 'What should the activation prove?'}</label>
         <textarea
           value={form.notes}
           onChange={(event) => updateField('notes', event.target.value)}
-          className={`${inputClass} min-h-32 resize-none leading-6`}
+          className={`${inputClass} ${isPilotCloseLoop ? 'min-h-24' : 'min-h-32'} resize-none leading-6`}
           placeholder={
             isPilotCloseLoop
-              ? 'Example: First 25 check-ins unlock a simple perk; BaseDare captures proof and a recap receipt.'
+              ? 'Example: first 25 check-ins unlock a simple perk.'
               : 'Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity.'
           }
         />
