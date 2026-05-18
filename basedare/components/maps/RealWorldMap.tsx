@@ -4169,6 +4169,7 @@ export default function RealWorldMap() {
     }
 
     let map: MapLibreMap;
+    const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
 
     try {
       map = new maplibregl.Map({
@@ -4181,6 +4182,7 @@ export default function RealWorldMap() {
         attributionControl: { compact: true },
         dragRotate: true,
         touchZoomRotate: true,
+        fadeDuration: isMobileRenderer ? 0 : 300,
         maxPitch: 75,
       });
     } catch (error) {
@@ -11848,6 +11850,7 @@ export default function RealWorldMap() {
           .map-mobile-secondary,
           .map-mobile-stats .stat-card {
             animation: none !important;
+            will-change: auto !important;
           }
 
           .selected-place-panel-header {
@@ -11974,6 +11977,26 @@ export default function RealWorldMap() {
 
         .map-panel-section {
           animation: mapPanelSectionIn 340ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .map-panel-section,
+          .basedare-maplibre-map :global(.maplibregl-marker),
+          .basedare-maplibre-map :global(.basedare-maplibre-marker),
+          .basedare-maplibre-map :global(.peebear-core),
+          .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.peebear-challenge-aura),
+          .basedare-maplibre-map :global(.peebear-challenge-ring),
+          .basedare-maplibre-map :global(.current-location-pulse),
+          .basedare-maplibre-map :global(.current-location-bear) {
+            animation: none !important;
+            transition: none !important;
+          }
+
+          .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.peebear-challenge-aura) {
+            display: none !important;
+          }
         }
 
         .map-panel-shell :global(*)::-webkit-scrollbar,
@@ -13412,6 +13435,24 @@ export default function RealWorldMap() {
               0 0 0 2px rgba(255, 255, 255, 0.04),
               inset 0 1px 0 rgba(255, 255, 255, 0.12),
               inset 0 -10px 14px rgba(0, 0, 0, 0.2);
+          }
+
+          .basedare-maplibre-map :global(.maplibregl-marker),
+          .basedare-maplibre-map :global(.basedare-maplibre-marker),
+          .basedare-maplibre-map :global(.peebear-core),
+          .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.peebear-challenge-aura),
+          .basedare-maplibre-map :global(.peebear-challenge-ring),
+          .basedare-maplibre-map :global(.current-location-pulse),
+          .basedare-maplibre-map :global(.current-location-bear) {
+            animation: none !important;
+            transition: none !important;
+            will-change: auto !important;
+          }
+
+          .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.peebear-challenge-aura) {
+            display: none !important;
           }
         }
 
