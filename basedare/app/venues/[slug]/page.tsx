@@ -489,11 +489,22 @@ export default async function VenueDetailPage(
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Make this place live</h2>
+                    <h2 className="mt-2 text-2xl font-black text-white">Run a live pilot</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Leave proof, sponsor a reward, or open a guest loop.
+                      One venue, one perk, one proof path, one recap.
                     </p>
                     <div className="mt-5 grid gap-2">
+                      <SquircleLink
+                        href={activateVenueHref}
+                        label="Run First Spark"
+                        tone="yellow"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.64rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
+                      >
+                        Run First Spark
+                        <Sparkles className="h-4 w-4" />
+                      </SquircleLink>
                       <VenueMarkButton
                         placeId={venue.id}
                         placeName={venue.name}
@@ -507,35 +518,24 @@ export default async function VenueDetailPage(
                       />
                       <SquircleLink
                         href={fundChallengeHref}
-                        label="Sponsor"
-                        tone="yellow"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
-                      >
-                        Sponsor
-                        <ArrowRight className="h-4 w-4" />
-                      </SquircleLink>
-                      <SquircleLink
-                        href={activateVenueHref}
-                        label="Pilot"
+                        label="Fund dare"
                         tone="purple"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
                       >
-                        Pilot
-                        <Sparkles className="h-4 w-4" />
+                        Fund dare
+                        <ArrowRight className="h-4 w-4" />
                       </SquircleLink>
                       <SquircleLink
                         href={guestMissionPageHref}
-                        label="Guest Loop"
+                        label="Guest mission"
                         tone="teal"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
                       >
-                        Guest Loop
+                        Guest mission
                         <Users className="h-4 w-4" />
                       </SquircleLink>
                     </div>

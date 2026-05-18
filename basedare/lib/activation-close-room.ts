@@ -155,7 +155,7 @@ function defaultPaymentLink() {
 function defaultPaymentInstructions() {
   return (
     process.env.BASEDARE_PAYMENT_INSTRUCTIONS?.trim() ||
-    'BaseDare can use a manual invoice, Stripe/checkout link, or USDC settlement depending on the buyer. The activation only launches after payment and scope are confirmed.'
+    'Use the payment link, or reply to confirm invoice/USDC. The pilot launches after payment and scope are confirmed.'
   );
 }
 
@@ -279,7 +279,7 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     '',
     `I reviewed the close room: ${closeRoomUrl}`,
     '',
-    isFirstSpark ? 'I want to confirm the route, perk/reward, and payment path.' : 'I want to confirm scope/payment path.',
+    isFirstSpark ? 'I want to confirm the venue, date, perk, and payment path.' : 'I want to confirm scope/payment path.',
   ].filter((line): line is string => line !== null).join('\n');
   const approvedReplyHref = buildMailtoHref({
     email: defaultReplyEmail(),
@@ -292,21 +292,21 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
       `Close room: ${closeRoomUrl}`,
       '',
       isFirstSpark
-        ? 'Confirmed: venue page, creator mission, QR/check-in proof path, proof recap, and one venue perk/reward to be finalized before launch.'
+        ? 'Confirmed: one venue, one night, creator/guest route, QR/check-in proof, recap receipt, and one venue perk to be finalized before launch.'
         : 'Confirmed: route, payment path, proof flow, and launch checklist to be finalized before launch.',
     ].filter((line): line is string => line !== null).join('\n'),
   });
   const firstSparkDeliverables = [
-    'Venue page and First Spark route',
-    'Creator mission packet',
-    'QR/check-in proof path',
-    'Proof recap / Spark Receipt',
-    'Rerun review if no verified proof lands',
+    'Venue mission setup',
+    'Creator or guest route',
+    'QR/check-in proof',
+    'Spark recap receipt',
+    'Rerun review if proof does not land',
   ];
   const venueAsk = [
-    'Approve the route',
-    'Provide one simple perk or reward',
-    'Confirm payment path before public launch',
+    'Approve one venue and date',
+    'Provide one simple perk',
+    'Pay or reserve before launch',
   ];
 
   return {
@@ -324,13 +324,13 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     packageId,
     isFirstSpark,
     offerTitle: isFirstSpark ? 'First Spark Pilot' : 'Grid Activation',
-    offerEyebrow: isFirstSpark ? 'First Spark Close + Payment Room' : 'BaseDare Close Room',
-    offerHeadline: isFirstSpark ? `Approve the first proof night at ${target}.` : `Approve the Spark route for ${target}.`,
+    offerEyebrow: isFirstSpark ? 'First Spark Pilot' : 'BaseDare Close Room',
+    offerHeadline: isFirstSpark ? 'Approve one paid proof night.' : `Approve the Spark route for ${target}.`,
     offerPromise: isFirstSpark
-      ? 'BaseDare turns one venue into a live challenge spot with creator proof, QR/check-in signal, and a recap before asking for a recurring commitment.'
+      ? `BaseDare sets up ${target}, routes local creators or guests, captures QR/check-in proof, and sends a recap receipt.`
       : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
     riskReversal: isFirstSpark
-      ? 'If no verified proof lands, BaseDare reviews the route and reruns the activation path before asking you to scale.'
+      ? 'If no verified proof lands, BaseDare reviews the route and reruns before asking you to repeat.'
       : 'Public launch waits until payment and scope are confirmed.',
     deliverables: isFirstSpark ? firstSparkDeliverables : [
       'Activation route',

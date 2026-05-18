@@ -59,12 +59,12 @@ export default async function ActivationCloseRoomPage({
   const target = closeRoom.venue || closeRoom.company || 'your activation';
   const mission = closeRoom.missionIdeas[0];
   const paymentReady = Boolean(closeRoom.paymentLink);
-  const paymentCtaLabel = closeRoom.isFirstSpark ? 'Approve + pay pilot' : 'Open payment';
+  const paymentCtaLabel = closeRoom.isFirstSpark ? 'Reserve pilot' : 'Open payment';
   const steps = [
     {
       label: 'Route',
       detail: closeRoom.isFirstSpark
-        ? 'First Spark route, creator mission, and proof path are packaged.'
+        ? 'Venue, people, perk, and proof path are packaged.'
         : closeRoom.positioningLine || `${target} gets a venue-aware creator mission and a proof receipt.`,
       ready: true,
     },
@@ -79,6 +79,14 @@ export default async function ActivationCloseRoomPage({
       ready: closeRoom.status === 'LAUNCHED',
     },
   ];
+  const pilotSnapshot = closeRoom.isFirstSpark
+    ? [
+        ['Venue', target],
+        ['Run', 'One night'],
+        ['People', '1-3 local creators/guests'],
+        ['Output', 'QR proof + recap'],
+      ]
+    : [];
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#030305] px-4 py-8 text-white sm:px-6 lg:px-10 lg:py-10">
@@ -117,6 +125,17 @@ export default async function ActivationCloseRoomPage({
               <p className="mt-3 max-w-2xl rounded-[22px] border border-emerald-300/14 bg-emerald-300/[0.06] px-4 py-3 text-sm font-bold leading-6 text-emerald-50/72">
                 {closeRoom.riskReversal}
               </p>
+
+              {pilotSnapshot.length > 0 ? (
+                <div className="mt-5 grid gap-2 sm:grid-cols-4">
+                  {pilotSnapshot.map(([label, value]) => (
+                    <div key={label} className="rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/36">{label}</p>
+                      <p className="mt-1 truncate text-sm font-black text-white/78" title={value}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[

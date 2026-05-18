@@ -80,17 +80,17 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const heroTitle = isVenueGuestMissionRoute
     ? 'Launch a guest loop.'
     : isFirstSparkOffer
-      ? 'Start a venue pilot.'
+      ? 'Run First Spark.'
       : 'Start an activation.';
   const heroDetail = isVenueGuestMissionRoute
     ? 'Confirm the venue, guest action, perk, and reply path. Keep the loop light enough that people can join fast.'
     : isFirstSparkOffer
-      ? 'Confirm one place, one proof target, one perk, and one reply path. BaseDare handles the route after review.'
+      ? 'One venue, one night, one proof path, one recap. BaseDare handles setup; the venue gives one simple perk.'
       : 'Tell BaseDare where the mission should happen, what should be proved, and where to reply.';
   const primaryLabel = isVenueGuestMissionRoute
     ? 'Confirm Guest Mission'
     : isFirstSparkOffer
-      ? 'Confirm Pilot'
+      ? 'Run First Spark'
       : 'Start Activation';
   const intakeHeading = hasRoutedContext ? 'Confirm the route.' : 'Give us the basics.';
   const intakeDetail = hasRoutedContext
@@ -102,6 +102,12 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
         ['2', 'Action', resolvedSearchParams.guestMission || 'Guest check-in'],
         ['3', 'Reply', 'BaseDare routes it'],
       ]
+    : isFirstSparkOffer
+      ? [
+          ['1', 'Venue', routedVenue || routedCity || 'One local place'],
+          ['2', 'Perk', resolvedSearchParams.perkLabel || 'Simple reward'],
+          ['3', 'Launch', 'Proof + recap'],
+        ]
     : [
         ['1', 'Place', routedVenue || routedCity || 'Venue or city'],
         ['2', 'Proof', resolvedSearchParams.proofRequired || 'What gets verified'],
