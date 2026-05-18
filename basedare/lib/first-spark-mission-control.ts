@@ -1,5 +1,7 @@
 import 'server-only';
 
+import type { Prisma } from '@prisma/client';
+
 import { prisma } from '@/lib/prisma';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
 import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
@@ -13,6 +15,8 @@ import type {
   FirstSparkMissionControlReport,
   FirstSparkMissionRow,
   FirstSparkMissionStatus,
+  FirstSparkRunSheet,
+  FirstSparkRunStage,
   FirstSparkPilotTarget,
   FirstSparkRecapPreview,
   MissionControlTone,
@@ -20,6 +24,7 @@ import type {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_WINDOW_DAYS = 14;
+export const FIRST_SPARK_RUN_SHEET_EVENT = 'FIRST_SPARK_RUN_SHEET';
 const LIVE_DARE_STATUSES = ['PENDING', 'AWAITING_CLAIM', 'PENDING_REVIEW', 'PENDING_PAYOUT'];
 const REVIEW_DARE_STATUSES = ['PENDING_REVIEW', 'PENDING_PAYOUT'];
 const SETTLED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
@@ -63,6 +68,40 @@ function missionStatusLabel(status: FirstSparkMissionStatus) {
   return 'Repeat ask';
 }
 
+function runStageLabel(stage: FirstSparkRunStage) {
+  if (stage === 'draft') return 'Draft';
+  if (stage === 'scheduled') return 'Scheduled';
+  if (stage === 'live') return 'Live';
+  if (stage === 'proof-review') return 'Proof review';
+  if (stage === 'recap-sent') return 'Recap sent';
+  return 'Repeat ask';
+}
+
+function runStageTone(stage: FirstSparkRunStage): MissionControlTone {
+  if (stage === 'live') return 'active';
+  if (stage === 'proof-review') return 'warning';
+  if (stage === 'recap-sent' || stage === 'repeat-ask') return 'positive';
+  return 'neutral';
+}
+
+function runStageFromMissionStatus(status: FirstSparkMissionStatus): FirstSparkRunStage {
+  if (status === 'scheduled') return 'scheduled';
+  if (status === 'live') return 'live';
+  if (status === 'proof-review') return 'proof-review';
+  if (status === 'recap') return 'recap-sent';
+  if (status === 'repeat') return 'repeat-ask';
+  return 'draft';
+}
+
+function missionStatusFromRunStage(stage: FirstSparkRunStage): FirstSparkMissionStatus {
+  if (stage === 'scheduled') return 'scheduled';
+  if (stage === 'live') return 'live';
+  if (stage === 'proof-review') return 'proof-review';
+  if (stage === 'recap-sent') return 'recap';
+  if (stage === 'repeat-ask') return 'repeat';
+  return 'pilot-ready';
+}
+
 function uniqueCount(values: Array<string | null | undefined>) {
   return new Set(values.filter(Boolean).map((value) => String(value).toLowerCase())).size;
 }
@@ -76,6 +115,44 @@ function safeDateMax(current: Date | null, next: Date | null | undefined) {
 function normalizeCreatorTag(value: string | null | undefined) {
   const display = toDisplayCreatorHandle(value);
   return display?.toLowerCase() ?? null;
+}
+
+function asRecord(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function nullableStringValue(value: unknown) {
+  const next = stringValue(value);
+  return next || null;
+}
+
+function numberValue(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
+  if (typeof value === 'string') {
+    const next = Number.parseInt(value, 10);
+    if (Number.isFinite(next)) return Math.max(0, next);
+  }
+  return null;
+}
+
+function normalizeRunStage(value: unknown, fallback: FirstSparkRunStage): FirstSparkRunStage {
+  if (
+    value === 'draft' ||
+    value === 'scheduled' ||
+    value === 'live' ||
+    value === 'proof-review' ||
+    value === 'recap-sent' ||
+    value === 'repeat-ask'
+  ) {
+    return value;
+  }
+
+  return fallback;
 }
 
 function hasProofSignal(dare: Pick<VenueRow['dares'][number], 'videoUrl' | 'imageUrl' | 'proofCid' | 'proof_media'>) {
@@ -144,6 +221,64 @@ function buildNextAction(input: {
   return 'Invite creators and start the pilot';
 }
 
+function buildRunSheetNextAction(runSheet: Pick<FirstSparkRunSheet, 'stage' | 'acceptedCreators' | 'creatorSlots' | 'proofsAccepted' | 'recapSentAt' | 'repeatOutcome'>) {
+  if (runSheet.stage === 'draft') return 'Set date and invite creators';
+  if (runSheet.stage === 'scheduled') return 'Fill creator slots';
+  if (runSheet.stage === 'live') return 'Watch check-ins and proof';
+  if (runSheet.stage === 'proof-review') return 'Approve proof and send recap';
+  if (runSheet.stage === 'recap-sent' && runSheet.repeatOutcome === 'none') return 'Ask for the repeat';
+  if (runSheet.stage === 'repeat-ask') return 'Close won, interested, or lost';
+  return runSheet.proofsAccepted > 0 ? 'Keep the venue moving' : 'Tighten the proof route';
+}
+
+function buildRunSheet(input: {
+  venue: VenueRow;
+  fallbackStatus: FirstSparkMissionStatus;
+  metrics: {
+    checkIns: number;
+    acceptedProofs: number;
+    activeCreators: number;
+    perkRedemptions: number;
+  };
+}): FirstSparkRunSheet {
+  const event = input.venue.founderEvents[0] ?? null;
+  const metadata = asRecord(event?.metadataJson);
+  const fallbackStage = runStageFromMissionStatus(input.fallbackStatus);
+  const stage = normalizeRunStage(metadata.stage, fallbackStage);
+  const repeatOutcome = normalizeRepeatOutcome(metadata.repeatOutcome);
+  const runSheet: FirstSparkRunSheet = {
+    id: event?.id ?? null,
+    persisted: Boolean(event),
+    stage,
+    stageLabel: runStageLabel(stage),
+    tone: runStageTone(stage),
+    scheduledAt: nullableStringValue(metadata.scheduledAt),
+    creatorSlots: numberValue(metadata.creatorSlots) ?? 3,
+    invitedCreators: numberValue(metadata.invitedCreators) ?? input.metrics.activeCreators,
+    acceptedCreators: numberValue(metadata.acceptedCreators) ?? input.metrics.activeCreators,
+    showedCreators: numberValue(metadata.showedCreators) ?? (input.metrics.checkIns > 0 || input.metrics.acceptedProofs > 0 ? input.metrics.activeCreators : 0),
+    proofsAccepted: numberValue(metadata.proofsAccepted) ?? input.metrics.acceptedProofs,
+    guestCheckIns: numberValue(metadata.guestCheckIns) ?? input.metrics.checkIns,
+    perkRedemptions: numberValue(metadata.perkRedemptions) ?? input.metrics.perkRedemptions,
+    opsMinutes: numberValue(metadata.opsMinutes) ?? 0,
+    recapSentAt: nullableStringValue(metadata.recapSentAt),
+    repeatOutcome,
+    note: nullableStringValue(metadata.note),
+    nextAction: 'Set date and invite creators',
+    updatedAt: event?.updatedAt?.toISOString() ?? null,
+  };
+
+  return {
+    ...runSheet,
+    nextAction: buildRunSheetNextAction(runSheet),
+  };
+}
+
+function normalizeRepeatOutcome(value: unknown): FirstSparkRunSheet['repeatOutcome'] {
+  if (value === 'asked' || value === 'interested' || value === 'won' || value === 'lost') return value;
+  return 'none';
+}
+
 function buildMissionRows(venues: VenueRow[]): FirstSparkMissionRow[] {
   return venues
     .map((venue) => {
@@ -155,7 +290,7 @@ function buildMissionRows(venues: VenueRow[]): FirstSparkMissionRow[] {
         liveSession: venue.qrSessions[0] ?? null,
         hasActiveDrops: venue.dares.some((dare) => LIVE_DARE_STATUSES.includes(dare.status)),
       });
-      const status = deriveMissionStatus(venue);
+      const fallbackStatus = deriveMissionStatus(venue);
       const checkIns = venue.checkIns.length;
       const proofs = venue.placeTags.length + venue.dares.filter(hasProofSignal).length;
       const acceptedProofs =
@@ -170,6 +305,17 @@ function buildMissionRows(venues: VenueRow[]): FirstSparkMissionRow[] {
       const perkRedemptions = venue.memories.reduce((sum, memory) => sum + memory.perkRedemptionCount, 0);
       const leadCount = venue.reportLeads.filter((lead) => ACTIVE_LEAD_STATUSES.includes(lead.followUpStatus)).length;
       const score = scoreVenue(venue);
+      const runSheet = buildRunSheet({
+        venue,
+        fallbackStatus,
+        metrics: {
+          checkIns,
+          acceptedProofs,
+          activeCreators,
+          perkRedemptions,
+        },
+      });
+      const status = missionStatusFromRunStage(runSheet.stage);
 
       return {
         id: venue.id,
@@ -182,13 +328,14 @@ function buildMissionRows(venues: VenueRow[]): FirstSparkMissionRow[] {
           isPartner: venue.isPartner,
         },
         status,
-        statusLabel: missionStatusLabel(status),
-        tone: toneForMission(status),
+        statusLabel: runSheet.stageLabel || missionStatusLabel(status),
+        tone: runSheet.tone || toneForMission(status),
         missionTitle: guestMission.missionTitle,
         guestMission: guestMission.guestMission,
         perkLabel: activePerk?.title ?? guestMission.perkLabel,
         proofLabel: guestMission.proofLabel,
         score,
+        runSheet,
         metrics: {
           checkIns,
           uniqueVisitors: uniqueCount(venue.checkIns.map((checkIn) => checkIn.walletAddress)),
@@ -199,12 +346,14 @@ function buildMissionRows(venues: VenueRow[]): FirstSparkMissionRow[] {
           perkRedemptions,
           leadCount,
         },
-        nextAction: buildNextAction({
-          status,
-          checkIns,
-          proofs,
-          hasPerk: Boolean(activePerk),
-        }),
+        nextAction: runSheet.persisted
+          ? runSheet.nextAction
+          : buildNextAction({
+              status,
+              checkIns,
+              proofs,
+              hasPerk: Boolean(activePerk),
+            }),
         links: {
           venue: `/venues/${venue.slug}`,
           create: buildVenueActivationCreateHref({
@@ -535,6 +684,18 @@ async function fetchSiargaoVenueRows(periodStart: Date) {
           createdAt: true,
         },
       },
+      founderEvents: {
+        where: { eventType: FIRST_SPARK_RUN_SHEET_EVENT },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          metadataJson: true,
+          occurredAt: true,
+          updatedAt: true,
+        },
+      },
     },
   });
 }
@@ -561,6 +722,9 @@ export async function buildFirstSparkMissionControlReport(
     (sum, venue) => sum + venue.reportLeads.filter((lead) => ACTIVE_LEAD_STATUSES.includes(lead.followUpStatus)).length,
     0
   );
+  const trackedRuns = missions.filter((mission) => mission.runSheet.persisted);
+  const recapSentCount = missions.filter((mission) => Boolean(mission.runSheet.recapSentAt)).length;
+  const repeatWonCount = missions.filter((mission) => mission.runSheet.repeatOutcome === 'won').length;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -589,10 +753,13 @@ export async function buildFirstSparkMissionControlReport(
     pilotTargets: buildPilotTargets({
       venues: missions.length,
       creators: creators.length,
-      missions: missions.filter((mission) => mission.metrics.liveDares > 0 || mission.metrics.proofs > 0).length,
-      paidPilots: activeLeadCount,
-      repeatBuyers: missions.filter((mission) => mission.status === 'repeat').length,
-      publicRecaps: repeatReadyVenues,
+      missions: Math.max(
+        trackedRuns.length,
+        missions.filter((mission) => mission.metrics.liveDares > 0 || mission.metrics.proofs > 0).length
+      ),
+      paidPilots: Math.max(activeLeadCount, trackedRuns.filter((mission) => mission.runSheet.stage !== 'draft').length),
+      repeatBuyers: Math.max(repeatWonCount, missions.filter((mission) => mission.status === 'repeat').length),
+      publicRecaps: Math.max(recapSentCount, repeatReadyVenues),
     }),
   };
 }

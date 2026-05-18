@@ -1,5 +1,16 @@
 export type MissionControlTone = 'critical' | 'warning' | 'active' | 'positive' | 'neutral';
 
+export const FIRST_SPARK_RUN_STAGES = [
+  'draft',
+  'scheduled',
+  'live',
+  'proof-review',
+  'recap-sent',
+  'repeat-ask',
+] as const;
+
+export type FirstSparkRunStage = typeof FIRST_SPARK_RUN_STAGES[number];
+
 export type FirstSparkMissionStatus =
   | 'pilot-ready'
   | 'scheduled'
@@ -7,6 +18,28 @@ export type FirstSparkMissionStatus =
   | 'proof-review'
   | 'recap'
   | 'repeat';
+
+export type FirstSparkRunSheet = {
+  id: string | null;
+  persisted: boolean;
+  stage: FirstSparkRunStage;
+  stageLabel: string;
+  tone: MissionControlTone;
+  scheduledAt: string | null;
+  creatorSlots: number;
+  invitedCreators: number;
+  acceptedCreators: number;
+  showedCreators: number;
+  proofsAccepted: number;
+  guestCheckIns: number;
+  perkRedemptions: number;
+  opsMinutes: number;
+  recapSentAt: string | null;
+  repeatOutcome: 'none' | 'asked' | 'interested' | 'won' | 'lost';
+  note: string | null;
+  nextAction: string;
+  updatedAt: string | null;
+};
 
 export type FirstSparkMissionRow = {
   id: string;
@@ -26,6 +59,7 @@ export type FirstSparkMissionRow = {
   perkLabel: string;
   proofLabel: string;
   score: number;
+  runSheet: FirstSparkRunSheet;
   metrics: {
     checkIns: number;
     uniqueVisitors: number;

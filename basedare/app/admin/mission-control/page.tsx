@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import {
   ArrowRight,
   BadgeCheck,
+  CalendarCheck,
   CheckCircle2,
   Clock3,
   Gift,
@@ -14,6 +15,8 @@ import {
   MapPin,
   Radio,
   RefreshCw,
+  Save,
+  Send,
   ShieldCheck,
   Sparkles,
   Target,
@@ -24,13 +27,16 @@ import {
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
-import type {
-  FirstSparkCreatorReliability,
-  FirstSparkGuestPerkRow,
-  FirstSparkMissionControlReport,
-  FirstSparkMissionRow,
-  FirstSparkPilotTarget,
-  MissionControlTone,
+import {
+  FIRST_SPARK_RUN_STAGES,
+  type FirstSparkCreatorReliability,
+  type FirstSparkGuestPerkRow,
+  type FirstSparkMissionControlReport,
+  type FirstSparkMissionRow,
+  type FirstSparkPilotTarget,
+  type FirstSparkRunSheet,
+  type FirstSparkRunStage,
+  type MissionControlTone,
 } from '@/lib/first-spark-mission-control-types';
 
 function toneClasses(tone: MissionControlTone) {
@@ -71,9 +77,77 @@ function MetricChip({ label, value }: { label: string; value: string | number })
   );
 }
 
-function MissionRow({ mission }: { mission: FirstSparkMissionRow }) {
+type RunSheetPatch = Partial<Pick<
+  FirstSparkRunSheet,
+  | 'stage'
+  | 'scheduledAt'
+  | 'creatorSlots'
+  | 'invitedCreators'
+  | 'acceptedCreators'
+  | 'showedCreators'
+  | 'proofsAccepted'
+  | 'guestCheckIns'
+  | 'perkRedemptions'
+  | 'opsMinutes'
+  | 'recapSentAt'
+  | 'repeatOutcome'
+  | 'note'
+>>;
+
+const RUN_STAGE_LABELS: Record<FirstSparkRunStage, string> = {
+  draft: 'Draft',
+  scheduled: 'Scheduled',
+  live: 'Live',
+  'proof-review': 'Review',
+  'recap-sent': 'Recap',
+  'repeat-ask': 'Repeat',
+};
+
+function toDateTimeLocal(value: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function fromDateTimeLocal(value: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function hydrateRunSheetDraft(runSheet: FirstSparkRunSheet) {
+  return {
+    stage: runSheet.stage,
+    scheduledAt: toDateTimeLocal(runSheet.scheduledAt),
+    creatorSlots: runSheet.creatorSlots,
+    invitedCreators: runSheet.invitedCreators,
+    acceptedCreators: runSheet.acceptedCreators,
+    showedCreators: runSheet.showedCreators,
+    proofsAccepted: runSheet.proofsAccepted,
+    guestCheckIns: runSheet.guestCheckIns,
+    perkRedemptions: runSheet.perkRedemptions,
+    opsMinutes: runSheet.opsMinutes,
+    repeatOutcome: runSheet.repeatOutcome,
+    note: runSheet.note ?? '',
+  };
+}
+
+function MissionRow({
+  mission,
+  selected,
+  onSelect,
+}: {
+  mission: FirstSparkMissionRow;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <article className="rounded-[1.6rem] border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+    <article className={`rounded-[1.6rem] border bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition ${
+      selected ? 'border-yellow-300/35' : 'border-white/10'
+    }`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -89,6 +163,9 @@ function MissionRow({ mission }: { mission: FirstSparkMissionRow }) {
           </div>
           <h2 className="mt-3 truncate text-xl font-black text-white">{mission.venue.name}</h2>
           <p className="mt-1 line-clamp-1 text-sm font-bold text-white/55">{mission.nextAction}</p>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+            {mission.runSheet.acceptedCreators}/{mission.runSheet.creatorSlots} accepted · {mission.runSheet.proofsAccepted} proof · {mission.runSheet.opsMinutes}m ops
+          </p>
         </div>
 
         <div className="grid grid-cols-4 gap-2 lg:w-[28rem]">
@@ -99,6 +176,17 @@ function MissionRow({ mission }: { mission: FirstSparkMissionRow }) {
         </div>
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
+          <button
+            type="button"
+            onClick={onSelect}
+            className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+              selected
+                ? 'border-yellow-300 bg-yellow-300 text-black'
+                : 'border-yellow-300/25 bg-yellow-300/10 text-yellow-100 hover:bg-yellow-300 hover:text-black'
+            }`}
+          >
+            Run sheet
+          </button>
           <Link
             href={mission.links.venue}
             className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-white/25 hover:text-white"
@@ -120,6 +208,183 @@ function MissionRow({ mission }: { mission: FirstSparkMissionRow }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function RunSheetPanel({
+  mission,
+  saving,
+  onSave,
+}: {
+  mission: FirstSparkMissionRow;
+  saving: boolean;
+  onSave: (mission: FirstSparkMissionRow, patch: RunSheetPatch) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(() => hydrateRunSheetDraft(mission.runSheet));
+
+  useEffect(() => {
+    setDraft(hydrateRunSheetDraft(mission.runSheet));
+  }, [mission]);
+
+  const setNumber = (key: keyof Pick<
+    typeof draft,
+    'creatorSlots' | 'invitedCreators' | 'acceptedCreators' | 'showedCreators' | 'proofsAccepted' | 'guestCheckIns' | 'perkRedemptions' | 'opsMinutes'
+  >, value: string) => {
+    const next = Number.parseInt(value, 10);
+    setDraft((current) => ({
+      ...current,
+      [key]: Number.isFinite(next) ? Math.max(0, next) : 0,
+    }));
+  };
+
+  const buildPatch = (override: RunSheetPatch = {}): RunSheetPatch => ({
+    stage: draft.stage,
+    scheduledAt: fromDateTimeLocal(draft.scheduledAt),
+    creatorSlots: draft.creatorSlots,
+    invitedCreators: draft.invitedCreators,
+    acceptedCreators: draft.acceptedCreators,
+    showedCreators: draft.showedCreators,
+    proofsAccepted: draft.proofsAccepted,
+    guestCheckIns: draft.guestCheckIns,
+    perkRedemptions: draft.perkRedemptions,
+    opsMinutes: draft.opsMinutes,
+    repeatOutcome: draft.repeatOutcome,
+    note: draft.note.trim() || null,
+    ...override,
+  });
+
+  const numberFields: Array<{
+    key: keyof Pick<
+      typeof draft,
+      'creatorSlots' | 'invitedCreators' | 'acceptedCreators' | 'showedCreators' | 'proofsAccepted' | 'guestCheckIns' | 'perkRedemptions' | 'opsMinutes'
+    >;
+    label: string;
+  }> = [
+    { key: 'creatorSlots', label: 'Slots' },
+    { key: 'invitedCreators', label: 'Invited' },
+    { key: 'acceptedCreators', label: 'Accepted' },
+    { key: 'showedCreators', label: 'Showed' },
+    { key: 'proofsAccepted', label: 'Proofs' },
+    { key: 'guestCheckIns', label: 'Guests' },
+    { key: 'perkRedemptions', label: 'Perks' },
+    { key: 'opsMinutes', label: 'Ops min' },
+  ];
+
+  return (
+    <section className="rounded-[2rem] border border-yellow-300/20 bg-black/45 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100/60">
+        <CalendarCheck className="h-4 w-4 text-yellow-200" />
+        Pilot run sheet
+      </div>
+      <div className="mt-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-2xl font-black text-white">{mission.venue.name}</h2>
+          <p className="mt-1 line-clamp-2 text-sm font-bold text-white/55">{mission.runSheet.nextAction}</p>
+        </div>
+        <span className={`shrink-0 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${toneClasses(mission.runSheet.tone)}`}>
+          {mission.runSheet.persisted ? 'Saved' : 'New'}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {FIRST_SPARK_RUN_STAGES.map((stage) => (
+          <button
+            key={stage}
+            type="button"
+            onClick={() => setDraft((current) => ({ ...current, stage }))}
+            className={`min-h-10 rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-[0.14em] transition ${
+              draft.stage === stage
+                ? 'border-yellow-300 bg-yellow-300 text-black'
+                : 'border-white/10 bg-white/[0.05] text-white/55 hover:text-white'
+            }`}
+          >
+            {RUN_STAGE_LABELS[stage]}
+          </button>
+        ))}
+      </div>
+
+      <label className="mt-4 block">
+        <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Launch time</span>
+        <input
+          type="datetime-local"
+          value={draft.scheduledAt}
+          onChange={(event) => setDraft((current) => ({ ...current, scheduledAt: event.target.value }))}
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-yellow-300/45"
+        />
+      </label>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {numberFields.map((field) => (
+          <label key={field.key} className="rounded-2xl border border-white/10 bg-black/30 p-3">
+            <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/35">{field.label}</span>
+            <input
+              type="number"
+              min={0}
+              value={draft[field.key]}
+              onChange={(event) => setNumber(field.key, event.target.value)}
+              className="mt-1 w-full bg-transparent text-xl font-black text-white outline-none"
+            />
+          </label>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+        <label className="block">
+          <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Operator note</span>
+          <input
+            type="text"
+            value={draft.note}
+            onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value }))}
+            placeholder="What must happen next?"
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-yellow-300/45"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Repeat</span>
+          <select
+            value={draft.repeatOutcome}
+            onChange={(event) => setDraft((current) => ({ ...current, repeatOutcome: event.target.value as FirstSparkRunSheet['repeatOutcome'] }))}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-sm font-black text-white outline-none transition focus:border-yellow-300/45"
+          >
+            <option value="none">None</option>
+            <option value="asked">Asked</option>
+            <option value="interested">Interested</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => void onSave(mission, buildPatch())}
+          disabled={saving}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => void onSave(mission, buildPatch({ stage: 'recap-sent', recapSentAt: new Date().toISOString() }))}
+          disabled={saving}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-300 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Recap sent
+        </button>
+        <button
+          type="button"
+          onClick={() => void onSave(mission, buildPatch({ stage: 'repeat-ask', repeatOutcome: 'asked' }))}
+          disabled={saving}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Send className="h-3.5 w-3.5" />
+          Repeat ask
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -212,7 +477,10 @@ export default function MissionControlPage() {
   const [report, setReport] = useState<FirstSparkMissionControlReport | null>(null);
   const [periodDays, setPeriodDays] = useState(14);
   const [loading, setLoading] = useState(false);
+  const [savingRunSheet, setSavingRunSheet] = useState(false);
+  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [runSheetError, setRunSheetError] = useState<string | null>(null);
 
   const adminSecretTrimmed = adminSecret.trim();
   const hasAdminAuth = Boolean(address || hasAdminSession || adminSecretTrimmed);
@@ -256,6 +524,56 @@ export default function MissionControlPage() {
     if (!hasReadyAdminAuth) return;
     void loadReport();
   }, [hasReadyAdminAuth, loadReport]);
+
+  useEffect(() => {
+    if (!report?.missions.length) return;
+    setSelectedMissionId((current) =>
+      current && report.missions.some((mission) => mission.id === current)
+        ? current
+        : report.missions[0]?.id ?? null
+    );
+  }, [report]);
+
+  const selectedMission = useMemo(() => {
+    if (!report?.missions.length) return null;
+    return report.missions.find((mission) => mission.id === selectedMissionId) ?? report.missions[0] ?? null;
+  }, [report, selectedMissionId]);
+
+  const saveRunSheet = useCallback(async (mission: FirstSparkMissionRow, patch: RunSheetPatch) => {
+    if (!hasAdminAuth) return;
+
+    setSavingRunSheet(true);
+    setRunSheetError(null);
+
+    try {
+      if (!address && !(await ensureAdminSession())) {
+        throw new Error('Invalid admin secret');
+      }
+
+      const response = await fetch('/api/admin/mission-control', {
+        method: 'PATCH',
+        headers: {
+          ...adminAuthHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          venueId: mission.venue.id,
+          ...patch,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.hint || payload.error || 'Unable to save run sheet');
+      }
+
+      await loadReport();
+    } catch (saveError) {
+      setRunSheetError(saveError instanceof Error ? saveError.message : 'Unable to save run sheet');
+    } finally {
+      setSavingRunSheet(false);
+    }
+  }, [address, adminAuthHeaders, ensureAdminSession, hasAdminAuth, loadReport]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#03040a] px-4 py-10 text-white sm:px-6 lg:px-10">
@@ -342,6 +660,12 @@ export default function MissionControlPage() {
           </div>
         )}
 
+        {runSheetError && (
+          <div className="rounded-[1.6rem] border border-red-400/30 bg-red-500/10 p-4 text-sm font-bold text-red-100">
+            {runSheetError}
+          </div>
+        )}
+
         {loading && !report && (
           <div className="flex min-h-[18rem] items-center justify-center rounded-[2rem] border border-white/10 bg-black/40">
             <Loader2 className="h-7 w-7 animate-spin text-yellow-200" />
@@ -395,11 +719,24 @@ export default function MissionControlPage() {
                   Mission board
                 </div>
                 {report.missions.map((mission) => (
-                  <MissionRow key={mission.id} mission={mission} />
+                  <MissionRow
+                    key={mission.id}
+                    mission={mission}
+                    selected={selectedMission?.id === mission.id}
+                    onSelect={() => setSelectedMissionId(mission.id)}
+                  />
                 ))}
               </section>
 
               <aside className="flex flex-col gap-5">
+                {selectedMission && (
+                  <RunSheetPanel
+                    mission={selectedMission}
+                    saving={savingRunSheet}
+                    onSave={saveRunSheet}
+                  />
+                )}
+
                 {report.recap && (
                   <section className="rounded-[2rem] border border-white/10 bg-black/45 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/45">
