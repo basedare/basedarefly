@@ -5670,13 +5670,14 @@ export default function RealWorldMap() {
   const nearbyRadiusOptions = [2, 5, 10, 20];
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
+  const hasSaveSpotPanel = Boolean(saveSpotDraft || selectedPrivateMapSpot);
   const showCompactSelectedPlacePanel = Boolean(
-    isMobileViewport && selectedPlace && !selectedPlacePanelExpanded
+    isMobileViewport && selectedPlace && !selectedPlacePanelExpanded && !hasSaveSpotPanel
   );
   const selectedPlacePanelWrapClass = isMobileViewport
     ? `selected-place-panel-wrap absolute inset-x-2 bottom-2 z-30 ${
         showCompactSelectedPlacePanel ? 'selected-place-panel-wrap--compact' : ''
-      }`
+      } ${hasSaveSpotPanel ? 'selected-place-panel-wrap--save-spot' : ''}`
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
@@ -6962,7 +6963,7 @@ export default function RealWorldMap() {
   ) : null;
   const selectedSaveSpotRail =
     saveSpotDraft || selectedPrivateMapSpot ? (
-      <div className="map-panel-section mt-3 rounded-[22px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(16,185,129,0.1)_0%,rgba(7,12,15,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+      <div className="map-panel-section map-save-spot-rail mt-3 rounded-[22px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(16,185,129,0.1)_0%,rgba(7,12,15,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
         <input
           ref={saveSpotPhotoInputRef}
           type="file"
@@ -6990,7 +6991,7 @@ export default function RealWorldMap() {
         </div>
 
         {saveSpotDraft ? (
-          <div className="mt-3 space-y-3">
+          <div className="map-save-spot-scroll mt-3 space-y-3">
             <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {PRIVATE_MAP_SPOT_LABELS.map((label) => (
                 <button
@@ -7005,12 +7006,12 @@ export default function RealWorldMap() {
               ))}
             </div>
 
-            <div className="grid grid-cols-[86px_1fr] gap-3">
+            <div className="map-save-spot-fields grid grid-cols-[76px_1fr] gap-2.5 sm:grid-cols-[86px_1fr] sm:gap-3">
               <button
                 type="button"
                 onClick={() => saveSpotPhotoInputRef.current?.click()}
                 disabled={saveSpotPhotoLoading}
-                className="relative flex min-h-[86px] items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-black/24 text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]"
+                className="map-save-spot-photo relative flex min-h-[76px] items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-black/24 text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)] sm:min-h-[86px]"
                 aria-label="Add parking photo"
               >
                 {saveSpotDraft.photoDataUrl ? (
@@ -7062,7 +7063,7 @@ export default function RealWorldMap() {
               </p>
             ) : null}
 
-            <div className="grid grid-cols-[1fr_1fr] gap-2">
+            <div className="map-save-spot-actions grid grid-cols-[1fr_1fr] gap-2">
               <button
                 type="button"
                 onClick={() => setSaveSpotDraft(null)}
@@ -7081,7 +7082,7 @@ export default function RealWorldMap() {
             </div>
           </div>
         ) : selectedPrivateMapSpot ? (
-          <div className="mt-3 space-y-3">
+          <div className="map-save-spot-scroll mt-3 space-y-3">
             <div className="grid grid-cols-[72px_1fr] gap-3 rounded-[18px] border border-white/8 bg-black/18 p-2.5">
               <div className="relative h-[72px] overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.045]">
                 {selectedPrivateMapSpot.photoDataUrl ? (
@@ -8545,12 +8546,14 @@ export default function RealWorldMap() {
                     </div>
                   </div>
                 ) : (
-                <div className={`${mapPanelShellClass} place-panel-popup`}>
+                <div className={`${mapPanelShellClass} place-panel-popup ${hasSaveSpotPanel ? 'place-panel-popup--save-spot' : ''}`}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
                   <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
                   <div
-                    className={`flex flex-col overflow-hidden ${
+                    className={`selected-place-panel-stack flex flex-col overflow-hidden ${
+                      hasSaveSpotPanel ? 'selected-place-panel-stack--save-spot' : ''
+                    } ${
                       isImmersiveMobile
                         ? venueRoomExpanded
                           ? 'max-h-[calc(100dvh-1rem)]'
@@ -9603,6 +9606,44 @@ export default function RealWorldMap() {
           transform-origin: 50% 100%;
         }
 
+        :global(.map-save-spot-rail) {
+          display: flex;
+          min-height: 0;
+          flex-direction: column;
+          content-visibility: visible !important;
+          contain-intrinsic-size: auto !important;
+        }
+
+        :global(.map-save-spot-scroll) {
+          min-height: 0;
+        }
+
+        :global(.map-save-spot-fields) {
+          display: grid;
+          grid-template-columns: 76px minmax(0, 1fr);
+          gap: 0.625rem;
+          align-items: stretch;
+        }
+
+        :global(.map-save-spot-photo) {
+          min-height: 76px;
+        }
+
+        :global(.map-save-spot-actions) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (min-width: 640px) {
+          :global(.map-save-spot-fields) {
+            grid-template-columns: 86px minmax(0, 1fr);
+            gap: 0.75rem;
+          }
+
+          :global(.map-save-spot-photo) {
+            min-height: 86px;
+          }
+        }
+
         .nearby-dare-tray {
           display: flex;
           max-height: calc(100% - 1.5rem);
@@ -9672,6 +9713,11 @@ export default function RealWorldMap() {
             max-height: min(82dvh, calc(100% - 1.5rem));
           }
 
+          .selected-place-panel-wrap--save-spot {
+            bottom: calc(0.35rem + env(safe-area-inset-bottom));
+            max-height: min(92dvh, calc(100% - 0.7rem));
+          }
+
           .selected-place-panel-wrap--compact {
             right: 0.75rem;
             bottom: calc(0.8rem + env(safe-area-inset-bottom));
@@ -9689,6 +9735,48 @@ export default function RealWorldMap() {
 
           .selected-place-panel-header {
             max-height: min(42dvh, 18.75rem);
+          }
+
+          .selected-place-panel-wrap--save-spot .selected-place-panel-header {
+            max-height: min(28dvh, 12rem);
+          }
+
+          .selected-place-panel-stack--save-spot {
+            max-height: min(88dvh, calc(100dvh - 0.75rem)) !important;
+          }
+
+          .selected-place-panel-wrap--save-spot .selected-place-panel-content {
+            min-height: 0;
+          }
+
+          :global(.map-save-spot-rail) {
+            max-height: min(62dvh, calc(100dvh - 11rem));
+            overflow: hidden;
+          }
+
+          :global(.map-save-spot-scroll) {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 0.1rem;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 0.4rem);
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          :global(.map-save-spot-actions) {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            margin-right: -0.1rem;
+            padding-top: 0.45rem;
+            background: linear-gradient(
+              180deg,
+              rgba(7, 12, 15, 0) 0%,
+              rgba(7, 12, 15, 0.92) 34%,
+              rgba(7, 12, 15, 0.98) 100%
+            );
           }
 
           .nearby-dare-tray-list {
@@ -11764,6 +11852,18 @@ export default function RealWorldMap() {
 
           .selected-place-panel-header {
             max-height: none;
+          }
+
+          .selected-place-panel-wrap--save-spot .selected-place-panel-header {
+            max-height: min(24dvh, 9.75rem);
+          }
+
+          .selected-place-panel-stack--save-spot {
+            max-height: min(90dvh, calc(100dvh - 0.5rem)) !important;
+          }
+
+          :global(.selected-place-panel-wrap--save-spot) :global(.map-save-spot-rail) {
+            max-height: min(66dvh, calc(100dvh - 9.25rem));
           }
 
           .selected-place-panel-content {
