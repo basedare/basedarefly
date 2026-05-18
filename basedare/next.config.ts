@@ -30,6 +30,7 @@ if (isVercelBuild && isNestedAppRoot) {
   ensureVercelParentAlias(".next");
   ensureVercelParentAlias("node_modules");
   ensureVercelParentAlias("config");
+  ensureVercelParentAlias("prisma");
   ensureVercelParentAlias("package.json", "file");
 
   if (existsSync(path.join(appRoot, ".env.example"))) {

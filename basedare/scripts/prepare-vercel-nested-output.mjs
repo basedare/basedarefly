@@ -48,6 +48,7 @@ if (isVercelBuild && isNestedAppRoot) {
   await ensureParentAlias('.next');
   await ensureParentAlias('node_modules');
   await ensureParentAlias('config');
+  await ensureParentAlias('prisma');
   await ensureParentAlias('.env.example', 'file');
   await ensureParentAlias('.env.mainnet.example', 'file');
 }
