@@ -3022,7 +3022,7 @@ export default function RealWorldMap() {
       selectedPlace.slug ??
       `${selectedPlace.latitude.toFixed(5)}:${selectedPlace.longitude.toFixed(5)}`
     : null;
-  const showStartProofDock = !selectedPlace && (!isMobileViewport || !startProofDockDismissed);
+  const showStartProofDock = !selectedPlace && !startProofDockDismissed;
 
   useEffect(() => {
     setPrivateMapSpots(loadPrivateMapSpots());
@@ -5379,6 +5379,84 @@ export default function RealWorldMap() {
       return distanceA - distanceB;
     })[0];
   }, [filteredNearbyPlaces, mapHappenings, nearbyPlaces, userLocation, viewportCenter]);
+  const mapSpotlightVenue = useMemo(() => {
+    const origin = userLocation ?? viewportCenter;
+    const candidates = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const place = [...candidates]
+      .map((candidate) => {
+        const distanceKm = origin
+          ? calculateDistance(origin.latitude, origin.longitude, candidate.latitude, candidate.longitude)
+          : null;
+        const commandMetrics = candidate.commandCenter?.metrics;
+        const proofCount = candidate.tagSummary.approvedCount;
+        const score =
+          candidate.activeDareCount * 90 +
+          (commandMetrics?.paidActivations ?? 0) * 70 +
+          (candidate.commandCenter?.sponsorReady ? 36 : 0) +
+          proofCount * 18 +
+          candidate.tagSummary.heatScore +
+          Math.min(commandMetrics?.totalLiveFundingUsd ?? 0, 300) / 10 +
+          Math.min(commandMetrics?.uniqueVisitorsToday ?? 0, 20) * 3 +
+          Math.min(commandMetrics?.scansLastHour ?? 0, 12) * 4 +
+          getVenueTimeFitScore(candidate, happeningWindow.key) -
+          (distanceKm ? Math.min(distanceKm * 5, 34) : 0);
+
+        return { place: candidate, score };
+      })
+      .sort((a, b) => b.score - a.score)[0]?.place;
+
+    if (!place) {
+      return null;
+    }
+
+    if (place.activeDareCount > 0) {
+      return {
+        place,
+        eyebrow: 'Live venue',
+        actionLabel: 'Open venue',
+        openProof: false,
+      };
+    }
+
+    if ((place.commandCenter?.metrics.paidActivations ?? 0) > 0 || place.commandCenter?.sponsorReady) {
+      return {
+        place,
+        eyebrow: 'Featured venue',
+        actionLabel: 'Open venue',
+        openProof: false,
+      };
+    }
+
+    if (place.tagSummary.approvedCount > 1) {
+      return {
+        place,
+        eyebrow: 'Top venue',
+        actionLabel: 'Open venue',
+        openProof: false,
+      };
+    }
+
+    if (place.tagSummary.approvedCount === 1) {
+      return {
+        place,
+        eyebrow: 'Proof trail',
+        actionLabel: 'Open venue',
+        openProof: false,
+      };
+    }
+
+    return {
+      place,
+      eyebrow: 'Start here',
+      actionLabel: 'Take proof',
+      openProof: true,
+    };
+  }, [filteredNearbyPlaces, happeningWindow.key, nearbyPlaces, userLocation, viewportCenter]);
   const handleStartFirstProof = useCallback(() => {
     if (!firstProofStartPlace) {
       setPulseFilter('unmarked');
@@ -5399,6 +5477,30 @@ export default function RealWorldMap() {
       setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
     }, 1200);
   }, [firstProofStartPlace, focusExistingPlace, requestApproximateLocation]);
+  const handleMapSpotlightVenueAction = useCallback(() => {
+    if (!mapSpotlightVenue?.place) {
+      setPulseFilter('unmarked');
+      setMapVenueFocus('all');
+      setShowMatchedLayer(false);
+      setShowFootprintLayer(false);
+      requestApproximateLocation();
+      return;
+    }
+
+    focusExistingPlace(mapSpotlightVenue.place);
+    setSelectedPlacePanelExpanded(true);
+    setNearbyDarePanelCollapsed(true);
+
+    if (!mapSpotlightVenue.openProof) {
+      return;
+    }
+
+    const nextAutoOpenKey = `${mapSpotlightVenue.place.id}:${Date.now()}`;
+    setProofAutoOpenKey(nextAutoOpenKey);
+    window.setTimeout(() => {
+      setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
+    }, 1200);
+  }, [focusExistingPlace, mapSpotlightVenue, requestApproximateLocation]);
 
   const openProofForSelectedPlace = useCallback(() => {
     if (!selectedPlace) {
@@ -8119,35 +8221,33 @@ export default function RealWorldMap() {
                   </div>
                 </div>
                 <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[24px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
-                  {isMobileViewport ? (
-                    <button
-                      type="button"
-                      onClick={dismissStartProofDock}
-                      aria-label="Hide start suggestion"
-                      className="absolute -right-2 -top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={dismissStartProofDock}
+                    aria-label="Hide standout venue"
+                    className="absolute -right-2 -top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-[#f5c518]/26 bg-[#f5c518]/[0.11] text-[#fff3b0] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
                       <Sparkles className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#f8dd72]/78">
-                        Start here
+                        {mapSpotlightVenue?.eyebrow ?? 'Start here'}
                       </p>
                       <p className="mt-1 truncate text-sm font-black text-white">
-                        {firstProofStartPlace ? firstProofStartPlace.name : 'Find nearby proof'}
+                        {mapSpotlightVenue?.place.name ?? firstProofStartPlace?.name ?? 'Find nearby proof'}
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={handleStartFirstProof}
+                      onClick={handleMapSpotlightVenueAction}
                       disabled={locating}
                       className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-[#f5c518]/38 bg-[linear-gradient(180deg,#fff0a8_0%,#f5c518_54%,#8a5a00_100%)] px-3.5 text-[11px] font-black uppercase text-[#171103] shadow-[0_12px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-10px_14px_rgba(93,52,0,0.28)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
                     >
-                      {locating ? 'Finding' : firstProofStartPlace ? 'Take proof' : 'Locate'}
+                      {locating ? 'Finding' : mapSpotlightVenue?.actionLabel ?? (firstProofStartPlace ? 'Take proof' : 'Locate')}
                     </button>
                   </div>
                 </div>
