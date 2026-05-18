@@ -141,12 +141,23 @@ function getCategorySearchTokens(query: string) {
   return Array.from(new Set([...queryTokens, ...intentTokens]));
 }
 
-function getIntentLabelsForCategories(categories: string[] = []) {
+function getIntentLabelsForCategories(categories: string[] = [], preferredKeys: string[] = []) {
   const categorySet = new Set(categories.map(normalizeIntentToken));
-  return SEARCH_INTENTS
+  const matchingIntents = SEARCH_INTENTS
     .filter((intent) => intent.categories.some((category) => categorySet.has(normalizeIntentToken(category))))
+    .map((intent) => ({
+      key: intent.key,
+      label: intent.label,
+    }));
+
+  const preferredLabels = preferredKeys
+    .map((key) => matchingIntents.find((intent) => intent.key === key)?.label ?? null)
+    .filter((label): label is string => Boolean(label));
+  const fallbackLabels = matchingIntents
     .map((intent) => intent.label)
-    .slice(0, 3);
+    .filter((label) => !preferredLabels.includes(label));
+
+  return [...preferredLabels, ...fallbackLabels].slice(0, 3);
 }
 
 function getMatchReason(input: {
@@ -339,7 +350,7 @@ async function searchKnownPlaces(query: string, origin: SearchOrigin | null) {
       const approvedCount = tagSummaryByVenueId.get(venue.id)?.approvedCount ?? 0;
       const activeDareCount = venue.dares.length;
       const recentCheckInCount = venue.checkIns.length;
-      const intentLabels = getIntentLabelsForCategories(venue.categories);
+      const intentLabels = getIntentLabelsForCategories(venue.categories, intentKeys);
       const hasActivePerk = getActiveVenuePerk(venue.metadataJson) !== null;
       const exactNameMatch = venue.name.toLowerCase().includes(query.toLowerCase());
       const categoryMatchCount = categoryTokens.filter((token) =>
