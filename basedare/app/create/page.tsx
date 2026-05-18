@@ -317,7 +317,7 @@ function CreateDareContent() {
           ],
         }
       : {
-          eyebrow: 'Funding receipt',
+          eyebrow: 'Escrow Summary',
           title: `${checkoutRewardLabel} on ${NETWORK_CONFIG.chainName}.`,
           body: 'USDC is approved and funded first. Payout waits for approved proof; unclaimed or expired dares stay refund-trackable.',
           toneClass: 'border-[#f5c518]/20 bg-[#f5c518]/[0.075] text-[#f8dd72]',
