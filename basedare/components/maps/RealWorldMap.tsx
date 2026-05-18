@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import maplibregl, {
   type GeoJSONSource,
   type LayerSpecification,
@@ -176,6 +176,29 @@ const MAP_INTENT_SEARCH_CHIPS = ['Breakfast', 'Coffee', 'Food', 'Beach', 'Night'
 const PRIVATE_MAP_SPOTS_STORAGE_KEY = 'basedare.privateMapSpots.v1';
 const PRIVATE_MAP_SPOT_LIMIT = 12;
 const PRIVATE_MAP_SPOT_LABELS = ['Bike', 'Scooter', 'Bag', 'Meetup'];
+const MAP_SHEET_DRAG_TRIGGER_PX = 42;
+const MAP_SHEET_DRAG_CLOSE_PX = 132;
+const MAP_SHEET_DRAG_MAX_UP_PX = 72;
+const MAP_SHEET_DRAG_MAX_DOWN_PX = 190;
+
+type MapSheetDragTarget = 'selected-place' | 'nearby-dare';
+
+type MapSheetDragState = {
+  target: MapSheetDragTarget;
+  offsetY: number;
+};
+
+type MapSheetDragSession = MapSheetDragState & {
+  startY: number;
+  rawY: number;
+  pointerId: number;
+  moved: boolean;
+};
+
+function clampMapSheetDragOffset(rawY: number) {
+  const resistedOffset = rawY < 0 ? rawY * 0.62 : rawY;
+  return Math.max(-MAP_SHEET_DRAG_MAX_UP_PX, Math.min(MAP_SHEET_DRAG_MAX_DOWN_PX, resistedOffset));
+}
 
 type PrivateMapSpot = {
   id: string;
@@ -2919,6 +2942,9 @@ export default function RealWorldMap() {
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [proofAutoOpenKey, setProofAutoOpenKey] = useState<string | null>(null);
   const [selectedPlacePanelExpanded, setSelectedPlacePanelExpanded] = useState(false);
+  const [mapSheetDrag, setMapSheetDrag] = useState<MapSheetDragState | null>(null);
+  const mapSheetDragRef = useRef<MapSheetDragSession | null>(null);
+  const mapSheetSuppressClickRef = useRef(false);
   const [locating, setLocating] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [userHeading, setUserHeading] = useState<number | null>(null);
@@ -5681,6 +5707,118 @@ export default function RealWorldMap() {
         showCompactSelectedPlacePanel ? 'selected-place-panel-wrap--compact' : ''
       } ${hasSaveSpotPanel ? 'selected-place-panel-wrap--save-spot' : ''}`
     : 'selected-place-panel-wrap absolute bottom-4 left-1/2 z-30 w-[min(calc(100%-1rem),28rem)] -translate-x-1/2 md:left-auto md:translate-x-0';
+  const beginMapSheetDrag = useCallback(
+    (target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
+      if (!isMobileViewport || (event.pointerType === 'mouse' && event.button !== 0)) {
+        return;
+      }
+
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      mapSheetDragRef.current = {
+        target,
+        startY: event.clientY,
+        rawY: 0,
+        offsetY: 0,
+        pointerId: event.pointerId,
+        moved: false,
+      };
+      setMapSheetDrag({ target, offsetY: 0 });
+    },
+    [isMobileViewport]
+  );
+  const updateMapSheetDrag = useCallback((target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
+    const session = mapSheetDragRef.current;
+    if (!session || session.target !== target || session.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const rawY = event.clientY - session.startY;
+    const offsetY = clampMapSheetDragOffset(rawY);
+    session.rawY = rawY;
+    session.offsetY = offsetY;
+    if (Math.abs(rawY) > 6) {
+      session.moved = true;
+      event.preventDefault();
+    }
+    setMapSheetDrag({ target, offsetY });
+  }, []);
+  const finishMapSheetDrag = useCallback(
+    (target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
+      const session = mapSheetDragRef.current;
+      if (!session || session.target !== target || session.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      mapSheetDragRef.current = null;
+      setMapSheetDrag(null);
+
+      if (session.moved) {
+        mapSheetSuppressClickRef.current = true;
+        window.setTimeout(() => {
+          mapSheetSuppressClickRef.current = false;
+        }, 250);
+      }
+
+      if (Math.abs(session.rawY) < MAP_SHEET_DRAG_TRIGGER_PX) {
+        return;
+      }
+
+      triggerHaptic('selection');
+
+      if (target === 'nearby-dare') {
+        setNearbyDarePanelCollapsed(session.rawY > 0);
+        return;
+      }
+
+      if (session.rawY < -MAP_SHEET_DRAG_TRIGGER_PX) {
+        setSelectedPlacePanelExpanded(true);
+        return;
+      }
+
+      if (hasSaveSpotPanel) {
+        return;
+      }
+
+      if (selectedPlacePanelExpanded) {
+        setSelectedPlacePanelExpanded(false);
+        return;
+      }
+
+      if (session.rawY > MAP_SHEET_DRAG_CLOSE_PX) {
+        setSelectedPlace(null);
+      }
+    },
+    [hasSaveSpotPanel, selectedPlacePanelExpanded]
+  );
+  const cancelMapSheetDrag = useCallback((target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
+    const session = mapSheetDragRef.current;
+    if (!session || session.target !== target || session.pointerId !== event.pointerId) {
+      return;
+    }
+
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    mapSheetDragRef.current = null;
+    setMapSheetDrag(null);
+  }, []);
+  const consumeMapSheetDragClick = useCallback(() => {
+    if (!mapSheetSuppressClickRef.current) {
+      return false;
+    }
+
+    mapSheetSuppressClickRef.current = false;
+    return true;
+  }, []);
+  const selectedPlaceSheetDragOffset = mapSheetDrag?.target === 'selected-place' ? mapSheetDrag.offsetY : 0;
+  const nearbyDareSheetDragOffset = mapSheetDrag?.target === 'nearby-dare' ? mapSheetDrag.offsetY : 0;
+  const selectedPlacePanelDragStyle =
+    isMobileViewport && selectedPlaceSheetDragOffset !== 0
+      ? { transform: `translate3d(0, ${selectedPlaceSheetDragOffset}px, 0)` }
+      : undefined;
+  const nearbyDareTrayDragStyle =
+    isMobileViewport && nearbyDareSheetDragOffset !== 0
+      ? { transform: `translate3d(0, ${nearbyDareSheetDragOffset}px, 0)` }
+      : undefined;
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
   const selectedVenueActivated = isVenueActivated(selectedCommandCenter);
@@ -7974,38 +8112,74 @@ export default function RealWorldMap() {
               </div>
             ) : null}
             {showNearbyDareTray ? (
-              <div className={`nearby-dare-tray absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}>
+              <div
+                className={`nearby-dare-tray absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}
+                style={nearbyDareTrayDragStyle}
+                data-sheet-dragging={mapSheetDrag?.target === 'nearby-dare' ? 'true' : undefined}
+              >
                 {nearbyDarePanelCollapsed ? (
                   <button
                     type="button"
-                    onClick={() => setNearbyDarePanelCollapsed(false)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    onPointerDown={(event) => beginMapSheetDrag('nearby-dare', event)}
+                    onPointerMove={(event) => updateMapSheetDrag('nearby-dare', event)}
+                    onPointerUp={(event) => finishMapSheetDrag('nearby-dare', event)}
+                    onPointerCancel={(event) => cancelMapSheetDrag('nearby-dare', event)}
+                    onClick={() => {
+                      if (consumeMapSheetDragClick()) {
+                        return;
+                      }
+                      setNearbyDarePanelCollapsed(false);
+                    }}
+                    className="relative flex w-full flex-col gap-2 px-4 pb-3 pt-2 text-left"
                     aria-label="Expand nearby mission tray"
                   >
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Nearby
-                      </p>
-                      <p className="mt-1 truncate text-[11px] text-white/52">
-                        {happeningLoading
-                          ? 'Scanning nearby...'
-                          : mapHappenings.length > 0
-                            ? `${mapHappenings.length} items · ${happeningWindow.label}`
-                            : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                        {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
+                    <span className="map-sheet-drag-handle mx-auto flex h-5 w-24 items-center justify-center rounded-full">
+                      <span className="map-sheet-drag-bar" />
+                    </span>
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
+                          Nearby
+                        </p>
+                        <p className="mt-1 truncate text-[11px] text-white/52">
+                          {happeningLoading
+                            ? 'Scanning nearby...'
+                            : mapHappenings.length > 0
+                              ? `${mapHappenings.length} items · ${happeningWindow.label}`
+                              : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
+                        </p>
                       </div>
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
-                        <ChevronUp className="h-4 w-4" />
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                          {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
+                        </div>
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
+                          <ChevronUp className="h-4 w-4" />
+                        </span>
+                      </div>
                     </div>
                   </button>
                 ) : (
                 <>
                 <div className="border-b border-white/8 px-4 py-3">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => beginMapSheetDrag('nearby-dare', event)}
+                    onPointerMove={(event) => updateMapSheetDrag('nearby-dare', event)}
+                    onPointerUp={(event) => finishMapSheetDrag('nearby-dare', event)}
+                    onPointerCancel={(event) => cancelMapSheetDrag('nearby-dare', event)}
+                    onClick={() => {
+                      if (consumeMapSheetDragClick()) {
+                        return;
+                      }
+                      setNearbyDarePanelCollapsed(true);
+                    }}
+                    className="map-sheet-drag-handle mx-auto -mt-1 mb-2 flex h-6 w-28 items-center justify-center rounded-full md:hidden"
+                    aria-label="Drag down to collapse nearby tray"
+                    title="Drag down to collapse"
+                  >
+                    <span className="map-sheet-drag-bar" />
+                  </button>
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
@@ -8467,7 +8641,11 @@ export default function RealWorldMap() {
             ) : null}
 
             {selectedPlace ? (
-              <div className={selectedPlacePanelWrapClass}>
+              <div
+                className={selectedPlacePanelWrapClass}
+                style={selectedPlacePanelDragStyle}
+                data-sheet-dragging={mapSheetDrag?.target === 'selected-place' ? 'true' : undefined}
+              >
                 {showCompactSelectedPlacePanel ? (
                   <div className={`${mapPanelShellClass} selected-place-compact-dock place-panel-popup`}>
                     <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
@@ -8476,14 +8654,23 @@ export default function RealWorldMap() {
                     <div className="relative z-10 px-3 pb-3 pt-2.5">
                       <button
                         type="button"
+                        onPointerDown={(event) => beginMapSheetDrag('selected-place', event)}
+                        onPointerMove={(event) => updateMapSheetDrag('selected-place', event)}
+                        onPointerUp={(event) => finishMapSheetDrag('selected-place', event)}
+                        onPointerCancel={(event) => cancelMapSheetDrag('selected-place', event)}
                         onClick={() => {
+                          if (consumeMapSheetDragClick()) {
+                            return;
+                          }
                           triggerHaptic('selection');
                           setSelectedPlacePanelExpanded(true);
                         }}
-                        className="mx-auto mb-2 block h-1.5 w-14 rounded-full bg-white/18 transition hover:bg-white/28"
-                        aria-label="Expand venue details"
-                        title="Expand venue details"
-                      />
+                        className="map-sheet-drag-handle mx-auto mb-2 flex h-6 w-28 items-center justify-center rounded-full"
+                        aria-label="Drag up for venue details"
+                        title="Drag up for venue details"
+                      >
+                        <span className="map-sheet-drag-bar" />
+                      </button>
                       <div className="flex items-start gap-3">
                         <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13),rgba(5,7,15,0.92))] text-xl shadow-[0_14px_26px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]">
                           {selectedVenueProfile?.profileImageUrl ? (
@@ -8568,7 +8755,27 @@ export default function RealWorldMap() {
                     }`}
                   >
                   <div className="selected-place-panel-header sticky top-0 z-10 max-h-[50%] shrink-0 overflow-hidden rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
-                    <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-white/15 md:mb-3 md:hidden" />
+                    <button
+                      type="button"
+                      onPointerDown={(event) => beginMapSheetDrag('selected-place', event)}
+                      onPointerMove={(event) => updateMapSheetDrag('selected-place', event)}
+                      onPointerUp={(event) => finishMapSheetDrag('selected-place', event)}
+                      onPointerCancel={(event) => cancelMapSheetDrag('selected-place', event)}
+                      onClick={() => {
+                        if (consumeMapSheetDragClick()) {
+                          return;
+                        }
+                        if (!hasSaveSpotPanel) {
+                          triggerHaptic('selection');
+                          setSelectedPlacePanelExpanded(false);
+                        }
+                      }}
+                      className="map-sheet-drag-handle mx-auto mb-2 flex h-6 w-28 items-center justify-center rounded-full md:mb-3 md:hidden"
+                      aria-label={hasSaveSpotPanel ? 'Drag venue sheet' : 'Drag down to collapse venue details'}
+                      title={hasSaveSpotPanel ? 'Drag sheet' : 'Drag down to collapse'}
+                    >
+                      <span className="map-sheet-drag-bar" />
+                    </button>
                   <div className="flex items-start justify-between gap-3 md:gap-5">
                     <div className="min-w-0 flex-1">
                       {showBackToControl ? (
@@ -11250,7 +11457,52 @@ export default function RealWorldMap() {
           border-left: 1px solid rgba(255, 255, 255, 0.08);
         }
 
+        .map-sheet-drag-handle {
+          cursor: grab;
+          touch-action: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .map-sheet-drag-handle:active {
+          cursor: grabbing;
+        }
+
+        .map-sheet-drag-bar {
+          display: block;
+          height: 6px;
+          width: 3.6rem;
+          border-radius: 9999px;
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.18));
+          box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18);
+          transition:
+            width 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .map-sheet-drag-handle:hover .map-sheet-drag-bar,
+        .map-sheet-drag-handle:focus-visible .map-sheet-drag-bar {
+          width: 4.25rem;
+          background: linear-gradient(90deg, rgba(103, 232, 249, 0.32), rgba(255, 255, 255, 0.48), rgba(216, 180, 254, 0.32));
+          box-shadow:
+            0 0 16px rgba(103, 232, 249, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.28);
+        }
+
         @media (max-width: 767px) {
+          .selected-place-panel-wrap,
+          .nearby-dare-tray {
+            transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+          }
+
+          .selected-place-panel-wrap[data-sheet-dragging='true'],
+          .nearby-dare-tray[data-sheet-dragging='true'] {
+            transition: none !important;
+          }
+
           .map-panel-shell {
             transform-origin: 50% 100%;
           }
