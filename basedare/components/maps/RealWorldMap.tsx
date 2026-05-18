@@ -2113,7 +2113,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
       key: 'morning',
       label: 'Morning',
       dateLabel,
-      prompt: 'Surf checks, coffee stops, and first-light proof.',
+      prompt: 'Coffee, surf, and first stops.',
     };
   }
 
@@ -2122,7 +2122,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
       key: 'day',
       label: 'Today',
       dateLabel,
-      prompt: 'Food, beach routes, local errands, and walkable discoveries.',
+      prompt: 'Food, beaches, and easy stops.',
     };
   }
 
@@ -2131,7 +2131,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
       key: 'sunset',
       label: 'Sunset',
       dateLabel,
-      prompt: 'Golden-hour routes, boardwalks, and venues waking up.',
+      prompt: 'Sunset spots and places waking up.',
     };
   }
 
@@ -2139,7 +2139,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
     key: 'late',
     label: 'Tonight',
     dateLabel,
-    prompt: 'Bars, music, late food, and nightlife.',
+    prompt: 'Bars, music, and late food.',
   };
 }
 
@@ -2178,7 +2178,7 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
       kind: 'venue-memory' as const,
       eyebrow: 'Live dare',
       title: `${place.activeDareCount} active dare${place.activeDareCount === 1 ? '' : 's'} at ${place.name}`,
-      detail: 'A funded task is already live here.',
+      detail: 'There is a funded task here now.',
       actionLabel: 'View',
       tone: 'cyan' as HappeningTone,
     };
@@ -2187,9 +2187,9 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (approvedCount <= 0) {
     return {
       kind: 'first-spark' as const,
-      eyebrow: 'First proof open',
-      title: `Be first to prove ${place.name}`,
-      detail: 'No approved proof yet. Take the first photo or video here.',
+      eyebrow: 'Needs first proof',
+      title: `Take first proof at ${place.name}`,
+      detail: 'No approved proof yet. A quick photo or video starts the trail.',
       actionLabel: 'Proof',
       tone: 'purple' as HappeningTone,
     };
@@ -2198,9 +2198,9 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (window.key === 'morning' && /(surf|beach|coffee|cafe|boardwalk)/.test(categoryText)) {
     return {
       kind: 'tourist-route' as const,
-      eyebrow: 'Morning route',
+      eyebrow: 'Morning pick',
       title: `Start at ${place.name}`,
-      detail: 'Good fit for a quick condition check, coffee stop, or first-light clip.',
+      detail: 'Good for a quick surf check, coffee stop, or first-light clip.',
       actionLabel: 'Open',
       tone: 'cyan' as HappeningTone,
     };
@@ -2209,9 +2209,9 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   if (window.key === 'sunset' && /(beach|surf|dock|boardwalk|bar|view)/.test(categoryText)) {
     return {
       kind: 'tourist-route' as const,
-      eyebrow: 'Sunset move',
-      title: `${place.name} should be checked now`,
-      detail: 'This is the right kind of venue for golden-hour proof and easy tourist discovery.',
+      eyebrow: 'Sunset pick',
+      title: `Check ${place.name}`,
+      detail: 'Good timing for golden-hour proof and easy discovery.',
       actionLabel: 'Open',
       tone: 'gold' as HappeningTone,
     };
@@ -2221,8 +2221,8 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
     return {
       kind: 'tourist-route' as const,
       eyebrow: 'Tonight',
-      title: `${place.name} is worth checking tonight`,
-      detail: 'Good candidate for late traffic, creator clips, and quick proof.',
+      title: `Check ${place.name} tonight`,
+      detail: 'Good fit for late food, music, clips, or quick proof.',
       actionLabel: 'Open',
       tone: 'rose' as HappeningTone,
     };
@@ -2230,12 +2230,12 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
 
   return {
     kind: 'venue-memory' as const,
-    eyebrow: approvedCount > 1 ? 'Local proof' : 'First proof',
-    title: `${place.name} is worth checking`,
+    eyebrow: approvedCount > 1 ? 'Proof trail' : 'First proof',
+    title: `Check ${place.name}`,
     detail:
       approvedCount > 1
-        ? `${approvedCount} approved proofs already exist here.`
-        : 'One approved proof exists here. Another one will make the venue feel active.',
+        ? `${approvedCount} approved proofs already exist.`
+        : 'One proof exists. Another one makes the place feel active.',
     actionLabel: 'Open',
     tone: approvedCount > 1 ? ('gold' as HappeningTone) : ('purple' as HappeningTone),
   };
@@ -2259,9 +2259,8 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     placePatterns: [/cloud\s*9/i, /surf/i, /boardwalk/i, /beach/i],
     eyebrow: 'Local event',
     title: (placeName) => `Surf check around ${placeName}`,
-    detail:
-      'Tourists usually need local word-of-mouth for wave, lesson, and boardwalk energy. Surface it here as a simple first stop.',
-    actionLabel: 'Open spot',
+    detail: 'A simple first stop for wave checks, lessons, or boardwalk energy.',
+    actionLabel: 'Open',
     tone: 'cyan',
   },
   {
@@ -2269,10 +2268,9 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     windows: ['morning', 'day'],
     placePatterns: [/cat\s*&?\s*gun/i, /catangnan/i, /coffee/i, /cafe/i, /food/i],
     eyebrow: 'Food route',
-    title: (placeName) => `Coffee, food, and local check-in at ${placeName}`,
-    detail:
-      'A low-friction “what do we do now?” stop for tourists before beach, surf, or nightlife plans.',
-    actionLabel: 'Open spot',
+    title: (placeName) => `Coffee or food near ${placeName}`,
+    detail: 'A quick "what do we do now?" stop before beach, surf, or nightlife.',
+    actionLabel: 'Open',
     tone: 'gold',
   },
   {
@@ -2281,9 +2279,8 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     placePatterns: [/cloud\s*9/i, /boardwalk/i, /dock/i, /hideaway/i, /beach/i, /bar/i],
     eyebrow: 'Sunset happening',
     title: (placeName) => `Sunset session near ${placeName}`,
-    detail:
-      'Golden-hour plans are where tourists most often ask around. This gives them a visible route instead of guessing.',
-    actionLabel: 'Open spot',
+    detail: 'A visible sunset plan instead of guessing where to go.',
+    actionLabel: 'Open',
     tone: 'gold',
   },
   {
@@ -2292,9 +2289,8 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     placePatterns: [/nightlife/i, /music/i, /bar/i, /sports/i, /beach-club/i, /hideaway/i, /cat\s*&?\s*gun/i],
     eyebrow: 'Tonight',
     title: (placeName) => `Night signal around ${placeName}`,
-    detail:
-      'Bars, games, music, and late food should feel discoverable from the grid, not hidden in local group chats.',
-    actionLabel: 'Open spot',
+    detail: 'Bars, games, music, and late food nearby.',
+    actionLabel: 'Open',
     tone: 'rose',
   },
 ];
@@ -2391,7 +2387,7 @@ function getLocalEventHappenings(input: {
           best.distanceKm !== null
             ? formatDistanceMeters(Math.round(best.distanceKm * 1000))
             : best.place.distanceDisplay || null,
-        rewardLabel: 'Local plan',
+        rewardLabel: 'Plan',
         actionLabel: template.actionLabel,
         href: null,
         place: best.place,
@@ -2403,13 +2399,12 @@ function getLocalEventHappenings(input: {
     localEvents.push({
       id: `local-event:signal-room:${input.window.key}`,
       kind: 'local-event',
-      eyebrow: 'Local board',
-      title: 'Ask what is actually happening now',
-      detail:
-        'Use the local board for live tips, public activations, venue notes, and quick operator routing.',
+      eyebrow: 'Local tips',
+      title: 'Ask locals what is happening',
+      detail: 'Live tips, venue notes, and BaseDare plans.',
       timingLabel: input.window.label,
       distanceLabel: 'Siargao',
-      rewardLabel: 'Public feed',
+      rewardLabel: 'Board',
       actionLabel: 'Open board',
       href: SIGNAL_ROOM_URL,
       place: null,
@@ -2487,15 +2482,15 @@ function getSignalLayerKindMeta(kind: SignalLayerKind) {
   switch (kind) {
     case 'drop':
       return {
-        label: 'Drop',
-        pluralLabel: 'Drops',
+        label: 'Dare',
+        pluralLabel: 'Dares',
         chipClass: 'border-[#f5c518]/24 bg-[#f5c518]/[0.1] text-[#f8dd72]',
         activeClass: 'border-[#f5c518]/28 bg-[#f5c518]/[0.12] text-[#f8dd72]',
       };
     case 'first':
       return {
-        label: 'First',
-        pluralLabel: 'Firsts',
+        label: 'Proof',
+        pluralLabel: 'Proof spots',
         chipClass: 'border-[#b87fff]/24 bg-[#b87fff]/[0.1] text-[#edd8ff]',
         activeClass: 'border-[#b87fff]/28 bg-[#b87fff]/[0.12] text-[#edd8ff]',
       };
@@ -2508,16 +2503,16 @@ function getSignalLayerKindMeta(kind: SignalLayerKind) {
       };
     case 'relic':
       return {
-        label: 'Relic',
-        pluralLabel: 'Relics',
+        label: 'Proofed',
+        pluralLabel: 'Proofed',
         chipClass: 'border-rose-300/20 bg-rose-500/[0.08] text-rose-100',
         activeClass: 'border-rose-300/24 bg-rose-500/[0.1] text-rose-100',
       };
     case 'intel':
     default:
       return {
-        label: 'Intel',
-        pluralLabel: 'Intel',
+        label: 'Tip',
+        pluralLabel: 'Tips',
         chipClass: 'border-white/12 bg-white/[0.045] text-white/58',
         activeClass: 'border-white/14 bg-white/[0.06] text-white/70',
       };
@@ -2544,28 +2539,28 @@ function getSignalFundConfig(happening: MapHappening) {
     }
   > = {
     drop: {
-      label: 'Sponsor',
-      title: `Sponsor another venue challenge at ${place.name}`,
+      label: 'Fund',
+      title: `Fund another challenge at ${place.name}`,
       payout: 80,
     },
     first: {
-      label: 'Sponsor',
-      title: `Sponsor the first proof reward at ${place.name}`,
+      label: 'Fund',
+      title: `Fund first proof at ${place.name}`,
       payout: 60,
     },
     route: {
-      label: 'Sponsor',
-      title: `Sponsor a route proof challenge at ${place.name}`,
+      label: 'Fund',
+      title: `Fund a route proof at ${place.name}`,
       payout: 60,
     },
     relic: {
-      label: 'Sponsor',
-      title: `Sponsor the next proof reward at ${place.name}`,
+      label: 'Fund',
+      title: `Fund the next proof at ${place.name}`,
       payout: 60,
     },
     intel: {
-      label: 'Sponsor',
-      title: `Sponsor this local signal at ${place.name}`,
+      label: 'Fund',
+      title: `Fund this local tip at ${place.name}`,
       payout: 60,
     },
   };
@@ -8199,13 +8194,13 @@ export default function RealWorldMap() {
                           {happeningLoading
                             ? 'Scanning nearby...'
                             : mapHappenings.length > 0
-                              ? `${mapHappenings.length} items · ${happeningWindow.label}`
-                              : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
+                              ? `${mapHappenings.length} nearby · ${happeningWindow.label}`
+                              : `Nothing nearby within ${nearbyDareRadiusKm}km`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                          {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
+                          {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
                         </div>
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58">
                           <ChevronUp className="h-4 w-4" />
@@ -8237,14 +8232,14 @@ export default function RealWorldMap() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Happening Around You
+                        Nearby now
                       </p>
                       <p className="mt-1 text-[11px] text-white/55">
                         {userLocation ? happeningWindow.prompt : `${happeningWindow.dateLabel} · ${happeningWindow.prompt}`}
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {happeningLoading ? 'scanning' : `${mapHappenings.length} items`}
+                      {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -8288,7 +8283,7 @@ export default function RealWorldMap() {
                       </div>
                     ) : (
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">
-                        Tourist mode · events, venues + proof openings
+                        Local tips + proof spots
                       </div>
                     )}
                     <div className="flex shrink-0 items-center gap-2">
@@ -8301,7 +8296,7 @@ export default function RealWorldMap() {
                         }}
                         className="inline-flex min-h-8 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/78 transition hover:border-cyan-200/34 hover:text-cyan-50"
                       >
-                        {showLocalSignalForm ? 'Close' : 'Add tip'}
+                        {showLocalSignalForm ? 'Close' : 'Add local tip'}
                       </button>
                       <button
                         type="button"
@@ -8350,7 +8345,7 @@ export default function RealWorldMap() {
                             Local tip
                           </p>
                           <p className="mt-1 text-[12px] font-bold leading-snug text-white">
-                            Tell tourists what is actually happening.
+                            Share what is worth doing.
                           </p>
                         </div>
                         <span className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
@@ -8500,7 +8495,7 @@ export default function RealWorldMap() {
                                 onClick={() => focusExistingPlace(happening.place!)}
                                 className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
                               >
-                                Venue
+                                Place
                               </button>
                             ) : null}
                             {happening.href && isExternalHappeningHref ? (
@@ -8542,7 +8537,7 @@ export default function RealWorldMap() {
                     })
                     ) : (
                       <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                        No happenings surfaced in {nearbyDareRadiusKm}km yet. Move the map or take the first proof.
+                        Nothing nearby yet. Move the map or take first proof.
                       </div>
                     )
                   )}
@@ -8553,7 +8548,7 @@ export default function RealWorldMap() {
                       ? 'Scanning nearby...'
                       : mapHappenings.length > 0
                         ? `${mapHappenings[0].title}`
-                        : `No happenings surfaced within ${nearbyDareRadiusKm}km`}
+                        : `Nothing nearby within ${nearbyDareRadiusKm}km`}
                   </div>
                 )}
                 </>
