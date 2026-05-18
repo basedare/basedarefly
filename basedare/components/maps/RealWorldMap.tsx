@@ -2925,12 +2925,14 @@ export default function RealWorldMap() {
   const searchParams = useSearchParams();
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
+  const searchShellRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const mapMarkersRef = useRef<MapLibreMarker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [mapRuntimeError, setMapRuntimeError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
@@ -3505,7 +3507,40 @@ export default function RealWorldMap() {
     return () => controller.abort();
   }, [deepLinkedPlaceSlug]);
 
+  const closeSearchPopover = useCallback(() => {
+    setSearchPopoverOpen(false);
+    setSearchResults([]);
+    setSearching(false);
+  }, []);
+
   useEffect(() => {
+    if (!searchPopoverOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (searchShellRef.current?.contains(target)) return;
+      closeSearchPopover();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSearchPopover();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeSearchPopover, searchPopoverOpen]);
+
+  useEffect(() => {
+    if (!searchPopoverOpen) return;
+
     const trimmed = searchQuery.trim();
     if (skipNextSearchRef.current) {
       skipNextSearchRef.current = false;
@@ -3558,7 +3593,7 @@ export default function RealWorldMap() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [searchQuery, userLocation, viewportCenter]);
+  }, [searchPopoverOpen, searchQuery, userLocation, viewportCenter]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
     const radiusMeters = getRadiusMetersForZoom(zoom);
@@ -7680,16 +7715,21 @@ export default function RealWorldMap() {
               isImmersiveMobile ? 'px-3 py-2' : 'px-4 py-3 sm:px-5 sm:py-3.5'
             }`}
           >
-            <div className="relative w-full max-w-xl">
+            <div ref={searchShellRef} className="relative w-full max-w-xl">
               <div className="bd-dent-surface bd-dent-surface--soft flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5">
                 <Search className="h-4 w-4 text-cyan-200" />
                 <input
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onBlur={() => {
-                    window.setTimeout(() => {
-                      setSearchResults([]);
-                    }, 120);
+                  onFocus={() => setSearchPopoverOpen(true)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setSearchPopoverOpen(true);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.currentTarget.blur();
+                      closeSearchPopover();
+                    }
                   }}
                   placeholder="Search breakfast, coffee, beach..."
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
@@ -7705,7 +7745,10 @@ export default function RealWorldMap() {
                         key={chip}
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => setSearchQuery(chip.toLowerCase())}
+                        onClick={() => {
+                          setSearchQuery(chip.toLowerCase());
+                          setSearchPopoverOpen(true);
+                        }}
                         className="shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.08] hover:text-cyan-100"
                       >
                         {chip}
@@ -7721,6 +7764,7 @@ export default function RealWorldMap() {
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => {
                         triggerHaptic('selection');
+                        closeSearchPopover();
                         setSaveSpotDraft(null);
                         setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
                       }}
@@ -7732,7 +7776,10 @@ export default function RealWorldMap() {
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={openProofForSelectedPlace}
+                      onClick={() => {
+                        closeSearchPopover();
+                        openProofForSelectedPlace();
+                      }}
                       className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-yellow-200/18 bg-yellow-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/80 transition hover:border-yellow-100/32 hover:text-yellow-50"
                     >
                       <Sparkles className="h-3 w-3" />
@@ -7741,7 +7788,10 @@ export default function RealWorldMap() {
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => openSaveSpotDraft(selectedPlace)}
+                      onClick={() => {
+                        closeSearchPopover();
+                        openSaveSpotDraft(selectedPlace);
+                      }}
                       className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
                     >
                       <Bike className="h-3 w-3" />
@@ -7751,7 +7801,10 @@ export default function RealWorldMap() {
                       <button
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => focusPrivateSpot(latestPrivateMapSpot)}
+                        onClick={() => {
+                          closeSearchPopover();
+                          focusPrivateSpot(latestPrivateMapSpot);
+                        }}
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-white/18 hover:text-white"
                       >
                         <Navigation className="h-3 w-3" />
@@ -7762,7 +7815,7 @@ export default function RealWorldMap() {
                 </>
               ) : null}
 
-              {searchResults.length > 0 ? (
+              {searchPopoverOpen && searchResults.length > 0 ? (
                 <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
                   {searchResults.map((result) => (
                     <button
@@ -7771,8 +7824,7 @@ export default function RealWorldMap() {
                       onClick={() => {
                         skipNextSearchRef.current = true;
                         setSearchQuery(result.name);
-                        setSearchResults([]);
-                        setSearching(false);
+                        closeSearchPopover();
                         setSelectedPlace({
                           placeId: result.placeId,
                           slug: result.slug,
