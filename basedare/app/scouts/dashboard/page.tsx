@@ -55,10 +55,10 @@ type FilterMode = 'all' | 'verified' | 'venue' | 'reviewed';
 type SortMode = 'trust' | 'venue' | 'reviews' | 'earned' | 'dares';
 
 const raisedPanelClass =
-  'relative overflow-hidden rounded-[32px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,10,13,0.93)_58%,rgba(4,4,6,0.98)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
+  'relative overflow-hidden rounded-[32px] border border-white/[0.1] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.028)_14%,rgba(10,10,13,0.94)_58%,rgba(4,4,6,0.99)_100%)] shadow-[0_36px_110px_rgba(0,0,0,0.55),0_10px_22px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-20px_28px_rgba(0,0,0,0.28)]';
 
 const softCardClass =
-  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,13,0.94)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
+  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.065)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,13,0.95)_100%)] shadow-[0_22px_42px_rgba(0,0,0,0.34),0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-14px_20px_rgba(0,0,0,0.25)]';
 
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,8,0.74)_0%,rgba(11,11,14,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
@@ -229,10 +229,39 @@ export default function CreatorRadarPage() {
   ];
 
   return (
-    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 text-white contrast-110 sm:px-6 md:grayscale md:saturate-0 md:contrast-125 lg:py-12">
+    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 text-white contrast-110 [perspective:1400px] sm:px-6 md:grayscale md:saturate-0 md:contrast-125 lg:py-12">
+      <style jsx global>{`
+        @keyframes creator-radar-sweep {
+          0% {
+            transform: rotate(0deg);
+            opacity: 0.62;
+          }
+          50% {
+            opacity: 0.92;
+          }
+          100% {
+            transform: rotate(360deg);
+            opacity: 0.62;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .creator-radar-sweep {
+            animation: none !important;
+          }
+        }
+      `}</style>
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_15%_8%,rgba(255,255,255,0.12),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.025),rgba(0,0,0,0.74))]" />
       <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
+      <div
+        className="pointer-events-none fixed left-1/2 top-20 z-0 hidden h-[420px] w-[860px] rounded-full border border-white/[0.055] bg-[radial-gradient(circle,rgba(255,255,255,0.07),transparent_58%)] shadow-[0_0_120px_rgba(255,255,255,0.07)] md:block"
+        style={{ transform: 'translateX(-50%) rotateX(68deg)' }}
+      />
+      <div
+        className="pointer-events-none fixed left-1/2 top-44 z-0 hidden h-[240px] w-[640px] rounded-full border border-white/[0.04] md:block"
+        style={{ transform: 'translateX(-50%) rotateX(68deg)' }}
+      />
 
       <div className="relative z-20 mx-auto max-w-7xl">
         <div className="mb-5 flex items-center justify-between gap-3">
@@ -262,7 +291,8 @@ export default function CreatorRadarPage() {
         <section className={`${raisedPanelClass} px-5 py-7 sm:px-8 lg:px-10 lg:py-10`}>
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_32%,rgba(0,0,0,0.28)_100%)]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-end">
+          <div className="pointer-events-none absolute -right-16 -top-20 hidden h-56 w-56 rounded-full border border-white/[0.08] bg-white/[0.03] blur-[1px] md:block" />
+          <div className="relative grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
                 <SlidersHorizontal className="h-4 w-4" />
@@ -272,25 +302,48 @@ export default function CreatorRadarPage() {
                 Creator Radar
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/62 sm:text-lg">
-                A noir operator board for venues and brands. Sort creators by proof history, trust,
-                reviews, venue reach, and ability to move real people into real places.
+                Creator routing for venues and brands. See who is proven, reliable, and ready to move
+                people into real places.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              {summaryMetrics.map(({ label, value, icon: Icon }) => (
-                <div key={label} className={`${insetCardClass} px-4 py-4`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
-                        {label}
-                      </div>
-                      <div className="mt-2 text-3xl font-black text-white">{value}</div>
+            <div className="relative [perspective:1100px]">
+              <div className="pointer-events-none absolute -inset-4 rounded-[38px] bg-white/[0.035] blur-2xl" />
+              <div className="relative grid gap-4 md:grid-cols-[0.82fr_1fr] lg:grid-cols-1 xl:grid-cols-[0.82fr_1fr]">
+                <div
+                  className={`${insetCardClass} hidden min-h-[230px] p-4 md:block`}
+                  style={{ transform: 'rotateX(8deg) rotateY(-9deg)' }}
+                >
+                  <div className="relative h-full min-h-[198px] overflow-hidden rounded-[24px] border border-white/[0.08] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),rgba(255,255,255,0.035)_30%,rgba(0,0,0,0.66)_70%)] shadow-[inset_0_0_40px_rgba(255,255,255,0.05)]">
+                    <div className="absolute inset-6 rounded-full border border-white/[0.13]" />
+                    <div className="absolute inset-12 rounded-full border border-white/[0.1]" />
+                    <div className="absolute inset-[4.6rem] rounded-full border border-white/[0.08]" />
+                    <div className="absolute left-1/2 top-1/2 h-px w-[46%] origin-left bg-gradient-to-r from-white/70 to-transparent creator-radar-sweep" style={{ animation: 'creator-radar-sweep 7s linear infinite' }} />
+                    <div className="absolute left-[28%] top-[38%] h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_22px_rgba(255,255,255,0.85)]" />
+                    <div className="absolute right-[30%] top-[30%] h-2 w-2 rounded-full bg-white/80 shadow-[0_0_16px_rgba(255,255,255,0.7)]" />
+                    <div className="absolute bottom-[29%] right-[42%] h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_14px_rgba(255,255,255,0.65)]" />
+                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/[0.09] bg-black/38 px-4 py-3 backdrop-blur">
+                      <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/42">Signal depth</div>
+                      <div className="mt-1 text-lg font-black text-white">{venueProvenCount} venue proven</div>
                     </div>
-                    <Icon className="h-5 w-5 text-white/42" />
                   </div>
                 </div>
-              ))}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {summaryMetrics.map(({ label, value, icon: Icon }) => (
+                    <div key={label} className={`${insetCardClass} px-4 py-4 transition duration-300 md:hover:-translate-y-0.5 md:hover:border-white/14`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                            {label}
+                          </div>
+                          <div className="mt-2 text-3xl font-black text-white">{value}</div>
+                        </div>
+                        <Icon className="h-5 w-5 text-white/42" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -410,10 +463,17 @@ export default function CreatorRadarPage() {
                   ];
 
                   return (
-                    <article key={creator.tag} className={`${softCardClass} flex min-h-[360px] flex-col p-5`}>
+                    <article
+                      key={creator.tag}
+                      className={`${softCardClass} group flex min-h-[360px] flex-col p-5 transition duration-300 md:hover:-translate-y-1 md:hover:rotate-[0.25deg] md:hover:border-white/16 md:hover:shadow-[0_34px_78px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.12)]`}
+                    >
+                      <div className="pointer-events-none absolute -bottom-8 left-8 right-8 h-16 rounded-full bg-white/[0.055] blur-2xl transition duration-300 group-hover:bg-white/[0.08]" />
                       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                      <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        Fit {creatorScore(creator)}
+                      </div>
                       <div className="relative flex items-start gap-4">
-                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] shadow-[0_14px_26px_rgba(0,0,0,0.3)]">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[22px] border border-white/14 bg-white/[0.06] shadow-[0_18px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.12)] transition duration-300 group-hover:-translate-y-0.5">
                           {creator.pfpUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways.
                             <img
@@ -431,20 +491,20 @@ export default function CreatorRadarPage() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h2 className="truncate text-2xl font-black tracking-[-0.04em] text-white">
+                            <h2 className="max-w-[calc(100%-4rem)] truncate text-2xl font-black tracking-[-0.04em] text-white">
                               {displayTag}
                             </h2>
                             {creator.status === 'VERIFIED' ? <BadgeCheck className="h-4 w-4 shrink-0 text-white/72" /> : null}
                           </div>
                           <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white/36">
-                            {creator.trust?.label ?? 'Unranked'} · fit {creatorScore(creator)}
+                            {creator.trust?.label ?? 'Unranked'} · venue ready
                           </p>
                         </div>
                       </div>
 
                       <div className="relative mt-5 grid grid-cols-2 gap-3">
                         {cardMetrics.map(({ label, value, icon: Icon }) => (
-                          <div key={label} className={`${insetCardClass} px-3 py-3`}>
+                          <div key={label} className={`${insetCardClass} px-3 py-3 transition duration-300 group-hover:border-white/12`}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
                                 {label}
@@ -470,13 +530,13 @@ export default function CreatorRadarPage() {
                       <div className="mt-auto grid gap-2 pt-5 sm:grid-cols-2">
                         <Link
                           href={buildBidHref(creator)}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-white/86"
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black shadow-[0_13px_22px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-10px_14px_rgba(0,0,0,0.12)] transition hover:bg-white/86"
                         >
                           Message / bid
                         </Link>
                         <Link
                           href={buildCreateHref(creator)}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white"
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.25)] transition hover:bg-white/[0.09] hover:text-white"
                         >
                           Fund direct dare
                         </Link>

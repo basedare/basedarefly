@@ -2028,7 +2028,7 @@ export default function BrandPortalPage() {
                 Launch a paid venue activation
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 md:text-base">
-                Pick a real place, set the creator payout, fund the mission, then watch proof and venue lift come back into one surface.
+                Pick a venue, fund one mission, get proof and a recap.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
@@ -2055,10 +2055,10 @@ export default function BrandPortalPage() {
 
             <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
               {[
-                { label: '1. Pick venue', detail: 'A real place on the grid' },
-                { label: '2. Set payout', detail: 'USDC budget and brief' },
-                { label: '3. Route creator', detail: 'Best available venue fit' },
-                { label: '4. Prove lift', detail: 'Proof, payout, repeat signal' },
+                { label: '1. Venue', detail: 'Choose the place' },
+                { label: '2. Budget', detail: 'Set the mission payout' },
+                { label: '3. Creator', detail: 'Route the best fit' },
+                { label: '4. Recap', detail: 'Proof, payout, next move' },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
                   <div className="font-bold text-zinc-950">{item.label}</div>
@@ -2107,9 +2107,9 @@ export default function BrandPortalPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
-              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Where to activate next</h2>
+              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Best venues now</h2>
               <p className="mt-1 hidden max-w-2xl text-sm text-zinc-600 md:block">
-                Venues ranked by live activity, ownership signal, and repeat potential so you can choose where spend is most likely to move people.
+                Ranked by live signal, repeat potential, and where one mission can matter.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -2407,7 +2407,7 @@ export default function BrandPortalPage() {
                       {selectedVenueRadar.strategyLabel}
                     </div>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      If you want to capture this venue while the signal is fresh, fund one activation now and route the best-fit creator into the existing movement.
+                      Fund one mission while the signal is fresh. BaseDare routes the creator and tracks the proof.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
@@ -2464,10 +2464,10 @@ export default function BrandPortalPage() {
                     </span>
                   </div>
                   <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">
-                    Venue → Package → Creator → Fund
+                    Launch one mission
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
-                    Buy one clear activation package. BaseDare fills the venue brief, routes the best creator, and tracks proof back to the venue.
+                    Choose the venue, package, and creator fit. BaseDare tracks proof back to the venue.
                   </p>
               </div>
               <button
