@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import HowItWorksSignalWires from "@/components/HowItWorksSignalWires";
 import FirstActionSelector from "@/components/FirstActionSelector";
+import HoneyGooAccent from "@/components/HoneyGooAccent";
 import './HowItWorksSignalWires.css';
 
 export default function HowItWorks() {
@@ -42,7 +43,8 @@ export default function HowItWorks() {
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         
         {/* HEADER */}
-        <div className="text-center mb-14 md:mb-20">
+        <div className="relative text-center mb-14 md:mb-20">
+          <HoneyGooAccent className="absolute right-2 top-[-2.25rem] hidden lg:block" size="sm" />
           <div className="mb-5 inline-flex items-center rounded-full border border-purple-400/25 bg-white/[0.03] px-3 py-2 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
             <div className="bd-dent-surface bd-dent-surface--soft rounded-full border border-purple-400/20 px-4 py-2">
               <h2 className="text-[0.7rem] font-mono text-purple-300 tracking-[0.45em] uppercase drop-shadow-lg">

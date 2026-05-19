@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, UserRoundPlus, MapPin, Clock, Briefcase, Radio } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import HoneyGooAccent from "@/components/HoneyGooAccent";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 import { ClaimTagModule } from "@/components/ClaimTagModule";
 import { buildCreatorMissionActivationHref } from "@/lib/mission-routing";
@@ -257,6 +258,7 @@ export default function CreatorsPage() {
           <div className={`${raisedPanelClass} px-5 py-8 sm:px-8 sm:py-10 text-center`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
+            <HoneyGooAccent className="absolute right-4 top-[-2px] hidden xl:block" size="sm" />
 
             <div className="relative">
               <div className={sectionLabelClass}>

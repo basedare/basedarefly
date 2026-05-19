@@ -10,6 +10,7 @@ import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import PushActivationCard from "@/components/PushActivationCard";
 import SignalRoomCard from "@/components/SignalRoomCard";
+import HoneyGooAccent from "@/components/HoneyGooAccent";
 import CosmicButton from "@/components/ui/CosmicButton";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import SquircleButton from "@/components/ui/SquircleButton";
@@ -940,6 +941,7 @@ export default function Dashboard() {
       <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-6 md:py-24">
         <div className={`${raisedPanelClass} order-1 mb-8 px-5 py-6 sm:px-6`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
+          <HoneyGooAccent className="absolute right-5 top-[-2px] hidden xl:block" size="md" />
           <div className="relative flex flex-col gap-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
