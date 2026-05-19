@@ -10,6 +10,7 @@ import {
   buildActivationStoryBrief,
   normalizeActivationBrandMemory,
 } from '@/lib/activation-brand-memory';
+import { buildActivationCloseRoomHref } from '@/lib/activation-close-room';
 
 const ActivationBrandMemorySchema = z
   .object({
@@ -371,6 +372,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: event.id,
         merged: Boolean(shouldMergeExisting),
+        closeRoomHref: buildActivationCloseRoomHref(event.id),
       },
     });
   } catch (error: unknown) {

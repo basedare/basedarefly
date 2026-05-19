@@ -14,7 +14,7 @@ interface ViewContextType {
 const ViewContext = createContext<ViewContextType | undefined>(undefined);
 
 // Routes that are always Control mode (B2B pages)
-const CONTROL_MODE_ROUTES = ['/activations', '/brands/portal', '/scouts/dashboard'];
+const CONTROL_MODE_ROUTES = ['/activations', '/first-spark', '/brands/portal', '/scouts/dashboard'];
 
 export function ViewProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();

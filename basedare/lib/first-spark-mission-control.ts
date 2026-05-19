@@ -481,7 +481,7 @@ function buildCreatorReliability(venues: VenueRow[]): FirstSparkCreatorReliabili
           nextAction: creator.noShowRisk > 0 ? 'Confirm before inviting' : 'Invite to next proof night',
           links: {
             passport: `/creator/${encodeURIComponent(creator.tag.replace(/^@/, ''))}`,
-            invite: `/activations?source=mission-control&creatorRoute=${encodeURIComponent(creator.tag)}#activation-intake`,
+            invite: `/first-spark?source=mission-control&creator=${encodeURIComponent(creator.tag)}#pilot-request`,
           },
         } satisfies FirstSparkCreatorReliability,
       };

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Loader2, Send, Sparkles } from 'lucide-react';
+import { ArrowRight, Loader2, Send, Sparkles } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
 import {
@@ -124,6 +124,9 @@ const SOURCE_LABELS: Record<string, string> = {
   'home-ready-creators': 'Ready creators rail',
   'active-venues': 'Active venues',
   'venue-guest-mission': 'Venue guest mission',
+  'first-spark-page': 'First Spark page',
+  'creator-radar': 'Creator radar',
+  'mission-control': 'Mission control',
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
@@ -288,6 +291,7 @@ export default function ActivationIntakeForm({
   const [form, setForm] = useState<IntakeState>(() => initialFormState);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submittedCloseRoomHref, setSubmittedCloseRoomHref] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(initialContextKey || null);
   const formStartTrackedRef = useRef(false);
@@ -655,6 +659,7 @@ export default function ActivationIntakeForm({
       }
 
       setSubmittedId(payload.data?.id || 'received');
+      setSubmittedCloseRoomHref(payload.data?.closeRoomHref || null);
       setForm(INITIAL_STATE);
       formStartTrackedRef.current = false;
     } catch (submitError) {
@@ -672,22 +677,39 @@ export default function ActivationIntakeForm({
         </div>
         <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">Activation signal received.</h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
-          We routed this into the operator queue. Next step is qualifying the city, venue, creator fit,
-          proof target, and Spark Receipt before any paid campaign moves.
+          {submittedCloseRoomHref
+            ? 'The paid pilot route is ready. Open the close room to approve the venue, perk, payment path, and launch gates.'
+            : 'We routed this into the operator queue. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt before any paid campaign moves.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
-          BaseDare will reply with the cleanest activation route after review.
+          {submittedCloseRoomHref
+            ? 'Close room created. Payment and approval stay attached to this request.'
+            : 'BaseDare will reply with the cleanest activation route after review.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-emerald-200/12 bg-emerald-300/[0.06] px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
           Reference: {submittedId === 'received' ? 'received' : submittedId}
         </p>
-        <button
-          type="button"
-          onClick={() => setSubmittedId(null)}
-          className="mt-5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:bg-white/[0.08]"
-        >
-          Submit another
-        </button>
+        <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+          {submittedCloseRoomHref ? (
+            <a
+              href={submittedCloseRoomHref}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.16em] text-black shadow-[0_7px_0_rgba(118,74,0,0.65)] transition hover:-translate-y-0.5"
+            >
+              Open close room
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setSubmittedId(null);
+              setSubmittedCloseRoomHref(null);
+            }}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:bg-white/[0.08]"
+          >
+            Submit another
+          </button>
+        </div>
       </div>
     );
   }

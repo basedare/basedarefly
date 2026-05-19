@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowLeft, ArrowRight, BadgeDollarSign, CheckCircle2 } from 'lucide-react';
 
 import ActivationFunnelTracker from './ActivationFunnelTracker';
@@ -47,6 +48,14 @@ type ActivationsPageProps = {
 
 export default async function ActivationsPage({ searchParams }: ActivationsPageProps) {
   const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams.offer === 'first-spark') {
+    const redirectParams = new URLSearchParams();
+    Object.entries(resolvedSearchParams).forEach(([key, value]) => {
+      if (value) redirectParams.set(key, value);
+    });
+    redirect(`/first-spark?${redirectParams.toString()}#pilot-request`);
+  }
+
   const routedCreator = resolvedSearchParams.creator || resolvedSearchParams.streamer || null;
   const routedVenue = resolvedSearchParams.venueName || resolvedSearchParams.venue || null;
   const routedVenueId = resolvedSearchParams.venueId || null;

@@ -97,11 +97,11 @@ export default async function ActivationCloseRoomPage({
       <section className="relative z-10 mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/activations"
+            href={closeRoom.isFirstSpark ? '/first-spark' : '/activations'}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowRight className="h-4 w-4 rotate-180" />
-            Activations
+            {closeRoom.isFirstSpark ? 'First Spark' : 'Activations'}
           </Link>
           <span className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.18em] ${statusTone(closeRoom.status)}`}>
             {closeRoom.statusLabel}

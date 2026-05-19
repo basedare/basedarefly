@@ -58,7 +58,8 @@ export function buildVenueActivationIntakeHref(input: ActivationIntakePrefillInp
   if (input.offerId) params.set('offer', input.offerId);
   if (input.payout) params.set('budgetRange', inferActivationBudgetRange(input.payout));
 
-  return `/activations?${params.toString()}#activation-intake`;
+  const isFirstSpark = input.offerId === 'first-spark';
+  return `${isFirstSpark ? '/first-spark' : '/activations'}?${params.toString()}#${isFirstSpark ? 'pilot-request' : 'activation-intake'}`;
 }
 
 export function buildVenueActivationComposerHref(input: LaunchPrefillInput) {

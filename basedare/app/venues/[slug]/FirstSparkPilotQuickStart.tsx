@@ -55,6 +55,7 @@ export default function FirstSparkPilotQuickStart({
   const [form, setForm] = useState<QuickStartForm>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submittedCloseRoomHref, setSubmittedCloseRoomHref] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startTrackedRef = useRef(false);
   const cityLabel = (city?.trim() || 'Local venue').slice(0, 140);
@@ -165,7 +166,7 @@ export default function FirstSparkPilotQuickStart({
         | {
             success?: boolean;
             error?: string;
-            data?: { id?: string };
+            data?: { id?: string; closeRoomHref?: string };
           }
         | null;
 
@@ -174,6 +175,7 @@ export default function FirstSparkPilotQuickStart({
       }
 
       setSubmittedId(payload.data?.id || 'received');
+      setSubmittedCloseRoomHref(payload.data?.closeRoomHref || null);
       setForm(INITIAL_FORM);
       startTrackedRef.current = false;
     } catch (submitError) {
@@ -196,18 +198,34 @@ export default function FirstSparkPilotQuickStart({
           </div>
         </div>
         <p className="mt-3 text-xs leading-5 text-white/56">
-          This landed in the activation operator queue with the venue, offer, perk, and proof path attached.
+          {submittedCloseRoomHref
+            ? 'The buyer close room is ready with the venue, offer, perk, proof path, and payment reference attached.'
+            : 'This landed in the activation operator queue with the venue, offer, perk, and proof path attached.'}
         </p>
         <p className="mt-3 rounded-[16px] border border-emerald-200/12 bg-emerald-300/[0.06] px-3 py-2 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100/70">
           Ref: {submittedId}
         </p>
-        <button
-          type="button"
-          onClick={() => setSubmittedId(null)}
-          className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-        >
-          Route another contact
-        </button>
+        <div className="mt-3 grid gap-2">
+          {submittedCloseRoomHref ? (
+            <Link
+              href={submittedCloseRoomHref}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-black shadow-[0_6px_0_rgba(118,74,0,0.6)] transition hover:-translate-y-0.5"
+            >
+              Open close room
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setSubmittedId(null);
+              setSubmittedCloseRoomHref(null);
+            }}
+            className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+          >
+            Route another contact
+          </button>
+        </div>
       </div>
     );
   }

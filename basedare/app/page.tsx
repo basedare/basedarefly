@@ -395,7 +395,7 @@ function HomeContent() {
                 Start with one move
               </div>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-zinc-600">
-                If you are unsure, plan one activation first. If you already have a buyer wallet, open the Brand Portal.
+                If you are unsure, run one First Spark first. If you already have a buyer wallet, open the Brand Portal.
               </p>
             </div>
 
@@ -469,7 +469,7 @@ function HomeContent() {
 
               {/* Grid Activation OS - public intake / sales path */}
               <div
-                onClick={() => router.push('/activations')}
+                onClick={() => router.push('/first-spark')}
                 className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
               >
                 <div
@@ -507,17 +507,17 @@ function HomeContent() {
                     <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
                       Start here
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Plan Activation</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Run First Spark</h2>
                     <p className="text-zinc-400 mb-4">
-                      One guided request: buyer, place, story, proof target, budget. No console setup required.
+                      One paid venue pilot: approve the place, one perk, QR proof path, and recap. No console setup required.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Story</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Proof</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Budget</span>
+                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Venue</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Perk</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Recap</span>
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
-                      Plan Grid Activation
+                      Run First Spark
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>

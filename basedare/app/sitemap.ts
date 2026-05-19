@@ -23,6 +23,12 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.9,
   },
   {
+    url: 'https://basedare.xyz/first-spark',
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.92,
+  },
+  {
     url: 'https://basedare.xyz/creators',
     lastModified: new Date(),
     changeFrequency: 'daily',

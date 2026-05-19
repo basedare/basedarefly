@@ -424,10 +424,10 @@ export default function CreatorRadarPage() {
                   Open public creators
                 </Link>
                 <Link
-                  href="/activations#activation-intake"
+                  href="/first-spark?source=creator-radar#pilot-request"
                   className="inline-flex items-center justify-center rounded-full border border-white/18 bg-white text-black px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition hover:bg-white/86"
                 >
-                  Plan activation
+                  Run First Spark
                 </Link>
                 <Link
                   href="/contact?topic=creator-routing"

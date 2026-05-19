@@ -64,7 +64,8 @@ export function buildMissionActivationHref(input: MissionActivationHrefInput) {
   appendParam(params, 'guestMission', input.guestMission);
   appendParam(params, 'perkLabel', input.perkLabel);
 
-  return `/activations?${params.toString()}#activation-intake`;
+  const isFirstSpark = params.get('offer') === 'first-spark';
+  return `${isFirstSpark ? '/first-spark' : '/activations'}?${params.toString()}#${isFirstSpark ? 'pilot-request' : 'activation-intake'}`;
 }
 
 export function buildCreatorMissionActivationHref(input: {

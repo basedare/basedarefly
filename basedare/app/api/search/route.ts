@@ -117,7 +117,7 @@ function buildActionResults(query: string, intents: SearchIntent[]): UniversalSe
             eyebrow: 'Paid pilot',
             title: 'Run First Spark',
             subtitle: 'One venue, one proof path, one recap',
-            url: '/activations?offer=first-spark',
+            url: '/first-spark',
         });
     }
 
