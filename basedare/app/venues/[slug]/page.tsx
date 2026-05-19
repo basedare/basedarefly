@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, CheckCircle2, Clock3, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle2, Clock3, CreditCard, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -264,6 +264,7 @@ export default async function VenueDetailPage(
     hasActiveDrops: venue.activeDares.length > 0,
   });
   const guestMissionPageHref = `/venues/${encodeURIComponent(venue.slug)}/guest-mission`;
+  const baseCashHref = `/venues/${encodeURIComponent(venue.slug)}/basecash`;
   const guestMissionProofSteps = [
     venueGuestMission.proofLabel,
     venue.activePerk ? `Unlock: ${venue.activePerk.title}` : `Perk: ${venueGuestMission.perkLabel}`,
@@ -537,6 +538,17 @@ export default async function VenueDetailPage(
                       >
                         Guest mission
                         <Users className="h-4 w-4" />
+                      </SquircleLink>
+                      <SquircleLink
+                        href={baseCashHref}
+                        label="BaseCash"
+                        tone="green"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.74rem] tracking-[0.09em] sm:text-[0.82rem]"
+                      >
+                        BaseCash
+                        <CreditCard className="h-4 w-4" />
                       </SquircleLink>
                     </div>
                   </div>

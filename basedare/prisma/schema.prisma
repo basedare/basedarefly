@@ -168,6 +168,7 @@ model Venue {
   reportEvents        VenueReportEvent[]
   reportLeads         VenueReportLead[]
   founderEvents       FounderEvent[]
+  baseCashCredits     BaseCashVenueCredit[]
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -175,6 +176,39 @@ model Venue {
   @@index([city, status])
   @@index([claimRequestStatus])
   @@index([claimedBy])
+}
+
+model BaseCashVenueCredit {
+  id                 String   @id @default(cuid())
+  venueId            String
+  buyerWallet        String
+  buyerTag           String?
+  receiptCode        String   @unique
+  denominationPhp    Int
+  serviceFeePhp      Int
+  totalPhp           Int
+  venueReceivablePhp Int
+  currencyPaid       String   @default("USDC")
+  chainId            Int      @default(8453)
+  txHash             String?
+  paymentStatus      String   @default("PENDING")
+  redemptionStatus   String   @default("ACTIVE")
+  settlementStatus   String   @default("UNSETTLED")
+  validFrom          DateTime @default(now())
+  expiresAt          DateTime
+  redeemedAt         DateTime?
+  redeemedBy         String?
+  settlementReference String?
+  metadataJson       Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  venue              Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, createdAt])
+  @@index([venueId, paymentStatus, redemptionStatus])
+  @@index([receiptCode])
+  @@index([buyerWallet, createdAt])
+  @@index([settlementStatus])
 }
 
 model FounderEvent {

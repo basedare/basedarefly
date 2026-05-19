@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { Activity, BarChart3, CheckCircle2, Flame, Gift, Loader2, MapPin, Maximize2, PauseCircle, PlayCircle, RefreshCcw, TicketCheck, Timer, Waves, X } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle2, CreditCard, Flame, Gift, Loader2, MapPin, Maximize2, PauseCircle, PlayCircle, RefreshCcw, Search, TicketCheck, Timer, Waves, X } from 'lucide-react';
 import type { VenueDetail, VenuePerkLite, VenueQrPayload } from '@/lib/venue-types';
 import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
+import { formatPhp } from '@/lib/basecash-shared';
 import {
   buildActivationReplayCreateHref,
   buildRepeatActivationCreateHref,
@@ -83,6 +84,34 @@ type VenuePerkDraft = {
   description: string;
   staffInstructions: string;
   expiresInHours: number;
+};
+
+type BaseCashConsoleCredit = {
+  id: string;
+  receiptCode: string;
+  buyerWallet: string;
+  buyerTag: string | null;
+  denominationPhp: number;
+  venueReceivablePhp: number;
+  serviceFeePhp: number;
+  paymentStatus: string;
+  redemptionStatus: string;
+  settlementStatus: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+  createdAt: string;
+};
+
+type BaseCashConsoleSummary = {
+  activeCount: number;
+  redeemedCount: number;
+  pendingCount: number;
+  expiredCount: number;
+  soldPhp: number;
+  redeemedPhp: number;
+  serviceFeesPhp: number;
+  venueReceivablePhp: number;
+  unsettledPhp: number;
 };
 
 function formatCompactAudience(value: number | null) {
@@ -208,6 +237,13 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [recentCheckIns, setRecentCheckIns] = useState(venue.recentCheckIns);
   const [redeemingCheckInId, setRedeemingCheckInId] = useState<string | null>(null);
   const [tvModeOpen, setTvModeOpen] = useState(false);
+  const [baseCashSummary, setBaseCashSummary] = useState<BaseCashConsoleSummary | null>(null);
+  const [baseCashCredits, setBaseCashCredits] = useState<BaseCashConsoleCredit[]>([]);
+  const [baseCashQuery, setBaseCashQuery] = useState('');
+  const [baseCashLoading, setBaseCashLoading] = useState(false);
+  const [baseCashError, setBaseCashError] = useState<string | null>(null);
+  const [baseCashMessage, setBaseCashMessage] = useState<string | null>(null);
+  const [redeemingBaseCash, setRedeemingBaseCash] = useState<string | null>(null);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -305,6 +341,53 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
       window.clearInterval(interval);
     };
   }, [venue.id]);
+
+  const loadBaseCashCredits = useCallback(async (query?: string) => {
+    if (venue.commandCenter.claimState !== 'claimed') {
+      return;
+    }
+
+    setBaseCashLoading(true);
+    setBaseCashError(null);
+
+    try {
+      const params = new URLSearchParams();
+      if (query?.trim()) params.set('query', query.trim());
+
+      const response = await fetch(
+        `/api/venues/${encodeURIComponent(venue.slug)}/basecash/credits${params.toString() ? `?${params}` : ''}`,
+        {
+          cache: 'no-store',
+          headers: {
+            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          },
+        }
+      );
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to load BaseCash credits');
+      }
+
+      if (payload.data?.setupRequired) {
+        setBaseCashSummary(null);
+        setBaseCashCredits([]);
+        setBaseCashError('BaseCash ledger migration is not installed yet.');
+        return;
+      }
+
+      setBaseCashSummary(payload.data?.summary ?? null);
+      setBaseCashCredits(payload.data?.credits ?? payload.data?.summary?.credits ?? []);
+    } catch (error) {
+      setBaseCashError(error instanceof Error ? error.message : 'Unable to load BaseCash credits');
+    } finally {
+      setBaseCashLoading(false);
+    }
+  }, [sessionToken, venue.commandCenter.claimState, venue.slug]);
+
+  useEffect(() => {
+    void loadBaseCashCredits();
+  }, [loadBaseCashCredits]);
 
   const liveSession = venue.liveSession;
   const isLive = liveSession?.status === 'LIVE';
@@ -523,6 +606,39 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
       setPerkError(error instanceof Error ? error.message : 'Unable to redeem venue perk');
     } finally {
       setRedeemingCheckInId(null);
+    }
+  }
+
+  async function handleRedeemBaseCash(idOrCode?: string) {
+    const target = (idOrCode || baseCashQuery).trim();
+    if (!target || redeemingBaseCash) return;
+
+    setRedeemingBaseCash(target);
+    setBaseCashError(null);
+    setBaseCashMessage(null);
+
+    try {
+      const response = await fetch(`/api/basecash/credits/${encodeURIComponent(target)}/redeem`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({ code: target }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to redeem BaseCash credit');
+      }
+
+      setBaseCashMessage(`${payload.data?.credit?.receiptCode ?? 'Credit'} redeemed. Count it in settlement.`);
+      setBaseCashQuery('');
+      await loadBaseCashCredits();
+    } catch (error) {
+      setBaseCashError(error instanceof Error ? error.message : 'Unable to redeem BaseCash credit');
+    } finally {
+      setRedeemingBaseCash(null);
     }
   }
 
@@ -986,6 +1102,117 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
 
                 {perkMessage ? <p className="mt-3 text-sm text-emerald-200/86">{perkMessage}</p> : null}
                 {perkError ? <p className="mt-3 text-sm text-rose-200/86">{perkError}</p> : null}
+              </div>
+
+              <div className={`${softCardClass} p-5`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">BaseCash</p>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">Redeem venue credit</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/58">
+                      Search the receipt code, check it is active, then redeem it once at the counter.
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                    {baseCashSummary ? `${baseCashSummary.activeCount} active` : 'Pilot'}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className={`${insetCardClass} px-3 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Active</p>
+                    <p className="mt-1 text-xl font-black text-cyan-100">{baseCashSummary?.activeCount ?? 0}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-3 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Redeemed</p>
+                    <p className="mt-1 text-xl font-black text-emerald-100">{baseCashSummary?.redeemedCount ?? 0}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-3 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Owed</p>
+                    <p className="mt-1 text-xl font-black text-[#f8dd72]">{formatPhp(baseCashSummary?.unsettledPhp ?? 0)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <label className="relative min-w-0 flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/62" />
+                    <input
+                      value={baseCashQuery}
+                      onChange={(event) => setBaseCashQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          void loadBaseCashCredits(baseCashQuery);
+                        }
+                      }}
+                      placeholder="BC-1234 or wallet"
+                      className="min-h-11 w-full rounded-[18px] border border-white/10 bg-black/28 pl-10 pr-3 text-sm font-semibold text-white outline-none transition placeholder:text-white/28 focus:border-cyan-300/32"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void loadBaseCashCredits(baseCashQuery)}
+                    disabled={baseCashLoading}
+                    className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-cyan-300/20 bg-cyan-400/[0.1] px-4 text-xs font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-200/34 disabled:cursor-wait disabled:opacity-55"
+                  >
+                    Check
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void handleRedeemBaseCash()}
+                  disabled={!baseCashQuery.trim() || Boolean(redeemingBaseCash)}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-[#f5c518]/28 bg-[#f5c518]/[0.12] px-4 text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/40 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {redeemingBaseCash ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  Redeem code
+                </button>
+
+                <div className="mt-4 grid gap-2">
+                  {baseCashCredits.slice(0, 5).map((credit) => {
+                    const active = credit.paymentStatus === 'PAID' && credit.redemptionStatus === 'ACTIVE';
+                    return (
+                      <div key={credit.id} className="rounded-[18px] border border-white/10 bg-black/24 px-3 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-black text-white">{formatPhp(credit.denominationPhp)} · {credit.receiptCode}</p>
+                            <p className="mt-1 truncate text-xs text-white/46">
+                              {credit.buyerTag || `${credit.buyerWallet.slice(0, 6)}...${credit.buyerWallet.slice(-4)}`}
+                            </p>
+                          </div>
+                          <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
+                            active
+                              ? 'border-cyan-300/20 bg-cyan-500/[0.08] text-cyan-100'
+                              : credit.redemptionStatus === 'REDEEMED'
+                                ? 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-100'
+                                : 'border-white/10 bg-white/[0.04] text-white/54'
+                          }`}>
+                            {credit.redemptionStatus === 'REDEEMED' ? 'Redeemed' : credit.paymentStatus.toLowerCase()}
+                          </span>
+                        </div>
+                        {active ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleRedeemBaseCash(credit.receiptCode)}
+                            disabled={Boolean(redeemingBaseCash)}
+                            className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-500/[0.09] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:border-emerald-200/34 disabled:opacity-50"
+                          >
+                            Redeem this credit
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {!baseCashLoading && baseCashCredits.length === 0 ? (
+                    <p className="rounded-[18px] border border-dashed border-white/10 bg-white/[0.025] px-4 py-3 text-sm text-white/46">
+                      No BaseCash credits found yet.
+                    </p>
+                  ) : null}
+                </div>
+
+                {baseCashMessage ? <p className="mt-3 text-sm text-emerald-200/86">{baseCashMessage}</p> : null}
+                {baseCashError ? <p className="mt-3 text-sm text-rose-200/86">{baseCashError}</p> : null}
               </div>
 
               <div className={`${softCardClass} p-5`}>
