@@ -3011,6 +3011,7 @@ export default function RealWorldMap() {
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
+  const deepLinkedSearchQuery = searchParams.get('q') || searchParams.get('search') || searchParams.get('intent');
   const deepLinkedRoomOpen = searchParams.get('room') === '1' || searchParams.get('open') === 'room';
   const controlSource = searchParams.get('source');
   const deepLinkedCampaignId = searchParams.get('campaignId');
@@ -3059,6 +3060,7 @@ export default function RealWorldMap() {
   } | null>(null);
   const skipNextSearchRef = useRef(false);
   const skipNextMapClickRef = useRef(false);
+  const deepLinkedSearchAppliedRef = useRef<string | null>(null);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
 
@@ -3501,6 +3503,21 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [deepLinkedPlaceSlug]);
+
+  useEffect(() => {
+    if (deepLinkedPlaceSlug || !deepLinkedSearchQuery) {
+      return;
+    }
+
+    const trimmed = deepLinkedSearchQuery.trim();
+    if (trimmed.length < 2 || deepLinkedSearchAppliedRef.current === trimmed) {
+      return;
+    }
+
+    deepLinkedSearchAppliedRef.current = trimmed;
+    setSearchQuery(trimmed);
+    setSearchPopoverOpen(true);
+  }, [deepLinkedPlaceSlug, deepLinkedSearchQuery]);
 
   const closeSearchPopover = useCallback(() => {
     setSearchPopoverOpen(false);
