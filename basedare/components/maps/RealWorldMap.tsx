@@ -39,6 +39,7 @@ import {
   Search,
   Send,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Users,
@@ -59,7 +60,6 @@ import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
 import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
-import PushActivationCard from '@/components/PushActivationCard';
 import HoneyGooAccent from '@/components/HoneyGooAccent';
 import MapCrosshair from '@/app/map/MapCrosshair';
 
@@ -174,7 +174,7 @@ type SearchResponse = {
   };
 };
 
-const MAP_INTENT_SEARCH_CHIPS = ['Breakfast', 'Coffee', 'Food', 'Beach', 'Night'];
+const MAP_INTENT_SEARCH_CHIPS = ['Breakfast', 'Coffee', 'Night', 'Beach', 'Proof'];
 const PRIVATE_MAP_SPOTS_STORAGE_KEY = 'basedare.privateMapSpots.v1';
 const PRIVATE_MAP_SPOT_LIMIT = 12;
 const PRIVATE_MAP_SPOT_LABELS = ['Bike', 'Scooter', 'Bag', 'Meetup'];
@@ -729,25 +729,6 @@ type ClusteredNearbyMarker =
 const markerIconCache = new Map<string, string>();
 const footprintMarkerIconCache = new Map<string, string>();
 const placeClusterIconCache = new Map<string, string>();
-
-const MAP_PRESET_OPTIONS: Array<{
-  value: MapPreset;
-  label: string;
-  accentClass: string;
-}> = [
-  {
-    value: 'classic',
-    label: 'Classic',
-    accentClass:
-      'data-[active=true]:border-[#f5c518]/38 data-[active=true]:bg-[#f5c518]/[0.12] data-[active=true]:text-[#f8dd72]',
-  },
-  {
-    value: 'noir',
-    label: 'Noir',
-    accentClass:
-      'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.08] data-[active=true]:text-white',
-  },
-];
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 const DEFAULT_ZOOM = 12;
@@ -2073,6 +2054,16 @@ function isVenueActivated(commandCenter?: VenueCommandCenter | null) {
   );
 }
 
+function getVenueClusterScore(place: NearbyPlace) {
+  return (
+    place.activeDareCount * 90 +
+    (isVenueActivated(place.commandCenter) ? 70 : 0) +
+    (place.commandCenter?.sponsorReady ? 34 : 0) +
+    place.tagSummary.approvedCount * 18 +
+    place.tagSummary.heatScore
+  );
+}
+
 function getVenueActivationMarkerLabel(commandCenter?: VenueCommandCenter | null) {
   if (!commandCenter) return 'OPEN';
   if (isVenueActivated(commandCenter)) return 'ACTIVATED';
@@ -2971,6 +2962,7 @@ export default function RealWorldMap() {
   const saveSpotPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapVenueFocus, setMapVenueFocus] = useState<MapVenueFocus>('all');
+  const [showAdvancedMapFilters, setShowAdvancedMapFilters] = useState(false);
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
@@ -3004,7 +2996,7 @@ export default function RealWorldMap() {
   const [venueRoomExpanded, setVenueRoomExpanded] = useState(false);
   const [venueRoomState, setVenueRoomState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
-  const [mapPreset, setMapPreset] = useState<MapPreset>('classic');
+  const mapPreset: MapPreset = 'classic';
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
@@ -3064,6 +3056,7 @@ export default function RealWorldMap() {
   const deepLinkedSearchAppliedRef = useRef<string | null>(null);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
+  const hasAutoFitVenueClusterRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -5131,6 +5124,70 @@ export default function RealWorldMap() {
     [matchedVenueIndex, nearbyPlaces]
   );
 
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (
+      !map ||
+      !mapReady ||
+      hasAutoFitVenueClusterRef.current ||
+      selectedPlace ||
+      targetCenter ||
+      hasDeepLinkedPlace ||
+      deepLinkedSearchQuery
+    ) {
+      return;
+    }
+
+    const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+    const validPlaces = sourcePlaces
+      .filter((place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude))
+      .sort((a, b) => getVenueClusterScore(b) - getVenueClusterScore(a));
+
+    if (validPlaces.length === 0) {
+      return;
+    }
+
+    const activePlaces = validPlaces.filter((place) => getVenueClusterScore(place) > 0);
+    const fitPlaces = (activePlaces.length >= 2 ? activePlaces : validPlaces).slice(0, 18);
+    if (fitPlaces.length === 0) {
+      return;
+    }
+
+    hasAutoFitVenueClusterRef.current = true;
+
+    if (fitPlaces.length === 1) {
+      const [place] = fitPlaces;
+      map.flyTo({
+        center: [place.longitude, place.latitude],
+        zoom: Math.max(map.getZoom(), isMobileViewport ? 13.8 : 14.4),
+        duration: 850,
+        essential: true,
+      });
+      return;
+    }
+
+    const bounds = new maplibregl.LngLatBounds();
+    fitPlaces.forEach((place) => bounds.extend([place.longitude, place.latitude]));
+
+    map.fitBounds(bounds, {
+      padding: isMobileViewport
+        ? { top: 72, right: 44, bottom: 172, left: 44 }
+        : { top: 78, right: 124, bottom: 124, left: 136 },
+      maxZoom: isMobileViewport ? 14.2 : 14.6,
+      duration: 900,
+      essential: true,
+    });
+  }, [
+    deepLinkedSearchQuery,
+    filteredNearbyPlaces,
+    hasDeepLinkedPlace,
+    isMobileViewport,
+    mapReady,
+    nearbyPlaces,
+    selectedPlace,
+    targetCenter,
+  ]);
+
   const nearbyPlaceBySlug = useMemo(() => {
     const index = new Map<string, NearbyPlace>();
     nearbyPlaces.forEach((place) => {
@@ -6672,6 +6729,33 @@ export default function RealWorldMap() {
       visibleMatchedVenueCount,
     ]
   );
+  const mapStatusRailOptions = useMemo(() => {
+    const optionById = new Map(signalRailOptions.map((option) => [option.id, option]));
+    const clearFilters = () => {
+      setMapVenueFocus('all');
+      setShowMatchedLayer(false);
+      setShowFootprintLayer(false);
+      setPulseFilter('all');
+      triggerHaptic('selection');
+    };
+
+    return [
+      {
+        id: 'all',
+        label: 'All',
+        count: filterCounts.all,
+        detail: 'venues',
+        active: !activeMapFilterIsScoped,
+        disabled: false,
+        className:
+          'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.1] data-[active=true]:text-white',
+        onClick: clearFilters,
+      },
+      optionById.get('live'),
+      optionById.get('verified'),
+      optionById.get('open'),
+    ].filter(Boolean) as Array<(typeof signalRailOptions)[number]>;
+  }, [activeMapFilterIsScoped, filterCounts.all, signalRailOptions]);
 
   const easeMapCamera = useCallback(
     ({
@@ -6899,7 +6983,13 @@ export default function RealWorldMap() {
       const isActive = selectedPlace?.placeId === place.id;
       const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
       const activatedVenue = isVenueActivated(place.commandCenter);
-      const compact = !isActive && mapZoom < compactMarkerZoomThreshold;
+      const highSignalVenue =
+        activatedVenue ||
+        isMatchedVenue ||
+        place.activeDareCount > 0 ||
+        place.tagSummary.approvedCount > 0 ||
+        getVenueClusterScore(place) >= 20;
+      const compact = !isActive && !highSignalVenue && mapZoom < compactMarkerZoomThreshold;
 
       addMarker({
         latitude: place.latitude,
@@ -7829,8 +7919,8 @@ export default function RealWorldMap() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
           <div
-            className={`relative z-20 flex shrink-0 flex-col gap-3 border-b border-white/8 ${
-              isImmersiveMobile ? 'px-3 py-2' : 'px-4 py-3 sm:px-5 sm:py-3.5'
+            className={`relative z-20 flex shrink-0 flex-col gap-2 border-b border-white/8 ${
+              isImmersiveMobile ? 'px-3 py-2' : 'px-4 py-2.5 sm:px-5 sm:py-3'
             }`}
           >
             <div ref={searchShellRef} className="relative w-full max-w-xl">
@@ -7855,83 +7945,23 @@ export default function RealWorldMap() {
                 {searching ? <Loader2 className="h-4 w-4 animate-spin text-white/45" /> : null}
               </div>
 
-              {!searchQuery.trim() ? (
-                <>
-                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {MAP_INTENT_SEARCH_CHIPS.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setSearchQuery(chip.toLowerCase());
-                          setSearchPopoverOpen(true);
-                        }}
-                        className="shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.08] hover:text-cyan-100"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <span className="shrink-0 self-center text-[9px] font-black uppercase tracking-[0.22em] text-white/34">
-                      Tag map
-                    </span>
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        closeSearchPopover();
-                        setSaveSpotDraft(null);
-                        setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
-                      }}
-                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      Venue
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        closeSearchPopover();
-                        openProofForSelectedPlace();
-                      }}
-                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-yellow-200/18 bg-yellow-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/80 transition hover:border-yellow-100/32 hover:text-yellow-50"
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      Proof
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        closeSearchPopover();
-                        openSaveSpotDraft(selectedPlace);
-                      }}
-                      className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
-                    >
-                      <Bike className="h-3 w-3" />
-                      Save spot
-                    </button>
-                    {latestPrivateMapSpot ? (
-                      <button
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          closeSearchPopover();
-                          focusPrivateSpot(latestPrivateMapSpot);
-                        }}
-                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-white/18 hover:text-white"
-                      >
-                        <Navigation className="h-3 w-3" />
-                        {latestPrivateMapSpot.label}
-                      </button>
-                    ) : null}
-                  </div>
-                </>
-              ) : null}
+              <div className="map-intent-row">
+                {MAP_INTENT_SEARCH_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    data-active={searchQuery.trim().toLowerCase() === chip.toLowerCase()}
+                    onClick={() => {
+                      setSearchQuery(chip.toLowerCase());
+                      setSearchPopoverOpen(true);
+                    }}
+                    className="map-intent-chip"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
 
               {searchPopoverOpen && searchResults.length > 0 ? (
                 <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
@@ -7991,175 +8021,184 @@ export default function RealWorldMap() {
               ) : null}
             </div>
 
-            <div className={`flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between ${isImmersiveMobile ? 'hidden' : ''}`}>
-              <div className="flex flex-col gap-2.5">
-                <div className="map-signal-rail">
-                  <div className="map-signal-rail-label">
-                    <span className="h-px w-4 rounded-full bg-cyan-200/70" />
-                    <span>Quick picks</span>
-                  </div>
-                  <div className="map-signal-rail-scroll">
-                    {signalRailOptions.map((option) => (
-                      <button
-                        key={`map-signal:${option.id}`}
-                        type="button"
-                        data-active={option.active}
-                        disabled={option.disabled}
-                        onClick={option.onClick}
-                        className={`map-signal-pill ${option.className}`}
-                      >
-                        <span className="map-signal-pill-count">{option.count}</span>
-                        <span className="map-signal-pill-main">
-                          <span>{option.label}</span>
-                          <span>{option.detail}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      data-active={pulseFilter === option.value}
-                      onClick={() => {
-                        setMapVenueFocus('all');
-                        setShowMatchedLayer(false);
-                        setShowFootprintLayer(false);
-                        setPulseFilter(option.value);
-                        triggerHaptic('selection');
-                      }}
-                      className={`map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
-                    >
-                      <span>{option.label}</span>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                        {filterCounts[option.value]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="map-active-filter-strip">
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/34">
-                      Showing
-                    </p>
-                    <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-white/72">
-                      {activeMapFilterLabel}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58">
-                      {filteredNearbyPlaces.length}/{nearbyPlaces.length}
-                    </span>
-                    {activeMapFilterIsScoped ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMapVenueFocus('all');
-                          setShowMatchedLayer(false);
-                          setShowFootprintLayer(false);
-                          setPulseFilter('all');
-                          triggerHaptic('selection');
-                        }}
-                        className="rounded-full border border-white/12 bg-white/[0.055] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/66 transition hover:border-white/20 hover:text-white"
-                      >
-                        Clear
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="hidden flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f8dd72]/78">
-                    <span className="h-px w-4 rounded-full bg-[#f5c518]/70" />
-                    <span>Style</span>
-                  </div>
-                  {MAP_PRESET_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      data-active={mapPreset === option.value}
-                      onClick={() => setMapPreset(option.value)}
-                      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
-                    >
-                      <span className={`h-2 w-2 rounded-full ${
-                        option.value === 'classic'
-                          ? 'bg-[#f5c518]'
-                          : 'bg-white/70'
-                      }`} />
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {isConnected ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-2 px-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e3c8ff]/78">
-                      <span className="h-px w-4 rounded-full bg-[#b87fff]/75" />
-                      <span>My map</span>
-                    </div>
-                    <button
-                      type="button"
-                      data-active={mapVenueFocus === 'footprint'}
-                      onClick={() => {
-                        const nextFocus = mapVenueFocus === 'footprint' ? 'all' : 'footprint';
-                        setPulseFilter('all');
-                        setMapVenueFocus(nextFocus);
-                        setShowMatchedLayer(false);
-                        setShowFootprintLayer(nextFocus === 'footprint');
-                        triggerHaptic('selection');
-                      }}
-                      className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
-                      <span>My Proofs</span>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                        {footprintStats?.totalMarks ?? footprintMarks.length}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      data-active={mapVenueFocus === 'matched'}
-                      disabled={visibleMatchedVenueCount === 0}
-                      onClick={() => {
-                        if (visibleMatchedVenueCount === 0) {
-                          triggerHaptic('warning');
-                          return;
-                        }
-
-                        const nextFocus = mapVenueFocus === 'matched' ? 'all' : 'matched';
-                        setPulseFilter('all');
-                        setMapVenueFocus(nextFocus);
-                        setShowFootprintLayer(false);
-                        setShowMatchedLayer(nextFocus === 'matched');
-                        triggerHaptic('selection');
-                      }}
-                      className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-cyan-300" />
-                      <span>For You</span>
-                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                        {visibleMatchedVenueCount}
-                      </span>
-                    </button>
-                  </div>
-                ) : null}
+            <div className={`map-top-control-stack ${isImmersiveMobile ? 'hidden' : ''}`}>
+              <div className="map-status-rail">
+                {mapStatusRailOptions.map((option) => (
+                  <button
+                    key={`map-status:${option.id}`}
+                    type="button"
+                    data-active={option.active}
+                    disabled={option.disabled}
+                    onClick={option.onClick}
+                    className={`map-status-pill ${option.className}`}
+                  >
+                    <span>{option.label}</span>
+                    <span>{option.count}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  data-active={showAdvancedMapFilters || activeMapFilterIsScoped}
+                  onClick={() => {
+                    setShowAdvancedMapFilters((current) => !current);
+                    triggerHaptic('selection');
+                  }}
+                  className="map-status-pill map-status-pill--filters"
+                  aria-expanded={showAdvancedMapFilters}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>Filters</span>
+                  {activeMapFilterIsScoped ? <span>{filteredNearbyPlaces.length}</span> : null}
+                </button>
               </div>
+
+              {showAdvancedMapFilters ? (
+                <div className="map-advanced-filter-panel">
+                  <div className="map-advanced-filter-group">
+                    <span className="map-advanced-filter-label">Proof state</span>
+                    <div className="map-advanced-filter-row">
+                      {filterOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          data-active={pulseFilter === option.value}
+                          onClick={() => {
+                            setMapVenueFocus('all');
+                            setShowMatchedLayer(false);
+                            setShowFootprintLayer(false);
+                            setPulseFilter(option.value);
+                            triggerHaptic('selection');
+                          }}
+                          className={`map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
+                        >
+                          <span>{option.label}</span>
+                          <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                            {filterCounts[option.value]}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="map-advanced-filter-group">
+                    <span className="map-advanced-filter-label">Tag map</span>
+                    <div className="map-advanced-filter-row">
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          triggerHaptic('selection');
+                          closeSearchPopover();
+                          setSaveSpotDraft(null);
+                          setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
+                        }}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
+                      >
+                        <MapPin className="h-3 w-3" />
+                        Venue
+                      </button>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          closeSearchPopover();
+                          openProofForSelectedPlace();
+                        }}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-yellow-200/18 bg-yellow-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/80 transition hover:border-yellow-100/32 hover:text-yellow-50"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Proof
+                      </button>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          closeSearchPopover();
+                          openSaveSpotDraft(selectedPlace);
+                        }}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
+                      >
+                        <Bike className="h-3 w-3" />
+                        Save spot
+                      </button>
+                      {latestPrivateMapSpot ? (
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            closeSearchPopover();
+                            focusPrivateSpot(latestPrivateMapSpot);
+                          }}
+                          className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-white/18 hover:text-white"
+                        >
+                          <Navigation className="h-3 w-3" />
+                          {latestPrivateMapSpot.label}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {isConnected ? (
+                    <div className="map-advanced-filter-group">
+                      <span className="map-advanced-filter-label">My map</span>
+                      <div className="map-advanced-filter-row">
+                        <button
+                          type="button"
+                          data-active={mapVenueFocus === 'footprint'}
+                          onClick={() => {
+                            const nextFocus = mapVenueFocus === 'footprint' ? 'all' : 'footprint';
+                            setPulseFilter('all');
+                            setMapVenueFocus(nextFocus);
+                            setShowMatchedLayer(false);
+                            setShowFootprintLayer(nextFocus === 'footprint');
+                            triggerHaptic('selection');
+                          }}
+                          className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
+                          <span>My Proofs</span>
+                          <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                            {footprintStats?.totalMarks ?? footprintMarks.length}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          data-active={mapVenueFocus === 'matched'}
+                          disabled={visibleMatchedVenueCount === 0}
+                          onClick={() => {
+                            if (visibleMatchedVenueCount === 0) {
+                              triggerHaptic('warning');
+                              return;
+                            }
+
+                            const nextFocus = mapVenueFocus === 'matched' ? 'all' : 'matched';
+                            setPulseFilter('all');
+                            setMapVenueFocus(nextFocus);
+                            setShowFootprintLayer(false);
+                            setShowMatchedLayer(nextFocus === 'matched');
+                            triggerHaptic('selection');
+                          }}
+                          className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-cyan-300" />
+                          <span>For You</span>
+                          <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                            {visibleMatchedVenueCount}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
-
-          {!isImmersiveMobile ? (
-            <PushActivationCard compact className="my-4" />
-          ) : null}
 
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
-              isImmersiveMobile ? 'map-container-wrapper--immersive min-h-0 flex-1' : 'h-[68vh] min-h-[560px]'
+              isImmersiveMobile ? 'map-container-wrapper--immersive min-h-0 flex-1' : 'h-[76vh] min-h-[660px]'
             }`}
           >
             <div
@@ -8283,7 +8322,7 @@ export default function RealWorldMap() {
             ) : null}
             {showNearbyDareTray ? (
               <div
-                className={`nearby-dare-tray absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}
+                className={`nearby-dare-tray ${nearbyDarePanelCollapsed ? 'nearby-dare-tray--collapsed' : 'nearby-dare-tray--expanded'} absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}
                 style={nearbyDareTrayDragStyle}
                 data-sheet-dragging={mapSheetDrag?.target === 'nearby-dare' ? 'true' : undefined}
               >
@@ -8302,6 +8341,7 @@ export default function RealWorldMap() {
                     }}
                     className="relative flex w-full flex-col gap-2 px-4 pb-3 pt-2 text-left"
                     aria-label="Expand nearby mission tray"
+                    aria-expanded={false}
                   >
                     <span className="map-sheet-drag-handle mx-auto flex h-5 w-24 items-center justify-center rounded-full">
                       <span className="map-sheet-drag-bar" />
@@ -8344,8 +8384,9 @@ export default function RealWorldMap() {
                       }
                       setNearbyDarePanelCollapsed(true);
                     }}
-                    className="map-sheet-drag-handle mx-auto -mt-1 mb-2 flex h-6 w-28 items-center justify-center rounded-full md:hidden"
+                    className="map-sheet-drag-handle mx-auto -mt-1 mb-2 flex h-6 w-28 items-center justify-center rounded-full"
                     aria-label="Drag down to collapse nearby tray"
+                    aria-expanded={true}
                     title="Drag down to collapse"
                   >
                     <span className="map-sheet-drag-bar" />
@@ -8727,7 +8768,7 @@ export default function RealWorldMap() {
                   <Minus className="h-4 w-4" />
                 </button>
               </div>
-              <div className="overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur md:rounded-[22px]">
+              <div className="hidden overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur lg:block lg:rounded-[22px]">
                 <div className="hidden items-center justify-between border-b border-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/70 md:flex">
                   <span>3D</span>
                   <span>{mapCameraPitchLabel}</span>
@@ -10027,6 +10068,13 @@ export default function RealWorldMap() {
           display: flex;
           max-height: calc(100% - 1.5rem);
           flex-direction: column;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          transform-origin: 50% 100%;
+        }
+
+        .nearby-dare-tray--expanded {
+          max-height: min(74dvh, calc(100% - 2rem));
         }
 
         .nearby-dare-tray-list {
@@ -10159,8 +10207,16 @@ export default function RealWorldMap() {
           }
 
           .nearby-dare-tray-list {
-            max-height: 34dvh;
+            max-height: min(54dvh, calc(100dvh - 13rem));
             overflow-y: auto;
+          }
+
+          .nearby-dare-tray--expanded {
+            right: 0.75rem !important;
+            bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+            left: 0.75rem !important;
+            max-height: min(78dvh, calc(100dvh - 6rem));
+            border-radius: 1.55rem 1.55rem 1.25rem 1.25rem !important;
           }
 
           .map-signal-rail {
@@ -10394,12 +10450,240 @@ export default function RealWorldMap() {
             inset 0 -10px 16px rgba(0, 0, 0, 0.3);
         }
 
+        .map-intent-row {
+          display: flex;
+          width: 100%;
+          gap: 0.38rem;
+          overflow-x: auto;
+          padding: 0.5rem 0.05rem 0;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .map-intent-row::-webkit-scrollbar {
+          display: none;
+        }
+
+        .map-intent-chip {
+          appearance: none;
+          display: inline-flex;
+          min-height: 1.78rem;
+          flex: 0 0 auto;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.09), transparent 42%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
+          padding: 0.42rem 0.68rem;
+          color: rgba(255, 255, 255, 0.62);
+          font-size: 0.56rem;
+          font-weight: 900;
+          letter-spacing: 0.16em;
+          line-height: 1;
+          text-transform: uppercase;
+          box-shadow:
+            0 8px 16px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.07),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.18);
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            color 160ms ease,
+            background 160ms ease;
+        }
+
+        .map-intent-chip:hover,
+        .map-intent-chip[data-active='true'] {
+          border-color: rgba(34, 211, 238, 0.32);
+          color: rgba(224, 252, 255, 0.95);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.16), transparent 42%),
+            linear-gradient(180deg, rgba(34, 211, 238, 0.11), rgba(6, 8, 16, 0.9));
+        }
+
+        .map-intent-chip:hover {
+          transform: translateY(-1px);
+        }
+
+        .map-top-control-stack {
+          display: flex;
+          width: 100%;
+          flex-direction: column;
+          gap: 0.55rem;
+        }
+
+        .map-status-rail {
+          display: flex;
+          width: 100%;
+          max-width: 62rem;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.42rem;
+        }
+
+        .map-status-pill {
+          appearance: none;
+          position: relative;
+          isolation: isolate;
+          display: inline-flex;
+          min-height: 2.02rem;
+          align-items: center;
+          justify-content: center;
+          gap: 0.46rem;
+          overflow: hidden;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 42%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
+          padding: 0.44rem 0.76rem 0.42rem;
+          color: rgba(255, 255, 255, 0.58);
+          font-size: 0.64rem;
+          font-weight: 900;
+          letter-spacing: 0.13em;
+          line-height: 1;
+          text-transform: uppercase;
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -9px 14px rgba(0, 0, 0, 0.18);
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            color 160ms ease,
+            background 160ms ease;
+        }
+
+        .map-status-pill::before {
+          content: '';
+          position: absolute;
+          inset: 1px 1px auto;
+          height: 45%;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent);
+          pointer-events: none;
+        }
+
+        .map-status-pill span,
+        .map-status-pill svg {
+          position: relative;
+          z-index: 1;
+        }
+
+        .map-status-pill span:last-child:not(:first-child) {
+          display: inline-flex;
+          min-width: 1.35rem;
+          height: 1.35rem;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.24);
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 0.58rem;
+          letter-spacing: 0;
+        }
+
+        .map-status-pill:hover:not(:disabled),
+        .map-status-pill[data-active='true'] {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.18);
+          color: white;
+        }
+
+        .map-status-pill:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
+        .map-status-pill--filters {
+          border-color: rgba(34, 211, 238, 0.16);
+          color: rgba(202, 248, 255, 0.72);
+        }
+
+        .map-status-pill--filters[data-active='true'] {
+          border-color: rgba(34, 211, 238, 0.36);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.15), transparent 42%),
+            linear-gradient(180deg, rgba(34, 211, 238, 0.11), rgba(6, 8, 16, 0.9));
+          color: rgba(224, 252, 255, 0.96);
+        }
+
+        .map-advanced-filter-panel {
+          display: grid;
+          width: min(100%, 58rem);
+          gap: 0.65rem;
+          border-radius: 1.25rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            radial-gradient(circle at 12% 0%, rgba(168, 85, 247, 0.12), transparent 32%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.92));
+          padding: 0.7rem;
+          box-shadow:
+            0 16px 32px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -12px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        .map-advanced-filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .map-advanced-filter-label {
+          padding-inline: 0.1rem;
+          color: rgba(255, 255, 255, 0.36);
+          font-size: 0.54rem;
+          font-weight: 900;
+          letter-spacing: 0.22em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .map-advanced-filter-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.42rem;
+        }
+
+        @media (max-width: 767px) {
+          .map-intent-row,
+          .map-status-rail {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 0.1rem;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .map-intent-row::-webkit-scrollbar,
+          .map-status-rail::-webkit-scrollbar {
+            display: none;
+          }
+
+          .map-status-pill {
+            min-height: 1.9rem;
+            flex: 0 0 auto;
+            padding-inline: 0.64rem;
+            font-size: 0.58rem;
+          }
+
+          .map-advanced-filter-panel {
+            max-height: min(42vh, 18rem);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
+
         .map-signal-rail {
           display: flex;
           width: 100%;
           align-items: flex-start;
           flex-wrap: wrap;
-          gap: 0.65rem;
+          gap: 0.48rem;
           max-width: 100%;
         }
 
@@ -10421,9 +10705,9 @@ export default function RealWorldMap() {
           flex: 1 1 min(46rem, 100%);
           min-width: 0;
           flex-wrap: wrap;
-          gap: 0.5rem;
+          gap: 0.42rem;
           overflow: visible;
-          padding: 0.15rem 0.15rem 0.35rem;
+          padding: 0.1rem 0.1rem 0.2rem;
           scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
         }
@@ -10455,18 +10739,18 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-width: 8.4rem;
-          min-height: 3.05rem;
-          flex: 0 1 clamp(8.4rem, 10.6vw, 10.65rem);
+          min-width: 7.35rem;
+          min-height: 2.58rem;
+          flex: 0 1 clamp(7.35rem, 9vw, 9.65rem);
           align-items: center;
-          gap: 0.55rem;
+          gap: 0.46rem;
           overflow: hidden;
           border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background:
             radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), transparent 36%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
-          padding: 0.5rem 0.74rem 0.48rem 0.5rem;
+          padding: 0.38rem 0.64rem 0.36rem 0.4rem;
           color: rgba(255, 255, 255, 0.58);
           box-shadow:
             0 12px 22px rgba(0, 0, 0, 0.22),
@@ -10505,15 +10789,15 @@ export default function RealWorldMap() {
           position: relative;
           z-index: 1;
           display: inline-flex;
-          min-width: 2.1rem;
-          height: 2.1rem;
+          min-width: 1.74rem;
+          height: 1.74rem;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.12);
           background: rgba(0, 0, 0, 0.26);
           color: white;
-          font-size: 0.82rem;
+          font-size: 0.72rem;
           font-weight: 950;
           letter-spacing: -0.04em;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -10533,7 +10817,7 @@ export default function RealWorldMap() {
 
         .map-signal-pill-main span:first-child {
           max-width: 100%;
-          font-size: 0.62rem;
+          font-size: 0.56rem;
           font-weight: 900;
           letter-spacing: 0.1em;
           line-height: 1.02;
@@ -10542,7 +10826,7 @@ export default function RealWorldMap() {
 
         .map-signal-pill-main span:last-child {
           max-width: 100%;
-          font-size: 0.54rem;
+          font-size: 0.48rem;
           font-weight: 800;
           letter-spacing: 0.1em;
           line-height: 1.05;

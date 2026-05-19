@@ -8,9 +8,9 @@ import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
 import {
     ArrowLeft, CheckCircle, ExternalLink, Zap, Clock,
-    Heart, TrendingUp, Target, Award, AlertCircle,
+    Award, AlertCircle,
     MessageCircle, Star, Camera, MapPin, Briefcase, Radio,
-    ShieldCheck, Images,
+    Images,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
@@ -150,20 +150,6 @@ type AvatarFrame = {
     offsetY: number;
 };
 
-function formatCompactCount(value: number | null | undefined): string | null {
-    if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null;
-
-    if (value >= 1_000_000) {
-        return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
-    }
-
-    if (value >= 1_000) {
-        return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
-    }
-
-    return value.toString();
-}
-
 function getIdentityLabel(platform: string | null | undefined): string {
     if (platform === 'twitter') return 'X';
     if (platform === 'youtube') return 'YouTube';
@@ -172,13 +158,6 @@ function getIdentityLabel(platform: string | null | undefined): string {
     if (platform === 'tiktok') return 'TikTok';
     if (platform === 'other') return 'Other';
     return 'Identity';
-}
-
-function getIdentityStateLabel(status: string | null | undefined): string {
-    if (status === 'ACTIVE' || status === 'VERIFIED') return 'Verified';
-    if (status === 'PENDING') return 'Pending review';
-    if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Needs re-verify';
-    return 'Unverified';
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -631,7 +610,6 @@ export default function CreatorProfilePage() {
         profile?.youtubeHandle ? { label: 'YouTube', handle: profile.youtubeHandle, href: `https://youtube.com/@${profile.youtubeHandle}`, accent: 'text-red-300' } : null,
         profile?.kickHandle ? { label: 'Kick', handle: profile.kickHandle, href: `https://kick.com/${profile.kickHandle}`, accent: 'text-green-300' } : null,
     ].filter(Boolean) as Array<{ label: string; handle: string; href: string | null; accent: string }>;
-    const audienceLabel = formatCompactCount(profile?.followerCount);
     const identityCtaHref = (() => {
         const params = new URLSearchParams();
         if (profile?.identityPlatform) params.set('platform', profile.identityPlatform);
@@ -1016,32 +994,31 @@ export default function CreatorProfilePage() {
 
                             <div className={`${softCardClass} p-4 sm:p-5`}>
                                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                                <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Quick Read</p>
-                                <div className="mt-4 space-y-3">
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Availability</p>
-                                            <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Mission Snapshot</p>
+                                    <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
+                                </div>
+                                <p className="mt-3 text-2xl font-black text-white">{availability.label}</p>
+                                <p className="mt-1 text-[11px] leading-5 text-white/46">
+                                    {coarseAreaLabel} · {availability.radius}
+                                </p>
+                                <div className="mt-4 grid grid-cols-3 gap-2">
+                                    {[
+                                        { label: 'Missions', value: stats?.completed ?? 0, tone: 'text-emerald-300' },
+                                        { label: 'Proofs', value: stats?.approved ?? 0, tone: 'text-[#f9e27a]' },
+                                        { label: 'Venues', value: businessMetrics?.venueReach ?? 0, tone: 'text-cyan-200' },
+                                    ].map((item) => (
+                                        <div key={item.label} className={`${insetCardClass} px-3 py-3`}>
+                                            <p className={`text-xl font-black ${item.tone}`}>{item.value}</p>
+                                            <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-white/35 font-black">{item.label}</p>
                                         </div>
-                                        <p className="mt-1 text-lg font-black text-white">{availability.label}</p>
-                                        <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.radius}</p>
-                                    </div>
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Settled</p>
-                                        <p className="mt-1 text-2xl font-black text-emerald-300">{stats?.completed ?? 0}</p>
-                                    </div>
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Clear Rate</p>
-                                        <p className="mt-1 text-2xl font-black text-[#f9e27a]">{stats?.acceptRate ?? 0}%</p>
-                                    </div>
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Payout Queue</p>
-                                        <p className="mt-1 text-2xl font-black text-amber-300">{stats?.payoutQueued ?? 0}</p>
-                                    </div>
-                                    <div className={`${insetCardClass} px-4 py-3`}>
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Venue Reach</p>
-                                        <p className="mt-1 text-2xl font-black text-cyan-200">{businessMetrics?.venueReach ?? 0}</p>
-                                    </div>
+                                    ))}
+                                </div>
+                                <div className="mt-3 rounded-[18px] border border-white/[0.07] bg-black/20 px-3 py-3">
+                                    <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">Best fit</p>
+                                    <p className="mt-1.5 line-clamp-2 text-sm font-black leading-5 text-white/76">
+                                        {missionSkills.slice(0, 3).join(' · ')}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1054,11 +1031,11 @@ export default function CreatorProfilePage() {
                         <div className="min-w-0">
                             <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)] ${availability.badgeClass}`}>
                                 <Radio className="h-3.5 w-3.5" />
-                                Creator Passport
+                                Mission Fit
                             </div>
-                            <h2 className="mt-4 text-lg font-black text-white">Ready for verified missions</h2>
+                            <h2 className="mt-4 text-lg font-black text-white">What they are good for</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-                                Availability, skills, proof, and venue memory in one compact page. Exact location stays private until the creator accepts an invite.
+                                Skills, proof examples, and venue memory. Exact location stays private until the creator accepts an invite.
                             </p>
                         </div>
                         <Link
@@ -1072,32 +1049,21 @@ export default function CreatorProfilePage() {
 
                     <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
                         <div className={`${insetCardClass} p-4`}>
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">Availability</p>
-                                        <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
-                                    </div>
-                                    <p className="mt-2 text-2xl font-black text-white">{availability.label}</p>
-                                    <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.detail}</p>
-                                </div>
-
-                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
-                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">
+                            <div className="grid gap-2 sm:grid-cols-[1.1fr_0.9fr]">
+                                <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-4 py-3">
+                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-white/35 font-black">
                                         <MapPin className="h-3.5 w-3.5 text-cyan-200" />
                                         Area
                                     </div>
-                                    <p className="mt-2 text-lg font-black text-white">{coarseAreaLabel}</p>
+                                    <p className="mt-2 line-clamp-1 text-sm font-black text-white">{coarseAreaLabel}</p>
                                     <p className="mt-1 text-[11px] leading-5 text-white/46">{availability.radius}</p>
                                 </div>
-
-                                <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.035] px-4 py-4">
-                                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/35 font-black">
-                                        <ShieldCheck className="h-3.5 w-3.5 text-[#f9e27a]" />
-                                        Reliability
-                                    </div>
-                                    <p className="mt-2 text-lg font-black text-white">{stats?.acceptRate ?? 0}% clear</p>
-                                    <p className="mt-1 text-[11px] leading-5 text-white/46">{stats?.approved ?? 0} accepted proofs</p>
+                                <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-4 py-3">
+                                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/35 font-black">Proof score</p>
+                                    <p className="mt-2 text-sm font-black text-white">
+                                        {stats?.approved ?? 0} accepted · {stats?.acceptRate ?? 0}% clear
+                                    </p>
+                                    <p className="mt-1 text-[11px] leading-5 text-white/46">Business-readable signal</p>
                                 </div>
                             </div>
 
@@ -1124,18 +1090,6 @@ export default function CreatorProfilePage() {
                                 ))}
                             </div>
 
-                            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                                {[
-                                    { label: 'Missions completed', value: stats?.completed ?? 0, tone: 'text-emerald-300' },
-                                    { label: 'Venues marked', value: profile?.contribution?.uniqueVenues ?? 0, tone: 'text-cyan-200' },
-                                    { label: 'No-shows', value: 'Not tracked yet', tone: 'text-white/72' },
-                                ].map((item) => (
-                                    <div key={item.label} className="rounded-[18px] border border-white/[0.06] bg-black/20 px-3 py-3">
-                                        <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">{item.label}</p>
-                                        <p className={`mt-1 text-sm font-black ${item.tone}`}>{item.value}</p>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
 
                         <div className={`${insetCardClass} p-4`}>
@@ -1376,104 +1330,6 @@ export default function CreatorProfilePage() {
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
-
-                <div className={`${softCardClass} p-5 sm:p-6`}>
-                    <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-100 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                                <Zap className="w-3.5 h-3.5" />
-                                Social Status
-                            </div>
-                            <h2 className="mt-4 text-lg font-black text-white">Verified profile</h2>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-                                The basics that shape this creator profile.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <Link
-                                href={`/create?streamer=${encodeURIComponent(displayTag)}`}
-                                className="inline-flex items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9e27a] transition hover:border-[#f5c518]/40 hover:bg-[#f5c518]/16"
-                            >
-                                Dare {displayTag}
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 md:grid-cols-4">
-                        <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Verified Handle</p>
-                            <p className="mt-2 text-2xl font-black text-white">{getIdentityStateLabel(profile?.identityStatus)}</p>
-                            <p className="mt-1 text-[11px] text-white/46">
-                                {profile?.identityHandle
-                                    ? `@${profile.identityHandle}${profile.identityPlatform ? ` on ${getIdentityLabel(profile.identityPlatform)}` : ''}`
-                                    : 'No linked handle yet.'}
-                            </p>
-                        </div>
-
-                        <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Linked Socials</p>
-                            <p className="mt-2 text-2xl font-black text-white">{connectedPlatforms.length > 0 ? 'Ready' : 'Thin'}</p>
-                            <p className="mt-1 text-[11px] text-white/46">
-                                {connectedPlatforms.length > 0 ? 'Linked socials point back to this profile.' : 'No extra social links yet.'}
-                            </p>
-                        </div>
-
-                        <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Followers</p>
-                            <p className="mt-2 text-2xl font-black text-white">{audienceLabel || '--'}</p>
-                            <p className="mt-1 text-[11px] text-white/46">
-                                {audienceLabel ? 'Stored follower count.' : 'No follower count yet.'}
-                            </p>
-                        </div>
-
-                        <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">BaseDare Status</p>
-                            <p className="mt-2 text-2xl font-black text-white">
-                                {profile?.verified ? 'Anchored' : profile?.identityStatus === 'PENDING' ? 'Pending' : connectedPlatforms.length > 0 ? 'Emerging' : 'Unanchored'}
-                            </p>
-                            <p className="mt-1 text-[11px] text-white/46">
-                                {profile?.verified
-                                    ? 'Identity and activity are linked.'
-                                    : profile?.identityStatus === 'PENDING'
-                                        ? 'Verification is under review.'
-                                    : connectedPlatforms.length > 0
-                                        ? 'Social signal is live, but activity is still building.'
-                                        : 'Verify and start completing dares to build this out.'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                        {connectedPlatforms.length > 0 ? (
-                            connectedPlatforms.map((platform) => (
-                                platform.href ? (
-                                    <a
-                                        key={`surface-${platform.label}-${platform.handle}`}
-                                        href={platform.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`${pillClass} normal-case tracking-normal text-xs transition-colors hover:text-white ${platform.accent}`}
-                                    >
-                                        {platform.label === 'X' ? '𝕏' : platform.label} @{platform.handle}
-                                        <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                ) : (
-                                    <span
-                                        key={`surface-${platform.label}-${platform.handle}`}
-                                        className={`${pillClass} normal-case tracking-normal text-xs ${platform.accent}`}
-                                    >
-                                        {platform.label} @{platform.handle}
-                                    </span>
-                                )
-                            ))
-                        ) : (
-                            <span className={`${pillClass} normal-case tracking-normal text-xs text-white/42`}>
-                                No linked socials yet
-                            </span>
-                        )}
                     </div>
                 </div>
 
@@ -1779,42 +1635,6 @@ export default function CreatorProfilePage() {
                         </div>
                     </div>
                 ) : null}
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                    {[
-                        { icon: Target, label: 'Total Dares', value: stats?.total ?? 0, color: 'text-white' },
-                        { icon: Award, label: 'Approved', value: stats?.approved ?? 0, color: 'text-emerald-300' },
-                        { icon: CheckCircle, label: 'Settled', value: stats?.completed ?? 0, color: 'text-green-400' },
-                        { icon: TrendingUp, label: 'Approval Rate', value: `${stats?.acceptRate ?? 0}%`, color: 'text-yellow-400' },
-                        { icon: AlertCircle, label: 'Queued', value: stats?.payoutQueued ?? 0, color: 'text-amber-300' },
-                        { icon: Heart, label: 'Live Now', value: stats?.live ?? 0, color: 'text-red-400' },
-                    ].map(({ icon: Icon, label, value, color }) => (
-                        <div key={label} className={`${softCardClass} p-4 flex flex-col gap-1.5`}>
-                            <Icon className={`w-4 h-4 ${color} mb-0.5`} />
-                            <span className={`text-2xl font-black ${color}`}>{value}</span>
-                            <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">{label}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className={`${softCardClass} p-5`}>
-                        <p className="text-[10px] text-green-500/60 uppercase tracking-wider font-bold mb-1">Total Pool</p>
-                        <p className="text-xl font-black text-green-400">${(stats?.totalPool ?? 0).toLocaleString()} <span className="text-xs text-green-600">USDC</span></p>
-                    </div>
-                    <div className={`${softCardClass} p-5`}>
-                        <p className="text-[10px] text-purple-500/60 uppercase tracking-wider font-bold mb-1">Total Earned</p>
-                        <p className="text-xl font-black text-purple-400">${(stats?.totalEarned ?? 0).toLocaleString()} <span className="text-xs text-purple-600">USDC</span></p>
-                    </div>
-                    <div className={`${softCardClass} p-5`}>
-                        <p className="text-[10px] text-cyan-500/60 uppercase tracking-wider font-bold mb-1">Average Bounty</p>
-                        <p className="text-xl font-black text-cyan-200">${(stats?.averageBounty ?? 0).toLocaleString()} <span className="text-xs text-cyan-400/70">USDC</span></p>
-                    </div>
-                    <div className={`${softCardClass} p-5`}>
-                        <p className="text-[10px] text-fuchsia-500/60 uppercase tracking-wider font-bold mb-1">Average Earned Per Win</p>
-                        <p className="text-xl font-black text-fuchsia-200">${(businessMetrics?.averageEarnedPerWin ?? 0).toLocaleString()} <span className="text-xs text-fuchsia-400/70">USDC</span></p>
-                    </div>
-                </div>
 
                 <div className={`${softCardClass} p-5 sm:p-6`}>
                     <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
