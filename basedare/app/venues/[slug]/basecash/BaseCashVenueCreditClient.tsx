@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock3, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
 import { useAccount } from 'wagmi';
 
 import {
@@ -29,6 +29,9 @@ type CreatedCredit = {
     receiptCode: string;
     paymentStatus: string;
     redemptionStatus: string;
+  };
+  pilotMode?: {
+    simulatedPaymentEnabled?: boolean;
   };
 };
 
@@ -75,6 +78,7 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
       setCreated({
         receiptUrl: payload.data.receiptUrl,
         credit: payload.data.credit,
+        pilotMode: payload.data.pilotMode,
       });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not create venue credit');
@@ -166,17 +170,30 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
           ) : null}
 
           {created ? (
-            <div className="mt-5 rounded-[24px] border border-emerald-300/20 bg-emerald-500/[0.08] p-4 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div
+              className={`mt-5 rounded-[24px] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
+                created.credit.paymentStatus === 'PAID'
+                  ? 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-50'
+                  : 'border-amber-300/24 bg-amber-500/[0.09] text-amber-50'
+              }`}
+            >
               <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em]">
-                <CheckCircle2 className="h-4 w-4" />
-                Receipt ready
+                {created.credit.paymentStatus === 'PAID' ? <CheckCircle2 className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
+                {created.credit.paymentStatus === 'PAID' ? 'Receipt ready' : 'Payment confirmation needed'}
               </div>
-              <p className="mt-2 text-sm text-emerald-50/74">
-                Code {created.credit.receiptCode}. Staff can mark it redeemed once.
+              <p className="mt-2 text-sm opacity-75">
+                Code {created.credit.receiptCode}.{' '}
+                {created.credit.paymentStatus === 'PAID'
+                  ? 'Staff can mark it redeemed once.'
+                  : 'BaseDare must confirm the USDC payment before staff can redeem it.'}
               </p>
               <Link
                 href={created.receiptUrl}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-emerald-300/24 bg-emerald-400/[0.12] px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-emerald-50 transition hover:bg-emerald-400/[0.18]"
+                className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition ${
+                  created.credit.paymentStatus === 'PAID'
+                    ? 'border-emerald-300/24 bg-emerald-400/[0.12] text-emerald-50 hover:bg-emerald-400/[0.18]'
+                    : 'border-amber-300/24 bg-amber-400/[0.12] text-amber-50 hover:bg-amber-400/[0.18]'
+                }`}
               >
                 Open receipt
                 <ArrowRight className="h-4 w-4" />
@@ -191,7 +208,7 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/35 bg-[linear-gradient(180deg,#ffe76d_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-black shadow-[0_18px_32px_rgba(245,197,24,0.2),inset_0_1px_0_rgba(255,255,255,0.52),inset_0_-8px_10px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-            Create venue credit
+            Create credit request
           </button>
         </div>
       </section>
@@ -206,7 +223,7 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
             ['Venue only', `Redeem at ${venue.name}.`],
             ['No cash-out', 'Not withdrawable or transferable.'],
             ['No change', 'Spend it as venue credit.'],
-            ['Manual settlement', 'BaseDare settles the venue later in PHP.'],
+            ['Manual pilot', 'BaseDare confirms payment and settles the venue in PHP.'],
           ].map(([title, detail]) => (
             <div key={title} className="rounded-[20px] border border-white/10 bg-black/26 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <p className="text-sm font-black text-white">{title}</p>

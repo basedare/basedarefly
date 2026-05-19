@@ -1109,9 +1109,9 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">BaseCash</p>
-                    <h3 className="mt-2 text-lg font-bold tracking-tight">Redeem venue credit</h3>
+                    <h3 className="mt-2 text-lg font-bold tracking-tight">Redeem confirmed credit</h3>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Search the receipt code, check it is active, then redeem it once at the counter.
+                      Search the receipt code. Only paid + active credits can be redeemed at the counter.
                     </p>
                   </div>
                   <div className="rounded-full border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
@@ -1119,10 +1119,14 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <div className={`${insetCardClass} px-3 py-3`}>
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Active</p>
                     <p className="mt-1 text-xl font-black text-cyan-100">{baseCashSummary?.activeCount ?? 0}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-3 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Pending</p>
+                    <p className="mt-1 text-xl font-black text-amber-100">{baseCashSummary?.pendingCount ?? 0}</p>
                   </div>
                   <div className={`${insetCardClass} px-3 py-3`}>
                     <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/36">Redeemed</p>
@@ -1188,7 +1192,13 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                                 ? 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-100'
                                 : 'border-white/10 bg-white/[0.04] text-white/54'
                           }`}>
-                            {credit.redemptionStatus === 'REDEEMED' ? 'Redeemed' : credit.paymentStatus.toLowerCase()}
+                            {credit.redemptionStatus === 'REDEEMED'
+                              ? 'Redeemed'
+                              : active
+                                ? 'Ready'
+                                : credit.paymentStatus === 'PENDING'
+                                  ? 'Waiting pay'
+                                  : credit.redemptionStatus.toLowerCase()}
                           </span>
                         </div>
                         {active ? (

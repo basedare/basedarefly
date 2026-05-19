@@ -127,6 +127,7 @@ export async function POST(
           success: false,
           error: 'BaseCash venue credit ledger is not installed yet',
           code: 'BASECASH_MIGRATION_REQUIRED',
+          hint: 'Run prisma migrate deploy against the production database before accepting BaseCash credits.',
         },
         { status: 503 }
       );

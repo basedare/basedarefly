@@ -244,7 +244,7 @@ export default function AdminBaseCashPage() {
 
           {payload?.setupRequired ? (
             <p className="mt-5 rounded-[20px] border border-amber-300/20 bg-amber-500/[0.08] px-4 py-3 text-sm text-amber-100">
-              BaseCash migration is not installed yet.
+              BaseCash migration is not installed yet. Run the production Prisma migration before venue credits can be stored.
             </p>
           ) : null}
           {message ? <p className="mt-5 text-sm font-bold text-emerald-200">{message}</p> : null}

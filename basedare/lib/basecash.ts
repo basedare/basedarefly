@@ -207,7 +207,7 @@ export async function createBaseCashVenueCredit(input: {
   const expiresAt = new Date(now.getTime() + BASECASH_CREDIT_VALID_HOURS * 60 * 60 * 1000);
   const { simulatedPaymentEnabled } = baseCashPilotMode();
   const paymentStatus: BaseCashPaymentStatus = simulatedPaymentEnabled ? 'PAID' : 'PENDING';
-  const redemptionStatus: BaseCashRedemptionStatus = simulatedPaymentEnabled ? 'ACTIVE' : 'CANCELLED';
+  const redemptionStatus: BaseCashRedemptionStatus = 'ACTIVE';
   const id = randomUUID();
   const receiptCode = createBaseCashReceiptCode();
   const metadata = {

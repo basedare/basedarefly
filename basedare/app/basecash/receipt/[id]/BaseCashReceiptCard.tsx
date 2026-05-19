@@ -30,6 +30,8 @@ export default function BaseCashReceiptCard({
 }) {
   const expiresAt = new Date(credit.expiresAt);
   const redeemedAt = credit.redeemedAt ? new Date(credit.redeemedAt) : null;
+  const isPaidActive = credit.paymentStatus === 'PAID' && credit.redemptionStatus === 'ACTIVE';
+  const isPendingPayment = credit.paymentStatus === 'PENDING';
 
   return (
     <main className="relative mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-4 py-8 sm:px-6">
@@ -74,12 +76,22 @@ export default function BaseCashReceiptCard({
               </div>
             </div>
 
-            <div className="mt-5 rounded-[22px] border border-cyan-300/18 bg-cyan-500/[0.07] p-4 text-sm leading-6 text-cyan-50/74">
-              <div className="mb-1 flex items-center gap-2 font-black text-cyan-50">
+            <div
+              className={`mt-5 rounded-[22px] border p-4 text-sm leading-6 ${
+                isPendingPayment
+                  ? 'border-amber-300/20 bg-amber-500/[0.08] text-amber-50/78'
+                  : 'border-cyan-300/18 bg-cyan-500/[0.07] text-cyan-50/74'
+              }`}
+            >
+              <div className={`mb-1 flex items-center gap-2 font-black ${isPendingPayment ? 'text-amber-50' : 'text-cyan-50'}`}>
                 <ShieldCheck className="h-4 w-4" />
-                Staff check
+                {isPendingPayment ? 'Waiting for confirmation' : 'Staff check'}
               </div>
-              Show this QR or code to staff. This credit can be redeemed once, only at {credit.venueName}. No cash-out and no change.
+              {isPendingPayment
+                ? `Do not redeem yet. BaseDare needs to confirm the USDC payment before ${credit.venueName} can accept this code.`
+                : isPaidActive
+                  ? `Show this QR or code to staff. This credit can be redeemed once, only at ${credit.venueName}. No cash-out and no change.`
+                  : `This receipt is not redeemable right now. Ask staff or BaseDare to check the status before accepting it.`}
             </div>
           </div>
         </div>
