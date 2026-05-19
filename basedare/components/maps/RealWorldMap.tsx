@@ -60,6 +60,7 @@ import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
 import PushActivationCard from '@/components/PushActivationCard';
+import HoneyGooAccent from '@/components/HoneyGooAccent';
 import MapCrosshair from '@/app/map/MapCrosshair';
 
 type SearchResult = {
@@ -7822,6 +7823,9 @@ export default function RealWorldMap() {
               : undefined
           }
         >
+          {!isImmersiveMobile ? (
+            <HoneyGooAccent className="absolute right-7 top-[-2px] z-[32] hidden xl:block" size="sm" />
+          ) : null}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
           <div

@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
+import HoneyGooAccent from "@/components/HoneyGooAccent";
 import LiquidBackground from "@/components/LiquidBackground";
 import CosmicButton from "@/components/ui/CosmicButton";
 
@@ -240,6 +241,7 @@ export default function HowItWorksPage() {
             animate={{ opacity: 1, y: 0 }}
             className={`${raisedPanelClass} mb-10 px-6 py-10 text-center md:px-10 md:py-14`}
           >
+            <HoneyGooAccent className="absolute right-6 top-[-2px] z-20 hidden lg:block xl:right-10" size="md" />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
 
