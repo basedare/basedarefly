@@ -18,6 +18,7 @@ export default function MapCrosshair({
   verticalColor = 'rgba(245, 197, 24, 0.7)',
   reactiveSelector = 'a, button, .maplibregl-marker, .basedare-maplibre-marker, .peebear-marker',
 }: MapCrosshairProps) {
+  const reticleRef = useRef<HTMLDivElement | null>(null);
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
   const filterXRef = useRef<SVGFETurbulenceElement | null>(null);
@@ -40,15 +41,16 @@ export default function MapCrosshair({
     }
 
     const container = containerRef.current;
+    const reticle = reticleRef.current;
     const horizontal = horizontalRef.current;
     const vertical = verticalRef.current;
 
-    if (!container || !horizontal || !vertical) return;
+    if (!container || !reticle || !horizontal || !vertical) return;
 
-    const setVerticalX = gsap.quickSetter(vertical, 'x', 'px');
-    const setHorizontalY = gsap.quickSetter(horizontal, 'y', 'px');
+    const setReticleX = gsap.quickSetter(reticle, 'x', 'px');
+    const setReticleY = gsap.quickSetter(reticle, 'y', 'px');
 
-    gsap.set([horizontal, vertical], { opacity: 0 });
+    gsap.set(reticle, { opacity: 0 });
 
     const render = () => {
       const rendered = renderedRef.current;
@@ -57,8 +59,8 @@ export default function MapCrosshair({
       rendered.xPrevious = lerp(rendered.xPrevious, rendered.xCurrent, 0.15);
       rendered.yPrevious = lerp(rendered.yPrevious, rendered.yCurrent, 0.15);
 
-      setVerticalX(rendered.xPrevious);
-      setHorizontalY(rendered.yPrevious);
+      setReticleX(rendered.xPrevious);
+      setReticleY(rendered.yPrevious);
       frameRef.current = window.requestAnimationFrame(render);
     };
 
@@ -76,7 +78,7 @@ export default function MapCrosshair({
     };
 
     const showCrosshair = () => {
-      gsap.to([horizontal, vertical], {
+      gsap.to(reticle, {
         duration: 0.28,
         ease: 'power2.out',
         opacity: 1,
@@ -84,7 +86,7 @@ export default function MapCrosshair({
     };
 
     const hideCrosshair = () => {
-      gsap.to([horizontal, vertical], {
+      gsap.to(reticle, {
         duration: 0.22,
         ease: 'power2.out',
         opacity: 0,
@@ -202,34 +204,68 @@ export default function MapCrosshair({
       </svg>
 
       <div
-        ref={horizontalRef}
+        ref={reticleRef}
         style={{
           position: 'absolute',
           left: 0,
           top: 0,
-          width: '100%',
-          height: '1px',
+          width: '48px',
+          height: '48px',
           opacity: 0,
-          transform: 'translateY(50%)',
-          background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${horizontalColor} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
-          boxShadow: '0 0 18px rgba(184,127,255,0.32)',
+          transform: 'translate(-50%, -50%)',
+          mixBlendMode: 'screen',
+          willChange: 'transform, opacity',
         }}
-      />
-
-      <div
-        ref={verticalRef}
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: '1px',
-          height: '100%',
-          opacity: 0,
-          transform: 'translateX(50%)',
-          background: `linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.04) 12%, ${verticalColor} 50%, rgba(255,255,255,0.04) 88%, transparent 100%)`,
-          boxShadow: '0 0 18px rgba(245,197,24,0.32)',
-        }}
-      />
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: '8px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '999px',
+            boxShadow: '0 0 18px rgba(184,127,255,0.2), inset 0 0 16px rgba(245,197,24,0.08)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: '5px',
+            height: '5px',
+            borderRadius: '999px',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(255,255,255,0.82)',
+            boxShadow: '0 0 12px rgba(255,255,255,0.35)',
+          }}
+        />
+        <div
+          ref={horizontalRef}
+          style={{
+            position: 'absolute',
+            left: '5px',
+            right: '5px',
+            top: '50%',
+            height: '1px',
+            transform: 'translateY(-50%)',
+            background: `linear-gradient(90deg, transparent 0%, ${horizontalColor} 48%, rgba(255,255,255,0.76) 50%, ${horizontalColor} 52%, transparent 100%)`,
+            boxShadow: '0 0 12px rgba(184,127,255,0.24)',
+          }}
+        />
+        <div
+          ref={verticalRef}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '5px',
+            bottom: '5px',
+            width: '1px',
+            transform: 'translateX(-50%)',
+            background: `linear-gradient(180deg, transparent 0%, ${verticalColor} 48%, rgba(255,255,255,0.72) 50%, ${verticalColor} 52%, transparent 100%)`,
+            boxShadow: '0 0 12px rgba(245,197,24,0.24)',
+          }}
+        />
+      </div>
     </div>
   );
 }

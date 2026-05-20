@@ -66,19 +66,19 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
       icon: <Users className="h-5 w-5" />,
       label: '1 / Route',
       title: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'One venue',
-      detail: 'Pick the place, date window, creator or guest route, and one simple perk.',
+      detail: 'Pick the place, window, route, and perk.',
     },
     {
       icon: <QrCode className="h-5 w-5" />,
       label: '2 / Proof',
       title: 'QR + check-in path',
-      detail: 'Participants scan, check in, and submit the proof moment BaseDare can verify.',
+      detail: 'Participants scan, check in, and submit proof.',
     },
     {
       icon: <ReceiptText className="h-5 w-5" />,
       label: '3 / Recap',
       title: 'Repeat decision',
-      detail: 'The venue gets check-ins, proofs, perk signal, and the clearest next mission.',
+      detail: 'The venue gets proof, signal, and a repeat plan.',
     },
   ];
 
@@ -119,7 +119,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                 Run one proof night.
               </h1>
               <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/62">
-                BaseDare sets up the venue route, invites local creators or guests, captures QR/check-in proof, and sends a recap. The venue only approves the plan and provides one simple perk.
+                BaseDare sets up the route, QR proof, creators or guests, and recap. The venue approves the plan and provides one simple perk.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">

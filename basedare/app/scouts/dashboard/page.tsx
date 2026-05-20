@@ -8,8 +8,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  CheckCircle2,
-  DollarSign,
   MapPin,
   Search,
   ShieldCheck,
@@ -86,11 +84,6 @@ function getAvatarStyle(creator: Creator): CSSProperties {
     transform: `scale(${scale})`,
     transformOrigin: 'center center',
   };
-}
-
-function formatUsd(value: number): string {
-  if (value >= 1000) return `$${Math.round(value / 100) / 10}k`;
-  return `$${Math.round(value)}`;
 }
 
 function buildCreateHref(creator: Creator): string {
@@ -209,7 +202,7 @@ export default function CreatorRadarPage() {
   const filters: Array<{ value: FilterMode; label: string }> = [
     { value: 'all', label: 'All' },
     { value: 'verified', label: 'Verified' },
-    { value: 'venue', label: 'Venue Proven' },
+    { value: 'venue', label: 'Venue-ready' },
     { value: 'reviewed', label: 'Reviewed' },
   ];
 
@@ -217,15 +210,13 @@ export default function CreatorRadarPage() {
     { value: 'trust', label: 'Best Fit' },
     { value: 'venue', label: 'Venue Reach' },
     { value: 'reviews', label: 'Reviews' },
-    { value: 'earned', label: 'Earned' },
-    { value: 'dares', label: 'Dares' },
   ];
 
   const summaryMetrics: Array<{ label: string; value: string; icon: LucideIcon }> = [
     { label: 'Creators', value: creators.length.toString(), icon: Users },
     { label: 'Verified', value: verifiedCount.toString(), icon: BadgeCheck },
-    { label: 'Avg trust', value: `${averageTrust}`, icon: ShieldCheck },
-    { label: 'Venue proven', value: venueProvenCount.toString(), icon: MapPin },
+    { label: 'Avg fit', value: `${averageTrust}`, icon: ShieldCheck },
+    { label: 'Venue-ready', value: venueProvenCount.toString(), icon: MapPin },
   ];
 
   return (
@@ -296,14 +287,13 @@ export default function CreatorRadarPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
                 <SlidersHorizontal className="h-4 w-4" />
-                Control Creator Layer
+                Creator routing
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
                 Creator Radar
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/62 sm:text-lg">
-                Creator routing for venues and brands. See who is proven, reliable, and ready to move
-                people into real places.
+                Find reliable creators for venue missions.
               </p>
             </div>
 
@@ -329,7 +319,7 @@ export default function CreatorRadarPage() {
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {summaryMetrics.map(({ label, value, icon: Icon }) => (
+                  {summaryMetrics.slice(0, 3).map(({ label, value, icon: Icon }) => (
                     <div key={label} className={`${insetCardClass} px-4 py-4 transition duration-300 md:hover:-translate-y-0.5 md:hover:border-white/14`}>
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -441,7 +431,7 @@ export default function CreatorRadarPage() {
             <>
               <div className="mb-4 flex items-center justify-between gap-4 px-1 text-[11px] font-mono uppercase tracking-[0.18em] text-white/38">
                 <span>{visibleCreators.length} visible creators</span>
-                <span className="hidden sm:inline">Sorted for venue / brand fit</span>
+                <span className="hidden sm:inline">Sorted for mission fit</span>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -454,12 +444,10 @@ export default function CreatorRadarPage() {
                       ? `${averageRating.toFixed(1)} / ${creator.reviews?.count ?? 0}`
                       : `${creator.reviews?.count ?? 0} reviews`;
                   const cardMetrics: Array<{ label: string; value: string | number; icon: LucideIcon }> = [
-                    { label: 'Trust', value: creator.trust?.score ?? 0, icon: ShieldCheck },
+                    { label: 'Fit', value: creatorScore(creator), icon: ShieldCheck },
                     { label: 'Reviews', value: reviewLabel, icon: Star },
-                    { label: 'Dares', value: creator.completedDares, icon: Trophy },
-                    { label: 'Earned', value: formatUsd(creator.totalEarned), icon: DollarSign },
-                    { label: 'Venue reach', value: creator.businessMetrics?.venueReach ?? 0, icon: MapPin },
-                    { label: 'First marks', value: creator.businessMetrics?.firstMarks ?? 0, icon: CheckCircle2 },
+                    { label: 'Venues', value: creator.businessMetrics?.venueReach ?? 0, icon: MapPin },
+                    { label: 'Proofs', value: creator.completedDares, icon: Trophy },
                   ];
 
                   return (
@@ -469,9 +457,6 @@ export default function CreatorRadarPage() {
                     >
                       <div className="pointer-events-none absolute -bottom-8 left-8 right-8 h-16 rounded-full bg-white/[0.055] blur-2xl transition duration-300 group-hover:bg-white/[0.08]" />
                       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
-                      <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                        Fit {creatorScore(creator)}
-                      </div>
                       <div className="relative flex items-start gap-4">
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[22px] border border-white/14 bg-white/[0.06] shadow-[0_18px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.12)] transition duration-300 group-hover:-translate-y-0.5">
                           {creator.pfpUrl ? (
@@ -532,13 +517,13 @@ export default function CreatorRadarPage() {
                           href={buildBidHref(creator)}
                           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/18 bg-white px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black shadow-[0_13px_22px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-10px_14px_rgba(0,0,0,0.12)] transition hover:bg-white/86"
                         >
-                          Message / bid
+                          Message
                         </Link>
                         <Link
                           href={buildCreateHref(creator)}
                           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.25)] transition hover:bg-white/[0.09] hover:text-white"
                         >
-                          Fund direct dare
+                          Fund dare
                         </Link>
                         <Link
                           href={`/creator/${plainTag}`}

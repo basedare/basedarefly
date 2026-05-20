@@ -49,21 +49,21 @@ const OVERVIEW_STEPS = [
   {
     icon: Wallet,
     title: "Fund",
-    description: "Anyone funds a dare with USDC. Funds go into a secure on-chain escrow — nobody can touch them until the challenge is resolved.",
+    description: "Fund a dare with USDC. The money stays in escrow until proof is resolved.",
     color: "text-yellow-400",
     glow: "rgba(250,204,21,0.12)",
   },
   {
     icon: Camera,
     title: "Complete",
-    description: "A creator claims the dare, goes to the venue or does the challenge, and submits video proof directly on the platform.",
+    description: "A creator claims the mission, does the action, and uploads proof.",
     color: "text-purple-400",
     glow: "rgba(168,85,247,0.12)",
   },
   {
     icon: BadgeCheck,
     title: "Payout",
-    description: "Community reviews the proof, the referee verifies it, and the smart contract releases USDC directly to the creator's wallet.",
+    description: "Approved proof releases USDC to the creator wallet.",
     color: "text-emerald-400",
     glow: "rgba(52,211,153,0.12)",
   },
@@ -73,22 +73,22 @@ const CREATOR_POINTS = [
   {
     icon: Zap,
     title: "Claim dares from fans or brands",
-    description: "Browse active bounties, filter by location or niche, and claim challenges that match your vibe.",
+    description: "Find missions that match your location, skill, and vibe.",
   },
   {
     icon: MapPin,
     title: "Show up & do the challenge",
-    description: "Go to the venue, complete the dare IRL, and capture the moment on video. Nearby check-ins prove you were there.",
+    description: "Go to the place, do the action, and capture the moment.",
   },
   {
     icon: Film,
     title: "Submit proof on-platform",
-    description: "Upload your video proof. The community reviews it and the AI referee validates completion.",
+    description: "Upload proof so the action can be reviewed.",
   },
   {
     icon: DollarSign,
     title: "Get paid in USDC",
-    description: "No middleman, no 30-day net terms. Verified proof triggers instant payout from escrow to your wallet.",
+    description: "Verified proof pays from escrow to your wallet.",
   },
 ];
 
@@ -96,22 +96,22 @@ const BRAND_POINTS = [
   {
     icon: Target,
     title: "Flip to Control first",
-    description: "Venue and brand workflows live behind the Control switch: activation planning, creator routing, and proof receipts.",
+    description: "Venue and brand tools live behind the Control switch.",
   },
   {
     icon: Users,
     title: "Pick your creator",
-    description: "Choose from verified creators who match your brand. No blind marketplace — you select who represents you.",
+    description: "Choose creators by fit, reliability, and proof history.",
   },
   {
     icon: Wallet,
     title: "Fund the escrow, not a promise",
-    description: "USDC goes into a smart contract, not a creator's DM. Funds only release when the challenge is verified complete.",
+    description: "Funds release only when the mission is verified.",
   },
   {
     icon: BarChart3,
     title: "On-chain proof = measurable ROI",
-    description: "Every completion is verifiable on-chain. Real proof, real metrics, no fake engagement.",
+    description: "Every completion leaves a measurable receipt.",
   },
 ];
 
@@ -125,19 +125,19 @@ const ROLE_GLOSSARY = [
   {
     icon: Users,
     title: "Guests",
-    description: "Check in, vote, unlock perks, and turn a venue night into receipts.",
+    description: "Check in, vote, unlock perks, collect receipts.",
     color: "text-emerald-300",
   },
   {
     icon: Route,
     title: "Captains",
-    description: "Vetted local creators/operators who scout venues and launch first proof loops.",
+    description: "Trusted locals who help launch venue missions.",
     color: "text-yellow-300",
   },
   {
     icon: Store,
     title: "Venues",
-    description: "Host missions, perks, QR rails, and local rooms.",
+    description: "Host missions, perks, QR, and local rooms.",
     color: "text-purple-300",
   },
 ];
@@ -146,7 +146,7 @@ const QUICKSTART_TRACKS = [
   {
     audience: "Creator",
     title: "Claim and prove a dare",
-    summary: "Start on the map, claim a nearby dare, then submit proof from the claimed-dare panel.",
+    summary: "Find a nearby mission, claim it, then submit proof.",
     href: "/map",
     cta: "Open map",
     pillClass: "border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-100",
@@ -154,25 +154,25 @@ const QUICKSTART_TRACKS = [
     lineColor: "rgba(103,232,249,0.58)",
     steps: [
       { icon: MapPin, label: "Map", detail: "Open pins and nearby paid dares." },
-      { icon: Wallet, label: "Claim", detail: "Connect wallet and reserve the dare." },
-      { icon: QrCode, label: "Check in", detail: "Use proximity or QR when the venue asks." },
-      { icon: Camera, label: "Proof", detail: "Tap take photo/video on the claim." },
+      { icon: Wallet, label: "Claim", detail: "Connect wallet and reserve it." },
+      { icon: QrCode, label: "Check in", detail: "Use QR or nearby proof." },
+      { icon: Camera, label: "Proof", detail: "Capture the proof moment." },
     ],
     targets: ["Nav: Map", "Place drawer", "Claim proof panel"],
   },
   {
     audience: "Venue",
     title: "Claim the place layer",
-    summary: "Find your venue, claim the console path, and let check-ins unlock the local room.",
+    summary: "Claim the venue, turn on QR, and watch check-ins.",
     href: "/map",
     cta: "Find venue",
     pillClass: "border-emerald-300/20 bg-emerald-400/[0.08] text-emerald-100",
     iconClass: "text-emerald-300",
     lineColor: "rgba(110,231,183,0.56)",
     steps: [
-      { icon: Store, label: "Select", detail: "Open the venue from the map." },
+      { icon: Store, label: "Select", detail: "Open the venue." },
       { icon: QrCode, label: "Claim", detail: "Use the claim prompt on the place." },
-      { icon: MessageSquare, label: "Room", detail: "Checked-in users see the venue feed." },
+      { icon: MessageSquare, label: "Room", detail: "Checked-in guests unlock the room." },
       { icon: Bell, label: "Signals", detail: "Watch marks, proof, and check-in alerts." },
     ],
     targets: ["Map pin", "Venue header", "Signal room"],
@@ -180,7 +180,7 @@ const QUICKSTART_TRACKS = [
   {
     audience: "Brand",
     title: "Run First Spark",
-    summary: "Approve one venue, one simple perk, and one proof route. BaseDare handles the pilot and recap.",
+    summary: "Approve one venue, one perk, and one proof route.",
     href: "/first-spark",
     cta: "Run pilot",
     pillClass: "border-yellow-300/24 bg-yellow-400/[0.09] text-yellow-100",
@@ -188,26 +188,26 @@ const QUICKSTART_TRACKS = [
     lineColor: "rgba(250,204,21,0.62)",
     steps: [
       { icon: Target, label: "Brief", detail: "Use Plan Activation from Control." },
-      { icon: MapPin, label: "Place", detail: "Pick the venue or city target." },
+      { icon: MapPin, label: "Place", detail: "Pick the venue or city." },
       { icon: Users, label: "Route", detail: "Choose creator fit and payout." },
-      { icon: BarChart3, label: "Receipt", detail: "Track proof in Brand Portal." },
+      { icon: BarChart3, label: "Receipt", detail: "Track proof and recap." },
     ],
     targets: ["Control switch", "Plan Activation card", "Brand Portal"],
   },
   {
     audience: "Operator",
     title: "Review marks and alerts",
-    summary: "Moderate place proof, handle Telegram-backed approvals, and check push notification health.",
+    summary: "Review place proof, alerts, and push health.",
     href: "/admin?tab=placeTags",
     cta: "Open queue",
     pillClass: "border-fuchsia-300/20 bg-fuchsia-400/[0.08] text-fuchsia-100",
     iconClass: "text-fuchsia-300",
     lineColor: "rgba(244,114,182,0.58)",
     steps: [
-      { icon: ClipboardCheck, label: "Queue", detail: "Open Admin -> Place Tags." },
-      { icon: Camera, label: "Proof", detail: "Review the submitted photo/video." },
-      { icon: CheckCircle2, label: "Decide", detail: "Approve or reject from the panel." },
-      { icon: Bell, label: "Push", detail: "Use Admin -> Push for diagnostics." },
+      { icon: ClipboardCheck, label: "Queue", detail: "Open place tags." },
+      { icon: Camera, label: "Proof", detail: "Review photo or video." },
+      { icon: CheckCircle2, label: "Decide", detail: "Approve or reject." },
+      { icon: Bell, label: "Push", detail: "Check notification health." },
     ],
     targets: ["Admin tab bar", "Chaos inbox", "Push diagnostics"],
   },
@@ -321,7 +321,7 @@ export default function HowItWorksPage() {
                 </h2>
               </div>
               <p className="max-w-2xl font-mono text-xs leading-6 text-gray-400">
-                Captains are the local bridge: trusted operators who help venues and creators turn real places into proof-backed missions.
+                Captains are trusted locals who help venues and creators launch proof-backed missions.
               </p>
             </div>
 
@@ -405,7 +405,7 @@ export default function HowItWorksPage() {
                   Pick the <span className="text-cyan-300">Shortest Path</span>
                 </h2>
                 <p className="mt-3 max-w-2xl font-mono text-sm leading-6 text-gray-400">
-                  A visual route map for the live product. Each lane points at the exact surface to open first.
+                  Pick the lane that matches what you need now.
                 </p>
               </div>
               <Link
@@ -515,8 +515,7 @@ export default function HowItWorksPage() {
             </div>
 
             <p className="relative mb-8 max-w-2xl font-mono text-sm text-gray-400">
-              Get paid to do challenges at real venues. No brand deals, no invoices, no 30-day payment terms.
-              Complete the dare, submit proof, and the escrow pays you directly.
+              Get paid to do real missions. Complete the action, submit proof, and escrow pays when it clears.
             </p>
 
             <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -566,8 +565,7 @@ export default function HowItWorksPage() {
             </div>
 
             <p className="relative mb-8 max-w-2xl font-mono text-sm text-gray-400">
-              Turn creator content into accountable activations. Fund campaigns at real venues,
-              pick your creator, and get verifiable on-chain proof that the work was done.
+              Fund real venue missions, pick creator fit, and get a receipt for what happened.
             </p>
 
             <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">

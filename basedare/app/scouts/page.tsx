@@ -29,24 +29,24 @@ const loopSteps = [
   {
     icon: Search,
     title: 'Find creators',
-    copy: 'Spot people who can show up, film proof, and make real places feel alive.',
+    copy: 'Spot reliable locals who can show up and capture proof.',
   },
   {
     icon: RadioTower,
-    title: 'Route the invite',
-    copy: 'Each lead gets a captain application link with your scout attribution attached.',
+    title: 'Send invite',
+    copy: 'Share one tracked link. BaseDare handles the application.',
   },
   {
     icon: BadgeDollarSign,
-    title: 'Earn on output',
-    copy: `Founding scout rewards target ${DEFAULT_SCOUT_REWARD_SHARE_PCT}% of referred creator earnings after approved paid work.`,
+    title: 'Earn',
+    copy: `${DEFAULT_SCOUT_REWARD_SHARE_PCT}% target reward after referred creators complete paid work.`,
   },
 ];
 
 const rules = [
-  'No spam blasts. A strong warm creator is worth more than a hundred empty handles.',
-  'External messages stay manual until the operator approves the angle.',
-  'Scout rewards are tracked in the admin queue while the founding payout rail is manual.',
+  'Warm intros only.',
+  'No spam blasts.',
+  'Rewards are tracked in the admin queue.',
 ];
 
 export default async function ScoutArmyPage({ searchParams }: ScoutArmyPageProps) {
@@ -74,11 +74,10 @@ export default async function ScoutArmyPage({ searchParams }: ScoutArmyPageProps
               </div>
 
               <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-6xl">
-                Recruit Dare Captains. Earn when they earn.
+                Recruit captains. Earn on proof.
               </h1>
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/62">
-                BaseDare needs creator supply before venues believe. Scouts bring the people who can activate the map,
-                then BaseDare turns the strongest creators into proof-backed paid missions.
+                Invite reliable creators and locals. BaseDare routes the best ones into venue missions.
               </p>
 
               <div className="mt-7 grid gap-3">
@@ -105,7 +104,7 @@ export default async function ScoutArmyPage({ searchParams }: ScoutArmyPageProps
                   <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-cyan-100" />
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/62">
-                      Founding rules
+                      Rules
                     </p>
                     <div className="mt-3 grid gap-2">
                       {rules.map((rule) => (

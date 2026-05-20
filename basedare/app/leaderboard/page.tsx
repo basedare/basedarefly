@@ -230,33 +230,33 @@ export default function LeaderboardPage() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-20 sm:py-24 flex-grow relative z-20">
+      <div className="container mx-auto px-4 sm:px-6 py-16 sm:py-24 flex-grow relative z-20">
         {/* Header with Crown */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 sm:mb-12 max-w-5xl mx-auto"
+          className="mb-6 sm:mb-12 max-w-5xl mx-auto"
         >
-          <div className={`${raisedPanelClass} px-5 py-8 sm:px-8 sm:py-10 text-center`}>
+          <div className={`${raisedPanelClass} px-4 py-5 sm:px-8 sm:py-10 text-center`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
 
             <div className="relative">
-              <div className="mb-5 flex justify-start">
+              <div className="mb-4 flex justify-start">
                 <Link
                   href="/creators"
-                  className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 transition-all duration-300 hover:-translate-x-[2px] hover:border-fuchsia-400/30 hover:text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  className="group inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-300 transition-all duration-300 hover:-translate-x-[2px] hover:border-fuchsia-400/30 hover:text-white shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] sm:text-[11px] sm:tracking-[0.22em]"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
                   Creators
                 </Link>
               </div>
-              <div className={sectionLabelClass}>
+              <div className={`${sectionLabelClass} px-3 py-1.5 text-[10px] tracking-[0.22em] sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.28em]`}>
                 <Trophy className="w-4 h-4 text-fuchsia-300" />
-                HALL OF FAME
+                Hall of Fame
               </div>
 
-              <div className="relative mx-auto w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mt-6 mb-6">
+              <div className="relative mx-auto mt-4 mb-4 h-16 w-16 sm:mt-6 sm:mb-6 sm:h-32 sm:w-32 md:h-40 md:w-40">
                 <Image
                   src="/assets/peebear-crown.png"
                   alt="Champion Crown"
@@ -264,23 +264,38 @@ export default function LeaderboardPage() {
                   sizes="160px"
                   priority
                   style={{ objectFit: "contain" }}
-                  className="drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] animate-bounce-slow"
+                  className="drop-shadow-[0_0_24px_rgba(250,204,21,0.62)] motion-reduce:animate-none sm:drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] sm:animate-bounce-slow"
                 />
               </div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight">
+              <h1 className="text-[2.35rem] font-black leading-[0.92] tracking-tight sm:text-5xl md:text-7xl">
                 <span className="text-white">The </span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500">
                   Leaderboard
                 </span>
               </h1>
-              <div className={`${dentWellClass} mt-5 max-w-2xl mx-auto px-5 py-4`}>
-                <p className="text-gray-300/85 font-mono text-sm leading-relaxed uppercase tracking-[0.2em]">
-                  Only verified wins count.
+              <div className={`${dentWellClass} mt-4 max-w-2xl mx-auto px-4 py-3 sm:mt-5 sm:px-5 sm:py-4`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-300/82 sm:font-mono sm:text-sm sm:tracking-[0.2em]">
+                  Verified wins only.
                 </p>
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1 sm:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className={`${dentWellClass} min-w-[8.4rem] px-3 py-3 text-left`}>
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/42">Creators</div>
+                  <div className="mt-1 text-xl font-black text-white">{leaderboard.length}</div>
+                </div>
+                <div className={`${dentWellClass} min-w-[8.4rem] px-3 py-3 text-left`}>
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/42">Volume</div>
+                  <div className="mt-1 text-xl font-black text-yellow-300">{formatVolume(totalVolume)}</div>
+                </div>
+                <div className={`${dentWellClass} min-w-[8.4rem] px-3 py-3 text-left`}>
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/42">Wins</div>
+                  <div className="mt-1 text-xl font-black text-cyan-300">{totalCompletions}</div>
+                </div>
+              </div>
+
+              <div className="mt-5 hidden grid-cols-2 gap-3 sm:grid md:grid-cols-4">
                 <div className={`${dentWellClass} px-4 py-4 text-left`}>
                   <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Ranked</div>
                   <div className="mt-2 text-2xl font-black text-white">{leaderboard.length}</div>

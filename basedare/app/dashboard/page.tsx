@@ -1147,18 +1147,19 @@ export default function Dashboard() {
                 >
                   Open action center
                 </button>
-                {(
-                  ['Needs response', 'Ready for proof', 'Under review', 'Payout queued', 'Claim decision', 'Venue lead follow-up', 'Paid'] as const
-                ).map((category) =>
-                  actionInbox.length > 0 && actionInboxCounts[category] > 0 ? (
-                    <span
-                      key={category}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62"
-                    >
-                      {category} {actionInboxCounts[category]}
-                    </span>
-                  ) : null
-                )}
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62">
+                  {actionInbox.length} actions
+                </span>
+                {actionInboxCounts['Ready for proof'] > 0 ? (
+                  <span className="rounded-full border border-yellow-300/18 bg-yellow-400/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-yellow-100">
+                    {actionInboxCounts['Ready for proof']} proof
+                  </span>
+                ) : null}
+                {actionInboxCounts['Needs response'] > 0 ? (
+                  <span className="rounded-full border border-cyan-300/18 bg-cyan-400/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                    {actionInboxCounts['Needs response']} reply
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -1217,7 +1218,7 @@ export default function Dashboard() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-4 line-clamp-2 text-sm text-white/62 sm:line-clamp-none">{item.detail}</p>
+                    <p className="mt-4 line-clamp-2 text-sm text-white/62">{item.detail}</p>
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       {item.dareId && (item.category === 'Ready for proof' || item.category === 'Needs response') ? (
                         <SquircleButton
@@ -1294,9 +1295,9 @@ export default function Dashboard() {
         <div ref={activationsRef} className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">What You&apos;ve Done To The Grid</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Your trace</h2>
               <p className="mt-1 text-sm text-white/52">
-                Your verified place memory, first sparks, and venue footprint all in one surface.
+                Proofs, first marks, and venue history.
               </p>
             </div>
             <button
@@ -1315,11 +1316,11 @@ export default function Dashboard() {
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {[
-                  { label: 'Memory Added', value: footprintStats?.totalMarks ?? 0, tone: 'text-cyan-200' },
-                  { label: 'First Sparks', value: footprintStats?.firstMarks ?? 0, tone: 'text-[#f8dd72]' },
-                  { label: 'Venues Marked', value: footprintStats?.uniqueVenues ?? 0, tone: 'text-fuchsia-200' },
+                  { label: 'Proofs', value: footprintStats?.totalMarks ?? 0, tone: 'text-cyan-200' },
+                  { label: 'First marks', value: footprintStats?.firstMarks ?? 0, tone: 'text-[#f8dd72]' },
+                  { label: 'Venues', value: footprintStats?.uniqueVenues ?? 0, tone: 'text-fuchsia-200' },
                   {
-                    label: 'Last Movement',
+                    label: 'Last',
                     value: footprintStats?.lastMarkedAt ? formatStatusTimestamp(footprintStats.lastMarkedAt, '--') : '--',
                     tone: 'text-white',
                   },
@@ -1335,10 +1336,10 @@ export default function Dashboard() {
                 {footprintStats?.topVenue ? (
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Strongest Venue History</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Top venue</p>
                       <p className="mt-2 text-lg font-black text-white">{footprintStats.topVenue.name}</p>
                       <p className="mt-1 text-sm text-white/52">
-                        You&apos;ve left {footprintStats.topVenue.count} verified {footprintStats.topVenue.count === 1 ? 'mark' : 'marks'} here.
+                        {footprintStats.topVenue.count} verified {footprintStats.topVenue.count === 1 ? 'mark' : 'marks'} here.
                         {footprintStats.topVenue.city ? ` ${footprintStats.topVenue.city}` : ''}
                         {footprintStats.topVenue.country ? `, ${footprintStats.topVenue.country}` : ''}
                       </p>

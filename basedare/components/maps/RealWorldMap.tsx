@@ -447,8 +447,6 @@ const LOCAL_SIGNAL_CATEGORIES = [
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 const START_PROOF_DOCK_DISMISSED_KEY = 'basedare:map-start-proof-dismissed';
 
-const SIGNAL_LAYER_KIND_ORDER: SignalLayerKind[] = ['drop', 'first', 'route', 'relic', 'intel'];
-
 type FootprintMark = {
   id: string;
   creatorTag: string | null;
@@ -2964,7 +2962,7 @@ export default function RealWorldMap() {
   const [mapVenueFocus, setMapVenueFocus] = useState<MapVenueFocus>('all');
   const [showAdvancedMapFilters, setShowAdvancedMapFilters] = useState(false);
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
-  const [nearbyDareRadiusKm, setNearbyDareRadiusKm] = useState(5);
+  const [nearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
   const [showLocalSignalForm, setShowLocalSignalForm] = useState(false);
   const [localSignalDraft, setLocalSignalDraft] = useState<LocalSignalDraft>({
@@ -5148,7 +5146,8 @@ export default function RealWorldMap() {
     }
 
     const activePlaces = validPlaces.filter((place) => getVenueClusterScore(place) > 0);
-    const fitPlaces = (activePlaces.length >= 2 ? activePlaces : validPlaces).slice(0, 18);
+    const clusterLimit = isMobileViewport ? 10 : 12;
+    const fitPlaces = (activePlaces.length >= 2 ? activePlaces : validPlaces).slice(0, clusterLimit);
     if (fitPlaces.length === 0) {
       return;
     }
@@ -5171,9 +5170,9 @@ export default function RealWorldMap() {
 
     map.fitBounds(bounds, {
       padding: isMobileViewport
-        ? { top: 72, right: 44, bottom: 172, left: 44 }
-        : { top: 78, right: 124, bottom: 124, left: 136 },
-      maxZoom: isMobileViewport ? 14.2 : 14.6,
+        ? { top: 44, right: 34, bottom: 132, left: 34 }
+        : { top: 62, right: 118, bottom: 118, left: 118 },
+      maxZoom: isMobileViewport ? 14.85 : 15.15,
       duration: 900,
       essential: true,
     });
@@ -5426,6 +5425,7 @@ export default function RealWorldMap() {
 
     return items.slice(0, 5);
   }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  const featuredMapHappening = mapHappenings[0] ?? null;
   const firstProofStartPlace = useMemo(() => {
     const happeningPlace = mapHappenings.find(
       (happening) => happening.place && happening.rewardLabel === 'First proof'
@@ -5591,23 +5591,8 @@ export default function RealWorldMap() {
     }, 1200);
   }, [handleStartFirstProof, selectedPlace, selectedPlaceIdentity]);
 
-  const signalLayerCounts = useMemo(() => {
-    const counts: Record<SignalLayerKind, number> = {
-      drop: 0,
-      first: 0,
-      route: 0,
-      relic: 0,
-      intel: 0,
-    };
-
-    mapHappenings.forEach((happening) => {
-      counts[getSignalLayerKind(happening)] += 1;
-    });
-
-    return counts;
-  }, [mapHappenings]);
   const happeningLoading = nearbyDaresLoading || localSignalsLoading;
-  const showNearbyDarePanel = happeningLoading || mapHappenings.length > 0;
+  const showNearbyDarePanel = happeningLoading || mapHappenings.length > 0 || showLocalSignalForm;
 
   const filterCounts = useMemo(() => {
     const counts: Record<PulseFilter, number> = {
@@ -5868,43 +5853,11 @@ export default function RealWorldMap() {
       accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
     },
   ];
-  const nearbyDareFilterOptions: Array<{
-    value: NearbyDareFilter;
-    label: string;
-    count: number;
-    accentClass: string;
-  }> = [
-    {
-      value: 'all',
-      label: 'All',
-      count: nearbyDareCounts.all,
-      accentClass:
-        'data-[active=true]:border-white/20 data-[active=true]:bg-white/[0.08] data-[active=true]:text-white',
-    },
-    {
-      value: 'open',
-      label: 'Open',
-      count: nearbyDareCounts.open,
-      accentClass:
-        'data-[active=true]:border-cyan-300/42 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
-    },
-    {
-      value: 'sentinel',
-      label: 'Sentinel',
-      count: nearbyDareCounts.sentinel,
-      accentClass:
-        'data-[active=true]:border-amber-300/42 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
-    },
-    {
-      value: 'high',
-      label: '100+',
-      count: nearbyDareCounts.high,
-      accentClass:
-        'data-[active=true]:border-fuchsia-300/42 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
-    },
-  ];
-  const nearbyRadiusOptions = [2, 5, 10, 20];
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
+  const visibleMapIntentChips = isMobileViewport
+    ? MAP_INTENT_SEARCH_CHIPS.filter((chip) => chip !== 'Proof').slice(0, 4)
+    : MAP_INTENT_SEARCH_CHIPS;
+  const mobileMapFilterCount = activeMapFilterIsScoped ? filteredNearbyPlaces.length : nearbyPlaces.length;
   const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
   const hasSaveSpotPanel = Boolean(saveSpotDraft || selectedPrivateMapSpot);
   const showCompactSelectedPlacePanel = Boolean(
@@ -6584,7 +6537,7 @@ export default function RealWorldMap() {
         id: 'live',
         label: 'Live',
         count: nearbyDareCounts.all,
-        detail: `${nearbyDareRadiusKm}km`,
+        detail: 'nearby',
         active: mapVenueFocus === 'live',
         disabled: false,
         className:
@@ -7902,6 +7855,12 @@ export default function RealWorldMap() {
         ) : null}
 
         <div
+          onPointerDownCapture={(event) => {
+            if (!searchPopoverOpen) return;
+            const target = event.target;
+            if (target instanceof Node && searchShellRef.current?.contains(target)) return;
+            closeSearchPopover();
+          }}
           className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[38px]'}`}
           style={
             isImmersiveMobile
@@ -7919,8 +7878,8 @@ export default function RealWorldMap() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
           <div
-            className={`relative z-20 flex shrink-0 flex-col gap-2 border-b border-white/8 ${
-              isImmersiveMobile ? 'px-3 py-2' : 'px-4 py-2.5 sm:px-5 sm:py-3'
+            className={`map-command-header relative z-20 flex shrink-0 flex-col gap-1.5 border-b border-white/8 ${
+              isImmersiveMobile ? 'px-3 py-2' : 'px-3 py-2 sm:px-4 sm:py-2.5'
             }`}
           >
             <div ref={searchShellRef} className="relative w-full max-w-xl">
@@ -7946,7 +7905,7 @@ export default function RealWorldMap() {
               </div>
 
               <div className="map-intent-row">
-                {MAP_INTENT_SEARCH_CHIPS.map((chip) => (
+                {visibleMapIntentChips.map((chip) => (
                   <button
                     key={chip}
                     type="button"
@@ -7964,7 +7923,7 @@ export default function RealWorldMap() {
               </div>
 
               {searchPopoverOpen && searchResults.length > 0 ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+                <div className="map-search-popover absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
                   {searchResults.map((result) => (
                     <button
                       key={result.id}
@@ -8023,19 +7982,26 @@ export default function RealWorldMap() {
 
             <div className={`map-top-control-stack ${isImmersiveMobile ? 'hidden' : ''}`}>
               <div className="map-status-rail">
-                {mapStatusRailOptions.map((option) => (
-                  <button
-                    key={`map-status:${option.id}`}
-                    type="button"
-                    data-active={option.active}
-                    disabled={option.disabled}
-                    onClick={option.onClick}
-                    className={`map-status-pill ${option.className}`}
-                  >
-                    <span>{option.label}</span>
-                    <span>{option.count}</span>
-                  </button>
-                ))}
+                {isMobileViewport ? (
+                  <span className="map-status-pill map-status-pill--summary">
+                    <span>{activeMapFilterIsScoped ? activeMapFilterLabel : 'All venues'}</span>
+                    <span>{mobileMapFilterCount}</span>
+                  </span>
+                ) : (
+                  mapStatusRailOptions.map((option) => (
+                    <button
+                      key={`map-status:${option.id}`}
+                      type="button"
+                      data-active={option.active}
+                      disabled={option.disabled}
+                      onClick={option.onClick}
+                      className={`map-status-pill ${option.className}`}
+                    >
+                      <span>{option.label}</span>
+                      <span>{option.count}</span>
+                    </button>
+                  ))
+                )}
                 <button
                   type="button"
                   data-active={showAdvancedMapFilters || activeMapFilterIsScoped}
@@ -8055,7 +8021,7 @@ export default function RealWorldMap() {
               {showAdvancedMapFilters ? (
                 <div className="map-advanced-filter-panel">
                   <div className="map-advanced-filter-group">
-                    <span className="map-advanced-filter-label">Proof state</span>
+                    <span className="map-advanced-filter-label">Show</span>
                     <div className="map-advanced-filter-row">
                       {filterOptions.map((option) => (
                         <button
@@ -8081,7 +8047,7 @@ export default function RealWorldMap() {
                   </div>
 
                   <div className="map-advanced-filter-group">
-                    <span className="map-advanced-filter-label">Tag map</span>
+                    <span className="map-advanced-filter-label">Tag</span>
                     <div className="map-advanced-filter-row">
                       <button
                         type="button"
@@ -8119,7 +8085,21 @@ export default function RealWorldMap() {
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
                       >
                         <Bike className="h-3 w-3" />
-                        Save spot
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          closeSearchPopover();
+                          setShowLocalSignalForm((current) => !current);
+                          setNearbyDarePanelCollapsed(false);
+                          triggerHaptic('selection');
+                        }}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/78 transition hover:border-cyan-100/32 hover:text-cyan-50"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        {showLocalSignalForm ? 'Close tip' : 'Tip'}
                       </button>
                       {latestPrivateMapSpot ? (
                         <button
@@ -8140,7 +8120,7 @@ export default function RealWorldMap() {
 
                   {isConnected ? (
                     <div className="map-advanced-filter-group">
-                      <span className="map-advanced-filter-label">My map</span>
+                      <span className="map-advanced-filter-label">Mine</span>
                       <div className="map-advanced-filter-row">
                         <button
                           type="button"
@@ -8198,7 +8178,9 @@ export default function RealWorldMap() {
             ref={mapViewportRef}
             data-map-preset={mapPreset}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
-              isImmersiveMobile ? 'map-container-wrapper--immersive min-h-0 flex-1' : 'h-[76vh] min-h-[660px]'
+              isImmersiveMobile
+                ? 'map-container-wrapper--immersive min-h-0 flex-1'
+                : 'h-[calc(100dvh-15.25rem)] min-h-[560px] md:h-[76vh] md:min-h-[660px]'
             }`}
           >
             <div
@@ -8349,14 +8331,14 @@ export default function RealWorldMap() {
                     <div className="flex w-full items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                          Nearby
+                          Nearby now
                         </p>
                         <p className="mt-1 truncate text-[11px] text-white/52">
                           {happeningLoading
                             ? 'Scanning nearby...'
-                            : mapHappenings.length > 0
-                              ? `${mapHappenings.length} nearby · ${happeningWindow.label}`
-                              : `Nothing nearby within ${nearbyDareRadiusKm}km`}
+                            : featuredMapHappening
+                              ? `Best next: ${featuredMapHappening.title}`
+                              : 'Move the map or take first proof'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -8397,98 +8379,16 @@ export default function RealWorldMap() {
                         Nearby now
                       </p>
                       <p className="mt-1 text-[11px] text-white/55">
-                        {userLocation ? happeningWindow.prompt : `${happeningWindow.dateLabel} · ${happeningWindow.prompt}`}
+                        {featuredMapHappening
+                          ? `Best next: ${featuredMapHappening.title}`
+                          : userLocation
+                            ? 'Closest useful moves.'
+                            : `${happeningWindow.dateLabel} around the map`}
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
                       {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
                     </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {SIGNAL_LAYER_KIND_ORDER.map((kind) => {
-                      const meta = getSignalLayerKindMeta(kind);
-                      const count = signalLayerCounts[kind];
-
-                      return (
-                        <span
-                          key={`signal-layer-count:${kind}`}
-                          data-active={count > 0}
-                          className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
-                            count > 0 ? meta.activeClass : 'border-white/8 bg-white/[0.025] text-white/28'
-                          }`}
-                        >
-                          <span>{meta.pluralLabel}</span>
-                          <span className="rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[8px] text-white/62">
-                            {count}
-                          </span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    {nearbyDareCounts.all > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {nearbyDareFilterOptions.map((option) => (
-                          <button
-                            key={`nearby-dare-filter:${option.value}`}
-                            type="button"
-                            data-active={nearbyDareFilter === option.value}
-                            onClick={() => setNearbyDareFilter(option.value)}
-                            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white ${option.accentClass}`}
-                          >
-                            <span>{option.label}</span>
-                            <span className="rounded-full border border-white/10 bg-black/20 px-1.5 py-0.5 text-[9px] text-white/62">
-                              {option.count}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">
-                        Local tips + proof spots
-                      </div>
-                    )}
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowLocalSignalForm((current) => !current);
-                          setNearbyDarePanelCollapsed(false);
-                          triggerHaptic('selection');
-                        }}
-                        className="inline-flex min-h-8 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/78 transition hover:border-cyan-200/34 hover:text-cyan-50"
-                      >
-                        {showLocalSignalForm ? 'Close' : 'Add local tip'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNearbyDarePanelCollapsed((current) => !current)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:border-white/16 hover:text-white"
-                        aria-label={nearbyDarePanelCollapsed ? 'Expand nearby dare panel' : 'Collapse nearby dare panel'}
-                      >
-                        {nearbyDarePanelCollapsed ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                      Radius
-                    </span>
-                    {nearbyRadiusOptions.map((radius) => (
-                      <button
-                        key={`nearby-radius:${radius}`}
-                        type="button"
-                        data-active={nearbyDareRadiusKm === radius}
-                        onClick={() => setNearbyDareRadiusKm(radius)}
-                        className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/52 transition hover:border-white/16 hover:text-white data-[active=true]:border-[#f5c518]/32 data-[active=true]:bg-[#f5c518]/[0.12] data-[active=true]:text-[#f8dd72]"
-                      >
-                        {radius}km
-                      </button>
-                    ))}
                   </div>
                 </div>
                 {!nearbyDarePanelCollapsed ? (
@@ -8710,7 +8610,7 @@ export default function RealWorldMap() {
                       ? 'Scanning nearby...'
                       : mapHappenings.length > 0
                         ? `${mapHappenings[0].title}`
-                        : `Nothing nearby within ${nearbyDareRadiusKm}km`}
+                        : 'No nearby signals yet'}
                   </div>
                 )}
                 </>
@@ -10453,9 +10353,9 @@ export default function RealWorldMap() {
         .map-intent-row {
           display: flex;
           width: 100%;
-          gap: 0.38rem;
+          gap: 0.32rem;
           overflow-x: auto;
-          padding: 0.5rem 0.05rem 0;
+          padding: 0.34rem 0.05rem 0;
           scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
         }
@@ -10467,7 +10367,7 @@ export default function RealWorldMap() {
         .map-intent-chip {
           appearance: none;
           display: inline-flex;
-          min-height: 1.78rem;
+          min-height: 1.58rem;
           flex: 0 0 auto;
           align-items: center;
           justify-content: center;
@@ -10476,9 +10376,9 @@ export default function RealWorldMap() {
           background:
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.09), transparent 42%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
-          padding: 0.42rem 0.68rem;
+          padding: 0.34rem 0.58rem;
           color: rgba(255, 255, 255, 0.62);
-          font-size: 0.56rem;
+          font-size: 0.52rem;
           font-weight: 900;
           letter-spacing: 0.16em;
           line-height: 1;
@@ -10511,16 +10411,16 @@ export default function RealWorldMap() {
           display: flex;
           width: 100%;
           flex-direction: column;
-          gap: 0.55rem;
+          gap: 0.38rem;
         }
 
         .map-status-rail {
           display: flex;
           width: 100%;
-          max-width: 62rem;
+          max-width: 48rem;
           flex-wrap: wrap;
           align-items: center;
-          gap: 0.42rem;
+          gap: 0.34rem;
         }
 
         .map-status-pill {
@@ -10528,19 +10428,19 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 2.02rem;
+          min-height: 1.84rem;
           align-items: center;
           justify-content: center;
-          gap: 0.46rem;
+          gap: 0.38rem;
           overflow: hidden;
           border-radius: 999px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background:
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 42%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.9));
-          padding: 0.44rem 0.76rem 0.42rem;
+          padding: 0.36rem 0.66rem 0.34rem;
           color: rgba(255, 255, 255, 0.58);
-          font-size: 0.64rem;
+          font-size: 0.58rem;
           font-weight: 900;
           letter-spacing: 0.13em;
           line-height: 1;
@@ -10603,6 +10503,19 @@ export default function RealWorldMap() {
           color: rgba(202, 248, 255, 0.72);
         }
 
+        .map-status-pill--summary {
+          min-width: 0;
+          max-width: min(15rem, 58vw);
+          pointer-events: none;
+        }
+
+        .map-status-pill--summary span:first-child {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         .map-status-pill--filters[data-active='true'] {
           border-color: rgba(34, 211, 238, 0.36);
           background:
@@ -10613,14 +10526,14 @@ export default function RealWorldMap() {
 
         .map-advanced-filter-panel {
           display: grid;
-          width: min(100%, 58rem);
-          gap: 0.65rem;
-          border-radius: 1.25rem;
+          width: min(100%, 50rem);
+          gap: 0.52rem;
+          border-radius: 1.1rem;
           border: 1px solid rgba(255, 255, 255, 0.1);
           background:
             radial-gradient(circle at 12% 0%, rgba(168, 85, 247, 0.12), transparent 32%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(6, 8, 16, 0.92));
-          padding: 0.7rem;
+          padding: 0.56rem;
           box-shadow:
             0 16px 32px rgba(0, 0, 0, 0.28),
             inset 0 1px 0 rgba(255, 255, 255, 0.08),
@@ -10630,7 +10543,7 @@ export default function RealWorldMap() {
         .map-advanced-filter-group {
           display: flex;
           flex-direction: column;
-          gap: 0.4rem;
+          gap: 0.32rem;
         }
 
         .map-advanced-filter-label {
@@ -10646,11 +10559,43 @@ export default function RealWorldMap() {
         .map-advanced-filter-row {
           display: flex;
           flex-wrap: wrap;
-          gap: 0.42rem;
+          gap: 0.34rem;
+        }
+
+        .map-search-popover {
+          max-height: min(54dvh, 26rem);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
         }
 
         @media (max-width: 767px) {
-          .map-intent-row,
+          .map-command-header {
+            gap: 0.34rem;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.46rem !important;
+          }
+
+          .map-intent-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.28rem;
+            overflow: visible;
+            padding-top: 0.26rem;
+          }
+
+          .map-intent-chip {
+            width: 100%;
+            min-height: 1.48rem;
+            padding-inline: 0.32rem;
+            font-size: 0.46rem;
+            letter-spacing: 0.1em;
+          }
+
+          .map-top-control-stack {
+            gap: 0.24rem;
+          }
+
           .map-status-rail {
             flex-wrap: nowrap;
             overflow-x: auto;
@@ -10659,22 +10604,35 @@ export default function RealWorldMap() {
             -webkit-overflow-scrolling: touch;
           }
 
-          .map-intent-row::-webkit-scrollbar,
           .map-status-rail::-webkit-scrollbar {
             display: none;
           }
 
           .map-status-pill {
-            min-height: 1.9rem;
+            min-height: 1.68rem;
             flex: 0 0 auto;
-            padding-inline: 0.64rem;
-            font-size: 0.58rem;
+            padding-inline: 0.56rem;
+            font-size: 0.52rem;
+          }
+
+          .map-status-pill--summary {
+            flex: 1 1 auto;
+            max-width: none;
+            justify-content: space-between;
+          }
+
+          .map-status-pill--filters {
+            margin-left: auto;
           }
 
           .map-advanced-filter-panel {
-            max-height: min(42vh, 18rem);
+            max-height: min(32vh, 13.5rem);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+          }
+
+          .map-search-popover {
+            max-height: min(48dvh, 20rem);
           }
         }
 

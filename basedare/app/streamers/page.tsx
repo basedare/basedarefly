@@ -328,10 +328,10 @@ export default function CreatorsPage() {
                     Creator availability
                   </div>
                   <h2 className="mt-4 text-xl font-black tracking-tight text-white italic">
-                    Creators ready near a venue
+                    Ready creators
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                    Route creators by area, proof record, and skill. Exact live location stays private until a mission is accepted.
+                    Invite by area, proof record, and skill. Exact location stays private.
                   </p>
                 </div>
                 <Link
@@ -414,7 +414,7 @@ export default function CreatorsPage() {
                           <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.035] px-3 py-2">
                             <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
                               <Clock className="h-3 w-3 text-[#f9e27a]" />
-                              Record
+                              Proofs
                             </div>
                             <p className="mt-1 font-black text-white/78">{creator.stats?.approved ?? creator.completedDares} proofs</p>
                           </div>
@@ -439,7 +439,7 @@ export default function CreatorsPage() {
                             href={inviteHref}
                             className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
                           >
-                            Launch
+                            Invite
                           </Link>
                         </div>
                       </div>
@@ -489,7 +489,7 @@ export default function CreatorsPage() {
             <div className="relative">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black text-white tracking-tight italic">
-                  ACTIVE CREATORS
+                  CREATORS
                 </h2>
                 <Link href="/leaderboard" className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   Hall of Fame <ArrowRight className="w-3 h-3" />
@@ -651,30 +651,20 @@ export default function CreatorsPage() {
                                   ) : null}
                                 </div>
 
-                                <div className="mt-3 flex min-h-[2rem] flex-wrap items-center justify-center gap-1.5">
-                                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/72">
-                                    {creator.stats?.approved ?? creator.completedDares} settled
-                                  </span>
-                                  <span className="inline-flex items-center rounded-full border border-cyan-400/18 bg-cyan-500/[0.08] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100">
-                                    {creator.stats?.acceptRate ?? 0}% clear
-                                  </span>
-                                  {(creator.businessMetrics?.venueReach ?? 0) > 0 ? (
-                                    <span className="inline-flex items-center rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-fuchsia-100">
-                                      {creator.businessMetrics?.venueReach} venues
-                                    </span>
-                                  ) : null}
-                                </div>
-
-                                <div className={`mt-4 grid grid-cols-2 gap-2 ${insetCardClass} p-3`}>
-                                  <div className="flex flex-col">
-                                    <span className="whitespace-nowrap text-[11px] font-black leading-none text-green-400 tabular-nums sm:text-[10px]">
-                                      ${creator.totalEarned.toLocaleString()}
-                                    </span>
-                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Earned</span>
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-white">{creator.completedDares}</span>
-                                    <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Settled</span>
+                                <div className={`mt-4 ${insetCardClass} p-3`}>
+                                  <div className="grid grid-cols-2 gap-2 text-left">
+                                    <div>
+                                      <span className="block text-[11px] font-black leading-none text-white tabular-nums">
+                                        {creator.stats?.approved ?? creator.completedDares}
+                                      </span>
+                                      <span className="mt-1 block text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Proofs</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[11px] font-black leading-none text-cyan-100 tabular-nums">
+                                        {creator.businessMetrics?.venueReach ?? 0}
+                                      </span>
+                                      <span className="mt-1 block text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Venues</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

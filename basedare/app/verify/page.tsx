@@ -22,7 +22,7 @@ export default function Verify() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">PROTOCOL</span>
             </h1>
             <p className="text-gray-400 font-mono text-xs sm:text-sm max-w-xl mx-auto">
-              Surface community signal, feed referee review, and keep the payout layer honest.
+              Review proof, cast signal, and help clean payouts move.
             </p>
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function Verify() {
               <div>
                 <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/35">Review Protocol</p>
                 <p className="mt-1 text-xs md:text-sm text-white/85 font-semibold uppercase tracking-wide">
-                  Community signal · escalates to referee review · payout handled by protocol
+                  Signal first · referee review next · payout after approval
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider text-white/55">
@@ -67,19 +67,19 @@ export default function Verify() {
             {
               step: '1',
               title: 'Review Proof',
-              description: 'Watch the submitted video or image evidence. Does it show the dare being completed?',
+              description: 'Check whether the proof shows the action.',
               color: 'blue'
             },
             {
               step: '2',
               title: 'Cast Vote',
-              description: 'Vote PASS if the proof shows completion. Vote FAIL if the proof is insufficient or fraudulent.',
+              description: 'Pass clean proof. Fail weak proof.',
               color: 'purple'
             },
             {
               step: '3',
               title: 'Escalate Review',
-              description: 'Once signal is strong enough, the proof leaves this queue and moves into referee review. Final approval and payout are handled by protocol.',
+              description: 'Strong signal moves to final review.',
               color: 'green'
             }
           ].map((item) => (
@@ -122,13 +122,13 @@ export default function Verify() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[10px] sm:text-xs text-gray-400 font-mono">
             <div>
-              <span className="text-blue-400 font-bold">+5</span> points for every vote cast
+              <span className="text-blue-400 font-bold">+5</span> per vote
             </div>
             <div>
-              <span className="text-green-400 font-bold">Signal</span> helps prioritise referee review
+              <span className="text-green-400 font-bold">Signal</span> ranks review
             </div>
             <div>
-              <span className="text-orange-400 font-bold">Final</span> review and payout happen off this public queue
+              <span className="text-orange-400 font-bold">Final</span> payout needs approval
             </div>
           </div>
         </div>

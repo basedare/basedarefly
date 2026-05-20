@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import BubbleCard from '@/components/BubbleCard';
 import HowItWorksSignalWires from '@/components/HowItWorksSignalWires';
-import Shuffle from '@/components/Shuffle';
 import './HowItWorksSignalWires.css';
 
 export default function TruthProtocol() {
@@ -73,34 +72,12 @@ export default function TruthProtocol() {
             <>
               <h2 className="text-4xl md:text-6xl font-display font-black italic uppercase tracking-tighter text-white mb-6">
                 <span className="mr-3">THE</span>
-                <Shuffle
-                  text="TRUTH"
-                  tag="span"
-                  className="text-[#FACC15] inline-block mr-3"
-                  duration={0.8}
-                  stagger={0.03}
-                  shuffleTimes={4}
-                  triggerOnHover={true}
-                />
-                <Shuffle
-                  text="PROTOCOL"
-                  tag="span"
-                  className="text-[#A855F7] inline-block"
-                  duration={0.8}
-                  stagger={0.03}
-                  shuffleTimes={4}
-                  triggerOnHover={true}
-                />
+                <span className="mr-3 inline-block text-[#FACC15]">TRUTH</span>
+                <span className="inline-block text-[#A855F7]">PROTOCOL</span>
               </h2>
-              <Shuffle
-                text="Zero-Knowledge Verification • On-Chain Settlement • Base L2"
-                tag="p"
-                className="inline-flex max-w-fit items-center justify-center bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.08] px-5 py-3 text-gray-400 font-mono text-sm uppercase tracking-widest"
-                duration={0.6}
-                stagger={0.01}
-                shuffleTimes={2}
-                triggerOnHover={true}
-              />
+              <p className="inline-flex max-w-fit items-center justify-center bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.08] px-5 py-3 text-gray-400 font-mono text-sm uppercase tracking-widest">
+                Zero-Knowledge Verification • On-Chain Settlement • Base L2
+              </p>
             </>
           )}
         </div>

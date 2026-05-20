@@ -381,10 +381,10 @@ export default async function VenueDetailPage(
             : currentPulseState.label,
       detail:
         venue.liveSession?.status === 'LIVE'
-          ? `Venue Pass is live inside ${venue.checkInRadiusMeters}m. Scan in and leave proof.`
+          ? `QR is live inside ${venue.checkInRadiusMeters}m. Scan in and leave proof.`
           : venue.activeDares.length > 0
-            ? `${venue.activeDares.length} reward challenge${venue.activeDares.length === 1 ? '' : 's'} make this venue actionable.`
-            : 'The venue is visible. The next mark or reward wakes it up.',
+            ? `${venue.activeDares.length} reward challenge${venue.activeDares.length === 1 ? '' : 's'} live now.`
+            : 'Visible, waiting for proof or a reward.',
       tone: 'cyan',
       href: mapHref,
       actionLabel: 'Open map',
@@ -396,8 +396,8 @@ export default async function VenueDetailPage(
           ? `$${totalActiveChallengeFunding.toFixed(0)} live`
           : 'Open slot',
       detail: primaryLiveDrop
-        ? `${primaryLiveDrop.title} is the current paid path into this venue.`
-        : 'No reward challenge is live yet. First sponsor gets the cleanest signal.',
+        ? `${primaryLiveDrop.title} is live here.`
+        : 'No reward is live yet.',
       tone: 'gold',
       href: primaryLiveDrop?.shortId ? `/dare/${primaryLiveDrop.shortId}` : fundChallengeHref,
       actionLabel: primaryLiveDrop ? 'Open' : 'Sponsor',
@@ -410,10 +410,10 @@ export default async function VenueDetailPage(
           ? 'In review'
           : 'Unclaimed',
       detail: firstMarkMoment
-        ? `${firstMarkMoment.creatorLabel} wrote the opening legend ${formatVenueLogbookDate(firstMarkMoment.occurredAt)}.`
+        ? `${firstMarkMoment.creatorLabel} opened this place.`
         : hasPendingOwnVenueMark
-          ? 'A first mark is waiting for referee approval. If it lands, the venue memory starts.'
-          : 'Nobody owns the opening story yet. The first approved mark becomes permanent venue memory.',
+          ? 'First mark is in review.'
+          : 'First approved mark owns the opening story.',
       tone: 'purple',
       href: null,
       actionLabel: null,
@@ -427,7 +427,7 @@ export default async function VenueDetailPage(
         : 'Waiting',
       detail: latestProofRelic
         ? `${latestProofRelic.creatorLabel} left proof ${formatVenueLogbookDate(latestProofRelic.occurredAt)}.`
-        : 'No proof relic exists yet. The first completed dare or approved media mark gives this venue a story object.',
+        : 'No proof receipt yet.',
       tone: 'rose',
       href: latestProofRelic?.shortId ? `/dare/${latestProofRelic.shortId}` : null,
       actionLabel: latestProofRelic?.shortId ? 'Open proof' : null,
@@ -771,9 +771,7 @@ export default async function VenueDetailPage(
                   We run the first venue activation.
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/62">
-                  BaseDare sets up the live venue page, creator mission, QR/check-in proof path, and recap.
-                  The venue provides one simple perk or reward. If no verified proof lands, the operator route
-                  is reviewed and rerun instead of asking the venue to buy blind.
+                  BaseDare sets up the venue page, creator or guest route, QR proof, and recap. The venue provides one simple perk.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
