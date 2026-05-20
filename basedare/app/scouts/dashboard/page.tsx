@@ -53,13 +53,13 @@ type FilterMode = 'all' | 'verified' | 'venue' | 'reviewed';
 type SortMode = 'trust' | 'venue' | 'reviews' | 'earned' | 'dares';
 
 const raisedPanelClass =
-  'relative overflow-hidden rounded-[32px] border border-white/[0.1] bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.028)_14%,rgba(10,10,13,0.94)_58%,rgba(4,4,6,0.99)_100%)] shadow-[0_36px_110px_rgba(0,0,0,0.55),0_10px_22px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-20px_28px_rgba(0,0,0,0.28)]';
+  'relative overflow-hidden rounded-[32px] border border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0.055)_18%,rgba(17,17,23,0.92)_58%,rgba(7,8,12,0.98)_100%)] shadow-[0_36px_110px_rgba(0,0,0,0.48),0_14px_30px_rgba(255,255,255,0.045),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-20px_28px_rgba(0,0,0,0.22)]';
 
 const softCardClass =
-  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.065)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,13,0.95)_100%)] shadow-[0_22px_42px_rgba(0,0,0,0.34),0_1px_0_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-14px_20px_rgba(0,0,0,0.25)]';
+  'relative overflow-hidden rounded-[26px] border border-white/[0.13] bg-[linear-gradient(180deg,rgba(255,255,255,0.105)_0%,rgba(255,255,255,0.04)_16%,rgba(13,14,19,0.94)_100%)] shadow-[0_22px_46px_rgba(0,0,0,0.3),0_1px_0_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-14px_20px_rgba(0,0,0,0.2)]';
 
 const insetCardClass =
-  'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,8,0.74)_0%,rgba(11,11,14,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+  'rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(22,23,30,0.82)_0%,rgba(12,13,18,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.2)]';
 
 function plainCreatorTag(tag: string): string {
   return tag.replace(/^@/, '').trim().toLowerCase();
@@ -220,7 +220,7 @@ export default function CreatorRadarPage() {
   ];
 
   return (
-    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-10 text-white contrast-110 [perspective:1400px] sm:px-6 md:grayscale md:saturate-0 md:contrast-125 lg:py-12">
+    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#07080d] px-4 py-10 text-white [perspective:1400px] sm:px-6 md:saturate-[0.5] lg:py-12">
       <style jsx global>{`
         @keyframes creator-radar-sweep {
           0% {
@@ -242,9 +242,9 @@ export default function CreatorRadarPage() {
           }
         }
       `}</style>
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:112px_112px]" />
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_15%_8%,rgba(255,255,255,0.12),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.025),rgba(0,0,0,0.74))]" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.16)_1px,transparent_0)] [background-size:112px_112px]" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_18%_10%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,255,255,0.12),transparent_28%),radial-gradient(circle_at_50%_78%,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.55))]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.08] bg-black/54 md:bg-black/38 md:backdrop-blur-2xl" />
       <div
         className="pointer-events-none fixed left-1/2 top-20 z-0 hidden h-[420px] w-[860px] rounded-full border border-white/[0.055] bg-[radial-gradient(circle,rgba(255,255,255,0.07),transparent_58%)] shadow-[0_0_120px_rgba(255,255,255,0.07)] md:block"
         style={{ transform: 'translateX(-50%) rotateX(68deg)' }}
@@ -258,14 +258,14 @@ export default function CreatorRadarPage() {
         <div className="mb-5 flex items-center justify-between gap-3">
           <Link
             href="/?mode=control"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.065] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/76 transition hover:bg-white/[0.1] hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Control
           </Link>
           <Link
             href="/creators"
-            className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
+            className="hidden items-center gap-2 rounded-full border border-white/12 bg-white/[0.055] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:text-white sm:inline-flex"
           >
             Public creators
             <ArrowRight className="h-4 w-4" />
@@ -280,31 +280,31 @@ export default function CreatorRadarPage() {
         </div>
 
         <section className={`${raisedPanelClass} px-5 py-7 sm:px-8 lg:px-10 lg:py-10`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_32%,rgba(0,0,0,0.28)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.13),transparent_32%,rgba(0,0,0,0.18)_100%)]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
           <div className="pointer-events-none absolute -right-16 -top-20 hidden h-56 w-56 rounded-full border border-white/[0.08] bg-white/[0.03] blur-[1px] md:block" />
           <div className="relative grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/[0.09] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/82">
                 <SlidersHorizontal className="h-4 w-4" />
                 Creator routing
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
                 Creator Radar
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/62 sm:text-lg">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/76 sm:text-lg">
                 Find reliable creators for venue missions.
               </p>
             </div>
 
             <div className="relative [perspective:1100px]">
-              <div className="pointer-events-none absolute -inset-4 rounded-[38px] bg-white/[0.035] blur-2xl" />
+              <div className="pointer-events-none absolute -inset-4 rounded-[38px] bg-white/[0.07] blur-2xl" />
               <div className="relative grid gap-4 md:grid-cols-[0.82fr_1fr] lg:grid-cols-1 xl:grid-cols-[0.82fr_1fr]">
                 <div
                   className={`${insetCardClass} hidden min-h-[230px] p-4 md:block`}
                   style={{ transform: 'rotateX(8deg) rotateY(-9deg)' }}
                 >
-                  <div className="relative h-full min-h-[198px] overflow-hidden rounded-[24px] border border-white/[0.08] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),rgba(255,255,255,0.035)_30%,rgba(0,0,0,0.66)_70%)] shadow-[inset_0_0_40px_rgba(255,255,255,0.05)]">
+                  <div className="relative h-full min-h-[198px] overflow-hidden rounded-[24px] border border-white/[0.12] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2),rgba(255,255,255,0.065)_32%,rgba(0,0,0,0.5)_72%)] shadow-[inset_0_0_46px_rgba(255,255,255,0.08)]">
                     <div className="absolute inset-6 rounded-full border border-white/[0.13]" />
                     <div className="absolute inset-12 rounded-full border border-white/[0.1]" />
                     <div className="absolute inset-[4.6rem] rounded-full border border-white/[0.08]" />
@@ -312,8 +312,8 @@ export default function CreatorRadarPage() {
                     <div className="absolute left-[28%] top-[38%] h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_22px_rgba(255,255,255,0.85)]" />
                     <div className="absolute right-[30%] top-[30%] h-2 w-2 rounded-full bg-white/80 shadow-[0_0_16px_rgba(255,255,255,0.7)]" />
                     <div className="absolute bottom-[29%] right-[42%] h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_14px_rgba(255,255,255,0.65)]" />
-                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/[0.09] bg-black/38 px-4 py-3 backdrop-blur">
-                      <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/42">Signal depth</div>
+                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/[0.13] bg-black/30 px-4 py-3 backdrop-blur">
+                      <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/56">Signal depth</div>
                       <div className="mt-1 text-lg font-black text-white">{venueProvenCount} venue proven</div>
                     </div>
                   </div>
@@ -323,12 +323,12 @@ export default function CreatorRadarPage() {
                     <div key={label} className={`${insetCardClass} px-4 py-4 transition duration-300 md:hover:-translate-y-0.5 md:hover:border-white/14`}>
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/56">
                             {label}
                           </div>
                           <div className="mt-2 text-3xl font-black text-white">{value}</div>
                         </div>
-                        <Icon className="h-5 w-5 text-white/42" />
+                        <Icon className="h-5 w-5 text-white/58" />
                       </div>
                     </div>
                   ))}
@@ -342,11 +342,11 @@ export default function CreatorRadarPage() {
           <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
           <div className="relative grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
             <label className={`${insetCardClass} flex items-center gap-3 px-4 py-3`}>
-              <Search className="h-4 w-4 shrink-0 text-white/42" />
+              <Search className="h-4 w-4 shrink-0 text-white/58" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/28"
+                className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/44"
                 placeholder="Search creator, niche, vibe, or tag"
               />
             </label>
@@ -360,7 +360,7 @@ export default function CreatorRadarPage() {
                   className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                     filterMode === filter.value
                       ? 'border-white/34 bg-white/14 text-white'
-                      : 'border-white/10 bg-white/[0.035] text-white/46 hover:text-white'
+                      : 'border-white/12 bg-white/[0.05] text-white/62 hover:text-white'
                   }`}
                 >
                   {filter.label}
@@ -378,7 +378,7 @@ export default function CreatorRadarPage() {
                 className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                   sortMode === option.value
                     ? 'border-white/28 bg-white/12 text-white'
-                    : 'border-white/10 bg-black/20 text-white/42 hover:text-white'
+                    : 'border-white/12 bg-white/[0.04] text-white/58 hover:text-white'
                 }`}
               >
                 {option.label}
@@ -429,7 +429,7 @@ export default function CreatorRadarPage() {
             </div>
           ) : (
             <>
-              <div className="mb-4 flex items-center justify-between gap-4 px-1 text-[11px] font-mono uppercase tracking-[0.18em] text-white/38">
+              <div className="mb-4 flex items-center justify-between gap-4 px-1 text-[11px] font-mono uppercase tracking-[0.18em] text-white/54">
                 <span>{visibleCreators.length} visible creators</span>
                 <span className="hidden sm:inline">Sorted for mission fit</span>
               </div>
@@ -481,7 +481,7 @@ export default function CreatorRadarPage() {
                             </h2>
                             {creator.status === 'VERIFIED' ? <BadgeCheck className="h-4 w-4 shrink-0 text-white/72" /> : null}
                           </div>
-                          <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white/36">
+                          <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white/52">
                             {creator.trust?.label ?? 'Unranked'} · venue ready
                           </p>
                         </div>
@@ -491,10 +491,10 @@ export default function CreatorRadarPage() {
                         {cardMetrics.map(({ label, value, icon: Icon }) => (
                           <div key={label} className={`${insetCardClass} px-3 py-3 transition duration-300 group-hover:border-white/12`}>
                             <div className="flex items-center justify-between gap-2">
-                              <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
+                              <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/52">
                                 {label}
                               </div>
-                              <Icon className="h-3.5 w-3.5 text-white/34" />
+                              <Icon className="h-3.5 w-3.5 text-white/48" />
                             </div>
                             <div className="mt-1 text-lg font-black text-white">{value}</div>
                           </div>
@@ -505,7 +505,7 @@ export default function CreatorRadarPage() {
                         {(creator.tags?.length ? creator.tags : ['creator']).slice(0, 4).map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42"
+                            className="rounded-full border border-white/12 bg-white/[0.055] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/58"
                           >
                             {tag}
                           </span>
@@ -527,7 +527,7 @@ export default function CreatorRadarPage() {
                         </Link>
                         <Link
                           href={`/creator/${plainTag}`}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-black/24 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:text-white sm:col-span-2"
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.045] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/66 transition hover:text-white sm:col-span-2"
                         >
                           View profile
                           <ArrowRight className="ml-2 h-3.5 w-3.5" />
