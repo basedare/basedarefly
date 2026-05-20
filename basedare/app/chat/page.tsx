@@ -380,6 +380,7 @@ function ChatInbox() {
   const syncLabel = lastSyncedAt
     ? `Synced ${lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
     : 'Live sync ready';
+  const sendReady = canSendMessage && !sending;
   const participantLabel = activeThread
     ? activeThread.type === 'SUPPORT'
       ? `${shortWallet(normalizedAddress ?? '')} / BaseDare Support`
@@ -387,7 +388,7 @@ function ChatInbox() {
     : null;
 
   return (
-    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-4 py-8 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-3 py-5 text-white sm:px-6 sm:py-8 lg:px-10">
       <LiquidBackground veilOpacity={0.78} />
       <div
         aria-hidden="true"
@@ -652,45 +653,57 @@ function ChatInbox() {
               )}
             </div>
 
-            <div className="relative shrink-0 border-t border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(0,0,0,0.34))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_16px_24px_rgba(0,0,0,0.18)]">
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-100/70" />
-                Live thread
-                <span className="text-white/18">/</span>
-                <Lock className="h-3.5 w-3.5 text-purple-100/72" />
-                Contact details blocked
-                <span className="text-white/18">/</span>
-                <BellRing className="h-3.5 w-3.5 text-yellow-100/70" />
-                Support-ready rail
+            <div className="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.5))] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-18px_34px_rgba(0,0,0,0.38)] backdrop-blur-xl sm:p-4">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/40 sm:text-[10px] sm:tracking-[0.16em]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/12 bg-emerald-300/[0.055] px-2.5 py-1 text-emerald-100/72">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Live
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200/12 bg-purple-300/[0.055] px-2.5 py-1 text-purple-100/72">
+                  <Lock className="h-3.5 w-3.5" />
+                  Protected
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-200/12 bg-yellow-300/[0.055] px-2.5 py-1 text-yellow-100/72">
+                  <BellRing className="h-3.5 w-3.5" />
+                  Support
+                </span>
               </div>
-              <div className="flex flex-col gap-3 md:flex-row">
-                <textarea
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder={activeThread || target || hasContext ? 'Write a BaseDare message...' : 'Add a recipient or context first...'}
-                  rows={2}
-                  className="min-h-14 flex-1 resize-none rounded-[1.35rem] border border-white/12 bg-black/58 px-4 py-3 text-sm font-bold leading-6 text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_18px_rgba(0,0,0,0.7),inset_0_-1px_0_rgba(255,255,255,0.055)] focus:border-purple-300/42 focus:shadow-[inset_0_2px_18px_rgba(0,0,0,0.66),0_0_0_1px_rgba(168,85,247,0.14)]"
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === 'Enter' &&
-                      !event.shiftKey &&
-                      (event.metaKey || event.ctrlKey || window.innerWidth >= 768)
-                    ) {
-                      event.preventDefault();
-                      void sendMessage();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => void sendMessage()}
-                  disabled={sending || !canSendMessage}
-                  className="relative inline-flex min-h-14 items-center justify-center gap-2 overflow-hidden rounded-[1.35rem] border border-[#f5c518]/34 bg-[linear-gradient(180deg,rgba(248,221,114,0.28)_0%,rgba(245,197,24,0.2)_44%,rgba(83,54,10,0.28)_100%)] px-5 text-xs font-black uppercase tracking-[0.18em] text-[#fff4be] shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_24px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-12px_18px_rgba(0,0,0,0.22)] transition hover:bg-[#f5c518]/[0.18] active:translate-y-px active:shadow-[0_8px_18px_rgba(0,0,0,0.28),inset_0_2px_12px_rgba(0,0,0,0.24)] disabled:cursor-not-allowed disabled:opacity-45 before:pointer-events-none before:absolute before:inset-x-4 before:top-1 before:h-px before:bg-[#fff4be]/55"
-                >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Send
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+              <div className="relative overflow-hidden rounded-[1.45rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.64))] p-2 shadow-[0_18px_38px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_22px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-x-8 before:top-1 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/28 before:to-transparent">
+                <div className="relative flex items-end gap-2">
+                  <textarea
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    placeholder={activeThread || target || hasContext ? 'Write a BaseDare message...' : 'Add a recipient first...'}
+                    rows={1}
+                    className="max-h-32 min-h-12 flex-1 resize-none rounded-[1.05rem] border border-white/10 bg-black/54 px-3.5 py-3 text-base font-bold leading-6 text-white outline-none placeholder:text-white/30 shadow-[inset_0_2px_16px_rgba(0,0,0,0.68),inset_0_-1px_0_rgba(255,255,255,0.05)] focus:border-purple-300/42 focus:shadow-[inset_0_2px_16px_rgba(0,0,0,0.64),0_0_0_1px_rgba(168,85,247,0.14)] sm:min-h-14 sm:px-4 sm:text-sm"
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'Enter' &&
+                        !event.shiftKey &&
+                        (event.metaKey || event.ctrlKey || window.innerWidth >= 768)
+                      ) {
+                        event.preventDefault();
+                        void sendMessage();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void sendMessage()}
+                    disabled={sending || !canSendMessage}
+                    className={`group relative inline-flex h-12 w-14 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[1.05rem] border px-0 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-px sm:h-14 sm:w-auto sm:min-w-40 sm:px-5 ${
+                      sendReady
+                        ? 'border-[#fff2a8]/70 bg-[linear-gradient(180deg,#fff2a8_0%,#f5c518_42%,#a46b08_100%)] text-black shadow-[0_16px_28px_rgba(0,0,0,0.32),0_0_26px_rgba(245,197,24,0.25),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-10px_16px_rgba(74,46,4,0.34)] hover:brightness-105'
+                        : 'border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(248,221,114,0.18)_0%,rgba(245,197,24,0.11)_46%,rgba(83,54,10,0.18)_100%)] text-[#fff4be]/45 shadow-[0_12px_22px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_16px_rgba(0,0,0,0.22)]'
+                    } disabled:cursor-not-allowed`}
+                    aria-label="Send message"
+                  >
+                    <span className="pointer-events-none absolute inset-x-3 top-1 h-px rounded-full bg-white/55 sm:inset-x-5" />
+                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    <span className="hidden sm:inline">Send</span>
+                    <ArrowRight className="hidden h-4 w-4 sm:block" />
+                  </button>
+                </div>
               </div>
             </div>
           </section>
