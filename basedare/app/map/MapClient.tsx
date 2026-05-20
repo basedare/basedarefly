@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LocateFixed, Minus, Plus } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import MapCrosshair from "./MapCrosshair";
 
 type PinStatus = "live" | "funded" | "done" | "hot";
 
@@ -324,11 +325,10 @@ export default function MapClient({ monoClass }: { monoClass: string }) {
                   "radial-gradient(120% 100% at 10% 0%, rgba(86,96,255,0.24), transparent 52%),radial-gradient(120% 90% at 95% 20%, rgba(150,65,255,0.2), transparent 55%),linear-gradient(160deg, #040718 0%, #070d2a 45%, #120a30 100%)",
               }}
             >
-              <div className="network-mesh pointer-events-none absolute inset-0 opacity-75" />
-              <div className="network-links pointer-events-none absolute inset-0 opacity-45" />
               <div className="starfield pointer-events-none absolute inset-0 opacity-70" />
               <div className="pixel-screen pointer-events-none absolute inset-0 opacity-35" />
               <div className="glass-haze pointer-events-none absolute inset-0" />
+              <MapCrosshair containerRef={mapViewportRef} />
 
               {BLOCKS.map((block, idx) => (
                 <div
