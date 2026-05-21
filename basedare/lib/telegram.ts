@@ -1300,6 +1300,51 @@ export async function alertTagClaimDecision(data: {
 }
 
 /**
+ * Alert: BaseCash venue credit needs manual payment approval.
+ */
+export async function alertBaseCashCreditPending(data: {
+  creditId: string;
+  receiptCode: string;
+  venueName: string;
+  venueSlug: string;
+  buyerWallet: string;
+  buyerTag?: string | null;
+  denominationPhp: number;
+  serviceFeePhp: number;
+  totalPhp: number;
+  estimatedUsdc: number;
+  receiptUrl: string;
+}): Promise<void> {
+  const wallet =
+    data.buyerWallet.length > 12
+      ? `${data.buyerWallet.slice(0, 6)}...${data.buyerWallet.slice(-4)}`
+      : data.buyerWallet;
+  const adminUrl = appUrl('/admin/basecash');
+  const venueUrl = appUrl(`/venues/${data.venueSlug}/basecash`);
+
+  const message = [
+    '🟡 <b>BASECASH APPROVAL NEEDED</b>',
+    '',
+    `<b>${escapeHtml(data.venueName)}</b>`,
+    `Credit: <b>₱${data.denominationPhp.toLocaleString('en-PH')}</b> + ₱${data.serviceFeePhp.toLocaleString('en-PH')} fee`,
+    `Due: <b>₱${data.totalPhp.toLocaleString('en-PH')}</b> ≈ <b>${data.estimatedUsdc.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })} USDC</b>`,
+    `Buyer: <code>${escapeHtml(data.buyerTag || wallet)}</code>`,
+    `Receipt: <code>${escapeHtml(data.receiptCode)}</code>`,
+    '',
+    'Confirm only after the Base USDC payment is visible.',
+    `Approve: <code>/basecashapprove ${escapeHtml(data.receiptCode)}</code>`,
+    `With tx: <code>/basecashapprove ${escapeHtml(data.receiptCode)} 0x...</code>`,
+    '',
+    `${htmlLink(data.receiptUrl, 'Open receipt')} · ${htmlLink(adminUrl, 'Admin ledger')} · ${htmlLink(venueUrl, 'Venue credit page')}`,
+  ].join('\n');
+
+  await sendMessage(message);
+}
+
+/**
  * Test the bot connection
  */
 export async function testBotConnection(): Promise<{ success: boolean; error?: string }> {

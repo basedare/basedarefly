@@ -349,6 +349,12 @@ function CreateDareContent() {
     },
     [getValues, setValue]
   );
+  const handleGeneratorSelect = useCallback(
+    (text: string) => {
+      setValue('title', text, { shouldDirty: true, shouldTouch: true });
+    },
+    [setValue]
+  );
   const sentinelRecommendation = useMemo(
     () =>
       getSentinelRecommendation({
@@ -780,7 +786,7 @@ function CreateDareContent() {
   }, [dareImage]);
 
   return (
-    <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-16 md:px-8 md:py-24">
+    <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-14 md:px-8 md:py-24">
       <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
 
@@ -794,17 +800,17 @@ function CreateDareContent() {
           </div>
 
           <h1 className="mb-3 text-4xl font-display font-black uppercase italic tracking-tighter md:mb-4 md:text-7xl">
-            {isVenueSignalCheckout ? 'FUND' : 'INIT'}{' '}
+            {isVenueSignalCheckout ? 'FUND' : 'CREATE'}{' '}
             <span className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.22)]">
-              {isVenueSignalCheckout ? 'SIGNAL' : 'PROTOCOL'}
+              {isVenueSignalCheckout ? 'SIGNAL' : 'DARE'}
             </span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
             {isVenueSignalCheckout
-              ? 'Turn this venue signal into a live funded drop'
+              ? 'Turn this venue into a funded proof mission'
               : isCommunitySpark
-              ? 'Launch a free local proof mission for community momentum'
-              : 'Deploy a new smart contract dare on Base L2'}
+              ? 'Launch a free local proof mission'
+              : 'Set the mission, reward, proof, and deadline'}
           </p>
         </div>
 
@@ -1011,6 +1017,7 @@ function CreateDareContent() {
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           <input type="hidden" {...register('sparkType')} />
           <input type="hidden" {...register('venueId')} />
+          <input type="hidden" {...register('discoveryRadiusKm', { valueAsNumber: true })} />
           {/* Error Summary - Liquid Glass Style */}
           {Object.keys(errors).length > 0 && (
             <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-xl backdrop-blur-xl bg-red-500/10 border border-red-500/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -1034,23 +1041,23 @@ function CreateDareContent() {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 rounded-2xl border border-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_0_45px_rgba(168,85,247,0.08),0_0_70px_rgba(250,204,21,0.05)] md:rounded-3xl"
             />
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl md:rounded-3xl md:p-12 md:backdrop-blur-2xl">
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl md:rounded-3xl md:p-9 md:backdrop-blur-2xl">
               {/* Liquid glass gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/30 pointer-events-none rounded-2xl md:rounded-3xl" />
               {/* Top highlight line */}
               <div className="absolute top-0 left-4 right-4 md:left-0 md:right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               {/* Golden accent line */}
               <div className="absolute top-[1px] left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-[#FACC15]/40 to-transparent" />
-              <div className="space-y-5 md:space-y-12">
+              <div className="space-y-5 md:space-y-9">
 
               {/* 0. RAIL TYPE */}
               <div className="space-y-3">
                 <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-[#FACC15] uppercase tracking-widest">
-                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Choose Rail
+                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Mission Type
                   </label>
                   <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">
-                    Paid pressure or community proof
+                    Paid or free
                   </p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -1060,14 +1067,14 @@ function CreateDareContent() {
                       eyebrow: 'USDC escrow',
                       title: isVenueSignalCheckout ? 'Funded Drop' : 'Paid Dare',
                       body: isVenueSignalCheckout
-                        ? 'Put USDC behind this venue signal so someone has a reason to show up and prove it.'
-                        : 'Fund a creator mission with real payout pressure.',
+                        ? 'Put USDC behind this venue so someone shows up and proves it.'
+                        : 'Fund a creator mission with a real payout.',
                     },
                     {
                       key: 'COMMUNITY' as const,
                       eyebrow: 'Free / pro bono',
                       title: 'Community Spark',
-                      body: 'Beach cleanup, local help, meetup, or good-cause proof. No USDC required.',
+                      body: 'Local help, meetups, cleanups, or crowd energy. No USDC.',
                     },
                   ].map((option) => {
                     const active = watchSparkType === option.key;
@@ -1134,7 +1141,7 @@ function CreateDareContent() {
                 />
                 <p className="text-[10px] md:text-xs text-gray-500 font-mono">
                   {isCommunitySpark
-                    ? 'Community Sparks are open by default so locals, tourists, and creators can join without a paid target.'
+                    ? 'Open by default so anyone nearby can join.'
                     : 'Use @everyone for open dares anyone can complete'}
                 </p>
                 {errors.streamerTag && (
@@ -1148,10 +1155,10 @@ function CreateDareContent() {
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
                     <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Mission Objective
                   </label>
-                  <span className="text-[9px] md:text-[10px] text-gray-500 font-mono whitespace-nowrap">AI ASSIST ↓</span>
+                  <span className="text-[9px] md:text-[10px] text-gray-500 font-mono whitespace-nowrap">IDEAS ↓</span>
                 </div>
                 <DareGenerator
-                  onSelect={(text) => setValue('title', text)}
+                  onSelect={handleGeneratorSelect}
                   shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
                   onContextChange={handleGeneratorContextChange}
                   venueName={venuePrefill?.name ?? null}
@@ -1235,10 +1242,10 @@ function CreateDareContent() {
                     <MapPin className={`w-5 h-5 ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-gray-500'} transition-colors`} />
                     <div>
                       <p className={`text-sm font-bold ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-white'} transition-colors`}>
-                        Nearby Dare
+                        Show Nearby
                       </p>
                       <p className="text-[10px] font-mono text-gray-500 md:text-xs">
-                        Let people nearby discover this dare
+                        Let nearby people find it.
                       </p>
                     </div>
                   </div>
@@ -1319,32 +1326,22 @@ function CreateDareContent() {
                     {/* Location Label */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
-                        Name This Spot <span className="text-gray-500 text-[9px] font-normal lowercase">(optional)</span>
+                        Spot Label <span className="text-gray-500 text-[9px] font-normal lowercase">(optional)</span>
                       </label>
                       <input
                         {...register('locationLabel')}
-                        placeholder="e.g., SM MOA, Poblacion, BGC"
+                        placeholder="Cafe, beach, venue, landmark..."
                         className={`${dentInputClass} w-full h-12 text-base text-white placeholder:text-white/20 rounded-xl pl-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                       />
                     </div>
 
-                    {/* Discovery Radius */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
-                        Discovery Radius
-                      </label>
-                      <select
-                        {...register('discoveryRadiusKm', { valueAsNumber: true })}
-                        className={`${dentInputClass} w-full h-12 text-white rounded-xl px-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none font-bold cursor-pointer transition-all text-sm`}
-                      >
-                        <option value={0.5}>Venue pin - 500m</option>
-                        <option value={1}>1 km - Very local</option>
-                        <option value={2}>2 km - Walking distance</option>
-                        <option value={5}>5 km - Neighborhood (default)</option>
-                        <option value={10}>10 km - District</option>
-                        <option value={25}>25 km - City-wide</option>
-                        <option value={50}>50 km - Metro area</option>
-                      </select>
+                    <div className={`${dentGroupClass} flex items-center justify-between rounded-xl px-4 py-3`}>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">
+                        Range
+                      </span>
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72]">
+                        {watchVenueId ? 'Venue pin' : 'Auto nearby'}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1355,7 +1352,7 @@ function CreateDareContent() {
                   <label className="flex cursor-pointer items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white">Enable Sentinel Verification</p>
+                        <p className="text-sm font-bold text-white">Extra Review</p>
                         <span
                           title="Sentinel adds an extra trust layer before payout. Great for brand, venue, and higher-stakes dares."
                           className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/[0.04] p-1 text-white/55"
@@ -1370,9 +1367,9 @@ function CreateDareContent() {
                       </div>
                       <p className="mt-1 text-[10px] md:text-xs text-gray-500 font-mono">
                         {isCommunitySpark
-                          ? 'Community Sparks use public proof and admin visibility, not paid payout verification.'
+                          ? 'Community Sparks use public proof, not paid payout review.'
                           : appSettings.sentinelEnabled
-                          ? 'Extra anti-deepfake proof with manual referee review. Recommended for brand, venue, or high-value dares.'
+                          ? 'Manual referee check before payout. Best for venues, brands, or higher stakes.'
                           : formatSentinelPausedMessage(appSettings.sentinelPausedReason)}
                       </p>
                     </div>

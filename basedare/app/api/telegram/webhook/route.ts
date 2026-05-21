@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  getBaseCashCreditByIdOrCode,
+  isMissingBaseCashTableError,
+  listBaseCashRecentCredits,
+  markBaseCashCreditPaid,
+  type BaseCashCreditRecord,
+} from '@/lib/basecash';
+import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
 import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderation';
 import {
   getPendingTelegramPlaceTags,
@@ -12,6 +20,22 @@ import { handleTelegramUpdate, validateTelegramWebhookSecret, type TelegramUpdat
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+
+function escapeHtml(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function shortWallet(wallet: string) {
+  return wallet.length > 12 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet;
+}
+
+function baseCashReceiptUrl(credit: Pick<BaseCashCreditRecord, 'id' | 'receiptCode'>) {
+  return `${BASE_URL}/basecash/receipt/${encodeURIComponent(credit.id)}?code=${encodeURIComponent(credit.receiptCode)}`;
+}
 
 /**
  * Send message to Telegram
@@ -343,6 +367,134 @@ async function handlePlaceStats(chatId: number) {
   );
 }
 
+function formatBaseCashCreditLine(credit: BaseCashCreditRecord, index: number) {
+  const buyer = credit.buyerTag || shortWallet(credit.buyerWallet);
+  const receiptLink = baseCashReceiptUrl(credit);
+  return [
+    `${index + 1}. <code>${escapeHtml(credit.receiptCode)}</code> → <b>${escapeHtml(credit.venueName)}</b>`,
+    `   ${formatPhp(credit.denominationPhp)} credit · ${formatPhp(credit.serviceFeePhp)} fee`,
+    `   Buyer: <code>${escapeHtml(buyer)}</code>`,
+    `   Status: <b>${escapeHtml(credit.paymentStatus)}</b> / ${escapeHtml(credit.redemptionStatus)}`,
+    `   🧾 <a href="${receiptLink}">Receipt</a>`,
+  ].join('\n');
+}
+
+async function handleBaseCashPending(chatId: number) {
+  try {
+    const credits = await listBaseCashRecentCredits({ limit: 60 });
+    const pending = credits.filter((credit) => credit.paymentStatus === 'PENDING').slice(0, 10);
+
+    if (pending.length === 0) {
+      await sendMessage(chatId, '✅ <b>No pending BaseCash approvals</b>\n\nVenue credit ledger is caught up.');
+      return;
+    }
+
+    await sendMessage(
+      chatId,
+      [
+        `🟡 <b>BASECASH PENDING</b> (${pending.length})`,
+        '',
+        pending.map(formatBaseCashCreditLine).join('\n\n'),
+        '',
+        'Approve after checking Base USDC payment:',
+        '<code>/basecashapprove BC-XXXX-XXXX</code>',
+        '<code>/basecashapprove BC-XXXX-XXXX 0x...</code>',
+      ].join('\n')
+    );
+  } catch (error) {
+    if (isMissingBaseCashTableError(error)) {
+      await sendMessage(chatId, '⚠️ <b>BaseCash ledger is not installed yet</b>\n\nRun the BaseCash Prisma migration before accepting venue credit.');
+      return;
+    }
+
+    console.error('[TELEGRAM] BaseCash pending command failed:', error);
+    await sendMessage(chatId, '❌ Failed to load BaseCash pending credits.');
+  }
+}
+
+async function handleBaseCashApprove(chatId: number, args: string) {
+  const parts = args.trim().split(/\s+/).filter(Boolean);
+  const ref = parts[0];
+  const txHash = parts[1] || null;
+
+  if (!ref) {
+    await sendMessage(
+      chatId,
+      '❌ Usage: <code>/basecashapprove [receipt_code] [optional_tx_hash]</code>\n\nGet receipt codes from <code>/basecashpending</code>.'
+    );
+    return;
+  }
+
+  try {
+    const existing = await getBaseCashCreditByIdOrCode(ref);
+    if (!existing) {
+      await sendMessage(chatId, `❌ BaseCash credit not found: <code>${escapeHtml(ref)}</code>`);
+      return;
+    }
+
+    if (existing.paymentStatus === 'PAID') {
+      await sendMessage(
+        chatId,
+        [
+          '✅ <b>BASECASH ALREADY ACTIVE</b>',
+          '',
+          `<b>${escapeHtml(existing.venueName)}</b>`,
+          `Receipt: <code>${escapeHtml(existing.receiptCode)}</code>`,
+          `Credit: <b>${formatPhp(existing.denominationPhp)}</b>`,
+          `🧾 <a href="${baseCashReceiptUrl(existing)}">Open receipt</a>`,
+        ].join('\n')
+      );
+      return;
+    }
+
+    if (existing.paymentStatus !== 'PENDING') {
+      await sendMessage(
+        chatId,
+        `❌ Cannot approve <code>${escapeHtml(existing.receiptCode)}</code>; payment status is <b>${escapeHtml(existing.paymentStatus)}</b>.`
+      );
+      return;
+    }
+
+    const credit = await markBaseCashCreditPaid({
+      id: existing.id,
+      txHash,
+      actor: 'telegram-admin',
+    });
+
+    if (!credit) {
+      await sendMessage(chatId, `❌ Pending BaseCash credit could not be approved: <code>${escapeHtml(ref)}</code>`);
+      return;
+    }
+
+    const estimatedUsdc = credit.totalPhp / getBaseCashPhpPerUsdc();
+    await sendMessage(
+      chatId,
+      [
+        '✅ <b>BASECASH CREDIT ACTIVE</b>',
+        '',
+        `<b>${escapeHtml(credit.venueName)}</b>`,
+        `Receipt: <code>${escapeHtml(credit.receiptCode)}</code>`,
+        `Credit: <b>${formatPhp(credit.denominationPhp)}</b>`,
+        `Paid: ${formatPhp(credit.totalPhp)} ≈ ${formatUsdc(Number(estimatedUsdc.toFixed(2)))}`,
+        txHash ? `Tx: <code>${escapeHtml(txHash)}</code>` : null,
+        '',
+        'Staff can redeem this receipt exactly once.',
+        `🧾 <a href="${baseCashReceiptUrl(credit)}">Open receipt</a> · <a href="${BASE_URL}/admin/basecash">Admin ledger</a>`,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    );
+  } catch (error) {
+    if (isMissingBaseCashTableError(error)) {
+      await sendMessage(chatId, '⚠️ <b>BaseCash ledger is not installed yet</b>\n\nRun the BaseCash Prisma migration before approving credits.');
+      return;
+    }
+
+    console.error('[TELEGRAM] BaseCash approve command failed:', error);
+    await sendMessage(chatId, '❌ Failed to approve BaseCash credit.');
+  }
+}
+
 /**
  * Handle /help command
  */
@@ -363,12 +515,17 @@ async function handleHelp(chatId: number) {
 /placeflag [id] [reason] - Flag a place tag
 /placestats - Place-memory overview
 
+<b>BaseCash:</b>
+/basecashpending - List venue credits awaiting payment approval
+/basecashapprove [code] [tx] - Mark venue credit paid
+
 <b>Stats:</b>
 /stats - Quick stats overview
 
 <b>Examples:</b>
 <code>/approve ftEXgfxL</code>
 <code>/reject abc123 Invalid proof</code>
+<code>/basecashapprove BC-ABCD-1234 0x...</code>
 `.trim();
 
   await sendMessage(chatId, message);
@@ -438,6 +595,17 @@ export async function POST(req: NextRequest) {
         break;
       case '/placestats':
         await handlePlaceStats(chatId);
+        break;
+      case '/basecash':
+      case '/basecashpending':
+      case '/bcpending':
+        await handleBaseCashPending(chatId);
+        break;
+      case '/basecashapprove':
+      case '/basecashpaid':
+      case '/bcapprove':
+      case '/bcpaid':
+        await handleBaseCashApprove(chatId, args);
         break;
       case '/help':
       case '/start':

@@ -2913,7 +2913,9 @@ export default function RealWorldMap() {
   const searchShellRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const mapMarkersRef = useRef<MapLibreMarker[]>([]);
+  const mapInteractionQuietTimerRef = useRef<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapInteractionQuiet, setMapInteractionQuiet] = useState(false);
   const [mapRuntimeError, setMapRuntimeError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -4282,6 +4284,25 @@ export default function RealWorldMap() {
       ensureMapLibreDareLayers(map, mapPresetRef.current);
     };
 
+    const clearMapInteractionQuietTimer = () => {
+      if (mapInteractionQuietTimerRef.current === null) return;
+      window.clearTimeout(mapInteractionQuietTimerRef.current);
+      mapInteractionQuietTimerRef.current = null;
+    };
+
+    const handleMapMotionStart = () => {
+      clearMapInteractionQuietTimer();
+      setMapInteractionQuiet(true);
+    };
+
+    const handleMapMotionSettled = () => {
+      clearMapInteractionQuietTimer();
+      mapInteractionQuietTimerRef.current = window.setTimeout(() => {
+        setMapInteractionQuiet(false);
+        mapInteractionQuietTimerRef.current = null;
+      }, 140);
+    };
+
     const handleClick = (event: maplibregl.MapMouseEvent) => {
       if (skipNextMapClickRef.current) {
         skipNextMapClickRef.current = false;
@@ -4322,16 +4343,31 @@ export default function RealWorldMap() {
 
     map.on('load', handleLoad);
     map.on('styledata', handleStyleData);
+    map.on('movestart', handleMapMotionStart);
+    map.on('dragstart', handleMapMotionStart);
+    map.on('zoomstart', handleMapMotionStart);
+    map.on('rotatestart', handleMapMotionStart);
+    map.on('pitchstart', handleMapMotionStart);
     map.on('moveend', syncViewport);
+    map.on('moveend', handleMapMotionSettled);
+    map.on('idle', handleMapMotionSettled);
     map.on('click', handleClick);
     map.on('error', handleMapError);
     canvas.addEventListener('webglcontextlost', handleContextLost, false);
     canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
     return () => {
+      clearMapInteractionQuietTimer();
       map.off('load', handleLoad);
       map.off('styledata', handleStyleData);
+      map.off('movestart', handleMapMotionStart);
+      map.off('dragstart', handleMapMotionStart);
+      map.off('zoomstart', handleMapMotionStart);
+      map.off('rotatestart', handleMapMotionStart);
+      map.off('pitchstart', handleMapMotionStart);
       map.off('moveend', syncViewport);
+      map.off('moveend', handleMapMotionSettled);
+      map.off('idle', handleMapMotionSettled);
       map.off('click', handleClick);
       map.off('error', handleMapError);
       canvas.removeEventListener('webglcontextlost', handleContextLost, false);
@@ -4341,6 +4377,7 @@ export default function RealWorldMap() {
       map.remove();
       mapInstanceRef.current = null;
       setMapReady(false);
+      setMapInteractionQuiet(false);
     };
   }, []);
 
@@ -7070,7 +7107,7 @@ export default function RealWorldMap() {
   ]);
 
   const mapPanelShellClass =
-    'map-panel-shell relative overflow-hidden rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[36px]';
+    'map-panel-shell relative overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.04)_8%,rgba(8,10,18,0.955)_28%,rgba(5,6,14,0.99)_100%)] shadow-[0_28px_84px_rgba(0,0,0,0.5),0_0_28px_rgba(34,211,238,0.06),0_0_54px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_22px_rgba(0,0,0,0.22)] md:h-full md:rounded-[34px]';
   const mapPanelMetricClass =
     'rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,13,22,0.94)_22%,rgba(6,7,14,0.99)_100%)] px-4 py-3 shadow-[0_16px_30px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
   const mapPanelSectionClass =
@@ -7861,7 +7898,7 @@ export default function RealWorldMap() {
             if (target instanceof Node && searchShellRef.current?.contains(target)) return;
             closeSearchPopover();
           }}
-          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[38px]'}`}
+          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[34px]'}`}
           style={
             isImmersiveMobile
               ? {
@@ -7879,7 +7916,7 @@ export default function RealWorldMap() {
 
           <div
             className={`map-command-header relative z-20 flex shrink-0 flex-col gap-1.5 border-b border-white/8 ${
-              isImmersiveMobile ? 'px-3 py-2' : 'px-3 py-2 sm:px-4 sm:py-2.5'
+              isImmersiveMobile ? 'rounded-none px-3 py-2' : 'rounded-t-[34px] px-3 py-2 sm:px-4 sm:py-2.5'
             }`}
           >
             <div ref={searchShellRef} className="relative w-full max-w-xl">
@@ -8177,6 +8214,7 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
+            data-map-moving={mapInteractionQuiet ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
                 ? 'map-container-wrapper--immersive min-h-0 flex-1'
@@ -8215,7 +8253,7 @@ export default function RealWorldMap() {
             {!isMobileViewport ? <MapCrosshair containerRef={mapViewportRef} /> : null}
             {showStartProofDock ? (
               <>
-                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[26px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
+                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
                   <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/42 to-transparent" />
                   <div className="flex items-center justify-between gap-3 px-1">
                     <div>
@@ -8260,7 +8298,7 @@ export default function RealWorldMap() {
                     </div>
                   </div>
                 </div>
-                <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[24px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
+                <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[30px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
                   <button
                     type="button"
                     onClick={dismissStartProofDock}
@@ -8302,7 +8340,7 @@ export default function RealWorldMap() {
             ) : null}
             {showNearbyDareTray ? (
               <div
-                className={`nearby-dare-tray ${nearbyDarePanelCollapsed ? 'nearby-dare-tray--collapsed' : 'nearby-dare-tray--expanded'} absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[20px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[24px]'}`}
+                className={`nearby-dare-tray ${nearbyDarePanelCollapsed ? 'nearby-dare-tray--collapsed' : 'nearby-dare-tray--expanded'} absolute z-[10] overflow-hidden border border-[#f5c518]/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,12,22,0.94)_18%,rgba(5,6,12,0.985)_100%)] shadow-[0_20px_40px_rgba(0,0,0,0.34),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-16px_20px_rgba(0,0,0,0.22)] ${isMobileViewport ? 'bottom-3 left-3 right-3 rounded-[30px]' : 'bottom-5 left-5 right-auto max-w-[23rem] rounded-[30px]'}`}
                 style={nearbyDareTrayDragStyle}
                 data-sheet-dragging={mapSheetDrag?.target === 'nearby-dare' ? 'true' : undefined}
               >
@@ -8759,7 +8797,7 @@ export default function RealWorldMap() {
                   <div className={`${mapPanelShellClass} selected-place-compact-dock place-panel-popup`}>
                     <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.16),transparent_26%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.15),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.055)_0%,transparent_38%,rgba(0,0,0,0.2)_100%)]" />
-                    <div className="pointer-events-none absolute inset-[1px] rounded-[25px] border border-white/6" />
+                    <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/6 md:rounded-[33px]" />
                     <div className="relative z-10 px-3 pb-3 pt-2.5">
                       <button
                         type="button"
@@ -8847,7 +8885,7 @@ export default function RealWorldMap() {
                 <div className={`${mapPanelShellClass} place-panel-popup ${hasSaveSpotPanel ? 'place-panel-popup--save-spot' : ''}`}>
                   <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.13),transparent_26%),radial-gradient(circle_at_85%_100%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.16)_100%)]" />
-                  <div className="pointer-events-none absolute inset-[1px] rounded-[31px] border border-white/6 md:rounded-[35px]" />
+                  <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/6 md:rounded-[33px]" />
                   <div
                     className={`selected-place-panel-stack flex flex-col overflow-hidden ${
                       hasSaveSpotPanel ? 'selected-place-panel-stack--save-spot' : ''
@@ -8863,7 +8901,7 @@ export default function RealWorldMap() {
                           : 'max-h-[52dvh] md:h-full md:max-h-none'
                     }`}
                   >
-                  <div className="selected-place-panel-header sticky top-0 z-10 max-h-[50%] shrink-0 overflow-hidden rounded-t-[32px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[36px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
+                  <div className="selected-place-panel-header sticky top-0 z-10 max-h-[50%] shrink-0 overflow-hidden rounded-t-[30px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:rounded-t-[34px] md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
                     <button
                       type="button"
                       onPointerDown={(event) => beginMapSheetDrag('selected-place', event)}
@@ -9920,7 +9958,7 @@ export default function RealWorldMap() {
         }
 
         .selected-place-compact-dock {
-          border-radius: 26px;
+          border-radius: 30px;
           transform-origin: 50% 100%;
         }
 
@@ -10283,7 +10321,7 @@ export default function RealWorldMap() {
         }
 
         .map-container-wrapper {
-          border-radius: 20px;
+          border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
@@ -12874,7 +12912,7 @@ export default function RealWorldMap() {
           border-radius: 17px;
           background:
             radial-gradient(circle at 30% 20%, rgba(17, 30, 49, 0.9) 0%, rgba(5, 8, 18, 1) 70%);
-          cursor: crosshair;
+          cursor: none;
           font-family: inherit;
         }
 
@@ -14137,6 +14175,58 @@ export default function RealWorldMap() {
           border-radius: 9999px;
           background: rgba(0, 0, 0, 0.62);
           filter: blur(2px);
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] {
+          --mesh-opacity: 0.045;
+          --links-opacity: 0.055;
+          --star-opacity: 0.09;
+          --scan-opacity: 0.01;
+          --haze-opacity: 0.58;
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.maplibregl-marker),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.basedare-maplibre-marker),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-bear),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
+          animation: none !important;
+          filter: none !important;
+          transition: none !important;
+          will-change: auto !important;
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-ripple),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-aura),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-ring),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-pulse),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-aura),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-shadow) {
+          display: none !important;
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.map-pin-marker),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
+          box-shadow:
+            0 10px 16px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.18) !important;
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-venue-label),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-pulse-pill),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-footprint),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
+          backdrop-filter: none !important;
+          box-shadow: none !important;
+          filter: none !important;
+          transition: none !important;
+          will-change: auto !important;
         }
 
         .basedare-maplibre-map :global(.maplibregl-ctrl-group),

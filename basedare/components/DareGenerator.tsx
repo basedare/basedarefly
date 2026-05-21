@@ -275,6 +275,8 @@ export default function DareGenerator({
   const [isSegmentScrubbing, setIsSegmentScrubbing] = useState(false);
   const scrubPointerIdRef = useRef<number | null>(null);
   const segmentRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const onSelectRef = useRef(onSelect);
+  const rollTimeoutRef = useRef<number | null>(null);
 
   const activeSuggestions = useMemo(() => {
     if (mode === 'IRL' && venueName?.trim()) {
@@ -292,45 +294,85 @@ export default function DareGenerator({
   const selectedSegmentKey = mode === 'IRL' ? irlCategory : streamCategory;
 
   useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+
+  useEffect(() => {
     const first = activeSuggestions[0];
-    if (shouldAutoFillTitle) {
-      setSuggestion(first);
-      onSelect(first);
+    if (!first) {
+      return;
     }
-  }, [activeSuggestions, onSelect, shouldAutoFillTitle]);
+
+    const frame = window.requestAnimationFrame(() => {
+      setSuggestion(first);
+
+      if (shouldAutoFillTitle) {
+        onSelectRef.current(first);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeSuggestions, shouldAutoFillTitle]);
+
+  useEffect(() => {
+    return () => {
+      if (rollTimeoutRef.current !== null) {
+        window.clearTimeout(rollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const tag = mode === 'IRL' ? irlCategory : streamCategory;
     onContextChange?.({ mode, tag });
   }, [mode, irlCategory, streamCategory, onContextChange]);
 
-  const generate = () => {
+  const generate = useCallback(() => {
+    if (isAnimating || activeSuggestions.length === 0) {
+      return;
+    }
+
+    trigger('click');
+    haptic('spark');
     setIsAnimating(true);
-    let shuffles = 0;
-    const interval = setInterval(() => {
-      const random = activeSuggestions[Math.floor(Math.random() * activeSuggestions.length)];
-      setSuggestion(random);
-      shuffles++;
-      if (shuffles > 15) {
-        clearInterval(interval);
+
+    if (rollTimeoutRef.current !== null) {
+      window.clearTimeout(rollTimeoutRef.current);
+    }
+
+    const pool =
+      activeSuggestions.length > 1
+        ? activeSuggestions.filter((item) => item !== suggestion)
+        : activeSuggestions;
+    const nextSuggestion = pool[Math.floor(Math.random() * pool.length)] ?? activeSuggestions[0];
+
+    rollTimeoutRef.current = window.setTimeout(() => {
+      setSuggestion(nextSuggestion);
+      onSelectRef.current(nextSuggestion);
+
+      rollTimeoutRef.current = window.setTimeout(() => {
         setIsAnimating(false);
-        onSelect(random);
-      }
-    }, 50);
-  };
+        rollTimeoutRef.current = null;
+      }, 180);
+    }, 130);
+  }, [activeSuggestions, haptic, isAnimating, suggestion, trigger]);
 
   const updateSegmentSelection = useCallback((segmentKey: string) => {
     if (mode === 'IRL') {
       const nextKey = segmentKey as keyof typeof IRL_SUGGESTIONS;
       setIrlCategory(nextKey);
-      setSuggestion(IRL_SUGGESTIONS[nextKey][0]);
+      setSuggestion(
+        venueName?.trim()
+          ? buildVenueAwareSuggestions(venueName, nextKey)[0]
+          : IRL_SUGGESTIONS[nextKey][0]
+      );
       return;
     }
 
     const nextKey = segmentKey as keyof typeof SUGGESTIONS;
     setStreamCategory(nextKey);
     setSuggestion(SUGGESTIONS[nextKey][0]);
-  }, [mode]);
+  }, [mode, venueName]);
 
   const handleModeChange = (nextMode: 'IRL' | 'STREAM') => {
     trigger('click');
@@ -408,10 +450,10 @@ export default function DareGenerator({
   }, [stopSegmentScrub]);
 
   return (
-    <div className="p-6 bg-purple-900/10 border border-purple-500/30 rounded-2xl mb-8">
+    <div className="mb-5 rounded-[24px] border border-purple-500/22 bg-purple-900/10 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.06)] md:mb-8 md:p-6">
       <div className="flex flex-col gap-4 mb-4">
         <h3 className="text-purple-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#FFD700]" /> AI Mission Generator
+          <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Ideas
         </h3>
 
         <div className="grid grid-cols-2 gap-2">
@@ -516,8 +558,14 @@ export default function DareGenerator({
         </div>
       </div>
       
-      <div className="flex gap-4">
-        <div className="flex-1 rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(13,11,20,0.98)_0%,rgba(17,15,26,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-white text-sm md:text-lg flex items-center shadow-[inset_0_2px_3px_rgba(255,255,255,0.05),inset_0_-10px_18px_rgba(0,0,0,0.45),inset_8px_8px_18px_rgba(0,0,0,0.22),inset_-5px_-5px_12px_rgba(255,255,255,0.02),0_1px_0_rgba(255,255,255,0.04)] relative overflow-hidden">
+      <div className="grid gap-3 md:grid-cols-[1fr_150px] md:gap-4">
+        <div
+          className={cn(
+            'relative flex min-h-[104px] flex-1 items-center overflow-hidden rounded-xl border border-white/[0.09] bg-[linear-gradient(145deg,rgba(13,11,20,0.98)_0%,rgba(17,15,26,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-sm text-white shadow-[inset_0_2px_3px_rgba(255,255,255,0.05),inset_0_-10px_18px_rgba(0,0,0,0.45),inset_8px_8px_18px_rgba(0,0,0,0.22),inset_-5px_-5px_12px_rgba(255,255,255,0.02),0_1px_0_rgba(255,255,255,0.04)] transition-[opacity,transform] duration-200 md:min-h-[92px] md:text-lg',
+            isAnimating && 'scale-[0.996] opacity-80'
+          )}
+          aria-live="polite"
+        >
           <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
           <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-black/45 to-transparent" />
           <div className="pointer-events-none absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_18%_16%,rgba(192,132,252,0.12),transparent_30%),radial-gradient(circle_at_85%_85%,rgba(250,204,21,0.08),transparent_28%)]" />
@@ -526,9 +574,9 @@ export default function DareGenerator({
           {/* Scanning Line Effect */}
           {isAnimating && (
             <div 
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/6 to-transparent -skew-x-12"
               style={{
-                animation: 'shine-scan 0.5s infinite'
+                animation: 'shine-scan 0.42s ease-out 1'
               }}
             />
           )}
@@ -538,15 +586,16 @@ export default function DareGenerator({
           onClick={generate}
           disabled={isAnimating}
           tone="yellow"
-          height={58}
-          square
-          icon={<RefreshCw className={`h-7 w-7 ${isAnimating ? 'animate-spin' : ''}`} />}
+          height={54}
+          label="Roll"
+          icon={<RefreshCw className={`h-4 w-4 ${isAnimating ? 'animate-spin' : ''}`} />}
+          fullWidth
           className="shrink-0"
         />
       </div>
 
       <p className="mt-3 text-xs text-gray-400 font-mono">
-        Keep it fun & legal — no harm, no crime.
+        Keep it fun and legal. No harm, no crime.
       </p>
     </div>
   );

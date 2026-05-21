@@ -17,6 +17,7 @@ import {
   isBaseCashDenomination,
   quoteBaseCashVenueCredit,
 } from '@/lib/basecash-shared';
+import { alertBaseCashCreditPending } from '@/lib/telegram';
 
 const CreateCreditSchema = z.object({
   denominationPhp: z.number().int(),
@@ -110,14 +111,35 @@ export async function POST(
       denominationPhp: parsed.data.denominationPhp,
       source: parsed.data.source,
     });
+    const quote = quoteBaseCashVenueCredit(parsed.data.denominationPhp);
+    const receiptUrl = buildBaseCashReceiptUrl(credit);
+    const pilotMode = baseCashPilotMode();
+
+    if (credit.paymentStatus === 'PENDING') {
+      void alertBaseCashCreditPending({
+        creditId: credit.id,
+        receiptCode: credit.receiptCode,
+        venueName: venue.name,
+        venueSlug: venue.slug,
+        buyerWallet: credit.buyerWallet,
+        buyerTag: credit.buyerTag,
+        denominationPhp: quote.denominationPhp,
+        serviceFeePhp: quote.serviceFeePhp,
+        totalPhp: quote.totalPhp,
+        estimatedUsdc: quote.estimatedUsdc,
+        receiptUrl,
+      }).catch((alertError) => {
+        console.error('[BASECASH_CREDITS] Telegram approval alert failed:', alertError);
+      });
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         credit: mapBaseCashCredit(credit),
-        quote: quoteBaseCashVenueCredit(parsed.data.denominationPhp),
-        receiptUrl: buildBaseCashReceiptUrl(credit),
-        pilotMode: baseCashPilotMode(),
+        quote,
+        receiptUrl,
+        pilotMode,
       },
     });
   } catch (error) {
