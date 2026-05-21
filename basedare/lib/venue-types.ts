@@ -268,6 +268,8 @@ export type VenueTopCreator = {
 export type NearbyVenueItem = {
   id: string;
   slug: string;
+  handle: string | null;
+  baseCashEnabled: boolean;
   name: string;
   description: string | null;
   city: string | null;
@@ -296,6 +298,8 @@ export type NearbyVenueItem = {
 export type VenueDetail = {
   id: string;
   slug: string;
+  handle: string | null;
+  baseCashEnabled: boolean;
   name: string;
   description: string | null;
   address: string | null;

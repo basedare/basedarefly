@@ -20,6 +20,7 @@ import {
   Camera,
   ChevronDown,
   ChevronUp,
+  CreditCard,
   Eye,
   EyeOff,
   Flame,
@@ -117,6 +118,8 @@ type VenueMapMode = {
 type NearbyPlace = {
   id: string;
   slug: string;
+  handle: string | null;
+  baseCashEnabled: boolean;
   name: string;
   description: string | null;
   city: string | null;
@@ -139,6 +142,8 @@ type NearbyPlace = {
 type SelectedPlace = {
   placeId?: string;
   slug?: string;
+  handle?: string | null;
+  baseCashEnabled?: boolean;
   name: string;
   address?: string | null;
   city?: string | null;
@@ -270,6 +275,8 @@ type ResolvePlaceResponse = {
     place: {
       id: string;
       slug: string;
+      handle: string | null;
+      baseCashEnabled: boolean;
       name: string;
       address: string | null;
       city: string | null;
@@ -728,8 +735,8 @@ const markerIconCache = new Map<string, string>();
 const footprintMarkerIconCache = new Map<string, string>();
 const placeClusterIconCache = new Map<string, string>();
 
-const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
-const DEFAULT_ZOOM = 12;
+const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
+const DEFAULT_ZOOM = 13.35;
 const DEFAULT_MAP_BEARING = -18;
 const DEFAULT_MAP_PITCH = 62;
 const OPENFREEMAP_LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -3464,6 +3471,8 @@ export default function RealWorldMap() {
         setSelectedPlace({
           placeId: venue.id,
           slug: venue.slug,
+          handle: venue.handle,
+          baseCashEnabled: venue.baseCashEnabled,
           name: venue.name,
           address: venue.address,
           city: venue.city,
@@ -4444,6 +4453,8 @@ export default function RealWorldMap() {
     setSelectedPlace({
       placeId: place.id,
       slug: place.slug,
+      handle: place.handle,
+      baseCashEnabled: place.baseCashEnabled,
       name: place.name,
       address: [place.city, place.country].filter(Boolean).join(', ') || place.description,
       city: place.city,
@@ -4490,6 +4501,8 @@ export default function RealWorldMap() {
             ...current,
             placeId: venue.id,
             slug: venue.slug,
+            handle: venue.handle,
+            baseCashEnabled: venue.baseCashEnabled,
             name: venue.name,
             address: venue.address,
             city: venue.city,
@@ -6105,6 +6118,8 @@ export default function RealWorldMap() {
             country: resolvedPlace.country ?? current.country ?? null,
             latitude: resolvedPlace.latitude,
             longitude: resolvedPlace.longitude,
+            handle: resolvedPlace.handle,
+            baseCashEnabled: resolvedPlace.baseCashEnabled,
           }
         : current
     );
@@ -7172,13 +7187,19 @@ export default function RealWorldMap() {
       ) : null}
     </>
   );
+  const selectedPlaceIsPrivateSpot =
+    selectedPlace?.placeSource === 'PRIVATE_SAVE_SPOT' || selectedPlace?.placeSource === 'PRIVATE_SAVED_SPOT';
+  const selectedPlaceBaseCashHref =
+    selectedPlace?.slug && selectedPlace.baseCashEnabled
+      ? `/venues/${selectedPlace.slug}/basecash?source=map-sheet`
+      : null;
   const selectedPlaceActionRailGridClass = selectedPlace?.slug
-    ? 'venue-action-rail--three'
+    ? selectedPlaceBaseCashHref
+      ? 'venue-action-rail--four'
+      : 'venue-action-rail--three'
     : isMobileViewport
       ? 'venue-action-rail--two'
       : 'venue-action-rail--two';
-  const selectedPlaceIsPrivateSpot =
-    selectedPlace?.placeSource === 'PRIVATE_SAVE_SPOT' || selectedPlace?.placeSource === 'PRIVATE_SAVED_SPOT';
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
   const selectedCheckInStatusLabel =
     selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
@@ -7196,6 +7217,17 @@ export default function RealWorldMap() {
         showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
       } mt-3 grid ${selectedPlaceActionRailGridClass}`}
     >
+      {selectedPlaceBaseCashHref ? (
+        <Link
+          href={selectedPlaceBaseCashHref}
+          className="map-primary-action-button map-primary-action-button--pay"
+          aria-label={`Buy venue credit at ${selectedPlace.name}`}
+        >
+          <CreditCard className="h-4 w-4" />
+          <span>Pay</span>
+        </Link>
+      ) : null}
+
       <TagPlaceButton
         placeId={selectedPlace.placeId}
         placeName={selectedPlace.name}
@@ -7229,6 +7261,8 @@ export default function RealWorldMap() {
             heatScore: current?.heatScore ?? 0,
             lastTaggedAt: current?.lastTaggedAt ?? null,
             activeDareCount: current?.activeDareCount ?? 0,
+            handle: current?.handle ?? null,
+            baseCashEnabled: current?.baseCashEnabled ?? false,
           }));
           setTargetCenter([place.latitude, place.longitude]);
           setTargetZoom(15);
@@ -7289,6 +7323,8 @@ export default function RealWorldMap() {
             heatScore: current?.heatScore ?? 0,
             lastTaggedAt: current?.lastTaggedAt ?? null,
             activeDareCount: current?.activeDareCount ?? 0,
+            handle: current?.handle ?? null,
+            baseCashEnabled: current?.baseCashEnabled ?? false,
           }));
           setTargetCenter([place.latitude, place.longitude]);
           setTargetZoom(15);
@@ -8841,6 +8877,11 @@ export default function RealWorldMap() {
                               <p className="truncate text-[1.05rem] font-black leading-tight text-white">
                                 {selectedPlace.name}
                               </p>
+                              {selectedPlace.handle ? (
+                                <p className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100/55">
+                                  @{selectedPlace.handle}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="flex shrink-0 items-center gap-1.5">
                               <button
@@ -8949,6 +8990,11 @@ export default function RealWorldMap() {
                       <h3 className="text-[1.42rem] font-black leading-[0.94] tracking-tight text-white md:text-[2.05rem]">
                         {selectedPlace.name}
                       </h3>
+                      {selectedPlace.handle ? (
+                        <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/58 md:text-[11px]">
+                          @{selectedPlace.handle}
+                        </p>
+                      ) : null}
                       <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                         <span className="line-clamp-1 min-w-0 md:line-clamp-2">
@@ -12288,6 +12334,10 @@ export default function RealWorldMap() {
           grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr));
         }
 
+        .venue-action-rail--primary.venue-action-rail--four {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.25rem), 1fr));
+        }
+
         .venue-action-rail--primary.venue-action-rail--two {
           grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr));
         }
@@ -12304,6 +12354,10 @@ export default function RealWorldMap() {
 
         :global(.venue-action-rail--primary.venue-action-rail--three) {
           grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr)) !important;
+        }
+
+        :global(.venue-action-rail--primary.venue-action-rail--four) {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.25rem), 1fr)) !important;
         }
 
         :global(.venue-action-rail--primary.venue-action-rail--two) {
@@ -12394,6 +12448,14 @@ export default function RealWorldMap() {
             linear-gradient(180deg, #ffe36a 0%, #f5c518 52%, #8a5a00 100%) !important;
         }
 
+        :global(.venue-action-rail--primary .map-primary-action-button--pay) {
+          color: #eaffff !important;
+          border-color: rgba(125, 249, 255, 0.62) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.48), transparent 36%),
+            linear-gradient(180deg, #67e8f9 0%, #06b6d4 52%, #164e63 100%) !important;
+        }
+
         :global(.venue-action-rail--primary .map-primary-action-button--venue) {
           color: #fff6ff !important;
           border-color: rgba(236, 189, 255, 0.62) !important;
@@ -12448,6 +12510,11 @@ export default function RealWorldMap() {
         .venue-action-rail--primary.venue-action-rail--three,
         :global(.venue-action-rail--primary.venue-action-rail--three) {
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .venue-action-rail--primary.venue-action-rail--four,
+        :global(.venue-action-rail--primary.venue-action-rail--four) {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         }
 
         .venue-action-rail--primary.venue-action-rail--two,
@@ -12514,8 +12581,17 @@ export default function RealWorldMap() {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
 
+          .venue-action-rail--primary.venue-action-rail--four,
+          :global(.venue-action-rail--primary.venue-action-rail--four) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
           :global(.venue-action-rail--primary .map-primary-action-button--venue) {
             grid-column: 1 / -1;
+          }
+
+          :global(.venue-action-rail--primary.venue-action-rail--four .map-primary-action-button--venue) {
+            grid-column: auto !important;
           }
 
           :global(.venue-action-rail--primary .map-primary-action-button > span) {
@@ -12591,6 +12667,11 @@ export default function RealWorldMap() {
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         }
 
+        .venue-action-rail--primary.venue-action-rail--four,
+        :global(.venue-action-rail--primary.venue-action-rail--four) {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+
         .venue-action-rail--primary.venue-action-rail--two,
         :global(.venue-action-rail--primary.venue-action-rail--two) {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -12637,6 +12718,11 @@ export default function RealWorldMap() {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
 
+          .venue-action-rail--primary.venue-action-rail--four,
+          :global(.venue-action-rail--primary.venue-action-rail--four) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
           :global(.venue-action-rail--primary .map-primary-action-button) {
             min-height: 3.15rem !important;
             padding: 0.58rem 0.34rem 0.52rem !important;
@@ -12646,6 +12732,10 @@ export default function RealWorldMap() {
             grid-column: 1 / -1;
           }
 
+          :global(.venue-action-rail--primary.venue-action-rail--four .map-primary-action-button--venue) {
+            grid-column: auto !important;
+          }
+
           :global(.venue-action-rail--primary .map-primary-action-button > span) {
             font-size: clamp(0.5rem, 10cqw, 0.62rem) !important;
           }
@@ -12653,8 +12743,10 @@ export default function RealWorldMap() {
 
         @media (max-width: 350px) {
           .venue-action-rail--primary.venue-action-rail--three,
+          .venue-action-rail--primary.venue-action-rail--four,
           .venue-action-rail--primary.venue-action-rail--two,
           :global(.venue-action-rail--primary.venue-action-rail--three),
+          :global(.venue-action-rail--primary.venue-action-rail--four),
           :global(.venue-action-rail--primary.venue-action-rail--two) {
             grid-template-columns: 1fr !important;
           }

@@ -29,6 +29,7 @@ import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import { buildVenueProfile } from '@/lib/venue-profile';
 import { getActiveVenuePerk, getVenuePerkSnapshot } from '@/lib/venue-perks';
 import { CURATED_SIARGAO_VENUES, ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
+import { deriveVenueHandle, isBaseCashPilotVenue } from '@/lib/venue-handles';
 import type {
   VenueActivationInsight,
   VenueRoiSnapshot,
@@ -128,6 +129,8 @@ function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
   return {
     id: `curated:${venue.slug}`,
     slug: venue.slug,
+    handle: deriveVenueHandle({ slug: venue.slug, city: venue.city, country: venue.country }),
+    baseCashEnabled: isBaseCashPilotVenue(venue.slug),
     name: venue.name,
     description: venue.description,
     profile: buildVenueProfile({
@@ -1704,6 +1707,13 @@ export async function getNearbyVenues(input: {
       return {
         id: venue.id,
         slug: venue.slug,
+        handle: deriveVenueHandle({
+          slug: venue.slug,
+          city: venue.city,
+          country: venue.country,
+          metadataJson: venue.metadataJson,
+        }),
+        baseCashEnabled: isBaseCashPilotVenue(venue.slug),
         name: venue.name,
         description: venue.description,
         profile: buildVenueProfile({
@@ -2030,6 +2040,13 @@ async function getVenueDetailBySlugFromDatabase(
   return {
     id: venue.id,
     slug: venue.slug,
+    handle: deriveVenueHandle({
+      slug: venue.slug,
+      city: venue.city,
+      country: venue.country,
+      metadataJson: venue.metadataJson,
+    }),
+    baseCashEnabled: isBaseCashPilotVenue(venue.slug),
     name: venue.name,
     description: venue.description,
     profile: buildVenueProfile({

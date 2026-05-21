@@ -7,6 +7,7 @@ import {
   getNeighborGeohashes,
   isValidCoordinates,
 } from '@/lib/geo';
+import { deriveVenueHandle, isBaseCashPilotVenue } from '@/lib/venue-handles';
 
 const ResolvePlaceSchema = z.object({
   name: z.string().trim().min(1).max(160).optional(),
@@ -20,6 +21,18 @@ const ResolvePlaceSchema = z.object({
 });
 
 const NEARBY_MATCH_RADIUS_METERS = 30;
+
+function withVenueIdentity<T extends { slug: string; city: string | null; country: string | null }>(place: T) {
+  return {
+    ...place,
+    handle: deriveVenueHandle({
+      slug: place.slug,
+      city: place.city,
+      country: place.country,
+    }),
+    baseCashEnabled: isBaseCashPilotVenue(place.slug),
+  };
+}
 
 function slugifyPlaceName(value: string) {
   const normalized = value
@@ -149,7 +162,7 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             created: false,
-            place: existingByExternal,
+            place: withVenueIdentity(existingByExternal),
           },
         });
       }
@@ -161,7 +174,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           created: false,
-          place: nearbyMatch,
+          place: withVenueIdentity(nearbyMatch),
         },
       });
     }
@@ -253,7 +266,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         created: true,
-        place: created,
+        place: withVenueIdentity(created),
       },
     });
   } catch (error) {
