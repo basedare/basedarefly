@@ -10,7 +10,6 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import {
-    NEARBY_RADIUS_OPTIONS,
     PUSH_TOPIC_LABELS,
     useWalletPushSubscription,
 } from '@/hooks/useWalletPushSubscription';
@@ -117,7 +116,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         syncPushLocationContext,
         syncPushSubscription,
         togglePushTopic,
-        updateNearbyRadius,
         vapidPublicKey,
     } = useWalletPushSubscription({ enabled: isOpen });
     const pushCanRegister = Boolean(vapidPublicKey && pushClientConfigured);
@@ -401,7 +399,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                         style={dropdownPosition ? { top: dropdownPosition.top, right: dropdownPosition.right } : undefined}
-                        className="bd-notification-panel fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[1800] isolate flex h-[calc(100svh-5.25rem)] max-h-[calc(100svh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(31,34,45,0.78)_0%,rgba(12,14,24,0.82)_48%,rgba(5,6,13,0.92)_100%)] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-34px_52px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
+                        className="bd-notification-panel fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[12000] isolate flex h-[calc(100svh-5.25rem)] max-h-[calc(100svh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(31,34,45,0.78)_0%,rgba(12,14,24,0.82)_48%,rgba(5,6,13,0.92)_100%)] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-34px_52px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
                     >
                         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_-5%,rgba(255,255,255,0.24),transparent_26%),radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.22),transparent_38%),radial-gradient(circle_at_88%_8%,rgba(250,204,21,0.18),transparent_30%),radial-gradient(circle_at_80%_76%,rgba(168,85,247,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.12),transparent_34%)]" />
                         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
@@ -630,29 +628,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                                     </button>
                                                                 )}
                                                             </div>
-
-                                                            {pushTopics.includes('nearby') && (
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {NEARBY_RADIUS_OPTIONS.map((radius) => {
-                                                                        const active = nearbyRadiusKm === radius;
-                                                                        return (
-                                                                            <button
-                                                                                key={radius}
-                                                                                type="button"
-                                                                                onClick={() => void updateNearbyRadius(radius)}
-                                                                                disabled={pushBusy}
-                                                                                className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] transition active:scale-[0.98] ${
-                                                                                    active
-                                                                                        ? 'border-yellow-300/35 bg-yellow-300/12 text-yellow-100'
-                                                                                        : 'border-white/10 bg-white/5 text-white/38'
-                                                                                }`}
-                                                                            >
-                                                                                {radius} km
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            )}
                                                         </>
                                                     )}
                                                 </div>
@@ -675,7 +650,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                             ) : null}
                                         </div>
                                         <p className="mt-1 text-xs text-gray-400">
-                                            Bids, support, and venue replies.
+                                            Bids, support, venue replies.
                                         </p>
                                     </div>
                                     <Link
@@ -731,9 +706,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                     </div>
                                 ) : (
                                     <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
-                                        <p className="text-sm font-black text-white">No active chats yet.</p>
+                                        <p className="text-sm font-black text-white">No chats yet.</p>
                                         <p className="mt-1 text-xs leading-relaxed text-white/42">
-                                            Start with a creator bid, support request, or future collab thread.
+                                            Messages will land here.
                                         </p>
                                     </div>
                                 )}
