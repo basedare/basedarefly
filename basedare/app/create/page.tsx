@@ -528,6 +528,85 @@ function CreateDareContent() {
   const requiredAmount = !isCommunitySpark && watchAmount ? parseUnits(String(watchAmount), 6) : BigInt(0);
   const hasInsufficientBalance = !isCommunitySpark && !isSimulationMode && isConnected && usdcBalance !== undefined && usdcBalance < requiredAmount;
   const formattedBalance = usdcBalance ? formatUnits(usdcBalance, 6) : '0';
+  const missionObjective = String(watchTitle ?? '').trim();
+  const hasMissionObjective = missionObjective.length >= 3;
+  const hasRewardReady = isCommunitySpark || normalizedWatchAmount >= 5;
+  const hasDeadlineReady = Number.isFinite(Number(watchTimeValue)) && Number(watchTimeValue) >= 1;
+  const hasLocationReady = !watchIsNearbyDare || Boolean(watchVenueId) || Boolean(coordinates);
+  const hasWalletReady = isConnected && Boolean(address);
+  const settlementReady =
+    isCommunitySpark ||
+    isSimulationMode ||
+    (isOnchainContractsReady && hasRewardReady && !hasInsufficientBalance);
+  const launchBlocker = !hasMissionObjective
+    ? 'Add a mission objective before launch.'
+    : !hasWalletReady
+      ? 'Connect wallet from the top bar to launch.'
+      : !hasLocationReady
+        ? geoLoading
+          ? 'Waiting for location capture.'
+          : 'Enable location, pick a venue, or turn off nearby discovery.'
+        : !hasRewardReady
+          ? 'Set a reward of at least 5 USDC.'
+          : !hasDeadlineReady
+            ? 'Set a valid time limit.'
+            : !isCommunitySpark && !isSimulationMode && !isOnchainContractsReady
+              ? 'Contract configuration is missing in this environment.'
+              : hasInsufficientBalance
+                ? `Add ${watchAmount || 0} USDC or lower the bounty.`
+                : null;
+  const launchGateLabel = !hasMissionObjective
+    ? 'Add Mission'
+    : !hasWalletReady
+      ? 'Connect Wallet'
+      : !hasLocationReady
+        ? geoLoading
+          ? 'Capturing Location'
+          : 'Location Needed'
+        : !hasRewardReady
+          ? 'Set Reward'
+          : !hasDeadlineReady
+            ? 'Set Deadline'
+            : !settlementReady
+              ? hasInsufficientBalance
+                ? 'Insufficient Balance'
+                : 'Launch Locked'
+              : 'Ready';
+  const canLaunchDare = !launchBlocker;
+  const launchReadinessItems = [
+    {
+      label: 'Mission',
+      value: hasMissionObjective ? 'Ready' : 'Needed',
+      icon: Zap,
+      ready: hasMissionObjective,
+    },
+    {
+      label: 'Wallet',
+      value: hasWalletReady ? 'Connected' : 'Connect',
+      icon: Wallet,
+      ready: hasWalletReady,
+    },
+    {
+      label: 'Location',
+      value: watchVenueId
+        ? 'Venue pin'
+        : !watchIsNearbyDare
+          ? 'Off'
+          : coordinates
+            ? 'Captured'
+            : geoLoading
+              ? 'Capturing'
+              : 'Needed',
+      icon: MapPin,
+      ready: hasLocationReady,
+    },
+    {
+      label: 'Launch',
+      value: canLaunchDare ? 'Ready' : launchGateLabel,
+      icon: ShieldCheck,
+      ready: canLaunchDare,
+    },
+  ];
 
   // Debug: log validation errors
   const onError = (errors: FieldErrors<FormData>) => {
@@ -564,6 +643,17 @@ function CreateDareContent() {
   const onSubmit = async (data: FormData) => {
     trigger('fund');
     console.log('[CREATE] Form submitted with data:', data);
+
+    if (launchBlocker) {
+      trigger('error');
+      toast({
+        variant: 'destructive',
+        title: 'Launch Not Ready',
+        description: launchBlocker,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setSuccessData(null);
     setApprovalStatus('idle');
@@ -1487,6 +1577,53 @@ function CreateDareContent() {
                 </div>
               </div>
 
+              <div className="rounded-[22px] border border-white/[0.08] bg-black/20 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+                      Launch status
+                    </p>
+                    <p className={`mt-1 text-sm font-bold ${launchBlocker ? 'text-yellow-100' : 'text-emerald-200'}`}>
+                      {launchBlocker ?? 'Everything needed for launch is lined up.'}
+                    </p>
+                  </div>
+                  <span className={`w-fit rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] ${
+                    launchBlocker
+                      ? 'border-yellow-300/18 bg-yellow-500/[0.08] text-yellow-100'
+                      : 'border-emerald-300/20 bg-emerald-500/[0.1] text-emerald-200'
+                  }`}>
+                    {launchGateLabel}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+                  {launchReadinessItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <div
+                        key={item.label}
+                        className={`min-w-0 rounded-full border px-3 py-2 ${
+                          item.ready
+                            ? 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100'
+                            : 'border-white/10 bg-white/[0.035] text-white/48'
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate text-[9px] font-black uppercase tracking-[0.16em]">
+                            {item.label}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs font-bold text-white">
+                          {item.value}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* BALANCE & FUND BUTTON */}
               {isConnected && !isSimulationMode && !isCommunitySpark && (
                 <div className="pt-4 md:pt-6 space-y-3">
@@ -1550,7 +1687,7 @@ function CreateDareContent() {
                       {isSubmitting ? approvalStatus || 'Live' : 'Launch'}
                     </span>
                   </div>
-                  {hasInsufficientBalance || (!isCommunitySpark && !isSimulationMode && !isOnchainContractsReady) ? (
+                  {launchBlocker ? (
                     <InitProtocolButton
                       variant="liquid"
                       disabled
@@ -1560,7 +1697,7 @@ function CreateDareContent() {
                     >
                       <div className="relative flex items-center justify-center gap-3">
                         <span className="font-black uppercase tracking-[0.12em] text-[0.95rem] text-white/45">
-                          {!isCommunitySpark && !isSimulationMode && !isOnchainContractsReady ? 'Contract Misconfigured' : 'Insufficient Balance'}
+                          {launchGateLabel}
                         </span>
                       </div>
                     </InitProtocolButton>
@@ -1601,11 +1738,9 @@ function CreateDareContent() {
                     />
                   )}
 
-                  {(hasInsufficientBalance || (!isSimulationMode && !isOnchainContractsReady)) && (
+                  {launchBlocker && (
                     <p className="px-2 text-center font-mono text-[9px] uppercase text-gray-500 md:text-[10px]">
-                      {!isSimulationMode && !isOnchainContractsReady
-                        ? '* Configure contract env vars and redeploy.'
-                        : '* Fund your wallet with USDC to deploy'}
+                      * {launchBlocker}
                     </p>
                   )}
                 </div>
