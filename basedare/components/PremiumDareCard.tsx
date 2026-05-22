@@ -278,7 +278,7 @@ export default function PremiumDareCard({
               {/* Likes */}
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-1 transition-colors ${liked ? 'text-red-400' : 'text-white/40 hover:text-red-400'}`}
+                className={`flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-full transition-colors ${liked ? 'text-red-400' : 'text-white/40 hover:text-red-400'}`}
                 type="button"
                 aria-label="Like"
               >

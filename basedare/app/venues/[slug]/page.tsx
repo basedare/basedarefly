@@ -746,7 +746,7 @@ export default async function VenueDetailPage(
                     {card.href && card.actionLabel ? (
                       <Link
                         href={card.href}
-                        className="mt-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+                        className="mt-4 inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
                       >
                         {card.actionLabel}
                         <ArrowRight className="h-3.5 w-3.5" />
@@ -889,7 +889,7 @@ export default async function VenueDetailPage(
                   </div>
                   <Link
                     href={repeatSignalHref}
-                    className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                    className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
                   >
                     {repeatSignalCta}
                     <ArrowRight className="h-3.5 w-3.5" />

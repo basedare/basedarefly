@@ -20,6 +20,7 @@ type BaseCashVenueCreditClientProps = {
     city: string | null;
     country: string | null;
   };
+  ledgerUnavailableReason?: string | null;
 };
 
 type CreatedCredit = {
@@ -42,7 +43,10 @@ const amountLabels: Record<BaseCashDenominationPhp, string> = {
   5000: 'Big night',
 };
 
-export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCreditClientProps) {
+export default function BaseCashVenueCreditClient({
+  venue,
+  ledgerUnavailableReason,
+}: BaseCashVenueCreditClientProps) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState<BaseCashDenominationPhp>(500);
   const [walletInput, setWalletInput] = useState('');
@@ -54,6 +58,11 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
   const buyerWallet = (address || walletInput).trim();
 
   const createCredit = async () => {
+    if (ledgerUnavailableReason) {
+      setError(ledgerUnavailableReason);
+      return;
+    }
+
     setCreating(true);
     setError(null);
     setCreated(null);
@@ -169,6 +178,12 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
             </p>
           ) : null}
 
+          {ledgerUnavailableReason ? (
+            <p className="mt-4 rounded-[18px] border border-amber-300/20 bg-amber-500/[0.09] px-4 py-3 text-sm font-bold text-amber-50">
+              {ledgerUnavailableReason}
+            </p>
+          ) : null}
+
           {created ? (
             <div
               className={`mt-5 rounded-[24px] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
@@ -203,7 +218,7 @@ export default function BaseCashVenueCreditClient({ venue }: BaseCashVenueCredit
 
           <button
             type="button"
-            disabled={!buyerWallet || creating}
+            disabled={!buyerWallet || creating || Boolean(ledgerUnavailableReason)}
             onClick={createCredit}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/35 bg-[linear-gradient(180deg,#ffe76d_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-black shadow-[0_18px_32px_rgba(245,197,24,0.2),inset_0_1px_0_rgba(255,255,255,0.52),inset_0_-8px_10px_rgba(0,0,0,0.18)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
           >

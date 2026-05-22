@@ -47,11 +47,11 @@ function ContactButton() {
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => trigger('click')}
-      className="relative group p-[1px] rounded-xl overflow-hidden inline-flex"
+      className="relative group inline-flex min-h-10 rounded-xl p-[1px] overflow-hidden"
     >
       {/* Liquid metal border - spins on hover */}
       <div
-        className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
+        className="absolute inset-0 bg-[conic-gradient(from_0deg,#1a1a1a_0%,#525252_20%,#a1a1aa_25%,#525252_30%,#1a1a1a_50%,#525252_70%,#a1a1aa_75%,#525252_80%,#1a1a1a_100%)] opacity-60 group-hover:opacity-100 group-hover:animate-[spin_3s_linear_infinite] transition-opacity duration-500"
         aria-hidden="true"
       />
 
@@ -1256,7 +1256,8 @@ function CreateDareContent() {
                 <textarea
                   {...register('title')}
                   placeholder="Describe the dare in detail..."
-                  className="bd-dent-surface min-h-[96px] w-full resize-none rounded-xl border-white/[0.09] bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-base text-white placeholder:text-white/20 backdrop-blur-xl transition-all focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none md:min-h-[150px] md:p-6 md:text-lg md:backdrop-blur-2xl"
+                  style={{ minHeight: 128 }}
+                  className="bd-dent-surface min-h-[112px] w-full resize-none rounded-xl border-white/[0.09] bg-[linear-gradient(145deg,rgba(12,10,18,0.98)_0%,rgba(16,14,24,0.95)_18%,rgba(32,24,44,0.88)_100%)] p-4 font-mono text-base text-white placeholder:text-white/20 backdrop-blur-xl transition-all focus:border-purple-400/45 focus:bg-[linear-gradient(145deg,rgba(14,12,22,0.99)_0%,rgba(18,16,28,0.96)_18%,rgba(36,27,50,0.9)_100%)] focus:outline-none md:min-h-[150px] md:p-6 md:text-lg md:backdrop-blur-2xl"
                 />
                 {errors.title && (
                   <p className="text-red-400 text-xs md:text-sm">{errors.title.message}</p>
@@ -1292,7 +1293,7 @@ function CreateDareContent() {
                         type="button"
                         onClick={() => imageInputRef.current?.click()}
                         disabled={isSubmitting}
-                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-200 transition hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-cyan-200 transition hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <ImagePlus className="h-3.5 w-3.5" />
                         {dareImage ? 'Replace' : 'Upload'}
@@ -1342,16 +1343,16 @@ function CreateDareContent() {
                   <button
                     type="button"
                     onClick={handleNearbyToggle}
-                    className={`relative h-8 w-14 rounded-full border-2 transition-all ${
+                    className={`relative h-10 w-16 rounded-full border-2 transition-all ${
                       watchIsNearbyDare
                         ? 'border-[#FACC15] bg-[#FACC15]/20'
                         : 'border-white/10 bg-white/[0.05]'
                     }`}
                   >
                     <span
-                      className={`absolute top-1 h-5 w-5 rounded-full transition-all ${
+                      className={`absolute top-1.5 h-7 w-7 rounded-full transition-all ${
                         watchIsNearbyDare
-                          ? 'left-7 bg-[#FACC15]'
+                          ? 'left-8 bg-[#FACC15]'
                           : 'left-1 bg-gray-500'
                       }`}
                     />
@@ -1392,7 +1393,7 @@ function CreateDareContent() {
                               <button
                                 type="button"
                                 onClick={requestLocation}
-                                className="ml-2 text-xs text-[#FACC15] hover:underline"
+                                className="ml-2 inline-flex min-h-10 items-center rounded-full px-2 text-xs text-[#FACC15] hover:underline"
                               >
                                 Try again
                               </button>
@@ -1404,7 +1405,7 @@ function CreateDareContent() {
                             <button
                               type="button"
                               onClick={requestLocation}
-                              className="text-sm text-[#FACC15] hover:underline font-medium"
+                              className="inline-flex min-h-10 items-center rounded-full px-2 text-sm font-medium text-[#FACC15] hover:underline"
                             >
                               Enable location access
                             </button>
@@ -1467,7 +1468,7 @@ function CreateDareContent() {
                       type="checkbox"
                       {...requireSentinelField}
                       disabled={isCommunitySpark || !appSettings.sentinelEnabled}
-                      className="mt-1 h-5 w-5 accent-emerald-500"
+                      className="mt-1 h-9 w-9 shrink-0 accent-emerald-500"
                     />
                   </label>
                 </div>

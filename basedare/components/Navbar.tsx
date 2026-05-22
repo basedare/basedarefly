@@ -43,10 +43,11 @@ export default function Navbar() {
             <Link
               href="/"
               prefetch={NAV_LINK_PREFETCH}
-              className="relative group block"
+              aria-label="Open BaseDare home"
+              className="relative group inline-flex min-h-10 min-w-10 items-center justify-center"
             >
               {/* Very subtle ambient glow */}
-              <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 scale-[1.45] bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <img
                 src="/assets/BASEDAREGOO.webp"

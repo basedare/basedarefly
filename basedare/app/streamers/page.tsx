@@ -491,7 +491,7 @@ export default function CreatorsPage() {
                 <h2 className="text-2xl font-black text-white tracking-tight italic">
                   CREATORS
                 </h2>
-                <Link href="/leaderboard" className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <Link href="/leaderboard" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   Hall of Fame <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -512,7 +512,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setFilterMode(option.value)}
-                      className={`bd-dent-pill rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill min-h-10 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                         filterMode === option.value
                           ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
@@ -532,7 +532,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setSortMode(option.value)}
-                      className={`bd-dent-pill rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill min-h-10 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
                         sortMode === option.value
                           ? "border-purple-400/30 bg-purple-500/[0.12] text-purple-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"

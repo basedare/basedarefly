@@ -82,7 +82,7 @@ export function Toast({
       </div>
       <button
         onClick={handleClose}
-        className="absolute right-2 top-2 rounded-md p-1 text-white/50 opacity-70 transition-opacity hover:text-white hover:opacity-100 focus:opacity-100 focus:outline-none"
+        className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-md text-white/50 opacity-70 transition-opacity hover:text-white hover:opacity-100 focus:opacity-100 focus:outline-none"
       >
         <X className="h-4 w-4" />
       </button>

@@ -273,9 +273,10 @@
 
 .dare-target-tag {
   display: inline-flex;
+  min-height: 2.25rem;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
+  padding: 6px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);

@@ -281,7 +281,7 @@ function HomeContent() {
                   <Link
                     href="/map"
                     prefetch={false}
-                    className="font-mono text-xs md:text-sm tracking-[0.08em] text-[#F5C518] hover:text-white transition-colors"
+                    className="inline-flex min-h-10 items-center justify-center rounded-full px-3 font-mono text-xs tracking-[0.08em] text-[#F5C518] transition-colors hover:text-white md:text-sm"
                   >
                     Start with nearby proof →
                   </Link>

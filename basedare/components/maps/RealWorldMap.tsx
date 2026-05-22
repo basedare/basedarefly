@@ -8049,7 +8049,7 @@ export default function RealWorldMap() {
                     }
                   }}
                   placeholder="Search breakfast, coffee, beach..."
-                  className="w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
+                  className="min-h-9 w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
                 />
                 {searching ? <Loader2 className="h-4 w-4 animate-spin text-white/45" /> : null}
               </div>
@@ -8416,7 +8416,7 @@ export default function RealWorldMap() {
                     type="button"
                     onClick={dismissStartProofDock}
                     aria-label="Hide standout venue"
-                    className="absolute -right-2 -top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
+                    className="absolute -right-3 -top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -8892,7 +8892,7 @@ export default function RealWorldMap() {
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="mt-4 rounded-full border border-cyan-200/24 bg-cyan-300/[0.1] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 transition hover:border-cyan-100/40"
+                    className="mt-4 min-h-10 rounded-full border border-cyan-200/24 bg-cyan-300/[0.1] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-50 transition hover:border-cyan-100/40"
                   >
                     Reload grid
                   </button>
@@ -10526,7 +10526,7 @@ export default function RealWorldMap() {
         .map-intent-chip {
           appearance: none;
           display: inline-flex;
-          min-height: 1.58rem;
+          min-height: 2.25rem;
           flex: 0 0 auto;
           align-items: center;
           justify-content: center;
@@ -10587,7 +10587,7 @@ export default function RealWorldMap() {
           position: relative;
           isolation: isolate;
           display: inline-flex;
-          min-height: 1.84rem;
+          min-height: 2.25rem;
           align-items: center;
           justify-content: center;
           gap: 0.38rem;
@@ -10745,7 +10745,7 @@ export default function RealWorldMap() {
 
           .map-intent-chip {
             width: 100%;
-            min-height: 1.48rem;
+            min-height: 2.25rem;
             padding-inline: 0.32rem;
             font-size: 0.46rem;
             letter-spacing: 0.1em;
@@ -10768,7 +10768,7 @@ export default function RealWorldMap() {
           }
 
           .map-status-pill {
-            min-height: 1.68rem;
+            min-height: 2.25rem;
             flex: 0 0 auto;
             padding-inline: 0.56rem;
             font-size: 0.52rem;

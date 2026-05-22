@@ -239,7 +239,7 @@ export function IdentityButton() {
 
         <button
           onClick={handleClick}
-          className="relative flex h-full w-full min-w-0 items-center justify-center rounded-[12px] bg-[#050505] px-2.5 py-2 backdrop-blur-3xl md:rounded-[15px] md:px-5 md:py-2.5"
+          className="relative flex min-h-10 w-full min-w-0 items-center justify-center rounded-[12px] bg-[#050505] px-2.5 py-2 backdrop-blur-3xl md:rounded-[15px] md:px-5 md:py-2.5"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
           <span className="relative z-10 flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap text-[9px] font-black italic uppercase tracking-[0.08em] text-white transition-all duration-500 sm:text-[10px] sm:tracking-[0.12em] md:gap-2 md:text-xs md:tracking-[0.3em] md:group-hover:tracking-[0.35em]">

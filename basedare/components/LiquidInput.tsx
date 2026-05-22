@@ -116,7 +116,7 @@ export function LiquidInput({ className, prefix, value, onChange, onStreamerSele
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             {...props}
             className={cn(
-              "w-full bg-transparent border-none text-xl font-bold text-white placeholder:text-white/40 focus:ring-0 focus:outline-none font-mono tracking-wide",
+              "min-h-12 w-full bg-transparent border-none text-xl font-bold text-white placeholder:text-white/40 focus:ring-0 focus:outline-none font-mono tracking-wide",
               className
             )}
           />

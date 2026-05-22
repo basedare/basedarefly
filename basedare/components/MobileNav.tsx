@@ -83,7 +83,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
 
             <button
               onClick={onClose}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-zinc-500 hover:text-white transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-500 transition-all hover:text-white"
               style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.06)',

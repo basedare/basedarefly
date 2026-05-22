@@ -90,7 +90,7 @@ export default function Footer() {
                 href="https://x.com/basedare_xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 text-gray-400 hover:text-[#1DA1F2] active:text-[#1DA1F2] transition-colors touch-manipulation"
+                className="group flex min-h-10 items-center gap-3 rounded-xl px-2 text-gray-400 transition-colors hover:text-[#1DA1F2] active:text-[#1DA1F2] touch-manipulation"
               >
                 <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#1DA1F2] group-active:border-[#1DA1F2] transition-colors">
                   <Twitter className="w-4 h-4" />
@@ -109,37 +109,37 @@ export default function Footer() {
               </h3>
               <ul className="space-y-3 sm:space-y-4">
                 <li>
-                  <Link href="/faq" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-purple-400 active:text-purple-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/faq" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-purple-400 active:text-purple-400 md:justify-start group touch-manipulation">
                     <HelpCircle className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-purple-400" />
                     FAQ
                   </Link>
                 </li>
                 <li>
-                  <Link href="/how-it-works" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-amber-400 active:text-amber-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/how-it-works" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-amber-400 active:text-amber-400 md:justify-start group touch-manipulation">
                     <Lightbulb className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-amber-400" />
                     How It Works
                   </Link>
                 </li>
                 <li>
-                  <Link href="/about" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-emerald-400 active:text-emerald-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/about" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-emerald-400 active:text-emerald-400 md:justify-start group touch-manipulation">
                     <Info className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-emerald-400" />
                     About
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-[#FFD700] active:text-[#FFD700] transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/terms" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-[#FFD700] active:text-[#FFD700] md:justify-start group touch-manipulation">
                     <FileText className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-[#FFD700]" />
                     Terms of Chaos
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-cyan-400 active:text-cyan-400 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/privacy" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-cyan-400 active:text-cyan-400 md:justify-start group touch-manipulation">
                     <Shield className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-cyan-400" />
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-gray-500 hover:text-purple-300 active:text-purple-300 transition-colors uppercase tracking-wider group touch-manipulation py-1">
+                  <Link href="/contact" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-purple-300 active:text-purple-300 md:justify-start group touch-manipulation">
                     <MessageSquare className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-purple-300" />
                     Contact
                   </Link>
@@ -155,20 +155,20 @@ export default function Footer() {
             </p>
 
             {/* Quick links row */}
-            <div className="mt-4 md:mt-6 flex flex-wrap justify-center gap-4 sm:gap-8 text-gray-500 text-[10px] sm:text-xs">
-              <Link href="/terms" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+            <div className="mt-4 md:mt-6 flex flex-wrap justify-center gap-1 sm:gap-5 text-gray-500 text-[10px] sm:text-xs">
+              <Link href="/terms" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 Terms
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
-              <Link href="/privacy" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+              <Link href="/privacy" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 Privacy
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
-              <Link href="/how-it-works" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+              <Link href="/how-it-works" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 How It Works
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
-              <Link href="/contact" className="hover:text-yellow-400 active:text-yellow-400 transition touch-manipulation">
+              <Link href="/contact" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 Contact
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
@@ -176,7 +176,7 @@ export default function Footer() {
                 href="https://x.com/basedare_xyz"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[#1DA1F2] active:text-[#1DA1F2] transition touch-manipulation"
+                className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-[#1DA1F2] active:text-[#1DA1F2] touch-manipulation"
               >
                 @basedare
               </a>

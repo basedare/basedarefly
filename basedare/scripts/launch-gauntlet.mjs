@@ -303,10 +303,26 @@ async function auditLinks() {
   console.log(`\nChecking ${links.length} discovered internal links...`);
   for (const path of links) {
     try {
-      const response = await fetch(new URL(path, baseUrl), {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(15_000),
-      });
+      const targetUrl = new URL(path, baseUrl);
+      let response = null;
+      let lastError = null;
+
+      for (const timeoutMs of [15_000, 30_000]) {
+        try {
+          response = await fetch(targetUrl, {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!response) {
+        throw lastError ?? new Error('link check failed');
+      }
 
       if ([301, 302, 303, 307, 308].includes(response.status)) continue;
       if (response.status >= 400) {
@@ -355,11 +371,11 @@ try {
       await auditRoute(browser, route, viewport);
     }
   }
-
-  await auditLinks();
 } finally {
   await browser.close();
 }
+
+await auditLinks();
 
 const blockers = findings.filter((finding) => finding.severity === 'block');
 const warnings = findings.filter((finding) => finding.severity === 'warn');

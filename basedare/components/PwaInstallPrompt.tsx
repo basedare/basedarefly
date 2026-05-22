@@ -146,7 +146,7 @@ export default function PwaInstallPrompt() {
         <button
           type="button"
           onClick={dismiss}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white/60 transition hover:text-white"
+          className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white/60 transition hover:text-white"
           aria-label="Dismiss install prompt"
         >
           <X className="h-4 w-4" />

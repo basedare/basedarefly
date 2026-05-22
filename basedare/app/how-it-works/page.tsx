@@ -434,7 +434,7 @@ export default function HowItWorksPage() {
                     </div>
                     <Link
                       href={track.href}
-                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-white/12 bg-black/30 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/78 transition hover:border-white/22 hover:text-white"
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/12 bg-black/30 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/78 transition hover:border-white/22 hover:text-white"
                     >
                       {track.cta}
                       <ArrowRight className="h-3.5 w-3.5" />
