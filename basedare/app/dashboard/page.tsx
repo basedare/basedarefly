@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap } from "lucide-react";
+import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, UserRound, Bell, Target } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -124,6 +124,31 @@ interface FootprintStats {
   } | null;
 }
 
+interface VenueDashboardItem {
+  id: string;
+  slug: string;
+  handle: string | null;
+  displayHandle: string | null;
+  name: string;
+  city: string | null;
+  country: string | null;
+  categories: string[];
+  claimState: 'claimed' | 'pending' | 'unclaimed';
+  claimRequestStatus: string | null;
+  claimRequestTag: string | null;
+  claimedAt: string | null;
+  claimRequestedAt: string | null;
+  consoleUrl: string | null;
+  venueUrl: string;
+  mapUrl: string;
+  metrics: {
+    approvedMarks: number;
+    checkIns: number;
+    campaigns: number;
+    partner: boolean;
+  };
+}
+
 type DashboardInboxItem = {
   id: string;
   dareId?: string | null;
@@ -152,6 +177,16 @@ type StoredDareResponseAuth = {
   dareId: string;
   issuedAt: string;
   signature: string;
+};
+
+type DashboardQuickAction = {
+  id: string;
+  label: string;
+  detail: string;
+  cta: string;
+  tone: 'yellow' | 'purple' | 'cyan' | 'neutral';
+  icon: React.ComponentType<{ className?: string }>;
+  onSelect: () => void;
 };
 
 const ACTION_ROLE_LABELS: Record<DashboardInboxItem['role'], string> = {
@@ -388,6 +423,8 @@ export default function Dashboard() {
   const [actionInbox, setActionInbox] = useState<DashboardInboxItem[]>([]);
   const [actionInboxLoading, setActionInboxLoading] = useState(false);
   const [footprintStats, setFootprintStats] = useState<FootprintStats | null>(null);
+  const [venueDashboardItems, setVenueDashboardItems] = useState<VenueDashboardItem[]>([]);
+  const [venueDashboardLoading, setVenueDashboardLoading] = useState(false);
   const [deepLinkedCampaignId, setDeepLinkedCampaignId] = useState<string | null>(null);
   const activationsRef = useRef<HTMLDivElement | null>(null);
   const opportunitiesRef = useRef<HTMLDivElement | null>(null);
@@ -640,6 +677,37 @@ export default function Dashboard() {
     };
 
     fetchOpportunities();
+  }, [address, sessionToken]);
+
+  useEffect(() => {
+    const fetchVenueDashboard = async () => {
+      if (!address) {
+        setVenueDashboardItems([]);
+        setVenueDashboardLoading(false);
+        return;
+      }
+
+      try {
+        setVenueDashboardLoading(true);
+        const response = await fetch(`/api/venues/mine?wallet=${encodeURIComponent(address)}`, {
+          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+        });
+        const payload = await response.json();
+
+        if (!payload.success) {
+          throw new Error(payload.error || 'Failed to load venue dashboard');
+        }
+
+        setVenueDashboardItems(payload.data?.venues ?? []);
+      } catch (error) {
+        console.error('Failed to load venue dashboard:', error);
+        setVenueDashboardItems([]);
+      } finally {
+        setVenueDashboardLoading(false);
+      }
+    };
+
+    void fetchVenueDashboard();
   }, [address, sessionToken]);
 
   useEffect(() => {
@@ -920,6 +988,9 @@ export default function Dashboard() {
   const expandedFundedDare = fundedRows.find((dare) => dare.id === expandedFundedId) || null;
   const primaryActivation = creatorClaims[0] || null;
   const primaryActivationState = primaryActivation ? getClaimLoopState(primaryActivation, address) : null;
+  const primaryVenueDashboardItem = venueDashboardItems[0] || null;
+  const claimedVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'claimed').length;
+  const pendingVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'pending').length;
 
   const jumpToActivation = (activationId?: string | null) => {
     setActivationsOpen(true);
@@ -930,6 +1001,138 @@ export default function Dashboard() {
       activationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
+
+  const leadingOpportunity = topOpportunities[0] || null;
+  const leadingOpportunityHref = leadingOpportunity?.linkedDare?.shortId
+    ? `/dare/${leadingOpportunity.linkedDare.shortId}`
+    : leadingOpportunity?.venue?.slug
+      ? `/map?place=${encodeURIComponent(leadingOpportunity.venue.slug)}&source=dashboard&matches=1`
+      : '/map?matches=1';
+  const dashboardQuickActions: DashboardQuickAction[] = [];
+  const pushQuickAction = (action: DashboardQuickAction) => {
+    if (dashboardQuickActions.some((entry) => entry.id === action.id)) return;
+    if (dashboardQuickActions.length >= 4) return;
+    dashboardQuickActions.push(action);
+  };
+
+  if (!isConnected) {
+    pushQuickAction({
+      id: 'connect',
+      label: 'Connect wallet',
+      detail: 'Enter your command base.',
+      cta: isConnecting ? 'Connecting' : 'Connect',
+      tone: 'yellow',
+      icon: LogIn,
+      onSelect: handleConnect,
+    });
+    pushQuickAction({
+      id: 'map',
+      label: 'Open the map',
+      detail: 'See active venues and live drops.',
+      cta: 'Open map',
+      tone: 'cyan',
+      icon: Compass,
+      onSelect: () => router.push('/map'),
+    });
+    pushQuickAction({
+      id: 'create',
+      label: 'Launch a dare',
+      detail: 'Put a bounty into motion.',
+      cta: 'Create',
+      tone: 'purple',
+      icon: Target,
+      onSelect: () => router.push('/create'),
+    });
+  } else {
+    if (primaryActivation && primaryActivationState) {
+      pushQuickAction({
+        id: 'primary-activation',
+        label:
+          primaryActivationState.label === 'Ready for Proof'
+            ? 'Submit proof'
+            : primaryActivationState.label === 'Respond Now'
+              ? 'Review dare'
+              : 'Open activation',
+        detail: primaryActivation.title,
+        cta:
+          primaryActivationState.label === 'Ready for Proof'
+            ? 'Submit'
+            : primaryActivationState.label === 'Respond Now'
+              ? 'Review'
+              : 'Open',
+        tone: 'yellow',
+        icon: Zap,
+        onSelect: () => jumpToActivation(primaryActivation.id),
+      });
+    }
+
+    if (primaryVenueDashboardItem) {
+      pushQuickAction({
+        id: 'venue-command',
+        label: primaryVenueDashboardItem.claimState === 'claimed' ? 'Venue command' : 'Venue claim',
+        detail:
+          primaryVenueDashboardItem.displayHandle ||
+          primaryVenueDashboardItem.name,
+        cta: primaryVenueDashboardItem.consoleUrl ? 'Open console' : 'View claim',
+        tone: 'cyan',
+        icon: Building2,
+        onSelect: () => router.push(primaryVenueDashboardItem.consoleUrl ?? primaryVenueDashboardItem.venueUrl),
+      });
+    }
+
+    if (!loading && !hasVerifiedIdentity) {
+      pushQuickAction({
+        id: 'claim-handle',
+        label: identityHandle ? 'Verify handle' : 'Claim handle',
+        detail: identityHandle ? `@${identityHandle}` : 'Create your public tag.',
+        cta: identityHandle ? 'Verify' : 'Claim',
+        tone: 'purple',
+        icon: UserRound,
+        onSelect: () => router.push(claimTagHref),
+      });
+    } else if (!opportunitiesLoading && leadingOpportunity) {
+      pushQuickAction({
+        id: 'opportunity',
+        label: leadingOpportunity.claimable ? 'Claim match' : 'Open match',
+        detail: leadingOpportunity.venue?.name || leadingOpportunity.title,
+        cta: leadingOpportunity.claimable ? 'Claim' : 'Open',
+        tone: 'purple',
+        icon: Target,
+        onSelect: () => router.push(leadingOpportunityHref),
+      });
+    }
+
+    if (actionInbox.length > 0) {
+      pushQuickAction({
+        id: 'action-center',
+        label: 'Action center',
+        detail: `${actionInbox.length} live ${actionInbox.length === 1 ? 'item' : 'items'}`,
+        cta: 'Open',
+        tone: 'neutral',
+        icon: Bell,
+        onSelect: () => router.push('/action-center'),
+      });
+    }
+
+    pushQuickAction({
+      id: 'map',
+      label: 'Open the map',
+      detail: 'Scan venues, drops, and live proofs.',
+      cta: 'Map',
+      tone: 'cyan',
+      icon: Compass,
+      onSelect: () => router.push('/map'),
+    });
+    pushQuickAction({
+      id: 'create',
+      label: 'Create dare',
+      detail: 'Fund a challenge.',
+      cta: 'Create',
+      tone: 'yellow',
+      icon: Plus,
+      onSelect: () => router.push('/create'),
+    });
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -1078,6 +1281,69 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="order-2 mb-6">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Next move</h2>
+              <p className="mt-1 text-sm text-white/50">
+                {isConnected ? 'Your highest-signal actions are ready.' : 'Start with one clean action.'}
+              </p>
+            </div>
+            {isConnected && address ? (
+              <span className={`${pillClass} w-fit normal-case tracking-normal text-xs text-white/56`}>
+                {formatAddress(address)}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {dashboardQuickActions.map((action) => {
+              const Icon = action.icon;
+              const toneClass =
+                action.tone === 'yellow'
+                  ? 'border-yellow-300/18 bg-[linear-gradient(160deg,rgba(65,52,22,0.92)_0%,rgba(26,22,18,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-yellow-200/32'
+                  : action.tone === 'cyan'
+                    ? 'border-cyan-300/16 bg-[linear-gradient(160deg,rgba(18,50,60,0.9)_0%,rgba(15,24,34,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-cyan-200/28'
+                    : action.tone === 'purple'
+                      ? 'border-fuchsia-300/18 bg-[linear-gradient(160deg,rgba(45,27,70,0.94)_0%,rgba(25,18,39,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-fuchsia-200/28'
+                      : 'border-white/10 bg-[linear-gradient(160deg,rgba(40,44,58,0.72)_0%,rgba(20,22,32,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-white/18';
+              const iconClass =
+                action.tone === 'yellow'
+                  ? 'text-yellow-200'
+                  : action.tone === 'cyan'
+                    ? 'text-cyan-200'
+                    : action.tone === 'purple'
+                      ? 'text-fuchsia-200'
+                      : 'text-white/70';
+
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={action.onSelect}
+                  disabled={action.id === 'connect' && isConnecting}
+                  className={`${raisedTileClass} ${toneClass} group flex min-h-[152px] flex-col justify-between p-4 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-wait disabled:opacity-70`}
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.045] ${iconClass}`}>
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                      {action.cta}
+                    </span>
+                  </span>
+                  <span className="mt-5 block min-w-0">
+                    <span className="block text-base font-black text-white">{action.label}</span>
+                    <span className="mt-1.5 line-clamp-2 block text-sm leading-5 text-white/56">
+                      {action.detail}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {isConnected && primaryActivation && primaryActivationState ? (
           <div className={`${raisedTileClass} order-2 mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)] md:order-2`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_15%,rgba(250,204,21,0.16),transparent_26%),radial-gradient(circle_at_88%_0%,rgba(168,85,247,0.18),transparent_32%)]" />
@@ -1127,6 +1393,169 @@ export default function Dashboard() {
                   </CosmicButton>
                 )}
               </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isConnected && (venueDashboardLoading || venueDashboardItems.length > 0) ? (
+          <div className={`${raisedTileClass} order-3 mb-6 overflow-hidden border-cyan-300/16 bg-[linear-gradient(145deg,rgba(18,42,52,0.94),rgba(13,14,24,0.98)_46%,rgba(8,8,16,1)_100%)] shadow-[0_22px_44px_rgba(0,0,0,0.34),0_0_24px_rgba(34,211,238,0.1),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)]`}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_92%_18%,rgba(250,204,21,0.1),transparent_28%)]" />
+            <div className="relative px-5 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/[0.08] px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.1)]">
+                    <Building2 className="h-3.5 w-3.5 text-cyan-200" />
+                    Venue side
+                  </div>
+                  <p className="mt-3 text-lg font-black text-white sm:text-xl">
+                    {venueDashboardLoading
+                      ? 'Loading your venue command surface'
+                      : primaryVenueDashboardItem?.claimState === 'claimed'
+                        ? `${primaryVenueDashboardItem.name} command center`
+                        : `${primaryVenueDashboardItem?.name ?? 'Venue'} claim in review`}
+                  </p>
+                  {primaryVenueDashboardItem?.displayHandle ? (
+                    <p className="mt-1 text-sm font-semibold text-cyan-100/78">
+                      {primaryVenueDashboardItem.displayHandle}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 max-w-2xl text-sm text-white/60">
+                    {primaryVenueDashboardItem?.claimState === 'claimed'
+                      ? 'This wallet is recognized as a venue operator. Console tools, QR sessions, perks, and venue profile controls live on the venue side.'
+                      : 'Your venue claim is in the moderator queue. The console unlocks here as soon as the claim is approved.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 sm:min-w-[340px]">
+                  {[
+                    { label: 'Managed', value: venueDashboardLoading ? '…' : claimedVenueCount },
+                    { label: 'Pending', value: venueDashboardLoading ? '…' : pendingVenueCount },
+                    {
+                      label: 'Marks',
+                      value: venueDashboardLoading
+                        ? '…'
+                        : venueDashboardItems.reduce((sum, venue) => sum + venue.metrics.approvedMarks, 0),
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className={`${insetWellClass} px-3 py-3 text-center`}>
+                      <div className="text-xl font-black text-white">{item.value}</div>
+                      <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/42">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {venueDashboardLoading ? (
+                <div className={`${insetWellClass} mt-4 flex items-center px-4 py-4 text-sm text-white/55`}>
+                  <Loader2 className="mr-3 h-5 w-5 animate-spin text-cyan-200" />
+                  Loading venue side
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+                  {primaryVenueDashboardItem ? (
+                    <div className={`${insetWellClass} px-4 py-4`}>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                              {primaryVenueDashboardItem.claimState === 'claimed' ? 'Console unlocked' : 'Claim pending'}
+                            </span>
+                            {primaryVenueDashboardItem.metrics.partner ? (
+                              <span className="rounded-full border border-yellow-300/20 bg-yellow-400/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-yellow-100">
+                                Partner
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-base font-black text-white">{primaryVenueDashboardItem.name}</p>
+                          <p className="mt-1 text-sm text-white/52">
+                            {[
+                              primaryVenueDashboardItem.displayHandle,
+                              primaryVenueDashboardItem.city,
+                              primaryVenueDashboardItem.country,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') || 'Map venue'}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:min-w-[190px]">
+                          {primaryVenueDashboardItem.consoleUrl ? (
+                            <button
+                              onClick={() => router.push(primaryVenueDashboardItem.consoleUrl!)}
+                              className={`${volumetricButtonPurple} w-full`}
+                            >
+                              Open console
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => router.push(primaryVenueDashboardItem.venueUrl)}
+                              className={`${volumetricButtonPurple} w-full`}
+                            >
+                              View claim
+                            </button>
+                          )}
+                          <button
+                            onClick={() => router.push(primaryVenueDashboardItem.mapUrl)}
+                            className={`${volumetricButtonNeutral} w-full`}
+                          >
+                            <MapPinned className="h-4 w-4" />
+                            Open map
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={`${insetWellClass} px-4 py-4`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">Venue signal</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Proofs', value: primaryVenueDashboardItem?.metrics.approvedMarks ?? 0 },
+                        { label: 'Check-ins', value: primaryVenueDashboardItem?.metrics.checkIns ?? 0 },
+                        { label: 'Campaigns', value: primaryVenueDashboardItem?.metrics.campaigns ?? 0 },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-[16px] border border-white/8 bg-white/[0.035] px-2 py-3 text-center">
+                          <div className="text-lg font-black text-white">{item.value}</div>
+                          <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/38">{item.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!venueDashboardLoading && venueDashboardItems.length > 1 ? (
+                <div className={`${insetWellClass} mt-3 px-4 py-4`}>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/36">Other venues</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                      {venueDashboardItems.length - 1} more
+                    </span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {venueDashboardItems.slice(1).map((venue) => (
+                      <button
+                        key={venue.id}
+                        onClick={() => router.push(venue.consoleUrl ?? venue.venueUrl)}
+                        className="flex min-h-[76px] items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-white/[0.035] px-3 py-3 text-left transition-colors hover:border-cyan-300/20 hover:bg-cyan-400/[0.06]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-white">{venue.name}</span>
+                          <span className="mt-1 block truncate text-xs text-white/46">
+                            {venue.displayHandle || venue.city || venue.country || 'Venue command'}
+                          </span>
+                        </span>
+                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] ${
+                          venue.claimState === 'claimed'
+                            ? 'border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-100'
+                            : 'border-yellow-300/20 bg-yellow-400/[0.08] text-yellow-100'
+                        }`}>
+                          {venue.claimState === 'claimed' ? 'Live' : 'Pending'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

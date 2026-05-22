@@ -855,6 +855,19 @@ function createMarkerElement(html: string, className: string) {
   return element;
 }
 
+type ManagedMapMarker = {
+  marker: MapLibreMarker;
+  element: HTMLDivElement;
+  html: string;
+  className: string;
+  anchor: PositionAnchor;
+  draggable: boolean;
+  onClick: () => void;
+  onDragEnd?: (latitude: number, longitude: number) => void;
+  clickHandler: (event: MouseEvent) => void;
+  dragEndHandler?: () => void;
+};
+
 function emptyPointCollection(): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
@@ -1295,8 +1308,14 @@ function addMapLibreLayer(map: MapLibreMap, layer: LayerSpecification, beforeId?
   map.addLayer(layer, beforeId);
 }
 
-function ensureMapLibreDareLayers(map: MapLibreMap, preset: MapPreset) {
-  tuneMapLibreBaseStyle(map, preset);
+function ensureMapLibreDareLayers(
+  map: MapLibreMap,
+  preset: MapPreset,
+  options: { tuneBaseStyle?: boolean } = {}
+) {
+  if (options.tuneBaseStyle) {
+    tuneMapLibreBaseStyle(map, preset);
+  }
 
   ensureMapLibreSource(map, MAPLIBRE_CHAOS_SOURCE_ID, emptyPolygonCollection());
   ensureMapLibreSource(map, MAPLIBRE_VENUE_SOURCE_ID, emptyPointCollection());
@@ -2921,7 +2940,7 @@ export default function RealWorldMap() {
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const searchShellRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
-  const mapMarkersRef = useRef<MapLibreMarker[]>([]);
+  const mapMarkersRef = useRef<Map<string, ManagedMapMarker>>(new Map());
   const mapInteractionQuietTimerRef = useRef<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapInteractionQuiet, setMapInteractionQuiet] = useState(false);
@@ -4284,7 +4303,7 @@ export default function RealWorldMap() {
     };
 
     const handleLoad = () => {
-      ensureMapLibreDareLayers(map, mapPresetRef.current);
+      ensureMapLibreDareLayers(map, mapPresetRef.current, { tuneBaseStyle: true });
       syncViewport();
       setMapRuntimeError(null);
       setMapReady(true);
@@ -4341,6 +4360,7 @@ export default function RealWorldMap() {
     };
 
     const canvas = map.getCanvas();
+    const markerRegistry = mapMarkersRef.current;
     const handleContextLost = (event: Event) => {
       event.preventDefault();
       setMapReady(false);
@@ -4383,8 +4403,8 @@ export default function RealWorldMap() {
       map.off('error', handleMapError);
       canvas.removeEventListener('webglcontextlost', handleContextLost, false);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
-      mapMarkersRef.current.forEach((marker) => marker.remove());
-      mapMarkersRef.current = [];
+      markerRegistry.forEach(({ marker }) => marker.remove());
+      markerRegistry.clear();
       map.remove();
       mapInstanceRef.current = null;
       setMapReady(false);
@@ -4396,7 +4416,7 @@ export default function RealWorldMap() {
     const map = mapInstanceRef.current;
     if (!map || !mapReady) return;
 
-    ensureMapLibreDareLayers(map, mapPreset);
+    ensureMapLibreDareLayers(map, mapPreset, { tuneBaseStyle: true });
   }, [mapPreset, mapReady]);
 
   useEffect(() => {
@@ -6889,11 +6909,10 @@ export default function RealWorldMap() {
     const map = mapInstanceRef.current;
     if (!map || !mapReady) return;
 
-    mapMarkersRef.current.forEach((marker) => marker.remove());
-    mapMarkersRef.current = [];
-    const nextMarkers: MapLibreMarker[] = [];
+    const seenMarkerKeys = new Set<string>();
 
     const addMarker = ({
+      key,
       latitude,
       longitude,
       html,
@@ -6903,6 +6922,7 @@ export default function RealWorldMap() {
       draggable = false,
       onDragEnd,
     }: {
+      key: string;
       latitude: number;
       longitude: number;
       html: string;
@@ -6912,12 +6932,41 @@ export default function RealWorldMap() {
       draggable?: boolean;
       onDragEnd?: (latitude: number, longitude: number) => void;
     }) => {
+      seenMarkerKeys.add(key);
+      let record = mapMarkersRef.current.get(key);
+      const shouldRecreate =
+        record &&
+        (record.className !== className ||
+          record.anchor !== anchor ||
+          record.draggable !== draggable);
+
+      if (record && shouldRecreate) {
+        record.element.removeEventListener('click', record.clickHandler);
+        record.marker.remove();
+        mapMarkersRef.current.delete(key);
+        record = undefined;
+      }
+
+      if (record) {
+        record.onClick = onClick;
+        record.onDragEnd = onDragEnd;
+        record.marker.setLngLat([longitude, latitude]);
+
+        if (record.html !== html) {
+          record.element.innerHTML = html;
+          record.html = html;
+        }
+
+        return;
+      }
+
       const element = createMarkerElement(html, className);
-      element.addEventListener('click', (event) => {
+      const clickHandler = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        onClick();
-      });
+        mapMarkersRef.current.get(key)?.onClick();
+      };
+      element.addEventListener('click', clickHandler);
 
       const marker = new maplibregl.Marker({
         element,
@@ -6929,15 +6978,30 @@ export default function RealWorldMap() {
         .setLngLat([longitude, latitude])
         .addTo(map);
 
+      const nextRecord: ManagedMapMarker = {
+        marker,
+        element,
+        html,
+        className,
+        anchor,
+        draggable,
+        onClick,
+        onDragEnd,
+        clickHandler,
+      };
+
       if (draggable) {
         marker.setDraggable(true);
-        marker.on('dragend', () => {
-          const lngLat = marker.getLngLat();
-          onDragEnd?.(lngLat.lat, lngLat.lng);
-        });
+        nextRecord.dragEndHandler = () => {
+          const current = mapMarkersRef.current.get(key);
+          if (!current) return;
+          const lngLat = current.marker.getLngLat();
+          current.onDragEnd?.(lngLat.lat, lngLat.lng);
+        };
+        marker.on('dragend', nextRecord.dragEndHandler);
       }
 
-      nextMarkers.push(marker);
+      mapMarkersRef.current.set(key, nextRecord);
     };
 
     privateMapSpots.forEach((spot) => {
@@ -6946,6 +7010,7 @@ export default function RealWorldMap() {
         Boolean(saveSpotDraft && Math.abs(saveSpotDraft.latitude - spot.latitude) < 0.000001);
 
       addMarker({
+        key: `private:${spot.id}`,
         latitude: spot.latitude,
         longitude: spot.longitude,
         html: createPrivateSpotMarkerHtml({
@@ -6962,6 +7027,7 @@ export default function RealWorldMap() {
     clusteredNearbyMarkers.forEach((marker) => {
       if (marker.kind === 'cluster') {
         addMarker({
+          key: `nearby-cluster:${marker.key}`,
           latitude: marker.latitude,
           longitude: marker.longitude,
           html: createPlaceClusterMarkerHtml({
@@ -6999,6 +7065,7 @@ export default function RealWorldMap() {
       const compact = !isActive && !highSignalVenue && mapZoom < compactMarkerZoomThreshold;
 
       addMarker({
+        key: `venue:${place.id}`,
         latitude: place.latitude,
         longitude: place.longitude,
         html: createPeebearMarkerHtml({
@@ -7024,6 +7091,7 @@ export default function RealWorldMap() {
     if (showFootprintLayer) {
       footprintMarks.forEach((mark, index) => {
         addMarker({
+          key: `footprint:${mark.id}:${index}`,
           latitude: mark.venue.latitude,
           longitude: mark.venue.longitude,
           html: createFootprintMarkerHtml({
@@ -7060,6 +7128,7 @@ export default function RealWorldMap() {
 
     if (userLocation) {
       addMarker({
+        key: 'user-location',
         latitude: userLocation.latitude,
         longitude: userLocation.longitude,
         html: currentLocationMarkerHtml,
@@ -7078,6 +7147,9 @@ export default function RealWorldMap() {
       );
 
       addMarker({
+        key: privateSpotCorrectionMode
+          ? 'selected:private-save-spot-draft'
+          : `selected:${selectedPlace.placeId ?? selectedPlace.externalPlaceId}`,
         latitude: privateSpotCorrectionMode ? saveSpotDraft!.latitude : selectedPlace.latitude,
         longitude: privateSpotCorrectionMode ? saveSpotDraft!.longitude : selectedPlace.longitude,
         html: privateSpotCorrectionMode
@@ -7098,11 +7170,12 @@ export default function RealWorldMap() {
       });
     }
 
-    mapMarkersRef.current = nextMarkers;
-
-    return () => {
-      nextMarkers.forEach((marker) => marker.remove());
-    };
+    mapMarkersRef.current.forEach((record, key) => {
+      if (seenMarkerKeys.has(key)) return;
+      record.element.removeEventListener('click', record.clickHandler);
+      record.marker.remove();
+      mapMarkersRef.current.delete(key);
+    });
   }, [
     clusteredNearbyMarkers,
     compactMarkerZoomThreshold,
@@ -14298,7 +14371,22 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-pulse),
         .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-aura),
         .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-shadow) {
-          display: none !important;
+          animation: none !important;
+          filter: none !important;
+          opacity: 0.28 !important;
+          transition: opacity 120ms ease-out !important;
+          will-change: auto !important;
+        }
+
+        @media (max-width: 767px) {
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-ripple),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-aura),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-ring),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-pulse),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-aura),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-shadow) {
+            display: none !important;
+          }
         }
 
         .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),

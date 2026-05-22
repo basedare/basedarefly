@@ -30,6 +30,7 @@ export default function MapCrosshair({
     xCurrent: 0,
     yCurrent: 0,
   });
+  const pointerInsideRef = useRef(false);
 
   const xFilterId = useId().replace(/:/g, '');
   const yFilterId = useId().replace(/:/g, '');
@@ -67,6 +68,12 @@ export default function MapCrosshair({
       frameRef.current = window.requestAnimationFrame(render);
     };
 
+    const stopRenderLoop = () => {
+      if (frameRef.current === null) return;
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
+
     const getRelativePos = (event: MouseEvent) => {
       const bounds = container.getBoundingClientRect();
       return {
@@ -88,10 +95,16 @@ export default function MapCrosshair({
         duration: 0.16,
         ease: 'power2.out',
         opacity: 0,
+        onComplete: () => {
+          if (!pointerInsideRef.current) {
+            stopRenderLoop();
+          }
+        },
       });
     };
 
     const handleMouseEnter = (event: MouseEvent) => {
+      pointerInsideRef.current = true;
       const position = getRelativePos(event);
       mouseRef.current = position;
       renderedRef.current.xPrevious = position.x;
@@ -107,6 +120,7 @@ export default function MapCrosshair({
     };
 
     const handleMouseLeave = () => {
+      pointerInsideRef.current = false;
       hideCrosshair();
     };
 
@@ -179,10 +193,7 @@ export default function MapCrosshair({
       container.removeEventListener('mouseover', handleInteractiveHover);
       container.removeEventListener('mouseout', clearInteractiveHover);
       distortionTimeline.kill();
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
-      }
+      stopRenderLoop();
     };
   }, [containerRef, reactiveSelector, xFilterId, yFilterId]);
 
