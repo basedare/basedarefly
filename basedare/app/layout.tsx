@@ -25,6 +25,7 @@ import AppStabilityGuard from "@/components/AppStabilityGuard";
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
 import { ViewProvider } from "@/app/context/ViewContext";
+import { BackgroundToneProvider } from "@/app/context/BackgroundToneContext";
 
 // Body - Figtree, bundled locally via @fontsource files
 const figtree = localFont({
@@ -66,6 +67,16 @@ const alphaLyrae = localFont({
   weight: "500",
   display: "swap",
 });
+
+const backgroundToneBootScript = `
+try {
+  var tone = window.localStorage.getItem('basedare-background-tone');
+  if (tone === 'light' || tone === 'dark') {
+    document.documentElement.dataset.bdBg = tone;
+    if (document.body) document.body.dataset.bdBg = tone;
+  }
+} catch (error) {}
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://basedare.xyz"),
@@ -113,10 +124,11 @@ export default function RootLayout({
   children: React.ReactNode; 
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${figtree.variable} ${alphaLyrae.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`}>
+    <html lang="en" className="dark" data-bd-bg="dark" suppressHydrationWarning>
+      <body className={`${figtree.variable} ${alphaLyrae.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`} data-bd-bg="dark" suppressHydrationWarning>
+        <script dangerouslySetInnerHTML={{ __html: backgroundToneBootScript }} />
         <LiquidFilter />
-        <div className="fixed inset-0 z-0 pointer-events-none bg-gradient-to-b from-black via-[#050510] to-black md:hidden" />
+        <div className="bd-mobile-background-base fixed inset-0 z-0 pointer-events-none md:hidden" />
         <div className="hidden md:block">
           <BackgroundLayers />
         </div>
@@ -129,19 +141,21 @@ export default function RootLayout({
 
         <ClientLoader>
           <Providers>
-            <ViewProvider>
-              <IgnitionProvider>
-                <MobileIgnitionField />
-                <div className="bd-app-shell relative z-10 flex min-h-screen flex-col">
-                  <Navbar />
-                  <main className="pt-24">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-                <DeferredLivePotBubble />
-              </IgnitionProvider>
-            </ViewProvider>
+            <BackgroundToneProvider>
+              <ViewProvider>
+                <IgnitionProvider>
+                  <MobileIgnitionField />
+                  <div className="bd-app-shell relative z-10 flex min-h-screen flex-col">
+                    <Navbar />
+                    <main className="pt-24">
+                      {children}
+                    </main>
+                    <Footer />
+                  </div>
+                  <DeferredLivePotBubble />
+                </IgnitionProvider>
+              </ViewProvider>
+            </BackgroundToneProvider>
             <Toaster />
           </Providers>
         </ClientLoader>

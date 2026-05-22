@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
@@ -10,6 +11,7 @@ import GlassSurface from './GlassSurface';
 import { IdentityButton } from './IdentityButton';
 import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
 import { DeferredGlobalSearch } from './ui/DeferredGlobalSearch';
+import BackgroundToneToggle from './BackgroundToneToggle';
 
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
@@ -44,15 +46,19 @@ export default function Navbar() {
               href="/"
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open BaseDare home"
-              className="relative group inline-flex min-h-10 min-w-10 items-center justify-center"
+              className="relative group inline-flex h-10 w-[132px] items-center justify-center md:h-14 md:w-[224px]"
             >
               {/* Very subtle ambient glow */}
-              <div className="absolute inset-0 scale-[1.45] bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
 
-              <img
+              <Image
                 src="/assets/BASEDAREGOO.webp"
                 alt="BaseDare"
-                className={`relative h-8 max-h-[32px] w-auto object-contain md:h-[56px] md:max-h-none transition-all duration-300 hover:scale-105 ${isControlMode
+                width={620}
+                height={161}
+                priority
+                sizes="(min-width: 768px) 224px, 132px"
+                className={`relative h-8 w-auto max-w-full object-contain transition-all duration-300 hover:scale-105 md:h-[56px] ${isControlMode
                   ? 'grayscale contrast-110 brightness-95'
                   : ''
                   }`}
@@ -164,6 +170,7 @@ export default function Navbar() {
       <div className="hidden md:block fixed top-24 left-6 z-[90]">
         <DeferredGlobalSearch isDesktopApp />
       </div>
+      <BackgroundToneToggle />
 
       {/* === MOBILE MENU OVERLAY === */}
       <AnimatePresence>
