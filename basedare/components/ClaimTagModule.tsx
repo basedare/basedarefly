@@ -145,6 +145,48 @@ function formatAddress(addr: string) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+function getTagStatusMeta(status: string) {
+  switch (status.toUpperCase()) {
+    case 'ACTIVE':
+      return {
+        label: 'Ready',
+        className: 'border-emerald-300/18 bg-emerald-500/15 text-emerald-200',
+      };
+    case 'VERIFIED':
+      return {
+        label: 'Verified',
+        className: 'border-yellow-300/20 bg-yellow-500/15 text-yellow-200',
+      };
+    case 'REVOKED':
+      return {
+        label: 'Removed',
+        className: 'border-red-300/18 bg-red-500/15 text-red-200',
+      };
+    case 'REJECTED':
+      return {
+        label: 'Needs fix',
+        className: 'border-orange-300/18 bg-orange-500/15 text-orange-200',
+      };
+    case 'PENDING':
+    case 'PENDING_REVIEW':
+      return {
+        label: 'In review',
+        className: 'border-cyan-300/18 bg-cyan-500/15 text-cyan-100',
+      };
+    default:
+      return {
+        label: status.replace(/_/g, ' ').toLowerCase(),
+        className: 'border-white/10 bg-white/[0.06] text-white/60',
+      };
+  }
+}
+
+function getPlatformLabel(value: string | null | undefined) {
+  if (!value) return 'manual review';
+  const platform = PLATFORMS.find((item) => item.id === value.toLowerCase());
+  return platform?.name ?? value.replace(/_/g, ' ').toLowerCase();
+}
+
 export function ClaimTagModule() {
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -180,11 +222,15 @@ export function ClaimTagModule() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const platformHandle = manualUsername.trim() || null;
   const isPlatformConnected = Boolean(selectedPlatform && platformHandle);
+  const isManualMode = Boolean(selectedPlatform && useManualVerification);
   const orderedExistingTags = [...existingTags].sort((left, right) => {
     if (left.isPrimary && !right.isPrimary) return -1;
     if (!left.isPrimary && right.isPrimary) return 1;
     return left.tag.localeCompare(right.tag);
   });
+  const walletStepDone = walletReady;
+  const platformStepDone = isPlatformConnected || isManualMode;
+  const tagStepDone = Boolean(tag && (tagAvailable === true || tagOwnedByCurrentWallet));
 
   useEffect(() => {
     if (platformHandle && !tag) {
@@ -319,9 +365,6 @@ export function ClaimTagModule() {
       await navigator.clipboard.writeText(manualCode);
     }
   };
-
-  const isManualMode = Boolean(selectedPlatform && useManualVerification);
-
   // Claim the tag
   const handleClaimTag = async () => {
     if (!activeWallet) {
@@ -455,13 +498,66 @@ export function ClaimTagModule() {
     setError(null);
     setUseManualVerification(true);
     setManualUsername('');
-    setTag('');
     generateManualCode();
   }, []);
+
+  const claimDisabledReason = !walletReady
+    ? 'Connect your wallet first.'
+    : !selectedPlatform
+      ? 'Choose where people know you.'
+      : !manualUsername
+        ? 'Add your public handle.'
+        : !tag
+          ? 'Choose your BaseDare tag.'
+          : tagAvailable === false && !tagOwnedByCurrentWallet
+            ? 'That tag is already taken.'
+            : null;
+  const canSubmitClaim = !claimDisabledReason && !claiming;
+  const selectedPlatformConfig = selectedPlatform ? getPlatformConfig(selectedPlatform) : null;
+  const suggestedCleanTag = sanitizeTagCandidate(manualUsername);
 
   return (
     <div id="claim-tag-section" className="relative z-20 w-full max-w-xl mx-auto">
       <div className="space-y-3 sm:space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`${raisedPanelClass} p-4 sm:p-5`}
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#f5c518]">
+                  Claim in one pass
+                </p>
+                <h2 className="mt-2 text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+                  Make your public @tag usable.
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-white/52">
+                  Connect your wallet, point to the account people know, then send the tag for review.
+                </p>
+              </div>
+              <div className="grid min-w-[13rem] gap-2">
+                {[
+                  { label: 'Wallet', done: walletStepDone },
+                  { label: 'Platform', done: platformStepDone },
+                  { label: 'Tag', done: tagStepDone },
+                ].map((step, index) => (
+                  <div
+                    key={step.label}
+                    className={`flex min-h-9 items-center justify-between rounded-full border px-3 text-[10px] font-black uppercase tracking-[0.16em] ${
+                      step.done
+                        ? 'border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-100'
+                        : 'border-white/10 bg-black/20 text-white/36'
+                    }`}
+                  >
+                    <span>{index + 1}. {step.label}</span>
+                    {step.done ? <CheckCircle className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-white/22" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
           {/* Invite Banner - Show pending bounties */}
           {inviteLoading && (
             <motion.div
@@ -571,9 +667,9 @@ export function ClaimTagModule() {
                   <Wallet className={`w-5 h-5 ${walletReady ? 'text-green-400' : 'text-gray-400'}`} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white">Connect Wallet</h3>
+                  <h3 className="text-sm font-bold text-white">{walletReady ? 'Wallet connected' : 'Connect wallet'}</h3>
                   <p className="text-xs text-gray-500 font-mono truncate">
-                    {activeWallet ? formatAddress(activeWallet) : 'Required before claim'}
+                    {activeWallet ? formatAddress(activeWallet) : 'This tag will belong to your wallet'}
                   </p>
                 </div>
               </div>
@@ -608,9 +704,9 @@ export function ClaimTagModule() {
                   <Share2 className={`w-5 h-5 ${isPlatformConnected ? 'text-cyan-200' : 'text-gray-400'}`} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white">Connect Identity</h3>
+                  <h3 className="text-sm font-bold text-white">Choose platform</h3>
                   <p className="text-xs text-gray-500 font-mono">
-                    Link your public creator handle to this wallet.
+                    Tell BaseDare where people already know this handle.
                   </p>
                 </div>
               </div>
@@ -619,7 +715,7 @@ export function ClaimTagModule() {
                   Connected
                 </div>
               ) : (
-                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Required</span>
+                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Next</span>
               )}
             </div>
 
@@ -627,9 +723,9 @@ export function ClaimTagModule() {
               <div className={`mt-4 p-4 ${insetWellClass}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Choose Platform</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Where is your audience?</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Pick the platform you actually use.
+                      Pick one account to review for this tag.
                     </p>
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-200/80">Step 2</span>
@@ -656,12 +752,12 @@ export function ClaimTagModule() {
               <div className={`mt-4 p-4 ${insetWellClass}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Proof Code</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Account to review</p>
                     <p className="mt-1 text-xs text-white/52">
-                      Add this code to your profile, pinned post, or story, then submit.
+                      Add the handle. Use the code if we need to confirm ownership.
                     </p>
                   </div>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Review</span>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Almost done</span>
                 </div>
 
               <div className="space-y-3 sm:space-y-4">
@@ -683,12 +779,12 @@ export function ClaimTagModule() {
                       </div>
 
                       <p className="text-xs leading-5 text-gray-300">
-                        Enter the exact handle you want attached to this wallet.
+                        This is the account reviewers will check before your BaseDare tag goes live.
                       </p>
 
                       {/* Username Input */}
                       <div>
-                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">{config.name} Handle</label>
+                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Public handle</label>
                         <input
                           type="text"
                           value={manualUsername}
@@ -696,6 +792,15 @@ export function ClaimTagModule() {
                           placeholder={`your_${selectedPlatform}_handle`}
                           className={`w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-opacity-50 focus:outline-none font-mono`}
                         />
+                        {suggestedCleanTag && tag.toLowerCase() !== suggestedCleanTag.toLowerCase() ? (
+                          <button
+                            type="button"
+                            onClick={() => setTag(suggestedCleanTag)}
+                            className="mt-2 inline-flex min-h-8 items-center rounded-full border border-cyan-300/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/34"
+                          >
+                            Use @{suggestedCleanTag} as tag
+                          </button>
+                        ) : null}
                         {manualUsername && sanitizeTagCandidate(manualUsername) !== manualUsername.replace(/^@+/, '').trim() ? (
                           <p className="mt-2 text-[11px] leading-5 text-white/45">
                             BaseDare tags only use letters, numbers, and underscores. We will suggest a cleaned tag after you enter your handle.
@@ -705,13 +810,15 @@ export function ClaimTagModule() {
 
                       {/* Verification Code */}
                       <div>
-                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Verification Code</label>
+                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Proof code</label>
                         <div className="flex items-center gap-2">
                           <code className={`flex-1 px-3 sm:px-4 py-2 bg-black/60 border ${config.borderColor} rounded-lg font-mono text-sm ${config.color} truncate`}>
                             {manualCode}
                           </code>
                           <button
+                            type="button"
                             onClick={copyCode}
+                            aria-label="Copy proof code"
                             className={`p-2 ${config.bgColor} hover:opacity-80 rounded-lg transition-colors shrink-0`}
                           >
                             <Copy className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
@@ -770,12 +877,36 @@ export function ClaimTagModule() {
                 <Tag className="w-5 h-5 text-purple-400" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white">Claim Your Tag</h3>
-                <p className="text-xs text-gray-500 font-mono">Choose the tag you want to use publicly</p>
+                <h3 className="text-sm font-bold text-white">Choose public tag</h3>
+                <p className="text-xs text-gray-500 font-mono">This is how dares, payouts, and profiles find you.</p>
               </div>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
+              {selectedPlatformConfig ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/24 px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <selectedPlatformConfig.Icon className={`h-4 w-4 shrink-0 ${selectedPlatformConfig.color}`} />
+                    <span className="truncate text-xs font-bold text-white/72">
+                      {selectedPlatformConfig.name}
+                      {manualUsername ? ` @${manualUsername}` : ''}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlatform(null);
+                      setManualCode(null);
+                      setManualUsername('');
+                      setUseManualVerification(false);
+                    }}
+                    className="shrink-0 text-[10px] font-mono uppercase tracking-[0.14em] text-white/36 transition hover:text-white/70"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : null}
+
               <div className="relative">
                 <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-sm">
                   @
@@ -839,14 +970,7 @@ export function ClaimTagModule() {
 
               <LiquidMetalButton
                 onClick={handleClaimTag}
-                disabled={
-                  !walletReady ||
-                  (!isPlatformConnected && !isManualMode) ||
-                  !tag ||
-                  (tagAvailable === false && !tagOwnedByCurrentWallet) ||
-                  claiming ||
-                  (isManualMode && !manualUsername)
-                }
+                disabled={!canSubmitClaim}
                 className="w-full"
                 size="md"
               >
@@ -858,13 +982,13 @@ export function ClaimTagModule() {
                 ) : (
                   <>
                     <Shield className="w-4 h-4" />
-                    Submit for Review
+                    Send tag for review
                   </>
                 )}
               </LiquidMetalButton>
 
-              <p className="text-[10px] sm:text-xs text-gray-500 text-center">
-                Manual verification needs admin approval.
+              <p className={`text-center text-[10px] sm:text-xs ${claimDisabledReason ? 'text-yellow-200/62' : 'text-gray-500'}`}>
+                {claimDisabledReason ?? 'Reviewers approve the tag before it appears publicly.'}
               </p>
             </div>
           </motion.div>
@@ -877,38 +1001,46 @@ export function ClaimTagModule() {
               transition={{ delay: 0.25 }}
               className={`${raisedTileClass} p-4`}
             >
-              <h3 className="text-sm font-bold text-white mb-3">Your Tags</h3>
-              <div className="space-y-2">
-                {orderedExistingTags.map((t) => (
-                  <div
-                    key={t.tag}
-                    className={`flex items-center justify-between p-2.5 sm:p-3 ${insetWellClass}`}
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <span className="text-purple-400 font-mono text-sm font-bold truncate">{t.tag}</span>
-                      {t.isPrimary ? (
-                        <span className="text-[10px] sm:text-xs text-cyan-300 shrink-0">
-                          primary
-                        </span>
-                      ) : null}
-                      {t.verificationMethod && (
-                        <span className="text-[10px] sm:text-xs text-gray-500 shrink-0">
-                          via {(t.verificationMethod || t.identityPlatform || 'manual').toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded shrink-0 ${t.status === 'ACTIVE'
-                        ? 'bg-green-500/20 text-green-400'
-                        : t.status === 'REVOKED'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
-                        }`}
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Your tags</h3>
+                  <p className="mt-1 text-xs text-white/42">Ready tags first. Old reviews stay here for reference.</p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-mono text-white/42">
+                  {existingTags.length}
+                </span>
+              </div>
+              <div className="max-h-[23rem] space-y-2 overflow-y-auto pr-1">
+                {orderedExistingTags.map((t) => {
+                  const statusMeta = getTagStatusMeta(t.status);
+                  const platformLabel = getPlatformLabel(t.identityPlatform || t.verificationMethod);
+
+                  return (
+                    <div
+                      key={t.tag}
+                      className={`grid gap-2 p-2.5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-3 ${insetWellClass}`}
                     >
-                      {t.status}
-                    </span>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="truncate font-mono text-sm font-bold text-purple-300">{t.tag}</span>
+                          {t.isPrimary ? (
+                            <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-200">
+                              Primary
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 truncate text-[10px] font-mono uppercase tracking-[0.14em] text-white/34">
+                          {platformLabel}
+                        </p>
+                      </div>
+                      <span
+                        className={`justify-self-start rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] sm:justify-self-end ${statusMeta.className}`}
+                      >
+                        {statusMeta.label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}

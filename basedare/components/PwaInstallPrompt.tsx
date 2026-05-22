@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, Plus, X } from 'lucide-react';
 
 type BeforeInstallPromptEvent = Event & {
@@ -10,6 +11,7 @@ type BeforeInstallPromptEvent = Event & {
 
 const DISMISS_KEY = 'pwa-install-dismissed-at';
 const SEEN_KEY = 'pwa-install-seen-at';
+const INSTALL_PROMPT_SUPPRESSED_PATHS = ['/claim-tag'];
 
 function isStandaloneDisplayMode() {
   if (typeof window === 'undefined') return false;
@@ -49,16 +51,23 @@ function rememberInstallPromptDismissed() {
   writeInstallPromptFlag(DISMISS_KEY);
 }
 
+function shouldSuppressInstallPrompt(pathname: string | null) {
+  return INSTALL_PROMPT_SUPPRESSED_PATHS.some((path) => pathname === path || pathname?.startsWith(`${path}/`));
+}
+
 export default function PwaInstallPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(true);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const suppressInstallPrompt = shouldSuppressInstallPrompt(pathname);
 
   const canShow = useMemo(() => {
+    if (suppressInstallPrompt) return false;
     if (isInstalled || dismissed) return false;
     return Boolean(deferredPrompt) || isIos;
-  }, [deferredPrompt, dismissed, isInstalled, isIos]);
+  }, [deferredPrompt, dismissed, isInstalled, isIos, suppressInstallPrompt]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -72,11 +81,17 @@ export default function PwaInstallPrompt() {
     queueMicrotask(() => {
       setIsInstalled(installed);
       setIsIos(/iphone|ipad|ipod/.test(ua));
-      setDismissed(installed || seenBefore);
+      setDismissed(installed || seenBefore || suppressInstallPrompt);
     });
 
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
+
+      if (suppressInstallPrompt) {
+        setDeferredPrompt(event as BeforeInstallPromptEvent);
+        setDismissed(true);
+        return;
+      }
 
       if (isStandaloneDisplayMode() || hasSeenInstallPrompt()) {
         setDeferredPrompt(null);
@@ -103,7 +118,7 @@ export default function PwaInstallPrompt() {
       window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
       window.removeEventListener('appinstalled', onInstalled);
     };
-  }, []);
+  }, [suppressInstallPrompt]);
 
   useEffect(() => {
     if (canShow) {

@@ -19,7 +19,7 @@ export default function ClaimTagPage() {
         <div className="mx-auto max-w-3xl">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,10,18,0.9)_100%)] px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-white/65 shadow-[0_14px_26px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.22)] transition hover:-translate-y-[1px] hover:text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,10,18,0.9)_100%)] px-5 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-white/65 shadow-[0_14px_26px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.22)] transition hover:-translate-y-[1px] hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Dashboard
@@ -30,10 +30,10 @@ export default function ClaimTagPage() {
             <div className="relative">
               <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#f5c518]">Creator identity</p>
               <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">
-                Claim your BaseDare tag
+                Claim your @tag
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/62 sm:text-base">
-                One wallet, one public handle. Pick the account, add the proof code, and submit it for review.
+                Connect your wallet, choose the public account people know, and send the tag for review.
               </p>
             </div>
           </div>
