@@ -14,6 +14,7 @@ type CuratedVenue = {
   longitude: number;
   timezone: string;
   categories: string[];
+  locationConfidence?: string;
 };
 
 export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
@@ -38,8 +39,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Tourism Road, Purok 3, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.78578,
-    longitude: 126.16048,
+    latitude: 9.785133,
+    longitude: 126.161438,
     timezone: 'Asia/Manila',
     categories: ['nightlife', 'music', 'beach-club', 'bar', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
@@ -88,8 +89,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Tourism Road, Cloud 9, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.81255,
-    longitude: 126.15965,
+    latitude: 9.8119606,
+    longitude: 126.1644192,
     timezone: 'Asia/Manila',
     categories: [
       'cafe',
@@ -113,8 +114,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Purok 5, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.79895,
-    longitude: 126.1582,
+    latitude: 9.7877583,
+    longitude: 126.160523,
     timezone: 'Asia/Manila',
     categories: ['restaurant', 'surf-camp', 'pizza', 'lunch', 'dinner', 'social', 'siargao', 'general-luna'],
   },
@@ -126,8 +127,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Tourism Road, Barangay 5, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.79315,
-    longitude: 126.1609,
+    latitude: 9.7919,
+    longitude: 126.162584,
     timezone: 'Asia/Manila',
     categories: ['restaurant', 'beachfront', 'bar', 'breakfast', 'brunch', 'dinner', 'siargao', 'general-luna'],
   },
@@ -139,8 +140,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Tuason Point, Barangay Catangnan, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.80795,
-    longitude: 126.16125,
+    latitude: 9.8068136,
+    longitude: 126.1670614,
     timezone: 'Asia/Manila',
     categories: ['surf', 'resort', 'restaurant', 'breakfast', 'lunch', 'catangnan', 'siargao', 'tuason'],
   },
@@ -152,8 +153,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Poblacion 1, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.7909,
-    longitude: 126.15855,
+    latitude: 9.7820115,
+    longitude: 126.1560357,
     timezone: 'Asia/Manila',
     categories: [
       'coffee',
@@ -175,9 +176,10 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Goodcoast, Tourism Road, Catangnan, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.80785,
-    longitude: 126.16085,
+    latitude: 9.80695,
+    longitude: 126.1662,
     timezone: 'Asia/Manila',
+    locationConfidence: 'approximate-goodcoast-anchor',
     categories: [
       'restaurant',
       'breakfast',
@@ -199,8 +201,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Greenhouse, Tourism Road, General Luna, Siargao, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.8112,
-    longitude: 126.15945,
+    latitude: 9.803789,
+    longitude: 126.161223,
     timezone: 'Asia/Manila',
     categories: [
       'cafe',
@@ -222,8 +224,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Purok 3 Tourism Road, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.78785,
-    longitude: 126.15935,
+    latitude: 9.7843233,
+    longitude: 126.1580796,
     timezone: 'Asia/Manila',
     categories: [
       'cafe',
@@ -246,8 +248,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Tourism Road, Catangnan, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.80555,
-    longitude: 126.16005,
+    latitude: 9.80199,
+    longitude: 126.15996,
     timezone: 'Asia/Manila',
     categories: [
       'cafe',
@@ -269,8 +271,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'St. Ines Back Road, next to Tropical Temple, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.80495,
-    longitude: 126.15175,
+    latitude: 9.8010026,
+    longitude: 126.1582172,
     timezone: 'Asia/Manila',
     categories: [
       'cafe',
@@ -365,8 +367,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Cloud 9 Drive, General Luna, Siargao Island, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.81305,
-    longitude: 126.16165,
+    latitude: 9.8132877,
+    longitude: 126.1632141,
     timezone: 'Asia/Manila',
     categories: [
       'restaurant',
@@ -424,8 +426,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     address: 'Route to Romantic, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
-    latitude: 9.7898,
-    longitude: 126.1621,
+    latitude: 9.7896886,
+    longitude: 126.161981,
     timezone: 'Asia/Manila',
     categories: ['sports-bar', 'beachfront', 'nightlife', 'food', 'dinner', 'late-night', 'siargao', 'general-luna'],
   },
@@ -584,8 +586,10 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v4',
-            coordinatePolicy: 'Pinned to venue or street-side land anchor for clearer map routing.',
+            curatedSet: 'siargao-v5',
+            locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
+            coordinatePolicy:
+              'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
             activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
           },
         },
@@ -606,8 +610,10 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v4',
-            coordinatePolicy: 'Pinned to venue or street-side land anchor for clearer map routing.',
+            curatedSet: 'siargao-v5',
+            locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
+            coordinatePolicy:
+              'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
             activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
           },
         },

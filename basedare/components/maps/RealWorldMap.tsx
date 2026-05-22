@@ -740,9 +740,9 @@ const placeClusterIconCache = new Map<string, string>();
 
 const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
-const DEFAULT_DESKTOP_MAP_BEARING = 0;
+const DEFAULT_DESKTOP_MAP_BEARING = -18;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
-const DEFAULT_DESKTOP_MAP_PITCH = 42;
+const DEFAULT_DESKTOP_MAP_PITCH = 62;
 const DEFAULT_MOBILE_MAP_PITCH = 54;
 const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
 const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
@@ -1253,7 +1253,7 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
   layers.forEach((layer) => {
     try {
       if (layer.type === 'background') {
-        map.setPaintProperty(layer.id, 'background-color', muted ? '#030407' : '#040611');
+        map.setPaintProperty(layer.id, 'background-color', muted ? '#020203' : '#03030a');
         return;
       }
 
@@ -1261,15 +1261,15 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
 
       if (layer.type === 'fill') {
         if (layerId.includes('water')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#05070d' : '#052638');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.78 : 0.96);
-          map.setPaintProperty(layer.id, 'fill-outline-color', muted ? '#10131a' : 'rgba(103,232,249,0.22)');
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#050509' : '#06081d');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.82 : 0.94);
+          map.setPaintProperty(layer.id, 'fill-outline-color', muted ? '#0e0e15' : 'rgba(184,127,255,0.16)');
           return;
         }
 
         if (layerId.includes('park') || layerId.includes('landcover') || layerId.includes('wood')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#080a09' : '#0d1b16');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.42 : 0.62);
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#070707' : '#0b0b12');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.44 : 0.56);
           return;
         }
 
@@ -1279,13 +1279,13 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
           layerId.includes('commercial') ||
           layerId.includes('industrial')
         ) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#090a10' : '#101526');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.82);
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#08080d' : '#0d0a19');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.78);
           return;
         }
 
-        map.setPaintProperty(layer.id, 'fill-color', muted ? '#08090f' : '#0d1221');
-        map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.56 : 0.76);
+        map.setPaintProperty(layer.id, 'fill-color', muted ? '#07080d' : '#090713');
+        map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.74);
       }
 
       if (layer.type === 'line') {
@@ -1295,13 +1295,13 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
           layerId.includes('stream') ||
           layerId.includes('canal')
         ) {
-          map.setPaintProperty(layer.id, 'line-color', muted ? '#1f2937' : '#38bdf8');
-          map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.34 : 0.42);
+          map.setPaintProperty(layer.id, 'line-color', muted ? '#20202a' : '#2a1f62');
+          map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.34 : 0.38);
           return;
         }
 
-        const roadColor = muted ? '#2a2d38' : '#33405f';
-        const arterialColor = muted ? '#393b45' : '#6d5aa6';
+        const roadColor = muted ? '#2b2b33' : '#332a66';
+        const arterialColor = muted ? '#3b3941' : '#7a55c7';
         map.setPaintProperty(
           layer.id,
           'line-color',
@@ -1309,18 +1309,18 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
             ? arterialColor
             : roadColor
         );
-        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.46 : 0.68);
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : 0.72);
       }
 
       if (layer.type === 'symbol') {
         if (layerId.includes('place') || layerId.includes('label') || layerId.includes('name')) {
-          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#d9d6ff');
-          map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#030407' : '#070611');
+          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#eee7ff');
+          map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#020203' : '#05030b');
           map.setPaintProperty(layer.id, 'text-halo-width', 1.2);
         }
 
         if (layerId.includes('poi')) {
-          map.setPaintProperty(layer.id, 'text-opacity', muted ? 0.32 : 0.42);
+          map.setPaintProperty(layer.id, 'text-opacity', muted ? 0.32 : 0.38);
           map.setPaintProperty(layer.id, 'icon-opacity', 0);
         }
       }
@@ -4339,7 +4339,7 @@ export default function RealWorldMap() {
           dragRotate: true,
           touchZoomRotate: true,
           fadeDuration: 0,
-          maxPitch: isMobileRenderer ? 64 : 60,
+          maxPitch: isMobileRenderer ? 64 : 75,
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -4381,11 +4381,13 @@ export default function RealWorldMap() {
       };
 
       const handleMapMotionStart = () => {
+        if (!isMobileRenderer) return;
         clearMapInteractionQuietTimer();
         setMapInteractionQuiet(true);
       };
 
       const handleMapMotionSettled = () => {
+        if (!isMobileRenderer) return;
         clearMapInteractionQuietTimer();
         mapInteractionQuietTimerRef.current = window.setTimeout(() => {
           setMapInteractionQuiet(false);
@@ -6887,7 +6889,7 @@ export default function RealWorldMap() {
       if (!map) return;
 
       const minPitch = 24;
-      const maxPitch = isMobileViewport ? 64 : 60;
+      const maxPitch = isMobileViewport ? 64 : 75;
       const defaultCamera = getDefaultMapCamera(isMobileViewport);
       const nextPitch = reset
         ? defaultCamera.pitch
@@ -12991,46 +12993,43 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map {
-          --tile-filter: brightness(0.46) saturate(0.92) contrast(1.18) hue-rotate(12deg) sepia(0.12);
           --preset-atmosphere:
-            radial-gradient(ellipse 45% 38% at 24% 18%, rgba(245, 197, 24, 0.1) 0%, transparent 58%),
-            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(184, 127, 255, 0.08) 0%, transparent 62%),
-            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(168, 85, 247, 0.09) 0%, transparent 66%);
-          --mesh-opacity: 0.12;
-          --links-opacity: 0.16;
-          --star-opacity: 0.22;
-          --scan-opacity: 0.06;
-          --haze-opacity: 1;
+            radial-gradient(ellipse 55% 40% at 26% 14%, rgba(245, 197, 24, 0.16) 0%, transparent 58%),
+            radial-gradient(ellipse 48% 44% at 72% 62%, rgba(168, 85, 247, 0.16) 0%, transparent 64%),
+            radial-gradient(ellipse 40% 36% at 52% 36%, rgba(80, 50, 180, 0.12) 0%, transparent 68%),
+            linear-gradient(180deg, rgba(8, 5, 22, 0.18) 0%, rgba(0, 0, 0, 0.24) 100%);
+          --mesh-opacity: 0.1;
+          --links-opacity: 0.14;
+          --star-opacity: 0.18;
+          --scan-opacity: 0.045;
+          --haze-opacity: 0.9;
         }
 
         .basedare-maplibre-map[data-map-preset='crt'] {
-          --tile-filter: brightness(0.36) saturate(0.74) contrast(1.34) hue-rotate(6deg) sepia(0.22);
           --preset-atmosphere:
-            radial-gradient(ellipse 45% 38% at 24% 18%, rgba(184, 127, 255, 0.14) 0%, transparent 58%),
-            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(245, 197, 24, 0.08) 0%, transparent 62%),
+            radial-gradient(ellipse 45% 38% at 24% 18%, rgba(184, 127, 255, 0.16) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(245, 197, 24, 0.1) 0%, transparent 62%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 18%, rgba(255, 0, 128, 0.02) 100%);
-          --mesh-opacity: 0.16;
-          --links-opacity: 0.2;
-          --star-opacity: 0.14;
-          --scan-opacity: 0.12;
-          --haze-opacity: 0.85;
+          --mesh-opacity: 0.14;
+          --links-opacity: 0.18;
+          --star-opacity: 0.12;
+          --scan-opacity: 0.1;
+          --haze-opacity: 0.82;
         }
 
         .basedare-maplibre-map[data-map-preset='heat'] {
-          --tile-filter: brightness(0.38) saturate(0.95) contrast(1.3) hue-rotate(-8deg) sepia(0.24);
           --preset-atmosphere:
-            radial-gradient(ellipse 48% 42% at 24% 18%, rgba(245, 197, 24, 0.16) 0%, transparent 58%),
-            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(251, 113, 133, 0.12) 0%, transparent 62%),
-            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(184, 127, 255, 0.08) 0%, transparent 66%);
-          --mesh-opacity: 0.1;
+            radial-gradient(ellipse 48% 42% at 24% 18%, rgba(245, 197, 24, 0.18) 0%, transparent 58%),
+            radial-gradient(ellipse 34% 40% at 78% 72%, rgba(251, 113, 133, 0.13) 0%, transparent 62%),
+            radial-gradient(ellipse 28% 36% at 54% 44%, rgba(184, 127, 255, 0.1) 0%, transparent 66%);
+          --mesh-opacity: 0.09;
           --links-opacity: 0.12;
-          --star-opacity: 0.16;
+          --star-opacity: 0.14;
           --scan-opacity: 0.04;
-          --haze-opacity: 0.92;
+          --haze-opacity: 0.86;
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] {
-          --tile-filter: brightness(0.25) saturate(0.08) contrast(1.4);
           --preset-atmosphere:
             linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, transparent 28%),
             radial-gradient(ellipse 40% 34% at 52% 50%, rgba(255, 255, 255, 0.035) 0%, transparent 60%);
@@ -13042,7 +13041,6 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map[data-map-preset='night'] {
-          --tile-filter: brightness(0.32) saturate(0.88) contrast(1.28) hue-rotate(32deg);
           --preset-atmosphere:
             radial-gradient(ellipse 42% 38% at 24% 18%, rgba(34, 211, 238, 0.12) 0%, transparent 58%),
             radial-gradient(ellipse 34% 40% at 78% 72%, rgba(184, 127, 255, 0.09) 0%, transparent 62%),
@@ -13056,6 +13054,7 @@ export default function RealWorldMap() {
 
         .preset-atmosphere {
           background: var(--preset-atmosphere);
+          mix-blend-mode: screen;
         }
 
         .scanlines {
@@ -13100,9 +13099,9 @@ export default function RealWorldMap() {
 
         .glass-haze {
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, rgba(255, 255, 255, 0) 24%),
-            radial-gradient(120% 100% at 50% 0%, rgba(245, 197, 24, 0.035) 0%, transparent 46%),
-            radial-gradient(110% 100% at 50% 100%, rgba(168, 85, 247, 0.045) 0%, transparent 52%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.014) 0%, rgba(255, 255, 255, 0) 24%),
+            radial-gradient(120% 100% at 50% 0%, rgba(245, 197, 24, 0.04) 0%, transparent 46%),
+            radial-gradient(110% 100% at 50% 100%, rgba(168, 85, 247, 0.06) 0%, transparent 52%);
           opacity: var(--haze-opacity);
         }
 
@@ -13168,7 +13167,7 @@ export default function RealWorldMap() {
           width: 100%;
           border-radius: 17px;
           background:
-            radial-gradient(circle at 30% 20%, rgba(17, 30, 49, 0.9) 0%, rgba(5, 8, 18, 1) 70%);
+            radial-gradient(circle at 30% 20%, rgba(35, 22, 72, 0.88) 0%, rgba(4, 3, 12, 1) 70%);
           cursor: none;
           font-family: inherit;
         }
@@ -13188,8 +13187,8 @@ export default function RealWorldMap() {
 
         .maplibre-depth-vignette {
           background:
-            radial-gradient(ellipse 80% 62% at 50% 36%, transparent 0%, rgba(2, 4, 10, 0.06) 56%, rgba(0, 0, 0, 0.46) 100%),
-            linear-gradient(180deg, rgba(7, 4, 20, 0.13) 0%, transparent 22%, rgba(0, 0, 0, 0.16) 100%);
+            radial-gradient(ellipse 78% 60% at 50% 36%, transparent 0%, rgba(6, 4, 18, 0.2) 56%, rgba(0, 0, 0, 0.62) 100%),
+            linear-gradient(180deg, rgba(28, 10, 55, 0.18) 0%, transparent 24%, rgba(0, 0, 0, 0.26) 100%);
         }
 
         .basedare-maplibre-map :global(.maplibregl-marker) {
@@ -14436,15 +14435,15 @@ export default function RealWorldMap() {
           filter: blur(2px);
         }
 
-        .basedare-maplibre-map[data-map-moving='true'] {
-          --mesh-opacity: 0.045;
-          --links-opacity: 0.055;
-          --star-opacity: 0.09;
-          --scan-opacity: 0.01;
-          --haze-opacity: 0.58;
-        }
-
         @media (max-width: 767px) {
+          .basedare-maplibre-map[data-map-moving='true'] {
+            --mesh-opacity: 0.045;
+            --links-opacity: 0.055;
+            --star-opacity: 0.09;
+            --scan-opacity: 0.01;
+            --haze-opacity: 0.58;
+          }
+
           .basedare-maplibre-map[data-map-moving='true'] :global(.maplibregl-marker),
           .basedare-maplibre-map[data-map-moving='true'] :global(.basedare-maplibre-marker),
           .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-bear),
