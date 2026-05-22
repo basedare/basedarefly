@@ -12,6 +12,7 @@ import maplibregl, {
   type MapLayerMouseEvent,
   type Marker as MapLibreMarker,
   type PositionAnchor,
+  type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
@@ -739,8 +740,12 @@ const placeClusterIconCache = new Map<string, string>();
 
 const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
-const DEFAULT_MAP_BEARING = -18;
-const DEFAULT_MAP_PITCH = 62;
+const DEFAULT_DESKTOP_MAP_BEARING = 0;
+const DEFAULT_MOBILE_MAP_BEARING = -18;
+const DEFAULT_DESKTOP_MAP_PITCH = 42;
+const DEFAULT_MOBILE_MAP_PITCH = 54;
+const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
+const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
 const OPENFREEMAP_LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const MAPLIBRE_VENUE_SOURCE_ID = 'basedare-venue-signals';
 const MAPLIBRE_CHAOS_SOURCE_ID = 'basedare-chaos-zones';
@@ -788,6 +793,37 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 const currentLocationIconCache = new Map<string, string>();
+let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
+
+function getDefaultMapCamera(isMobileViewport: boolean) {
+  return {
+    bearing: isMobileViewport ? DEFAULT_MOBILE_MAP_BEARING : DEFAULT_DESKTOP_MAP_BEARING,
+    pitch: isMobileViewport ? DEFAULT_MOBILE_MAP_PITCH : DEFAULT_DESKTOP_MAP_PITCH,
+  };
+}
+
+function loadOpenFreeMapStyle() {
+  if (!openFreeMapStylePromise) {
+    openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`OpenFreeMap style failed with ${response.status}`);
+        }
+
+        const style = (await response.json()) as StyleSpecification;
+        return {
+          ...style,
+          projection: style.projection ?? { type: 'mercator' },
+        } satisfies StyleSpecification;
+      })
+      .catch((error) => {
+        console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
+        return OPENFREEMAP_LIBERTY_STYLE_URL;
+      });
+  }
+
+  return openFreeMapStylePromise;
+}
 
 function browserCanStartMapRenderer() {
   if (typeof document === 'undefined') return false;
@@ -2993,7 +3029,7 @@ export default function RealWorldMap() {
   const [showAdvancedMapFilters, setShowAdvancedMapFilters] = useState(false);
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm] = useState(5);
-  const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(false);
+  const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(true);
   const [showLocalSignalForm, setShowLocalSignalForm] = useState(false);
   const [localSignalDraft, setLocalSignalDraft] = useState<LocalSignalDraft>({
     title: '',
@@ -4266,53 +4302,9 @@ export default function RealWorldMap() {
       return undefined;
     }
 
-    let map: MapLibreMap;
-    const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
-
-    try {
-      map = new maplibregl.Map({
-        container,
-        style: OPENFREEMAP_LIBERTY_STYLE_URL,
-        center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
-        zoom: DEFAULT_ZOOM,
-        pitch: DEFAULT_MAP_PITCH,
-        bearing: DEFAULT_MAP_BEARING,
-        attributionControl: { compact: true },
-        dragRotate: true,
-        touchZoomRotate: true,
-        fadeDuration: isMobileRenderer ? 0 : 300,
-        maxPitch: 75,
-      });
-    } catch (error) {
-      const message = getMapStartupErrorMessage(error);
-      console.error('[REAL_WORLD_MAP] MapLibre startup failed:', error);
-      setMapReady(false);
-      setMapRuntimeError(`Map renderer could not start. ${message}`);
-      return undefined;
-    }
-
-    mapInstanceRef.current = map;
-    map.dragRotate.enable();
-    map.touchZoomRotate.enableRotation();
-
-    const syncViewport = () => {
-      const center = map.getCenter();
-      setMapBearing(map.getBearing());
-      setMapPitch(map.getPitch());
-      handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
-    };
-
-    const handleLoad = () => {
-      ensureMapLibreDareLayers(map, mapPresetRef.current, { tuneBaseStyle: true });
-      syncViewport();
-      setMapRuntimeError(null);
-      setMapReady(true);
-    };
-
-    const handleStyleData = () => {
-      if (!map.isStyleLoaded()) return;
-      ensureMapLibreDareLayers(map, mapPresetRef.current);
-    };
+    let cancelled = false;
+    let cleanupMap: (() => void) | null = null;
+    const markerRegistry = mapMarkersRef.current;
 
     const clearMapInteractionQuietTimer = () => {
       if (mapInteractionQuietTimerRef.current === null) return;
@@ -4320,93 +4312,184 @@ export default function RealWorldMap() {
       mapInteractionQuietTimerRef.current = null;
     };
 
-    const handleMapMotionStart = () => {
-      clearMapInteractionQuietTimer();
-      setMapInteractionQuiet(true);
-    };
+    const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
+    const initialCamera = getDefaultMapCamera(isMobileRenderer);
 
-    const handleMapMotionSettled = () => {
-      clearMapInteractionQuietTimer();
-      mapInteractionQuietTimerRef.current = window.setTimeout(() => {
-        setMapInteractionQuiet(false);
-        mapInteractionQuietTimerRef.current = null;
-      }, 140);
-    };
+    const startMap = async () => {
+      let mapStyle: StyleSpecification | string;
+      try {
+        mapStyle = await loadOpenFreeMapStyle();
+      } catch (error) {
+        console.error('[REAL_WORLD_MAP] Map style preload failed:', error);
+        mapStyle = OPENFREEMAP_LIBERTY_STYLE_URL;
+      }
 
-    const handleClick = (event: maplibregl.MapMouseEvent) => {
-      if (skipNextMapClickRef.current) {
-        skipNextMapClickRef.current = false;
+      if (cancelled) return;
+
+      let map: MapLibreMap;
+      try {
+        map = new maplibregl.Map({
+          container,
+          style: mapStyle,
+          center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
+          zoom: DEFAULT_ZOOM,
+          pitch: initialCamera.pitch,
+          bearing: initialCamera.bearing,
+          attributionControl: { compact: true },
+          dragRotate: true,
+          touchZoomRotate: true,
+          fadeDuration: isMobileRenderer ? 0 : 300,
+          maxPitch: isMobileRenderer ? 64 : 60,
+        });
+      } catch (error) {
+        const message = getMapStartupErrorMessage(error);
+        console.error('[REAL_WORLD_MAP] MapLibre startup failed:', error);
+        setMapReady(false);
+        setMapRuntimeError(`Map renderer could not start. ${message}`);
         return;
       }
 
-      handleMapClickRef.current(event.lngLat.lat, event.lngLat.lng);
-    };
-
-    const handleMapError = (event: { error?: unknown; message?: string }) => {
-      const error = event.error;
-      const message =
-        error instanceof Error
-          ? error.message
-          : typeof event.message === 'string'
-            ? event.message
-            : typeof error === 'string'
-              ? error
-              : '';
-
-      if (/webgl|context|gpu|canvas/i.test(message)) {
-        setMapRuntimeError('Map renderer reset. Reload the grid to recover.');
-        console.error('[REAL_WORLD_MAP] MapLibre renderer error:', message);
+      if (cancelled) {
+        map.remove();
+        return;
       }
+
+      mapInstanceRef.current = map;
+      map.dragRotate.enable();
+      map.touchZoomRotate.enableRotation();
+
+      const syncViewport = () => {
+        const center = map.getCenter();
+        setMapBearing(map.getBearing());
+        setMapPitch(map.getPitch());
+        handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
+      };
+
+      let loadHandled = false;
+      const handleLoad = () => {
+        if (loadHandled) return;
+        loadHandled = true;
+        ensureMapLibreDareLayers(map, mapPresetRef.current, { tuneBaseStyle: true });
+        syncViewport();
+        setMapRuntimeError(null);
+        setMapReady(true);
+      };
+
+      const handleStyleData = () => {
+        if (!map.isStyleLoaded()) return;
+        ensureMapLibreDareLayers(map, mapPresetRef.current);
+      };
+
+      const handleMapMotionStart = () => {
+        clearMapInteractionQuietTimer();
+        setMapInteractionQuiet(true);
+      };
+
+      const handleMapMotionSettled = () => {
+        clearMapInteractionQuietTimer();
+        mapInteractionQuietTimerRef.current = window.setTimeout(() => {
+          setMapInteractionQuiet(false);
+          mapInteractionQuietTimerRef.current = null;
+        }, 140);
+      };
+
+      const handleClick = (event: maplibregl.MapMouseEvent) => {
+        if (skipNextMapClickRef.current) {
+          skipNextMapClickRef.current = false;
+          return;
+        }
+
+        handleMapClickRef.current(event.lngLat.lat, event.lngLat.lng);
+      };
+
+      const handleMapError = (event: { error?: unknown; message?: string }) => {
+        const error = event.error;
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof event.message === 'string'
+              ? event.message
+              : typeof error === 'string'
+                ? error
+                : '';
+
+        if (/webgl|context|gpu|canvas/i.test(message)) {
+          setMapRuntimeError('Map renderer reset. Reload the grid to recover.');
+          console.error('[REAL_WORLD_MAP] MapLibre renderer error:', message);
+        }
+      };
+
+      const canvas = map.getCanvas();
+      const handleContextLost = (event: Event) => {
+        event.preventDefault();
+        setMapReady(false);
+        setMapRuntimeError('Map renderer paused. Reload the grid to recover.');
+      };
+      const handleContextRestored = () => {
+        setMapRuntimeError(null);
+        map.resize();
+        setMapReady(true);
+      };
+
+      map.on('load', handleLoad);
+      map.on('style.load', handleLoad);
+      map.on('styledata', handleStyleData);
+      map.on('movestart', handleMapMotionStart);
+      map.on('dragstart', handleMapMotionStart);
+      map.on('zoomstart', handleMapMotionStart);
+      map.on('rotatestart', handleMapMotionStart);
+      map.on('pitchstart', handleMapMotionStart);
+      map.on('moveend', syncViewport);
+      map.on('moveend', handleMapMotionSettled);
+      map.on('idle', handleMapMotionSettled);
+      map.on('click', handleClick);
+      map.on('error', handleMapError);
+      canvas.addEventListener('webglcontextlost', handleContextLost, false);
+      canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+
+      if (map.loaded() || map.isStyleLoaded()) {
+        window.requestAnimationFrame(() => {
+          if (!cancelled && mapInstanceRef.current === map) {
+            handleLoad();
+          }
+        });
+      }
+
+      cleanupMap = () => {
+        clearMapInteractionQuietTimer();
+        map.off('load', handleLoad);
+        map.off('style.load', handleLoad);
+        map.off('styledata', handleStyleData);
+        map.off('movestart', handleMapMotionStart);
+        map.off('dragstart', handleMapMotionStart);
+        map.off('zoomstart', handleMapMotionStart);
+        map.off('rotatestart', handleMapMotionStart);
+        map.off('pitchstart', handleMapMotionStart);
+        map.off('moveend', syncViewport);
+        map.off('moveend', handleMapMotionSettled);
+        map.off('idle', handleMapMotionSettled);
+        map.off('click', handleClick);
+        map.off('error', handleMapError);
+        canvas.removeEventListener('webglcontextlost', handleContextLost, false);
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
+        markerRegistry.forEach(({ marker }) => marker.remove());
+        markerRegistry.clear();
+        map.remove();
+        if (mapInstanceRef.current === map) {
+          mapInstanceRef.current = null;
+        }
+        setMapReady(false);
+        setMapInteractionQuiet(false);
+      };
     };
 
-    const canvas = map.getCanvas();
-    const markerRegistry = mapMarkersRef.current;
-    const handleContextLost = (event: Event) => {
-      event.preventDefault();
-      setMapReady(false);
-      setMapRuntimeError('Map renderer paused. Reload the grid to recover.');
-    };
-    const handleContextRestored = () => {
-      setMapRuntimeError(null);
-      map.resize();
-      setMapReady(true);
-    };
-
-    map.on('load', handleLoad);
-    map.on('styledata', handleStyleData);
-    map.on('movestart', handleMapMotionStart);
-    map.on('dragstart', handleMapMotionStart);
-    map.on('zoomstart', handleMapMotionStart);
-    map.on('rotatestart', handleMapMotionStart);
-    map.on('pitchstart', handleMapMotionStart);
-    map.on('moveend', syncViewport);
-    map.on('moveend', handleMapMotionSettled);
-    map.on('idle', handleMapMotionSettled);
-    map.on('click', handleClick);
-    map.on('error', handleMapError);
-    canvas.addEventListener('webglcontextlost', handleContextLost, false);
-    canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+    void startMap();
 
     return () => {
+      cancelled = true;
       clearMapInteractionQuietTimer();
-      map.off('load', handleLoad);
-      map.off('styledata', handleStyleData);
-      map.off('movestart', handleMapMotionStart);
-      map.off('dragstart', handleMapMotionStart);
-      map.off('zoomstart', handleMapMotionStart);
-      map.off('rotatestart', handleMapMotionStart);
-      map.off('pitchstart', handleMapMotionStart);
-      map.off('moveend', syncViewport);
-      map.off('moveend', handleMapMotionSettled);
-      map.off('idle', handleMapMotionSettled);
-      map.off('click', handleClick);
-      map.off('error', handleMapError);
-      canvas.removeEventListener('webglcontextlost', handleContextLost, false);
-      canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
-      markerRegistry.forEach(({ marker }) => marker.remove());
-      markerRegistry.clear();
-      map.remove();
-      mapInstanceRef.current = null;
+      cleanupMap?.();
+      cleanupMap = null;
       setMapReady(false);
       setMapInteractionQuiet(false);
     };
@@ -4432,12 +4515,13 @@ export default function RealWorldMap() {
             : -96,
         ] as [number, number])
       : undefined;
+    const targetCamera = getDefaultMapCamera(isMobileViewport);
 
     map.flyTo({
       center: [targetCenter[1], targetCenter[0]],
       zoom: targetZoom ?? map.getZoom(),
-      pitch: isMobileViewport ? 54 : DEFAULT_MAP_PITCH,
-      bearing: map.getBearing() || DEFAULT_MAP_BEARING,
+      pitch: targetCamera.pitch,
+      bearing: map.getBearing(),
       duration: 900,
       essential: true,
       ...(targetOffset ? { offset: targetOffset } : {}),
@@ -5225,12 +5309,15 @@ export default function RealWorldMap() {
     }
 
     hasAutoFitVenueClusterRef.current = true;
+    const defaultCamera = getDefaultMapCamera(isMobileViewport);
 
     if (fitPlaces.length === 1) {
       const [place] = fitPlaces;
       map.flyTo({
         center: [place.longitude, place.latitude],
         zoom: Math.max(map.getZoom(), isMobileViewport ? 13.8 : 14.4),
+        bearing: defaultCamera.bearing,
+        pitch: defaultCamera.pitch,
         duration: 850,
         essential: true,
       });
@@ -5245,6 +5332,8 @@ export default function RealWorldMap() {
         ? { top: 44, right: 34, bottom: 132, left: 34 }
         : { top: 62, right: 118, bottom: 118, left: 118 },
       maxZoom: isMobileViewport ? 14.85 : 15.15,
+      bearing: defaultCamera.bearing,
+      pitch: defaultCamera.pitch,
       duration: 900,
       essential: true,
     });
@@ -6797,14 +6886,13 @@ export default function RealWorldMap() {
       const map = mapInstanceRef.current;
       if (!map) return;
 
-      const minPitch = 28;
-      const maxPitch = isMobileViewport ? 64 : 74;
+      const minPitch = 24;
+      const maxPitch = isMobileViewport ? 64 : 60;
+      const defaultCamera = getDefaultMapCamera(isMobileViewport);
       const nextPitch = reset
-        ? isMobileViewport
-          ? 54
-          : DEFAULT_MAP_PITCH
+        ? defaultCamera.pitch
         : Math.min(maxPitch, Math.max(minPitch, map.getPitch() + pitchDelta));
-      const nextBearing = reset ? 0 : map.getBearing() + bearingDelta;
+      const nextBearing = reset ? defaultCamera.bearing : map.getBearing() + bearingDelta;
       const center = selectedPlace ? ([selectedPlace.longitude, selectedPlace.latitude] as [number, number]) : map.getCenter();
 
       setMapBearing(nextBearing);
