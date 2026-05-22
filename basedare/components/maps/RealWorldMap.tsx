@@ -565,6 +565,8 @@ type VenueDetailResponse = {
     venue: {
       id: string;
       slug: string;
+      handle: string | null;
+      baseCashEnabled: boolean;
       name: string;
       address: string | null;
       city: string | null;
@@ -7034,6 +7036,8 @@ export default function RealWorldMap() {
             focusExistingPlace({
               id: mark.venue.id,
               slug: mark.venue.slug,
+              handle: null,
+              baseCashEnabled: false,
               name: mark.venue.name,
               description: mark.venue.address,
               city: mark.venue.city,
