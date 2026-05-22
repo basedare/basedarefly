@@ -4338,7 +4338,7 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: isMobileRenderer ? 0 : 300,
+          fadeDuration: 0,
           maxPitch: isMobileRenderer ? 64 : 60,
         });
       } catch (error) {
@@ -13176,12 +13176,14 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
-          filter: brightness(0.78) saturate(1.32) contrast(1.18) hue-rotate(14deg);
+          backface-visibility: hidden;
+          filter: none;
           outline: none;
+          transform: translateZ(0);
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
-          filter: brightness(0.48) saturate(0.42) contrast(1.38);
+          filter: none;
         }
 
         .maplibre-depth-vignette {
@@ -14442,31 +14444,18 @@ export default function RealWorldMap() {
           --haze-opacity: 0.58;
         }
 
-        .basedare-maplibre-map[data-map-moving='true'] :global(.maplibregl-marker),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.basedare-maplibre-marker),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-bear),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
-          animation: none !important;
-          filter: none !important;
-          transition: none !important;
-          will-change: auto !important;
-        }
-
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-ripple),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-aura),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-ring),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-pulse),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-aura),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-shadow) {
-          animation: none !important;
-          filter: none !important;
-          opacity: 0.28 !important;
-          transition: opacity 120ms ease-out !important;
-          will-change: auto !important;
-        }
-
         @media (max-width: 767px) {
+          .basedare-maplibre-map[data-map-moving='true'] :global(.maplibregl-marker),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.basedare-maplibre-marker),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.current-location-bear),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
+            animation: none !important;
+            filter: none !important;
+            transition: none !important;
+            will-change: auto !important;
+          }
+
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-ripple),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-aura),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-challenge-ring),
@@ -14475,30 +14464,30 @@ export default function RealWorldMap() {
           .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-shadow) {
             display: none !important;
           }
-        }
 
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.map-pin-marker),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
-          box-shadow:
-            0 10px 16px rgba(0, 0, 0, 0.34),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            inset 0 -8px 12px rgba(0, 0, 0, 0.18) !important;
-        }
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-core),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.map-pin-marker),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-core) {
+            box-shadow:
+              0 10px 16px rgba(0, 0, 0, 0.34),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              inset 0 -8px 12px rgba(0, 0, 0, 0.18) !important;
+          }
 
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-venue-label),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-pulse-pill),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-footprint),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
-        .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
-          backdrop-filter: none !important;
-          box-shadow: none !important;
-          filter: none !important;
-          transition: none !important;
-          will-change: auto !important;
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-venue-label),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-pulse-pill),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-footprint),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
+            backdrop-filter: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+            transition: none !important;
+            will-change: auto !important;
+          }
         }
 
         .basedare-maplibre-map :global(.maplibregl-ctrl-group),
