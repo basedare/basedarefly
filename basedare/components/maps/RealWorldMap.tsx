@@ -12,7 +12,6 @@ import maplibregl, {
   type MapLayerMouseEvent,
   type Marker as MapLibreMarker,
   type PositionAnchor,
-  type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
@@ -63,7 +62,6 @@ import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
 import HoneyGooAccent from '@/components/HoneyGooAccent';
-import MapCrosshair from '@/app/map/MapCrosshair';
 
 type SearchResult = {
   id: string;
@@ -793,36 +791,12 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 const currentLocationIconCache = new Map<string, string>();
-let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
 
 function getDefaultMapCamera(isMobileViewport: boolean) {
   return {
     bearing: isMobileViewport ? DEFAULT_MOBILE_MAP_BEARING : DEFAULT_DESKTOP_MAP_BEARING,
     pitch: isMobileViewport ? DEFAULT_MOBILE_MAP_PITCH : DEFAULT_DESKTOP_MAP_PITCH,
   };
-}
-
-function loadOpenFreeMapStyle() {
-  if (!openFreeMapStylePromise) {
-    openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`OpenFreeMap style failed with ${response.status}`);
-        }
-
-        const style = (await response.json()) as StyleSpecification;
-        return {
-          ...style,
-          projection: style.projection ?? { type: 'mercator' },
-        } satisfies StyleSpecification;
-      })
-      .catch((error) => {
-        console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
-        return OPENFREEMAP_LIBERTY_STYLE_URL;
-      });
-  }
-
-  return openFreeMapStylePromise;
 }
 
 function browserCanStartMapRenderer() {
@@ -4315,22 +4289,14 @@ export default function RealWorldMap() {
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
 
-    const startMap = async () => {
-      let mapStyle: StyleSpecification | string;
-      try {
-        mapStyle = await loadOpenFreeMapStyle();
-      } catch (error) {
-        console.error('[REAL_WORLD_MAP] Map style preload failed:', error);
-        mapStyle = OPENFREEMAP_LIBERTY_STYLE_URL;
-      }
-
+    const startMap = () => {
       if (cancelled) return;
 
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
           container,
-          style: mapStyle,
+          style: OPENFREEMAP_LIBERTY_STYLE_URL,
           center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
           zoom: DEFAULT_ZOOM,
           pitch: initialCamera.pitch,
@@ -4338,7 +4304,7 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: 0,
+          fadeDuration: isMobileRenderer ? 0 : 300,
           maxPitch: isMobileRenderer ? 64 : 75,
         });
       } catch (error) {
@@ -4485,7 +4451,7 @@ export default function RealWorldMap() {
       };
     };
 
-    void startMap();
+    startMap();
 
     return () => {
       cancelled = true;
@@ -8453,7 +8419,6 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {!isMobileViewport ? <MapCrosshair containerRef={mapViewportRef} /> : null}
             {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
@@ -13054,7 +13019,7 @@ export default function RealWorldMap() {
 
         .preset-atmosphere {
           background: var(--preset-atmosphere);
-          mix-blend-mode: screen;
+          opacity: 0.72;
         }
 
         .scanlines {
