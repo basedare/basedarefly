@@ -94,7 +94,7 @@ export default function RuggedElectricCard({
 
                 <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-4">
                     <p className="text-[10px] text-[#422006] font-black uppercase tracking-[0.3em] mb-1">
-                        BOUNTY LOCKED
+                        BOUNTY PRIMED
                     </p>
                     <p className="text-3xl font-black text-white drop-shadow-md tracking-tighter">
                         {bounty}
@@ -114,4 +114,3 @@ export default function RuggedElectricCard({
     </div>
   );
 }
-

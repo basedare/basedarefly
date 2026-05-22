@@ -435,7 +435,7 @@ export default function TruthOracle({ onPointsChange }: TruthOracleProps) {
                 >
                   <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                   <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mx-auto mb-2" />
-                  <h3 className="text-white font-bold text-[10px] sm:text-xs tracking-[0.28em]">SIGNAL LOCKED</h3>
+                  <h3 className="text-white font-bold text-[10px] sm:text-xs tracking-[0.28em]">SIGNAL RECORDED</h3>
                   <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono mt-1">
                     You voted: <span className={voteColor}>{voteLabel}</span>
                   </p>

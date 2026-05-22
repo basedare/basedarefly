@@ -111,7 +111,7 @@ export default function PurpleCrackleHoloCard({
             {/* Content Bottom */}
             <div className="h-[35%] bg-[#121212] border-t border-white/10 p-4 flex flex-col justify-center items-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent opacity-50" />
-                <p className="relative z-10 text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-1">BOUNTY LOCKED</p>
+                <p className="relative z-10 text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-1">BOUNTY PRIMED</p>
                 <p className="relative z-10 text-3xl font-black text-white tracking-tighter drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">
                     {bounty}
                 </p>

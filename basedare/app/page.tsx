@@ -288,10 +288,13 @@ function HomeContent() {
                 </div>
               </div>
 
-              <div id="active-bounties" className="w-full flex justify-center py-20 z-30 px-4 md:px-6">
-                <div className="relative w-full max-w-[1680px] rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.36),rgba(8,9,18,0.92))] shadow-[14px_18px_48px_rgba(0,0,0,0.42),-8px_-8px_20px_rgba(255,255,255,0.035),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl px-4 py-10 md:px-6 md:py-12">
+              <div id="active-bounties" className="w-full flex justify-center px-4 pb-12 pt-20 z-30 md:px-6 md:pb-14">
+                <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
+                  <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-8 bottom-[17rem] hidden h-px bg-gradient-to-r from-transparent via-[#b87fff]/22 to-transparent lg:block" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,rgba(184,127,255,0)_0%,rgba(34,211,238,0.045)_34%,rgba(245,197,24,0.035)_100%)]" />
                   <HoneyGooAccent className="absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10" size="md" />
-                  <div className="mb-12 flex flex-col items-center">
+                  <div className="relative z-10 mb-12 flex flex-col items-center">
                     <h3
                       className="active-bounties-neon font-black italic text-lg md:text-xl tracking-[0.2em] uppercase"
                       style={{
@@ -304,15 +307,16 @@ function HomeContent() {
                     <div className="bd-purple-pulse-line mt-3 h-px w-32" />
                   </div>
 
-                  <PremiumBentoGrid dares={dares} />
+                  <div className="relative z-10">
+                    <PremiumBentoGrid dares={dares} />
+                    {showBelowFoldSections ? <HomeMarketSignal variant="embedded" /> : null}
+                  </div>
 
           </div>
               </div>
 
               {showBelowFoldSections ? (
                 <>
-                  <HomeMarketSignal />
-
                   {/* 5. TRUTH PROTOCOL - STATIC PILLARS */}
                   <TruthProtocol />
                 </>

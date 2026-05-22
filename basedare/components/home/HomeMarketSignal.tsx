@@ -152,11 +152,16 @@ function mapCreators(creators: CreatorFromApi[]) {
     });
 }
 
-export default function HomeMarketSignal() {
+type HomeMarketSignalProps = {
+  variant?: 'standalone' | 'embedded';
+};
+
+export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketSignalProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [venues, setVenues] = useState<ActiveVenueCard[]>(() => cloneActiveVenueFallbacks().slice(0, 3));
   const [creators, setCreators] = useState<ReadyCreatorSignal[]>(fallbackCreators);
   const [shouldHydrate, setShouldHydrate] = useState(false);
+  const isEmbedded = variant === 'embedded';
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -229,14 +234,31 @@ export default function HomeMarketSignal() {
   ];
 
   return (
-    <section ref={sectionRef} id="live-market" className="w-full scroll-mt-32 px-4 pb-12 md:px-6 md:pb-16">
-      <div className="relative mx-auto w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.28),rgba(8,9,18,0.9))] px-4 py-7 shadow-[14px_18px_48px_rgba(0,0,0,0.34),-8px_-8px_20px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.075)] backdrop-blur-xl md:px-6 md:py-9">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.10),transparent_34%),radial-gradient(circle_at_88%_18%,rgba(245,197,24,0.08),transparent_32%)]" />
+    <section
+      ref={sectionRef}
+      id="live-market"
+      className={
+        isEmbedded
+          ? 'w-full scroll-mt-32 pt-6'
+          : 'w-full scroll-mt-32 px-4 pb-12 md:px-6 md:pb-16'
+      }
+    >
+      <div
+        className={
+          isEmbedded
+            ? 'relative w-full overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(156deg,rgba(16,30,38,0.46),rgba(30,20,18,0.34)_52%,rgba(7,8,16,0.93))] px-4 py-6 shadow-[12px_18px_46px_rgba(0,0,0,0.35),-7px_-7px_20px_rgba(255,255,255,0.028),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-22px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl md:px-6 md:py-7'
+            : 'relative mx-auto w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.28),rgba(8,9,18,0.9))] px-4 py-7 shadow-[14px_18px_48px_rgba(0,0,0,0.34),-8px_-8px_20px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.075)] backdrop-blur-xl md:px-6 md:py-9'
+        }
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_88%_18%,rgba(245,197,24,0.09),transparent_32%)]" />
         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+        {isEmbedded ? (
+          <div className="pointer-events-none absolute inset-x-8 -top-px h-16 bg-[linear-gradient(180deg,rgba(184,127,255,0.12),rgba(184,127,255,0))]" />
+        ) : null}
 
         <div className="relative flex flex-col gap-5">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/78">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_20px_rgba(0,0,0,0.2)]">
               <Radio className="h-3.5 w-3.5" />
               Live grid
             </div>
@@ -247,10 +269,10 @@ export default function HomeMarketSignal() {
                   "0 0 16px rgba(34,211,238,0.22), 0 0 28px rgba(245,197,24,0.10)",
               }}
             >
-              Places and people ready for proof.
+              Venues ready to turn bounties into proof.
             </h3>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/48">
-              Captains are vetted local creators/operators who scout venues, start proof loops, and route paid missions.
+              Open venues are where bounties become receipts: check-ins, guest missions, and creator routes.
             </p>
           </div>
 
@@ -258,28 +280,28 @@ export default function HomeMarketSignal() {
             <Link
               href="/map?source=home-market-signal"
               prefetch={false}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-cyan-300/28 hover:text-cyan-100 sm:min-w-[9.5rem]"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(12,14,24,0.72))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/76 shadow-[0_14px_26px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.18)] transition hover:border-cyan-300/28 hover:text-cyan-100 sm:min-w-[10.5rem]"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              Open map
+              Open venue map
             </Link>
             <Link
               href="/captains?source=home-market-signal"
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[#f5c518]/10 px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#f9e27a] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_24px_rgba(245,197,24,0.08)] transition hover:border-[#f5c518]/45 sm:min-w-[11.5rem]"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(245,197,24,0.07))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#f9e27a] shadow-[0_14px_24px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:border-[#f5c518]/45 sm:min-w-[11.5rem]"
             >
               <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              Apply captain
+              Captain intake
             </Link>
           </div>
         </div>
 
         <div className="relative mt-6 grid gap-3 lg:grid-cols-[0.78fr_1.22fr]">
-          <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-white/[0.075] bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)]">
-            <div className="rounded-2xl border border-emerald-200/12 bg-emerald-300/[0.045] px-3 py-3">
+          <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-white/[0.075] bg-black/24 p-3 shadow-[inset_6px_6px_14px_rgba(0,0,0,0.36),inset_-3px_-3px_8px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.055)]">
+            <div className="rounded-2xl border border-emerald-200/12 bg-[linear-gradient(160deg,rgba(52,211,153,0.08),rgba(4,9,12,0.62))] px-3 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
               <span className="block text-2xl font-black text-white">{liveVenues}</span>
               <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/62">active venues</span>
             </div>
-            <div className="rounded-2xl border border-[#f5c518]/16 bg-[#f5c518]/[0.07] px-3 py-3">
+            <div className="rounded-2xl border border-[#f5c518]/16 bg-[linear-gradient(160deg,rgba(245,197,24,0.11),rgba(16,12,5,0.7))] px-3 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
               <span className="block text-2xl font-black text-white">{readyCreators}</span>
               <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#f9e27a]/68">ready creators</span>
             </div>
@@ -291,7 +313,7 @@ export default function HomeMarketSignal() {
                 key={signal.key}
                 href={signal.href}
                 prefetch={false}
-                className="group flex min-h-[5.25rem] items-center justify-between gap-3 rounded-[1.35rem] border border-white/[0.075] bg-black/24 px-4 py-3 transition hover:border-cyan-200/18 hover:bg-white/[0.045]"
+                className="group flex min-h-[5.25rem] items-center justify-between gap-3 rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(160deg,rgba(255,255,255,0.035),rgba(3,4,10,0.5))] px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-12px_16px_rgba(0,0,0,0.16)] transition hover:border-cyan-200/18 hover:bg-white/[0.045]"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-black text-white/86">{signal.label}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useMemo } from 'react';
+import React from 'react';
 
 type CardProps = {
   badge: string;
@@ -16,7 +16,6 @@ export default function ElectricCard({
   title,
   description,
   className = "",
-  color = "#FACC15",
 }: CardProps) {
   // Safe logic to split description if it contains a pipe |
   const [bounty, streamer] = description.includes('|') 
@@ -50,7 +49,7 @@ export default function ElectricCard({
 
         {/* Bottom Section: Gold/Honey Block */}
         <div className="relative h-[35%] bg-gradient-to-t from-yellow-700 to-[#FFD700] flex flex-col items-center justify-center p-2 border-t border-[#FFD700]">
-           <p className="text-[10px] text-black font-black uppercase tracking-widest opacity-60">BOUNTY LOCKED</p>
+           <p className="text-[10px] text-black font-black uppercase tracking-widest opacity-60">BOUNTY PRIMED</p>
            <p className="text-2xl font-black text-black tracking-tighter">{bounty}</p>
            <p className="text-xs font-mono font-bold text-black/70">{streamer}</p>
         </div>

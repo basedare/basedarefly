@@ -92,7 +92,7 @@ export default function PremiumDareCard({
   const [isDesktop, setIsDesktop] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('locked-');
+  const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('pass-');
   const isExpired = status === 'expired';
   const isRestricted = status === 'restricted';
 
@@ -145,8 +145,8 @@ export default function PremiumDareCard({
       >
         <div className="dare-card-restricted-inner">
           <div className="text-3xl">👑</div>
-          <h3 className="text-sm font-black italic text-white/80">RESTRICTED</h3>
-          <button className="dare-card-genesis-btn" type="button">MINT GENESIS PASS</button>
+          <h3 className="text-sm font-black italic text-white/80">PASS GATED</h3>
+          <button className="dare-card-genesis-btn" type="button">VIEW ACCESS</button>
         </div>
       </motion.div>
     );
@@ -159,7 +159,7 @@ export default function PremiumDareCard({
     expired: { label: 'EXPIRED', dot: false, cls: 'dare-status-expired' },
     completed: { label: 'VERIFIED', dot: false, cls: 'dare-status-verified' },
     pending_verification: { label: 'AUDIT', dot: true, cls: 'dare-status-audit' },
-    restricted: { label: 'LOCKED', dot: false, cls: 'dare-status-expired' },
+    restricted: { label: 'PASS', dot: false, cls: 'dare-status-expired' },
   };
   const sc = statusConfig[status];
 

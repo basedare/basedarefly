@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, MapPin, Radio, Search } from 'lucide-react';
 import PremiumDareCard, { PremiumDareCardStatus, SentinelSkeleton } from './PremiumDareCard';
 import ProofViewer from './ProofViewer';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { cloneActiveVenueFallbacks } from '@/lib/home-active-venues';
 import './PremiumBentoGrid.css';
 
 const FILTERS = [
@@ -12,8 +14,8 @@ const FILTERS = [
   { key: 'OPEN BOUNTIES', label: 'IRL' },
   { key: 'STREAMERS', label: 'ONLINE' },
   { key: 'NEARBY', label: 'NEARBY' },
-  { key: 'LOCKED', label: 'LOCKED' },
-  { key: 'EXPIRED', label: 'EXPIRED' },
+  { key: 'VENUES', label: 'VENUES' },
+  { key: 'EXPIRED', label: 'PAST' },
 ] as const;
 type Filter = (typeof FILTERS)[number]['key'];
 
@@ -186,6 +188,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const { coordinates, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
+  const venueDiscoveryLinks = useMemo(() => cloneActiveVenueFallbacks().slice(0, 3), []);
 
   // Fetch nearby dares when we have coordinates and NEARBY filter is active
   const fetchNearbyDares = useCallback(async (lat: number, lng: number) => {
@@ -398,7 +401,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       // All other filters: EXCLUDE expired cards by default
       if (isExpired) return false;
 
-      if (filter === 'LOCKED') return card.status === 'restricted';
+      if (filter === 'VENUES') return card.isOpenBounty || card.isNearby || Boolean(card.locationLabel);
 
       // Genesis / restricted inventory is hidden from the home-page rail for now.
       if (card.status === 'restricted') return false;
@@ -462,6 +465,40 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         </div>
       </div>
 
+      <div className="premium-bounty-discovery-rail mb-8 grid w-full max-w-[1400px] gap-2 px-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href="/map?source=active-bounties"
+          prefetch={false}
+          className="premium-venue-discovery-card premium-venue-discovery-card--map group"
+        >
+          <span className="premium-venue-discovery-icon">
+            <Radio className="h-3.5 w-3.5" />
+          </span>
+          <span className="min-w-0">
+            <span className="premium-venue-discovery-label">Live venue map</span>
+            <span className="premium-venue-discovery-meta">Proof routes nearby</span>
+          </span>
+          <ArrowRight className="premium-venue-discovery-arrow" />
+        </Link>
+        {venueDiscoveryLinks.map((venue) => (
+          <Link
+            key={venue.slug}
+            href={venue.primaryHref}
+            prefetch={false}
+            className="premium-venue-discovery-card group"
+          >
+            <span className="premium-venue-discovery-icon">
+              <MapPin className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0">
+              <span className="premium-venue-discovery-label">{venue.name}</span>
+              <span className="premium-venue-discovery-meta">{venue.activityLabel}</span>
+            </span>
+            <ArrowRight className="premium-venue-discovery-arrow" />
+          </Link>
+        ))}
+      </div>
+
       {/* NEARBY filter special states */}
       {filter === 'NEARBY' && (geoLoading || nearbyLoading) && (
         <div className="w-full max-w-[1400px] px-6 mb-8">
@@ -501,9 +538,9 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         <div className="w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 p-8 border border-white/[0.06] rounded-2xl">
             <MapPin className="w-10 h-10 text-gray-500" />
-            <p className="text-lg font-bold text-white">No nearby dares found</p>
+            <p className="text-lg font-bold text-white">No nearby bounty yet</p>
             <p className="text-sm text-gray-400 text-center">
-              Be the first to create a dare in your area!
+              Open the venue map and mark the first proof route in your area.
             </p>
           </div>
         </div>

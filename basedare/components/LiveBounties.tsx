@@ -64,28 +64,42 @@ const LIVE_TARGETS = [
   { 
     id: 301, 
     dare: "SHAVE HEAD LIVE", 
-    bounty: "LOCKED", 
-    time: "LOCKED", 
-    streamer: "???", 
+    bounty: "LEVEL 5", 
+    time: "CAPTAIN PASS", 
+    streamer: "OPEN SOON", 
     imgUrl: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800",
-    emoji: "🔒", 
+    emoji: "👑", 
     isVulnerable: false,
     minLevel: 5 
   },
   { 
     id: 302, 
     dare: "TATTOO LOGO ON FACE", 
-    bounty: "LOCKED", 
-    time: "LOCKED", 
-    streamer: "???", 
+    bounty: "LEVEL 10", 
+    time: "CAPTAIN PASS", 
+    streamer: "OPEN SOON", 
     imgUrl: "https://images.unsplash.com/photo-1562962230-16bc46364924?auto=format&fit=crop&w=800",
-    emoji: "🔒", 
+    emoji: "👑", 
     isVulnerable: false,
     minLevel: 10 
   },
 ];
 
-export default function LiveBounties({ dares = [], onCardClick }: { dares?: any[], onCardClick?: (dare: any) => void }) {
+type LiveTarget = (typeof LIVE_TARGETS)[number];
+
+type IncomingDare = {
+  id: string | number;
+  description: string;
+  stake_amount: number;
+  streamer_name?: string | null;
+};
+
+type LiveBountiesProps = {
+  dares?: IncomingDare[];
+  onCardClick?: (dare: LiveTarget) => void;
+};
+
+export default function LiveBounties({ dares = [], onCardClick }: LiveBountiesProps) {
   const userLevel = 1;
 
   return (
@@ -115,9 +129,9 @@ export default function LiveBounties({ dares = [], onCardClick }: { dares?: any[
                   {isLocked && (
                     <div className="absolute inset-0 z-50 bg-[#050505]/90 backdrop-blur-md flex flex-col items-center justify-center rounded-3xl border border-[#FFD700]/20">
                         <Crown className="w-8 h-8 text-[#FFD700] mb-4 shadow-[0_0_30px_rgba(255,215,0,0.3)]" />
-                        <h3 className="text-3xl font-black text-white italic uppercase">RESTRICTED</h3>
+                        <h3 className="text-3xl font-black text-white italic uppercase">PASS GATED</h3>
                         <div className="mt-4 px-4 py-2 bg-[#FFD700] text-black font-black text-xs rounded uppercase hover:bg-white transition-colors">
-                            MINT GENESIS PASS
+                            VIEW ACCESS
                         </div>
                     </div>
                   )}
