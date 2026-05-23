@@ -740,7 +740,7 @@ const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
 const DEFAULT_DESKTOP_MAP_BEARING = -18;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
-const DEFAULT_DESKTOP_MAP_PITCH = 62;
+const DEFAULT_DESKTOP_MAP_PITCH = 54;
 const DEFAULT_MOBILE_MAP_PITCH = 54;
 const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
 const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
@@ -4304,8 +4304,8 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: isMobileRenderer ? 0 : 300,
-          maxPitch: isMobileRenderer ? 64 : 75,
+          fadeDuration: 0,
+          maxPitch: 64,
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -6855,7 +6855,7 @@ export default function RealWorldMap() {
       if (!map) return;
 
       const minPitch = 24;
-      const maxPitch = isMobileViewport ? 64 : 75;
+      const maxPitch = 64;
       const defaultCamera = getDefaultMapCamera(isMobileViewport);
       const nextPitch = reset
         ? defaultCamera.pitch
@@ -7354,10 +7354,10 @@ export default function RealWorldMap() {
         <Link
           href={selectedPlaceBaseCashHref}
           className="map-primary-action-button map-primary-action-button--pay"
-          aria-label={`Buy venue credit at ${selectedPlace.name}`}
+          aria-label={`Open BaseCash for ${selectedPlace.name}`}
         >
           <CreditCard className="h-4 w-4" />
-          <span>Pay</span>
+          <span>BaseCash</span>
         </Link>
       ) : null}
 
@@ -7671,7 +7671,7 @@ export default function RealWorldMap() {
         ) : null}
       </div>
     ) : null;
-  const selectedPlaceCheckInRail = selectedPlace?.slug ? (
+  const selectedPlaceCheckInRail = selectedPlace?.slug && selectedCheckInLive ? (
     <div className="map-panel-section mt-3 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(7,12,18,0.9)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
       <div className="grid grid-cols-[1fr_auto] items-center gap-3">
         <div className="min-w-0">
@@ -14311,6 +14311,32 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.peebear-ripple--blazing) {
           border: 1.5px solid rgba(255, 45, 85, 0.88);
+        }
+
+        @media (min-width: 768px) {
+          .basedare-maplibre-map :global(.maplibregl-marker),
+          .basedare-maplibre-map :global(.basedare-maplibre-marker),
+          .basedare-maplibre-map :global(.peebear-core),
+          .basedare-maplibre-map :global(.peebear-challenge-aura),
+          .basedare-maplibre-map :global(.peebear-challenge-ring),
+          .basedare-maplibre-map :global(.current-location-bear),
+          .basedare-maplibre-map :global(.place-cluster-core) {
+            animation: none !important;
+            transition: none !important;
+            will-change: auto !important;
+          }
+
+          .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.current-location-pulse) {
+            display: none !important;
+          }
+
+          .basedare-maplibre-map :global(.place-cluster-aura),
+          .basedare-maplibre-map :global(.peebear-challenge-aura),
+          .basedare-maplibre-map :global(.place-cluster-shadow) {
+            filter: blur(3px);
+            opacity: 0.62;
+          }
         }
 
         @media (max-width: 767px) {

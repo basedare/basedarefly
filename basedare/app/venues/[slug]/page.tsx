@@ -542,7 +542,7 @@ export default async function VenueDetailPage(
                       <SquircleLink
                         href={baseCashHref}
                         label="BaseCash"
-                        tone="green"
+                        tone="blue"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.74rem] tracking-[0.09em] sm:text-[0.82rem]"
