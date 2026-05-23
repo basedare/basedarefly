@@ -139,9 +139,10 @@ export default function AdminInboxPage() {
   }, [address, adminSecretTrimmed]);
 
   const ensureAdminAccess = useCallback(async () => {
+    if (adminSecretTrimmed) return ensureAdminSession();
     if (address || hasAdminSession) return true;
     return ensureAdminSession();
-  }, [address, ensureAdminSession, hasAdminSession]);
+  }, [address, adminSecretTrimmed, ensureAdminSession, hasAdminSession]);
 
   const loadInbox = useCallback(
     async (threadId = activeThreadId, quiet = false) => {

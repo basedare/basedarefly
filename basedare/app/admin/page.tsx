@@ -711,9 +711,10 @@ export default function AdminPage() {
     return headers;
   }, [address]);
   const ensureAdminAccess = useCallback(async () => {
+    if (adminSecretTrimmed) return ensureAdminSession();
     if (address || hasAdminSession) return true;
     return ensureAdminSession();
-  }, [address, ensureAdminSession, hasAdminSession]);
+  }, [address, adminSecretTrimmed, ensureAdminSession, hasAdminSession]);
   const placeTagQueueSummary = useMemo(
     () => derivePlaceTagQueueSummary(pendingPlaceTags),
     [pendingPlaceTags]
