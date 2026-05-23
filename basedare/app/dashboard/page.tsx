@@ -1217,7 +1217,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2.5 md:grid-cols-2 md:gap-3 xl:grid-cols-4">
             {dashboardQuickActions.map((action) => {
               const Icon = action.icon;
               const toneClass =
@@ -1243,21 +1243,24 @@ export default function Dashboard() {
                   type="button"
                   onClick={action.onSelect}
                   disabled={action.id === 'connect' && isConnecting}
-                  className={`${raisedTileClass} ${toneClass} group flex min-h-[152px] flex-col justify-between p-4 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-wait disabled:opacity-70`}
+                  className={`${raisedTileClass} ${toneClass} group flex min-h-[82px] items-center gap-3 p-3 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-wait disabled:opacity-70 sm:min-h-[132px] sm:flex-col sm:items-stretch sm:justify-between sm:p-4 xl:min-h-[152px]`}
                 >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.045] ${iconClass}`}>
-                      <Icon className="h-[18px] w-[18px]" />
+                  <span className="flex shrink-0 items-center gap-3 sm:items-start sm:justify-between">
+                    <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.045] sm:h-10 sm:w-10 sm:rounded-[14px] ${iconClass}`}>
+                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                     </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                    <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/48 sm:inline-flex">
                       {action.cta}
                     </span>
                   </span>
-                  <span className="mt-5 block min-w-0">
-                    <span className="block text-base font-black text-white">{action.label}</span>
-                    <span className="mt-1.5 line-clamp-2 block text-sm leading-5 text-white/56">
+                  <span className="block min-w-0 flex-1 sm:mt-5 sm:flex-none">
+                    <span className="block text-sm font-black text-white sm:text-base">{action.label}</span>
+                    <span className="mt-1 line-clamp-1 block text-xs leading-4 text-white/56 sm:mt-1.5 sm:line-clamp-2 sm:text-sm sm:leading-5">
                       {action.detail}
                     </span>
+                  </span>
+                  <span className="ml-auto inline-flex shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.15em] text-white/48 sm:hidden">
+                    {action.cta}
                   </span>
                 </button>
               );

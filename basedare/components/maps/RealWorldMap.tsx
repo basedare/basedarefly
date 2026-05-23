@@ -12,6 +12,7 @@ import maplibregl, {
   type MapLayerMouseEvent,
   type Marker as MapLibreMarker,
   type PositionAnchor,
+  type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
@@ -738,9 +739,9 @@ const placeClusterIconCache = new Map<string, string>();
 
 const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
-const DEFAULT_DESKTOP_MAP_BEARING = -18;
+const DEFAULT_DESKTOP_MAP_BEARING = -14;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
-const DEFAULT_DESKTOP_MAP_PITCH = 54;
+const DEFAULT_DESKTOP_MAP_PITCH = 46;
 const DEFAULT_MOBILE_MAP_PITCH = 54;
 const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
 const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
@@ -791,6 +792,30 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 const currentLocationIconCache = new Map<string, string>();
+let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
+
+function loadOpenFreeMapStyle() {
+  if (!openFreeMapStylePromise) {
+    openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`OpenFreeMap style failed with ${response.status}`);
+        }
+
+        const style = (await response.json()) as StyleSpecification;
+        return {
+          ...style,
+          projection: style.projection ?? { type: 'mercator' },
+        } satisfies StyleSpecification;
+      })
+      .catch((error) => {
+        console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
+        return OPENFREEMAP_LIBERTY_STYLE_URL;
+      });
+  }
+
+  return openFreeMapStylePromise;
+}
 
 function getDefaultMapCamera(isMobileViewport: boolean) {
   return {
@@ -4289,14 +4314,22 @@ export default function RealWorldMap() {
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
 
-    const startMap = () => {
+    const startMap = async () => {
+      let mapStyle: StyleSpecification | string;
+      try {
+        mapStyle = await loadOpenFreeMapStyle();
+      } catch (error) {
+        console.error('[REAL_WORLD_MAP] Map style preload failed:', error);
+        mapStyle = OPENFREEMAP_LIBERTY_STYLE_URL;
+      }
+
       if (cancelled) return;
 
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
           container,
-          style: OPENFREEMAP_LIBERTY_STYLE_URL,
+          style: mapStyle,
           center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
           zoom: DEFAULT_ZOOM,
           pitch: initialCamera.pitch,
@@ -4305,7 +4338,7 @@ export default function RealWorldMap() {
           dragRotate: true,
           touchZoomRotate: true,
           fadeDuration: 0,
-          maxPitch: 64,
+          maxPitch: isMobileRenderer ? 64 : 60,
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -4332,6 +4365,12 @@ export default function RealWorldMap() {
       };
 
       let loadHandled = false;
+      const forceMapReflow = () => {
+        if (cancelled || mapInstanceRef.current !== map) return;
+        map.resize();
+        (map as MapLibreMap & { triggerRepaint?: () => void }).triggerRepaint?.();
+      };
+
       const handleLoad = () => {
         if (loadHandled) return;
         loadHandled = true;
@@ -4339,6 +4378,9 @@ export default function RealWorldMap() {
         syncViewport();
         setMapRuntimeError(null);
         setMapReady(true);
+        window.requestAnimationFrame(() => {
+          window.setTimeout(forceMapReflow, 80);
+        });
       };
 
       const handleStyleData = () => {
@@ -4412,6 +4454,7 @@ export default function RealWorldMap() {
       map.on('idle', handleMapMotionSettled);
       map.on('click', handleClick);
       map.on('error', handleMapError);
+      map.once('idle', forceMapReflow);
       canvas.addEventListener('webglcontextlost', handleContextLost, false);
       canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
@@ -4438,6 +4481,7 @@ export default function RealWorldMap() {
         map.off('idle', handleMapMotionSettled);
         map.off('click', handleClick);
         map.off('error', handleMapError);
+        map.off('idle', forceMapReflow);
         canvas.removeEventListener('webglcontextlost', handleContextLost, false);
         canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
         markerRegistry.forEach(({ marker }) => marker.remove());
@@ -4451,7 +4495,7 @@ export default function RealWorldMap() {
       };
     };
 
-    startMap();
+    void startMap();
 
     return () => {
       cancelled = true;
@@ -8392,7 +8436,7 @@ export default function RealWorldMap() {
           >
             <div
               ref={mapCanvasRef}
-              className="absolute inset-0 z-0"
+              className="absolute inset-0 z-[2]"
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
@@ -8415,10 +8459,10 @@ export default function RealWorldMap() {
               </button>
             ) : null}
 
-            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
-            <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
+            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[1]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[3]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[4]" />
+            <div className="glass-haze pointer-events-none absolute inset-0 z-[5]" />
             {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
@@ -10501,6 +10545,7 @@ export default function RealWorldMap() {
         .map-container-wrapper {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
+          isolation: isolate;
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
             inset -4px -4px 10px rgba(255, 255, 255, 0.05),
@@ -12959,15 +13004,15 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map {
           --preset-atmosphere:
-            radial-gradient(ellipse 55% 40% at 26% 14%, rgba(245, 197, 24, 0.16) 0%, transparent 58%),
-            radial-gradient(ellipse 48% 44% at 72% 62%, rgba(168, 85, 247, 0.16) 0%, transparent 64%),
-            radial-gradient(ellipse 40% 36% at 52% 36%, rgba(80, 50, 180, 0.12) 0%, transparent 68%),
-            linear-gradient(180deg, rgba(8, 5, 22, 0.18) 0%, rgba(0, 0, 0, 0.24) 100%);
+            radial-gradient(ellipse 55% 40% at 26% 14%, rgba(245, 197, 24, 0.12) 0%, transparent 58%),
+            radial-gradient(ellipse 48% 44% at 72% 62%, rgba(168, 85, 247, 0.12) 0%, transparent 64%),
+            radial-gradient(ellipse 40% 36% at 52% 36%, rgba(80, 50, 180, 0.09) 0%, transparent 68%),
+            linear-gradient(180deg, rgba(8, 5, 22, 0.12) 0%, rgba(0, 0, 0, 0.14) 100%);
           --mesh-opacity: 0.1;
           --links-opacity: 0.14;
-          --star-opacity: 0.18;
+          --star-opacity: 0.12;
           --scan-opacity: 0.045;
-          --haze-opacity: 0.9;
+          --haze-opacity: 0.52;
         }
 
         .basedare-maplibre-map[data-map-preset='crt'] {
@@ -13019,7 +13064,7 @@ export default function RealWorldMap() {
 
         .preset-atmosphere {
           background: var(--preset-atmosphere);
-          opacity: 0.72;
+          opacity: 0.42;
         }
 
         .scanlines {
@@ -13064,9 +13109,9 @@ export default function RealWorldMap() {
 
         .glass-haze {
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.014) 0%, rgba(255, 255, 255, 0) 24%),
-            radial-gradient(120% 100% at 50% 0%, rgba(245, 197, 24, 0.04) 0%, transparent 46%),
-            radial-gradient(110% 100% at 50% 100%, rgba(168, 85, 247, 0.06) 0%, transparent 52%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(255, 255, 255, 0) 24%),
+            radial-gradient(120% 100% at 50% 0%, rgba(245, 197, 24, 0.028) 0%, transparent 46%),
+            radial-gradient(110% 100% at 50% 100%, rgba(168, 85, 247, 0.04) 0%, transparent 52%);
           opacity: var(--haze-opacity);
         }
 
@@ -13137,13 +13182,24 @@ export default function RealWorldMap() {
           font-family: inherit;
         }
 
+        .basedare-maplibre-map :global(.maplibregl-map) {
+          position: absolute !important;
+          inset: 0 !important;
+          z-index: 0 !important;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-canvas-container),
+        .basedare-maplibre-map :global(.maplibregl-canvas) {
+          position: absolute !important;
+          inset: 0 !important;
+        }
+
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
-          backface-visibility: hidden;
           filter: none;
           outline: none;
-          transform: translateZ(0);
+          transform: none !important;
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
@@ -13152,8 +13208,8 @@ export default function RealWorldMap() {
 
         .maplibre-depth-vignette {
           background:
-            radial-gradient(ellipse 78% 60% at 50% 36%, transparent 0%, rgba(6, 4, 18, 0.2) 56%, rgba(0, 0, 0, 0.62) 100%),
-            linear-gradient(180deg, rgba(28, 10, 55, 0.18) 0%, transparent 24%, rgba(0, 0, 0, 0.26) 100%);
+            radial-gradient(ellipse 78% 60% at 50% 36%, transparent 0%, rgba(6, 4, 18, 0.1) 58%, rgba(0, 0, 0, 0.42) 100%),
+            linear-gradient(180deg, rgba(28, 10, 55, 0.1) 0%, transparent 24%, rgba(0, 0, 0, 0.16) 100%);
         }
 
         .basedare-maplibre-map :global(.maplibregl-marker) {
