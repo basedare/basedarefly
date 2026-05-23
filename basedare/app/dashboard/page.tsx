@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, UserRound, Bell, Target } from "lucide-react";
+import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, Target } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -966,8 +966,36 @@ export default function Dashboard() {
     [fundedDares]
   );
 
+  const expandedActivation = creatorClaims.find((dare) => dare.id === expandedActivationId) || null;
+  const expandedFundedDare = fundedRows.find((dare) => dare.id === expandedFundedId) || null;
+  const primaryActivation = creatorClaims[0] || null;
+  const primaryActivationState = primaryActivation ? getClaimLoopState(primaryActivation, address) : null;
+  const primaryVenueDashboardItem = venueDashboardItems[0] || null;
+  const claimedVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'claimed').length;
+  const pendingVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'pending').length;
+  const visibleActionInbox = React.useMemo(() => {
+    const seen = new Set<string>();
+
+    return actionInbox.filter((item) => {
+      const isPinnedAbove =
+        primaryActivation?.id &&
+        item.dareId === primaryActivation.id &&
+        (item.category === 'Ready for proof' || item.category === 'Needs response');
+
+      if (isPinnedAbove) return false;
+
+      const key = item.dareId
+        ? `${item.category}:${item.dareId}`
+        : `${item.category}:${item.href}:${item.title}`;
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [actionInbox, primaryActivation?.id]);
+
   const actionInboxCounts = React.useMemo(() => {
-    return actionInbox.reduce<Record<DashboardInboxItem['category'], number>>(
+    return visibleActionInbox.reduce<Record<DashboardInboxItem['category'], number>>(
       (counts, item) => {
         counts[item.category] += 1;
         return counts;
@@ -982,15 +1010,7 @@ export default function Dashboard() {
         'Venue lead follow-up': 0,
       }
     );
-  }, [actionInbox]);
-
-  const expandedActivation = creatorClaims.find((dare) => dare.id === expandedActivationId) || null;
-  const expandedFundedDare = fundedRows.find((dare) => dare.id === expandedFundedId) || null;
-  const primaryActivation = creatorClaims[0] || null;
-  const primaryActivationState = primaryActivation ? getClaimLoopState(primaryActivation, address) : null;
-  const primaryVenueDashboardItem = venueDashboardItems[0] || null;
-  const claimedVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'claimed').length;
-  const pendingVenueCount = venueDashboardItems.filter((venue) => venue.claimState === 'pending').length;
+  }, [visibleActionInbox]);
 
   const jumpToActivation = (activationId?: string | null) => {
     setActivationsOpen(true);
@@ -1002,12 +1022,6 @@ export default function Dashboard() {
     });
   };
 
-  const leadingOpportunity = topOpportunities[0] || null;
-  const leadingOpportunityHref = leadingOpportunity?.linkedDare?.shortId
-    ? `/dare/${leadingOpportunity.linkedDare.shortId}`
-    : leadingOpportunity?.venue?.slug
-      ? `/map?place=${encodeURIComponent(leadingOpportunity.venue.slug)}&source=dashboard&matches=1`
-      : '/map?matches=1';
   const dashboardQuickActions: DashboardQuickAction[] = [];
   const pushQuickAction = (action: DashboardQuickAction) => {
     if (dashboardQuickActions.some((entry) => entry.id === action.id)) return;
@@ -1041,95 +1055,6 @@ export default function Dashboard() {
       cta: 'Create',
       tone: 'purple',
       icon: Target,
-      onSelect: () => router.push('/create'),
-    });
-  } else {
-    if (primaryActivation && primaryActivationState) {
-      pushQuickAction({
-        id: 'primary-activation',
-        label:
-          primaryActivationState.label === 'Ready for Proof'
-            ? 'Submit proof'
-            : primaryActivationState.label === 'Respond Now'
-              ? 'Review dare'
-              : 'Open activation',
-        detail: primaryActivation.title,
-        cta:
-          primaryActivationState.label === 'Ready for Proof'
-            ? 'Submit'
-            : primaryActivationState.label === 'Respond Now'
-              ? 'Review'
-              : 'Open',
-        tone: 'yellow',
-        icon: Zap,
-        onSelect: () => jumpToActivation(primaryActivation.id),
-      });
-    }
-
-    if (primaryVenueDashboardItem) {
-      pushQuickAction({
-        id: 'venue-command',
-        label: primaryVenueDashboardItem.claimState === 'claimed' ? 'Venue command' : 'Venue claim',
-        detail:
-          primaryVenueDashboardItem.displayHandle ||
-          primaryVenueDashboardItem.name,
-        cta: primaryVenueDashboardItem.consoleUrl ? 'Open console' : 'View claim',
-        tone: 'cyan',
-        icon: Building2,
-        onSelect: () => router.push(primaryVenueDashboardItem.consoleUrl ?? primaryVenueDashboardItem.venueUrl),
-      });
-    }
-
-    if (!loading && !hasVerifiedIdentity) {
-      pushQuickAction({
-        id: 'claim-handle',
-        label: identityHandle ? 'Verify handle' : 'Claim handle',
-        detail: identityHandle ? `@${identityHandle}` : 'Create your public tag.',
-        cta: identityHandle ? 'Verify' : 'Claim',
-        tone: 'purple',
-        icon: UserRound,
-        onSelect: () => router.push(claimTagHref),
-      });
-    } else if (!opportunitiesLoading && leadingOpportunity) {
-      pushQuickAction({
-        id: 'opportunity',
-        label: leadingOpportunity.claimable ? 'Claim match' : 'Open match',
-        detail: leadingOpportunity.venue?.name || leadingOpportunity.title,
-        cta: leadingOpportunity.claimable ? 'Claim' : 'Open',
-        tone: 'purple',
-        icon: Target,
-        onSelect: () => router.push(leadingOpportunityHref),
-      });
-    }
-
-    if (actionInbox.length > 0) {
-      pushQuickAction({
-        id: 'action-center',
-        label: 'Action center',
-        detail: `${actionInbox.length} live ${actionInbox.length === 1 ? 'item' : 'items'}`,
-        cta: 'Open',
-        tone: 'neutral',
-        icon: Bell,
-        onSelect: () => router.push('/action-center'),
-      });
-    }
-
-    pushQuickAction({
-      id: 'map',
-      label: 'Open the map',
-      detail: 'Scan venues, drops, and live proofs.',
-      cta: 'Map',
-      tone: 'cyan',
-      icon: Compass,
-      onSelect: () => router.push('/map'),
-    });
-    pushQuickAction({
-      id: 'create',
-      label: 'Create dare',
-      detail: 'Fund a challenge.',
-      cta: 'Create',
-      tone: 'yellow',
-      icon: Plus,
       onSelect: () => router.push('/create'),
     });
   }
@@ -1281,19 +1206,15 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {dashboardQuickActions.length > 0 ? (
         <div className="order-2 mb-6">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Next move</h2>
               <p className="mt-1 text-sm text-white/50">
-                {isConnected ? 'Your highest-signal actions are ready.' : 'Start with one clean action.'}
+                Start with one clean action.
               </p>
             </div>
-            {isConnected && address ? (
-              <span className={`${pillClass} w-fit normal-case tracking-normal text-xs text-white/56`}>
-                {formatAddress(address)}
-              </span>
-            ) : null}
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -1343,6 +1264,7 @@ export default function Dashboard() {
             })}
           </div>
         </div>
+        ) : null}
 
         {isConnected && primaryActivation && primaryActivationState ? (
           <div className={`${raisedTileClass} order-2 mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)] md:order-2`}>
@@ -1577,7 +1499,7 @@ export default function Dashboard() {
                   Open action center
                 </button>
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/62">
-                  {actionInbox.length} actions
+                  {visibleActionInbox.length} actions
                 </span>
                 {actionInboxCounts['Ready for proof'] > 0 ? (
                   <span className="rounded-full border border-yellow-300/18 bg-yellow-400/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-yellow-100">
@@ -1605,9 +1527,11 @@ export default function Dashboard() {
               <Loader2 className="mr-3 h-5 w-5 animate-spin text-fuchsia-300" />
               Loading your next actions
             </div>
-          ) : actionInbox.length === 0 ? (
+          ) : visibleActionInbox.length === 0 ? (
             <div className={`${insetWellClass} flex flex-wrap items-center gap-3 px-4 py-4`}>
-              <span className="text-sm text-white/55">Nothing urgent right now. You’re clear.</span>
+              <span className="text-sm text-white/55">
+                {actionInbox.length > 0 ? 'Handled by the pinned card above.' : 'Nothing urgent right now. You’re clear.'}
+              </span>
               <button
                 onClick={() => router.push('/map')}
                 className={volumetricButtonPurple}
@@ -1617,8 +1541,8 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid gap-3 xl:grid-cols-2">
-              {actionInbox.map((item) => {
-                const metaLine = [item.locationLabel || null, item.statusLabel || null, item.bounty != null ? `$${item.bounty}` : null]
+              {visibleActionInbox.map((item) => {
+                const metaLine = [item.locationLabel || null, item.bounty != null ? `$${item.bounty}` : null]
                   .filter(Boolean)
                   .join(' • ');
 
@@ -1721,7 +1645,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div ref={activationsRef} className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
+        <div className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Your trace</h2>
@@ -1953,7 +1877,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className={`${softCardClass} order-7 mb-8 p-5 sm:p-6`}>
+        <div ref={activationsRef} className={`${softCardClass} order-7 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setActivationsOpen((current) => !current)}
@@ -1971,9 +1895,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {!activationsOpen ? (
-            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
-          ) : !isConnected ? (
+          {!activationsOpen ? null : !isConnected ? (
             <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to track your activations.</div>
           ) : creatorClaims.length === 0 ? (
             <div className={`${insetWellClass} flex flex-wrap items-center gap-3 px-4 py-4`}>
@@ -2180,9 +2102,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {!fundedOpen ? (
-            <div className={`${insetWellClass} px-4 py-4 text-sm text-white/50`}>Collapsed</div>
-          ) : !isConnected ? (
+          {!fundedOpen ? null : !isConnected ? (
             <div className={`${insetWellClass} px-4 py-4 text-sm text-white/55`}>Connect wallet to manage funded dares.</div>
           ) : loading ? (
             <div className={`${insetWellClass} flex items-center justify-center px-4 py-6 text-sm text-white/55`}>
