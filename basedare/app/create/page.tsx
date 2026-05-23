@@ -327,24 +327,83 @@ function CreateDareContent() {
             { label: 'Fallback', value: 'Refund', icon: RotateCcw },
           ],
         };
+  const syncCommunitySparkPreset = useCallback(
+    (markUserIntent = false) => {
+      const options = {
+        shouldDirty: markUserIntent,
+        shouldTouch: markUserIntent,
+        shouldValidate: false,
+      };
+
+      if (getValues('amount') !== 0) {
+        setValue('amount', 0, options);
+      }
+      if (getValues('streamerTag') !== '@everyone') {
+        setValue('streamerTag', '@everyone', options);
+      }
+      if (getValues('missionMode') !== 'IRL') {
+        setValue('missionMode', 'IRL', options);
+      }
+      if (getValues('missionTag') !== 'community') {
+        setValue('missionTag', 'community', options);
+      }
+      if (!getValues('isNearbyDare')) {
+        setValue('isNearbyDare', true, options);
+      }
+      if (getValues('requireSentinel')) {
+        setValue('requireSentinel', false, options);
+      }
+    },
+    [getValues, setValue]
+  );
+  const handleSparkTypeChange = useCallback(
+    (nextSparkType: 'PAID' | 'COMMUNITY') => {
+      const currentSparkType = getValues('sparkType');
+
+      if (currentSparkType !== nextSparkType) {
+        setValue('sparkType', nextSparkType, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: false,
+        });
+      }
+
+      if (nextSparkType === 'COMMUNITY') {
+        syncCommunitySparkPreset(currentSparkType !== nextSparkType);
+      } else {
+        const amount = Number(getValues('amount'));
+        if (!Number.isFinite(amount) || amount < 5) {
+          setValue('amount', 100, {
+            shouldDirty: false,
+            shouldTouch: false,
+            shouldValidate: false,
+          });
+        }
+      }
+
+      haptic(nextSparkType === 'COMMUNITY' ? 'spark' : 'tap');
+      trigger('click');
+    },
+    [getValues, haptic, setValue, syncCommunitySparkPreset, trigger]
+  );
   const handleGeneratorContextChange = useCallback(
     ({ mode, tag }: { mode: 'IRL' | 'STREAM'; tag: string }) => {
       if (getValues('sparkType') === 'COMMUNITY') {
         if (getValues('missionMode') !== 'IRL') {
-          setValue('missionMode', 'IRL');
+          setValue('missionMode', 'IRL', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
         }
         if (getValues('missionTag') !== 'community') {
-          setValue('missionTag', 'community');
+          setValue('missionTag', 'community', { shouldDirty: false, shouldTouch: false, shouldValidate: false });
         }
         return;
       }
 
       if (getValues('missionMode') !== mode) {
-        setValue('missionMode', mode);
+        setValue('missionMode', mode, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
       }
 
       if (getValues('missionTag') !== tag) {
-        setValue('missionTag', tag);
+        setValue('missionTag', tag, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
       }
     },
     [getValues, setValue]
@@ -429,25 +488,8 @@ function CreateDareContent() {
       return;
     }
 
-    if (getValues('amount') !== 0) {
-      setValue('amount', 0, { shouldDirty: true, shouldTouch: true });
-    }
-    if (getValues('streamerTag') !== '@everyone') {
-      setValue('streamerTag', '@everyone', { shouldDirty: true, shouldTouch: true });
-    }
-    if (getValues('missionMode') !== 'IRL') {
-      setValue('missionMode', 'IRL', { shouldDirty: true, shouldTouch: true });
-    }
-    if (getValues('missionTag') !== 'community') {
-      setValue('missionTag', 'community', { shouldDirty: true, shouldTouch: true });
-    }
-    if (!getValues('isNearbyDare')) {
-      setValue('isNearbyDare', true, { shouldDirty: true, shouldTouch: true });
-    }
-    if (getValues('requireSentinel')) {
-      setValue('requireSentinel', false, { shouldDirty: true, shouldTouch: true });
-    }
-  }, [getValues, isCommunitySpark, setValue]);
+    syncCommunitySparkPreset(false);
+  }, [isCommunitySpark, syncCommunitySparkPreset]);
 
   useEffect(() => {
     let cancelled = false;
@@ -877,8 +919,9 @@ function CreateDareContent() {
 
   return (
     <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-14 md:px-8 md:py-24">
-      <LiquidBackground />
-      <div className="fixed inset-0 z-10 pointer-events-none"><GradualBlurOverlay /></div>
+      <LiquidBackground performanceMode="quiet" veilOpacity={0.72} />
+      <div className="fixed inset-0 z-10 pointer-events-none hidden md:block"><GradualBlurOverlay /></div>
+      <div className="pointer-events-none fixed inset-0 z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.08),transparent_36%),linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.34))] md:hidden" />
 
       <div className="container mx-auto px-2 md:px-6 relative z-10 max-w-4xl flex-grow">
 
@@ -1172,22 +1215,7 @@ function CreateDareContent() {
                       <button
                         key={option.key}
                         type="button"
-                        onClick={() => {
-                          setValue('sparkType', option.key, { shouldDirty: true, shouldTouch: true });
-                          if (option.key === 'COMMUNITY') {
-                            setValue('amount', 0, { shouldDirty: true, shouldTouch: true });
-                            setValue('streamerTag', '@everyone', { shouldDirty: true, shouldTouch: true });
-                            setValue('missionMode', 'IRL', { shouldDirty: true, shouldTouch: true });
-                            setValue('missionTag', 'community', { shouldDirty: true, shouldTouch: true });
-                            setValue('isNearbyDare', true, { shouldDirty: true, shouldTouch: true });
-                            setValue('requireSentinel', false, { shouldDirty: true, shouldTouch: true });
-                            if (!coordinates && !watchVenueId) requestLocation();
-                          } else if (getValues('amount') < 5) {
-                            setValue('amount', 100, { shouldDirty: true, shouldTouch: true });
-                          }
-                          haptic(option.key === 'COMMUNITY' ? 'spark' : 'tap');
-                          trigger('click');
-                        }}
+                        onClick={() => handleSparkTypeChange(option.key)}
                         className={`group relative overflow-hidden rounded-[22px] border p-4 text-left transition-all md:p-5 ${
                           active
                             ? option.key === 'COMMUNITY'
@@ -1361,7 +1389,7 @@ function CreateDareContent() {
 
                 {/* Location capture and options - shown when toggle is on */}
                 {watchIsNearbyDare && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-4">
                     {/* Location Status */}
                     <div className={`bd-dent-surface bd-dent-surface--soft rounded-xl p-4 border ${coordinates
                       ? 'bg-green-500/10 border-green-500/20'
