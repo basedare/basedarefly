@@ -134,12 +134,13 @@ export default function Navbar() {
 
           {/* 3. RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-2 md:gap-3 z-50">
+            <BackgroundToneToggle className="order-1 hidden md:inline-flex" />
             <Link
               href="/chat"
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open messenger"
               title="Messenger"
-              className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors md:hidden ${
+              className={`order-2 flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors md:hidden ${
                 pathname?.startsWith('/chat')
                   ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
                   : 'border-white/10 bg-black/50 text-white/75 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1]'
@@ -147,15 +148,17 @@ export default function Navbar() {
             >
               <MessageCircle className="h-4 w-4" />
             </Link>
-            <DeferredNotificationBell />
-            <div className="w-[108px] min-w-0 sm:w-[140px] md:w-auto">
+            <div className="order-3">
+              <DeferredNotificationBell />
+            </div>
+            <div className="order-4 w-[108px] min-w-0 sm:w-[140px] md:w-auto">
               <IdentityButton />
             </div>
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
+              className="order-5 md:hidden w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -170,7 +173,6 @@ export default function Navbar() {
       <div className="hidden md:block fixed top-24 left-6 z-[90]">
         <DeferredGlobalSearch isDesktopApp />
       </div>
-      <BackgroundToneToggle />
 
       {/* === MOBILE MENU OVERLAY === */}
       <AnimatePresence>
@@ -243,6 +245,14 @@ export default function Navbar() {
             {/* Mobile Search Button (Under FAQ) */}
             <div className="mt-6 w-full flex justify-center">
               <DeferredGlobalSearch />
+            </div>
+
+            <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/46">Background</p>
+                <p className="mt-1 text-xs font-bold text-white/74">Dark / light field</p>
+              </div>
+              <BackgroundToneToggle />
             </div>
 
             {/* Mobile Connect Button */}
