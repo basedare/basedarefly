@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, BellRing, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BellRing, Home, Loader2 } from 'lucide-react';
 
 import PushActivationCard from '@/components/PushActivationCard';
 import SignalRoomCard from '@/components/SignalRoomCard';
@@ -62,6 +62,9 @@ const categoryTone: Record<ActionCenterCategory, string> = {
   'Venue lead follow-up': 'border-red-300/20 bg-red-500/[0.08] text-red-100',
 };
 
+const topNavButtonClass =
+  'bd-tactile-button inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-[0.18em]';
+
 export default function ActionCenterPage() {
   const router = useRouter();
   const { address, isConnected, isResolving, isLiveWalletConnected, sessionWallet } = useActiveWallet();
@@ -112,9 +115,36 @@ export default function ActionCenterPage() {
       .filter((group) => group.items.length > 0);
   }, [items]);
 
+  const handleBack = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push('/dashboard');
+  }, [router]);
+
   return (
-    <div className="min-h-screen bg-transparent px-4 py-24 sm:px-6">
+    <div className="min-h-screen bg-transparent px-4 pb-24 pt-[4.5rem] sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className={topNavButtonClass}
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
+          <Link
+            href="/"
+            className={`${topNavButtonClass} bd-tactile-button--gold`}
+            aria-label="Go home"
+          >
+            <Home className="h-3.5 w-3.5" />
+            Home
+          </Link>
+        </div>
         <div className="rounded-[32px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.94)_100%)] px-6 py-6 shadow-[0_24px_48px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)] sm:px-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
