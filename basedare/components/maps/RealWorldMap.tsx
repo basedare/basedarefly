@@ -12,7 +12,6 @@ import maplibregl, {
   type MapLayerMouseEvent,
   type Marker as MapLibreMarker,
   type PositionAnchor,
-  type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
@@ -791,31 +790,8 @@ const DEFAULT_VENUE_MAP_MODES: VenueMapMode[] = [
 ];
 const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
+const MAPLIBRE_ENABLE_BUILDING_EXTRUSIONS = false;
 const currentLocationIconCache = new Map<string, string>();
-let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
-
-function loadOpenFreeMapStyle() {
-  if (!openFreeMapStylePromise) {
-    openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`OpenFreeMap style failed with ${response.status}`);
-        }
-
-        const style = (await response.json()) as StyleSpecification;
-        return {
-          ...style,
-          projection: style.projection ?? { type: 'mercator' },
-        } satisfies StyleSpecification;
-      })
-      .catch((error) => {
-        console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
-        return OPENFREEMAP_LIBERTY_STYLE_URL;
-      });
-  }
-
-  return openFreeMapStylePromise;
-}
 
 function getDefaultMapCamera(isMobileViewport: boolean) {
   return {
@@ -1363,7 +1339,7 @@ function ensureMapLibreDareLayers(
   const firstLineLayerId = getMapLibreFirstLineLayerId(map);
   const zoneFillBeforeLayerId = firstLineLayerId ?? firstSymbolLayerId;
 
-  const vectorSourceId = getMapLibreVectorSourceId(map);
+  const vectorSourceId = MAPLIBRE_ENABLE_BUILDING_EXTRUSIONS ? getMapLibreVectorSourceId(map) : null;
   if (vectorSourceId) {
     try {
       addMapLibreLayer(
@@ -4069,8 +4045,18 @@ export default function RealWorldMap() {
 
   const handleViewportChange = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
-      setViewportCenter({ latitude, longitude });
-      setMapZoom(zoom);
+      setViewportCenter((current) => {
+        if (
+          current &&
+          Math.abs(current.latitude - latitude) < 0.00005 &&
+          Math.abs(current.longitude - longitude) < 0.00005
+        ) {
+          return current;
+        }
+
+        return { latitude, longitude };
+      });
+      setMapZoom((current) => (Math.abs(current - zoom) < 0.01 ? current : zoom));
       void fetchNearbyPlaces(latitude, longitude, zoom);
     },
     [fetchNearbyPlaces]
@@ -4314,22 +4300,12 @@ export default function RealWorldMap() {
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
 
-    const startMap = async () => {
-      let mapStyle: StyleSpecification | string;
-      try {
-        mapStyle = await loadOpenFreeMapStyle();
-      } catch (error) {
-        console.error('[REAL_WORLD_MAP] Map style preload failed:', error);
-        mapStyle = OPENFREEMAP_LIBERTY_STYLE_URL;
-      }
-
-      if (cancelled) return;
-
+    const startMap = () => {
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
           container,
-          style: mapStyle,
+          style: OPENFREEMAP_LIBERTY_STYLE_URL,
           center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
           zoom: DEFAULT_ZOOM,
           pitch: initialCamera.pitch,
@@ -4359,16 +4335,23 @@ export default function RealWorldMap() {
 
       const syncViewport = () => {
         const center = map.getCenter();
-        setMapBearing(map.getBearing());
-        setMapPitch(map.getPitch());
+        const nextBearing = map.getBearing();
+        const nextPitch = map.getPitch();
+        setMapBearing((current) => (Math.abs(current - nextBearing) < 0.05 ? current : nextBearing));
+        setMapPitch((current) => (Math.abs(current - nextPitch) < 0.05 ? current : nextPitch));
         handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
       };
 
       let loadHandled = false;
-      const forceMapReflow = () => {
-        if (cancelled || mapInstanceRef.current !== map) return;
-        map.resize();
-        (map as MapLibreMap & { triggerRepaint?: () => void }).triggerRepaint?.();
+      let styleLayerFrame: number | null = null;
+
+      const ensureStyleLayersSoon = () => {
+        if (styleLayerFrame !== null) return;
+        styleLayerFrame = window.requestAnimationFrame(() => {
+          styleLayerFrame = null;
+          if (cancelled || mapInstanceRef.current !== map || !map.isStyleLoaded()) return;
+          ensureMapLibreDareLayers(map, mapPresetRef.current);
+        });
       };
 
       const handleLoad = () => {
@@ -4378,14 +4361,10 @@ export default function RealWorldMap() {
         syncViewport();
         setMapRuntimeError(null);
         setMapReady(true);
-        window.requestAnimationFrame(() => {
-          window.setTimeout(forceMapReflow, 80);
-        });
       };
 
       const handleStyleData = () => {
-        if (!map.isStyleLoaded()) return;
-        ensureMapLibreDareLayers(map, mapPresetRef.current);
+        ensureStyleLayersSoon();
       };
 
       const handleMapMotionStart = () => {
@@ -4454,7 +4433,6 @@ export default function RealWorldMap() {
       map.on('idle', handleMapMotionSettled);
       map.on('click', handleClick);
       map.on('error', handleMapError);
-      map.once('idle', forceMapReflow);
       canvas.addEventListener('webglcontextlost', handleContextLost, false);
       canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
@@ -4468,6 +4446,10 @@ export default function RealWorldMap() {
 
       cleanupMap = () => {
         clearMapInteractionQuietTimer();
+        if (styleLayerFrame !== null) {
+          window.cancelAnimationFrame(styleLayerFrame);
+          styleLayerFrame = null;
+        }
         map.off('load', handleLoad);
         map.off('style.load', handleLoad);
         map.off('styledata', handleStyleData);
@@ -4481,7 +4463,6 @@ export default function RealWorldMap() {
         map.off('idle', handleMapMotionSettled);
         map.off('click', handleClick);
         map.off('error', handleMapError);
-        map.off('idle', forceMapReflow);
         canvas.removeEventListener('webglcontextlost', handleContextLost, false);
         canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
         markerRegistry.forEach(({ marker }) => marker.remove());
@@ -4495,7 +4476,7 @@ export default function RealWorldMap() {
       };
     };
 
-    void startMap();
+    startMap();
 
     return () => {
       cancelled = true;
@@ -4545,12 +4526,36 @@ export default function RealWorldMap() {
     const container = mapViewportRef.current;
     if (!map || !mapReady || !container) return undefined;
 
+    let resizeFrame: number | null = null;
+    let lastSize: { width: number; height: number } | null = null;
+
     const resizeMap = () => {
-      map.resize();
+      if (resizeFrame !== null) return;
+
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null;
+        if (mapInstanceRef.current !== map) return;
+
+        const bounds = container.getBoundingClientRect();
+        const nextSize = {
+          width: Math.round(bounds.width),
+          height: Math.round(bounds.height),
+        };
+
+        if (
+          lastSize &&
+          Math.abs(lastSize.width - nextSize.width) < 2 &&
+          Math.abs(lastSize.height - nextSize.height) < 2
+        ) {
+          return;
+        }
+
+        lastSize = nextSize;
+        map.resize();
+      });
     };
 
     resizeMap();
-    const animationFrameId = window.requestAnimationFrame(resizeMap);
     const settleTimeoutId = window.setTimeout(resizeMap, 320);
     const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resizeMap) : null;
     resizeObserver?.observe(container);
@@ -4558,13 +4563,15 @@ export default function RealWorldMap() {
     window.addEventListener('orientationchange', resizeMap);
 
     return () => {
-      window.cancelAnimationFrame(animationFrameId);
+      if (resizeFrame !== null) {
+        window.cancelAnimationFrame(resizeFrame);
+      }
       window.clearTimeout(settleTimeoutId);
       resizeObserver?.disconnect();
       window.removeEventListener('resize', resizeMap);
       window.removeEventListener('orientationchange', resizeMap);
     };
-  }, [isMobileViewport, mapReady]);
+  }, [mapReady]);
 
   const focusExistingPlace = useCallback((place: NearbyPlace) => {
     triggerHaptic('selection');
