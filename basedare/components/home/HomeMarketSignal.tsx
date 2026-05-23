@@ -257,7 +257,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
         ) : null}
 
         <div className="relative flex flex-col gap-5">
-          <div className="max-w-3xl">
+          <div className="mx-auto max-w-5xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_20px_rgba(0,0,0,0.2)]">
               <Radio className="h-3.5 w-3.5" />
               Live grid
@@ -271,7 +271,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
             >
               Venues ready to turn bounties into proof.
             </h3>
-            <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/48">
+            <p className="mx-auto mt-3 max-w-3xl text-sm font-bold leading-6 text-white/48">
               Open venues are where bounties become receipts: check-ins, guest missions, and creator routes.
             </p>
           </div>
