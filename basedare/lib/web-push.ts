@@ -584,8 +584,8 @@ export async function sendTestPushToWalletDevice(input: {
   }
 
   const payload = buildPushPayload({
-    title: 'BaseDare push armed',
-    body: 'This device is ready for nearby dares, wallet updates, and venue alerts.',
+    title: 'BaseDare alerts on',
+    body: 'This device can receive wallet, nearby, and venue alerts.',
     url: '/dashboard',
     topic: 'wallet',
     kind: 'test',
@@ -594,8 +594,8 @@ export async function sendTestPushToWalletDevice(input: {
   const result = await sendToStoredSubscription(subscription, payload, 'Test push failed', {
     wallet: subscription.wallet,
     topic: 'wallet',
-    title: 'BaseDare push armed',
-    body: 'This device is ready for nearby dares, wallet updates, and venue alerts.',
+    title: 'BaseDare alerts on',
+    body: 'This device can receive wallet, nearby, and venue alerts.',
     url: '/dashboard',
   });
   if (!result.ok) {

@@ -111,7 +111,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
               </span>
             </div>
             <h3 className="mt-2 text-base font-black text-white sm:text-lg">
-              Arm BaseDare alerts before you leave.
+              Turn on BaseDare alerts before you leave.
             </h3>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-white/56">
               Get wallet, proof, payout, campaign, and nearby venue signals without keeping the app open.
@@ -139,7 +139,7 @@ export default function PushActivationCard({ className = '', compact = false }: 
             className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full border border-cyan-200/28 bg-[linear-gradient(180deg,rgba(103,232,249,0.22)_0%,rgba(8,145,178,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:tracking-[0.18em]"
           >
             {pushBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            {deliveryPending ? 'Save device' : 'Arm alerts'}
+            {deliveryPending ? 'Save device' : 'Turn on alerts'}
           </button>
           <button
             type="button"

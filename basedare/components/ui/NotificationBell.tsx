@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellRing, Check, ChevronDown, MapPin, MessageCircle, SlidersHorizontal, Smartphone, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BellRing, Check, ChevronDown, MessageCircle, SlidersHorizontal, Smartphone, X } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSession } from 'next-auth/react';
 import { useSignMessage } from 'wagmi';
@@ -107,13 +107,11 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         pushConfigured,
         pushDeliveryConfigured,
         pushEnabled,
-        pushLocationBusy,
         pushMessage,
         pushSupported,
         pushTesting,
         pushTopics,
         sendTestPush,
-        syncPushLocationContext,
         syncPushSubscription,
         togglePushTopic,
         vapidPublicKey,
@@ -124,7 +122,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
     const pushHeadline = !pushSupported
         ? 'Unavailable'
         : pushEnabled
-            ? 'Armed'
+            ? 'On'
             : pushCanRegister
                 ? 'Off'
                 : 'Setup needed';
@@ -134,9 +132,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
             ? pushEnabled
                 ? 'This device is saved. Delivery starts when the server key is added.'
                 : 'Save this device now. Delivery starts when the server key is added.'
-            : pushEnabled
-                ? 'This device will get BaseDare alerts.'
-                : 'Enable browser push for nearby and wallet alerts.';
+        : pushEnabled
+            ? `This device gets BaseDare alerts. Nearby uses ${nearbyRadiusKm} km by default.`
+            : 'Enable browser push for nearby and wallet alerts.';
 
     const formatNotificationTime = (value: string) =>
         new Date(value).toLocaleDateString([], {
@@ -429,11 +427,11 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                             <div className="mt-4 flex flex-wrap items-center gap-2">
                                 <Link
                                     href="/action-center"
-                                    className="relative inline-flex min-h-10 items-center justify-center overflow-hidden rounded-full border border-fuchsia-300/26 bg-[linear-gradient(180deg,rgba(216,180,254,0.2),rgba(126,34,206,0.16))] px-4 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-50 shadow-[0_14px_26px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.26),inset_0_-10px_14px_rgba(0,0,0,0.18)] transition hover:brightness-110"
+                                    className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(255,232,110,0.18)_0%,rgba(80,53,10,0.2)_46%,rgba(7,8,15,0.72)_100%)] px-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#fff1a6] shadow-[0_14px_26px_rgba(0,0,0,0.24),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_14px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:border-[#f5c518]/42 hover:bg-[#f5c518]/12 active:translate-y-0"
                                     onClick={() => setIsOpen(false)}
                                 >
                                     Action center
-                                    <span className="pointer-events-none absolute inset-x-5 top-1 h-px rounded-full bg-white/50" />
+                                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                                 </Link>
                                 {unreadCount > 0 && (
                                     <button
@@ -538,7 +536,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                 Mobile push
                                             </span>
                                             <span className="mt-1 block truncate text-sm font-black text-white">
-                                                {pushEnabled ? 'Alerts are armed' : pushCanRegister ? 'Enable browser alerts' : 'Setup needed'}
+                                                {pushEnabled ? 'Alerts are on' : pushCanRegister ? 'Enable browser alerts' : 'Setup needed'}
                                             </span>
                                         </span>
                                         <span className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-50/70">
@@ -574,7 +572,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                                 disabled={pushBusy || (!pushEnabled && !pushCanRegister)}
                                                                 className="shrink-0 rounded-full border border-cyan-300/24 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-400/15 active:scale-[0.98] disabled:opacity-50"
                                                             >
-                                                                {pushBusy ? 'Working' : (pushEnabled ? 'Disable' : 'Enable')}
+                                                                {pushBusy ? 'Working' : (pushEnabled ? 'Turn off' : 'Turn on')}
                                                             </button>
                                                         ) : (
                                                             <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
@@ -606,7 +604,11 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                                 })}
                                                             </div>
 
-                                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                            <p className="rounded-[1rem] border border-white/8 bg-white/[0.035] px-3 py-2 text-[11px] font-semibold leading-relaxed text-white/48">
+                                                                Nearby alerts use a quiet {nearbyRadiusKm} km radius by default.
+                                                            </p>
+
+                                                            <div className="grid gap-2">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => void sendTestPush()}
@@ -616,17 +618,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                                     <SlidersHorizontal className="h-3.5 w-3.5" />
                                                                     {pushTesting ? 'Sending' : pushCanDeliver ? 'Test push' : 'Needs keys'}
                                                                 </button>
-                                                                {pushTopics.includes('nearby') && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => void syncPushLocationContext()}
-                                                                        disabled={pushBusy || pushLocationBusy}
-                                                                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/15 active:scale-[0.98] disabled:opacity-50"
-                                                                    >
-                                                                        <MapPin className="h-3.5 w-3.5" />
-                                                                        {pushLocationBusy ? 'Updating' : `${nearbyRadiusKm}km nearby`}
-                                                                    </button>
-                                                                )}
                                                             </div>
                                                         </>
                                                     )}

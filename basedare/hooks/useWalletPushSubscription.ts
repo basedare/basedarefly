@@ -367,8 +367,9 @@ export function useWalletPushSubscription(options: { enabled?: boolean } = {}) {
         }
       }
 
-      const location = pushTopics.includes('nearby')
-        ? await readCurrentPushLocation(nearbyRadiusKm, { promptIfUnknown: false })
+      const nearbyAlertsRequested = pushTopics.includes('nearby');
+      const location = nearbyAlertsRequested
+        ? await readCurrentPushLocation(nearbyRadiusKm, { promptIfUnknown: true })
         : null;
       const headers = await getWalletAuthHeaders('push:write', true);
       const res = await fetch('/api/push/subscriptions', {
@@ -397,7 +398,11 @@ export function useWalletPushSubscription(options: { enabled?: boolean } = {}) {
       setPushEndpoint(subscription.endpoint);
       setPushMessage(data.configured === false
         ? 'Device saved, but push delivery keys are missing on the server.'
-        : 'Push alerts armed for this wallet.');
+        : location
+          ? `Alerts are on. Nearby is set to ${nearbyRadiusKm} km.`
+          : nearbyAlertsRequested
+            ? 'Alerts are on. Allow location later for nearby alerts.'
+            : 'Alerts are on for this wallet.');
       announcePushSubscriptionChanged();
     } catch (err) {
       console.error('Failed to enable push alerts', err);
