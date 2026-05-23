@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
@@ -557,6 +557,8 @@ export default function BrandPortalPage() {
   const [shortlistedCreators, setShortlistedCreators] = useState<Record<string, string[]>>({});
   const [handledDeepLinkKey, setHandledDeepLinkKey] = useState<string | null>(null);
   const [deepLinkSearch, setDeepLinkSearch] = useState('');
+  const venueRadarSectionRef = useRef<HTMLDivElement | null>(null);
+  const checkoutSectionRef = useRef<HTMLDivElement | null>(null);
   const campaignSummary = brand?.campaignSummary;
   const liveCampaignCount =
     campaignSummary?.live ?? campaigns.filter((c) => ['RECRUITING', 'LIVE'].includes(c.status)).length;
@@ -680,7 +682,7 @@ export default function BrandPortalPage() {
     );
     setShowCreateCampaign(true);
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, []);
 
@@ -742,9 +744,32 @@ export default function BrandPortalPage() {
     }));
     setShowCreateCampaign(true);
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, [openCampaignComposerForVenue, venueRadar]);
+
+  const inspectVenueRadar = useCallback((venue: BrandVenueRadarItem) => {
+    setSelectedVenueRadarId(venue.id);
+    setTimeout(() => {
+      venueRadarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 30);
+  }, []);
+
+  const openActivationBuilder = useCallback(() => {
+    if (selectedVenueRadar) {
+      openCampaignComposerForVenue(selectedVenueRadar);
+      return;
+    }
+
+    setShowCreateCampaign(true);
+    setTimeout(() => {
+      checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, [openCampaignComposerForVenue, selectedVenueRadar]);
+
+  const focusVenueRadar = useCallback(() => {
+    venueRadarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -1749,29 +1774,23 @@ export default function BrandPortalPage() {
       <style>{`
         .control-glass-room {
           background:
-            radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0) 0 0 / 112px 112px,
-            radial-gradient(circle at 20% 0%, rgba(255,255,255,0.08), transparent 32%),
-            radial-gradient(circle at 82% 12%, rgba(255,255,255,0.06), transparent 30%),
-            linear-gradient(180deg, #050506 0%, #030305 54%, #000 100%);
-          filter: grayscale(1) contrast(1.05);
-          -webkit-filter: grayscale(1) contrast(1.05);
+            radial-gradient(circle at 1px 1px, rgba(185,127,255,0.12) 1px, transparent 0) 0 0 / 112px 112px,
+            radial-gradient(circle at 14% 8%, rgba(255,213,74,0.16), transparent 34%),
+            radial-gradient(circle at 82% 8%, rgba(154,82,255,0.2), transparent 30%),
+            radial-gradient(circle at 50% 100%, rgba(31,220,255,0.11), transparent 36%),
+            linear-gradient(180deg, #05040a 0%, #07020f 48%, #000 100%);
         }
 
         .control-glass-room header,
         .control-glass-room [class*="bg-white"],
         .control-glass-room [class*="bg-zinc-50"],
-        .control-glass-room [class*="bg-zinc-100"],
-        .control-glass-room [class*="bg-yellow"],
-        .control-glass-room [class*="bg-purple"],
-        .control-glass-room [class*="bg-cyan"],
-        .control-glass-room [class*="bg-green"],
-        .control-glass-room [class*="bg-emerald"] {
-          background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.026) 18%, rgba(7,7,10,0.84) 100%) !important;
-          border-color: rgba(255,255,255,0.1) !important;
+        .control-glass-room [class*="bg-zinc-100"] {
+          background: linear-gradient(180deg, rgba(255,255,255,0.105), rgba(154,82,255,0.04) 28%, rgba(4,4,10,0.9) 100%) !important;
+          border-color: rgba(255,255,255,0.12) !important;
           box-shadow:
-            0 18px 42px rgba(0,0,0,0.24),
+            0 22px 58px rgba(0,0,0,0.34),
             inset 0 1px 0 rgba(255,255,255,0.08),
-            inset 0 -12px 18px rgba(0,0,0,0.22) !important;
+            inset 0 -14px 22px rgba(0,0,0,0.28) !important;
           backdrop-filter: blur(18px);
           -webkit-backdrop-filter: blur(18px);
         }
@@ -1780,6 +1799,36 @@ export default function BrandPortalPage() {
         .control-glass-room [class*="bg-zinc-900"] {
           background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.86)) !important;
           border-color: rgba(255,255,255,0.12) !important;
+        }
+
+        .control-glass-room [class*="bg-amber-50"],
+        .control-glass-room [class*="bg-yellow-50"] {
+          background: linear-gradient(180deg, rgba(255,216,82,0.16), rgba(12,8,0,0.82)) !important;
+          border-color: rgba(255,216,82,0.34) !important;
+        }
+
+        .control-glass-room [class*="bg-emerald-50"],
+        .control-glass-room [class*="bg-green-50"] {
+          background: linear-gradient(180deg, rgba(51,255,169,0.14), rgba(0,18,14,0.82)) !important;
+          border-color: rgba(51,255,169,0.26) !important;
+        }
+
+        .control-glass-room [class*="bg-blue-50"],
+        .control-glass-room [class*="bg-cyan-50"],
+        .control-glass-room [class*="bg-sky-50"] {
+          background: linear-gradient(180deg, rgba(82,222,255,0.14), rgba(0,12,22,0.84)) !important;
+          border-color: rgba(82,222,255,0.26) !important;
+        }
+
+        .control-glass-room [class*="bg-violet-50"],
+        .control-glass-room [class*="bg-purple-50"] {
+          background: linear-gradient(180deg, rgba(181,104,255,0.16), rgba(14,5,28,0.84)) !important;
+          border-color: rgba(181,104,255,0.28) !important;
+        }
+
+        .control-glass-room [class*="bg-red-50"] {
+          background: linear-gradient(180deg, rgba(255,92,122,0.16), rgba(30,4,10,0.84)) !important;
+          border-color: rgba(255,92,122,0.3) !important;
         }
 
         .control-glass-room [class*="border-zinc"],
@@ -1794,19 +1843,14 @@ export default function BrandPortalPage() {
         .control-glass-room [class*="text-zinc-950"],
         .control-glass-room [class*="text-zinc-900"],
         .control-glass-room [class*="text-zinc-800"],
-        .control-glass-room [class*="text-yellow"],
-        .control-glass-room [class*="text-purple"],
-        .control-glass-room [class*="text-cyan"],
-        .control-glass-room [class*="text-green"],
-        .control-glass-room [class*="text-emerald"] {
+        .control-glass-room [class*="text-zinc-700"] {
           color: rgba(255,255,255,0.94) !important;
         }
 
-        .control-glass-room [class*="text-zinc-700"],
         .control-glass-room [class*="text-zinc-600"],
         .control-glass-room [class*="text-zinc-500"],
         .control-glass-room [class*="text-zinc-400"] {
-          color: rgba(255,255,255,0.58) !important;
+          color: rgba(226,232,240,0.66) !important;
         }
 
         .control-glass-room input,
@@ -1822,21 +1866,68 @@ export default function BrandPortalPage() {
           color: rgba(255,255,255,0.32) !important;
         }
 
-        @media (max-width: 767px) {
-          .control-glass-room {
-            filter: grayscale(1) contrast(1.03);
-            -webkit-filter: grayscale(1) contrast(1.03);
-          }
+        .activation-shell {
+          background:
+            radial-gradient(circle at 12% 18%, rgba(255,216,82,0.14), transparent 30%),
+            radial-gradient(circle at 88% 8%, rgba(172,92,255,0.24), transparent 31%),
+            linear-gradient(135deg, rgba(12,17,30,0.92), rgba(11,4,19,0.94) 48%, rgba(4,5,10,0.96));
+          border-color: rgba(255,255,255,0.14);
+          box-shadow:
+            0 30px 90px rgba(0,0,0,0.44),
+            inset 0 1px 0 rgba(255,255,255,0.12),
+            inset 0 -22px 36px rgba(0,0,0,0.28);
+        }
 
+        .activation-raised-gold {
+          background: linear-gradient(180deg, #fff4a8 0%, #ffd01d 42%, #bd7d00 100%);
+          color: #130d04 !important;
+          border-color: rgba(255,239,149,0.78) !important;
+          box-shadow:
+            0 16px 32px rgba(255,194,0,0.2),
+            inset 0 2px 0 rgba(255,255,255,0.48),
+            inset 0 -5px 0 rgba(94,55,0,0.42);
+        }
+
+        .activation-raised-purple {
+          background: linear-gradient(180deg, #d89cff 0%, #9d4edd 48%, #5520a4 100%);
+          color: #fff !important;
+          border-color: rgba(218,174,255,0.58) !important;
+          box-shadow:
+            0 16px 34px rgba(157,78,221,0.22),
+            inset 0 2px 0 rgba(255,255,255,0.3),
+            inset 0 -5px 0 rgba(40,12,76,0.48);
+        }
+
+        .activation-raised-cyan {
+          background: linear-gradient(180deg, #72f5ff 0%, #22cde8 48%, #06708b 100%);
+          color: #031017 !important;
+          border-color: rgba(178,250,255,0.64) !important;
+          box-shadow:
+            0 16px 34px rgba(34,211,238,0.18),
+            inset 0 2px 0 rgba(255,255,255,0.35),
+            inset 0 -5px 0 rgba(0,68,88,0.42);
+        }
+
+        .activation-inset {
+          background: linear-gradient(180deg, rgba(0,0,0,0.58), rgba(12,14,24,0.84));
+          box-shadow:
+            inset 0 2px 9px rgba(0,0,0,0.64),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .activation-soft-button {
+          background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.035));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.12),
+            inset 0 -4px 8px rgba(0,0,0,0.32),
+            0 10px 24px rgba(0,0,0,0.22);
+        }
+
+        @media (max-width: 767px) {
           .control-glass-room header,
           .control-glass-room [class*="bg-white"],
           .control-glass-room [class*="bg-zinc-50"],
-          .control-glass-room [class*="bg-zinc-100"],
-          .control-glass-room [class*="bg-yellow"],
-          .control-glass-room [class*="bg-purple"],
-          .control-glass-room [class*="bg-cyan"],
-          .control-glass-room [class*="bg-green"],
-          .control-glass-room [class*="bg-emerald"] {
+          .control-glass-room [class*="bg-zinc-100"] {
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
           }
@@ -1861,7 +1952,7 @@ export default function BrandPortalPage() {
 
       {/* Control mode particle background - rendered once, persists across all states */}
       <div className="fixed inset-0 z-0">
-        <ParticleNetwork particleCount={80} minDist={120} particleColor="rgba(255, 255, 255, 0.42)" lineColor="rgba(255, 255, 255," speed={0.25} />
+        <ParticleNetwork particleCount={86} minDist={122} particleColor="rgba(194, 133, 255, 0.46)" lineColor="rgba(255, 211, 86, 0.18)" speed={0.22} />
       </div>
 
       {/* Pre-hydration skeleton */}
@@ -1971,34 +2062,40 @@ export default function BrandPortalPage() {
         <>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:bg-white/80 md:px-6 md:py-4 md:shadow-none md:backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/80 px-4 py-3 shadow-[0_16px_44px_rgba(0,0,0,0.36)] md:px-6 md:py-4 md:backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 md:gap-4">
             {/* Back button */}
             <Link
               href="/?mode=control"
-              className="flex items-center gap-2 px-2 md:px-3 py-2 bg-white/70 border border-zinc-200 rounded-lg hover:bg-white transition"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/[0.15] bg-white/[0.06] px-3 py-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.28)] transition hover:border-white/25 hover:bg-white/[0.09]"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-zinc-950 antialiased md:text-2xl">
-              ACTIVATION OPS
+            <div>
+              <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
+                ACTIVATION OPS
+              </div>
+              <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
+                Sponsor and venue mission control
+              </div>
             </div>
-            <div className="hidden md:block px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700 font-semibold">
+            <div className="hidden rounded-full border border-[#f5c518]/[0.35] bg-[#f5c518]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#ffe785] md:block">
               ACTIVATION PORTAL
             </div>
           </div>
 
-          <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4">
+          <div className="flex items-center justify-between gap-2 md:justify-end md:gap-4">
             <div className="text-right">
-              <div className="font-semibold text-zinc-900 text-sm md:text-base">{brand?.name}</div>
-              <div className="text-xs text-zinc-500 font-mono">
+              <div className="text-sm font-black text-white md:text-base">{brand?.name}</div>
+              <div className="font-mono text-xs text-cyan-100/[0.55]">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
             </div>
             {brand?.verified && (
-              <div className="px-2 py-1 bg-green-100 border border-green-400 rounded text-xs text-green-700">
-                ✓
+              <div className="rounded-full border border-emerald-300/30 bg-emerald-400/[0.12] px-2 py-1 text-xs text-emerald-100">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
             )}
 
@@ -2006,11 +2103,11 @@ export default function BrandPortalPage() {
             <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
               <Link
                 href="/?from=control"
-                className="flex items-center gap-1 md:gap-2 px-3 md:px-3 py-3 md:py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 active:scale-95 transition text-xs md:text-sm font-semibold"
+                className="activation-raised-purple inline-flex items-center gap-1 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-[0.16em] transition active:translate-y-[1px] md:gap-2 md:px-4 md:py-2 md:text-sm"
                 style={{ minHeight: '44px' }}
               >
-                <span className="text-purple-400">CHAOS</span>
-                <span className="text-zinc-500">→</span>
+                <span>CHAOS</span>
+                <span>→</span>
               </Link>
             </div>
           </div>
@@ -2018,52 +2115,53 @@ export default function BrandPortalPage() {
       </header>
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:py-8">
-        <div className="mb-6 md:mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white/85 p-4 shadow-[0_24px_80px_rgba(15,10,35,0.08)] backdrop-blur-xl md:p-6">
+        <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-500">
+              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
                 For venues, local businesses, and sponsors
               </div>
-              <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-950 md:text-4xl">
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
                 Launch a paid venue activation
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 md:text-base">
-                Pick a venue, fund one mission, get proof and a recap.
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-200/[0.74] md:text-base">
+                Pick the venue, choose the mission budget, route a creator, and get proof back into venue memory.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (selectedVenueRadar) {
-                      openCampaignComposerForVenue(selectedVenueRadar);
-                      return;
-                    }
-                    setShowCreateCampaign(true);
-                  }}
-                  className="rounded-xl bg-zinc-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
+                  onClick={openActivationBuilder}
+                  className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                 >
-                  Launch activation
+                  <Sparkles className="h-4 w-4" />
+                  Start activation
                 </button>
                 <Link
                   href="/map"
-                  className="rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-800 transition hover:border-zinc-400"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
                 >
-                  View venue map
+                  <MapPin className="h-4 w-4" />
+                  Venue map
                 </Link>
               </div>
             </div>
 
             <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
               {[
-                { label: '1. Venue', detail: 'Choose the place' },
-                { label: '2. Budget', detail: 'Set the mission payout' },
-                { label: '3. Creator', detail: 'Route the best fit' },
-                { label: '4. Recap', detail: 'Proof, payout, next move' },
+                { label: '1. Venue', detail: 'Choose the place', action: focusVenueRadar },
+                { label: '2. Budget', detail: 'Pick a package', action: openActivationBuilder },
+                { label: '3. Creator', detail: 'Route the best fit', action: openActivationBuilder },
+                { label: '4. Recap', detail: 'Proof, payout, repeat', action: openActivationBuilder },
               ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                  <div className="font-bold text-zinc-950">{item.label}</div>
-                  <div className="mt-1 text-xs text-zinc-500">{item.detail}</div>
-                </div>
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.action}
+                  className="activation-inset rounded-2xl border border-white/10 px-3 py-3 text-left shadow-[0_12px_28px_rgba(0,0,0,0.22)] transition hover:border-[#f5c518]/30 hover:bg-white/[0.06]"
+                >
+                  <div className="font-black text-white">{item.label}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{item.detail}</div>
+                </button>
               ))}
             </div>
           </div>
@@ -2071,45 +2169,48 @@ export default function BrandPortalPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Activation Spend</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
-            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+          <div className="rounded-2xl border border-[#f5c518]/[0.18] bg-[#f5c518]/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-[#ffe785] md:text-sm">Spend</div>
+            <div className="text-xl font-black text-white md:text-2xl">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
+            <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
               {campaignSummary?.total ?? campaigns.length} activations launched
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Live Activations</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">{liveCampaignCount}</div>
-            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+          <div className="rounded-2xl border border-cyan-300/[0.18] bg-cyan-400/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100 md:text-sm">Live</div>
+            <div className="text-xl font-black text-white md:text-2xl">{liveCampaignCount}</div>
+            <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
               {(campaignSummary?.place ?? campaigns.filter((campaign) => campaign.type === 'PLACE').length)} venue
               {' • '}
               {(campaignSummary?.creator ?? campaigns.filter((campaign) => campaign.type === 'CREATOR').length)} creator
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Creator Activity</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">{creatorMovementCount}</div>
-            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+          <div className="rounded-2xl border border-purple-300/20 bg-purple-500/10 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-purple-100 md:text-sm">Creators</div>
+            <div className="text-xl font-black text-white md:text-2xl">{creatorMovementCount}</div>
+            <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
               {proofsSubmittedCount} proofs submitted
             </div>
           </div>
-          <div className="bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-xl p-3 md:p-4">
-            <div className="text-zinc-500 text-xs md:text-sm">Paid Completions</div>
-            <div className="text-xl md:text-2xl font-bold text-zinc-900">{paidOutCount}</div>
-            <div className="text-[11px] md:text-xs text-zinc-500 mt-1">
+          <div className="rounded-2xl border border-emerald-300/[0.18] bg-emerald-400/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100 md:text-sm">Paid</div>
+            <div className="text-xl font-black text-white md:text-2xl">{paidOutCount}</div>
+            <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
               {inReviewCount} in review {' • '} {payoutQueuedCount} queued
             </div>
           </div>
         </div>
 
-        <div className="mb-6 md:mb-8 rounded-2xl border border-zinc-200 bg-white/80 p-4 md:p-5 backdrop-blur-xl">
+        <div
+          ref={venueRadarSectionRef}
+          className="activation-shell mb-6 rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-5"
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.28em] text-zinc-500">Venue Radar</div>
-              <h2 className="mt-2 text-xl font-semibold text-zinc-900">Best venues now</h2>
-              <p className="mt-1 hidden max-w-2xl text-sm text-zinc-600 md:block">
-                Ranked by live signal, repeat potential, and where one mission can matter.
+              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">Venue Radar</div>
+              <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Best venues now</h2>
+              <p className="mt-1 hidden max-w-2xl text-sm text-zinc-300/[0.72] md:block">
+                Start from a real place. Fund the next proof route where live signal already exists.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -2122,11 +2223,12 @@ export default function BrandPortalPage() {
                 return (
                   <button
                     key={filter.id}
+                    type="button"
                     onClick={() => setVenueRadarFilter(filter.id)}
-                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                    className={`min-h-10 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
                       active
-                        ? 'border-purple-400 bg-purple-500/[0.08] text-purple-700'
-                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                        ? 'activation-raised-purple'
+                        : 'border-white/[0.12] bg-white/[0.05] text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_22px_rgba(0,0,0,0.2)] hover:border-white/[0.22] hover:bg-white/[0.08]'
                     }`}
                   >
                     {filter.label}
@@ -2137,26 +2239,24 @@ export default function BrandPortalPage() {
           </div>
 
           {filteredVenueRadar.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
+            <div className="mt-4 rounded-2xl border border-dashed border-white/[0.15] bg-white/[0.04] px-4 py-5 text-sm text-zinc-300">
               No venues match this view yet. Pick a venue from the map or launch the first activation to create signal.
             </div>
           ) : (
             <div className="mt-5 grid gap-3 lg:grid-cols-3">
               {filteredVenueRadar.slice(0, 6).map((venue, index) => (
-                <button
+                <article
                   key={venue.id}
-                  type="button"
-                  onClick={() => setSelectedVenueRadarId(venue.id)}
-                  className={`rounded-2xl border bg-white/90 p-4 text-left shadow-[0_20px_50px_rgba(12,12,16,0.08)] transition ${
+                  className={`rounded-[24px] border p-4 shadow-[0_22px_58px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] transition ${
                     selectedVenueRadar?.id === venue.id
-                      ? 'border-purple-400 ring-2 ring-purple-400/20'
-                      : 'border-zinc-200 hover:border-zinc-300'
+                      ? 'border-[#f5c518]/40 bg-[radial-gradient(circle_at_18%_12%,rgba(255,216,82,0.18),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(8,8,15,0.92))]'
+                      : 'border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(7,7,12,0.88))] hover:border-purple-300/[0.28]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        <span className="rounded-full border border-white/[0.12] bg-black/30 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">
                           #{index + 1}
                         </span>
                         <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getVenueRadarClaimTone(venue)}`}>
@@ -2167,34 +2267,34 @@ export default function BrandPortalPage() {
                               : 'Unclaimed'}
                         </span>
                       </div>
-                      <div className="mt-3 text-lg font-semibold text-zinc-900">{venue.name}</div>
-                      <div className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+                      <div className="mt-3 text-lg font-black text-white">{venue.name}</div>
+                      <div className="mt-1 flex items-center gap-1 text-xs text-zinc-400">
                         <MapPin className="h-3.5 w-3.5" />
                         <span>{venue.city ?? venue.country ?? 'Venue on the grid'}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">Score</div>
-                      <div className="text-xl font-semibold text-zinc-900">{venue.score}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#ffe785]">Score</div>
+                      <div className="text-xl font-black text-white">{venue.score}</div>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-700">
+                    <span className="rounded-full border border-purple-300/[0.24] bg-purple-500/[0.12] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-purple-100">
                       {venue.priorityLabel}
                     </span>
-                    <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                    <span className="rounded-full border border-cyan-300/[0.24] bg-cyan-400/[0.12] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
                       {venue.strategyLabel}
                     </span>
                   </div>
 
-                  <p className="mt-4 hidden text-sm leading-6 text-zinc-600 md:block">{venue.summary}</p>
+                  <p className="mt-4 hidden text-sm leading-6 text-zinc-300/[0.72] md:block">{venue.summary}</p>
 
                   <div className="mt-4 hidden flex-wrap gap-2 md:flex">
                     {venue.rankReasons.slice(0, 2).map((reason) => (
                       <span
                         key={reason}
-                        className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500"
+                        className="rounded-full border border-white/10 bg-black/[0.24] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-300"
                       >
                         {reason}
                       </span>
@@ -2202,47 +2302,57 @@ export default function BrandPortalPage() {
                   </div>
 
                   <div className="mt-4 hidden grid-cols-2 gap-2 md:grid">
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Visitors today</div>
-                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.activity.uniqueVisitorsToday}</div>
-                      <div className="text-[11px] text-zinc-500">{venue.activity.scansLastHour} scans last hour</div>
+                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Visitors today</div>
+                      <div className="mt-1 text-lg font-black text-white">{venue.activity.uniqueVisitorsToday}</div>
+                      <div className="text-[11px] text-zinc-400">{venue.activity.scansLastHour} scans last hour</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Live funding</div>
-                      <div className="mt-1 text-lg font-semibold text-zinc-900">${venue.activity.totalLiveFundingUsd.toLocaleString()}</div>
-                      <div className="text-[11px] text-zinc-500">{venue.activity.activeChallenges} live challenges</div>
+                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Live funding</div>
+                      <div className="mt-1 text-lg font-black text-white">${venue.activity.totalLiveFundingUsd.toLocaleString()}</div>
+                      <div className="text-[11px] text-zinc-400">{venue.activity.activeChallenges} live challenges</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Past activations</div>
-                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.brandHistory.campaigns}</div>
-                      <div className="text-[11px] text-zinc-500">${venue.brandHistory.totalSpendUsd.toLocaleString()} spent here</div>
+                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Past activations</div>
+                      <div className="mt-1 text-lg font-black text-white">{venue.brandHistory.campaigns}</div>
+                      <div className="text-[11px] text-zinc-400">${venue.brandHistory.totalSpendUsd.toLocaleString()} spent here</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400">Verified signal</div>
-                      <div className="mt-1 text-lg font-semibold text-zinc-900">{venue.activity.approvedMarks}</div>
-                      <div className="text-[11px] text-zinc-500">{venue.activity.recentCompletedCount} recent completions</div>
+                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Verified signal</div>
+                      <div className="mt-1 text-lg font-black text-white">{venue.activity.approvedMarks}</div>
+                      <div className="text-[11px] text-zinc-400">{venue.activity.recentCompletedCount} recent completions</div>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700">
+                    <button
+                      type="button"
+                      onClick={() => inspectVenueRadar(venue)}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.06] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
+                    >
+                      <Target className="h-3.5 w-3.5" />
                       Inspect venue
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openCampaignComposerForVenue(venue)}
+                      className="activation-raised-gold inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
                       Fund here
-                    </span>
+                    </button>
                   </div>
-                </button>
+                </article>
               ))}
             </div>
           )}
 
           {selectedVenueRadar ? (
-            <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-950 px-4 py-5 text-white shadow-[0_24px_80px_rgba(15,10,35,0.25)]">
+            <div className="activation-shell mt-5 rounded-[28px] border px-4 py-5 text-white">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-3xl">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
+                    <span className="rounded-full border border-white/[0.15] bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
                       {selectedVenueRadar.priorityLabel}
                     </span>
                     <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
@@ -2382,14 +2492,14 @@ export default function BrandPortalPage() {
                               <button
                                 type="button"
                                 onClick={() => openCampaignComposerForVenue(selectedVenueRadar, creator.creatorTag)}
-                                className="inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/15"
+                                className="inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/[0.15]"
                               >
                                 <PlayCircle className="h-3.5 w-3.5" />
                                 Route this creator
                               </button>
                               <Link
                                 href={buildVenueCreatorChatHref(selectedVenueRadar, creator)}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
+                                className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
                               >
                                 <MessageSquare className="h-3.5 w-3.5" />
                                 Message
@@ -2413,14 +2523,14 @@ export default function BrandPortalPage() {
                       <button
                         type="button"
                         onClick={() => openCampaignComposerForVenue(selectedVenueRadar)}
-                        className="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/20"
+                        className="activation-raised-gold inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px]"
                       >
                         <PlayCircle className="h-4 w-4" />
                         Fund activation here
                       </button>
                       <Link
                         href={`/venues/${selectedVenueRadar.slug}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-white/25"
                       >
                         <MapPin className="h-3.5 w-3.5" />
                         View venue
@@ -2428,7 +2538,7 @@ export default function BrandPortalPage() {
                       {selectedVenueRadar.consoleUrl ? (
                         <Link
                           href={selectedVenueRadar.consoleUrl}
-                          className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/40"
+                          className="activation-raised-cyan inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px]"
                         >
                           <PlayCircle className="h-3.5 w-3.5" />
                           Open console
@@ -2451,12 +2561,15 @@ export default function BrandPortalPage() {
 
         {/* Value Menu / Launch Activation */}
         {showCreateCampaign ? (
-          <div className="mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white/90 shadow-lg backdrop-blur-md md:backdrop-blur-xl">
-            <div className="border-b border-zinc-200 bg-zinc-950 px-4 py-4 text-white md:px-6 md:py-5">
+          <div
+            ref={checkoutSectionRef}
+            className="activation-shell mb-8 overflow-hidden rounded-[28px] border backdrop-blur-md md:backdrop-blur-xl"
+          >
+            <div className="border-b border-white/10 bg-black/30 px-4 py-4 text-white md:px-6 md:py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-300">
+                    <span className="rounded-full border border-white/[0.15] bg-white/[0.06] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-300">
                       Activation checkout
                     </span>
                     <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
@@ -2476,7 +2589,7 @@ export default function BrandPortalPage() {
                   setShowCreateCampaign(false);
                   setPreferredCreatorTag(null);
                 }}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-zinc-300 transition hover:border-white/20 hover:text-white"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06] text-zinc-300 transition hover:border-white/20 hover:text-white"
                   aria-label="Close activation checkout"
               >
                 ✕
@@ -2495,7 +2608,7 @@ export default function BrandPortalPage() {
                           : 'border-white/10 bg-white/[0.04]'
                     }`}
                   >
-                    <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-black/20 text-[10px] font-black md:h-7 md:w-7">
+                    <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.12] bg-black/20 text-[10px] font-black md:h-7 md:w-7">
                       {step.complete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" /> : index + 1}
                     </div>
                     <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-white md:text-[10px]">
@@ -2611,7 +2724,7 @@ export default function BrandPortalPage() {
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>BaseDare fee:</span>
                           <span>${formatUsdAmount(packageFee)}</span>
                         </div>
-                        <div className="flex justify-between border-t border-white/15 pt-1.5">
+                        <div className="flex justify-between border-t border-white/[0.15] pt-1.5">
                           <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Total:</span>
                           <span className="font-black">${formatUsdAmount(packageTotal)}</span>
                         </div>
@@ -2620,7 +2733,7 @@ export default function BrandPortalPage() {
                           <span>{info.window}</span>
                         </div>
                       </div>
-                      <div className={`mt-4 rounded-xl border px-3 py-2 text-[11px] leading-4 ${isSelected ? 'border-white/15 bg-white/10 text-white/78' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>
+                      <div className={`mt-4 rounded-xl border px-3 py-2 text-[11px] leading-4 ${isSelected ? 'border-white/[0.15] bg-white/10 text-white/[0.78]' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>
                         {activationPackage.bestFor}
                       </div>
                     </button>
@@ -3090,57 +3203,57 @@ export default function BrandPortalPage() {
 
             {/* Checkout Summary */}
             <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_0.78fr]">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-100 p-4">
+              <div className="activation-inset rounded-2xl border border-white/10 p-4">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
                   <ReceiptText className="h-3.5 w-3.5" />
                   Checkout summary
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-center">
-                    <div className="text-lg font-black text-zinc-950 md:text-2xl">${formatUsdAmount(budget.gross)}</div>
+                  <div className="activation-inset rounded-xl border border-white/10 px-3 py-3 text-center">
+                    <div className="text-lg font-black text-white md:text-2xl">${formatUsdAmount(budget.gross)}</div>
                     <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Creator escrow</div>
                   </div>
-                  <div className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-3 text-center">
-                    <div className="text-lg font-black text-purple-700 md:text-2xl">
+                  <div className="rounded-xl border border-purple-400/25 bg-purple-500/[0.08] px-3 py-3 text-center">
+                    <div className="text-lg font-black text-[#dba7ff] md:text-2xl">
                       ${formatUsdAmount(budget.rake)}
                     </div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-purple-700">
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-purple-200/70">
                       BaseDare fee
                     </div>
                   </div>
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-center">
-                    <div className="text-lg font-black text-emerald-700 md:text-2xl">
+                  <div className="rounded-xl border border-emerald-300/25 bg-emerald-400/[0.08] px-3 py-3 text-center">
+                    <div className="text-lg font-black text-emerald-200 md:text-2xl">
                       ${formatUsdAmount(budget.total)}
                     </div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Total budget</div>
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-100/70">Total budget</div>
                   </div>
-                  <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-center">
-                    <div className="text-lg font-black text-zinc-950 md:text-2xl">{TIER_INFO[formData.tier].rake}</div>
+                  <div className="activation-inset rounded-xl border border-white/10 px-3 py-3 text-center">
+                    <div className="text-lg font-black text-white md:text-2xl">{TIER_INFO[formData.tier].rake}</div>
                     <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Platform rate</div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-50 to-zinc-50 p-4">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
+              <div className="rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.12] to-cyan-500/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-200">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Buyer confidence
                 </div>
-                <div className="mt-3 text-sm font-semibold text-zinc-950">
+                <div className="mt-3 text-sm font-semibold text-white">
                   Proof is reviewed before completion.
                 </div>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   The receipt links the venue, creator, payout, proof status, and repeat signal in one place after launch.
                 </p>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-[0_18px_46px_rgba(15,10,35,0.2)] backdrop-blur md:static md:mx-0 md:flex-row md:gap-4 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 md:hidden">
+            <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/80 p-2 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur md:static md:mx-0 md:flex-row md:gap-4 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
+              <div className="activation-inset flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 md:hidden">
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Total</div>
-                  <div className="text-lg font-black text-zinc-950">${formatUsdAmount(budget.total)} USDC</div>
+                  <div className="text-lg font-black text-white">${formatUsdAmount(budget.total)} USDC</div>
                 </div>
                 <div className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                   {selectedActivationPackage.name}
@@ -3150,7 +3263,7 @@ export default function BrandPortalPage() {
                 type="button"
                 onClick={handleCreateCampaign}
                 disabled={!canLaunchActivation}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-950 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-zinc-800 disabled:opacity-50 md:py-4 md:text-lg"
+                className="activation-raised-gold inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px] disabled:opacity-50 md:py-4 md:text-lg"
               >
                 {creatingCampaign
                   ? approvalStatus === 'approving'
@@ -3176,7 +3289,7 @@ export default function BrandPortalPage() {
                   setShowCreateCampaign(false);
                   setPreferredCreatorTag(null);
                 }}
-                className="rounded-xl border border-zinc-300 bg-zinc-100 px-6 py-3 text-zinc-700 transition hover:bg-zinc-200 md:py-4"
+                className="activation-soft-button rounded-xl border border-white/10 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-zinc-200 transition hover:border-white/20 active:translate-y-[1px] md:py-4"
               >
                 Cancel
               </button>
@@ -3185,52 +3298,84 @@ export default function BrandPortalPage() {
           </div>
         ) : (
           <button
-            onClick={() => {
-              if (selectedVenueRadar) {
-                openCampaignComposerForVenue(selectedVenueRadar);
-                return;
-              }
-              setShowCreateCampaign(true);
-            }}
-            className="w-full mb-8 p-6 border-2 border-dashed border-zinc-700 rounded-2xl hover:border-purple-500/50 hover:bg-purple-500/5 transition group"
+            type="button"
+            onClick={openActivationBuilder}
+            className="activation-shell group mb-8 w-full rounded-[28px] border p-5 text-left transition hover:border-[#f5c518]/[0.35] md:p-6"
           >
-            <div className="text-zinc-400 group-hover:text-purple-400 transition">
-              <span className="text-2xl mr-2">+</span>
-              Launch Venue Activation
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[#ffe785]">
+                  Ready to launch
+                </div>
+                <div className="mt-1 text-xl font-black text-white">
+                  Fund one venue mission from the current radar pick.
+                </div>
+              </div>
+              <span className="activation-raised-gold inline-flex min-h-11 items-center justify-center rounded-full border px-5 py-2 text-xs font-black uppercase tracking-[0.12em] transition group-active:translate-y-[1px]">
+                Launch venue activation
+              </span>
             </div>
           </button>
         )}
 
         {/* Activations List */}
-        <div>
-          <h2 className="text-xl font-bold mb-4">Your Activations</h2>
+        <div className="activation-shell rounded-[30px] border p-4 md:p-6">
+          <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[#ffe785]">
+                <Sparkles className="h-3.5 w-3.5" />
+                Operator board
+              </div>
+              <h2 className="mt-3 text-2xl font-black text-white md:text-3xl">Active venue routes</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-300">
+                Track the activation, route creators, inspect proof, and repeat the venues that are already moving.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openActivationBuilder}
+              className="activation-raised-gold inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
+            >
+              Launch new route
+            </button>
+          </div>
 
-          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Claim Requests</div>
-              <div className="mt-1 text-lg font-bold text-zinc-900">{claimRequestsPendingCount}</div>
-              <div className="text-xs text-zinc-500">waiting for review</div>
+          <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="activation-inset rounded-2xl border border-[#f5c518]/20 px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ffe785]">Claim queue</div>
+              <div className="mt-1 text-2xl font-black text-white">{claimRequestsPendingCount}</div>
+              <div className="text-xs text-zinc-400">waiting for review</div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Creators Assigned</div>
-              <div className="mt-1 text-lg font-bold text-zinc-900">{creatorsAttachedCount}</div>
-              <div className="text-xs text-zinc-500">activations with a creator attached</div>
+            <div className="activation-inset rounded-2xl border border-cyan-300/20 px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Creators</div>
+              <div className="mt-1 text-2xl font-black text-white">{creatorsAttachedCount}</div>
+              <div className="text-xs text-zinc-400">attached to routes</div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Proofs Submitted</div>
-              <div className="mt-1 text-lg font-bold text-zinc-900">{proofsSubmittedCount}</div>
-              <div className="text-xs text-zinc-500">{inReviewCount} in review now</div>
+            <div className="activation-inset rounded-2xl border border-purple-300/20 px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-200">Proofs</div>
+              <div className="mt-1 text-2xl font-black text-white">{proofsSubmittedCount}</div>
+              <div className="text-xs text-zinc-400">{inReviewCount} in review</div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Paid Completions</div>
-              <div className="mt-1 text-lg font-bold text-zinc-900">{paidOutCount}</div>
-              <div className="text-xs text-zinc-500">{payoutQueuedCount} queued for payout</div>
+            <div className="activation-inset rounded-2xl border border-emerald-300/20 px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">Paid</div>
+              <div className="mt-1 text-2xl font-black text-white">{paidOutCount}</div>
+              <div className="text-xs text-zinc-400">{payoutQueuedCount} queued</div>
             </div>
           </div>
 
           {campaigns.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              No activations yet. Launch your first venue activation to start creator activity.
+            <div className="activation-inset rounded-[24px] border border-white/10 px-5 py-10 text-center">
+              <div className="text-lg font-black text-white">No activations yet.</div>
+              <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
+                Pick a hot venue from the radar and fund one clean proof route.
+              </p>
+              <button
+                type="button"
+                onClick={openActivationBuilder}
+                className="activation-raised-gold mt-5 inline-flex min-h-12 items-center justify-center rounded-full border px-6 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
+              >
+                Start first activation
+              </button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -3251,18 +3396,18 @@ export default function BrandPortalPage() {
                   <div
                     key={campaign.id}
                     id={`campaign-${campaign.id}`}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 md:p-4 hover:border-white/20 transition"
+                    className="activation-inset rounded-[24px] border border-white/10 p-4 transition hover:border-[#f5c518]/30 md:p-5"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 md:gap-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="flex items-start gap-3 md:gap-4">
                         <div
-                          className={`px-2 md:px-3 py-1 rounded-lg bg-gradient-to-r ${tierInfo.color} text-xs md:text-sm font-semibold whitespace-nowrap`}
+                          className={`shrink-0 rounded-full bg-gradient-to-r ${tierInfo.color} px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.26)]`}
                         >
                           {tierInfo.name}
                         </div>
                         <div>
-                          <div className="font-semibold text-sm md:text-base">{campaign.title}</div>
-                          <div className="text-xs md:text-sm text-zinc-500">
+                          <div className="text-lg font-black leading-tight text-white md:text-xl">{campaign.title}</div>
+                          <div className="mt-1 text-xs md:text-sm text-zinc-400">
                             {new Date(campaign.createdAt).toLocaleDateString()}
                             {campaign.venue ? ` • ${campaign.venue.name}` : ''}
                           </div>
@@ -3281,7 +3426,7 @@ export default function BrandPortalPage() {
                               {targetingPreview.map((item) => (
                                 <span
                                   key={`${campaign.id}-${item}`}
-                                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600"
+                                  className="activation-soft-button rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-300"
                                 >
                                   {item}
                                 </span>
@@ -3291,31 +3436,31 @@ export default function BrandPortalPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
-                        <div className="text-center md:text-right">
-                          <div className="text-base md:text-lg font-bold">
+                      <div className="grid grid-cols-3 gap-2 md:min-w-[300px]">
+                        <div className="activation-inset rounded-2xl border border-white/10 px-3 py-2 text-center">
+                          <div className="text-base md:text-lg font-bold text-white">
                             ${campaign.budgetUsdc.toLocaleString()}
                           </div>
-                          <div className="text-xs text-zinc-500">Budget</div>
+                          <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Budget</div>
                         </div>
 
-                        <div className="text-center md:text-right">
-                          <div className="text-base md:text-lg font-bold">
+                        <div className="activation-inset rounded-2xl border border-white/10 px-3 py-2 text-center">
+                          <div className="text-base md:text-lg font-bold text-white">
                             {campaign.slotCounts.assigned + campaign.slotCounts.completed}/
                             {campaign.slotCounts.total}
                           </div>
-                          <div className="text-xs text-zinc-500">Slots</div>
+                          <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Slots</div>
                         </div>
 
                         <div
-                          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm ${
+                          className={`flex items-center justify-center rounded-2xl border px-2 py-2 text-center text-[10px] font-black uppercase tracking-[0.12em] ${
                             campaign.status === 'RECRUITING'
-                              ? 'bg-green-500/20 text-green-400'
+                              ? 'border-emerald-300/25 bg-emerald-400/[0.09] text-emerald-200'
                               : campaign.status === 'LIVE'
-                                ? 'bg-blue-500/20 text-blue-400'
+                                ? 'border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200'
                                 : campaign.status === 'SETTLED'
-                                  ? 'bg-zinc-500/20 text-zinc-400'
-                                  : 'bg-yellow-500/20 text-yellow-400'
+                                  ? 'border-white/10 bg-white/[0.05] text-zinc-300'
+                                  : 'border-[#f5c518]/25 bg-[#f5c518]/10 text-[#ffe785]'
                           }`}
                         >
                           {campaign.status}
@@ -3484,9 +3629,9 @@ export default function BrandPortalPage() {
                         </div>
                       ) : null}
 
-                      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="activation-inset h-2 overflow-hidden rounded-full border border-white/10">
                         <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                          className="h-full bg-gradient-to-r from-[#f5c518] via-[#b65cff] to-[#33e6ff]"
                           style={{
                             width: `${
                               ((campaign.slotCounts.assigned + campaign.slotCounts.completed) /
@@ -3496,7 +3641,7 @@ export default function BrandPortalPage() {
                           }}
                         />
                       </div>
-                      <div className="flex justify-between mt-2 text-xs text-zinc-500">
+                      <div className="mt-2 flex justify-between text-xs text-zinc-400">
                         <span>
                           {campaign.type === 'PLACE'
                             ? `${campaign.slotCounts.completed > 0 ? 'completed' : 'live on map'}`
@@ -3516,13 +3661,13 @@ export default function BrandPortalPage() {
                               : `${campaign.slotCounts.completed} completed`}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         {campaign.linkedDare?.videoUrl ? (
                           <a
                             href={campaign.linkedDare.videoUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                            className="activation-raised-cyan inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-[1px]"
                           >
                             <PlayCircle className="h-3.5 w-3.5" />
                             Watch Proof
@@ -3531,7 +3676,7 @@ export default function BrandPortalPage() {
                         {campaign.linkedDare?.shortId ? (
                           <Link
                             href={`/dare/${encodeURIComponent(campaign.linkedDare.shortId)}`}
-                            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                            className="activation-soft-button inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-200 transition hover:border-white/20 active:translate-y-[1px]"
                           >
                             Open Brief
                           </Link>
@@ -3540,16 +3685,16 @@ export default function BrandPortalPage() {
                           <button
                             type="button"
                             onClick={() => openCampaignComposerForCampaign(campaign)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800 transition hover:border-emerald-400 hover:bg-emerald-100"
+                            className="activation-raised-gold inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-[1px]"
                           >
                             <CreditCard className="h-3.5 w-3.5" />
-                            Run Again
+                            Repeat route
                           </button>
                         ) : null}
                         <button
                           type="button"
                           onClick={() => toggleCampaignMatches(campaign)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                          className="activation-soft-button inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-200 transition hover:border-white/20 active:translate-y-[1px]"
                         >
                           <Users className="h-3.5 w-3.5" />
                           {isMatchesExpanded ? 'Hide Responses' : responseTabCounts.shortlisted > 0 ? `Responses • ${responseTabCounts.shortlisted} shortlisted` : 'Responses'}
@@ -3557,20 +3702,20 @@ export default function BrandPortalPage() {
                         {campaign.venue?.slug ? (
                           <Link
                             href={`/map?place=${encodeURIComponent(campaign.venue.slug)}&campaignId=${encodeURIComponent(campaign.id)}&source=control`}
-                            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-700 transition hover:border-white/20 hover:bg-white/10 hover:text-zinc-900"
+                            className="activation-soft-button inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/20 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-300/35 active:translate-y-[1px]"
                           >
                             <MapPin className="h-3.5 w-3.5" />
-                            View on Map
+                            Venue map
                           </Link>
                         ) : null}
                       </div>
 
                       {isMatchesExpanded ? (
-                        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                        <div className="activation-shell mt-4 rounded-[22px] border border-white/10 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-semibold text-zinc-900">Creator responses</div>
-                              <div className="mt-1 text-xs text-zinc-500">
+                              <div className="text-sm font-black text-white">Creator responses</div>
+                              <div className="mt-1 text-xs text-zinc-400">
                                 Watch the activation move from shortlist to proof to paid outcome without leaving Control.
                               </div>
                             </div>
@@ -3598,8 +3743,8 @@ export default function BrandPortalPage() {
                                 }
                                 className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
                                   activeResponsesTab === tabKey
-                                    ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
-                                    : 'border-white/10 bg-white/5 text-zinc-600 hover:border-white/20 hover:bg-white/10 hover:text-zinc-900'
+                                    ? 'activation-raised-purple border-purple-300 text-white'
+                                    : 'activation-soft-button border-white/10 text-zinc-300 hover:border-white/20'
                                 }`}
                               >
                                 {label} {count > 0 ? `• ${count}` : ''}
