@@ -47,10 +47,25 @@ const raisedPanelClass =
   "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
 
 const softCardClass =
-  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+  "bd-raised-surface relative overflow-hidden rounded-[26px] border border-white/[0.1]";
 
 const insetCardClass =
   "bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)]";
+
+const creatorCardClass =
+  "bd-raised-surface group rounded-[24px] border border-white/[0.1] p-4 transition-[transform,border-color,filter] duration-200 hover:-translate-y-[2px] hover:border-purple-300/24 hover:filter hover:brightness-[1.04]";
+
+const creatorMetricWellClass =
+  "rounded-[18px] border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.06)_0%,rgba(11,11,22,0.88)_42%,rgba(5,6,14,0.96)_100%)] px-3 py-2 shadow-[inset_6px_7px_14px_rgba(0,0,0,0.38),inset_-3px_-4px_10px_rgba(255,255,255,0.035),0_8px_14px_rgba(0,0,0,0.18)]";
+
+const creatorChipClass =
+  "rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_100%)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/60 shadow-[0_6px_10px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-5px_8px_rgba(0,0,0,0.18)]";
+
+const ghostButtonClass =
+  "bd-tactile-button inline-flex min-h-[2.5rem] items-center justify-center rounded-full border px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em]";
+
+const goldButtonClass =
+  "bd-tactile-button bd-tactile-button--gold inline-flex min-h-[2.5rem] items-center justify-center rounded-full border px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em]";
 
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
@@ -336,7 +351,7 @@ export default function CreatorsPage() {
                 </div>
                 <Link
                   href={launchCreatorMissionHref}
-                  className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/12 px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f9e27a] transition hover:border-[#f5c518]/45 hover:bg-[#f5c518]/18"
+                  className={`${goldButtonClass} min-h-[2.75rem] gap-2 px-4 text-[11px]`}
                 >
                   <Briefcase className="h-3.5 w-3.5" />
                   Launch mission
@@ -346,7 +361,7 @@ export default function CreatorsPage() {
               <div className="mt-5 grid gap-3 md:grid-cols-3">
                 {loadingCreators
                   ? [1, 2, 3].map((item) => (
-                    <div key={item} className={`h-44 animate-pulse ${insetCardClass}`} />
+                    <div key={item} className={`h-44 animate-pulse ${creatorCardClass}`} />
                   ))
                   : availableCreators.length > 0 ? availableCreators.map((creator) => {
                     const plainTag = creator.tag.replace("@", "").toLowerCase();
@@ -364,9 +379,9 @@ export default function CreatorsPage() {
                     });
 
                     return (
-                      <div key={`ready-${creator.tag}`} className={`${insetCardClass} p-4`}>
-                        <div className="flex items-start gap-3">
-                          <Link href={`/creator/${plainTag}`} className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.05]">
+                      <div key={`ready-${creator.tag}`} className={creatorCardClass}>
+                        <div className="relative flex items-start gap-3">
+                          <Link href={`/creator/${plainTag}`} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white/14 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.24),transparent_25%),linear-gradient(145deg,rgba(168,85,247,0.85),rgba(245,197,24,0.72))] shadow-[0_16px_28px_rgba(0,0,0,0.4),0_0_22px_rgba(168,85,247,0.16),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
                             {profileAvatar ? (
                               // eslint-disable-next-line @next/next/no-img-element -- user avatars can live on configurable media gateways.
                               <img
@@ -384,10 +399,11 @@ export default function CreatorsPage() {
                                 className="object-cover"
                               />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-yellow-500 text-xl font-black text-white">
+                              <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.28),transparent_25%),linear-gradient(145deg,#a855f7_0%,#f5c518_100%)] text-xl font-black text-white">
                                 {creator.tag.charAt(creator.tag.startsWith("@") ? 1 : 0).toUpperCase()}
                               </div>
                             )}
+                            <span className="pointer-events-none absolute inset-x-4 top-2 h-1 rounded-full bg-white/28 blur-[1px]" />
                           </Link>
 
                           <div className="min-w-0 flex-1">
@@ -404,14 +420,14 @@ export default function CreatorsPage() {
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-2 text-[10px]">
-                          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.035] px-3 py-2">
+                          <div className={creatorMetricWellClass}>
                             <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
                               <MapPin className="h-3 w-3 text-cyan-200" />
                               Area
                             </div>
                             <p className="mt-1 font-black text-white/78">{getCreatorAreaLabel(creator)}</p>
                           </div>
-                          <div className="rounded-[16px] border border-white/[0.06] bg-white/[0.035] px-3 py-2">
+                          <div className={creatorMetricWellClass}>
                             <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
                               <Clock className="h-3 w-3 text-[#f9e27a]" />
                               Proofs
@@ -422,7 +438,7 @@ export default function CreatorsPage() {
 
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {creatorSkills.map((skill) => (
-                            <span key={`${creator.tag}-${skill}`} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/58">
+                            <span key={`${creator.tag}-${skill}`} className={creatorChipClass}>
                               {skill}
                             </span>
                           ))}
@@ -431,13 +447,13 @@ export default function CreatorsPage() {
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <Link
                             href={`/creator/${plainTag}`}
-                            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/70 transition hover:border-white/20 hover:text-white"
+                            className={ghostButtonClass}
                           >
                             Passport
                           </Link>
                           <Link
                             href={inviteHref}
-                            className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
+                            className={goldButtonClass}
                           >
                             Invite
                           </Link>
@@ -458,13 +474,14 @@ export default function CreatorsPage() {
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
                           <Link
                             href="/captains?source=creators-empty-state"
-                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100 transition hover:border-cyan-200/40"
+                            className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
                           >
                             Apply as Captain
                           </Link>
                           <button
+                            type="button"
                             onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-                            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-center text-[10px] font-black uppercase tracking-[0.13em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
+                            className={`${goldButtonClass} min-h-11 px-4 tracking-[0.13em]`}
                           >
                             Claim tag
                           </button>
