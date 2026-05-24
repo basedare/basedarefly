@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CreditCard, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock3, CreditCard, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
 
 import SquircleLink from '@/components/ui/SquircleLink';
 import SparkReceiptPreview from '@/components/activations/SparkReceiptPreview';
@@ -42,6 +42,10 @@ type FirstSparkPageProps = {
     contentRequired?: string;
     guestMission?: string;
     perkLabel?: string;
+    deadWindowTime?: string;
+    deadWindowCheckInTarget?: string;
+    deadWindowPerk?: string;
+    deadWindowBaseline?: string;
   }>;
 };
 
@@ -54,6 +58,10 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
   const routedCity = resolvedSearchParams.city || null;
   const routedSource = resolvedSearchParams.source || 'first-spark-page';
   const hasRoutedVenue = Boolean(routedVenue || routedVenueSlug || routedCity);
+  const deadWindowTime = resolvedSearchParams.deadWindowTime || resolvedSearchParams.timeWindow || '';
+  const deadWindowCheckInTarget = resolvedSearchParams.deadWindowCheckInTarget || '20 verified check-ins';
+  const deadWindowPerk = resolvedSearchParams.deadWindowPerk || resolvedSearchParams.perkLabel || '';
+  const deadWindowBaseline = resolvedSearchParams.deadWindowBaseline || '';
 
   const pilotSnapshot = [
     ['Offer', '$500-$1.5k pilot'],
@@ -170,6 +178,56 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           ))}
         </section>
 
+        <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`}>
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/30 to-transparent" />
+          <div className="relative grid gap-5 lg:grid-cols-[0.76fr_1fr] lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/76">
+                <Clock3 className="h-4 w-4" />
+                Dead Window Rescue
+              </div>
+              <h2 className="mt-4 max-w-xl text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
+                Turn the empty slot into a visible signal.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm font-bold leading-6 text-white/58">
+                Pick the slow two-hour window, attach one simple venue perk, and BaseDare routes guests or creators through QR/check-in proof. The output is a Spark Receipt, not a vague recap.
+              </p>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {[
+                  ['1', 'Weak window'],
+                  ['2', 'Perk'],
+                  ['3', 'Check-ins'],
+                  ['4', 'Repeat call'],
+                ].map(([step, label]) => (
+                  <div key={label} className={`${insetCardClass} px-4 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">{step}</p>
+                    <p className="mt-1 text-sm font-black uppercase tracking-[0.1em] text-white/72">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <SparkReceiptPreview
+              venueName={routedVenue || 'Selected venue'}
+              city={routedCity || 'Local market'}
+              budgetLabel="$500-$1.5k pilot"
+              receiptId="BD-DEAD-WINDOW"
+              headline="Dead window receipt"
+              summary="The receipt shows whether one slow window became real-world momentum worth repeating."
+              proofLogic="QR check-ins, creator or guest proof, venue context, and baseline notes are reviewed together."
+              repeatMetric="Repeat only if the quiet window shows visible movement, proof, and a clear next route."
+              metrics={[
+                { label: 'Window', value: deadWindowTime || 'Slow slot', detail: 'Buyer picks the exact time' },
+                { label: 'Target', value: deadWindowCheckInTarget, detail: 'Verified check-ins' },
+                { label: 'Perk', value: deadWindowPerk || 'One reward', detail: 'Reason to go now' },
+                { label: 'Decision', value: 'Repeat', detail: 'Scale, adjust, or stop' },
+              ]}
+              ctaHref="#pilot-request"
+              ctaLabel="Rescue a window"
+              compact
+            />
+          </div>
+        </section>
+
         <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`} id="spark-receipt">
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
           <div className="relative grid gap-5 lg:grid-cols-[0.72fr_1fr] lg:items-center">
@@ -233,15 +291,19 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
               routedBuyerType={resolvedSearchParams.buyerType || 'venue'}
               routedOfferId="first-spark"
               routedAuditBrief={resolvedSearchParams.auditBrief || null}
-              routedMissionType={resolvedSearchParams.missionType || null}
-              routedMissionTitle={resolvedSearchParams.missionTitle || null}
+              routedMissionType={resolvedSearchParams.missionType || (resolvedSearchParams.guestMission ? 'guest' : 'dead-window')}
+              routedMissionTitle={resolvedSearchParams.missionTitle || 'Dead Window Rescue'}
               routedCreatorSlots={resolvedSearchParams.creatorSlots || null}
               routedPayout={resolvedSearchParams.payout || null}
-              routedTimeWindow={resolvedSearchParams.timeWindow || null}
+              routedTimeWindow={deadWindowTime || null}
               routedProofRequired={resolvedSearchParams.proofRequired || null}
               routedContentRequired={resolvedSearchParams.contentRequired || null}
               routedGuestMission={resolvedSearchParams.guestMission || null}
-              routedPerkLabel={resolvedSearchParams.perkLabel || null}
+              routedPerkLabel={deadWindowPerk || null}
+              routedDeadWindowTime={deadWindowTime || null}
+              routedDeadWindowCheckInTarget={deadWindowCheckInTarget || null}
+              routedDeadWindowPerk={deadWindowPerk || null}
+              routedDeadWindowBaseline={deadWindowBaseline || null}
             />
           </div>
         </section>

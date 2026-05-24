@@ -53,6 +53,10 @@ const ActivationAttributionSchema = z
     contentRequired: z.string().max(260).optional().nullable(),
     guestMission: z.string().max(260).optional().nullable(),
     perkLabel: z.string().max(180).optional().nullable(),
+    deadWindowTime: z.string().max(180).optional().nullable(),
+    deadWindowCheckInTarget: z.string().max(140).optional().nullable(),
+    deadWindowPerk: z.string().max(180).optional().nullable(),
+    deadWindowBaseline: z.string().max(180).optional().nullable(),
     utmSource: z.string().max(120).optional().nullable(),
     utmMedium: z.string().max(120).optional().nullable(),
     utmCampaign: z.string().max(160).optional().nullable(),
@@ -90,6 +94,10 @@ const ActivationIntakeSchema = z.object({
   routedContentRequired: z.string().max(260).optional().default(''),
   routedGuestMission: z.string().max(260).optional().default(''),
   routedPerkLabel: z.string().max(180).optional().default(''),
+  deadWindowTime: z.string().max(180).optional().default(''),
+  deadWindowCheckInTarget: z.string().max(140).optional().default(''),
+  deadWindowPerk: z.string().max(180).optional().default(''),
+  deadWindowBaseline: z.string().max(180).optional().default(''),
   offerId: z.string().max(80).optional().default(''),
   funnelSessionKey: z.string().max(200).optional().default(''),
   activationAttribution: ActivationAttributionSchema,
@@ -191,6 +199,10 @@ export async function POST(request: NextRequest) {
     const routedContentRequired = normalizeText(input.routedContentRequired || '');
     const routedGuestMission = normalizeText(input.routedGuestMission || '');
     const routedPerkLabel = normalizeText(input.routedPerkLabel || '');
+    const deadWindowTime = normalizeText(input.deadWindowTime || '');
+    const deadWindowCheckInTarget = normalizeText(input.deadWindowCheckInTarget || '');
+    const deadWindowPerk = normalizeText(input.deadWindowPerk || '');
+    const deadWindowBaseline = normalizeText(input.deadWindowBaseline || '');
     const offerId = normalizeText(input.offerId || '');
     const funnelSessionKey = normalizeText(input.funnelSessionKey || '');
     const activationAttribution = {
@@ -211,6 +223,10 @@ export async function POST(request: NextRequest) {
       contentRequired: normalizeText(input.activationAttribution.contentRequired || routedContentRequired),
       guestMission: normalizeText(input.activationAttribution.guestMission || routedGuestMission),
       perkLabel: normalizeText(input.activationAttribution.perkLabel || routedPerkLabel),
+      deadWindowTime: normalizeText(input.activationAttribution.deadWindowTime || deadWindowTime),
+      deadWindowCheckInTarget: normalizeText(input.activationAttribution.deadWindowCheckInTarget || deadWindowCheckInTarget),
+      deadWindowPerk: normalizeText(input.activationAttribution.deadWindowPerk || deadWindowPerk),
+      deadWindowBaseline: normalizeText(input.activationAttribution.deadWindowBaseline || deadWindowBaseline),
       funnelSessionKey,
     };
     const notes = input.notes.trim();
@@ -261,6 +277,10 @@ export async function POST(request: NextRequest) {
       routedContentRequired,
       routedGuestMission,
       routedPerkLabel,
+      deadWindowTime,
+      deadWindowCheckInTarget,
+      deadWindowPerk,
+      deadWindowBaseline,
       offerId,
       funnelSessionKey,
       activationAttribution,
@@ -270,11 +290,13 @@ export async function POST(request: NextRequest) {
       submittedAt,
       intakeDedupeKey: stableDedupeKey,
       intakeIntent:
-        routedMissionType === 'guest' || routedGuestMission
-          ? 'guest_mission'
-          : offerId === 'first-spark'
-            ? 'first_spark_pilot'
-            : 'activation',
+        routedMissionType === 'dead-window' || deadWindowTime || deadWindowCheckInTarget || deadWindowPerk
+          ? 'dead_window_rescue'
+          : routedMissionType === 'guest' || routedGuestMission
+            ? 'guest_mission'
+            : offerId === 'first-spark'
+              ? 'first_spark_pilot'
+              : 'activation',
     } satisfies Prisma.InputJsonValue;
 
     const existing = await prisma.founderEvent.findUnique({
@@ -359,6 +381,10 @@ export async function POST(request: NextRequest) {
         routedContentRequired,
         routedGuestMission,
         routedPerkLabel,
+        deadWindowTime,
+        deadWindowCheckInTarget,
+        deadWindowPerk,
+        deadWindowBaseline,
         offerId,
         brandMemory,
         activationBrief,

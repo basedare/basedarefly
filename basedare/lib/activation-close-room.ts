@@ -144,6 +144,35 @@ function getMissionIdeas(metadata: MetadataRecord) {
     .filter((idea) => idea.title || idea.detail);
 }
 
+function getDeadWindowPlan(metadata: MetadataRecord) {
+  const attribution = asRecord(metadata.activationAttribution);
+  const windowLabel =
+    stringValue(metadata.deadWindowTime) ||
+    stringValue(attribution.deadWindowTime) ||
+    stringValue(metadata.routedTimeWindow) ||
+    stringValue(attribution.timeWindow);
+  const checkInTarget =
+    stringValue(metadata.deadWindowCheckInTarget) ||
+    stringValue(attribution.deadWindowCheckInTarget);
+  const perk =
+    stringValue(metadata.deadWindowPerk) ||
+    stringValue(attribution.deadWindowPerk) ||
+    stringValue(metadata.routedPerkLabel) ||
+    stringValue(attribution.perkLabel);
+  const baseline =
+    stringValue(metadata.deadWindowBaseline) ||
+    stringValue(attribution.deadWindowBaseline);
+
+  if (!windowLabel && !checkInTarget && !perk && !baseline) return null;
+
+  return {
+    windowLabel,
+    checkInTarget,
+    perk,
+    baseline,
+  };
+}
+
 function defaultPaymentLink() {
   return (
     process.env.BASEDARE_PAYMENT_LINK?.trim() ||
@@ -265,6 +294,8 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
   const timeline = stringValue(metadata.timeline);
   const packageId = stringValue(metadata.packageId);
   const isFirstSpark = isFirstSparkCloseRoom({ packageId, budgetRange, metadata });
+  const deadWindow = getDeadWindowPlan(metadata);
+  const isDeadWindow = Boolean(deadWindow);
   const amount = event.amount ?? numberValue(metadata.amount);
   const paymentLink = stringValue(operator.paymentLink) || defaultPaymentLink();
   const paymentReference = stringValue(operator.paymentReference) || `BD-${event.id.slice(0, 8).toUpperCase()}`;
@@ -303,11 +334,24 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     'Spark recap receipt',
     'Rerun review if proof does not land',
   ];
-  const venueAsk = [
-    'Approve one venue and date',
-    'Provide one simple perk',
-    'Pay or reserve before launch',
+  const deadWindowDeliverables = [
+    'Weak-window route setup',
+    'One visible perk or reward',
+    'QR/check-in proof target',
+    'Creator or guest proof prompts',
+    'Spark Receipt with repeat decision',
   ];
+  const venueAsk = isDeadWindow
+    ? [
+        'Pick the slow window',
+        'Approve one simple perk',
+        'Confirm target and payment path',
+      ]
+    : [
+        'Approve one venue and date',
+        'Provide one simple perk',
+        'Pay or reserve before launch',
+      ];
 
   return {
     id: event.id,
@@ -323,16 +367,19 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     goal: stringValue(metadata.goal),
     packageId,
     isFirstSpark,
-    offerTitle: isFirstSpark ? 'First Spark Pilot' : 'Grid Activation',
-    offerEyebrow: isFirstSpark ? 'First Spark Pilot' : 'BaseDare Close Room',
-    offerHeadline: isFirstSpark ? 'Approve one paid proof night.' : `Approve the Spark route for ${target}.`,
-    offerPromise: isFirstSpark
-      ? `BaseDare sets up ${target}, routes local creators or guests, captures QR/check-in proof, and sends a recap receipt.`
-      : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
+    deadWindow,
+    offerTitle: isDeadWindow ? 'Dead Window Rescue' : isFirstSpark ? 'First Spark Pilot' : 'Grid Activation',
+    offerEyebrow: isDeadWindow ? 'Dead Window Rescue' : isFirstSpark ? 'First Spark Pilot' : 'BaseDare Close Room',
+    offerHeadline: isDeadWindow ? 'Rescue one slow window.' : isFirstSpark ? 'Approve one paid proof night.' : `Approve the Spark route for ${target}.`,
+    offerPromise: isDeadWindow
+      ? `BaseDare routes ${target}${deadWindow?.windowLabel ? ` during ${deadWindow.windowLabel}` : "'s weakest window"}, tracks QR/check-ins, captures proof, and turns the result into a Spark Receipt.`
+      : isFirstSpark
+        ? `BaseDare sets up ${target}, routes local creators or guests, captures QR/check-in proof, and sends a recap receipt.`
+        : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
     riskReversal: isFirstSpark
       ? 'If no verified proof lands, BaseDare reviews the route and reruns before asking you to repeat.'
       : 'Public launch waits until payment and scope are confirmed.',
-    deliverables: isFirstSpark ? firstSparkDeliverables : [
+    deliverables: isDeadWindow ? deadWindowDeliverables : isFirstSpark ? firstSparkDeliverables : [
       'Activation route',
       'Creator proof logic',
       'Payment reference',

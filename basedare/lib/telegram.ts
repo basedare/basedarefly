@@ -771,6 +771,10 @@ export async function alertActivationIntake(data: {
   routedContentRequired?: string | null;
   routedGuestMission?: string | null;
   routedPerkLabel?: string | null;
+  deadWindowTime?: string | null;
+  deadWindowCheckInTarget?: string | null;
+  deadWindowPerk?: string | null;
+  deadWindowBaseline?: string | null;
   brandMemory?: ActivationBrandMemoryInput | null;
   activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
@@ -834,6 +838,12 @@ export async function alertActivationIntake(data: {
     data.routedContentRequired ? `Content: ${compactText(data.routedContentRequired, 130)}` : null,
     routedLane ? `Creator lane: ${routedLane}` : null,
   ].filter(Boolean);
+  const deadWindowPreview = [
+    data.deadWindowTime ? `Window: ${compactText(data.deadWindowTime, 100)}` : null,
+    data.deadWindowCheckInTarget ? `Target: ${compactText(data.deadWindowCheckInTarget, 80)}` : null,
+    data.deadWindowPerk ? `Perk: ${compactText(data.deadWindowPerk, 100)}` : null,
+    data.deadWindowBaseline ? `Baseline: ${compactText(data.deadWindowBaseline, 100)}` : null,
+  ].filter(Boolean);
 
   const message = `
 💸 <b>PAID ACTIVATION INTAKE</b>
@@ -841,6 +851,7 @@ export async function alertActivationIntake(data: {
 <b>${escapeHtml(data.company)}</b>
 ${details.join('\n')}
 ${notes ? `\nNote: ${escapeHtml(notes)}` : ''}
+${deadWindowPreview.length ? `\n<b>Dead Window Rescue</b>\n${deadWindowPreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
 ${missionRoutePreview.length ? `\n<b>Mission Route</b>\n${missionRoutePreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
 ${memoryPreview.length ? `\n<b>Brand Memory</b>\n${memoryPreview.map((item) => escapeHtml(String(item))).join('\n')}` : ''}
 ${activationBrief ? `\n<b>Activation Brief</b>\n${escapeHtml(compactText(activationBrief.positioningLine, 160))}` : ''}

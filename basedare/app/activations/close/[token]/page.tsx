@@ -61,6 +61,30 @@ export default async function ActivationCloseRoomPage({
   const mission = closeRoom.missionIdeas[0];
   const paymentReady = Boolean(closeRoom.paymentLink);
   const paymentCtaLabel = closeRoom.isFirstSpark ? 'Reserve pilot' : 'Open payment';
+  const deadWindowMetrics = closeRoom.deadWindow
+    ? [
+        {
+          label: 'Window',
+          value: closeRoom.deadWindow.windowLabel || 'Slow slot',
+          detail: 'Focused activation window',
+        },
+        {
+          label: 'Target',
+          value: closeRoom.deadWindow.checkInTarget || '20 check-ins',
+          detail: 'QR / nearby proof',
+        },
+        {
+          label: 'Perk',
+          value: closeRoom.deadWindow.perk || 'One reward',
+          detail: 'Reason to go now',
+        },
+        {
+          label: 'Decision',
+          value: 'Repeat',
+          detail: 'Rerun, adjust, or stop',
+        },
+      ]
+    : undefined;
   const steps = [
     {
       label: 'Route',
@@ -241,6 +265,41 @@ export default async function ActivationCloseRoomPage({
           ))}
         </section>
 
+        {closeRoom.deadWindow ? (
+          <section className={`${raisedPanelClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/32 to-transparent" />
+            <div className="relative grid gap-4 lg:grid-cols-[0.82fr_1fr] lg:items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/74">
+                  <Clock3 className="h-4 w-4" />
+                  Dead Window Plan
+                </div>
+                <h2 className="mt-4 text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
+                  Make the quiet slot visible.
+                </h2>
+                <p className="mt-3 text-sm font-bold leading-6 text-white/58">
+                  The buyer is approving one focused rescue window: a simple perk, a visible check-in target, and proof strong enough to decide whether to repeat.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Window', closeRoom.deadWindow.windowLabel || 'Weakest 2-hour window'],
+                  ['Target', closeRoom.deadWindow.checkInTarget || '20 verified check-ins'],
+                  ['Perk', closeRoom.deadWindow.perk || 'One simple venue reward'],
+                  ['Baseline', closeRoom.deadWindow.baseline || 'Current traffic to confirm'],
+                ].map(([label, value]) => (
+                  <div key={label} className={insetCardClass}>
+                    <div className="px-4 py-4">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/48">{label}</p>
+                      <p className="mt-2 text-sm font-black leading-5 text-white/78">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className={`${raisedPanelClass} p-5 sm:p-6`}>
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
           <div className="relative grid gap-5 lg:grid-cols-[0.68fr_1fr] lg:items-center">
@@ -263,6 +322,13 @@ export default async function ActivationCloseRoomPage({
               receiptId={closeRoom.paymentReference}
               proofLogic={closeRoom.proofLogic}
               repeatMetric={closeRoom.repeatMetric}
+              headline={closeRoom.deadWindow ? 'Dead window receipt' : undefined}
+              summary={
+                closeRoom.deadWindow
+                  ? 'The buyer gets a clean read on whether the slow window can be turned into repeatable venue momentum.'
+                  : undefined
+              }
+              metrics={deadWindowMetrics}
               ctaHref={closeRoom.approveHref}
               ctaLabel={closeRoom.isFirstSpark ? 'Approve pilot' : 'Approve route'}
               compact

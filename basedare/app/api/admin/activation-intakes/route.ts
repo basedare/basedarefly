@@ -395,6 +395,10 @@ type RoutedMissionPacket = {
   contentRequired: string;
   guestMission: string;
   perkLabel: string;
+  deadWindowTime: string;
+  deadWindowCheckInTarget: string;
+  deadWindowPerk: string;
+  deadWindowBaseline: string;
 };
 
 function getRoutedMissionPacket(metadata: MetadataRecord): RoutedMissionPacket {
@@ -410,6 +414,10 @@ function getRoutedMissionPacket(metadata: MetadataRecord): RoutedMissionPacket {
     contentRequired: stringValue(metadata.routedContentRequired) || stringValue(attribution.contentRequired),
     guestMission: stringValue(metadata.routedGuestMission) || stringValue(attribution.guestMission),
     perkLabel: stringValue(metadata.routedPerkLabel) || stringValue(attribution.perkLabel),
+    deadWindowTime: stringValue(metadata.deadWindowTime) || stringValue(attribution.deadWindowTime),
+    deadWindowCheckInTarget: stringValue(metadata.deadWindowCheckInTarget) || stringValue(attribution.deadWindowCheckInTarget),
+    deadWindowPerk: stringValue(metadata.deadWindowPerk) || stringValue(attribution.deadWindowPerk),
+    deadWindowBaseline: stringValue(metadata.deadWindowBaseline) || stringValue(attribution.deadWindowBaseline),
   };
 }
 
@@ -428,6 +436,10 @@ function buildRoutedMissionLines(packet: RoutedMissionPacket) {
     packet.missionTitle ? `Mission: ${packet.missionTitle}` : null,
     packet.missionType ? `Type: ${packet.missionType}` : null,
     packet.guestMission ? `Guest loop: ${packet.guestMission}` : null,
+    packet.deadWindowTime ? `Dead window: ${packet.deadWindowTime}` : null,
+    packet.deadWindowCheckInTarget ? `Check-in target: ${packet.deadWindowCheckInTarget}` : null,
+    packet.deadWindowPerk ? `Dead-window perk: ${packet.deadWindowPerk}` : null,
+    packet.deadWindowBaseline ? `Baseline: ${packet.deadWindowBaseline}` : null,
     packet.perkLabel ? `Perk: ${packet.perkLabel}` : null,
     packet.proofRequired ? `Proof: ${packet.proofRequired}` : null,
     packet.contentRequired ? `Content: ${packet.contentRequired}` : null,

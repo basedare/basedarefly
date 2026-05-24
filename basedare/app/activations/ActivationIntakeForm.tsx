@@ -38,6 +38,10 @@ type IntakeState = {
   routedContentRequired: string;
   routedGuestMission: string;
   routedPerkLabel: string;
+  deadWindowTime: string;
+  deadWindowCheckInTarget: string;
+  deadWindowPerk: string;
+  deadWindowBaseline: string;
   offerId: '' | 'first-spark';
   brandMemory: Required<ActivationBrandMemoryInput>;
 };
@@ -69,6 +73,10 @@ const INITIAL_STATE: IntakeState = {
   routedContentRequired: '',
   routedGuestMission: '',
   routedPerkLabel: '',
+  deadWindowTime: '',
+  deadWindowCheckInTarget: '',
+  deadWindowPerk: '',
+  deadWindowBaseline: '',
   offerId: '',
   brandMemory: {
     originStory: '',
@@ -167,6 +175,10 @@ type ActivationIntakeFormProps = {
   routedContentRequired?: string | null;
   routedGuestMission?: string | null;
   routedPerkLabel?: string | null;
+  routedDeadWindowTime?: string | null;
+  routedDeadWindowCheckInTarget?: string | null;
+  routedDeadWindowPerk?: string | null;
+  routedDeadWindowBaseline?: string | null;
 };
 
 export default function ActivationIntakeForm({
@@ -191,6 +203,10 @@ export default function ActivationIntakeForm({
   routedContentRequired,
   routedGuestMission,
   routedPerkLabel,
+  routedDeadWindowTime,
+  routedDeadWindowCheckInTarget,
+  routedDeadWindowPerk,
+  routedDeadWindowBaseline,
 }: ActivationIntakeFormProps) {
   const initialNormalizedCreator = routedCreator
     ? routedCreator.startsWith('@')
@@ -217,6 +233,17 @@ export default function ActivationIntakeForm({
   const initialNormalizedContentRequired = routedContentRequired?.trim() || null;
   const initialNormalizedGuestMission = routedGuestMission?.trim() || null;
   const initialNormalizedPerkLabel = routedPerkLabel?.trim() || null;
+  const initialNormalizedDeadWindowTime = routedDeadWindowTime?.trim() || null;
+  const initialNormalizedDeadWindowCheckInTarget = routedDeadWindowCheckInTarget?.trim() || null;
+  const initialNormalizedDeadWindowPerk = routedDeadWindowPerk?.trim() || null;
+  const initialNormalizedDeadWindowBaseline = routedDeadWindowBaseline?.trim() || null;
+  const initialDeadWindowTime =
+    initialNormalizedDeadWindowTime || (initialOfferId === 'first-spark' ? initialNormalizedTimeWindow || '' : '');
+  const initialDeadWindowCheckInTarget =
+    initialNormalizedDeadWindowCheckInTarget || (initialOfferId === 'first-spark' ? '20 verified check-ins' : '');
+  const initialDeadWindowPerk =
+    initialNormalizedDeadWindowPerk || (initialOfferId === 'first-spark' ? initialNormalizedPerkLabel || '' : '');
+  const initialDeadWindowBaseline = initialNormalizedDeadWindowBaseline || '';
   const initialContextKey = [
     initialNormalizedCreator,
     initialNormalizedVenue,
@@ -239,6 +266,10 @@ export default function ActivationIntakeForm({
     initialNormalizedContentRequired,
     initialNormalizedGuestMission,
     initialNormalizedPerkLabel,
+    initialNormalizedDeadWindowTime,
+    initialNormalizedDeadWindowCheckInTarget,
+    initialNormalizedDeadWindowPerk,
+    initialNormalizedDeadWindowBaseline,
   ].filter(Boolean).join('|');
   const initialFormState: IntakeState = initialContextKey
     ? {
@@ -264,6 +295,10 @@ export default function ActivationIntakeForm({
         routedContentRequired: initialNormalizedContentRequired || '',
         routedGuestMission: initialNormalizedGuestMission || '',
         routedPerkLabel: initialNormalizedPerkLabel || '',
+        deadWindowTime: initialDeadWindowTime,
+        deadWindowCheckInTarget: initialDeadWindowCheckInTarget,
+        deadWindowPerk: initialDeadWindowPerk,
+        deadWindowBaseline: initialDeadWindowBaseline,
         offerId: initialOfferId || '',
         notes: [
           initialOfferId === 'first-spark'
@@ -281,6 +316,10 @@ export default function ActivationIntakeForm({
           initialNormalizedContentRequired ? `Content required: ${initialNormalizedContentRequired}` : null,
           initialNormalizedGuestMission ? `Guest mission: ${initialNormalizedGuestMission}` : null,
           initialNormalizedPerkLabel ? `Venue perk: ${initialNormalizedPerkLabel}` : null,
+          initialDeadWindowTime ? `Dead window: ${initialDeadWindowTime}` : null,
+          initialDeadWindowCheckInTarget ? `Dead window target: ${initialDeadWindowCheckInTarget}` : null,
+          initialDeadWindowPerk ? `Dead window perk: ${initialDeadWindowPerk}` : null,
+          initialDeadWindowBaseline ? `Baseline: ${initialDeadWindowBaseline}` : null,
           initialNormalizedAuditBrief ? `Spark Audit:\n${initialNormalizedAuditBrief}` : null,
           initialNormalizedSource ? `Source: ${initialNormalizedSource}` : 'Source: Control activation route',
         ]
@@ -319,7 +358,11 @@ export default function ActivationIntakeForm({
     routedProofRequired ||
     routedContentRequired ||
     routedGuestMission ||
-    routedPerkLabel
+    routedPerkLabel ||
+    routedDeadWindowTime ||
+    routedDeadWindowCheckInTarget ||
+    routedDeadWindowPerk ||
+    routedDeadWindowBaseline
   );
 
   useEffect(() => {
@@ -344,7 +387,11 @@ export default function ActivationIntakeForm({
       !routedProofRequired &&
       !routedContentRequired &&
       !routedGuestMission &&
-      !routedPerkLabel
+      !routedPerkLabel &&
+      !routedDeadWindowTime &&
+      !routedDeadWindowCheckInTarget &&
+      !routedDeadWindowPerk &&
+      !routedDeadWindowBaseline
     ) return;
 
     const normalizedCreator = routedCreator
@@ -372,6 +419,16 @@ export default function ActivationIntakeForm({
     const normalizedContentRequired = routedContentRequired?.trim() || null;
     const normalizedGuestMission = routedGuestMission?.trim() || null;
     const normalizedPerkLabel = routedPerkLabel?.trim() || null;
+    const normalizedDeadWindowTime = routedDeadWindowTime?.trim() || null;
+    const normalizedDeadWindowCheckInTarget = routedDeadWindowCheckInTarget?.trim() || null;
+    const normalizedDeadWindowPerk = routedDeadWindowPerk?.trim() || null;
+    const normalizedDeadWindowBaseline = routedDeadWindowBaseline?.trim() || null;
+    const deadWindowTime =
+      normalizedDeadWindowTime || (offerId === 'first-spark' ? normalizedTimeWindow || null : null);
+    const deadWindowCheckInTarget =
+      normalizedDeadWindowCheckInTarget || (offerId === 'first-spark' ? '20 verified check-ins' : null);
+    const deadWindowPerk =
+      normalizedDeadWindowPerk || (offerId === 'first-spark' ? normalizedPerkLabel || null : null);
     const contextKey = [
       normalizedCreator,
       normalizedVenue,
@@ -394,6 +451,10 @@ export default function ActivationIntakeForm({
       normalizedContentRequired,
       normalizedGuestMission,
       normalizedPerkLabel,
+      normalizedDeadWindowTime,
+      normalizedDeadWindowCheckInTarget,
+      normalizedDeadWindowPerk,
+      normalizedDeadWindowBaseline,
     ].filter(Boolean).join('|');
     if (routedContextRef.current === contextKey) return;
 
@@ -422,6 +483,10 @@ export default function ActivationIntakeForm({
         routedContentRequired: normalizedContentRequired ?? current.routedContentRequired,
         routedGuestMission: normalizedGuestMission ?? current.routedGuestMission,
         routedPerkLabel: normalizedPerkLabel ?? current.routedPerkLabel,
+        deadWindowTime: deadWindowTime ?? current.deadWindowTime,
+        deadWindowCheckInTarget: deadWindowCheckInTarget ?? current.deadWindowCheckInTarget,
+        deadWindowPerk: deadWindowPerk ?? current.deadWindowPerk,
+        deadWindowBaseline: normalizedDeadWindowBaseline ?? current.deadWindowBaseline,
         offerId: offerId ?? current.offerId,
         notes: [
           current.notes.trim(),
@@ -440,6 +505,10 @@ export default function ActivationIntakeForm({
           normalizedContentRequired ? `Content required: ${normalizedContentRequired}` : null,
           normalizedGuestMission ? `Guest mission: ${normalizedGuestMission}` : null,
           normalizedPerkLabel ? `Venue perk: ${normalizedPerkLabel}` : null,
+          deadWindowTime ? `Dead window: ${deadWindowTime}` : null,
+          deadWindowCheckInTarget ? `Dead window target: ${deadWindowCheckInTarget}` : null,
+          deadWindowPerk ? `Dead window perk: ${deadWindowPerk}` : null,
+          normalizedDeadWindowBaseline ? `Baseline: ${normalizedDeadWindowBaseline}` : null,
           normalizedAuditBrief ? `Spark Audit:\n${normalizedAuditBrief}` : null,
           normalizedSource ? `Source: ${normalizedSource}` : 'Source: Control activation route',
         ]
@@ -469,6 +538,10 @@ export default function ActivationIntakeForm({
     routedContentRequired,
     routedGuestMission,
     routedPerkLabel,
+    routedDeadWindowTime,
+    routedDeadWindowCheckInTarget,
+    routedDeadWindowPerk,
+    routedDeadWindowBaseline,
   ]);
 
   const trackFormStart = () => {
@@ -495,6 +568,10 @@ export default function ActivationIntakeForm({
         missionTitle: form.routedMissionTitle || undefined,
         creatorSlots: form.routedCreatorSlots || undefined,
         guestMission: form.routedGuestMission || undefined,
+        deadWindowTime: form.deadWindowTime || undefined,
+        deadWindowCheckInTarget: form.deadWindowCheckInTarget || undefined,
+        deadWindowPerk: form.deadWindowPerk || undefined,
+        deadWindowBaseline: form.deadWindowBaseline || undefined,
       },
     });
   };
@@ -525,6 +602,14 @@ export default function ActivationIntakeForm({
     form.routedMissionType === 'guest' ||
     form.routedGuestMission
   );
+  const isDeadWindowRescue = Boolean(
+    form.offerId === 'first-spark' ||
+    form.routedMissionType === 'dead-window' ||
+    form.deadWindowTime ||
+    form.deadWindowCheckInTarget ||
+    form.deadWindowPerk ||
+    form.deadWindowBaseline
+  );
   const primaryActionLabel = isPilotCloseLoop ? 'Send pilot request' : 'Route activation request';
   const routingActionLabel = isPilotCloseLoop ? 'Sending pilot request' : 'Routing request';
   const routeReceiptItems = useMemo(
@@ -536,6 +621,8 @@ export default function ActivationIntakeForm({
         form.routedMissionTitle ? ['Mission', form.routedMissionTitle] : null,
         form.routedCreatorSlots ? ['Slots', form.routedCreatorSlots] : null,
         form.routedGuestMission ? ['Guest loop', form.routedGuestMission] : null,
+        form.deadWindowTime ? ['Weak window', form.deadWindowTime] : null,
+        form.deadWindowCheckInTarget ? ['Check-ins', form.deadWindowCheckInTarget] : null,
         form.routedSource ? ['Source', SOURCE_LABELS[form.routedSource] || form.routedSource] : null,
         ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
         ['Package', PACKAGE_LABELS[form.packageId]],
@@ -551,6 +638,8 @@ export default function ActivationIntakeForm({
       form.routedCreator,
       form.routedCreatorSlots,
       form.routedGuestMission,
+      form.deadWindowCheckInTarget,
+      form.deadWindowTime,
       form.routedMissionTitle,
       form.routedSource,
       form.venue,
@@ -568,11 +657,15 @@ export default function ActivationIntakeForm({
         form.routedContentRequired ? ['Content', form.routedContentRequired] : null,
         form.routedGuestMission ? ['Guest mission', form.routedGuestMission] : null,
         form.routedPerkLabel ? ['Perk', form.routedPerkLabel] : null,
+        form.deadWindowPerk ? ['Dead-window perk', form.deadWindowPerk] : null,
+        form.deadWindowBaseline ? ['Baseline', form.deadWindowBaseline] : null,
       ].filter((item): item is [string, string] => Boolean(item)),
     [
       form.routedContentRequired,
       form.routedCreatorSlots,
       form.routedGuestMission,
+      form.deadWindowBaseline,
+      form.deadWindowPerk,
       form.routedMissionType,
       form.routedPayout,
       form.routedPerkLabel,
@@ -582,7 +675,14 @@ export default function ActivationIntakeForm({
   );
   const visibleRouteReceiptItems = isPilotCloseLoop
     ? routeReceiptItems
-        .filter(([label]) => label === 'Target' || label === 'City' || label === 'Guest loop' || label === 'Offer')
+        .filter(([label]) =>
+          label === 'Target' ||
+          label === 'City' ||
+          label === 'Weak window' ||
+          label === 'Check-ins' ||
+          label === 'Guest loop' ||
+          label === 'Offer'
+        )
         .slice(0, 4)
     : routeReceiptItems;
   const visibleMissionBriefItems = isPilotCloseLoop
@@ -621,6 +721,10 @@ export default function ActivationIntakeForm({
           timeWindow: form.routedTimeWindow || undefined,
           guestMission: form.routedGuestMission || undefined,
           perkLabel: form.routedPerkLabel || undefined,
+          deadWindowTime: form.deadWindowTime || undefined,
+          deadWindowCheckInTarget: form.deadWindowCheckInTarget || undefined,
+          deadWindowPerk: form.deadWindowPerk || undefined,
+          deadWindowBaseline: form.deadWindowBaseline || undefined,
           hasBrandMemory: Boolean(
             form.brandMemory.originStory ||
             form.brandMemory.audience ||
@@ -649,6 +753,10 @@ export default function ActivationIntakeForm({
             goal: form.goal,
             buyerType: form.buyerType,
             offerId: form.offerId || undefined,
+            deadWindowTime: form.deadWindowTime || undefined,
+            deadWindowCheckInTarget: form.deadWindowCheckInTarget || undefined,
+            deadWindowPerk: form.deadWindowPerk || undefined,
+            deadWindowBaseline: form.deadWindowBaseline || undefined,
           }),
         }),
       });
@@ -804,6 +912,74 @@ export default function ActivationIntakeForm({
           <p className="mt-1.5 text-sm font-bold leading-6 text-white/70">
             BaseDare handles setup, routing, proof, and recap after this route is approved.
           </p>
+        </div>
+      ) : null}
+
+      {isDeadWindowRescue ? (
+        <div className="rounded-[28px] border border-yellow-200/14 bg-[radial-gradient(circle_at_10%_0%,rgba(250,204,21,0.14),transparent_34%),radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.1),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.88))] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Dead Window Rescue</p>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Turn one slow window into proof.</h3>
+              <p className="mt-2 max-w-xl text-sm font-bold leading-6 text-white/56">
+                Pick the quiet slot, set a check-in target, attach one perk, and BaseDare turns the result into a Spark Receipt.
+              </p>
+            </div>
+            <div className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
+              QR + creator proof
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Weak window</label>
+              <input
+                value={form.deadWindowTime}
+                onChange={(event) => updateField('deadWindowTime', event.target.value)}
+                className={inputClass}
+                placeholder="Tuesday 7-9pm, rainy lunch, post-surf lull"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Success target</label>
+              <input
+                value={form.deadWindowCheckInTarget}
+                onChange={(event) => updateField('deadWindowCheckInTarget', event.target.value)}
+                className={inputClass}
+                placeholder="20 verified check-ins"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Simple perk</label>
+              <input
+                value={form.deadWindowPerk}
+                onChange={(event) => updateField('deadWindowPerk', event.target.value)}
+                className={inputClass}
+                placeholder="Welcome shot, coffee upgrade, 10% off tab"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Current baseline</label>
+              <input
+                value={form.deadWindowBaseline}
+                onChange={(event) => updateField('deadWindowBaseline', event.target.value)}
+                className={inputClass}
+                placeholder="Usually empty, 5 walk-ins, staff estimate"
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-4">
+            {[
+              ['1', 'Quiet slot'],
+              ['2', 'Visible reward'],
+              ['3', 'QR proof'],
+              ['4', 'Repeat call'],
+            ].map(([step, label]) => (
+              <div key={label} className="rounded-[18px] border border-white/[0.08] bg-black/24 px-3 py-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">{step}</p>
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-white/62">{label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

@@ -15,6 +15,9 @@ type SparkReceiptPreviewProps = {
   receiptId?: string | null;
   proofLogic?: string | null;
   repeatMetric?: string | null;
+  headline?: string;
+  summary?: string;
+  metrics?: ReceiptMetric[];
   ctaHref?: string | null;
   ctaLabel?: string;
   compact?: boolean;
@@ -40,6 +43,9 @@ export default function SparkReceiptPreview({
   receiptId,
   proofLogic,
   repeatMetric,
+  headline = 'Proof night recap',
+  summary = 'The buyer gets a simple receipt: what happened, what proof landed, and whether the next activation is worth repeating.',
+  metrics,
   ctaHref,
   ctaLabel = 'Run First Spark',
   compact = false,
@@ -52,6 +58,7 @@ export default function SparkReceiptPreview({
     proofLogic || 'QR check-in, creator proof, venue context, and a timestamped recap are reviewed together.';
   const repeatLine =
     repeatMetric || 'Repeat only if the receipt shows real output worth compounding.';
+  const visibleMetrics = metrics?.length ? metrics : defaultMetrics;
   const isInternalCta = Boolean(ctaHref && (ctaHref.startsWith('/') || ctaHref.startsWith('#')));
   const ctaClassName =
     'inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.14em] text-black shadow-[0_7px_0_rgba(118,74,0,0.68),inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:-translate-y-0.5';
@@ -68,10 +75,10 @@ export default function SparkReceiptPreview({
               Spark Receipt
             </div>
             <h3 className="mt-4 text-2xl font-black uppercase italic leading-tight text-white sm:text-3xl">
-              Proof night recap
+              {headline}
             </h3>
             <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-white/58">
-              The buyer gets a simple receipt: what happened, what proof landed, and whether the next activation is worth repeating.
+              {summary}
             </p>
           </div>
           <div className="rounded-[20px] border border-white/10 bg-black/28 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
@@ -96,10 +103,10 @@ export default function SparkReceiptPreview({
             </div>
 
             <div className={`mt-4 grid gap-3 ${compact ? 'sm:grid-cols-2' : 'sm:grid-cols-4'}`}>
-              {defaultMetrics.map((metric) => (
+              {visibleMetrics.map((metric) => (
                 <div key={metric.label} className="rounded-[18px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] px-3 py-3">
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/35">{metric.label}</p>
-                  <p className="mt-2 text-2xl font-black text-white">{metric.value}</p>
+                  <p className="mt-2 text-2xl font-black leading-tight text-white [overflow-wrap:anywhere]">{metric.value}</p>
                   <p className="mt-1 text-[11px] font-bold leading-4 text-white/42">{metric.detail}</p>
                 </div>
               ))}
