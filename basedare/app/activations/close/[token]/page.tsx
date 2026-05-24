@@ -19,6 +19,7 @@ import {
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import SparkReceiptPreview from '@/components/activations/SparkReceiptPreview';
 import { getActivationCloseRoomByToken } from '@/lib/activation-close-room';
 import CloseRoomTracker from './CloseRoomTracker';
 
@@ -238,6 +239,35 @@ export default async function ActivationCloseRoomPage({
               </div>
             </div>
           ))}
+        </section>
+
+        <section className={`${raisedPanelClass} p-5 sm:p-6`}>
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+          <div className="relative grid gap-5 lg:grid-cols-[0.68fr_1fr] lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/74">
+                <ReceiptText className="h-4 w-4" />
+                Buyer output
+              </div>
+              <h2 className="mt-4 text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
+                End with a receipt, not a vague recap.
+              </h2>
+              <p className="mt-3 text-sm font-bold leading-6 text-white/58">
+                When the route runs, this is the buyer-facing proof object: venue signal, creator output, review state, and the repeat decision in one place.
+              </p>
+            </div>
+            <SparkReceiptPreview
+              venueName={target}
+              city={closeRoom.city}
+              budgetLabel={closeRoom.budgetLabel}
+              receiptId={closeRoom.paymentReference}
+              proofLogic={closeRoom.proofLogic}
+              repeatMetric={closeRoom.repeatMetric}
+              ctaHref={closeRoom.approveHref}
+              ctaLabel={closeRoom.isFirstSpark ? 'Approve pilot' : 'Approve route'}
+              compact
+            />
+          </div>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">

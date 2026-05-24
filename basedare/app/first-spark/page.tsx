@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, CreditCard, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
 
 import SquircleLink from '@/components/ui/SquircleLink';
+import SparkReceiptPreview from '@/components/activations/SparkReceiptPreview';
 import ActivationFunnelTracker from '../activations/ActivationFunnelTracker';
 import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 
@@ -167,6 +168,47 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
               <p className="mt-2 text-sm font-bold leading-6 text-white/54">{card.detail}</p>
             </article>
           ))}
+        </section>
+
+        <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`} id="spark-receipt">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+          <div className="relative grid gap-5 lg:grid-cols-[0.72fr_1fr] lg:items-center">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">
+                What the buyer gets
+              </p>
+              <h2 className="mt-3 max-w-xl text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
+                The receipt is the product.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm font-bold leading-6 text-white/58">
+                A venue does not need another vague influencer post. It needs a clean record of the route, the proof, the people moved, and the next repeat decision.
+              </p>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+                <Link
+                  href="#pilot-request"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/24 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.16em] text-black shadow-[0_7px_0_rgba(118,74,0,0.68),inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:-translate-y-0.5"
+                >
+                  Request pilot
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/activations"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 text-xs font-black uppercase tracking-[0.16em] text-white/66 transition hover:bg-white/[0.08] hover:text-white"
+                >
+                  Custom activation
+                </Link>
+              </div>
+            </div>
+            <SparkReceiptPreview
+              venueName={routedVenue || 'Hideaway'}
+              city={routedCity || 'Siargao'}
+              budgetLabel="$500-$1.5k pilot"
+              receiptId="BD-FIRST-SPARK"
+              ctaHref="#pilot-request"
+              ctaLabel="Start route"
+              compact
+            />
+          </div>
         </section>
 
         <section id="pilot-request" className={`${raisedPanelClass} mx-auto w-full max-w-3xl p-5 sm:p-6`}>
