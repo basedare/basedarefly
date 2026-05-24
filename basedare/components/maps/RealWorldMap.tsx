@@ -8443,7 +8443,7 @@ export default function RealWorldMap() {
           >
             <div
               ref={mapCanvasRef}
-              className="absolute inset-0 z-[2]"
+              className="absolute inset-0 z-0"
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
@@ -8466,10 +8466,10 @@ export default function RealWorldMap() {
               </button>
             ) : null}
 
-            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[1]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[3]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[4]" />
-            <div className="glass-haze pointer-events-none absolute inset-0 z-[5]" />
+            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
+            <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
             {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
@@ -13189,24 +13189,13 @@ export default function RealWorldMap() {
           font-family: inherit;
         }
 
-        .basedare-maplibre-map :global(.maplibregl-map) {
-          position: absolute !important;
-          inset: 0 !important;
-          z-index: 0 !important;
-        }
-
-        .basedare-maplibre-map :global(.maplibregl-canvas-container),
-        .basedare-maplibre-map :global(.maplibregl-canvas) {
-          position: absolute !important;
-          inset: 0 !important;
-        }
-
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
+          backface-visibility: hidden;
           filter: none;
           outline: none;
-          transform: none !important;
+          transform: translateZ(0);
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
