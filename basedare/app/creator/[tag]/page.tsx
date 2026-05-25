@@ -15,6 +15,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import CreatorProofPassport from '@/components/creators/CreatorProofPassport';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { buildCreatorMissionActivationHref } from '@/lib/mission-routing';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -1024,6 +1025,16 @@ export default function CreatorProfilePage() {
                         </div>
                     </div>
                 </div>
+
+                <CreatorProofPassport
+                    displayHandle={displayTag}
+                    trust={trust}
+                    stats={stats}
+                    businessMetrics={businessMetrics}
+                    reviews={reviews}
+                    contribution={profile?.contribution}
+                    inviteMissionHref={inviteMissionHref}
+                />
 
                 <div className={`${softCardClass} p-5 sm:p-6`}>
                     <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />

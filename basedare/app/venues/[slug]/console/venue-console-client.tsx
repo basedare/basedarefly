@@ -9,6 +9,7 @@ import { Activity, BarChart3, CheckCircle2, CreditCard, Flame, Gift, Loader2, Ma
 import type { FirstSparkWindowSummary, VenueDetail, VenuePerkLite, VenueQrPayload } from '@/lib/venue-types';
 import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import LiveActivationCard from '@/components/venues/LiveActivationCard';
+import VenueAutopilotPanel from '@/components/venues/VenueAutopilotPanel';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { formatPhp } from '@/lib/basecash-shared';
@@ -534,6 +535,8 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     () => buildSparkWindowPreview(sparkDraft, savedSparkWindow, liveStats),
     [liveStats, savedSparkWindow, sparkDraft]
   );
+  const consoleHref = venue.commandCenter.consoleUrl ?? `/venues/${encodeURIComponent(venue.slug)}/console`;
+  const receiptHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
 
   const directLaunchLabel =
     approvalStatus === 'approving'
@@ -1046,6 +1049,17 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
               </div>
             </div>
           </div>
+
+          <VenueAutopilotPanel
+            venueName={venue.name}
+            activation={sparkWindowPreview}
+            liveStats={liveStats}
+            activeDareCount={venue.activeDares.length}
+            topCreatorTag={venue.topCreators[0]?.creatorTag ?? null}
+            consoleHref={consoleHref}
+            receiptHref={receiptHref}
+            launchHref={confirmedLaunch.href}
+          />
 
           <div className={`${softCardClass} p-5 sm:p-6`}>
             <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />

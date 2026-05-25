@@ -15,6 +15,8 @@ import {
 import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
+import LiveActivationCard from '@/components/venues/LiveActivationCard';
+import SparkReceiptCard from '@/components/venues/SparkReceiptCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import FirstSparkPilotQuickStart from './FirstSparkPilotQuickStart';
@@ -433,6 +435,28 @@ export default async function VenueDetailPage(
       actionLabel: latestProofRelic?.shortId ? 'Open proof' : null,
     },
   ];
+  const receiptCheckIns = Math.max(
+    venue.firstSparkWindow?.checkIns ?? 0,
+    last7DayWindow.checkIns,
+    venue.memorySummary?.checkInCount ?? 0,
+    venue.recentCheckIns.length
+  );
+  const receiptProofs = Math.max(
+    venue.firstSparkWindow?.proofs ?? 0,
+    last7DayWindow.proofs,
+    venue.memorySummary?.proofCount ?? 0,
+    venue.tagSummary.approvedCount
+  );
+  const receiptRedemptions = Math.max(
+    venue.firstSparkWindow?.redemptions ?? 0,
+    venue.memorySummary?.perkRedemptionCount ?? 0
+  );
+  const receiptCreatorCount = Math.max(
+    venue.topCreators.length,
+    claimedActivationCount,
+    pendingActivationCount,
+    paidActivationCount > 0 ? 1 : 0
+  );
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -636,6 +660,27 @@ export default async function VenueDetailPage(
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <LiveActivationCard
+              venueName={venue.name}
+              activation={venue.firstSparkWindow}
+              href={mapHref}
+              ctaLabel="Open live map"
+              compact
+            />
+            <SparkReceiptCard
+              venueName={venue.name}
+              city={venue.city}
+              activation={venue.firstSparkWindow}
+              checkIns={receiptCheckIns}
+              proofs={receiptProofs}
+              redemptions={receiptRedemptions}
+              creatorCount={receiptCreatorCount}
+              fundingUsd={totalActiveChallengeFunding}
+              href={venueRecapHref}
+            />
           </div>
 
           <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
