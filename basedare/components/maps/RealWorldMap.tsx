@@ -12,6 +12,7 @@ import maplibregl, {
   type MapLayerMouseEvent,
   type Marker as MapLibreMarker,
   type PositionAnchor,
+  type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import {
@@ -792,6 +793,7 @@ const PROXIMITY_REVEAL_METERS = 100;
 const PROXIMITY_GHOST_METERS = 500;
 const MAPLIBRE_ENABLE_BUILDING_EXTRUSIONS = false;
 const currentLocationIconCache = new Map<string, string>();
+let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
 
 function getDefaultMapCamera(isMobileViewport: boolean) {
   return {
@@ -813,6 +815,29 @@ function browserCanStartMapRenderer() {
   } catch {
     return false;
   }
+}
+
+function loadOpenFreeMapStyle() {
+  if (!openFreeMapStylePromise) {
+    openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`OpenFreeMap style failed with ${response.status}`);
+        }
+
+        const style = (await response.json()) as StyleSpecification;
+        return {
+          ...style,
+          projection: style.projection ?? { type: 'mercator' },
+        } satisfies StyleSpecification;
+      })
+      .catch((error) => {
+        console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
+        return OPENFREEMAP_LIBERTY_STYLE_URL;
+      });
+  }
+
+  return openFreeMapStylePromise;
 }
 
 function getMapStartupErrorMessage(error: unknown) {
@@ -1761,6 +1786,18 @@ function ensureMapLibreDareLayers(
       },
     },
     firstSymbolLayerId
+  );
+}
+
+function hasMapLibreDareLayerBundle(map: MapLibreMap) {
+  return Boolean(
+    map.getSource(MAPLIBRE_CHAOS_SOURCE_ID) &&
+      map.getSource(MAPLIBRE_VENUE_SOURCE_ID) &&
+      map.getSource(MAPLIBRE_SELECTED_SOURCE_ID) &&
+      map.getSource(MAPLIBRE_USER_SOURCE_ID) &&
+      map.getSource(MAPLIBRE_FOOTPRINT_SOURCE_ID) &&
+      map.getSource(MAPLIBRE_PRESENCE_SOURCE_ID) &&
+      MAPLIBRE_INTERACTIVE_SIGNAL_LAYER_IDS.every((layerId) => map.getLayer(layerId))
   );
 }
 
@@ -4300,12 +4337,15 @@ export default function RealWorldMap() {
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
 
-    const startMap = () => {
+    const startMap = async () => {
+      const mapStyle = await loadOpenFreeMapStyle();
+      if (cancelled) return;
+
       let map: MapLibreMap;
       try {
         map = new maplibregl.Map({
           container,
-          style: OPENFREEMAP_LIBERTY_STYLE_URL,
+          style: mapStyle,
           center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
           zoom: DEFAULT_ZOOM,
           pitch: initialCamera.pitch,
@@ -4346,10 +4386,12 @@ export default function RealWorldMap() {
       let styleLayerFrame: number | null = null;
 
       const ensureStyleLayersSoon = () => {
+        if (hasMapLibreDareLayerBundle(map)) return;
         if (styleLayerFrame !== null) return;
         styleLayerFrame = window.requestAnimationFrame(() => {
           styleLayerFrame = null;
           if (cancelled || mapInstanceRef.current !== map || !map.isStyleLoaded()) return;
+          if (hasMapLibreDareLayerBundle(map)) return;
           ensureMapLibreDareLayers(map, mapPresetRef.current);
         });
       };
@@ -4364,6 +4406,7 @@ export default function RealWorldMap() {
       };
 
       const handleStyleData = () => {
+        if (hasMapLibreDareLayerBundle(map)) return;
         ensureStyleLayersSoon();
       };
 
@@ -4476,7 +4519,7 @@ export default function RealWorldMap() {
       };
     };
 
-    startMap();
+    void startMap();
 
     return () => {
       cancelled = true;
@@ -8443,7 +8486,7 @@ export default function RealWorldMap() {
           >
             <div
               ref={mapCanvasRef}
-              className="absolute inset-0 z-0"
+              className="absolute inset-0 z-[2]"
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
@@ -8466,10 +8509,10 @@ export default function RealWorldMap() {
               </button>
             ) : null}
 
-            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
-            <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
+            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[1]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[3]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[4]" />
+            <div className="glass-haze pointer-events-none absolute inset-0 z-[5]" />
             {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
@@ -13189,13 +13232,25 @@ export default function RealWorldMap() {
           font-family: inherit;
         }
 
+        .basedare-maplibre-map :global(.maplibregl-map) {
+          position: absolute !important;
+          inset: 0 !important;
+          z-index: 0 !important;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-canvas-container),
+        .basedare-maplibre-map :global(.maplibregl-canvas) {
+          position: absolute !important;
+          inset: 0 !important;
+        }
+
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
           backface-visibility: hidden;
           filter: none;
           outline: none;
-          transform: translateZ(0);
+          transform: none !important;
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
@@ -13253,9 +13308,14 @@ export default function RealWorldMap() {
           color: rgba(248, 221, 114, 0.78);
         }
 
-        .basedare-maplibre-map :global(.maplibregl-canvas),
-        .basedare-maplibre-map :global(.maplibregl-control-container) {
+        .basedare-maplibre-map :global(.maplibregl-canvas-container),
+        .basedare-maplibre-map :global(.maplibregl-canvas) {
           z-index: 1;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-control-container) {
+          position: relative;
+          z-index: 9;
         }
 
         .basedare-maplibre-map :global(.peebear-maplibre-icon) {
