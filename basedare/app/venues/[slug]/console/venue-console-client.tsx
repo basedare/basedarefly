@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi';
-import { Activity, BarChart3, CheckCircle2, CreditCard, Flame, Gift, Loader2, MapPin, Maximize2, PauseCircle, PlayCircle, RefreshCcw, Search, TicketCheck, Timer, Waves, X } from 'lucide-react';
-import type { VenueDetail, VenuePerkLite, VenueQrPayload } from '@/lib/venue-types';
+import { Activity, BarChart3, CheckCircle2, CreditCard, Flame, Gift, Loader2, MapPin, Maximize2, PauseCircle, PlayCircle, RadioTower, RefreshCcw, Search, Target, TicketCheck, Timer, Waves, X } from 'lucide-react';
+import type { FirstSparkWindowSummary, VenueDetail, VenuePerkLite, VenueQrPayload } from '@/lib/venue-types';
 import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
+import LiveActivationCard from '@/components/venues/LiveActivationCard';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { formatPhp } from '@/lib/basecash-shared';
@@ -84,6 +85,13 @@ type VenuePerkDraft = {
   description: string;
   staffInstructions: string;
   expiresInHours: number;
+};
+
+type SparkWindowDraft = {
+  enabled: boolean;
+  windowLabel: string;
+  perkLabel: string;
+  targetCheckIns: number;
 };
 
 type BaseCashConsoleCredit = {
@@ -190,6 +198,57 @@ function buildPerkDraft(perk: VenuePerkLite | null): VenuePerkDraft {
   };
 }
 
+function clampTargetCheckIns(value: number) {
+  if (!Number.isFinite(value)) return 20;
+  return Math.min(500, Math.max(1, Math.round(value)));
+}
+
+function buildSparkWindowDraft(
+  sparkWindow: FirstSparkWindowSummary | null,
+  perk: VenuePerkLite | null
+): SparkWindowDraft {
+  const targetCheckIns = clampTargetCheckIns(sparkWindow?.targetCheckIns ?? 20);
+
+  return {
+    enabled: sparkWindow?.enabled ?? true,
+    windowLabel: sparkWindow?.windowLabel ?? 'Tonight 7-8:30',
+    perkLabel: sparkWindow?.perkLabel ?? perk?.title ?? 'One simple perk',
+    targetCheckIns,
+  };
+}
+
+function buildSparkWindowPreview(
+  draft: SparkWindowDraft,
+  savedWindow: FirstSparkWindowSummary | null,
+  liveStats: VenueDetail['liveStats']
+): FirstSparkWindowSummary {
+  const targetCheckIns = clampTargetCheckIns(draft.targetCheckIns);
+  const checkIns = savedWindow?.checkIns ?? liveStats.uniqueVisitorsToday;
+  const proofs = savedWindow?.proofs ?? 0;
+  const redemptions = savedWindow?.redemptions ?? 0;
+
+  let state = savedWindow?.state ?? 'heating';
+  if (!draft.enabled) state = 'quiet';
+  else if (proofs > 0 || redemptions > 0 || checkIns >= targetCheckIns) state = 'proven';
+  else if (state === 'quiet') state = 'heating';
+
+  return {
+    enabled: draft.enabled,
+    state,
+    windowLabel: draft.windowLabel.trim() || 'Tonight 7-8:30',
+    perkLabel: draft.perkLabel.trim() || 'One simple perk',
+    targetLabel: `${targetCheckIns} check-ins`,
+    targetCheckIns,
+    checkIns,
+    proofs,
+    redemptions,
+    startsAt: savedWindow?.startsAt ?? null,
+    endsAt: savedWindow?.endsAt ?? null,
+    updatedAt: savedWindow?.updatedAt ?? null,
+    source: 'configured',
+  };
+}
+
 export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -234,6 +293,13 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   const [savingPerk, setSavingPerk] = useState(false);
   const [perkMessage, setPerkMessage] = useState<string | null>(null);
   const [perkError, setPerkError] = useState<string | null>(null);
+  const [sparkDraft, setSparkDraft] = useState<SparkWindowDraft>(() =>
+    buildSparkWindowDraft(venue.firstSparkWindow, venue.activePerk)
+  );
+  const [savedSparkWindow, setSavedSparkWindow] = useState<FirstSparkWindowSummary | null>(venue.firstSparkWindow);
+  const [savingSparkWindow, setSavingSparkWindow] = useState(false);
+  const [sparkWindowMessage, setSparkWindowMessage] = useState<string | null>(null);
+  const [sparkWindowError, setSparkWindowError] = useState<string | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState(venue.recentCheckIns);
   const [redeemingCheckInId, setRedeemingCheckInId] = useState<string | null>(null);
   const [tvModeOpen, setTvModeOpen] = useState(false);
@@ -464,6 +530,10 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     Boolean(sessionToken) &&
     Boolean(confirmedLaunch.creatorTag);
   const canEditVenueProfile = venue.commandCenter.claimState === 'claimed';
+  const sparkWindowPreview = useMemo(
+    () => buildSparkWindowPreview(sparkDraft, savedSparkWindow, liveStats),
+    [liveStats, savedSparkWindow, sparkDraft]
+  );
 
   const directLaunchLabel =
     approvalStatus === 'approving'
@@ -568,6 +638,63 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
       setPerkError(error instanceof Error ? error.message : 'Unable to save venue perk');
     } finally {
       setSavingPerk(false);
+    }
+  }
+
+  async function handleSaveSparkWindow() {
+    if (savingSparkWindow) return;
+
+    if (venue.commandCenter.claimState !== 'claimed') {
+      setSparkWindowError('Claim this venue before starting a First Spark Window.');
+      return;
+    }
+
+    if (!sparkDraft.windowLabel.trim()) {
+      setSparkWindowError('Add the slow hour first.');
+      return;
+    }
+
+    if (!sparkDraft.perkLabel.trim()) {
+      setSparkWindowError('Add one simple perk.');
+      return;
+    }
+
+    setSavingSparkWindow(true);
+    setSparkWindowError(null);
+    setSparkWindowMessage(null);
+
+    try {
+      const targetCheckIns = clampTargetCheckIns(sparkDraft.targetCheckIns);
+      const response = await fetch(`/api/venues/${encodeURIComponent(venue.slug)}/spark-window`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({
+          enabled: sparkDraft.enabled,
+          windowLabel: sparkDraft.windowLabel,
+          perkLabel: sparkDraft.perkLabel,
+          targetLabel: `${targetCheckIns} check-ins`,
+          targetCheckIns,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error ?? 'Unable to save First Spark Window');
+      }
+
+      setSavedSparkWindow(payload.data?.firstSparkWindow ?? null);
+      setSparkDraft((current) => ({
+        ...current,
+        targetCheckIns,
+      }));
+      setSparkWindowMessage(sparkDraft.enabled ? 'First Spark Window is ready.' : 'First Spark Window saved as quiet.');
+    } catch (error) {
+      setSparkWindowError(error instanceof Error ? error.message : 'Unable to save First Spark Window');
+    } finally {
+      setSavingSparkWindow(false);
     }
   }
 
@@ -801,6 +928,122 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 </Link>
               </div>
             </div>
+            </div>
+          </div>
+
+          <div className={`${softCardClass} p-5 sm:p-6`}>
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#f8dd72]/30 to-transparent" />
+            <div className="relative grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+              <LiveActivationCard
+                venueName={venue.name}
+                activation={sparkWindowPreview}
+                href={`/map?place=${encodeURIComponent(venue.slug)}&source=first-spark-window`}
+                ctaLabel="Open live map"
+                compact
+                className="h-full"
+              />
+
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-[#f8dd72]/70">First Spark Window</p>
+                    <h2 className="mt-2 text-xl font-black tracking-tight">Fill a slow hour. Get proof.</h2>
+                  </div>
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-400/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
+                    <RadioTower className="h-3.5 w-3.5" />
+                    90 min loop
+                  </span>
+                </div>
+
+                <label className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/24 px-4 py-3 text-sm font-bold text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <span>Show this as a live venue signal</span>
+                  <input
+                    type="checkbox"
+                    checked={sparkDraft.enabled}
+                    onChange={(event) => setSparkDraft((current) => ({ ...current, enabled: event.target.checked }))}
+                    disabled={!canEditVenueProfile || savingSparkWindow}
+                    className="h-4 w-4 accent-[#f8dd72]"
+                  />
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">Slow hour</span>
+                    <input
+                      value={sparkDraft.windowLabel}
+                      onChange={(event) => setSparkDraft((current) => ({ ...current, windowLabel: event.target.value }))}
+                      maxLength={80}
+                      disabled={!canEditVenueProfile || savingSparkWindow}
+                      className="mt-2 min-h-12 w-full rounded-[18px] border border-white/10 bg-black/30 px-4 text-sm font-bold text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/36 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Tuesday 7-8:30"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">Perk</span>
+                    <input
+                      value={sparkDraft.perkLabel}
+                      onChange={(event) => setSparkDraft((current) => ({ ...current, perkLabel: event.target.value }))}
+                      maxLength={80}
+                      disabled={!canEditVenueProfile || savingSparkWindow}
+                      className="mt-2 min-h-12 w-full rounded-[18px] border border-white/10 bg-black/30 px-4 text-sm font-bold text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/36 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Free shot for first 20"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <label className="rounded-[20px] border border-white/10 bg-black/24 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                      <Target className="h-3.5 w-3.5 text-[#f8dd72]" />
+                      Target check-ins
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={sparkDraft.targetCheckIns}
+                      onChange={(event) =>
+                        setSparkDraft((current) => ({
+                          ...current,
+                          targetCheckIns: clampTargetCheckIns(Number(event.target.value)),
+                        }))
+                      }
+                      disabled={!canEditVenueProfile || savingSparkWindow}
+                      className="mt-2 w-full bg-transparent text-2xl font-black text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveSparkWindow()}
+                    disabled={!canEditVenueProfile || savingSparkWindow}
+                    className="inline-flex min-h-16 items-center justify-center gap-2 rounded-[20px] border border-[#f5c518]/32 bg-[linear-gradient(180deg,rgba(255,225,87,0.24)_0%,rgba(122,73,0,0.22)_100%)] px-5 text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_16px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-5px_0_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/46 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingSparkWindow ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    Start Spark
+                  </button>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className={`${insetCardClass} px-4 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Inputs</p>
+                    <p className="mt-1 text-sm font-black text-white">Venue + perk + target</p>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Output</p>
+                    <p className="mt-1 text-sm font-black text-white">Check-ins + proofs</p>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-3`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Next</p>
+                    <p className="mt-1 text-sm font-black text-white">Spark Receipt</p>
+                  </div>
+                </div>
+
+                {!canEditVenueProfile ? (
+                  <p className="text-sm text-white/44">Claimed venue wallet required.</p>
+                ) : null}
+                {sparkWindowMessage ? <p className="text-sm text-emerald-200/86">{sparkWindowMessage}</p> : null}
+                {sparkWindowError ? <p className="text-sm text-rose-200/86">{sparkWindowError}</p> : null}
+              </div>
             </div>
           </div>
 

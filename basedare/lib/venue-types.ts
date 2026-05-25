@@ -116,6 +116,24 @@ export type VenuePerkLite = {
   updatedAt: string | null;
 };
 
+export type FirstSparkWindowState = 'quiet' | 'heating' | 'live' | 'proven';
+
+export type FirstSparkWindowSummary = {
+  enabled: boolean;
+  state: FirstSparkWindowState;
+  windowLabel: string;
+  perkLabel: string;
+  targetLabel: string;
+  targetCheckIns: number;
+  checkIns: number;
+  proofs: number;
+  redemptions: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  updatedAt: string | null;
+  source: 'configured' | 'derived';
+};
+
 export type VenuePerkUnlock = VenuePerkLite & {
   checkInId: string;
   redemptionCode: string;
@@ -288,6 +306,7 @@ export type NearbyVenueItem = {
   profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
   activePerk: VenuePerkLite | null;
+  firstSparkWindow: FirstSparkWindowSummary | null;
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];
@@ -320,6 +339,7 @@ export type VenueDetail = {
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
   activePerk: VenuePerkLite | null;
+  firstSparkWindow: FirstSparkWindowSummary | null;
   liveSession: VenueSessionSummary | null;
   commandCenter: VenueCommandCenterSummary;
   mapModes: VenueExperienceMode[];

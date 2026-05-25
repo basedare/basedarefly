@@ -12,6 +12,7 @@ import GlitchText from "@/components/GlitchText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
+import HomeGridRadar from "@/components/home/HomeGridRadar";
 
 import { useView } from "@/app/context/ViewContext";
 import { getClientPerformanceHints, runAfterPageIdle } from "@/lib/client-performance";
@@ -200,6 +201,14 @@ function HomeContent() {
         onComplete={() => setTriggerMatrixRain(false)}
       />
 
+      {view === 'FAN' ? (
+        <HomeGridRadar
+          floating
+          className="pointer-events-auto hidden xl:block"
+          style={{ position: 'fixed', left: 24, bottom: 96, zIndex: 45 }}
+        />
+      ) : null}
+
       <AnimatePresence mode="wait">
         {view === 'FAN' && (
           <motion.div
@@ -208,7 +217,7 @@ function HomeContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            className="w-full flex flex-col items-center"
+            className="w-full flex flex-col items-center relative"
           >
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
@@ -286,6 +295,7 @@ function HomeContent() {
                     Start with nearby proof →
                   </Link>
                 </div>
+                <HomeGridRadar compact className="mt-4 flex justify-center md:hidden" />
               </div>
 
               <div id="active-bounties" className="w-full flex justify-center px-4 pb-12 pt-20 z-30 md:px-6 md:pb-14">

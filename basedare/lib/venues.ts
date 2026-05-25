@@ -27,6 +27,7 @@ import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
 import { buildVenueProfile } from '@/lib/venue-profile';
+import { getFirstSparkWindow } from '@/lib/first-spark-window';
 import { getActiveVenuePerk, getVenuePerkSnapshot } from '@/lib/venue-perks';
 import { CURATED_SIARGAO_VENUES, ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
 import { deriveVenueHandle, isBaseCashPilotVenue } from '@/lib/venue-handles';
@@ -158,6 +159,7 @@ function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
     memoryHistory,
     tagSummary,
     activePerk: null,
+    firstSparkWindow: null,
     liveSession: null,
     commandCenter: buildVenueCommandCenterSummary({
       slug: venue.slug,
@@ -1688,6 +1690,10 @@ export async function getNearbyVenues(input: {
         return null;
       }
 
+      const memorySummary = mapMemorySummary(venue.memories[0] ?? null);
+      const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
+      const activePerk = getActiveVenuePerk(venue.metadataJson);
+      const liveSession = mapSessionSummary(venue.qrSessions[0] ?? null);
       const commandCenter = buildVenueCommandCenterSummary({
         slug: venue.slug,
         isPartner: venue.isPartner,
@@ -1696,7 +1702,7 @@ export async function getNearbyVenues(input: {
         paidActivationCount: 0,
         activeChallengeCount: venue.dares.length,
         totalLiveFundingUsd: venue.dares.reduce((sum, dare) => sum + dare.bounty, 0),
-        approvedMarks: getVenueTagSummary(tagSummaryMap, venue.id).approvedCount,
+        approvedMarks: tagSummary.approvedCount,
         claimedBy: venue.claimedBy,
         claimRequestStatus: venue.claimRequestStatus,
         claimRequestTag: venue.claimRequestTag,
@@ -1736,10 +1742,16 @@ export async function getNearbyVenues(input: {
         qrRotationSeconds: venue.qrRotationSeconds,
         distanceKm: Math.round(distanceKm * 100) / 100,
         distanceDisplay: formatDistance(distanceKm),
-        memorySummary: mapMemorySummary(venue.memories[0] ?? null),
-        tagSummary: getVenueTagSummary(tagSummaryMap, venue.id),
-        activePerk: getActiveVenuePerk(venue.metadataJson),
-        liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+        memorySummary,
+        tagSummary,
+        activePerk,
+        firstSparkWindow: getFirstSparkWindow(venue.metadataJson, {
+          activePerk,
+          liveSession,
+          memorySummary,
+          activeDareCount: venue.dares.length,
+        }),
+        liveSession,
         commandCenter,
         mapModes: buildVenueExperienceModes(),
         activeDareCount: venue.dares.length,
@@ -1935,6 +1947,7 @@ async function getVenueDetailBySlugFromDatabase(
   const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length;
   const memorySummary = mapMemorySummary(venue.memories[0] ?? null);
   const activePerk = getActiveVenuePerk(venue.metadataJson);
+  const liveSession = mapSessionSummary(venue.qrSessions[0] ?? null);
   const memoryHistory = venue.memories
     .map((memory) => mapMemorySummary(memory))
     .filter((memory): memory is NonNullable<ReturnType<typeof mapMemorySummary>> => memory !== null);
@@ -2036,6 +2049,16 @@ async function getVenueDetailBySlugFromDatabase(
     activationInsight,
   });
   const reportPipeline = await getVenueReportPipelineSummary(venue.id);
+  const firstSparkWindow = getFirstSparkWindow(venue.metadataJson, {
+    activePerk,
+    liveSession,
+    memorySummary,
+    activeDareCount: activeDares.length,
+    checkIns: uniqueVisitorRows.length,
+    proofs: memorySummary?.proofCount ?? 0,
+    redemptions: memorySummary?.perkRedemptionCount ?? 0,
+    completedDares: memorySummary?.completedDareCount ?? 0,
+  });
 
   return {
     id: venue.id,
@@ -2074,7 +2097,8 @@ async function getVenueDetailBySlugFromDatabase(
     memoryHistory,
     tagSummary,
     activePerk,
-    liveSession: mapSessionSummary(venue.qrSessions[0] ?? null),
+    firstSparkWindow,
+    liveSession,
     commandCenter,
     mapModes: buildVenueExperienceModes(),
     activationInsight,
