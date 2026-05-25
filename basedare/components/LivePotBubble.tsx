@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
-import { getClientPerformanceHints, runAfterFirstInteraction, runAfterPageIdle } from '@/lib/client-performance';
+import { getClientPerformanceHints } from '@/lib/client-performance';
 
 interface LivePotBubbleProps {
   className?: string;
@@ -72,19 +72,16 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const prevDistance = useRef<number>(0);
 
   useEffect(() => {
-    setIsReadyToRender(false);
     if (pathname !== '/') return undefined;
 
     const hints = getClientPerformanceHints();
-    const run = () => setIsReadyToRender(true);
-    const cancelInteraction = hints.saveData || hints.isLowMemory ? runAfterFirstInteraction(run) : () => {};
-    const cancelIdle = hints.saveData || hints.isLowMemory
-      ? () => {}
-      : runAfterPageIdle(run, hints.isMobileViewport ? 5200 : 2200);
+    const timeoutId = window.setTimeout(
+      () => setIsReadyToRender(true),
+      hints.isMobileViewport ? 5200 : 0
+    );
 
     return () => {
-      cancelInteraction();
-      cancelIdle();
+      window.clearTimeout(timeoutId);
     };
   }, [pathname]);
 
@@ -236,12 +233,12 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
         onClick={() => setIsOpen((value) => !value)}
         className={`
           fixed z-40 will-change-transform origin-bottom-right
-          rounded-full flex flex-col justify-center items-center p-2
+          rounded-full hidden flex-col justify-center items-center p-2
           border-2 overflow-hidden cursor-pointer
           w-44 h-44
-          bottom-4 right-2 scale-75
+          bottom-6 right-6
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black
-          md:bottom-6 md:right-6 md:scale-100
+          md:flex
           ${isControlMode
             ? 'border-zinc-400/50 shadow-[0_0_20px_rgba(120,120,120,0.4)]'
             : 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]'

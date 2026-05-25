@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef } from 'react';
-import { gsap } from 'gsap';
+import { useEffect, useRef, type RefObject } from 'react';
 
 type MapCrosshairProps = {
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  containerRef: RefObject<HTMLDivElement | null>;
   horizontalColor?: string;
   verticalColor?: string;
   reactiveSelector?: string;
@@ -20,8 +19,6 @@ export default function MapCrosshair({
 }: MapCrosshairProps) {
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
-  const filterXRef = useRef<SVGFETurbulenceElement | null>(null);
-  const filterYRef = useRef<SVGFETurbulenceElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const renderedRef = useRef({
@@ -31,9 +28,7 @@ export default function MapCrosshair({
     yCurrent: 0,
   });
   const pointerInsideRef = useRef(false);
-
-  const xFilterId = useId().replace(/:/g, '');
-  const yFilterId = useId().replace(/:/g, '');
+  const hoverPulseRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(min-width: 768px)').matches) {
@@ -46,10 +41,8 @@ export default function MapCrosshair({
 
     if (!container || !horizontal || !vertical) return;
 
-    const setHorizontalY = gsap.quickSetter(horizontal, 'y', 'px');
-    const setVerticalX = gsap.quickSetter(vertical, 'x', 'px');
-
-    gsap.set([horizontal, vertical], { opacity: 0 });
+    horizontal.style.opacity = '0';
+    vertical.style.opacity = '0';
 
     const render = () => {
       const rendered = renderedRef.current;
@@ -58,8 +51,8 @@ export default function MapCrosshair({
       rendered.xPrevious = lerp(rendered.xPrevious, rendered.xCurrent, 0.15);
       rendered.yPrevious = lerp(rendered.yPrevious, rendered.yCurrent, 0.15);
 
-      setHorizontalY(rendered.yPrevious);
-      setVerticalX(rendered.xPrevious);
+      horizontal.style.transform = `translate3d(0, ${rendered.yPrevious}px, 0)`;
+      vertical.style.transform = `translate3d(${rendered.xPrevious}px, 0, 0)`;
       frameRef.current = window.requestAnimationFrame(render);
     };
 
@@ -83,24 +76,14 @@ export default function MapCrosshair({
     };
 
     const showCrosshair = () => {
-      gsap.to([horizontal, vertical], {
-        duration: 0.2,
-        ease: 'power2.out',
-        opacity: 1,
-      });
+      horizontal.style.opacity = '1';
+      vertical.style.opacity = '1';
     };
 
     const hideCrosshair = () => {
-      gsap.to([horizontal, vertical], {
-        duration: 0.16,
-        ease: 'power2.out',
-        opacity: 0,
-        onComplete: () => {
-          if (!pointerInsideRef.current) {
-            stopRenderLoop();
-          }
-        },
-      });
+      horizontal.style.opacity = '0';
+      vertical.style.opacity = '0';
+      stopRenderLoop();
     };
 
     const handleMouseEnter = (event: MouseEvent) => {
@@ -124,33 +107,19 @@ export default function MapCrosshair({
       hideCrosshair();
     };
 
-    const distortionState = { turbulence: 0.000001 };
+    const triggerHoverPulse = () => {
+      horizontal.dataset.reactive = 'true';
+      vertical.dataset.reactive = 'true';
 
-    const distortionTimeline = gsap.timeline({
-      paused: true,
-      onStart: () => {
-        horizontal.style.filter = `url(#${xFilterId})`;
-        vertical.style.filter = `url(#${yFilterId})`;
-      },
-      onUpdate: () => {
-        filterXRef.current?.setAttribute('baseFrequency', `${distortionState.turbulence}`);
-        filterYRef.current?.setAttribute('baseFrequency', `${distortionState.turbulence}`);
-      },
-      onComplete: () => {
-        horizontal.style.filter = 'none';
-        vertical.style.filter = 'none';
-      },
-    });
+      if (hoverPulseRef.current !== null) {
+        window.clearTimeout(hoverPulseRef.current);
+      }
 
-    distortionTimeline.to(distortionState, {
-      duration: 0.45,
-      ease: 'power1.out',
-      startAt: { turbulence: 0.9 },
-      turbulence: 0.000001,
-    });
-
-    const triggerDistortion = () => {
-      distortionTimeline.restart();
+      hoverPulseRef.current = window.setTimeout(() => {
+        delete horizontal.dataset.reactive;
+        delete vertical.dataset.reactive;
+        hoverPulseRef.current = null;
+      }, 160);
     };
 
     let activeInteractiveTarget: Element | null = null;
@@ -164,7 +133,7 @@ export default function MapCrosshair({
       }
 
       activeInteractiveTarget = interactiveTarget;
-      triggerDistortion();
+      triggerHoverPulse();
     };
 
     const clearInteractiveHover = (event: MouseEvent) => {
@@ -192,26 +161,20 @@ export default function MapCrosshair({
       container.removeEventListener('mouseleave', handleMouseLeave);
       container.removeEventListener('mouseover', handleInteractiveHover);
       container.removeEventListener('mouseout', clearInteractiveHover);
-      distortionTimeline.kill();
+      if (hoverPulseRef.current !== null) {
+        window.clearTimeout(hoverPulseRef.current);
+        hoverPulseRef.current = null;
+      }
       stopRenderLoop();
     };
-  }, [containerRef, reactiveSelector, xFilterId, yFilterId]);
+  }, [containerRef, reactiveSelector]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[14] hidden overflow-hidden md:block">
-      <svg className="absolute inset-0 h-full w-full opacity-0">
-        <defs>
-          <filter id={xFilterId}>
-            <feTurbulence ref={filterXRef} type="fractalNoise" baseFrequency="0.000001" numOctaves="1" />
-            <feDisplacementMap in="SourceGraphic" scale="34" />
-          </filter>
-          <filter id={yFilterId}>
-            <feTurbulence ref={filterYRef} type="fractalNoise" baseFrequency="0.000001" numOctaves="1" />
-            <feDisplacementMap in="SourceGraphic" scale="34" />
-          </filter>
-        </defs>
-      </svg>
-
+    <div
+      data-map-crosshair="true"
+      className="pointer-events-none absolute inset-0 z-[14] hidden overflow-hidden md:block"
+      style={{ contain: 'paint' }}
+    >
       <div
         ref={horizontalRef}
         style={{
@@ -224,6 +187,7 @@ export default function MapCrosshair({
           background: `linear-gradient(90deg, transparent 0%, rgba(184,127,255,0.1) 20%, ${horizontalColor} 46%, rgba(255,255,255,0.72) 50%, ${horizontalColor} 54%, rgba(184,127,255,0.1) 80%, transparent 100%)`,
           boxShadow: '0 0 18px rgba(184,127,255,0.28), 0 0 3px rgba(255,255,255,0.22)',
           mixBlendMode: 'screen',
+          transition: 'opacity 140ms ease-out, box-shadow 140ms ease-out',
           willChange: 'transform, opacity',
         }}
       />
@@ -239,9 +203,17 @@ export default function MapCrosshair({
           background: `linear-gradient(180deg, transparent 0%, rgba(245,197,24,0.1) 20%, ${verticalColor} 46%, rgba(255,255,255,0.66) 50%, ${verticalColor} 54%, rgba(245,197,24,0.1) 80%, transparent 100%)`,
           boxShadow: '0 0 18px rgba(245,197,24,0.28), 0 0 3px rgba(255,255,255,0.2)',
           mixBlendMode: 'screen',
+          transition: 'opacity 140ms ease-out, box-shadow 140ms ease-out',
           willChange: 'transform, opacity',
         }}
       />
+      <style jsx>{`
+        [data-reactive='true'] {
+          box-shadow:
+            0 0 22px rgba(255, 255, 255, 0.28),
+            0 0 28px rgba(245, 197, 24, 0.18) !important;
+        }
+      `}</style>
     </div>
   );
 }

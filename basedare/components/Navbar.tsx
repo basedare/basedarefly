@@ -134,7 +134,9 @@ export default function Navbar() {
 
           {/* 3. RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-2 md:gap-3 z-50">
-            <BackgroundToneToggle className="order-1 hidden md:inline-flex" />
+            <div className="order-1 hidden md:flex">
+              <BackgroundToneToggle />
+            </div>
             <Link
               href="/chat"
               prefetch={NAV_LINK_PREFETCH}
@@ -245,14 +247,6 @@ export default function Navbar() {
             {/* Mobile Search Button (Under FAQ) */}
             <div className="mt-6 w-full flex justify-center">
               <DeferredGlobalSearch />
-            </div>
-
-            <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/46">Background</p>
-                <p className="mt-1 text-xs font-bold text-white/74">Dark / light field</p>
-              </div>
-              <BackgroundToneToggle />
             </div>
 
             {/* Mobile Connect Button */}

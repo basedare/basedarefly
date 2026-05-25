@@ -68,7 +68,7 @@ const fallbackPoints: RadarPoint[] = [
     label: 'Cat & Gun',
     x: 38,
     y: 61,
-    tone: 'cyan',
+    tone: 'purple',
     signal: 'live proof',
     href: '/map?place=the-cat-and-gun&source=home-radar',
   },
@@ -86,7 +86,7 @@ const fallbackPoints: RadarPoint[] = [
     label: 'Beach Club',
     x: 67,
     y: 63,
-    tone: 'emerald',
+    tone: 'gold',
     signal: 'qr ready',
     href: '/map?place=siargao-beach-club&source=home-radar',
   },
@@ -95,7 +95,7 @@ const fallbackPoints: RadarPoint[] = [
     label: 'Greenhouse',
     x: 31,
     y: 43,
-    tone: 'cyan',
+    tone: 'purple',
     signal: 'coffee loop',
     href: '/map?source=home-radar',
   },
@@ -103,9 +103,9 @@ const fallbackPoints: RadarPoint[] = [
 
 const toneClasses: Record<RadarTone, string> = {
   gold: 'bg-[#f5c518] shadow-[0_0_18px_rgba(245,197,24,0.82)]',
-  cyan: 'bg-[#6feaff] shadow-[0_0_18px_rgba(111,234,255,0.78)]',
+  cyan: 'bg-[#d8b4fe] shadow-[0_0_18px_rgba(184,127,255,0.78)]',
   purple: 'bg-[#b66bff] shadow-[0_0_18px_rgba(182,107,255,0.82)]',
-  emerald: 'bg-[#5fffd2] shadow-[0_0_18px_rgba(95,255,210,0.74)]',
+  emerald: 'bg-[#ffe45c] shadow-[0_0_18px_rgba(245,197,24,0.76)]',
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -114,12 +114,12 @@ function clamp(value: number, min: number, max: number) {
 
 function toneForVenue(venue: NearbyVenue, index: number): RadarTone {
   if (venue.firstSparkWindow?.state === 'live') return 'gold';
-  if (venue.firstSparkWindow?.state === 'heating') return 'cyan';
-  if (venue.firstSparkWindow?.state === 'proven') return 'emerald';
+  if (venue.firstSparkWindow?.state === 'heating') return 'purple';
+  if (venue.firstSparkWindow?.state === 'proven') return 'gold';
   if (venue.liveSession || (venue.activeDareCount ?? 0) > 0) return 'gold';
   if ((venue.memorySummary?.proofCount ?? 0) > 0) return 'purple';
-  if ((venue.checkInCount ?? 0) > 0 || (venue.memorySummary?.checkInCount ?? 0) > 0) return 'cyan';
-  return (['emerald', 'cyan', 'purple'] as RadarTone[])[index % 3];
+  if ((venue.checkInCount ?? 0) > 0 || (venue.memorySummary?.checkInCount ?? 0) > 0) return 'purple';
+  return (['gold', 'purple', 'purple'] as RadarTone[])[index % 3];
 }
 
 function signalForVenue(venue: NearbyVenue) {
@@ -290,20 +290,20 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 220 220" aria-hidden="true">
           <defs>
             <radialGradient id="homeGridRadarSea" cx="50%" cy="50%" r="60%">
-              <stop offset="0%" stopColor="rgba(34, 211, 238, 0.20)" />
-              <stop offset="62%" stopColor="rgba(16, 18, 40, 0.90)" />
+              <stop offset="0%" stopColor="rgba(184, 127, 255, 0.22)" />
+              <stop offset="62%" stopColor="rgba(22, 16, 42, 0.92)" />
               <stop offset="100%" stopColor="rgba(2, 3, 8, 0.98)" />
             </radialGradient>
             <linearGradient id="homeGridRadarRoad" x1="0%" x2="100%" y1="0%" y2="100%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.70)" />
               <stop offset="55%" stopColor="rgba(159,128,255,0.56)" />
-              <stop offset="100%" stopColor="rgba(111,234,255,0.48)" />
+              <stop offset="100%" stopColor="rgba(245,197,24,0.54)" />
             </linearGradient>
             <linearGradient id="homeGridRadarRing" x1="0%" x2="100%">
-              <stop offset="0%" stopColor="#48eaff" />
-              <stop offset="42%" stopColor="#f5c518" />
-              <stop offset="72%" stopColor="#b66bff" />
-              <stop offset="100%" stopColor="#5fffd2" />
+              <stop offset="0%" stopColor="#b66bff" />
+              <stop offset="38%" stopColor="#f5c518" />
+              <stop offset="70%" stopColor="#8f4dff" />
+              <stop offset="100%" stopColor="#ffe45c" />
             </linearGradient>
           </defs>
           <circle cx="110" cy="110" r="106" fill="rgba(0,0,0,0.78)" />
@@ -342,7 +342,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           />
           <path
             d="M119 15 C127 46, 127 76, 121 105 C114 138, 101 166, 83 205"
-            stroke="rgba(111,234,255,0.42)"
+            stroke="rgba(184,127,255,0.46)"
             strokeWidth="4"
             strokeLinecap="round"
             fill="none"
@@ -360,8 +360,8 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           />
           <circle cx="110" cy="110" r="104" fill="none" stroke="rgba(0,0,0,0.92)" strokeWidth="8" />
           <circle cx="110" cy="110" r="100" fill="none" stroke="url(#homeGridRadarRing)" strokeWidth="4" opacity="0.88" />
-          <path d="M51 26 A100 100 0 0 1 109 10" stroke="rgba(95,255,210,0.9)" strokeWidth="7" fill="none" />
-          <path d="M173 33 A100 100 0 0 1 207 109" stroke="rgba(111,234,255,0.84)" strokeWidth="7" fill="none" />
+          <path d="M51 26 A100 100 0 0 1 109 10" stroke="rgba(184,127,255,0.9)" strokeWidth="7" fill="none" />
+          <path d="M173 33 A100 100 0 0 1 207 109" stroke="rgba(245,197,24,0.82)" strokeWidth="7" fill="none" />
           <path d="M17 139 A100 100 0 0 0 52 193" stroke="rgba(245,197,24,0.76)" strokeWidth="7" fill="none" />
         </svg>
 
@@ -422,8 +422,8 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           border: 1px solid rgba(255, 255, 255, 0.14);
           border-radius: 30px;
           background:
-            radial-gradient(circle at 30% 8%, rgba(111, 234, 255, 0.12), transparent 35%),
-            radial-gradient(circle at 82% 18%, rgba(245, 197, 24, 0.13), transparent 34%),
+            radial-gradient(circle at 28% 8%, rgba(184, 127, 255, 0.2), transparent 35%),
+            radial-gradient(circle at 82% 18%, rgba(245, 197, 24, 0.18), transparent 34%),
             linear-gradient(155deg, rgba(13, 15, 24, 0.88), rgba(4, 4, 9, 0.94));
           box-shadow:
             0 22px 50px rgba(0, 0, 0, 0.54),
@@ -439,7 +439,9 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           pointer-events: none;
           border-radius: 24px;
           border: 1px solid rgba(111, 234, 255, 0.10);
-          box-shadow: inset 0 0 24px rgba(182, 107, 255, 0.08);
+          box-shadow:
+            inset 0 0 28px rgba(182, 107, 255, 0.14),
+            inset 0 0 18px rgba(245, 197, 24, 0.08);
         }
 
         .home-grid-radar-disc {
@@ -453,22 +455,40 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           background: #020207;
           box-shadow:
             0 16px 32px rgba(0, 0, 0, 0.54),
-            0 0 34px rgba(111, 234, 255, 0.08),
+            0 0 32px rgba(184, 127, 255, 0.16),
+            0 0 26px rgba(245, 197, 24, 0.08),
             inset 0 2px 0 rgba(255, 255, 255, 0.12),
             inset 0 -16px 30px rgba(0, 0, 0, 0.74);
+        }
+
+        .home-grid-radar-disc::before {
+          content: '';
+          position: absolute;
+          inset: 8px;
+          z-index: 5;
+          pointer-events: none;
+          border-radius: inherit;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          box-shadow:
+            inset 0 2px 5px rgba(255, 255, 255, 0.2),
+            inset 0 -12px 22px rgba(0, 0, 0, 0.72),
+            inset 10px 0 22px rgba(184, 127, 255, 0.12),
+            inset -8px 0 20px rgba(245, 197, 24, 0.1);
         }
 
         .home-grid-radar-disc::after {
           content: '';
           position: absolute;
           inset: 0;
+          z-index: 6;
           pointer-events: none;
           border-radius: inherit;
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 28%),
-            radial-gradient(circle at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.62) 100%);
+            radial-gradient(ellipse at 31% 20%, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.11) 16%, transparent 34%),
+            radial-gradient(circle at 68% 78%, rgba(0, 0, 0, 0.68), transparent 38%),
+            radial-gradient(circle at 50% 50%, transparent 42%, rgba(0, 0, 0, 0.72) 100%);
           mix-blend-mode: screen;
-          opacity: 0.52;
+          opacity: 0.62;
         }
 
         .home-grid-radar-sweep {
@@ -568,10 +588,11 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           justify-content: center;
           border-radius: 9999px;
           border: 1px solid rgba(111, 234, 255, 0.28);
-          background: rgba(4, 8, 14, 0.72);
-          color: #c7fbff;
+          background: rgba(14, 7, 24, 0.76);
+          color: #ead7ff;
           box-shadow:
             0 10px 20px rgba(0, 0, 0, 0.36),
+            0 0 18px rgba(184, 127, 255, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.16);
           backdrop-filter: blur(10px);
         }
@@ -623,27 +644,42 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         }
 
         .home-grid-radar-shell--floating {
-          width: 176px;
+          width: 206px;
           min-height: 0;
-          padding: 8px;
-          border-radius: 28px;
-          background:
-            radial-gradient(circle at 50% 6%, rgba(111, 234, 255, 0.13), transparent 42%),
-            linear-gradient(155deg, rgba(9, 10, 16, 0.76), rgba(4, 4, 8, 0.88));
-          box-shadow:
-            0 18px 44px rgba(0, 0, 0, 0.48),
-            0 0 28px rgba(111, 234, 255, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          padding: 0;
+          border: 0;
+          border-radius: 9999px;
+          background: transparent;
+          box-shadow: none;
+          backdrop-filter: none;
+          filter:
+            drop-shadow(0 24px 34px rgba(0, 0, 0, 0.62))
+            drop-shadow(0 0 22px rgba(184, 127, 255, 0.18))
+            drop-shadow(0 0 16px rgba(245, 197, 24, 0.1));
         }
 
         .home-grid-radar-shell--floating::before {
-          inset: 5px;
-          border-radius: 23px;
+          display: none;
         }
 
         .home-grid-radar-shell--floating .home-grid-radar-disc {
-          width: 158px;
-          height: 158px;
+          width: 206px;
+          height: 206px;
+          border: 2px solid rgba(17, 18, 28, 0.9);
+          background:
+            radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.22), transparent 18%),
+            radial-gradient(circle at 50% 50%, rgba(72, 38, 108, 0.26), rgba(2, 3, 8, 0.98) 72%);
+          box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.10),
+            0 0 0 7px rgba(8, 9, 16, 0.78),
+            0 0 0 9px rgba(255, 255, 255, 0.08),
+            0 16px 34px rgba(0, 0, 0, 0.62),
+            0 0 34px rgba(184, 127, 255, 0.22),
+            0 0 24px rgba(245, 197, 24, 0.1),
+            inset 0 5px 12px rgba(255, 255, 255, 0.16),
+            inset 0 -18px 28px rgba(0, 0, 0, 0.84),
+            inset 14px 0 28px rgba(184, 127, 255, 0.15),
+            inset -14px 0 26px rgba(245, 197, 24, 0.12);
         }
 
         .home-grid-radar-shell--floating .home-grid-radar-copy {
@@ -651,18 +687,30 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         }
 
         .home-grid-radar-shell--floating .home-grid-radar-action {
-          min-height: 34px;
-          margin-top: 8px;
-          gap: 6px;
-          font-size: 9px;
-          letter-spacing: 0;
+          display: none;
         }
 
         .home-grid-radar-shell--floating .home-grid-radar-map-button {
-          right: 15px;
-          top: 15px;
-          height: 30px;
-          width: 30px;
+          right: 12px;
+          top: 12px;
+          height: 32px;
+          width: 32px;
+          border-color: rgba(255, 255, 255, 0.18);
+          background:
+            radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.24), transparent 28%),
+            linear-gradient(180deg, rgba(24, 24, 34, 0.94), rgba(7, 8, 14, 0.9));
+          box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.42),
+            inset 0 2px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -7px 11px rgba(0, 0, 0, 0.42);
+        }
+
+        .home-grid-radar-shell--floating .home-grid-radar-disc > span:last-child {
+          bottom: 30px;
+          background: rgba(0, 0, 0, 0.62);
+          box-shadow:
+            0 7px 18px rgba(0, 0, 0, 0.48),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         @keyframes home-grid-radar-sweep {

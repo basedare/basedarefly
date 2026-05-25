@@ -205,7 +205,7 @@ function HomeContent() {
         <HomeGridRadar
           floating
           className="pointer-events-auto hidden xl:block"
-          style={{ position: 'fixed', left: 24, bottom: 96, zIndex: 45 }}
+          style={{ position: 'fixed', left: 18, bottom: 22, zIndex: 45 }}
         />
       ) : null}
 

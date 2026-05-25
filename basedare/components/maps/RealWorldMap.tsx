@@ -63,6 +63,7 @@ import SentinelBadge from '@/components/SentinelBadge';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import ReceiptShareCard, { type ReceiptShareTone } from '@/components/ReceiptShareCard';
 import HoneyGooAccent from '@/components/HoneyGooAccent';
+import MapCrosshair from '@/app/map/MapCrosshair';
 
 type SearchResult = {
   id: string;
@@ -8477,8 +8478,9 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
+            data-crosshair={!isMobileViewport ? 'true' : undefined}
             data-map-moving={mapInteractionQuiet ? 'true' : undefined}
-            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
+            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} isolate relative overflow-hidden ${
               isImmersiveMobile
                 ? 'map-container-wrapper--immersive min-h-0 flex-1'
                 : 'h-[calc(100dvh-15.25rem)] min-h-[560px] md:h-[76vh] md:min-h-[660px]'
@@ -8486,7 +8488,7 @@ export default function RealWorldMap() {
           >
             <div
               ref={mapCanvasRef}
-              className="absolute inset-0 z-[2]"
+              className="absolute inset-0 z-0"
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
@@ -8509,10 +8511,17 @@ export default function RealWorldMap() {
               </button>
             ) : null}
 
-            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[1]" />
-            <div className="starfield pointer-events-none absolute inset-0 z-[3]" />
-            <div className="scanlines pointer-events-none absolute inset-0 z-[4]" />
-            <div className="glass-haze pointer-events-none absolute inset-0 z-[5]" />
+            <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
+            <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
+            <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
+            <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
+            {!isMobileViewport ? (
+              <MapCrosshair
+                containerRef={mapViewportRef}
+                horizontalColor="rgba(184, 127, 255, 0.82)"
+                verticalColor="rgba(245, 197, 24, 0.82)"
+              />
+            ) : null}
             {showStartProofDock ? (
               <>
                 <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[30px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
@@ -13228,20 +13237,7 @@ export default function RealWorldMap() {
           border-radius: 17px;
           background:
             radial-gradient(circle at 30% 20%, rgba(35, 22, 72, 0.88) 0%, rgba(4, 3, 12, 1) 70%);
-          cursor: none;
           font-family: inherit;
-        }
-
-        .basedare-maplibre-map :global(.maplibregl-map) {
-          position: absolute !important;
-          inset: 0 !important;
-          z-index: 0 !important;
-        }
-
-        .basedare-maplibre-map :global(.maplibregl-canvas-container),
-        .basedare-maplibre-map :global(.maplibregl-canvas) {
-          position: absolute !important;
-          inset: 0 !important;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas) {
@@ -13250,7 +13246,13 @@ export default function RealWorldMap() {
           backface-visibility: hidden;
           filter: none;
           outline: none;
-          transform: none !important;
+          transform: translateZ(0);
+        }
+
+        .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-map),
+        .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-canvas-container),
+        .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-canvas) {
+          cursor: none;
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
