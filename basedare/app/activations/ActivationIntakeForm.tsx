@@ -910,7 +910,7 @@ export default function ActivationIntakeForm({
         <div className="rounded-[22px] border border-emerald-200/14 bg-emerald-300/[0.055] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/72">Founding venue offer</p>
           <p className="mt-1.5 text-sm font-bold leading-6 text-white/70">
-            BaseDare handles setup, routing, proof, and recap after this route is approved.
+            We set up the route, QR proof, and receipt. Venue approves the plan and provides one perk.
           </p>
         </div>
       ) : null}
@@ -920,9 +920,9 @@ export default function ActivationIntakeForm({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Dead Window Rescue</p>
-              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Turn one slow window into proof.</h3>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Slow window to proof receipt.</h3>
               <p className="mt-2 max-w-xl text-sm font-bold leading-6 text-white/56">
-                Pick the quiet slot, set a check-in target, attach one perk, and BaseDare turns the result into a Spark Receipt.
+                Quiet slot. One perk. QR proof. Clear repeat call.
               </p>
             </div>
             <div className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
@@ -931,16 +931,16 @@ export default function ActivationIntakeForm({
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Weak window</label>
+              <label className={labelClass}>Slow window</label>
               <input
                 value={form.deadWindowTime}
                 onChange={(event) => updateField('deadWindowTime', event.target.value)}
                 className={inputClass}
-                placeholder="Tuesday 7-9pm, rainy lunch, post-surf lull"
+                placeholder="Tue 7-9pm, rainy lunch, post-surf lull"
               />
             </div>
             <div>
-              <label className={labelClass}>Success target</label>
+              <label className={labelClass}>Target</label>
               <input
                 value={form.deadWindowCheckInTarget}
                 onChange={(event) => updateField('deadWindowCheckInTarget', event.target.value)}
@@ -949,7 +949,7 @@ export default function ActivationIntakeForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Simple perk</label>
+              <label className={labelClass}>Perk</label>
               <input
                 value={form.deadWindowPerk}
                 onChange={(event) => updateField('deadWindowPerk', event.target.value)}
@@ -958,7 +958,7 @@ export default function ActivationIntakeForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Current baseline</label>
+              <label className={labelClass}>Baseline</label>
               <input
                 value={form.deadWindowBaseline}
                 onChange={(event) => updateField('deadWindowBaseline', event.target.value)}

@@ -323,23 +323,23 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
       `Close room: ${closeRoomUrl}`,
       '',
       isFirstSpark
-        ? 'Confirmed: one venue, one night, creator/guest route, QR/check-in proof, recap receipt, and one venue perk to be finalized before launch.'
+        ? 'Confirmed: one venue, one window, one perk, QR proof, and Spark Receipt.'
         : 'Confirmed: route, payment path, proof flow, and launch checklist to be finalized before launch.',
     ].filter((line): line is string => line !== null).join('\n'),
   });
   const firstSparkDeliverables = [
     'Venue mission setup',
     'Creator or guest route',
-    'QR/check-in proof',
-    'Spark recap receipt',
-    'Rerun review if proof does not land',
+    'QR proof path',
+    'Spark Receipt',
+    'Repeat decision',
   ];
   const deadWindowDeliverables = [
-    'Weak-window route setup',
-    'One visible perk or reward',
-    'QR/check-in proof target',
-    'Creator or guest proof prompts',
-    'Spark Receipt with repeat decision',
+    'Slow-window route',
+    'One visible perk',
+    'QR check-in target',
+    'Guest or creator proof',
+    'Repeat, adjust, or stop',
   ];
   const venueAsk = isDeadWindow
     ? [
@@ -370,11 +370,11 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
     deadWindow,
     offerTitle: isDeadWindow ? 'Dead Window Rescue' : isFirstSpark ? 'First Spark Pilot' : 'Grid Activation',
     offerEyebrow: isDeadWindow ? 'Dead Window Rescue' : isFirstSpark ? 'First Spark Pilot' : 'BaseDare Close Room',
-    offerHeadline: isDeadWindow ? 'Rescue one slow window.' : isFirstSpark ? 'Approve one paid proof night.' : `Approve the Spark route for ${target}.`,
+    offerHeadline: isDeadWindow ? 'Wake up one slow window.' : isFirstSpark ? 'Approve one paid proof night.' : `Approve the Spark route for ${target}.`,
     offerPromise: isDeadWindow
-      ? `BaseDare routes ${target}${deadWindow?.windowLabel ? ` during ${deadWindow.windowLabel}` : "'s weakest window"}, tracks QR/check-ins, captures proof, and turns the result into a Spark Receipt.`
+      ? `Pick the slow slot. Add one perk. BaseDare routes people through QR proof and sends the Spark Receipt.`
       : isFirstSpark
-        ? `BaseDare sets up ${target}, routes local creators or guests, captures QR/check-in proof, and sends a recap receipt.`
+        ? `BaseDare sets up ${target}, routes creators or guests, captures QR proof, and sends the receipt.`
         : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
     riskReversal: isFirstSpark
       ? 'If no verified proof lands, BaseDare reviews the route and reruns before asking you to repeat.'

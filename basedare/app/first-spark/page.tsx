@@ -10,7 +10,7 @@ import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 export const metadata: Metadata = {
   title: 'Run First Spark | BaseDare',
   description:
-    'Run one BaseDare paid venue pilot with creator or guest routing, QR proof, one venue perk, and a recap receipt.',
+    'Pick a slow venue window, add one perk, route people through QR proof, and get a Spark Receipt.',
 };
 
 const raisedPanelClass =
@@ -64,30 +64,30 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
   const deadWindowBaseline = resolvedSearchParams.deadWindowBaseline || '';
 
   const pilotSnapshot = [
-    ['Offer', '$500-$1.5k pilot'],
-    ['Venue gives', 'One perk'],
-    ['BaseDare does', 'Setup + routing'],
-    ['Output', 'Proof recap'],
+    ['Offer', '$500-$1.5k'],
+    ['Venue gives', '1 simple perk'],
+    ['BaseDare does', 'Route + QR proof'],
+    ['Output', 'Spark Receipt'],
   ];
 
   const routeCards = [
     {
       icon: <Users className="h-5 w-5" />,
       label: '1 / Route',
-      title: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'One venue',
-      detail: 'Pick the place, window, route, and perk.',
+      title: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'Pick the window',
+      detail: 'Choose the slow slot.',
     },
     {
       icon: <QrCode className="h-5 w-5" />,
       label: '2 / Proof',
-      title: 'QR + check-in path',
-      detail: 'Participants scan, check in, and submit proof.',
+      title: 'Add one perk',
+      detail: 'Give people a reason.',
     },
     {
       icon: <ReceiptText className="h-5 w-5" />,
       label: '3 / Recap',
-      title: 'Repeat decision',
-      detail: 'The venue gets proof, signal, and a repeat plan.',
+      title: 'Get the receipt',
+      detail: 'Proof, signal, next move.',
     },
   ];
 
@@ -125,10 +125,10 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                 First Spark Pilot
               </div>
               <h1 className="mt-5 max-w-3xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.065em] text-white sm:text-5xl lg:text-7xl">
-                Run one proof night.
+                Wake up one slow window.
               </h1>
               <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/62">
-                BaseDare sets up the route, QR proof, creators or guests, and recap. The venue approves the plan and provides one simple perk.
+                Pick the quiet slot. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">
@@ -187,17 +187,17 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                 Dead Window Rescue
               </div>
               <h2 className="mt-4 max-w-xl text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
-                Turn the empty slot into a visible signal.
+                Pick slow window. Add perk. Get proof.
               </h2>
               <p className="mt-3 max-w-xl text-sm font-bold leading-6 text-white/58">
-                Pick the slow two-hour window, attach one simple venue perk, and BaseDare routes guests or creators through QR/check-in proof. The output is a Spark Receipt, not a vague recap.
+                One venue. One two-hour test. If it creates movement, repeat it. If not, adjust or stop.
               </p>
               <div className="mt-5 grid gap-2 sm:grid-cols-2">
                 {[
-                  ['1', 'Weak window'],
-                  ['2', 'Perk'],
+                  ['1', 'Slow window'],
+                  ['2', 'One perk'],
                   ['3', 'Check-ins'],
-                  ['4', 'Repeat call'],
+                  ['4', 'Receipt'],
                 ].map(([step, label]) => (
                   <div key={label} className={`${insetCardClass} px-4 py-3`}>
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">{step}</p>
@@ -212,9 +212,9 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
               budgetLabel="$500-$1.5k pilot"
               receiptId="BD-DEAD-WINDOW"
               headline="Dead window receipt"
-              summary="The receipt shows whether one slow window became real-world momentum worth repeating."
-              proofLogic="QR check-ins, creator or guest proof, venue context, and baseline notes are reviewed together."
-              repeatMetric="Repeat only if the quiet window shows visible movement, proof, and a clear next route."
+              summary="Check-ins, proof, baseline, and next move in one buyer-ready receipt."
+              proofLogic="QR scans, check-ins, guest or creator proof, and venue notes."
+              repeatMetric="Repeat, adjust, or stop based on visible movement."
               metrics={[
                 { label: 'Window', value: deadWindowTime || 'Slow slot', detail: 'Buyer picks the exact time' },
                 { label: 'Target', value: deadWindowCheckInTarget, detail: 'Verified check-ins' },
@@ -233,13 +233,13 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           <div className="relative grid gap-5 lg:grid-cols-[0.72fr_1fr] lg:items-center">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">
-                What the buyer gets
+                Buyer output
               </p>
               <h2 className="mt-3 max-w-xl text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
-                The receipt is the product.
+                Proof first. Repeat second.
               </h2>
               <p className="mt-3 max-w-xl text-sm font-bold leading-6 text-white/58">
-                A venue does not need another vague influencer post. It needs a clean record of the route, the proof, the people moved, and the next repeat decision.
+                The buyer gets check-ins, proof, spend, clips, and the next move. No fuzzy recap.
               </p>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
                 <Link
@@ -274,7 +274,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           <div className="relative mb-5 rounded-[24px] border border-white/[0.08] bg-white/[0.035] px-4 py-4">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">Request the pilot</p>
             <p className="mt-2 text-sm leading-6 text-white/58">
-              Keep it simple. Venue, contact, city, and one note are enough to generate the close room.
+              Venue, city, contact, slow window. We turn it into the route.
             </p>
           </div>
           <div className="relative">

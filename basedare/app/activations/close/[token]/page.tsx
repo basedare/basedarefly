@@ -275,10 +275,10 @@ export default async function ActivationCloseRoomPage({
                   Dead Window Plan
                 </div>
                 <h2 className="mt-4 text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
-                  Make the quiet slot visible.
+                  Slow slot. Simple perk. Proof receipt.
                 </h2>
                 <p className="mt-3 text-sm font-bold leading-6 text-white/58">
-                  The buyer is approving one focused rescue window: a simple perk, a visible check-in target, and proof strong enough to decide whether to repeat.
+                  The buyer approves one focused test and gets a clear repeat, adjust, or stop decision.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -309,10 +309,10 @@ export default async function ActivationCloseRoomPage({
                 Buyer output
               </div>
               <h2 className="mt-4 text-3xl font-black uppercase italic leading-tight text-white sm:text-4xl">
-                End with a receipt, not a vague recap.
+                No fuzzy recap.
               </h2>
               <p className="mt-3 text-sm font-bold leading-6 text-white/58">
-                When the route runs, this is the buyer-facing proof object: venue signal, creator output, review state, and the repeat decision in one place.
+                The receipt shows route, scans, proof, spend, clips, and the next move.
               </p>
             </div>
             <SparkReceiptPreview
@@ -325,7 +325,7 @@ export default async function ActivationCloseRoomPage({
               headline={closeRoom.deadWindow ? 'Dead window receipt' : undefined}
               summary={
                 closeRoom.deadWindow
-                  ? 'The buyer gets a clean read on whether the slow window can be turned into repeatable venue momentum.'
+                  ? 'A clean read on whether the slow window is worth repeating.'
                   : undefined
               }
               metrics={deadWindowMetrics}
