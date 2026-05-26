@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Clock3, CreditCard, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock3, CreditCard, MapPin, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
 
 import SquircleLink from '@/components/ui/SquircleLink';
 import SparkReceiptPreview from '@/components/activations/SparkReceiptPreview';
@@ -17,6 +17,87 @@ const raisedPanelClass =
   'relative overflow-hidden rounded-[32px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.93)_58%,rgba(7,6,14,0.98)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.46),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+type FirstSparkVenueRoute = {
+  slug: string;
+  name: string;
+  city: string;
+  window: string;
+  target: string;
+  perk: string;
+  baseline: string;
+  missionTitle: string;
+  tone: 'gold' | 'purple' | 'cyan';
+};
+
+const firstSparkVenueRoutes: FirstSparkVenueRoute[] = [
+  {
+    slug: 'hideaway',
+    name: 'Hideaway',
+    city: 'General Luna',
+    window: 'Tue 7-9 PM',
+    target: '20 verified check-ins',
+    perk: 'First 20 unlock a house perk',
+    baseline: 'Quiet midweek window',
+    missionTitle: 'Hideaway Dead Window Rescue',
+    tone: 'gold',
+  },
+  {
+    slug: 'siargao-beach-club',
+    name: 'Siargao Beach Club',
+    city: 'General Luna',
+    window: 'Sunset 5-7 PM',
+    target: '30 verified check-ins',
+    perk: 'Happy-hour unlock',
+    baseline: 'Before-nightlife bridge',
+    missionTitle: 'Beach Club Sunset Spark',
+    tone: 'cyan',
+  },
+  {
+    slug: 'gaya-rooftop-space',
+    name: 'GAYA Rooftop Space',
+    city: 'General Luna',
+    window: 'Brunch or sunset',
+    target: '18 verified check-ins',
+    perk: 'Rooftop guest perk',
+    baseline: 'Rooftop proof loop',
+    missionTitle: 'GAYA Rooftop Spark Window',
+    tone: 'purple',
+  },
+];
+
+function buildFirstSparkRouteHref(route: FirstSparkVenueRoute) {
+  const params = new URLSearchParams({
+    venue: route.name,
+    venueName: route.name,
+    venueSlug: route.slug,
+    city: route.city,
+    source: 'first-spark-route',
+    buyerType: 'venue',
+    budgetRange: '500_1500',
+    packageId: 'first-spark-window',
+    goal: 'foot_traffic',
+    missionType: 'dead-window',
+    missionTitle: route.missionTitle,
+    timeWindow: route.window,
+    perkLabel: route.perk,
+    deadWindowTime: route.window,
+    deadWindowCheckInTarget: route.target,
+    deadWindowPerk: route.perk,
+    deadWindowBaseline: route.baseline,
+    proofRequired: 'QR check-in plus proof clip',
+    contentRequired: 'Spark Receipt recap',
+    guestMission: `${route.name}: check in during ${route.window}, redeem the perk, and submit proof.`,
+  });
+
+  return `/first-spark?${params.toString()}#pilot-request`;
+}
+
+const routeToneClasses: Record<FirstSparkVenueRoute['tone'], string> = {
+  gold: 'border-yellow-300/20 bg-yellow-300/[0.055] text-yellow-100 shadow-[0_0_24px_rgba(245,197,24,0.09),inset_0_1px_0_rgba(255,255,255,0.07)]',
+  purple: 'border-purple-300/20 bg-purple-400/[0.07] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.11),inset_0_1px_0_rgba(255,255,255,0.07)]',
+  cyan: 'border-cyan-200/20 bg-cyan-300/[0.055] text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.07)]',
+};
 
 type FirstSparkPageProps = {
   searchParams: Promise<{
@@ -140,7 +221,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                   </SquircleLink>
                 </div>
                 <Link
-                  href="/map"
+                  href="#venue-routes"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   Pick a venue
@@ -176,6 +257,61 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
               <p className="mt-2 text-sm font-bold leading-6 text-white/54">{card.detail}</p>
             </article>
           ))}
+        </section>
+
+        <section id="venue-routes" className={`${raisedPanelClass} scroll-mt-32 p-5 sm:p-6 lg:p-7`}>
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/24 to-transparent" />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">Start from a venue</p>
+              <h2 className="mt-3 text-3xl font-black uppercase italic tracking-[-0.04em] text-white sm:text-4xl">
+                Pick the route. Launch the window.
+              </h2>
+            </div>
+            <Link
+              href="/map?source=first-spark-route-picker"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 text-xs font-black uppercase tracking-[0.16em] text-white/66 transition hover:bg-white/[0.08] hover:text-white"
+            >
+              <MapPin className="h-4 w-4" />
+              Open map
+            </Link>
+          </div>
+
+          <div className="relative mt-5 grid gap-3 lg:grid-cols-3">
+            {firstSparkVenueRoutes.map((route) => (
+              <Link
+                key={route.slug}
+                href={buildFirstSparkRouteHref(route)}
+                className={`group rounded-[24px] border p-4 transition hover:-translate-y-0.5 hover:border-white/20 ${routeToneClasses[route.tone]}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">{route.window}</p>
+                    <h3 className="mt-2 truncate text-xl font-black tracking-[-0.035em] text-white">{route.name}</h3>
+                  </div>
+                  <span className="rounded-full border border-current/20 bg-black/20 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-80">
+                    Route
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2">
+                  {[
+                    ['Perk', route.perk],
+                    ['Target', route.target],
+                    ['Baseline', route.baseline],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-[16px] border border-white/[0.08] bg-black/20 px-3 py-2">
+                      <p className="text-[8px] font-black uppercase tracking-[0.18em] text-white/34">{label}</p>
+                      <p className="mt-1 truncate text-sm font-black text-white/78">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/72">
+                  Use this route
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
 
         <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`}>
