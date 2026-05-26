@@ -748,8 +748,10 @@ const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
 const DEFAULT_DESKTOP_MAP_BEARING = -14;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
-const DEFAULT_DESKTOP_MAP_PITCH = 34;
+const DEFAULT_DESKTOP_MAP_PITCH = 22;
 const DEFAULT_MOBILE_MAP_PITCH = 54;
+const MAX_DESKTOP_MAP_PITCH = 34;
+const MAX_MOBILE_MAP_PITCH = 64;
 const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
 const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
 const OPENFREEMAP_LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -4537,8 +4539,8 @@ export default function RealWorldMap() {
           fadeDuration: 0,
           pixelRatio: rendererPixelRatio,
           maxCanvasSize: rendererMaxCanvasSize,
-          maxPitch: isMobileRenderer ? 64 : 56,
-          trackResize: false,
+          maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
+          trackResize: !isMobileRenderer,
           refreshExpiredTiles: false,
           maxTileCacheZoomLevels: isMobileRenderer ? 3 : 2,
           cancelPendingTileRequestsWhileZooming: true,
@@ -7201,7 +7203,7 @@ export default function RealWorldMap() {
       if (!map) return;
 
       const minPitch = isMobileViewport ? 24 : 0;
-      const maxPitch = isMobileViewport ? 64 : 56;
+      const maxPitch = isMobileViewport ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH;
       const defaultCamera = getDefaultMapCamera(isMobileViewport);
       const nextPitch = reset
         ? defaultCamera.pitch
