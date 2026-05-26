@@ -4543,7 +4543,9 @@ export default function RealWorldMap() {
           maxTileCacheZoomLevels: isMobileRenderer ? 3 : 2,
           cancelPendingTileRequestsWhileZooming: true,
           canvasContextAttributes: {
+            alpha: false,
             antialias: false,
+            premultipliedAlpha: false,
             preserveDrawingBuffer: false,
             failIfMajorPerformanceCaveat: false,
             powerPreference: 'default',
