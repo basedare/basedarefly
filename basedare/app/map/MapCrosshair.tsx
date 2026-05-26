@@ -19,6 +19,7 @@ export default function MapCrosshair({
 }: MapCrosshairProps) {
   const horizontalRef = useRef<HTMLDivElement | null>(null);
   const verticalRef = useRef<HTMLDivElement | null>(null);
+  const reticleRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const renderedRef = useRef({
@@ -38,11 +39,13 @@ export default function MapCrosshair({
     const container = containerRef.current;
     const horizontal = horizontalRef.current;
     const vertical = verticalRef.current;
+    const reticle = reticleRef.current;
 
-    if (!container || !horizontal || !vertical) return;
+    if (!container || !horizontal || !vertical || !reticle) return;
 
     horizontal.style.opacity = '0';
     vertical.style.opacity = '0';
+    reticle.style.opacity = '0';
 
     const render = () => {
       const rendered = renderedRef.current;
@@ -51,8 +54,11 @@ export default function MapCrosshair({
       rendered.xPrevious = lerp(rendered.xPrevious, rendered.xCurrent, 0.15);
       rendered.yPrevious = lerp(rendered.yPrevious, rendered.yCurrent, 0.15);
 
-      horizontal.style.transform = `translate3d(0, ${rendered.yPrevious}px, 0)`;
-      vertical.style.transform = `translate3d(${rendered.xPrevious}px, 0, 0)`;
+      const x = rendered.xPrevious;
+      const y = rendered.yPrevious;
+      horizontal.style.transform = `translate3d(${x - 18}px, ${y}px, 0)`;
+      vertical.style.transform = `translate3d(${x}px, ${y - 18}px, 0)`;
+      reticle.style.transform = `translate3d(${x - 13}px, ${y - 13}px, 0)`;
       frameRef.current = window.requestAnimationFrame(render);
     };
 
@@ -78,11 +84,13 @@ export default function MapCrosshair({
     const showCrosshair = () => {
       horizontal.style.opacity = '1';
       vertical.style.opacity = '1';
+      reticle.style.opacity = '1';
     };
 
     const hideCrosshair = () => {
       horizontal.style.opacity = '0';
       vertical.style.opacity = '0';
+      reticle.style.opacity = '0';
       stopRenderLoop();
     };
 
@@ -110,6 +118,7 @@ export default function MapCrosshair({
     const triggerHoverPulse = () => {
       horizontal.dataset.reactive = 'true';
       vertical.dataset.reactive = 'true';
+      reticle.dataset.reactive = 'true';
 
       if (hoverPulseRef.current !== null) {
         window.clearTimeout(hoverPulseRef.current);
@@ -118,6 +127,7 @@ export default function MapCrosshair({
       hoverPulseRef.current = window.setTimeout(() => {
         delete horizontal.dataset.reactive;
         delete vertical.dataset.reactive;
+        delete reticle.dataset.reactive;
         hoverPulseRef.current = null;
       }, 160);
     };
@@ -180,14 +190,12 @@ export default function MapCrosshair({
         style={{
           position: 'absolute',
           left: 0,
-          right: 0,
           top: 0,
+          width: '36px',
           height: '1px',
           opacity: 0,
-          background: `linear-gradient(90deg, transparent 0%, rgba(184,127,255,0.1) 20%, ${horizontalColor} 46%, rgba(255,255,255,0.72) 50%, ${horizontalColor} 54%, rgba(184,127,255,0.1) 80%, transparent 100%)`,
-          boxShadow: '0 0 18px rgba(184,127,255,0.28), 0 0 3px rgba(255,255,255,0.22)',
-          mixBlendMode: 'screen',
-          transition: 'opacity 140ms ease-out, box-shadow 140ms ease-out',
+          background: `linear-gradient(90deg, transparent 0%, ${horizontalColor} 36%, rgba(255,255,255,0.72) 50%, ${horizontalColor} 64%, transparent 100%)`,
+          transition: 'opacity 120ms ease-out',
           willChange: 'transform, opacity',
         }}
       />
@@ -197,21 +205,33 @@ export default function MapCrosshair({
           position: 'absolute',
           left: 0,
           top: 0,
-          bottom: 0,
           width: '1px',
+          height: '36px',
           opacity: 0,
-          background: `linear-gradient(180deg, transparent 0%, rgba(245,197,24,0.1) 20%, ${verticalColor} 46%, rgba(255,255,255,0.66) 50%, ${verticalColor} 54%, rgba(245,197,24,0.1) 80%, transparent 100%)`,
-          boxShadow: '0 0 18px rgba(245,197,24,0.28), 0 0 3px rgba(255,255,255,0.2)',
-          mixBlendMode: 'screen',
-          transition: 'opacity 140ms ease-out, box-shadow 140ms ease-out',
+          background: `linear-gradient(180deg, transparent 0%, ${verticalColor} 36%, rgba(255,255,255,0.66) 50%, ${verticalColor} 64%, transparent 100%)`,
+          transition: 'opacity 120ms ease-out',
+          willChange: 'transform, opacity',
+        }}
+      />
+      <div
+        ref={reticleRef}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: '26px',
+          height: '26px',
+          opacity: 0,
+          border: '1px solid rgba(255,255,255,0.64)',
+          borderRadius: '9999px',
+          boxShadow: '0 0 10px rgba(184,127,255,0.2)',
+          transition: 'opacity 120ms ease-out',
           willChange: 'transform, opacity',
         }}
       />
       <style jsx>{`
         [data-reactive='true'] {
-          box-shadow:
-            0 0 22px rgba(255, 255, 255, 0.28),
-            0 0 28px rgba(245, 197, 24, 0.18) !important;
+          opacity: 1 !important;
         }
       `}</style>
     </div>

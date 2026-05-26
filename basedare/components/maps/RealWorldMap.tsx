@@ -10622,8 +10622,6 @@ export default function RealWorldMap() {
 
         .map-canvas-host {
           overflow: hidden;
-          contain: layout paint size;
-          isolation: isolate;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
         }
@@ -13252,19 +13250,15 @@ export default function RealWorldMap() {
           position: absolute;
           inset: 0;
           overflow: hidden;
-          contain: layout paint size;
-          isolation: isolate;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas-container) {
           background: rgba(3, 3, 10, 0.98);
-          isolation: isolate;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
-          backface-visibility: hidden;
           filter: none;
           image-rendering: auto !important;
           outline: none;
@@ -13274,7 +13268,7 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-map),
         .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-canvas-container),
         .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-canvas) {
-          cursor: none;
+          cursor: crosshair;
         }
 
         .basedare-maplibre-map[data-map-preset='noir'] :global(.maplibregl-canvas) {
