@@ -742,7 +742,7 @@ const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
 const DEFAULT_ZOOM = 13.35;
 const DEFAULT_DESKTOP_MAP_BEARING = -14;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
-const DEFAULT_DESKTOP_MAP_PITCH = 46;
+const DEFAULT_DESKTOP_MAP_PITCH = 34;
 const DEFAULT_MOBILE_MAP_PITCH = 54;
 const DEFAULT_MAP_BEARING = DEFAULT_DESKTOP_MAP_BEARING;
 const DEFAULT_MAP_PITCH = DEFAULT_DESKTOP_MAP_PITCH;
@@ -796,6 +796,31 @@ const MAPLIBRE_ENABLE_BUILDING_EXTRUSIONS = false;
 const currentLocationIconCache = new Map<string, string>();
 let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
 
+function sanitizeOpenFreeMapStyle(style: StyleSpecification): StyleSpecification {
+  return {
+    ...style,
+    projection: style.projection ?? { type: 'mercator' },
+    layers: style.layers?.map((layer) => {
+      if (layer.type !== 'symbol' || !layer.layout || !('text-font' in layer.layout)) {
+        return layer;
+      }
+
+      const layout = layer.layout as Record<string, unknown>;
+      const rawFontStack = layout['text-font'];
+      const fontStack = Array.isArray(rawFontStack) ? rawFontStack.join(' ') : String(rawFontStack ?? '');
+      const textFont = /italic|oblique/i.test(fontStack) ? ['Noto Sans Italic'] : ['Noto Sans Regular'];
+
+      return {
+        ...layer,
+        layout: {
+          ...layout,
+          'text-font': textFont,
+        },
+      } as LayerSpecification;
+    }),
+  };
+}
+
 function getDefaultMapCamera(isMobileViewport: boolean) {
   return {
     bearing: isMobileViewport ? DEFAULT_MOBILE_MAP_BEARING : DEFAULT_DESKTOP_MAP_BEARING,
@@ -827,10 +852,7 @@ function loadOpenFreeMapStyle() {
         }
 
         const style = (await response.json()) as StyleSpecification;
-        return {
-          ...style,
-          projection: style.projection ?? { type: 'mercator' },
-        } satisfies StyleSpecification;
+        return sanitizeOpenFreeMapStyle(style);
       })
       .catch((error) => {
         console.error('[REAL_WORLD_MAP] Failed to preload map style:', error);
@@ -1679,6 +1701,7 @@ function ensureMapLibreDareLayers(
     source: MAPLIBRE_PRESENCE_SOURCE_ID,
     minzoom: 12.5,
     layout: {
+      'text-font': ['Noto Sans Regular'],
       'text-field': ['upcase', ['get', 'label']],
       'text-size': ['interpolate', ['linear'], ['zoom'], 12, 8.5, 16, 11],
       'text-letter-spacing': 0.08,
@@ -1710,6 +1733,7 @@ function ensureMapLibreDareLayers(
       ['==', ['get', 'selected'], true],
     ],
     layout: {
+      'text-font': ['Noto Sans Regular'],
       'text-field': ['upcase', ['get', 'signalLabel']],
       'text-size': ['interpolate', ['linear'], ['zoom'], 12, 8.5, 16, 11.5],
       'text-letter-spacing': 0.08,
@@ -2137,6 +2161,57 @@ function getVenueClusterScore(place: NearbyPlace) {
     place.tagSummary.approvedCount * 18 +
     place.tagSummary.heatScore
   );
+}
+
+function getVenueClusterFitPlaces(places: NearbyPlace[], isMobileViewport: boolean) {
+  const validPlaces = places
+    .filter((place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude))
+    .sort((a, b) => getVenueClusterScore(b) - getVenueClusterScore(a));
+
+  const activePlaces = validPlaces.filter((place) => getVenueClusterScore(place) > 0);
+  const clusterLimit = isMobileViewport ? 10 : 12;
+  return (activePlaces.length >= 2 ? activePlaces : validPlaces).slice(0, clusterLimit);
+}
+
+function fitMapToVenueCluster(
+  map: MapLibreMap,
+  places: NearbyPlace[],
+  isMobileViewport: boolean,
+  options: { duration?: number } = {}
+) {
+  const fitPlaces = getVenueClusterFitPlaces(places, isMobileViewport);
+  if (fitPlaces.length === 0) return false;
+
+  const defaultCamera = getDefaultMapCamera(isMobileViewport);
+  const duration = options.duration ?? 900;
+
+  if (fitPlaces.length === 1) {
+    const [place] = fitPlaces;
+    map.flyTo({
+      center: [place.longitude, place.latitude],
+      zoom: Math.max(map.getZoom(), isMobileViewport ? 13.8 : 14.4),
+      bearing: defaultCamera.bearing,
+      pitch: defaultCamera.pitch,
+      duration,
+      essential: true,
+    });
+    return true;
+  }
+
+  const bounds = new maplibregl.LngLatBounds();
+  fitPlaces.forEach((place) => bounds.extend([place.longitude, place.latitude]));
+  map.fitBounds(bounds, {
+    padding: isMobileViewport
+      ? { top: 44, right: 34, bottom: 132, left: 34 }
+      : { top: 62, right: 118, bottom: 118, left: 118 },
+    maxZoom: isMobileViewport ? 14.85 : 15.15,
+    bearing: defaultCamera.bearing,
+    pitch: defaultCamera.pitch,
+    duration,
+    essential: true,
+  });
+
+  return true;
 }
 
 function getVenueActivationMarkerLabel(commandCenter?: VenueCommandCenter | null) {
@@ -3134,6 +3209,7 @@ export default function RealWorldMap() {
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
   const hasAutoFitVenueClusterRef = useRef(false);
+  const lastEmptyViewportRecoveryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -4355,7 +4431,7 @@ export default function RealWorldMap() {
           dragRotate: true,
           touchZoomRotate: true,
           fadeDuration: 0,
-          maxPitch: isMobileRenderer ? 64 : 60,
+          maxPitch: isMobileRenderer ? 64 : 56,
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -4411,7 +4487,12 @@ export default function RealWorldMap() {
         ensureStyleLayersSoon();
       };
 
-      const handleMapMotionStart = () => {
+      const handleMapMotionStart = (event?: { originalEvent?: unknown }) => {
+        if (event?.originalEvent) {
+          setTargetCenter(null);
+          setTargetZoom(null);
+        }
+
         if (!isMobileRenderer) return;
         clearMapInteractionQuietTimer();
         setMapInteractionQuiet(true);
@@ -4452,6 +4533,26 @@ export default function RealWorldMap() {
         }
       };
 
+      const missingStyleImages = new Set<string>();
+      const handleStyleImageMissing = (event: { id?: string }) => {
+        const imageId = event.id;
+        if (!imageId || missingStyleImages.has(imageId) || map.hasImage(imageId)) return;
+
+        missingStyleImages.add(imageId);
+        try {
+          map.addImage(
+            imageId,
+            {
+              width: 1,
+              height: 1,
+              data: new Uint8Array([0, 0, 0, 0]),
+            } as Parameters<MapLibreMap['addImage']>[1]
+          );
+        } catch {
+          // Some base-map POI sprites are optional. A transparent pixel keeps MapLibre quiet.
+        }
+      };
+
       const canvas = map.getCanvas();
       const handleContextLost = (event: Event) => {
         event.preventDefault();
@@ -4477,6 +4578,7 @@ export default function RealWorldMap() {
       map.on('idle', handleMapMotionSettled);
       map.on('click', handleClick);
       map.on('error', handleMapError);
+      map.on('styleimagemissing', handleStyleImageMissing);
       canvas.addEventListener('webglcontextlost', handleContextLost, false);
       canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
@@ -4507,6 +4609,7 @@ export default function RealWorldMap() {
         map.off('idle', handleMapMotionSettled);
         map.off('click', handleClick);
         map.off('error', handleMapError);
+        map.off('styleimagemissing', handleStyleImageMissing);
         canvas.removeEventListener('webglcontextlost', handleContextLost, false);
         canvas.removeEventListener('webglcontextrestored', handleContextRestored, false);
         markerRegistry.forEach(({ marker }) => marker.remove());
@@ -4542,6 +4645,10 @@ export default function RealWorldMap() {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapReady || !targetCenter) return;
+    const mapBounds = mapViewportRef.current?.getBoundingClientRect();
+    const desktopPanelOffset = selectedPlaceIdentity
+      ? -Math.min(280, Math.max(180, Math.round((mapBounds?.width ?? 1200) * 0.2)))
+      : 0;
     const targetOffset = isMobileViewport
       ? ([
           0,
@@ -4551,6 +4658,8 @@ export default function RealWorldMap() {
               : -118
             : -96,
         ] as [number, number])
+      : desktopPanelOffset
+        ? ([desktopPanelOffset, 0] as [number, number])
       : undefined;
     const targetCamera = getDefaultMapCamera(isMobileViewport);
 
@@ -4563,7 +4672,15 @@ export default function RealWorldMap() {
       essential: true,
       ...(targetOffset ? { offset: targetOffset } : {}),
     });
-  }, [isImmersiveMobile, isMobileViewport, mapReady, selectedPlacePanelExpanded, targetCenter, targetZoom]);
+  }, [
+    isImmersiveMobile,
+    isMobileViewport,
+    mapReady,
+    selectedPlaceIdentity,
+    selectedPlacePanelExpanded,
+    targetCenter,
+    targetZoom,
+  ]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -5340,6 +5457,29 @@ export default function RealWorldMap() {
     () => nearbyPlaces.filter((place) => matchedVenueIndex.has(place.slug)).length,
     [matchedVenueIndex, nearbyPlaces]
   );
+  const refitVisibleVenueCluster = useCallback(
+    (duration = 650) => {
+      const map = mapInstanceRef.current;
+      if (!map || !mapReady) return false;
+
+      const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+      return fitMapToVenueCluster(map, sourcePlaces, isMobileViewport, { duration });
+    },
+    [filteredNearbyPlaces, isMobileViewport, mapReady, nearbyPlaces]
+  );
+  const closeSelectedPlace = useCallback(() => {
+    triggerHaptic('selection');
+    setSelectedPlace(null);
+    setSelectedPlacePanelExpanded(false);
+    setTargetCenter(null);
+    setTargetZoom(null);
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        refitVisibleVenueCluster(650);
+      });
+    }
+  }, [refitVisibleVenueCluster]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -5356,50 +5496,9 @@ export default function RealWorldMap() {
     }
 
     const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
-    const validPlaces = sourcePlaces
-      .filter((place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude))
-      .sort((a, b) => getVenueClusterScore(b) - getVenueClusterScore(a));
-
-    if (validPlaces.length === 0) {
-      return;
+    if (fitMapToVenueCluster(map, sourcePlaces, isMobileViewport, { duration: 900 })) {
+      hasAutoFitVenueClusterRef.current = true;
     }
-
-    const activePlaces = validPlaces.filter((place) => getVenueClusterScore(place) > 0);
-    const clusterLimit = isMobileViewport ? 10 : 12;
-    const fitPlaces = (activePlaces.length >= 2 ? activePlaces : validPlaces).slice(0, clusterLimit);
-    if (fitPlaces.length === 0) {
-      return;
-    }
-
-    hasAutoFitVenueClusterRef.current = true;
-    const defaultCamera = getDefaultMapCamera(isMobileViewport);
-
-    if (fitPlaces.length === 1) {
-      const [place] = fitPlaces;
-      map.flyTo({
-        center: [place.longitude, place.latitude],
-        zoom: Math.max(map.getZoom(), isMobileViewport ? 13.8 : 14.4),
-        bearing: defaultCamera.bearing,
-        pitch: defaultCamera.pitch,
-        duration: 850,
-        essential: true,
-      });
-      return;
-    }
-
-    const bounds = new maplibregl.LngLatBounds();
-    fitPlaces.forEach((place) => bounds.extend([place.longitude, place.latitude]));
-
-    map.fitBounds(bounds, {
-      padding: isMobileViewport
-        ? { top: 44, right: 34, bottom: 132, left: 34 }
-        : { top: 62, right: 118, bottom: 118, left: 118 },
-      maxZoom: isMobileViewport ? 14.85 : 15.15,
-      bearing: defaultCamera.bearing,
-      pitch: defaultCamera.pitch,
-      duration: 900,
-      essential: true,
-    });
   }, [
     deepLinkedSearchQuery,
     filteredNearbyPlaces,
@@ -5410,6 +5509,43 @@ export default function RealWorldMap() {
     selectedPlace,
     targetCenter,
   ]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady || selectedPlace || !targetCenter) return undefined;
+
+    const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+    if (sourcePlaces.length === 0) return undefined;
+
+    const bounds = map.getBounds();
+    const visibleVenueCount = sourcePlaces.filter((place) =>
+      bounds.contains([place.longitude, place.latitude])
+    ).length;
+    if (visibleVenueCount > 0) return undefined;
+
+    const center = map.getCenter();
+    const recoveryKey = `${sourcePlaces.map((place) => place.id).join(':')}:${center.lat.toFixed(3)}:${center.lng.toFixed(3)}:${Math.round(map.getZoom() * 10)}`;
+    if (lastEmptyViewportRecoveryKeyRef.current === recoveryKey) return undefined;
+    lastEmptyViewportRecoveryKeyRef.current = recoveryKey;
+
+    const recoveryTimeoutId = window.setTimeout(() => {
+      const currentMap = mapInstanceRef.current;
+      if (!currentMap || selectedPlace) return;
+
+      const currentBounds = currentMap.getBounds();
+      const currentVisibleVenueCount = sourcePlaces.filter((place) =>
+        currentBounds.contains([place.longitude, place.latitude])
+      ).length;
+      if (currentVisibleVenueCount > 0) return;
+
+      if (fitMapToVenueCluster(currentMap, sourcePlaces, isMobileViewport, { duration: 700 })) {
+        setTargetCenter(null);
+        setTargetZoom(null);
+      }
+    }, 180);
+
+    return () => window.clearTimeout(recoveryTimeoutId);
+  }, [filteredNearbyPlaces, isMobileViewport, mapReady, nearbyPlaces, selectedPlace, targetCenter]);
 
   const nearbyPlaceBySlug = useMemo(() => {
     const index = new Map<string, NearbyPlace>();
@@ -6171,10 +6307,10 @@ export default function RealWorldMap() {
       }
 
       if (session.rawY > MAP_SHEET_DRAG_CLOSE_PX) {
-        setSelectedPlace(null);
+        closeSelectedPlace();
       }
     },
-    [hasSaveSpotPanel, selectedPlacePanelExpanded]
+    [closeSelectedPlace, hasSaveSpotPanel, selectedPlacePanelExpanded]
   );
   const cancelMapSheetDrag = useCallback((target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
     const session = mapSheetDragRef.current;
@@ -6949,8 +7085,8 @@ export default function RealWorldMap() {
       const map = mapInstanceRef.current;
       if (!map) return;
 
-      const minPitch = 24;
-      const maxPitch = 64;
+      const minPitch = isMobileViewport ? 24 : 0;
+      const maxPitch = isMobileViewport ? 64 : 56;
       const defaultCamera = getDefaultMapCamera(isMobileViewport);
       const nextPitch = reset
         ? defaultCamera.pitch
@@ -8480,7 +8616,7 @@ export default function RealWorldMap() {
             data-map-preset={mapPreset}
             data-crosshair={!isMobileViewport ? 'true' : undefined}
             data-map-moving={mapInteractionQuiet ? 'true' : undefined}
-            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} isolate relative overflow-hidden ${
+            className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
                 ? 'map-container-wrapper--immersive min-h-0 flex-1'
                 : 'h-[calc(100dvh-15.25rem)] min-h-[560px] md:h-[76vh] md:min-h-[660px]'
@@ -9133,10 +9269,7 @@ export default function RealWorldMap() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  triggerHaptic('selection');
-                                  setSelectedPlace(null);
-                                }}
+                                onClick={closeSelectedPlace}
                                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] text-white/70 shadow-[0_10px_20px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
                                 aria-label="Close place panel"
                                 title="Close place panel"
@@ -9254,10 +9387,7 @@ export default function RealWorldMap() {
                       ) : null}
                       <button
                         type="button"
-                        onClick={() => {
-                          triggerHaptic('selection');
-                          setSelectedPlace(null);
-                        }}
+                        onClick={closeSelectedPlace}
                         className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(8,9,16,0.82)_100%)] text-white/70 shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white"
                         aria-label="Close place panel"
                         title="Close place panel"
@@ -10604,7 +10734,6 @@ export default function RealWorldMap() {
         .map-container-wrapper {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
-          isolation: isolate;
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
             inset -4px -4px 10px rgba(255, 255, 255, 0.05),
@@ -13075,9 +13204,9 @@ export default function RealWorldMap() {
             linear-gradient(180deg, rgba(8, 5, 22, 0.12) 0%, rgba(0, 0, 0, 0.14) 100%);
           --mesh-opacity: 0.1;
           --links-opacity: 0.14;
-          --star-opacity: 0.12;
-          --scan-opacity: 0.045;
-          --haze-opacity: 0.52;
+          --star-opacity: 0.08;
+          --scan-opacity: 0.025;
+          --haze-opacity: 0.34;
         }
 
         .basedare-maplibre-map[data-map-preset='crt'] {
@@ -13129,7 +13258,7 @@ export default function RealWorldMap() {
 
         .preset-atmosphere {
           background: var(--preset-atmosphere);
-          opacity: 0.42;
+          opacity: 0.28;
         }
 
         .scanlines {
