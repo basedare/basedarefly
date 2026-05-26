@@ -5568,7 +5568,7 @@ export default function RealWorldMap() {
   const refitVisibleVenueCluster = useCallback(
     (duration = 650) => {
       const map = mapInstanceRef.current;
-      if (!map || !mapReady) return false;
+      if (!map || !mapReady || !isMobileViewport) return false;
 
       const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
       return fitMapToVenueCluster(map, sourcePlaces, isMobileViewport, { duration });
@@ -5582,16 +5582,17 @@ export default function RealWorldMap() {
     setTargetCenter(null);
     setTargetZoom(null);
 
-    if (typeof window !== 'undefined') {
+    if (isMobileViewport && typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
         refitVisibleVenueCluster(650);
       });
     }
-  }, [refitVisibleVenueCluster]);
+  }, [isMobileViewport, refitVisibleVenueCluster]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (
+      !isMobileViewport ||
       !map ||
       !mapReady ||
       hasAutoFitVenueClusterRef.current ||
@@ -5620,7 +5621,7 @@ export default function RealWorldMap() {
 
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !mapReady || selectedPlace || !targetCenter) return undefined;
+    if (!isMobileViewport || !map || !mapReady || selectedPlace || !targetCenter) return undefined;
 
     const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
     if (sourcePlaces.length === 0) return undefined;
