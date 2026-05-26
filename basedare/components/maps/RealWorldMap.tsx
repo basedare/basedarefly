@@ -802,6 +802,18 @@ const MAPLIBRE_ENABLE_BUILDING_EXTRUSIONS = false;
 const currentLocationIconCache = new Map<string, string>();
 let openFreeMapStylePromise: Promise<StyleSpecification | string> | null = null;
 
+function isUsableMapCoordinate(latitude: number, longitude: number) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    (Math.abs(latitude) > 0.05 || Math.abs(longitude) > 0.05)
+  );
+}
+
 function sanitizeOpenFreeMapStyle(style: StyleSpecification): StyleSpecification {
   return {
     ...style,
@@ -3162,14 +3174,7 @@ export default function RealWorldMap() {
   const deepLinkedLocation = useMemo(() => {
     const latitude = Number(searchParams.get('lat'));
     const longitude = Number(searchParams.get('lng'));
-    if (
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
-      latitude >= -90 &&
-      latitude <= 90 &&
-      longitude >= -180 &&
-      longitude <= 180
-    ) {
+    if (isUsableMapCoordinate(latitude, longitude)) {
       return { latitude, longitude };
     }
     return null;
@@ -3558,12 +3563,23 @@ export default function RealWorldMap() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (cancelled) return;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        if (!isUsableMapCoordinate(latitude, longitude)) {
+          autoLocateModeRef.current = 'idle';
+          autoLocateFallbackAppliedRef.current = true;
+          setTargetCenter(DEFAULT_CENTER);
+          setTargetZoom(DEFAULT_ZOOM);
+          setLocating(false);
+          triggerHaptic('warning');
+          return;
+        }
         setUserLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
         });
         setUserHeading(Number.isFinite(position.coords.heading) ? position.coords.heading : null);
-        setTargetCenter([position.coords.latitude, position.coords.longitude]);
+        setTargetCenter([latitude, longitude]);
         setTargetZoom(14);
         setLocating(false);
         triggerHaptic('success');
@@ -3588,9 +3604,13 @@ export default function RealWorldMap() {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        if (!isUsableMapCoordinate(latitude, longitude)) return;
+
         setUserLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
         });
         setUserHeading(Number.isFinite(position.coords.heading) ? position.coords.heading : null);
       },
@@ -3619,18 +3639,6 @@ export default function RealWorldMap() {
     setTargetCenter([deepLinkedLocation.latitude, deepLinkedLocation.longitude]);
     setTargetZoom(14);
   }, [deepLinkedLocation, hasDeepLinkedPlace]);
-
-  useEffect(() => {
-    if (hasDeepLinkedPlace || deepLinkedLocation) {
-      return;
-    }
-
-    if (!bootstrappedDefaultPins) {
-      return;
-    }
-
-    return requestApproximateLocation();
-  }, [bootstrappedDefaultPins, deepLinkedLocation, hasDeepLinkedPlace, requestApproximateLocation]);
 
   useEffect(() => {
     if (!ceremonyState) return;
@@ -3804,6 +3812,10 @@ export default function RealWorldMap() {
   }, [searchPopoverOpen, searchQuery, userLocation, viewportCenter]);
 
   const fetchNearbyPlaces = useCallback(async (latitude: number, longitude: number, zoom: number) => {
+    if (!isUsableMapCoordinate(latitude, longitude)) {
+      return;
+    }
+
     const radiusMeters = getRadiusMetersForZoom(zoom);
     const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusMeters}`;
     const cached = nearbyPlaceFetchCacheRef.current;
@@ -3859,6 +3871,7 @@ export default function RealWorldMap() {
             if (!activeMap) return;
 
             const center = activeMap.getCenter();
+            if (!isUsableMapCoordinate(center.lat, center.lng)) return;
             fetchNearbyPlacesRef.current(center.lat, center.lng, activeMap.getZoom());
           }, 1800);
         }
@@ -4243,6 +4256,10 @@ export default function RealWorldMap() {
 
   const handleViewportChange = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
+      if (!isUsableMapCoordinate(latitude, longitude)) {
+        return;
+      }
+
       setViewportCenter((current) => {
         if (
           current &&
