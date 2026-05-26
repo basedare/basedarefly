@@ -129,6 +129,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'venue-scout-command': 'Venue scout command',
   'creator-passport': 'Creator passport',
   'available-creators': 'Available creators',
+  'first-spark-route': 'First Spark route',
   'home-ready-creators': 'Ready creators rail',
   'active-venues': 'Active venues',
   'venue-guest-mission': 'Venue guest mission',
@@ -237,12 +238,19 @@ export default function ActivationIntakeForm({
   const initialNormalizedDeadWindowCheckInTarget = routedDeadWindowCheckInTarget?.trim() || null;
   const initialNormalizedDeadWindowPerk = routedDeadWindowPerk?.trim() || null;
   const initialNormalizedDeadWindowBaseline = routedDeadWindowBaseline?.trim() || null;
+  const initialIsDeadWindowMission = Boolean(
+    initialNormalizedMissionType === 'dead-window' ||
+    initialNormalizedDeadWindowTime ||
+    initialNormalizedDeadWindowCheckInTarget ||
+    initialNormalizedDeadWindowPerk ||
+    initialNormalizedDeadWindowBaseline
+  );
   const initialDeadWindowTime =
-    initialNormalizedDeadWindowTime || (initialOfferId === 'first-spark' ? initialNormalizedTimeWindow || '' : '');
+    initialNormalizedDeadWindowTime || (initialIsDeadWindowMission ? initialNormalizedTimeWindow || '' : '');
   const initialDeadWindowCheckInTarget =
-    initialNormalizedDeadWindowCheckInTarget || (initialOfferId === 'first-spark' ? '20 verified check-ins' : '');
+    initialNormalizedDeadWindowCheckInTarget || (initialIsDeadWindowMission ? '20 verified check-ins' : '');
   const initialDeadWindowPerk =
-    initialNormalizedDeadWindowPerk || (initialOfferId === 'first-spark' ? initialNormalizedPerkLabel || '' : '');
+    initialNormalizedDeadWindowPerk || (initialIsDeadWindowMission ? initialNormalizedPerkLabel || '' : '');
   const initialDeadWindowBaseline = initialNormalizedDeadWindowBaseline || '';
   const initialContextKey = [
     initialNormalizedCreator,
@@ -423,12 +431,19 @@ export default function ActivationIntakeForm({
     const normalizedDeadWindowCheckInTarget = routedDeadWindowCheckInTarget?.trim() || null;
     const normalizedDeadWindowPerk = routedDeadWindowPerk?.trim() || null;
     const normalizedDeadWindowBaseline = routedDeadWindowBaseline?.trim() || null;
+    const isDeadWindowMission = Boolean(
+      normalizedMissionType === 'dead-window' ||
+      normalizedDeadWindowTime ||
+      normalizedDeadWindowCheckInTarget ||
+      normalizedDeadWindowPerk ||
+      normalizedDeadWindowBaseline
+    );
     const deadWindowTime =
-      normalizedDeadWindowTime || (offerId === 'first-spark' ? normalizedTimeWindow || null : null);
+      normalizedDeadWindowTime || (isDeadWindowMission ? normalizedTimeWindow || null : null);
     const deadWindowCheckInTarget =
-      normalizedDeadWindowCheckInTarget || (offerId === 'first-spark' ? '20 verified check-ins' : null);
+      normalizedDeadWindowCheckInTarget || (isDeadWindowMission ? '20 verified check-ins' : null);
     const deadWindowPerk =
-      normalizedDeadWindowPerk || (offerId === 'first-spark' ? normalizedPerkLabel || null : null);
+      normalizedDeadWindowPerk || (isDeadWindowMission ? normalizedPerkLabel || null : null);
     const contextKey = [
       normalizedCreator,
       normalizedVenue,
@@ -603,7 +618,6 @@ export default function ActivationIntakeForm({
     form.routedGuestMission
   );
   const isDeadWindowRescue = Boolean(
-    form.offerId === 'first-spark' ||
     form.routedMissionType === 'dead-window' ||
     form.deadWindowTime ||
     form.deadWindowCheckInTarget ||
@@ -852,17 +866,17 @@ export default function ActivationIntakeForm({
       ) : null}
 
       {isPilotCloseLoop ? (
-        <div className="grid gap-2 rounded-[24px] border border-cyan-200/12 bg-cyan-300/[0.045] p-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 rounded-[22px] border border-cyan-200/12 bg-cyan-300/[0.045] p-2 sm:p-3">
           {[
             ['1', 'Place', form.venue || 'Venue selected'],
             ['2', 'Goal', GOAL_LABELS[form.goal]],
             ['3', 'Contact', form.email || 'Reply route'],
           ].map(([step, title, detail]) => (
-            <div key={title} className="rounded-[18px] border border-white/[0.08] bg-black/26 px-3 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100/56">
+            <div key={title} className="min-w-0 rounded-[16px] border border-white/[0.08] bg-black/26 px-2.5 py-2.5 sm:px-3 sm:py-3">
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/56 sm:text-[9px] sm:tracking-[0.18em]">
                 {step} / {title}
               </p>
-              <p className="mt-1 text-xs font-bold leading-5 text-white/66">{detail}</p>
+              <p className="mt-1 truncate text-[11px] font-bold leading-4 text-white/66 sm:text-xs sm:leading-5">{detail}</p>
             </div>
           ))}
         </div>

@@ -139,10 +139,33 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
   const routedCity = resolvedSearchParams.city || null;
   const routedSource = resolvedSearchParams.source || 'first-spark-page';
   const hasRoutedVenue = Boolean(routedVenue || routedVenueSlug || routedCity);
+  const hasPrefilledRoute = Boolean(
+    routedCreator ||
+    routedVenue ||
+    routedVenueId ||
+    routedVenueSlug ||
+    routedCity ||
+    (resolvedSearchParams.source && resolvedSearchParams.source !== 'first-spark-page') ||
+    resolvedSearchParams.missionTitle ||
+    resolvedSearchParams.guestMission ||
+    resolvedSearchParams.perkLabel ||
+    resolvedSearchParams.timeWindow ||
+    resolvedSearchParams.proofRequired ||
+    resolvedSearchParams.contentRequired ||
+    resolvedSearchParams.deadWindowTime ||
+    resolvedSearchParams.deadWindowPerk
+  );
   const deadWindowTime = resolvedSearchParams.deadWindowTime || resolvedSearchParams.timeWindow || '';
   const deadWindowCheckInTarget = resolvedSearchParams.deadWindowCheckInTarget || '20 verified check-ins';
   const deadWindowPerk = resolvedSearchParams.deadWindowPerk || resolvedSearchParams.perkLabel || '';
   const deadWindowBaseline = resolvedSearchParams.deadWindowBaseline || '';
+  const isDeadWindowRoute = Boolean(
+    resolvedSearchParams.missionType === 'dead-window' ||
+    resolvedSearchParams.deadWindowTime ||
+    resolvedSearchParams.deadWindowCheckInTarget ||
+    resolvedSearchParams.deadWindowPerk ||
+    resolvedSearchParams.deadWindowBaseline
+  );
 
   const pilotSnapshot = [
     ['Offer', '$500-$1.5k'],
@@ -196,6 +219,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           </Link>
         </div>
 
+        {!hasPrefilledRoute ? (
         <section className={`${raisedPanelClass} px-5 py-7 sm:px-7 lg:px-8 lg:py-8`}>
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(245,197,24,0.09),transparent_34%,rgba(168,85,247,0.09)_100%)]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
@@ -206,10 +230,12 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                 First Spark Pilot
               </div>
               <h1 className="mt-5 max-w-3xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.065em] text-white sm:text-5xl lg:text-7xl">
-                Wake up one slow window.
+                {hasPrefilledRoute ? 'Review the First Spark route.' : 'Wake up one slow window.'}
               </h1>
               <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/62">
-                Pick the quiet slot. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.
+                {hasPrefilledRoute
+                  ? 'Confirm the essentials. Send the route into the operator queue.'
+                  : 'Pick the quiet slot. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.'}
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">
@@ -245,7 +271,9 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             </div>
           </div>
         </section>
+        ) : null}
 
+        {!hasPrefilledRoute ? (
         <section className="grid gap-4 md:grid-cols-3">
           {routeCards.map((card) => (
             <article key={card.label} className={`${insetCardClass} p-5`}>
@@ -258,7 +286,9 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             </article>
           ))}
         </section>
+        ) : null}
 
+        {!hasPrefilledRoute ? (
         <section id="venue-routes" className={`${raisedPanelClass} scroll-mt-32 p-5 sm:p-6 lg:p-7`}>
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/24 to-transparent" />
           <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -313,7 +343,9 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             ))}
           </div>
         </section>
+        ) : null}
 
+        {!hasPrefilledRoute ? (
         <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`}>
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/30 to-transparent" />
           <div className="relative grid gap-5 lg:grid-cols-[0.76fr_1fr] lg:items-center">
@@ -363,7 +395,9 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             />
           </div>
         </section>
+        ) : null}
 
+        {!hasPrefilledRoute ? (
         <section className={`${raisedPanelClass} p-5 sm:p-6 lg:p-7`} id="spark-receipt">
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
           <div className="relative grid gap-5 lg:grid-cols-[0.72fr_1fr] lg:items-center">
@@ -404,15 +438,18 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             />
           </div>
         </section>
+        ) : null}
 
-        <section id="pilot-request" className={`${raisedPanelClass} mx-auto w-full max-w-3xl p-5 sm:p-6`}>
+        <section id="pilot-request" className={`${raisedPanelClass} mx-auto w-full max-w-3xl scroll-mt-32 p-5 sm:p-6`}>
           <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+          {!hasPrefilledRoute ? (
           <div className="relative mb-5 rounded-[24px] border border-white/[0.08] bg-white/[0.035] px-4 py-4">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/70">Request the pilot</p>
             <p className="mt-2 text-sm leading-6 text-white/58">
               Venue, city, contact, slow window. We turn it into the route.
             </p>
           </div>
+          ) : null}
           <div className="relative">
             <ActivationIntakeForm
               routedCreator={routedCreator}
@@ -436,10 +473,10 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
               routedContentRequired={resolvedSearchParams.contentRequired || null}
               routedGuestMission={resolvedSearchParams.guestMission || null}
               routedPerkLabel={deadWindowPerk || null}
-              routedDeadWindowTime={deadWindowTime || null}
-              routedDeadWindowCheckInTarget={deadWindowCheckInTarget || null}
-              routedDeadWindowPerk={deadWindowPerk || null}
-              routedDeadWindowBaseline={deadWindowBaseline || null}
+              routedDeadWindowTime={isDeadWindowRoute && deadWindowTime ? deadWindowTime : null}
+              routedDeadWindowCheckInTarget={isDeadWindowRoute ? deadWindowCheckInTarget : null}
+              routedDeadWindowPerk={isDeadWindowRoute && deadWindowPerk ? deadWindowPerk : null}
+              routedDeadWindowBaseline={isDeadWindowRoute && deadWindowBaseline ? deadWindowBaseline : null}
             />
           </div>
         </section>
