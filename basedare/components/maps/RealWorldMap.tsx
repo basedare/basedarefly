@@ -3163,6 +3163,21 @@ export default function RealWorldMap() {
   const deepLinkedDareShortId = searchParams.get('dare');
   const showTraceParam = searchParams.get('trace') === '1';
   const showMatchesParam = searchParams.get('matches') === '1';
+  const deepLinkedLocation = useMemo(() => {
+    const latitude = Number(searchParams.get('lat'));
+    const longitude = Number(searchParams.get('lng'));
+    if (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+    ) {
+      return { latitude, longitude };
+    }
+    return null;
+  }, [searchParams]);
   const selectedPlaceIdentity = selectedPlace
     ? selectedPlace.placeId ??
       selectedPlace.slug ??
@@ -3206,6 +3221,7 @@ export default function RealWorldMap() {
   const skipNextSearchRef = useRef(false);
   const skipNextMapClickRef = useRef(false);
   const deepLinkedSearchAppliedRef = useRef<string | null>(null);
+  const deepLinkedLocationAppliedRef = useRef<string | null>(null);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
   const autoLocateFallbackAppliedRef = useRef(false);
   const hasAutoFitVenueClusterRef = useRef(false);
@@ -3574,7 +3590,26 @@ export default function RealWorldMap() {
   }, [hasUserLocation]);
 
   useEffect(() => {
-    if (hasDeepLinkedPlace) {
+    if (!deepLinkedLocation || hasDeepLinkedPlace) {
+      return;
+    }
+
+    const locationKey = `${deepLinkedLocation.latitude.toFixed(6)}:${deepLinkedLocation.longitude.toFixed(6)}`;
+    if (deepLinkedLocationAppliedRef.current === locationKey) {
+      return;
+    }
+
+    deepLinkedLocationAppliedRef.current = locationKey;
+    autoLocateModeRef.current = 'idle';
+    autoLocateFallbackAppliedRef.current = true;
+    setUserLocation(deepLinkedLocation);
+    setUserHeading(null);
+    setTargetCenter([deepLinkedLocation.latitude, deepLinkedLocation.longitude]);
+    setTargetZoom(14);
+  }, [deepLinkedLocation, hasDeepLinkedPlace]);
+
+  useEffect(() => {
+    if (hasDeepLinkedPlace || deepLinkedLocation) {
       return;
     }
 
@@ -3583,7 +3618,7 @@ export default function RealWorldMap() {
     }
 
     return requestApproximateLocation();
-  }, [bootstrappedDefaultPins, hasDeepLinkedPlace, requestApproximateLocation]);
+  }, [bootstrappedDefaultPins, deepLinkedLocation, hasDeepLinkedPlace, requestApproximateLocation]);
 
   useEffect(() => {
     if (!ceremonyState) return;

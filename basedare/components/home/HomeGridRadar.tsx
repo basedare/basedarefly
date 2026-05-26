@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useMemo, useState } from 'react';
-import { Crosshair, Loader2, MapPin, Navigation, Radio } from 'lucide-react';
+import { Crosshair, LocateFixed, Loader2, MapPin, Navigation, Radio } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type RadarTone = 'gold' | 'cyan' | 'purple' | 'emerald';
@@ -44,6 +44,7 @@ type NearbyResponse = {
   data?: {
     venues?: NearbyVenue[];
   };
+  source?: string;
 };
 
 type HomeGridRadarProps = {
@@ -165,6 +166,15 @@ function getRadarCopy(mode: RadarMode, count: number) {
   }
 
   if (mode === 'located') {
+    if (count === 0) {
+      return {
+        eyebrow: 'Live grid',
+        title: 'Grid locked',
+        detail: 'No venues nearby',
+        action: 'Open map',
+      };
+    }
+
     return {
       eyebrow: 'Live grid',
       title: `${count} venues ready`,
@@ -204,6 +214,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
   const [mode, setMode] = useState<RadarMode>('idle');
   const [points, setPoints] = useState<RadarPoint[]>(fallbackPoints);
   const [activePointKey, setActivePointKey] = useState(fallbackPoints[0]?.key ?? null);
+  const [lockedLocation, setLockedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const activePoint = useMemo(
     () => points.find((point) => point.key === activePointKey) ?? points[0],
@@ -211,8 +222,22 @@ export default function HomeGridRadar({ compact = false, floating = false, class
   );
   const copy = getRadarCopy(mode, points.length);
 
+  const mapHref = useMemo(() => {
+    if (activePoint) return activePoint.href;
+    if (lockedLocation) {
+      const params = new URLSearchParams({
+        source: 'home-radar',
+        lat: lockedLocation.lat.toFixed(6),
+        lng: lockedLocation.lng.toFixed(6),
+      });
+      return `/map?${params.toString()}`;
+    }
+    return '/map?source=home-radar';
+  }, [activePoint, lockedLocation]);
+
   async function loadNearbyVenues(position: GeolocationPosition) {
     const { latitude, longitude } = position.coords;
+    setLockedLocation({ lat: latitude, lng: longitude });
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 2600);
 
@@ -230,10 +255,8 @@ export default function HomeGridRadar({ compact = false, floating = false, class
       const venues = payload.success ? payload.data?.venues ?? [] : [];
       const nextPoints = mapNearbyVenuesToPoints(venues, { lat: latitude, lng: longitude });
 
-      if (nextPoints.length > 0) {
-        setPoints(nextPoints);
-        setActivePointKey(nextPoints[0].key);
-      }
+      setPoints(nextPoints);
+      setActivePointKey(nextPoints[0]?.key ?? null);
       setMode('located');
     } catch {
       setMode('error');
@@ -246,9 +269,15 @@ export default function HomeGridRadar({ compact = false, floating = false, class
     if (mode === 'locating') return;
 
     if (mode === 'located' || mode === 'denied' || mode === 'error') {
-      router.push(activePoint?.href ?? '/map?source=home-radar');
+      router.push(mapHref);
       return;
     }
+
+    requestLocationLock();
+  }
+
+  function requestLocationLock() {
+    if (mode === 'locating') return;
 
     if (!('geolocation' in navigator)) {
       setMode('denied');
@@ -272,7 +301,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
   }
 
   function openMap() {
-    router.push(activePoint?.href ?? '/map?source=home-radar');
+    router.push(mapHref);
   }
 
   const radar = (
@@ -407,6 +436,17 @@ export default function HomeGridRadar({ compact = false, floating = false, class
       >
         {mode === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
         <span>{copy.action}</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={requestLocationLock}
+        className="home-grid-radar-locate-button"
+        disabled={mode === 'locating'}
+        aria-label="Lock radar to your current location"
+        title="Lock radar to your current location"
+      >
+        {mode === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
       </button>
 
       <button type="button" onClick={openMap} className="home-grid-radar-map-button" aria-label="Open full BaseDare map">
@@ -597,6 +637,48 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           backdrop-filter: blur(10px);
         }
 
+        .home-grid-radar-locate-button {
+          position: absolute;
+          left: 20px;
+          top: 20px;
+          z-index: 4;
+          display: flex;
+          height: 36px;
+          width: 36px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 9999px;
+          border: 1px solid rgba(245, 197, 24, 0.36);
+          background:
+            radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.24), transparent 28%),
+            linear-gradient(180deg, rgba(44, 35, 12, 0.92), rgba(10, 8, 15, 0.88));
+          color: #ffe45c;
+          box-shadow:
+            0 10px 20px rgba(0, 0, 0, 0.38),
+            0 0 18px rgba(245, 197, 24, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.17),
+            inset 0 -7px 11px rgba(0, 0, 0, 0.42);
+          backdrop-filter: blur(10px);
+        }
+
+        .home-grid-radar-locate-button:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
+        }
+
+        .home-grid-radar-locate-button:active {
+          transform: translateY(1px);
+          box-shadow:
+            0 6px 16px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 7px 12px rgba(0, 0, 0, 0.42);
+        }
+
+        .home-grid-radar-locate-button:disabled {
+          cursor: wait;
+          filter: saturate(0.82);
+        }
+
         .home-grid-radar-shell--compact {
           display: grid;
           grid-template-columns: 86px 1fr;
@@ -627,6 +709,10 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           top: 14px;
           height: 30px;
           width: 30px;
+        }
+
+        .home-grid-radar-shell--compact .home-grid-radar-locate-button {
+          display: none;
         }
 
         .home-grid-radar-shell--compact .home-grid-radar-disc :global(svg) {
@@ -701,6 +787,22 @@ export default function HomeGridRadar({ compact = false, floating = false, class
             linear-gradient(180deg, rgba(24, 24, 34, 0.94), rgba(7, 8, 14, 0.9));
           box-shadow:
             0 8px 18px rgba(0, 0, 0, 0.42),
+            inset 0 2px 0 rgba(255, 255, 255, 0.16),
+            inset 0 -7px 11px rgba(0, 0, 0, 0.42);
+        }
+
+        .home-grid-radar-shell--floating .home-grid-radar-locate-button {
+          left: 12px;
+          top: 12px;
+          height: 32px;
+          width: 32px;
+          border-color: rgba(245, 197, 24, 0.34);
+          background:
+            radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.24), transparent 28%),
+            linear-gradient(180deg, rgba(45, 35, 12, 0.94), rgba(8, 8, 14, 0.9));
+          box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.42),
+            0 0 16px rgba(245, 197, 24, 0.16),
             inset 0 2px 0 rgba(255, 255, 255, 0.16),
             inset 0 -7px 11px rgba(0, 0, 0, 0.42);
         }
