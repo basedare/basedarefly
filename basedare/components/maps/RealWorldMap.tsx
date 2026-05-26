@@ -8488,7 +8488,7 @@ export default function RealWorldMap() {
           >
             <div
               ref={mapCanvasRef}
-              className="absolute inset-0 z-0"
+              className="map-canvas-host absolute inset-0 z-0"
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
@@ -10618,6 +10618,14 @@ export default function RealWorldMap() {
           border-radius: 0;
           box-shadow: none;
           outline: 0;
+        }
+
+        .map-canvas-host {
+          overflow: hidden;
+          contain: layout paint size;
+          isolation: isolate;
+          background:
+            radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
         }
 
         .map-fullscreen-toggle {
@@ -13240,13 +13248,27 @@ export default function RealWorldMap() {
           font-family: inherit;
         }
 
+        .basedare-maplibre-map :global(.maplibregl-map) {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          contain: layout paint size;
+          isolation: isolate;
+        }
+
+        .basedare-maplibre-map :global(.maplibregl-canvas-container) {
+          background: rgba(3, 3, 10, 0.98);
+          isolation: isolate;
+        }
+
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
           backface-visibility: hidden;
           filter: none;
+          image-rendering: auto !important;
           outline: none;
-          transform: translateZ(0);
+          will-change: auto !important;
         }
 
         .basedare-maplibre-map[data-crosshair='true'] :global(.maplibregl-map),

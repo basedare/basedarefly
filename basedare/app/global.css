@@ -2590,13 +2590,18 @@ html[data-bd-bg="light"] .bd-background-root canvas {
 
     /* 2. OPTIMIZE THE PARTICLES CANVAS
        This tells the browser "This element is going to move, don't repaint the whole page." */
-    #particles-js, canvas, .video-background-container {
+    #particles-js, canvas:not(.maplibregl-canvas):not(.lightning-canvas), .video-background-container {
         will-change: transform;
         transform: translateZ(0);
         
         /* Optional: If the background is too sharp/heavy, 
            this slightly lowers rendering cost */
         image-rendering: optimizeSpeed; 
+    }
+
+    .basedare-maplibre-map .maplibregl-canvas {
+        image-rendering: auto !important;
+        will-change: auto !important;
     }
 
     /* 3. HARDWARE ACCELERATION FOR VIDEO
