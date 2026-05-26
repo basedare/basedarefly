@@ -5363,14 +5363,6 @@ export default function RealWorldMap() {
     return () => window.clearInterval(interval);
   }, [loadSelectedPlaceTags, selectedPendingPlaceTags.length, selectedPlace?.placeId]);
 
-  const nearbySummary = useMemo(() => {
-    const activeCount = nearbyPlaces.filter((place) => place.tagSummary.approvedCount > 0).length;
-    return {
-      visible: nearbyPlaces.length,
-      active: activeCount,
-    };
-  }, [nearbyPlaces]);
-
   const nearbyDaresInRange = useMemo(
     () => nearbyDares.filter((dare) => dare.distanceKm <= nearbyDareRadiusKm),
     [nearbyDareRadiusKm, nearbyDares]
@@ -8267,63 +8259,12 @@ export default function RealWorldMap() {
       className={
         isImmersiveMobile
           ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
-          : 'relative z-20 px-4 pb-20 pt-24 sm:px-6 sm:pb-24 sm:pt-28 md:px-10 md:pb-24 md:pt-28'
+          : 'relative z-20 px-4 pb-20 pt-4 sm:px-6 sm:pb-24 sm:pt-5 md:px-10 md:pb-24 md:pt-6'
       }
     >
       <div className={isImmersiveMobile ? 'h-full w-full' : 'mx-auto max-w-7xl'}>
         {!isImmersiveMobile ? (
-        <header className="relative mb-8 overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(9,7,19,0.96)_14%,rgba(5,4,14,0.97)_100%)] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.5),0_0_34px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)] sm:px-7 sm:py-10">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(192,132,252,0.16),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.14),transparent_36%)]" />
-          <div className="relative">
-            <div className="flex justify-start lg:absolute lg:left-0 lg:top-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/35 bg-[linear-gradient(180deg,rgba(250,204,21,0.16)_0%,rgba(250,204,21,0.05)_100%)] px-5 py-2 text-[10px] uppercase tracking-[0.22em] text-[#f5c518] shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-8px_14px_rgba(0,0,0,0.22)]">
-                <LocateFixed className="h-3.5 w-3.5" />
-                Tag the Grid
-              </div>
-            </div>
-
-            <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
-              <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(250,204,21,0.14)_0%,rgba(250,204,21,0.04)_100%)] px-5 py-2 text-[10px] uppercase tracking-[0.24em] text-[#f5c518] shadow-[0_12px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-8px_14px_rgba(0,0,0,0.22)] sm:mt-2">
-                <LocateFixed className="h-3.5 w-3.5" />
-                First IRL Web3 Dare Network
-              </div>
-
-              <h1 className="mt-6 text-center text-5xl font-black leading-[0.9] tracking-[-0.05em] text-white sm:text-7xl lg:text-8xl">
-                <span className="block text-white">The World Is</span>
-                <span className="block text-[#f5c518]">Your Dare</span>
-                <span className="block text-[#b87fff]">Ground</span>
-              </h1>
-
-              <p className="mt-5 max-w-3xl text-base text-white/62 sm:text-lg">
-                Real venues. Crypto stakes. On-chain proof. Every pin is a legend.
-              </p>
-
-              <div className="mt-7 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-center lg:hidden">
-                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Visible Places</p>
-                  <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
-                </div>
-                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Dares</p>
-                  <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:flex lg:absolute lg:right-0 lg:top-0">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Visible Places</p>
-                  <p className="mt-2 text-2xl font-black text-white">{nearbySummary.visible}</p>
-                </div>
-                <div className="bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(7,10,18,0.94)_100%)] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/38">Active Dares</p>
-                  <p className="mt-2 text-2xl font-black text-white">{nearbySummary.active}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+          <h1 className="sr-only">BaseDare live map</h1>
         ) : null}
 
         <div
@@ -10769,6 +10710,9 @@ export default function RealWorldMap() {
         .map-container-wrapper {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
+          background-color: #070817;
+          contain: layout paint style;
+          isolation: isolate;
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
             inset -4px -4px 10px rgba(255, 255, 255, 0.05),
@@ -10785,6 +10729,8 @@ export default function RealWorldMap() {
         }
 
         .map-canvas-host {
+          contain: layout paint style;
+          isolation: isolate;
           overflow: hidden;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
@@ -13413,11 +13359,15 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.maplibregl-map) {
           position: absolute;
           inset: 0;
+          contain: paint style;
           overflow: hidden;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas-container) {
+          position: absolute;
+          inset: 0;
           background: rgba(3, 3, 10, 0.98);
+          overflow: hidden;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas) {

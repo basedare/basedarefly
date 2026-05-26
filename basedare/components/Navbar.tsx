@@ -29,6 +29,52 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { isControlMode } = useView();
+  const isMapRoute = pathname === '/map' || pathname?.startsWith('/map/');
+
+  const desktopNavItems = (
+    <div className="flex min-w-0 items-center gap-1 p-1.5">
+      {NAV_LINKS.map((link) => {
+        const isActive = pathname === link.href;
+        return (
+          <Link
+            key={link.name}
+            href={link.href}
+            prefetch={NAV_LINK_PREFETCH}
+            className="relative z-10 rounded-full px-3 py-2.5 text-[9px] font-black tracking-[0.14em] text-gray-400 transition-colors hover:text-white lg:px-4 lg:text-[10px] lg:tracking-[0.18em] xl:px-5 xl:tracking-[0.2em]"
+          >
+            {isActive && (
+              <motion.div
+                layoutId="nav-pill"
+                className="absolute inset-0 rounded-full bg-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className={`relative z-10 ${isMapRoute ? 'text-white/82' : 'mix-blend-overlay'}`}>
+              {link.name}
+            </span>
+          </Link>
+        );
+      })}
+
+      {/* DIVIDER */}
+      <div className="mx-3 h-5 w-px bg-white/10" />
+
+      {/* NOTIFICATIONS & CONNECT */}
+      <Link
+        href="/chat"
+        prefetch={NAV_LINK_PREFETCH}
+        aria-label="Open messenger"
+        title="Messenger"
+        className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+          pathname?.startsWith('/chat')
+            ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
+            : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1] hover:text-white'
+        }`}
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Link>
+    </div>
+  );
 
   return (
     <>
@@ -76,60 +122,27 @@ export default function Navbar() {
 
           {/* 2. DESKTOP MENU (Hidden on Mobile) - With GlassSurface */}
           <div className="hidden min-w-0 flex-1 justify-center md:flex">
-            <GlassSurface
-              width="auto"
-              height="auto"
-              borderRadius={999}
-              borderWidth={0.07}
-              brightness={50}
-              opacity={0.93}
-              blur={11}
-              backgroundOpacity={0.02}
-              saturation={1.8}
-              distortionScale={-180}
-              className="max-w-full"
-            >
-              <div className="flex min-w-0 items-center gap-1 p-1.5">
-                {NAV_LINKS.map((link) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      prefetch={NAV_LINK_PREFETCH}
-                      className="relative z-10 rounded-full px-3 py-2.5 text-[9px] font-black tracking-[0.14em] text-gray-400 transition-colors hover:text-white lg:px-4 lg:text-[10px] lg:tracking-[0.18em] xl:px-5 xl:tracking-[0.2em]"
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="nav-pill"
-                          className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                        />
-                      )}
-                      <span className="relative z-10 mix-blend-overlay">{link.name}</span>
-                    </Link>
-                  );
-                })}
-
-                {/* DIVIDER */}
-                <div className="w-px h-5 bg-white/10 mx-3" />
-
-                {/* NOTIFICATIONS & CONNECT */}
-                <Link
-                  href="/chat"
-                  prefetch={NAV_LINK_PREFETCH}
-                  aria-label="Open messenger"
-                  title="Messenger"
-                  className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
-                    pathname?.startsWith('/chat')
-                      ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
-                      : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1] hover:text-white'
-                  }`}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Link>
+            {isMapRoute ? (
+              <div className="max-w-full overflow-hidden rounded-full border border-white/[0.08] bg-[linear-gradient(180deg,rgba(12,15,28,0.94)_0%,rgba(5,7,16,0.9)_100%)] shadow-[0_18px_54px_rgba(0,0,0,0.42),0_0_0_1px_rgba(120,150,255,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]">
+                {desktopNavItems}
               </div>
-            </GlassSurface>
+            ) : (
+              <GlassSurface
+                width="auto"
+                height="auto"
+                borderRadius={999}
+                borderWidth={0.07}
+                brightness={50}
+                opacity={0.93}
+                blur={11}
+                backgroundOpacity={0.02}
+                saturation={1.8}
+                distortionScale={-180}
+                className="max-w-full"
+              >
+                {desktopNavItems}
+              </GlassSurface>
+            )}
           </div>
 
           {/* 3. RIGHT SIDE ACTIONS */}
