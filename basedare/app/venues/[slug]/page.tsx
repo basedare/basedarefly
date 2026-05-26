@@ -13,10 +13,10 @@ import {
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
 import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
+import { buildSparkRun } from '@/lib/spark-run';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
-import LiveActivationCard from '@/components/venues/LiveActivationCard';
-import SparkReceiptCard from '@/components/venues/SparkReceiptCard';
+import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import FirstSparkPilotQuickStart from './FirstSparkPilotQuickStart';
@@ -457,6 +457,19 @@ export default async function VenueDetailPage(
     pendingActivationCount,
     paidActivationCount > 0 ? 1 : 0
   );
+  const sparkRun = buildSparkRun({
+    venue,
+    launchHref: activateVenueHref,
+    mapHref,
+    receiptHref: venueRecapHref,
+    consoleHref: venue.commandCenter.consoleUrl,
+    checkIns: receiptCheckIns,
+    proofs: receiptProofs,
+    redemptions: receiptRedemptions,
+    creatorCount: receiptCreatorCount,
+    activeDareCount: venue.activeDares.length,
+    fundingUsd: totalActiveChallengeFunding,
+  });
 
   return (
     <VenuePageShell mapHref={mapHref}>
@@ -662,26 +675,7 @@ export default async function VenueDetailPage(
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <LiveActivationCard
-              venueName={venue.name}
-              activation={venue.firstSparkWindow}
-              href={mapHref}
-              ctaLabel="Open live map"
-              compact
-            />
-            <SparkReceiptCard
-              venueName={venue.name}
-              city={venue.city}
-              activation={venue.firstSparkWindow}
-              checkIns={receiptCheckIns}
-              proofs={receiptProofs}
-              redemptions={receiptRedemptions}
-              creatorCount={receiptCreatorCount}
-              fundingUsd={totalActiveChallengeFunding}
-              href={venueRecapHref}
-            />
-          </div>
+          <SparkRunCard sparkRun={sparkRun} />
 
           <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.14),transparent_33%),radial-gradient(circle_at_92%_18%,rgba(16,185,129,0.11),transparent_30%),radial-gradient(circle_at_70%_100%,rgba(245,197,24,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_45%,rgba(0,0,0,0.24)_100%)]" />

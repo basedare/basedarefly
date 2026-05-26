@@ -13,6 +13,7 @@ import VenueAutopilotPanel from '@/components/venues/VenueAutopilotPanel';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { formatPhp } from '@/lib/basecash-shared';
+import { buildSparkRun } from '@/lib/spark-run';
 import {
   buildActivationReplayCreateHref,
   buildRepeatActivationCreateHref,
@@ -537,6 +538,31 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
   );
   const consoleHref = venue.commandCenter.consoleUrl ?? `/venues/${encodeURIComponent(venue.slug)}/console`;
   const receiptHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
+  const sparkRun = useMemo(
+    () =>
+      buildSparkRun({
+        venue,
+        activation: sparkWindowPreview,
+        liveStats,
+        launchHref: confirmedLaunch.href,
+        mapHref: `/map?place=${encodeURIComponent(venue.slug)}&source=first-spark-window`,
+        receiptHref,
+        consoleHref,
+        activeDareCount: venue.activeDares.length,
+        creatorCount: routedCreatorsCount,
+        fundingUsd: liveFundingUsd,
+      }),
+    [
+      confirmedLaunch.href,
+      consoleHref,
+      liveFundingUsd,
+      liveStats,
+      receiptHref,
+      routedCreatorsCount,
+      sparkWindowPreview,
+      venue,
+    ]
+  );
 
   const directLaunchLabel =
     approvalStatus === 'approving'
@@ -1052,6 +1078,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
 
           <VenueAutopilotPanel
             venueName={venue.name}
+            sparkRun={sparkRun}
             activation={sparkWindowPreview}
             liveStats={liveStats}
             activeDareCount={venue.activeDares.length}

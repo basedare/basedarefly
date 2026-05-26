@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { ArrowRight, Bot, CheckCircle2, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
+import type { SparkRun, SparkRunMomentumState } from '@/lib/spark-run';
 import type { FirstSparkWindowSummary, VenueDetail } from '@/lib/venue-types';
 
 type VenueAutopilotPanelProps = {
   venueName: string;
+  sparkRun?: SparkRun;
   activation: FirstSparkWindowSummary | null;
   liveStats: VenueDetail['liveStats'];
   activeDareCount: number;
@@ -15,6 +17,7 @@ type VenueAutopilotPanelProps = {
 };
 
 function getAutopilotMove(input: {
+  sparkRun?: SparkRun;
   activation: FirstSparkWindowSummary | null;
   liveStats: VenueDetail['liveStats'];
   activeDareCount: number;
@@ -23,6 +26,35 @@ function getAutopilotMove(input: {
   receiptHref: string;
   launchHref: string;
 }) {
+  if (input.sparkRun) {
+    const iconByState: Record<SparkRunMomentumState, typeof Sparkles> = {
+      cold: Sparkles,
+      sparked: Sparkles,
+      warming: Users,
+      live: QrCode,
+      packed: ReceiptText,
+      proven: ReceiptText,
+    };
+    const toneByState: Record<SparkRunMomentumState, string> = {
+      cold: 'purple',
+      sparked: 'purple',
+      warming: 'gold',
+      live: 'cyan',
+      packed: 'gold',
+      proven: 'emerald',
+    };
+
+    return {
+      label: input.sparkRun.stateLabel,
+      title: input.sparkRun.primaryCta.label,
+      detail: input.sparkRun.repeatRecommendation,
+      primaryLabel: input.sparkRun.primaryCta.label,
+      primaryHref: input.sparkRun.primaryCta.href,
+      icon: iconByState[input.sparkRun.state],
+      tone: toneByState[input.sparkRun.state],
+    };
+  }
+
   if (input.activation?.state === 'proven' || input.activation?.proofs || input.activation?.redemptions) {
     return {
       label: 'Repeat sale',
@@ -85,6 +117,7 @@ function getToneClasses(tone: string) {
 
 export default function VenueAutopilotPanel({
   venueName,
+  sparkRun,
   activation,
   liveStats,
   activeDareCount,
@@ -95,6 +128,7 @@ export default function VenueAutopilotPanel({
   className = '',
 }: VenueAutopilotPanelProps) {
   const move = getAutopilotMove({
+    sparkRun,
     activation,
     liveStats,
     activeDareCount,
@@ -105,6 +139,17 @@ export default function VenueAutopilotPanel({
   });
   const MoveIcon = move.icon;
   const toneClassName = getToneClasses(move.tone);
+  const metrics = sparkRun
+    ? [
+        { label: 'Check-ins', value: `${sparkRun.checkIns}/${sparkRun.targetCheckIns}` },
+        { label: 'Proofs', value: sparkRun.proofs },
+        { label: 'Perks', value: sparkRun.redemptions },
+      ]
+    : [
+        { label: 'Check-ins', value: liveStats.uniqueVisitorsToday },
+        { label: 'Scans', value: liveStats.scansLastHour },
+        { label: 'Live drops', value: activeDareCount },
+      ];
 
   return (
     <section className={`relative overflow-hidden rounded-[28px] border border-white/[0.09] bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.12),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(245,197,24,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.07),rgba(8,8,16,0.94)_62%,rgba(5,5,10,0.98))] p-5 text-white shadow-[0_22px_64px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-16px_24px_rgba(0,0,0,0.26)] ${className}`}>
@@ -115,9 +160,9 @@ export default function VenueAutopilotPanel({
             <Bot className="h-4 w-4" />
             Autopilot
           </div>
-          <h3 className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">Recommended next move.</h3>
+          <h3 className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">Next move.</h3>
           <p className="mt-2 text-sm font-bold leading-6 text-white/56">
-            BaseDare can recommend and draft. Operators still approve money, outreach, and public claims.
+            BaseDare drafts the route. Humans approve money, proof, and sends.
           </p>
         </div>
 
@@ -135,11 +180,7 @@ export default function VenueAutopilotPanel({
           <p className="mt-2 text-sm leading-6 text-white/58">{move.detail}</p>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            {[
-              { label: 'Check-ins', value: liveStats.uniqueVisitorsToday },
-              { label: 'Scans', value: liveStats.scansLastHour },
-              { label: 'Live drops', value: activeDareCount },
-            ].map((metric) => (
+            {metrics.map((metric) => (
               <div key={metric.label} className="rounded-[18px] border border-white/10 bg-white/[0.035] px-3 py-3">
                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">{metric.label}</p>
                 <p className="mt-1 text-2xl font-black text-white">{metric.value}</p>
