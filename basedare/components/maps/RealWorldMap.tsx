@@ -168,6 +168,8 @@ type SelectedPlace = {
 
 type NearbyResponse = {
   success: boolean;
+  source?: 'database' | 'fallback' | 'curated-fallback';
+  warning?: string;
   data?: {
     venues: NearbyPlace[];
   };
@@ -245,6 +247,10 @@ function readPrivateSpotPhoto(file: File) {
     reader.onerror = () => reject(reader.error ?? new Error('Unable to read photo'));
     reader.readAsDataURL(file);
   });
+}
+
+function isCuratedFallbackVenueId(placeId?: string | null) {
+  return typeof placeId === 'string' && placeId.startsWith('curated:');
 }
 
 function loadPrivateMapSpots() {
@@ -829,18 +835,8 @@ function getDefaultMapCamera(isMobileViewport: boolean) {
 }
 
 function browserCanStartMapRenderer() {
-  if (typeof document === 'undefined') return false;
-
-  try {
-    const canvas = document.createElement('canvas');
-    const context =
-      canvas.getContext('webgl2') ||
-      canvas.getContext('webgl') ||
-      canvas.getContext('experimental-webgl');
-    return Boolean(context);
-  } catch {
-    return false;
-  }
+  if (typeof window === 'undefined') return false;
+  return 'WebGLRenderingContext' in window || 'WebGL2RenderingContext' in window;
 }
 
 function loadOpenFreeMapStyle() {
@@ -3183,6 +3179,10 @@ export default function RealWorldMap() {
       selectedPlace.slug ??
       `${selectedPlace.latitude.toFixed(5)}:${selectedPlace.longitude.toFixed(5)}`
     : null;
+  const selectedResolvedPlaceId =
+    selectedPlace?.placeId && !isCuratedFallbackVenueId(selectedPlace.placeId)
+      ? selectedPlace.placeId
+      : undefined;
   const showStartProofDock = !selectedPlace && !startProofDockDismissed;
 
   useEffect(() => {
@@ -3197,9 +3197,13 @@ export default function RealWorldMap() {
     setCheckInLaunchState(null);
   }, [selectedPlaceIdentity]);
   const nearbyFetchIdRef = useRef(0);
+  const nearbyPlacesRef = useRef<NearbyPlace[]>([]);
   const nearbyPlaceFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
   const nearbyPlaceFetchInFlightKeyRef = useRef<string | null>(null);
   const nearbyPlaceFetchControllerRef = useRef<AbortController | null>(null);
+  const nearbyPlaceFallbackRetryTimerRef = useRef<number | null>(null);
+  const nearbyPlaceFallbackRetryStateRef = useRef<{ key: string; attempts: number } | null>(null);
+  const fetchNearbyPlacesRef = useRef<(latitude: number, longitude: number, zoom: number) => void>(() => undefined);
   const nearbyDareFetchIdRef = useRef(0);
   const nearbyDareFetchCacheRef = useRef<{ key: string; fetchedAt: number } | null>(null);
   const nearbyDareFetchInFlightKeyRef = useRef<string | null>(null);
@@ -3228,7 +3232,15 @@ export default function RealWorldMap() {
   const lastEmptyViewportRecoveryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    nearbyPlacesRef.current = nearbyPlaces;
+  }, [nearbyPlaces]);
+
+  useEffect(() => {
     return () => {
+      if (nearbyPlaceFallbackRetryTimerRef.current !== null) {
+        window.clearTimeout(nearbyPlaceFallbackRetryTimerRef.current);
+        nearbyPlaceFallbackRetryTimerRef.current = null;
+      }
       nearbyPlaceFetchControllerRef.current?.abort();
       nearbyDareFetchControllerRef.current?.abort();
       localSignalFetchControllerRef.current?.abort();
@@ -3824,7 +3836,35 @@ export default function RealWorldMap() {
         throw new Error('Failed to load nearby places');
       }
 
+      const responseSource = response.headers.get('X-BaseDare-Data-Source') ?? payload.source ?? 'database';
       const nextVenues = payload.data.venues;
+
+      if (responseSource === 'fallback' && nextVenues.length === 0) {
+        console.warn('[REAL_WORLD_MAP] Nearby places fallback ignored:', payload.warning ?? 'fallback response');
+
+        const previousRetryState = nearbyPlaceFallbackRetryStateRef.current;
+        const nextAttempt =
+          previousRetryState?.key === requestKey ? previousRetryState.attempts + 1 : 1;
+
+        if (
+          requestId === nearbyFetchIdRef.current &&
+          nearbyPlacesRef.current.length === 0 &&
+          nearbyPlaceFallbackRetryTimerRef.current === null &&
+          nextAttempt <= 2
+        ) {
+          nearbyPlaceFallbackRetryStateRef.current = { key: requestKey, attempts: nextAttempt };
+          nearbyPlaceFallbackRetryTimerRef.current = window.setTimeout(() => {
+            nearbyPlaceFallbackRetryTimerRef.current = null;
+            const activeMap = mapInstanceRef.current;
+            if (!activeMap) return;
+
+            const center = activeMap.getCenter();
+            fetchNearbyPlacesRef.current(center.lat, center.lng, activeMap.getZoom());
+          }, 1800);
+        }
+
+        return;
+      }
 
       if (
         nextVenues.length === 0 &&
@@ -3843,6 +3883,11 @@ export default function RealWorldMap() {
       }
 
       if (requestId === nearbyFetchIdRef.current) {
+        if (nearbyPlaceFallbackRetryTimerRef.current !== null) {
+          window.clearTimeout(nearbyPlaceFallbackRetryTimerRef.current);
+          nearbyPlaceFallbackRetryTimerRef.current = null;
+        }
+        nearbyPlaceFallbackRetryStateRef.current = null;
         setNearbyPlaces(nextVenues);
         nearbyPlaceFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
@@ -3919,6 +3964,10 @@ export default function RealWorldMap() {
       }
     }
   }, [nearbyDareRadiusKm]);
+
+  useEffect(() => {
+    fetchNearbyPlacesRef.current = fetchNearbyPlaces;
+  }, [fetchNearbyPlaces]);
 
   const fetchLocalSignals = useCallback(async (latitude: number, longitude: number) => {
     const radiusKm = Math.max(nearbyDareRadiusKm, 12);
@@ -4448,6 +4497,9 @@ export default function RealWorldMap() {
 
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
+    const hardwarePixelRatio = window.devicePixelRatio || 1;
+    const rendererPixelRatio = Math.min(hardwarePixelRatio, isMobileRenderer ? 1.5 : 1.2);
+    const rendererMaxCanvasSize: [number, number] = isMobileRenderer ? [3072, 3072] : [2560, 2560];
 
     const startMap = async () => {
       const mapStyle = await loadOpenFreeMapStyle();
@@ -4466,7 +4518,19 @@ export default function RealWorldMap() {
           dragRotate: true,
           touchZoomRotate: true,
           fadeDuration: 0,
+          pixelRatio: rendererPixelRatio,
+          maxCanvasSize: rendererMaxCanvasSize,
           maxPitch: isMobileRenderer ? 64 : 56,
+          trackResize: false,
+          refreshExpiredTiles: false,
+          maxTileCacheZoomLevels: isMobileRenderer ? 3 : 2,
+          cancelPendingTileRequestsWhileZooming: true,
+          canvasContextAttributes: {
+            antialias: false,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false,
+            powerPreference: 'default',
+          },
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -5156,7 +5220,7 @@ export default function RealWorldMap() {
   useEffect(() => {
     const placeId = selectedPlace?.placeId;
 
-    if (!placeId) {
+    if (!placeId || isCuratedFallbackVenueId(placeId)) {
       setSelectedPlaceTags((current) => (current.length > 0 ? [] : current));
       setSelectedPlaceTagsLoading(false);
       setSelectedPlaceTagsError(null);
@@ -5189,7 +5253,7 @@ export default function RealWorldMap() {
   useEffect(() => {
     const slug = selectedPlace?.slug;
 
-    if (!slug) {
+    if (!slug || isCuratedFallbackVenueId(selectedPlace?.placeId)) {
       setVenueRoomAccess(null);
       setVenueRoomMessages((current) => (current.length > 0 ? [] : current));
       setVenueRoomWhoHere((current) => (current.length > 0 ? [] : current));
@@ -5204,11 +5268,11 @@ export default function RealWorldMap() {
     void loadSelectedVenueRoom(slug, controller.signal);
 
     return () => controller.abort();
-  }, [address, loadSelectedVenueRoom, selectedPlace?.slug, userLocation?.latitude, userLocation?.longitude]);
+  }, [address, loadSelectedVenueRoom, selectedPlace?.placeId, selectedPlace?.slug, userLocation?.latitude, userLocation?.longitude]);
 
   useEffect(() => {
     const slug = selectedPlace?.slug;
-    if (!slug) return undefined;
+    if (!slug || isCuratedFallbackVenueId(selectedPlace?.placeId)) return undefined;
 
     const interval = window.setInterval(() => {
       if (document.visibilityState !== 'visible' || venueRoomSending || venueRoomPresenceUpdating) {
@@ -5219,7 +5283,7 @@ export default function RealWorldMap() {
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [loadSelectedVenueRoom, selectedPlace?.slug, venueRoomPresenceUpdating, venueRoomSending]);
+  }, [loadSelectedVenueRoom, selectedPlace?.placeId, selectedPlace?.slug, venueRoomPresenceUpdating, venueRoomSending]);
 
   const selectedPulse = useMemo(
     () => getPulse(selectedPlace?.approvedCount ?? 0, selectedPlace?.lastTaggedAt ?? null),
@@ -6376,7 +6440,7 @@ export default function RealWorldMap() {
   const selectedActivationHref =
     selectedCommandCenter && selectedPlace?.slug
       ? buildVenueActivationIntakeHref({
-          venueId: selectedPlace.placeId,
+          venueId: selectedResolvedPlaceId,
           venueSlug: selectedPlace.slug,
           venueName: selectedPlace.name,
           city: selectedPlace.city,
@@ -6398,7 +6462,7 @@ export default function RealWorldMap() {
   const selectedFundDareHref =
     selectedPlace?.slug
       ? buildVenueChallengeCreateHref({
-          venueId: selectedPlace.placeId,
+          venueId: selectedResolvedPlaceId,
           venueSlug: selectedPlace.slug,
           venueName: selectedPlace.name,
           source: 'map',
@@ -6409,7 +6473,11 @@ export default function RealWorldMap() {
       throw new Error('No place selected');
     }
 
-    if (selectedPlace.placeId && selectedPlace.slug) {
+    if (
+      selectedPlace.placeId &&
+      selectedPlace.slug &&
+      !isCuratedFallbackVenueId(selectedPlace.placeId)
+    ) {
       return {
         id: selectedPlace.placeId,
         slug: selectedPlace.slug,
@@ -6528,7 +6596,7 @@ export default function RealWorldMap() {
 
     try {
       const resolvedPlace =
-        selectedPlace.placeId && selectedPlace.slug
+        selectedPlace.placeId && selectedPlace.slug && !isCuratedFallbackVenueId(selectedPlace.placeId)
           ? {
               id: selectedPlace.placeId,
               slug: selectedPlace.slug,
@@ -10711,8 +10779,10 @@ export default function RealWorldMap() {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
           background-color: #070817;
-          contain: layout paint style;
+          contain: layout paint;
           isolation: isolate;
+          transform: translateZ(0);
+          backface-visibility: hidden;
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
             inset -4px -4px 10px rgba(255, 255, 255, 0.05),
@@ -10729,9 +10799,9 @@ export default function RealWorldMap() {
         }
 
         .map-canvas-host {
-          contain: layout paint style;
-          isolation: isolate;
           overflow: hidden;
+          transform: translateZ(0);
+          backface-visibility: hidden;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
         }
@@ -13359,21 +13429,22 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.maplibregl-map) {
           position: absolute;
           inset: 0;
-          contain: paint style;
           overflow: hidden;
+          transform: translateZ(0);
+          backface-visibility: hidden;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas-container) {
-          position: absolute;
-          inset: 0;
           background: rgba(3, 3, 10, 0.98);
-          overflow: hidden;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           display: block !important;
           visibility: visible !important;
+          opacity: 1 !important;
           filter: none;
+          transform: translateZ(0);
+          backface-visibility: hidden;
           image-rendering: auto !important;
           outline: none;
           will-change: auto !important;
@@ -13440,9 +13511,16 @@ export default function RealWorldMap() {
           color: rgba(248, 221, 114, 0.78);
         }
 
-        .basedare-maplibre-map :global(.maplibregl-canvas-container),
-        .basedare-maplibre-map :global(.maplibregl-canvas) {
-          z-index: 1;
+        @media (min-width: 768px) {
+          .basedare-maplibre-map .starfield,
+          .basedare-maplibre-map .scanlines,
+          .basedare-maplibre-map .glass-haze {
+            display: none;
+          }
+
+          .basedare-maplibre-map .preset-atmosphere {
+            opacity: 0.2;
+          }
         }
 
         .basedare-maplibre-map :global(.maplibregl-control-container) {
