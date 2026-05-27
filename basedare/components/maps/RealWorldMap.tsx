@@ -928,6 +928,7 @@ type ManagedMapMarker = {
   marker: MapLibreMarker;
   element: HTMLDivElement;
   html: string;
+  pendingHtml?: string;
   className: string;
   anchor: PositionAnchor;
   draggable: boolean;
@@ -3080,11 +3081,18 @@ export default function RealWorldMap() {
   const desktopMapSettlingTimerRef = useRef<number | null>(null);
   const desktopMapSettlingRef = useRef(false);
   const desktopNearbyFetchTimerRef = useRef<number | null>(null);
+  const desktopSideDataFetchTimerRef = useRef<number | null>(null);
   const deferredMarkerCleanupTimerRef = useRef<number | null>(null);
   const lastDesktopNearbyFetchRef = useRef<{
     latitude: number;
     longitude: number;
     radiusMeters: number;
+    fetchedAt: number;
+  } | null>(null);
+  const lastDesktopSideDataFetchRef = useRef<{
+    latitude: number;
+    longitude: number;
+    zoomBucket: number;
     fetchedAt: number;
   } | null>(null);
   const lastTargetCameraKeyRef = useRef<string | null>(null);
@@ -3268,6 +3276,10 @@ export default function RealWorldMap() {
       if (desktopNearbyFetchTimerRef.current !== null) {
         window.clearTimeout(desktopNearbyFetchTimerRef.current);
         desktopNearbyFetchTimerRef.current = null;
+      }
+      if (desktopSideDataFetchTimerRef.current !== null) {
+        window.clearTimeout(desktopSideDataFetchTimerRef.current);
+        desktopSideDataFetchTimerRef.current = null;
       }
       if (deferredMarkerCleanupTimerRef.current !== null) {
         window.clearTimeout(deferredMarkerCleanupTimerRef.current);
@@ -4202,6 +4214,57 @@ export default function RealWorldMap() {
     }
   }, [nearbyDareRadiusKm]);
 
+  const fetchMapSideData = useCallback(
+    (latitude: number, longitude: number, zoom: number) => {
+      void fetchNearbyDares(latitude, longitude, zoom);
+      void fetchLocalSignals(latitude, longitude);
+      void fetchVenuePresence(latitude, longitude);
+    },
+    [fetchLocalSignals, fetchNearbyDares, fetchVenuePresence]
+  );
+
+  const scheduleMapSideDataFetch = useCallback(
+    (latitude: number, longitude: number, zoom: number) => {
+      if (isMobileViewport) {
+        fetchMapSideData(latitude, longitude, zoom);
+        return;
+      }
+
+      const zoomBucket = Math.round(zoom * 2) / 2;
+      const lastFetch = lastDesktopSideDataFetchRef.current;
+      const now = Date.now();
+
+      if (lastFetch?.zoomBucket === zoomBucket) {
+        const movedMeters = calculateDistanceMeters(
+          lastFetch.latitude,
+          lastFetch.longitude,
+          latitude,
+          longitude
+        );
+
+        if (movedMeters < 300 && now - lastFetch.fetchedAt < 60_000) {
+          return;
+        }
+      }
+
+      if (desktopSideDataFetchTimerRef.current !== null) {
+        window.clearTimeout(desktopSideDataFetchTimerRef.current);
+      }
+
+      desktopSideDataFetchTimerRef.current = window.setTimeout(() => {
+        desktopSideDataFetchTimerRef.current = null;
+        lastDesktopSideDataFetchRef.current = {
+          latitude,
+          longitude,
+          zoomBucket,
+          fetchedAt: Date.now(),
+        };
+        fetchMapSideData(latitude, longitude, zoom);
+      }, desktopMapSettlingRef.current ? 620 : 360);
+    },
+    [fetchMapSideData, isMobileViewport]
+  );
+
   const submitLocalSignal = useCallback(async () => {
     const title = localSignalDraft.title.trim();
     if (title.length < 3) {
@@ -4271,10 +4334,8 @@ export default function RealWorldMap() {
       return;
     }
 
-    void fetchNearbyDares(source.latitude, source.longitude, mapZoom);
-    void fetchLocalSignals(source.latitude, source.longitude);
-    void fetchVenuePresence(source.latitude, source.longitude);
-  }, [fetchLocalSignals, fetchNearbyDares, fetchVenuePresence, mapZoom, userLocation, viewportCenter]);
+    scheduleMapSideDataFetch(source.latitude, source.longitude, mapZoom);
+  }, [mapZoom, scheduleMapSideDataFetch, userLocation, viewportCenter]);
 
   useEffect(() => {
     if (!address || !userLocation || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -4637,7 +4698,7 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: isMobileRenderer ? 0 : 160,
+          fadeDuration: 0,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
           trackResize: false,
         });
@@ -4827,6 +4888,10 @@ export default function RealWorldMap() {
           window.clearTimeout(desktopNearbyFetchTimerRef.current);
           desktopNearbyFetchTimerRef.current = null;
         }
+        if (desktopSideDataFetchTimerRef.current !== null) {
+          window.clearTimeout(desktopSideDataFetchTimerRef.current);
+          desktopSideDataFetchTimerRef.current = null;
+        }
         if (deferredMarkerCleanupTimerRef.current !== null) {
           window.clearTimeout(deferredMarkerCleanupTimerRef.current);
           deferredMarkerCleanupTimerRef.current = null;
@@ -4899,10 +4964,7 @@ export default function RealWorldMap() {
     }
 
     lastTargetCameraKeyRef.current = targetCameraKey;
-    const mapBounds = mapViewportRef.current?.getBoundingClientRect();
-    const desktopPanelOffset = selectedPlaceIdentity
-      ? -Math.min(280, Math.max(180, Math.round((mapBounds?.width ?? 1200) * 0.2)))
-      : 0;
+    const targetCamera = getDefaultMapCamera(isMobileViewport);
     const targetOffset = isMobileViewport
       ? ([
           0,
@@ -4912,14 +4974,21 @@ export default function RealWorldMap() {
               : -118
             : -96,
         ] as [number, number])
-      : desktopPanelOffset
-        ? ([desktopPanelOffset, 0] as [number, number])
       : undefined;
-    const targetCamera = getDefaultMapCamera(isMobileViewport);
+
     if (!isMobileViewport) {
-      markDesktopMapSettling(1180);
+      markDesktopMapSettling(520);
+      map.stop();
+      map.jumpTo({
+        center: [targetCenter[1], targetCenter[0]],
+        zoom: targetZoom ?? map.getZoom(),
+        pitch: targetCamera.pitch,
+        bearing: map.getBearing(),
+      });
+      return;
     }
 
+    map.stop();
     map.flyTo({
       center: [targetCenter[1], targetCenter[0]],
       zoom: targetZoom ?? map.getZoom(),
@@ -4994,6 +5063,9 @@ export default function RealWorldMap() {
 
   const focusExistingPlace = useCallback((place: NearbyPlace) => {
     triggerHaptic('selection');
+    if (!isMobileViewport) {
+      markDesktopMapSettling(620);
+    }
     setSelectedPlace({
       placeId: place.id,
       slug: place.slug,
@@ -5016,7 +5088,7 @@ export default function RealWorldMap() {
     });
     setTargetCenter([place.latitude, place.longitude]);
     setTargetZoom(15);
-  }, []);
+  }, [isMobileViewport, markDesktopMapSettling]);
 
   const loadSelectedPlaceVenueDetail = useCallback(
     async (slug: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
@@ -7493,8 +7565,19 @@ export default function RealWorldMap() {
         record.marker.setLngLat([longitude, latitude]);
 
         if (record.html !== html) {
-          record.element.innerHTML = html;
-          record.html = html;
+          const shouldDeferHtmlUpdate =
+            !isMobileViewport &&
+            desktopMapSettlingRef.current &&
+            !key.startsWith('selected:') &&
+            key !== 'user-location';
+
+          if (shouldDeferHtmlUpdate) {
+            record.pendingHtml = html;
+          } else {
+            record.element.innerHTML = html;
+            record.html = html;
+            record.pendingHtml = undefined;
+          }
         }
 
         return;
@@ -7529,6 +7612,7 @@ export default function RealWorldMap() {
         marker,
         element,
         html,
+        pendingHtml: undefined,
         className,
         anchor,
         draggable,
@@ -7718,6 +7802,19 @@ export default function RealWorldMap() {
       });
     }
 
+    const flushDeferredMarkerHtml = () => {
+      mapMarkersRef.current.forEach((record) => {
+        if (!record.pendingHtml || record.pendingHtml === record.html) {
+          record.pendingHtml = undefined;
+          return;
+        }
+
+        record.element.innerHTML = record.pendingHtml;
+        record.html = record.pendingHtml;
+        record.pendingHtml = undefined;
+      });
+    };
+
     const removeStaleMarkers = () => {
       mapMarkersRef.current.forEach((record, key) => {
         if (seenMarkerKeys.has(key)) return;
@@ -7735,11 +7832,13 @@ export default function RealWorldMap() {
 
       deferredMarkerCleanupTimerRef.current = window.setTimeout(() => {
         deferredMarkerCleanupTimerRef.current = null;
+        flushDeferredMarkerHtml();
         removeStaleMarkers();
       }, 460);
       return;
     }
 
+    flushDeferredMarkerHtml();
     removeStaleMarkers();
   }, [
     armMapClickSuppression,
