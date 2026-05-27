@@ -3231,6 +3231,7 @@ export default function RealWorldMap() {
   } | null>(null);
   const skipNextSearchRef = useRef(false);
   const skipNextMapClickRef = useRef(false);
+  const skipNextMapClickClearTimerRef = useRef<number | null>(null);
   const deepLinkedSearchAppliedRef = useRef<string | null>(null);
   const deepLinkedLocationAppliedRef = useRef<string | null>(null);
   const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
@@ -3248,12 +3249,30 @@ export default function RealWorldMap() {
         window.clearTimeout(nearbyPlaceFallbackRetryTimerRef.current);
         nearbyPlaceFallbackRetryTimerRef.current = null;
       }
+      if (skipNextMapClickClearTimerRef.current !== null) {
+        window.clearTimeout(skipNextMapClickClearTimerRef.current);
+        skipNextMapClickClearTimerRef.current = null;
+      }
       nearbyPlaceFetchControllerRef.current?.abort();
       nearbyDareFetchControllerRef.current?.abort();
       localSignalFetchControllerRef.current?.abort();
       venuePresenceFetchControllerRef.current?.abort();
     };
   }, []);
+
+  const armMapClickSuppression = useCallback((durationMs = 180) => {
+    skipNextMapClickRef.current = true;
+
+    if (skipNextMapClickClearTimerRef.current !== null) {
+      window.clearTimeout(skipNextMapClickClearTimerRef.current);
+    }
+
+    skipNextMapClickClearTimerRef.current = window.setTimeout(() => {
+      skipNextMapClickRef.current = false;
+      skipNextMapClickClearTimerRef.current = null;
+    }, durationMs);
+  }, []);
+
   const lastAutoFocusedFilterRef = useRef<string | null>(null);
   const hasUserLocation = Boolean(userLocation);
 
@@ -4516,10 +4535,6 @@ export default function RealWorldMap() {
 
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
-    const hardwarePixelRatio = window.devicePixelRatio || 1;
-    const rendererPixelRatio = Math.min(hardwarePixelRatio, isMobileRenderer ? 1.5 : 1.2);
-    const rendererMaxCanvasSize: [number, number] = isMobileRenderer ? [3072, 3072] : [2560, 2560];
-
     const startMap = async () => {
       const mapStyle = await loadOpenFreeMapStyle();
       if (cancelled) return;
@@ -4536,22 +4551,9 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: 0,
-          pixelRatio: rendererPixelRatio,
-          maxCanvasSize: rendererMaxCanvasSize,
+          fadeDuration: isMobileRenderer ? 0 : 160,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
-          trackResize: !isMobileRenderer,
-          refreshExpiredTiles: false,
-          maxTileCacheZoomLevels: isMobileRenderer ? 3 : 2,
-          cancelPendingTileRequestsWhileZooming: true,
-          canvasContextAttributes: {
-            alpha: false,
-            antialias: false,
-            premultipliedAlpha: false,
-            preserveDrawingBuffer: false,
-            failIfMajorPerformanceCaveat: false,
-            powerPreference: 'default',
-          },
+          trackResize: false,
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
@@ -4630,6 +4632,10 @@ export default function RealWorldMap() {
       const handleClick = (event: maplibregl.MapMouseEvent) => {
         if (skipNextMapClickRef.current) {
           skipNextMapClickRef.current = false;
+          if (skipNextMapClickClearTimerRef.current !== null) {
+            window.clearTimeout(skipNextMapClickClearTimerRef.current);
+            skipNextMapClickClearTimerRef.current = null;
+          }
           return;
         }
 
@@ -5711,10 +5717,7 @@ export default function RealWorldMap() {
       if (typeof slug !== 'string') return;
 
       const place = nearbyPlaceBySlug.get(slug);
-      skipNextMapClickRef.current = true;
-      window.setTimeout(() => {
-        skipNextMapClickRef.current = false;
-      }, 0);
+      armMapClickSuppression();
       if (place) {
         focusExistingPlace(place);
         return;
@@ -5758,7 +5761,7 @@ export default function RealWorldMap() {
         map.off('mouseleave', layerId, handleSignalLeave);
       });
     };
-  }, [focusExistingPlace, mapReady, nearbyPlaceBySlug, venuePresenceIndex]);
+  }, [armMapClickSuppression, focusExistingPlace, mapReady, nearbyPlaceBySlug, venuePresenceIndex]);
 
   const nearbyDareFeed = useMemo(() => {
     const filtered = nearbyDaresInRange.filter((dare) => {
@@ -7368,6 +7371,7 @@ export default function RealWorldMap() {
       const clickHandler = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
+        armMapClickSuppression();
         mapMarkersRef.current.get(key)?.onClick();
       };
       element.addEventListener('click', clickHandler);
@@ -7581,6 +7585,7 @@ export default function RealWorldMap() {
       mapMarkersRef.current.delete(key);
     });
   }, [
+    armMapClickSuppression,
     clusteredNearbyMarkers,
     compactMarkerZoomThreshold,
     currentLocationMarkerHtml,
@@ -10801,10 +10806,7 @@ export default function RealWorldMap() {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
           background-color: #070817;
-          contain: layout paint;
           isolation: isolate;
-          transform: translateZ(0);
-          backface-visibility: hidden;
           box-shadow:
             inset 6px 6px 14px rgba(0, 0, 0, 0.8),
             inset -4px -4px 10px rgba(255, 255, 255, 0.05),
@@ -10822,8 +10824,6 @@ export default function RealWorldMap() {
 
         .map-canvas-host {
           overflow: hidden;
-          transform: translateZ(0);
-          backface-visibility: hidden;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
         }
@@ -13442,9 +13442,6 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.maplibregl-canvas) {
           height: 100%;
           width: 100%;
-          border-radius: 17px;
-          background:
-            radial-gradient(circle at 30% 20%, rgba(35, 22, 72, 0.88) 0%, rgba(4, 3, 12, 1) 70%);
           font-family: inherit;
         }
 
@@ -13452,8 +13449,7 @@ export default function RealWorldMap() {
           position: absolute;
           inset: 0;
           overflow: hidden;
-          transform: translateZ(0);
-          backface-visibility: hidden;
+          background: #050617;
         }
 
         .basedare-maplibre-map :global(.maplibregl-canvas-container) {
@@ -13465,8 +13461,7 @@ export default function RealWorldMap() {
           visibility: visible !important;
           opacity: 1 !important;
           filter: none;
-          transform: translateZ(0);
-          backface-visibility: hidden;
+          background: #050617;
           image-rendering: auto !important;
           outline: none;
           will-change: auto !important;
@@ -13534,14 +13529,22 @@ export default function RealWorldMap() {
         }
 
         @media (min-width: 768px) {
+          .map-container-wrapper,
+          .map-canvas-host,
+          .basedare-maplibre-map :global(.maplibregl-map),
+          .basedare-maplibre-map :global(.maplibregl-canvas-container),
+          .basedare-maplibre-map :global(.maplibregl-canvas) {
+            transform: none !important;
+            backface-visibility: visible !important;
+            contain: none !important;
+          }
+
+          .basedare-maplibre-map .maplibre-depth-vignette,
+          .basedare-maplibre-map .preset-atmosphere,
           .basedare-maplibre-map .starfield,
           .basedare-maplibre-map .scanlines,
           .basedare-maplibre-map .glass-haze {
-            display: none;
-          }
-
-          .basedare-maplibre-map .preset-atmosphere {
-            opacity: 0.2;
+            display: none !important;
           }
         }
 
