@@ -933,6 +933,7 @@ type ManagedMapMarker = {
   draggable: boolean;
   onClick: () => void;
   onDragEnd?: (latitude: number, longitude: number) => void;
+  pointerDownHandler: (event: PointerEvent) => void;
   clickHandler: (event: MouseEvent) => void;
   dragEndHandler?: () => void;
 };
@@ -3076,6 +3077,17 @@ export default function RealWorldMap() {
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const mapMarkersRef = useRef<Map<string, ManagedMapMarker>>(new Map());
   const mapInteractionQuietTimerRef = useRef<number | null>(null);
+  const desktopMapSettlingTimerRef = useRef<number | null>(null);
+  const desktopMapSettlingRef = useRef(false);
+  const desktopNearbyFetchTimerRef = useRef<number | null>(null);
+  const deferredMarkerCleanupTimerRef = useRef<number | null>(null);
+  const lastDesktopNearbyFetchRef = useRef<{
+    latitude: number;
+    longitude: number;
+    radiusMeters: number;
+    fetchedAt: number;
+  } | null>(null);
+  const lastTargetCameraKeyRef = useRef<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapInteractionQuiet, setMapInteractionQuiet] = useState(false);
   const [mapRuntimeError, setMapRuntimeError] = useState<string | null>(null);
@@ -3249,6 +3261,18 @@ export default function RealWorldMap() {
         window.clearTimeout(nearbyPlaceFallbackRetryTimerRef.current);
         nearbyPlaceFallbackRetryTimerRef.current = null;
       }
+      if (desktopMapSettlingTimerRef.current !== null) {
+        window.clearTimeout(desktopMapSettlingTimerRef.current);
+        desktopMapSettlingTimerRef.current = null;
+      }
+      if (desktopNearbyFetchTimerRef.current !== null) {
+        window.clearTimeout(desktopNearbyFetchTimerRef.current);
+        desktopNearbyFetchTimerRef.current = null;
+      }
+      if (deferredMarkerCleanupTimerRef.current !== null) {
+        window.clearTimeout(deferredMarkerCleanupTimerRef.current);
+        deferredMarkerCleanupTimerRef.current = null;
+      }
       if (skipNextMapClickClearTimerRef.current !== null) {
         window.clearTimeout(skipNextMapClickClearTimerRef.current);
         skipNextMapClickClearTimerRef.current = null;
@@ -3258,6 +3282,19 @@ export default function RealWorldMap() {
       localSignalFetchControllerRef.current?.abort();
       venuePresenceFetchControllerRef.current?.abort();
     };
+  }, []);
+
+  const markDesktopMapSettling = useCallback((durationMs = 420) => {
+    desktopMapSettlingRef.current = true;
+
+    if (desktopMapSettlingTimerRef.current !== null) {
+      window.clearTimeout(desktopMapSettlingTimerRef.current);
+    }
+
+    desktopMapSettlingTimerRef.current = window.setTimeout(() => {
+      desktopMapSettlingRef.current = false;
+      desktopMapSettlingTimerRef.current = null;
+    }, durationMs);
   }, []);
 
   const armMapClickSuppression = useCallback((durationMs = 180) => {
@@ -3838,7 +3875,9 @@ export default function RealWorldMap() {
     }
 
     const radiusMeters = getRadiusMetersForZoom(zoom);
-    const requestKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${radiusMeters}`;
+    const coordinatePrecision =
+      typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches ? 3 : 4;
+    const requestKey = `${latitude.toFixed(coordinatePrecision)}:${longitude.toFixed(coordinatePrecision)}:${radiusMeters}`;
     const cached = nearbyPlaceFetchCacheRef.current;
     const now = Date.now();
 
@@ -4002,6 +4041,48 @@ export default function RealWorldMap() {
   useEffect(() => {
     fetchNearbyPlacesRef.current = fetchNearbyPlaces;
   }, [fetchNearbyPlaces]);
+
+  const scheduleNearbyPlaceFetch = useCallback(
+    (latitude: number, longitude: number, zoom: number) => {
+      if (isMobileViewport) {
+        void fetchNearbyPlaces(latitude, longitude, zoom);
+        return;
+      }
+
+      const radiusMeters = getRadiusMetersForZoom(zoom);
+      const lastFetch = lastDesktopNearbyFetchRef.current;
+      const now = Date.now();
+
+      if (lastFetch?.radiusMeters === radiusMeters) {
+        const movedMeters = calculateDistanceMeters(
+          lastFetch.latitude,
+          lastFetch.longitude,
+          latitude,
+          longitude
+        );
+
+        if (movedMeters < 350 && now - lastFetch.fetchedAt < 90_000) {
+          return;
+        }
+      }
+
+      if (desktopNearbyFetchTimerRef.current !== null) {
+        window.clearTimeout(desktopNearbyFetchTimerRef.current);
+      }
+
+      desktopNearbyFetchTimerRef.current = window.setTimeout(() => {
+        desktopNearbyFetchTimerRef.current = null;
+        lastDesktopNearbyFetchRef.current = {
+          latitude,
+          longitude,
+          radiusMeters,
+          fetchedAt: Date.now(),
+        };
+        void fetchNearbyPlaces(latitude, longitude, zoom);
+      }, 320);
+    },
+    [fetchNearbyPlaces, isMobileViewport]
+  );
 
   const fetchLocalSignals = useCallback(async (latitude: number, longitude: number) => {
     const radiusKm = Math.max(nearbyDareRadiusKm, 12);
@@ -4282,20 +4363,25 @@ export default function RealWorldMap() {
       }
 
       setViewportCenter((current) => {
-        if (
-          current &&
-          Math.abs(current.latitude - latitude) < 0.00005 &&
-          Math.abs(current.longitude - longitude) < 0.00005
-        ) {
+        if (!current) {
+          return { latitude, longitude };
+        }
+
+        const movedEnough = isMobileViewport
+          ? Math.abs(current.latitude - latitude) >= 0.00005 ||
+            Math.abs(current.longitude - longitude) >= 0.00005
+          : calculateDistanceMeters(current.latitude, current.longitude, latitude, longitude) >= 180;
+
+        if (!movedEnough) {
           return current;
         }
 
         return { latitude, longitude };
       });
       setMapZoom((current) => (Math.abs(current - zoom) < 0.01 ? current : zoom));
-      void fetchNearbyPlaces(latitude, longitude, zoom);
+      scheduleNearbyPlaceFetch(latitude, longitude, zoom);
     },
-    [fetchNearbyPlaces]
+    [isMobileViewport, scheduleNearbyPlaceFetch]
   );
 
   const handleMapClick = useCallback((latitude: number, longitude: number) => {
@@ -4613,15 +4699,22 @@ export default function RealWorldMap() {
         if (event?.originalEvent) {
           setTargetCenter(null);
           setTargetZoom(null);
+          lastTargetCameraKeyRef.current = null;
         }
 
-        if (!isMobileRenderer) return;
+        if (!isMobileRenderer) {
+          markDesktopMapSettling(540);
+          return;
+        }
         clearMapInteractionQuietTimer();
         setMapInteractionQuiet(true);
       };
 
       const handleMapMotionSettled = () => {
-        if (!isMobileRenderer) return;
+        if (!isMobileRenderer) {
+          markDesktopMapSettling(260);
+          return;
+        }
         clearMapInteractionQuietTimer();
         mapInteractionQuietTimerRef.current = window.setTimeout(() => {
           setMapInteractionQuiet(false);
@@ -4630,6 +4723,14 @@ export default function RealWorldMap() {
       };
 
       const handleClick = (event: maplibregl.MapMouseEvent) => {
+        const clickTarget = event.originalEvent?.target;
+        if (
+          clickTarget instanceof Element &&
+          clickTarget.closest('.basedare-maplibre-marker, .maplibregl-marker')
+        ) {
+          return;
+        }
+
         if (skipNextMapClickRef.current) {
           skipNextMapClickRef.current = false;
           if (skipNextMapClickClearTimerRef.current !== null) {
@@ -4718,6 +4819,19 @@ export default function RealWorldMap() {
 
       cleanupMap = () => {
         clearMapInteractionQuietTimer();
+        if (desktopMapSettlingTimerRef.current !== null) {
+          window.clearTimeout(desktopMapSettlingTimerRef.current);
+          desktopMapSettlingTimerRef.current = null;
+        }
+        if (desktopNearbyFetchTimerRef.current !== null) {
+          window.clearTimeout(desktopNearbyFetchTimerRef.current);
+          desktopNearbyFetchTimerRef.current = null;
+        }
+        if (deferredMarkerCleanupTimerRef.current !== null) {
+          window.clearTimeout(deferredMarkerCleanupTimerRef.current);
+          deferredMarkerCleanupTimerRef.current = null;
+        }
+        desktopMapSettlingRef.current = false;
         if (styleLayerFrame !== null) {
           window.cancelAnimationFrame(styleLayerFrame);
           styleLayerFrame = null;
@@ -4759,7 +4873,7 @@ export default function RealWorldMap() {
       setMapReady(false);
       setMapInteractionQuiet(false);
     };
-  }, []);
+  }, [markDesktopMapSettling]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -4771,6 +4885,20 @@ export default function RealWorldMap() {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapReady || !targetCenter) return;
+    const selectedOffsetMode = selectedPlaceIdentity ? 'selected' : 'free';
+    const targetCameraKey = [
+      targetCenter[0].toFixed(5),
+      targetCenter[1].toFixed(5),
+      targetZoom ?? 'current',
+      isMobileViewport ? 'mobile' : 'desktop',
+      isMobileViewport && isImmersiveMobile ? (selectedPlacePanelExpanded ? 'expanded' : 'peek') : selectedOffsetMode,
+    ].join(':');
+
+    if (lastTargetCameraKeyRef.current === targetCameraKey) {
+      return;
+    }
+
+    lastTargetCameraKeyRef.current = targetCameraKey;
     const mapBounds = mapViewportRef.current?.getBoundingClientRect();
     const desktopPanelOffset = selectedPlaceIdentity
       ? -Math.min(280, Math.max(180, Math.round((mapBounds?.width ?? 1200) * 0.2)))
@@ -4788,6 +4916,9 @@ export default function RealWorldMap() {
         ? ([desktopPanelOffset, 0] as [number, number])
       : undefined;
     const targetCamera = getDefaultMapCamera(isMobileViewport);
+    if (!isMobileViewport) {
+      markDesktopMapSettling(1180);
+    }
 
     map.flyTo({
       center: [targetCenter[1], targetCenter[0]],
@@ -4806,6 +4937,7 @@ export default function RealWorldMap() {
     selectedPlacePanelExpanded,
     targetCenter,
     targetZoom,
+    markDesktopMapSettling,
   ]);
 
   useEffect(() => {
@@ -7348,6 +7480,7 @@ export default function RealWorldMap() {
           record.draggable !== draggable);
 
       if (record && shouldRecreate) {
+        record.element.removeEventListener('pointerdown', record.pointerDownHandler);
         record.element.removeEventListener('click', record.clickHandler);
         record.marker.remove();
         mapMarkersRef.current.delete(key);
@@ -7368,12 +7501,18 @@ export default function RealWorldMap() {
       }
 
       const element = createMarkerElement(html, className);
+      element.style.pointerEvents = 'auto';
+      const pointerDownHandler = (event: PointerEvent) => {
+        event.stopPropagation();
+        armMapClickSuppression(360);
+      };
       const clickHandler = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        armMapClickSuppression();
+        armMapClickSuppression(360);
         mapMarkersRef.current.get(key)?.onClick();
       };
+      element.addEventListener('pointerdown', pointerDownHandler);
       element.addEventListener('click', clickHandler);
 
       const marker = new maplibregl.Marker({
@@ -7395,6 +7534,7 @@ export default function RealWorldMap() {
         draggable,
         onClick,
         onDragEnd,
+        pointerDownHandler,
         clickHandler,
       };
 
@@ -7578,12 +7718,29 @@ export default function RealWorldMap() {
       });
     }
 
-    mapMarkersRef.current.forEach((record, key) => {
-      if (seenMarkerKeys.has(key)) return;
-      record.element.removeEventListener('click', record.clickHandler);
-      record.marker.remove();
-      mapMarkersRef.current.delete(key);
-    });
+    const removeStaleMarkers = () => {
+      mapMarkersRef.current.forEach((record, key) => {
+        if (seenMarkerKeys.has(key)) return;
+        record.element.removeEventListener('pointerdown', record.pointerDownHandler);
+        record.element.removeEventListener('click', record.clickHandler);
+        record.marker.remove();
+        mapMarkersRef.current.delete(key);
+      });
+    };
+
+    if (!isMobileViewport && desktopMapSettlingRef.current) {
+      if (deferredMarkerCleanupTimerRef.current !== null) {
+        window.clearTimeout(deferredMarkerCleanupTimerRef.current);
+      }
+
+      deferredMarkerCleanupTimerRef.current = window.setTimeout(() => {
+        deferredMarkerCleanupTimerRef.current = null;
+        removeStaleMarkers();
+      }, 460);
+      return;
+    }
+
+    removeStaleMarkers();
   }, [
     armMapClickSuppression,
     clusteredNearbyMarkers,
@@ -7591,6 +7748,7 @@ export default function RealWorldMap() {
     currentLocationMarkerHtml,
     focusExistingPlace,
     footprintMarks,
+    isMobileViewport,
     isUserCentered,
     mapReady,
     mapZoom,
@@ -13485,6 +13643,7 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.maplibregl-marker) {
           z-index: 8;
+          pointer-events: auto;
           will-change: transform;
         }
 
@@ -13492,8 +13651,11 @@ export default function RealWorldMap() {
           border: 0;
           background: transparent;
           cursor: pointer;
+          pointer-events: auto;
           transform-origin: 50% 100%;
           transition: filter 180ms ease;
+          user-select: none;
+          -webkit-user-select: none;
         }
 
         .basedare-maplibre-map :global(.basedare-maplibre-marker:hover) {
