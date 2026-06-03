@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 
 const MAP_ROUTE_CLASS = 'bd-map-route-active';
+const NO_GLOBAL_BACKGROUND_CLASS = 'bd-route-no-global-bg';
 
 export default function MapRouteChromeGuard() {
   useEffect(() => {
@@ -27,15 +28,15 @@ export default function MapRouteChromeGuard() {
       document.body.style.overscrollBehavior = 'none';
     };
 
-    document.documentElement.classList.add(MAP_ROUTE_CLASS);
-    document.body.classList.add(MAP_ROUTE_CLASS);
+    document.documentElement.classList.add(MAP_ROUTE_CLASS, NO_GLOBAL_BACKGROUND_CLASS);
+    document.body.classList.add(MAP_ROUTE_CLASS, NO_GLOBAL_BACKGROUND_CLASS);
     syncDesktopScrollLock();
     desktopMedia.addEventListener('change', syncDesktopScrollLock);
 
     return () => {
       desktopMedia.removeEventListener('change', syncDesktopScrollLock);
-      document.documentElement.classList.remove(MAP_ROUTE_CLASS);
-      document.body.classList.remove(MAP_ROUTE_CLASS);
+      document.documentElement.classList.remove(MAP_ROUTE_CLASS, NO_GLOBAL_BACKGROUND_CLASS);
+      document.body.classList.remove(MAP_ROUTE_CLASS, NO_GLOBAL_BACKGROUND_CLASS);
       document.documentElement.style.overflow = originalHtmlOverflow;
       document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
       document.body.style.overflow = originalBodyOverflow;

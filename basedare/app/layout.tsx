@@ -76,6 +76,25 @@ try {
     if (document.body) document.body.dataset.bdBg = tone;
   }
 } catch (error) {}
+try {
+  var pathname = window.location.pathname || '';
+  var noGlobalBackground =
+    pathname === '/map' ||
+    pathname.indexOf('/map/') === 0 ||
+    pathname === '/first-spark' ||
+    pathname === '/scouts/dashboard' ||
+    pathname === '/brands/portal';
+
+  if (noGlobalBackground) {
+    document.documentElement.classList.add('bd-route-no-global-bg');
+    if (document.body) document.body.classList.add('bd-route-no-global-bg');
+  }
+
+  if (pathname === '/map' || pathname.indexOf('/map/') === 0) {
+    document.documentElement.classList.add('bd-map-route-active');
+    if (document.body) document.body.classList.add('bd-map-route-active');
+  }
+} catch (error) {}
 `;
 
 export const metadata: Metadata = {

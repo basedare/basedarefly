@@ -2618,12 +2618,18 @@ html[data-bd-bg="light"] .bd-background-root canvas:not(.maplibregl-canvas):not(
     }
 }
 
+html.bd-route-no-global-bg,
+body.bd-route-no-global-bg,
 html.bd-map-route-active,
 body.bd-map-route-active {
   background: #02030a !important;
   background-image: none !important;
 }
 
+body.bd-route-no-global-bg .bd-background-root,
+body.bd-route-no-global-bg #particles-js,
+body.bd-route-no-global-bg canvas:not(.maplibregl-canvas):not(.lightning-canvas),
+body.bd-route-no-global-bg .video-background-container,
 body.bd-map-route-active .bd-background-root,
 body.bd-map-route-active #particles-js,
 body.bd-map-route-active canvas:not(.maplibregl-canvas):not(.lightning-canvas),
