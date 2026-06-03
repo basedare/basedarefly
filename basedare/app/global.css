@@ -2618,6 +2618,47 @@ html[data-bd-bg="light"] .bd-background-root canvas:not(.maplibregl-canvas):not(
     }
 }
 
+html.bd-map-route-active,
+body.bd-map-route-active {
+  background: #02030a !important;
+  background-image: none !important;
+}
+
+body.bd-map-route-active .bd-background-root,
+body.bd-map-route-active #particles-js,
+body.bd-map-route-active canvas:not(.maplibregl-canvas):not(.lightning-canvas),
+body.bd-map-route-active .video-background-container {
+  display: none !important;
+  visibility: hidden !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+@media screen and (min-width: 769px) {
+  html.bd-map-route-active,
+  body.bd-map-route-active {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  body.bd-map-route-active .glass-card,
+  body.bd-map-route-active .card,
+  body.bd-map-route-active .navbar,
+  body.bd-map-route-active .overlay,
+  body.bd-map-route-active .live-pot-container,
+  body.bd-map-route-active video {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  body.bd-map-route-active nav > div[aria-hidden='true'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* GLOBAL OVERRIDE for Connect Button - HOLO SPACE STYLE */
 button[data-testid='ockConnectWalletButton'] {
   background: linear-gradient(135deg, rgba(147, 51, 234, 0.8) 0%, rgba(79, 70, 229, 0.8) 100%) !important;

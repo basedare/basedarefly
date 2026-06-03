@@ -1,5 +1,5 @@
-import LiquidBackground from "@/components/LiquidBackground";
 import RealWorldMapClient from './RealWorldMapClient';
+import MapRouteChromeGuard from './MapRouteChromeGuard';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -27,9 +27,8 @@ export const metadata: Metadata = {
 
 export default function MapPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-transparent font-display">
-      <LiquidBackground veilOpacity={0.72} performanceMode="quiet" />
-      <div className="pointer-events-none fixed inset-0 z-10 hidden bg-[linear-gradient(180deg,rgba(4,5,12,0.18)_0%,rgba(4,5,12,0)_32%,rgba(4,5,12,0.2)_100%)] md:block" />
+    <div className="relative min-h-screen overflow-hidden bg-[#02030a] font-display">
+      <MapRouteChromeGuard />
       <RealWorldMapClient />
     </div>
   );

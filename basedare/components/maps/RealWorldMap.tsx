@@ -858,7 +858,7 @@ function isDesktopChromiumMapRenderer(isMobileRenderer: boolean) {
 
   const userAgent = navigator.userAgent;
   return (
-    /\b(?:Chrome|Chromium)\//.test(userAgent) &&
+    /\b(?:HeadlessChrome|Chrome|Chromium)\//.test(userAgent) &&
     !/\b(?:Edg|OPR|SamsungBrowser)\//.test(userAgent)
   );
 }
@@ -871,7 +871,7 @@ function getStableMapPixelRatio(isMobileRenderer: boolean) {
     return devicePixelRatio;
   }
 
-  return Math.min(devicePixelRatio, 1.5);
+  return Math.min(devicePixelRatio, 1);
 }
 
 function loadOpenFreeMapStyle() {
@@ -4721,10 +4721,10 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          // Mobile keeps an instant cut (0); desktop Chrome flickers without a
-          // tile/label crossfade because edge tiles and zoom steps hard-pop
-          // mid-gesture. A short fade smooths the transition during pan/zoom.
-          fadeDuration: isMobileRenderer ? 0 : 150,
+          // Desktop Chromium is the problem renderer here. Crossfaded tiles add
+          // another transient WebGL layer, which makes Chrome more likely to
+          // present stale tile regions while the page composites.
+          fadeDuration: isMobileRenderer || isDesktopChromiumRenderer ? 0 : 150,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
           pixelRatio: stablePixelRatio,
           trackResize: false,
@@ -4755,6 +4755,9 @@ export default function RealWorldMap() {
       }
 
       mapInstanceRef.current = map;
+      if (isDesktopChromiumRenderer) {
+        map.repaint = true;
+      }
       map.dragRotate.enable();
       map.touchZoomRotate.enableRotation();
 
@@ -5081,11 +5084,13 @@ export default function RealWorldMap() {
           Math.abs(lastSize.width - nextSize.width) < 2 &&
           Math.abs(lastSize.height - nextSize.height) < 2
         ) {
+          map.triggerRepaint();
           return;
         }
 
         lastSize = nextSize;
         map.resize();
+        map.triggerRepaint();
       });
     };
 
@@ -5094,7 +5099,10 @@ export default function RealWorldMap() {
     const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resizeMap) : null;
     resizeObserver?.observe(container);
     window.addEventListener('resize', resizeMap);
+    window.addEventListener('scroll', resizeMap, { passive: true });
     window.addEventListener('orientationchange', resizeMap);
+    window.visualViewport?.addEventListener('resize', resizeMap);
+    window.visualViewport?.addEventListener('scroll', resizeMap);
 
     return () => {
       if (resizeFrame !== null) {
@@ -5103,7 +5111,10 @@ export default function RealWorldMap() {
       window.clearTimeout(settleTimeoutId);
       resizeObserver?.disconnect();
       window.removeEventListener('resize', resizeMap);
+      window.removeEventListener('scroll', resizeMap);
       window.removeEventListener('orientationchange', resizeMap);
+      window.visualViewport?.removeEventListener('resize', resizeMap);
+      window.visualViewport?.removeEventListener('scroll', resizeMap);
     };
   }, [mapReady]);
 
@@ -8657,10 +8668,10 @@ export default function RealWorldMap() {
       className={
         isImmersiveMobile
           ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
-          : 'relative z-20 px-4 pb-20 pt-4 sm:px-6 sm:pb-24 sm:pt-5 md:px-10 md:pb-24 md:pt-6'
+          : 'map-shell-section relative z-20 px-4 pb-20 pt-4 sm:px-6 sm:pb-24 sm:pt-5'
       }
     >
-      <div className={isImmersiveMobile ? 'h-full w-full' : 'mx-auto max-w-7xl'}>
+      <div className={isImmersiveMobile ? 'h-full w-full' : 'map-shell-inner mx-auto max-w-7xl'}>
         {!isImmersiveMobile ? (
           <h1 className="sr-only">BaseDare live map</h1>
         ) : null}
@@ -8672,7 +8683,7 @@ export default function RealWorldMap() {
             if (target instanceof Node && searchShellRef.current?.contains(target)) return;
             closeSearchPopover();
           }}
-          className={`relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[34px]'}`}
+          className={`map-shell-frame relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[34px]'}`}
           style={
             isImmersiveMobile
               ? {
@@ -8686,7 +8697,7 @@ export default function RealWorldMap() {
           {!isImmersiveMobile ? (
             <HoneyGooAccent className="absolute right-7 top-[-2px] z-[32] hidden xl:block" size="sm" />
           ) : null}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
+          <div className="map-card-ambient pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
           <div
             className={`map-command-header relative z-20 flex shrink-0 flex-col gap-1.5 border-b border-white/8 ${
@@ -8993,7 +9004,7 @@ export default function RealWorldMap() {
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
                 ? 'map-container-wrapper--immersive min-h-0 flex-1'
-                : 'h-[calc(100dvh-15.25rem)] min-h-[560px] md:h-[76vh] md:min-h-[660px]'
+                : 'map-container-wrapper--desktop-shell h-[calc(100dvh-15.25rem)] min-h-[560px]'
             }`}
           >
             <div
@@ -11105,6 +11116,36 @@ export default function RealWorldMap() {
           animation: mapPanelRollout 300ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
+        @media (min-width: 768px) {
+          .map-shell-section {
+            position: fixed;
+            top: 6rem;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 20;
+            overflow: hidden;
+            padding: 0 2.5rem 1.5rem;
+          }
+
+          .map-shell-inner {
+            height: 100%;
+          }
+
+          .map-shell-frame {
+            display: flex;
+            height: 100%;
+            flex-direction: column;
+          }
+
+          .map-container-wrapper--desktop-shell {
+            flex: 1 1 auto;
+            width: 100%;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+        }
+
         .map-container-wrapper {
           border-radius: 0 0 34px 34px;
           background: var(--neu-surface);
@@ -11129,6 +11170,22 @@ export default function RealWorldMap() {
           overflow: hidden;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
+        }
+
+        @media (min-width: 768px) {
+          .map-card-ambient {
+            display: none;
+          }
+
+          .map-container-wrapper {
+            border-radius: 0 0 28px 28px;
+            background: #050617 !important;
+            box-shadow: none !important;
+            outline: 1px solid rgba(255, 255, 255, 0.055);
+            outline-offset: -1px;
+            contain: layout paint style;
+            transform: none !important;
+          }
         }
 
         .map-fullscreen-toggle {
