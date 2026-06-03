@@ -5,7 +5,7 @@
  * Every transaction feeds the pot, creating a global marketing event.
  *
  * Fee Structure:
- * - P2P Dares: 10% total fee (5% Dev, 5% Pot)
+ * - P2P Dares: 4% total fee (2% Dev, 2% Pot) — matches BaseDareBountyV2 on-chain (96% creator)
  * - Control Mode (B2B): 30% total fee (1% Scout, 19% Dev, 10% Pot)
  * - Sunder (Slashing): 100% to Live Pot
  *
@@ -19,12 +19,12 @@
 // ============================================================================
 
 export const FEE_CONFIG = {
-  // P2P Dare Settlement (Consumer)
+  // P2P Dare Settlement (Consumer) — matches BaseDareBountyV2 on-chain (4% fee)
   P2P: {
-    totalFeePercent: 10,
-    devWalletPercent: 5,    // 5% of total amount
-    livePotPercent: 5,      // 5% of total amount
-    creatorPercent: 90,     // 90% of total amount
+    totalFeePercent: 4,
+    devWalletPercent: 2,    // 2% of total amount
+    livePotPercent: 2,      // 2% of total amount
+    creatorPercent: 96,     // 96% of total amount
   },
 
   // Control Mode (B2B Brand Campaigns)
@@ -100,8 +100,8 @@ export interface WeeklyRewardDistribution {
 
 /**
  * Calculate P2P Dare Settlement
- * Total Fee: 10% (5% Dev, 5% Pot)
- * Creator: 90%
+ * Total Fee: 4% (2% Dev, 2% Pot)
+ * Creator: 96%
  */
 export function calculateP2PSettlement(
   totalAmount: number,
@@ -237,9 +237,9 @@ export function validateB2BSettlement(settlement: B2BSettlement): boolean {
 export function formatP2PSettlement(settlement: P2PSettlement): string {
   return `
 P2P Settlement ($${settlement.totalAmount.toFixed(2)}):
-  Creator:    $${settlement.creatorPayout.toFixed(2)} (90%)
-  Dev Wallet: $${settlement.devWalletAmount.toFixed(2)} (5%)
-  Live Pot:   $${settlement.livePotAmount.toFixed(2)} (5%)
+  Creator:    $${settlement.creatorPayout.toFixed(2)} (96%)
+  Dev Wallet: $${settlement.devWalletAmount.toFixed(2)} (2%)
+  Live Pot:   $${settlement.livePotAmount.toFixed(2)} (2%)
   Referrer:   $${settlement.referrerAmount.toFixed(2)} (${settlement.referrerAmount > 0 ? '1%' : '0%'})
 `.trim();
 }
@@ -266,11 +266,11 @@ export function getFeeSummary(mode: 'P2P' | 'B2B'): {
 } {
   if (mode === 'P2P') {
     return {
-      totalFee: '10%',
+      totalFee: '4%',
       breakdown: [
-        { label: 'Creator', percent: 90, description: 'Direct to performer' },
-        { label: 'Dev Ops', percent: 5, description: 'Platform operations' },
-        { label: 'Live Pot', percent: 5, description: 'Community treasury' },
+        { label: 'Creator', percent: 96, description: 'Direct to performer' },
+        { label: 'Dev Ops', percent: 2, description: 'Platform operations' },
+        { label: 'Live Pot', percent: 2, description: 'Community treasury' },
       ],
     };
   }
