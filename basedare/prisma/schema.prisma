@@ -723,6 +723,26 @@ model VoterPoints {
   @@index([totalPoints])
 }
 
+// Creator onboarding "Passport" — radar tuning, availability, and Signal Points.
+// Tag / avatar / socials / earnings live on StreamerTag, joined by walletAddress.
+model CreatorPassport {
+  id                String   @id @default(cuid())
+  walletAddress     String   @unique
+  homeZone          String?
+  vibeLine          String?
+  missionStyles     String[] @default([])
+  availability      String[] @default([])
+  radiusKm          Int?
+  signalPoints      Int      @default(0)
+  completedMissions String[] @default([])
+  pingsEnabled      Boolean  @default(false)
+  routeReady        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([signalPoints])
+}
+
 // ============================================================================
 // IN-APP NOTIFICATIONS
 // ============================================================================
