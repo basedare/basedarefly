@@ -13805,14 +13805,28 @@ export default function RealWorldMap() {
         }
 
         @media (min-width: 768px) {
-          .map-container-wrapper,
+          /*
+           * Desktop Chrome flickers during zoom/pan because the WebGL canvas
+           * is NOT promoted to its own compositor layer, so Chrome re-composites
+           * the whole canvas (dpr2 backing store) inline with the DOM markers on
+           * top every repaint frame. Safari auto-promotes WebGL so it never
+           * flickers; mobile is unaffected. Promote the canvas surface onto its
+           * own GPU layer (isolated from the marker layer) to stop the re-composite.
+           */
           .map-canvas-host,
-          .basedare-maplibre-map :global(.maplibregl-map),
           .basedare-maplibre-map :global(.maplibregl-canvas-container),
           .basedare-maplibre-map :global(.maplibregl-canvas) {
-            transform: none !important;
-            backface-visibility: visible !important;
-            contain: none !important;
+            transform: translateZ(0) !important;
+            backface-visibility: hidden !important;
+            contain: paint !important;
+          }
+
+          .map-canvas-host {
+            isolation: isolate !important;
+          }
+
+          .basedare-maplibre-map :global(.maplibregl-canvas) {
+            will-change: transform !important;
           }
 
           .basedare-maplibre-map .maplibre-depth-vignette,
