@@ -214,8 +214,18 @@ export default function CreatorRadarPage() {
     { label: 'Venue-ready', value: venueProvenCount, icon: MapPin },
   ];
 
+  const routingSteps: Array<{ label: string; detail: string; icon: LucideIcon }> = [
+    { label: '1. Search', detail: 'Find the creator', icon: Search },
+    { label: '2. Filter', detail: 'Check venue signal', icon: SlidersHorizontal },
+    { label: '3. Fit', detail: 'Rank reliability', icon: ShieldCheck },
+    { label: '4. Route', detail: 'Message or fund', icon: ArrowRight },
+  ];
+
   return (
     <ControlChrome
+      title="Creator Radar"
+      subtitle="Creator route control"
+      badge="Scout Portal"
       maxWidthClass="max-w-7xl"
       action={
         <div className="flex items-center gap-2">
@@ -236,23 +246,37 @@ export default function CreatorRadarPage() {
         </div>
       }
     >
-      {/* Compact hero: kicker + title + one stat row */}
-      <section className={`${controlPanel} px-5 py-7 sm:px-8 lg:px-10 lg:py-9`}>
+      {/* Compact hero */}
+      <section className={`${controlPanel} px-5 py-6 sm:px-8 lg:px-10 lg:py-7`}>
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.07] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/76">
-            <SlidersHorizontal className="h-4 w-4" />
-            Creator routing
+        <div className="relative grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
+              For sponsors, venues, and scouts
+            </div>
+            <h1 className="mt-2 max-w-4xl text-3xl font-black leading-[0.95] tracking-[-0.045em] text-white sm:text-5xl">
+              Route reliable creators
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base">
+              Search the creator graph, rank mission fit, and move the best creator into a paid venue route.
+            </p>
           </div>
-          <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl">
-            Creator Radar
-          </h1>
-          <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/62">
-            Find reliable creators for venue missions.
-          </p>
-          <ControlStatRow items={summaryMetrics} columnsClass="grid-cols-2 sm:grid-cols-4" className="mt-6" />
+
+          <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
+            {routingSteps.map(({ label, detail, icon: Icon }) => (
+              <div key={label} className={`${controlInset} px-3 py-3`}>
+                <div className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-yellow-100/78" />
+                  <div className="font-black text-white">{label}</div>
+                </div>
+                <div className="mt-1 text-xs font-bold text-white/50">{detail}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
+
+      <ControlStatRow items={summaryMetrics} columnsClass="grid-cols-2 sm:grid-cols-4" />
 
       {/* Toolbar: search + filters + sort */}
       <section className={`${controlPanel} p-4 sm:p-5`}>

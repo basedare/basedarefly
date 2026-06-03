@@ -853,6 +853,27 @@ function browserCanStartMapRenderer() {
   return 'WebGLRenderingContext' in window || 'WebGL2RenderingContext' in window;
 }
 
+function isDesktopChromiumMapRenderer(isMobileRenderer: boolean) {
+  if (isMobileRenderer || typeof navigator === 'undefined') return false;
+
+  const userAgent = navigator.userAgent;
+  return (
+    /\b(?:Chrome|Chromium)\//.test(userAgent) &&
+    !/\b(?:Edg|OPR|SamsungBrowser)\//.test(userAgent)
+  );
+}
+
+function getStableMapPixelRatio(isMobileRenderer: boolean) {
+  if (typeof window === 'undefined') return 1;
+
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  if (!isDesktopChromiumMapRenderer(isMobileRenderer)) {
+    return devicePixelRatio;
+  }
+
+  return Math.min(devicePixelRatio, 1.5);
+}
+
 function loadOpenFreeMapStyle() {
   if (!openFreeMapStylePromise) {
     openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
@@ -4681,7 +4702,9 @@ export default function RealWorldMap() {
     };
 
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
+    const isDesktopChromiumRenderer = isDesktopChromiumMapRenderer(isMobileRenderer);
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
+    const stablePixelRatio = getStableMapPixelRatio(isMobileRenderer);
     const startMap = async () => {
       const mapStyle = await loadOpenFreeMapStyle();
       if (cancelled) return;
@@ -4703,6 +4726,7 @@ export default function RealWorldMap() {
           // mid-gesture. A short fade smooths the transition during pan/zoom.
           fadeDuration: isMobileRenderer ? 0 : 150,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
+          pixelRatio: stablePixelRatio,
           trackResize: false,
           // Opaque WebGL context. Without alpha:false the canvas composites
           // against the page every repaint (which only happens during pan/zoom),
@@ -4714,7 +4738,7 @@ export default function RealWorldMap() {
             antialias: false,
             preserveDrawingBuffer: false,
             failIfMajorPerformanceCaveat: false,
-            powerPreference: 'default',
+            powerPreference: isDesktopChromiumRenderer ? 'high-performance' : 'default',
           },
         });
       } catch (error) {
@@ -4778,20 +4802,27 @@ export default function RealWorldMap() {
           lastTargetCameraKeyRef.current = null;
         }
 
+        clearMapInteractionQuietTimer();
+        setMapInteractionQuiet(true);
+
         if (!isMobileRenderer) {
           markDesktopMapSettling(540);
           return;
         }
-        clearMapInteractionQuietTimer();
-        setMapInteractionQuiet(true);
       };
 
       const handleMapMotionSettled = () => {
+        clearMapInteractionQuietTimer();
+
         if (!isMobileRenderer) {
           markDesktopMapSettling(260);
+          mapInteractionQuietTimerRef.current = window.setTimeout(() => {
+            setMapInteractionQuiet(false);
+            mapInteractionQuietTimerRef.current = null;
+          }, 180);
           return;
         }
-        clearMapInteractionQuietTimer();
+
         mapInteractionQuietTimerRef.current = window.setTimeout(() => {
           setMapInteractionQuiet(false);
           mapInteractionQuietTimerRef.current = null;
@@ -8994,7 +9025,7 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {!isMobileViewport ? (
+            {!isMobileViewport && !mapInteractionQuiet ? (
               <MapCrosshair
                 containerRef={mapViewportRef}
                 horizontalColor="rgba(184, 127, 255, 0.82)"
@@ -13806,27 +13837,26 @@ export default function RealWorldMap() {
 
         @media (min-width: 768px) {
           /*
-           * Desktop Chrome flickers during zoom/pan because the WebGL canvas
-           * is NOT promoted to its own compositor layer, so Chrome re-composites
-           * the whole canvas (dpr2 backing store) inline with the DOM markers on
-           * top every repaint frame. Safari auto-promotes WebGL so it never
-           * flickers; mobile is unaffected. Promote the canvas surface onto its
-           * own GPU layer (isolated from the marker layer) to stop the re-composite.
+           * Desktop Chrome is sensitive to stacking a large WebGL backing store,
+           * DOM markers, and backdrop overlays in the same frame. Keep the map
+           * paint-contained and opaque, then quiet decorative overlays while the
+           * camera is moving.
            */
-          .map-canvas-host,
-          .basedare-maplibre-map :global(.maplibregl-canvas-container),
-          .basedare-maplibre-map :global(.maplibregl-canvas) {
-            transform: translateZ(0) !important;
-            backface-visibility: hidden !important;
-            contain: paint !important;
-          }
-
           .map-canvas-host {
             isolation: isolate !important;
+            contain: layout paint style !important;
+            background: #050617 !important;
+          }
+
+          .basedare-maplibre-map :global(.maplibregl-canvas-container) {
+            contain: paint !important;
+            background: #050617 !important;
           }
 
           .basedare-maplibre-map :global(.maplibregl-canvas) {
-            will-change: transform !important;
+            backface-visibility: hidden !important;
+            contain: paint !important;
+            will-change: auto !important;
           }
 
           .basedare-maplibre-map .maplibre-depth-vignette,
@@ -13835,6 +13865,29 @@ export default function RealWorldMap() {
           .basedare-maplibre-map .scanlines,
           .basedare-maplibre-map .glass-haze {
             display: none !important;
+          }
+
+          .basedare-maplibre-map[data-map-moving='true'] [data-map-crosshair='true'],
+          .basedare-maplibre-map[data-map-moving='true'] .map-engine-badge,
+          .basedare-maplibre-map[data-map-moving='true'] .map-activation-legend {
+            opacity: 0 !important;
+            transition: none !important;
+          }
+
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-venue-label),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-pulse-pill),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
+            opacity: 0 !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+            transition: none !important;
+            will-change: auto !important;
           }
         }
 

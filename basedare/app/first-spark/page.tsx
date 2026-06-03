@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CreditCard, MapPin, QrCode, ReceiptText, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, CreditCard, MapPin, QrCode, ReceiptText, Users } from 'lucide-react';
 
 import SquircleLink from '@/components/ui/SquircleLink';
 import { ControlChrome } from '@/components/control/ControlChrome';
@@ -171,29 +171,34 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
     ['Output', 'Spark Receipt'],
   ];
 
-  const routeCards = [
+  const pilotSteps = [
     {
       icon: <Users className="h-5 w-5" />,
-      label: '1 / Route',
-      title: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'Pick the window',
-      detail: 'Choose the slow slot.',
+      label: '1. Window',
+      detail: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'Choose the slow slot',
     },
     {
       icon: <QrCode className="h-5 w-5" />,
-      label: '2 / Proof',
-      title: 'Add one perk',
-      detail: 'Give people a reason.',
+      label: '2. Perk',
+      detail: 'Give people a reason',
     },
     {
       icon: <ReceiptText className="h-5 w-5" />,
-      label: '3 / Recap',
-      title: 'Get the receipt',
-      detail: 'Proof, signal, next move.',
+      label: '3. Proof',
+      detail: 'QR proof plus clip',
+    },
+    {
+      icon: <CreditCard className="h-5 w-5" />,
+      label: '4. Receipt',
+      detail: 'Proof, signal, next move',
     },
   ];
 
   return (
     <ControlChrome
+      title="First Spark"
+      subtitle="Dead-window pilot control"
+      badge="Pilot Portal"
       action={
         <Link
           href="/admin/mission-control"
@@ -209,22 +214,21 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
       {!hasPrefilledRoute ? (
         <>
           {/* 1. Hero + paid pilot loop */}
-          <section className={`${controlPanel} px-5 py-7 sm:px-7 lg:px-8 lg:py-8`}>
+          <section className={`${controlPanel} px-5 py-6 sm:px-7 lg:px-8 lg:py-7`}>
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(245,197,24,0.09),transparent_34%,rgba(168,85,247,0.09)_100%)]" />
             <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-            <div className="relative grid gap-7 lg:grid-cols-[1fr_0.72fr] lg:items-center">
+            <div className="relative grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
-                  <Sparkles className="h-4 w-4" />
-                  First Spark Pilot
+                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
+                  For venues with one quiet slot
                 </div>
-                <h1 className="mt-5 max-w-3xl text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.065em] text-white sm:text-5xl lg:text-7xl">
-                  Wake up one slow window.
+                <h1 className="mt-2 max-w-3xl text-3xl font-black leading-[0.95] tracking-[-0.045em] text-white sm:text-5xl">
+                  Run a First Spark pilot
                 </h1>
-                <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/62">
+                <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base">
                   Pick the quiet slot. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.
                 </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">
                     <SquircleLink href="#pilot-request" tone="yellow" label="Run First Spark" fullWidth height={46}>
                       <span className="flex items-center justify-center gap-2 text-[0.78rem] tracking-[0.08em] text-[#15120c]">
@@ -242,33 +246,37 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                 </div>
               </div>
 
-              <div className={`${controlInset} p-4`}>
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-100/70">
-                  <CreditCard className="h-4 w-4" />
-                  Paid pilot loop
-                </div>
-                <div className="mt-4 grid gap-2">
-                  {pilotSnapshot.map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/[0.08] bg-white/[0.035] px-3 py-3">
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">{label}</span>
-                      <span className="truncate text-sm font-black text-white/78">{value}</span>
+              <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
+                {pilotSteps.map((step) => (
+                  <div key={step.label} className={`${controlInset} px-3 py-3`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-100/78">{step.icon}</span>
+                      <div className="font-black text-white">{step.label}</div>
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-1 text-xs font-bold text-white/50">{step.detail}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* 2. Three-step strip */}
-          <section className="grid gap-4 md:grid-cols-3">
-            {routeCards.map((card) => (
-              <article key={card.label} className={`${controlInset} p-5`}>
-                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-yellow-200/16 bg-yellow-300/[0.08] text-yellow-100">
-                  {card.icon}
-                </div>
-                <p className="mt-4 text-[10px] font-black uppercase tracking-[0.22em] text-white/36">{card.label}</p>
-                <h2 className="mt-1 text-xl font-black tracking-[-0.03em] text-white">{card.title}</h2>
-                <p className="mt-2 text-sm font-bold leading-6 text-white/54">{card.detail}</p>
+          {/* 2. Paid pilot snapshot */}
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {pilotSnapshot.map(([label, value], index) => (
+              <article
+                key={label}
+                className={`${controlInset} px-4 py-4 ${
+                  index === 0
+                    ? 'border-yellow-300/18 bg-yellow-300/[0.08]'
+                    : index === 1
+                      ? 'border-cyan-300/18 bg-cyan-400/[0.07]'
+                      : index === 2
+                        ? 'border-purple-300/20 bg-purple-500/[0.08]'
+                        : 'border-emerald-300/18 bg-emerald-400/[0.07]'
+                }`}
+              >
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/48">{label}</p>
+                <p className="mt-2 truncate text-xl font-black text-white">{value}</p>
               </article>
             ))}
           </section>
