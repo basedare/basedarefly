@@ -13,14 +13,15 @@ import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
 import { DeferredGlobalSearch } from './ui/DeferredGlobalSearch';
 import BackgroundToneToggle from './BackgroundToneToggle';
 
+// Primary nav = the daily-action surfaces for the three loops.
+// Learn (/how-it-works) and Verify (/verify) live in the footer; Control is
+// reached via the FAN/CONTROL toggle.
 const NAV_LINKS = [
   { name: "HOME", href: "/" },
-  { name: "START", href: "/how-it-works" },
+  { name: "MAP", href: "/map" },
   { name: "CREATE", href: "/create" },
-  { name: "Map", href: "/map" },
   { name: "DASHBOARD", href: "/dashboard" },
   { name: "CREATORS", href: "/creators" },
-  { name: "VERIFY", href: "/verify" },
 ];
 
 const NAV_LINK_PREFETCH = false;

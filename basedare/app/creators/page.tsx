@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import CreatorsPage from '@/app/streamers/page';
+import CreatorsPage from '@/components/creators/PublicCreators';
 
 export const metadata: Metadata = {
   title: 'BaseDare Creators — Get Paid for IRL and Online Dares',

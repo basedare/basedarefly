@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, FileText, HelpCircle, Info, MessageSquare, Lightbulb } from 'lucide-react';
+import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
 
@@ -118,6 +118,12 @@ export default function Footer() {
                   <Link href="/how-it-works" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-amber-400 active:text-amber-400 md:justify-start group touch-manipulation">
                     <Lightbulb className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-amber-400" />
                     How It Works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/verify" className="flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-500 transition-colors hover:text-emerald-400 active:text-emerald-400 md:justify-start group touch-manipulation">
+                    <ShieldCheck className="w-3.5 h-3.5 sm:w-3 sm:h-3 group-hover:text-emerald-400" />
+                    Verify Proof
                   </Link>
                 </li>
                 <li>
