@@ -4698,9 +4698,24 @@ export default function RealWorldMap() {
           attributionControl: { compact: true },
           dragRotate: true,
           touchZoomRotate: true,
-          fadeDuration: 0,
+          // Mobile keeps an instant cut (0); desktop Chrome flickers without a
+          // tile/label crossfade because edge tiles and zoom steps hard-pop
+          // mid-gesture. A short fade smooths the transition during pan/zoom.
+          fadeDuration: isMobileRenderer ? 0 : 150,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
           trackResize: false,
+          // Opaque WebGL context. Without alpha:false the canvas composites
+          // against the page every repaint (which only happens during pan/zoom),
+          // which Chrome desktop renders as flicker. The map is fully opaque
+          // anyway (base layer, z-0), so nothing shows through.
+          canvasContextAttributes: {
+            alpha: false,
+            premultipliedAlpha: false,
+            antialias: false,
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false,
+            powerPreference: 'default',
+          },
         });
       } catch (error) {
         const message = getMapStartupErrorMessage(error);
