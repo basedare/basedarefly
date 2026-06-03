@@ -1964,34 +1964,33 @@ export default function BrandPortalPage() {
 
       {/* Not connected state */}
       {showNotConnected && (
-        <div className="flex items-center justify-center h-full relative z-10">
+        <div className="flex items-center justify-center h-full p-4 relative z-10">
           <Link
             href="/?mode=control"
-            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+            className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to Home</span>
+            <ArrowLeft className="h-4 w-4" />
+            Control
           </Link>
 
-          <div className="text-center space-y-6">
-            <div className="text-6xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🎮</div>
-            <h1 className="text-3xl font-bold text-zinc-900">
-              CONTROL MODE
+          <div className="max-w-md text-center space-y-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
+              <Sparkles className="h-4 w-4" />
+              Activation Portal
+            </div>
+            <h1 className="text-4xl font-black uppercase italic tracking-[-0.06em] text-white sm:text-5xl">
+              Control Mode
             </h1>
-            <p className="text-zinc-600 max-w-md">
-              Fund live venue activations, route creators, and track proof.
-              Connect your wallet to open the activation portal.
+            <p className="mx-auto max-w-md text-base font-bold leading-7 text-white/62">
+              Fund live venue activations, route creators, and track proof. Connect your wallet to open the activation portal.
             </p>
             <button
               onClick={() => {
                 const preferredConnector = getPreferredWalletConnector(connectors);
                 if (preferredConnector) connect({ connector: preferredConnector });
               }}
-              className="px-6 py-4 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition touch-manipulation select-none cursor-pointer active:scale-95"
-              style={{
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: '52px',
-              }}
+              className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300 px-7 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 active:scale-95 touch-manipulation select-none cursor-pointer"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               Connect Wallet
             </button>
@@ -2011,36 +2010,38 @@ export default function BrandPortalPage() {
         <div className="flex items-center justify-center h-full p-4 relative z-10">
           <Link
             href="/?mode=control"
-            className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/70 border border-zinc-200 rounded-xl backdrop-blur-sm hover:bg-white transition"
+            className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to Home</span>
+            <ArrowLeft className="h-4 w-4" />
+            Control
           </Link>
 
           <div className="max-w-md w-full space-y-6">
             <div className="text-center">
-              <div className="text-5xl mb-4" style={{ filter: 'grayscale(1)', WebkitFilter: 'grayscale(1)' }}>🏢</div>
-              <h1 className="text-2xl font-bold text-zinc-900">Register Venue or Brand</h1>
-              <p className="text-zinc-600 mt-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
+                Register
+              </div>
+              <h1 className="mt-4 text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Venue or brand</h1>
+              <p className="mt-3 text-sm font-bold leading-6 text-white/58">
                 Set up the buyer profile that will fund venue activations.
               </p>
             </div>
 
-            <div className="space-y-4 bg-white/80 backdrop-blur-xl p-6 rounded-xl border border-zinc-200">
+            <div className="space-y-4 rounded-[24px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]">
               <div>
-                <label className="block text-sm text-zinc-600 mb-2">Venue / brand name</label>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/44">Venue / brand name</label>
                 <input
                   type="text"
                   value={registerName}
                   onChange={(e) => setRegisterName(e.target.value)}
                   placeholder="e.g., Hideaway, Red Bull, Local Gym"
-                  className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full rounded-[14px] border border-white/12 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-400/60"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-zinc-600 mb-2">Wallet Address</label>
-                <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-500 font-mono text-sm">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/44">Wallet address</label>
+                <div className="rounded-[14px] border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white/56">
                   {address}
                 </div>
               </div>
@@ -2048,7 +2049,7 @@ export default function BrandPortalPage() {
               <button
                 onClick={handleRegister}
                 disabled={!registerName.trim()}
-                className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition disabled:opacity-50"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Create activation profile
               </button>
