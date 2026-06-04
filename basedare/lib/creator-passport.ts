@@ -10,91 +10,18 @@ import { prisma } from '@/lib/prisma';
  *   - explicit client-reported actions stored in completedMissions[] (open_grid, first_spark_applied)
  */
 
-export type MissionId =
-  | 'claim_signal'
-  | 'tune_radar'
-  | 'open_grid'
-  | 'wake_spot'
-  | 'mission_pings'
-  | 'payout_ready'
-  | 'first_spark_applied'
-  | 'first_proof_drop';
+// Pure catalog + types live in a client-safe module; re-export the whole surface
+// so existing importers of '@/lib/creator-passport' keep working.
+export * from '@/lib/creator-passport-constants';
 
-export type MissionDetection = 'data' | 'passport' | 'explicit';
-
-export type MissionDef = {
-  id: MissionId;
-  title: string;
-  detail: string;
-  points: number;
-  detection: MissionDetection;
-};
-
-/** Starter mission set (copy reframed as upgrades, not chores). */
-export const STARTER_MISSIONS: MissionDef[] = [
-  { id: 'claim_signal', title: 'Claim Your Signal', detail: 'Finish tag, avatar, city.', points: 100, detection: 'data' },
-  { id: 'tune_radar', title: 'Tune Your Radar', detail: 'Choose mission styles and radius.', points: 75, detection: 'passport' },
-  { id: 'open_grid', title: 'Open the Grid', detail: 'Inspect one venue.', points: 50, detection: 'explicit' },
-  { id: 'wake_spot', title: 'Wake a Spot', detail: 'Mark a venue that needs first proof.', points: 150, detection: 'data' },
-  { id: 'mission_pings', title: 'Mission Pings On', detail: 'Enable mission pings.', points: 75, detection: 'passport' },
-  { id: 'payout_ready', title: 'Payout Ready', detail: 'Connect your payout wallet.', points: 150, detection: 'passport' },
-  { id: 'first_spark_applied', title: 'First Spark Applied', detail: 'Apply to one available route.', points: 250, detection: 'explicit' },
-  { id: 'first_proof_drop', title: 'First Proof Drop', detail: 'Submit first approved proof.', points: 1000, detection: 'data' },
-];
-
-export const MISSION_BY_ID: Record<MissionId, MissionDef> = Object.fromEntries(
-  STARTER_MISSIONS.map((mission) => [mission.id, mission])
-) as Record<MissionId, MissionDef>;
-
-/** Explicit (client-reported) missions that may be recorded via the mission endpoint. */
-export const EXPLICIT_MISSIONS: MissionId[] = STARTER_MISSIONS.filter(
-  (mission) => mission.detection === 'explicit'
-).map((mission) => mission.id);
-
-export const MISSION_STYLE_OPTIONS = [
-  'nightlife',
-  'food-drink',
-  'beach-tourism',
-  'fitness-stunts',
-  'social-proof',
-  'review-recap',
-  'event-coverage',
-  'solo-missions',
-  'group-missions',
-] as const;
-export type MissionStyle = (typeof MISSION_STYLE_OPTIONS)[number];
-
-export const AVAILABILITY_OPTIONS = [
-  'tonight',
-  'this-week',
-  'weekends',
-  'paid-only',
-  'nearby-only',
-  'travel-ready',
-] as const;
-export type Availability = (typeof AVAILABILITY_OPTIONS)[number];
-
-/** Missions that, when complete, make a creator "route-ready". */
-export const ROUTE_READY_MISSIONS: MissionId[] = ['claim_signal', 'tune_radar', 'payout_ready'];
-
-const MIN_MISSION_STYLES = 3;
-
-export type PassportMissionState = MissionDef & { complete: boolean };
-
-export type ComposedPassport = {
-  walletAddress: string;
-  homeZone: string | null;
-  vibeLine: string | null;
-  missionStyles: string[];
-  availability: string[];
-  radiusKm: number | null;
-  pingsEnabled: boolean;
-  signalPoints: number;
-  routeReady: boolean;
-  completedMissions: MissionId[];
-  missions: PassportMissionState[];
-  hasTag: boolean;
-};
+import {
+  type MissionId,
+  type ComposedPassport,
+  STARTER_MISSIONS,
+  EXPLICIT_MISSIONS,
+  ROUTE_READY_MISSIONS,
+  MIN_MISSION_STYLES,
+} from '@/lib/creator-passport-constants';
 
 function normalizeWallet(wallet: string): string {
   return wallet.trim().toLowerCase();
