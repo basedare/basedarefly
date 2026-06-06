@@ -124,6 +124,7 @@ type FirstSparkPageProps = {
     deadWindowCheckInTarget?: string;
     deadWindowPerk?: string;
     deadWindowBaseline?: string;
+    from?: string;
   }>;
 };
 
@@ -135,6 +136,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
   const routedVenueSlug = resolvedSearchParams.venueSlug || null;
   const routedCity = resolvedSearchParams.city || null;
   const routedSource = resolvedSearchParams.source || 'first-spark-page';
+  const cameFromHome = resolvedSearchParams.from === 'home';
   const hasRoutedVenue = Boolean(routedVenue || routedVenueSlug || routedCity);
   const hasPrefilledRoute = Boolean(
     routedCreator ||
@@ -199,6 +201,8 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
       title="First Spark"
       subtitle="Dead-window pilot control"
       badge="Pilot Portal"
+      backHref={cameFromHome ? '/' : '/?mode=control'}
+      backLabel={cameFromHome ? 'Home' : 'Control'}
       action={
         <Link
           href="/admin/mission-control"

@@ -14,6 +14,10 @@ type ControlChromeProps = {
   children: ReactNode;
   /** Optional right-aligned link in the nav row. */
   action?: ReactNode;
+  /** Optional destination for the back control. Defaults to the Control hub. */
+  backHref?: string;
+  /** Optional visible/accessible label for the back control. */
+  backLabel?: string;
   /** Max width of the content column. */
   maxWidthClass?: string;
   title?: string;
@@ -25,6 +29,8 @@ type ControlChromeProps = {
 export function ControlChrome({
   children,
   action,
+  backHref = '/?mode=control',
+  backLabel = 'Control',
   maxWidthClass = 'max-w-6xl',
   title = 'Control Mode',
   subtitle = 'Mission control',
@@ -46,11 +52,14 @@ export function ControlChrome({
         <div className={cn('mx-auto flex flex-col gap-3 md:flex-row md:items-center md:justify-between', maxWidthClass)}>
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <Link
-              href="/?mode=control"
+              href={backHref}
               className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-white/[0.15] bg-white/[0.06] px-3 py-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.28)] transition hover:border-white/25 hover:bg-white/[0.09]"
-              aria-label="Back to control"
+              aria-label={`Back to ${backLabel}`}
             >
               <ArrowLeft className="h-4 w-4" />
+              <span className="hidden text-xs font-black uppercase tracking-[0.16em] text-white/72 sm:inline">
+                {backLabel}
+              </span>
             </Link>
             <div className="min-w-0">
               <div className="truncate text-[1.05rem] font-black uppercase leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">

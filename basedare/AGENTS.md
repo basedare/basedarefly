@@ -47,3 +47,8 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - Codex is making review signal visible on the map: `lib/venues.ts` now includes a `reviewSignal` summary for nearby/detail venue payloads, `components/maps/RealWorldMap.tsx` feeds it into MapLibre halos/labels plus PeeBear marker chrome, and selected venue copy now calls out worth-it / needs-review state.
 - Codex added review safety: `app/api/venues/[slug]/reviews/[reviewId]/report/route.ts` wallet-auths/rate-limits a review flag, flips the review to `FLAGGED`, records `REVIEW_FLAGGED` through `lib/venue-report-pipeline.ts`, and returns the refreshed vault snapshot. Public aggregates still read only `ACTIVE` reviews.
 - Points seam is still untouched. Codex did not modify `lib/vault-contributions.ts`, `CreatorPassport`, `lib/creator-passport*`, `PointsEvent`, or `signalPoints`.
+
+### Codex Venue On-Ramp Polish (2026-06-06)
+- Codex added optional `backHref` / `backLabel` props to `components/control/ControlChrome.tsx` while preserving the default `/?mode=control` behavior.
+- `app/brands/portal/page.tsx` now routes `?from=home` back to `/`, adds a First Spark escape path for disconnected/unregistered visitors, and shows a first-run on-ramp instead of the full `$0` console when a connected brand wallet has no spend, campaigns, proof, payouts, or campaign rows. The "Open console" button reveals the original dashboard.
+- `app/first-spark/page.tsx` uses the ControlChrome back props only for `from=home`; it still avoids `source=` for the plain home on-ramp so the explanation page does not collapse into the intake form.

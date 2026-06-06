@@ -512,6 +512,7 @@ export default function BrandPortalPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
+  const [showFirstRunConsole, setShowFirstRunConsole] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
   const [selectedActivationPackageId, setSelectedActivationPackageId] =
@@ -605,6 +606,21 @@ export default function BrandPortalPage() {
     formData.type === 'PLACE'
       ? recommendedCreators.find((match) => match.creator.id === selectedCreatorId) ?? null
       : null;
+  const routeParams = useMemo(() => new URLSearchParams(deepLinkSearch), [deepLinkSearch]);
+  const cameFromHome = routeParams.get('from') === 'home';
+  const controlBackHref = cameFromHome ? '/' : '/?mode=control';
+  const controlBackLabel = cameFromHome ? 'Home' : 'Control';
+  const hasBrandActivity = Boolean(
+    (brand?.totalSpend ?? 0) > 0 ||
+      (campaignSummary?.total ?? 0) > 0 ||
+      liveCampaignCount > 0 ||
+      creatorMovementCount > 0 ||
+      proofsSubmittedCount > 0 ||
+      paidOutCount > 0 ||
+      inReviewCount > 0 ||
+      payoutQueuedCount > 0 ||
+      campaigns.length > 0
+  );
 
   const selectActivationPackage = useCallback((packageId: ActivationPackageId) => {
     const activationPackage = getActivationPackage(packageId);
@@ -1768,6 +1784,8 @@ export default function BrandPortalPage() {
   const showLoading = mounted && isConnected && loading;
   const showRegisterView = mounted && isConnected && !loading && showRegister;
   const showDashboard = mounted && isConnected && !loading && !showRegister;
+  const showFirstRunOnRamp =
+    showDashboard && !hasBrandActivity && !showFirstRunConsole && !showCreateCampaign;
 
   return (
     <div className="control-glass-room fixed inset-0 z-[100] overflow-auto bg-[#030305] text-white">
@@ -1966,11 +1984,12 @@ export default function BrandPortalPage() {
       {showNotConnected && (
         <div className="flex items-center justify-center h-full p-4 relative z-10">
           <Link
-            href="/?mode=control"
+            href={controlBackHref}
             className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
+            aria-label={`Back to ${controlBackLabel}`}
           >
             <ArrowLeft className="h-4 w-4" />
-            Control
+            {controlBackLabel}
           </Link>
 
           <div className="max-w-md text-center space-y-5">
@@ -1994,6 +2013,12 @@ export default function BrandPortalPage() {
             >
               Connect Wallet
             </button>
+            <Link
+              href="/first-spark"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.045] px-5 text-xs font-black uppercase tracking-[0.16em] text-white/62 transition hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+            >
+              See First Spark
+            </Link>
           </div>
         </div>
       )}
@@ -2009,11 +2034,12 @@ export default function BrandPortalPage() {
       {showRegisterView && (
         <div className="flex items-center justify-center h-full p-4 relative z-10">
           <Link
-            href="/?mode=control"
+            href={controlBackHref}
             className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
+            aria-label={`Back to ${controlBackLabel}`}
           >
             <ArrowLeft className="h-4 w-4" />
-            Control
+            {controlBackLabel}
           </Link>
 
           <div className="max-w-md w-full space-y-6">
@@ -2053,6 +2079,12 @@ export default function BrandPortalPage() {
               >
                 Create activation profile
               </button>
+              <Link
+                href="/first-spark"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.055] px-5 text-xs font-black uppercase tracking-[0.14em] text-white/66 transition hover:border-white/25 hover:bg-white/[0.09] hover:text-white"
+              >
+                Run First Spark first
+              </Link>
             </div>
           </div>
         </div>
@@ -2068,11 +2100,14 @@ export default function BrandPortalPage() {
           <div className="flex items-center gap-2 md:gap-4">
             {/* Back button */}
             <Link
-              href="/?mode=control"
+              href={controlBackHref}
               className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/[0.15] bg-white/[0.06] px-3 py-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.28)] transition hover:border-white/25 hover:bg-white/[0.09]"
-              aria-label="Back to home"
+              aria-label={`Back to ${controlBackLabel}`}
             >
               <ArrowLeft className="w-4 h-4" />
+              <span className="hidden text-xs font-black uppercase tracking-[0.16em] text-white/72 sm:inline">
+                {controlBackLabel}
+              </span>
             </Link>
             <div>
               <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
@@ -2116,6 +2151,81 @@ export default function BrandPortalPage() {
       </header>
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:py-8">
+        {showFirstRunOnRamp ? (
+          <section className="activation-shell relative overflow-hidden rounded-[30px] border p-5 backdrop-blur-xl md:p-7">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(245,197,24,0.12),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(168,85,247,0.14),transparent_34%)]" />
+            <div className="relative grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
+                  <Sparkles className="h-4 w-4" />
+                  First run
+                </div>
+                <h1 className="mt-5 max-w-3xl text-3xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-5xl">
+                  Start with one verified arrival loop.
+                </h1>
+                <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/66">
+                  Fund verified foot-traffic missions for your venue. Pay only for proven arrivals.
+                </p>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/first-spark"
+                    className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Run your First Spark
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowFirstRunConsole(true)}
+                    className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/[0.13] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white/68 transition hover:border-white/24 hover:text-white"
+                  >
+                    Open console
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    icon: <MapPin className="h-4 w-4" />,
+                    label: '1. Pick the place',
+                    detail: 'Choose the slow window.',
+                  },
+                  {
+                    icon: <CreditCard className="h-4 w-4" />,
+                    label: '2. Fund the mission',
+                    detail: 'Set one clear payout.',
+                  },
+                  {
+                    icon: <Users className="h-4 w-4" />,
+                    label: '3. Route creators',
+                    detail: 'BaseDare sends the fit.',
+                  },
+                  {
+                    icon: <ReceiptText className="h-4 w-4" />,
+                    label: '4. Get proof',
+                    detail: 'QR arrival plus receipt.',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="activation-inset rounded-2xl border border-white/10 px-4 py-4 shadow-[0_12px_28px_rgba(0,0,0,0.24)]"
+                  >
+                    <div className="flex items-center gap-2 text-cyan-100/72">
+                      {item.icon}
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/68">
+                        Pilot step
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm font-black text-white">{item.label}</div>
+                    <div className="mt-1 text-xs font-bold text-white/48">{item.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <>
         <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
@@ -4078,6 +4188,8 @@ export default function BrandPortalPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </main>
       </>
       )}
