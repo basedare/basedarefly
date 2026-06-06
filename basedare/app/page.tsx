@@ -266,6 +266,44 @@ function HomeContent() {
                 </h2>
               </div>
 
+              {/* First-touch clarity: plain value prop + the 5 beats + role entry points */}
+              <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
+                <p className="text-base font-bold leading-7 text-white/74 sm:text-lg">
+                  Get paid to complete real-world missions — show up, prove it with QR + GPS, get paid in USDC.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
+                  {['Fund a mission', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'Venue gets signal'].map((beat, index) => (
+                    <span key={beat} className="inline-flex items-center gap-2">
+                      {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
+                      {beat}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                  <Link
+                    href="/creators/onboard"
+                    prefetch={false}
+                    className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300/[0.1] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/[0.16]"
+                  >
+                    I&apos;m a Creator
+                  </Link>
+                  <Link
+                    href="/brands/portal"
+                    prefetch={false}
+                    className="inline-flex min-h-10 items-center rounded-full border border-white/12 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.09] hover:text-white"
+                  >
+                    I run a Venue
+                  </Link>
+                  <Link
+                    href="/map"
+                    prefetch={false}
+                    className="inline-flex min-h-10 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.06] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/76 transition hover:bg-cyan-300/[0.1] hover:text-white"
+                  >
+                    Explore the grid
+                  </Link>
+                </div>
+              </div>
+
               <div className="w-full max-w-4xl px-6 mb-24 relative z-30">
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
                   <div className="w-full md:flex-[2]">
