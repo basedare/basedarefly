@@ -288,7 +288,7 @@ function HomeContent() {
                     I&apos;m a Creator
                   </Link>
                   <Link
-                    href="/brands/portal"
+                    href="/first-spark"
                     prefetch={false}
                     className="inline-flex min-h-10 items-center rounded-full border border-white/12 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.09] hover:text-white"
                   >
