@@ -15,7 +15,11 @@ import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
 
 import { useView } from "@/app/context/ViewContext";
-import { getClientPerformanceHints, runAfterPageIdle } from "@/lib/client-performance";
+import {
+  getClientPerformanceHints,
+  runAfterPageIdle,
+  shouldPreferLightweightClient,
+} from "@/lib/client-performance";
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -67,6 +71,7 @@ function HomeContent() {
   const [isLightningRoar, setIsLightningRoar] = useState(false);
   const [showViewToggle, setShowViewToggle] = useState(false);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
+  const [useLightweightHome, setUseLightweightHome] = useState(false);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowViewToggle(true), 320);
@@ -75,9 +80,11 @@ function HomeContent() {
 
   useEffect(() => {
     const hints = getClientPerformanceHints();
+    const lightweight = hints.isConstrainedViewport || shouldPreferLightweightClient();
+    setUseLightweightHome(lightweight);
     return runAfterPageIdle(() => {
       setShowBelowFoldSections(true);
-    }, hints.isMobileViewport ? 2800 : 1200);
+    }, lightweight ? 4200 : 1200);
   }, []);
 
   // Custom view setter that triggers transitions
@@ -171,19 +178,24 @@ function HomeContent() {
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
-      {view === 'FAN' ? <LiquidBackground veilOpacity={0.65} /> : null}
       {view === 'FAN' ? (
-        <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-90 md:block" aria-hidden="true">
+        <LiquidBackground
+          veilOpacity={useLightweightHome ? 0.72 : 0.65}
+          performanceMode={useLightweightHome ? 'quiet' : 'normal'}
+        />
+      ) : null}
+      {view === 'FAN' ? (
+        <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-90 lg:block" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.10),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.04),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.04),transparent_22%)] mix-blend-soft-light" />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.30)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.40)_100%)]" />
         </div>
       ) : null}
       {view === 'FAN' ? (
         <div className="fixed inset-0 z-10 pointer-events-none">
-          <GradualBlurOverlay intensity="full" />
+          <GradualBlurOverlay intensity={useLightweightHome ? 'none' : 'full'} />
         </div>
       ) : (
-        <div className="fixed inset-0 z-10 hidden pointer-events-none md:block">
+        <div className="fixed inset-0 z-10 hidden pointer-events-none lg:block">
           <GradualBlurOverlay intensity="light" />
         </div>
       )}
@@ -222,12 +234,12 @@ function HomeContent() {
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
                 {/* Desktop: Full 3D Hero with orbiting cards */}
-                <div className="hidden md:block">
+                <div className="hidden lg:block">
                   <HeroEllipticalStream />
                 </div>
 
-                {/* Mobile: Simplified hero with PeeBear + Conveyor */}
-                <div className="block md:hidden pt-24 pb-8">
+                {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}
+                <div className="block pt-24 pb-8 lg:hidden">
                   {/* Lightning background - behind orb, triggers every 2-3 roars */}
                   <AnimatePresence>
                     {isLightningRoar && (
@@ -407,7 +419,7 @@ function HomeContent() {
 
               {/* Particle Network - fades in with delay for hypnotic effect */}
               <motion.div
-                className="absolute inset-0 hidden md:block"
+                className="absolute inset-0 hidden lg:block"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
@@ -431,10 +443,10 @@ function HomeContent() {
 
             {/* Control Mode Selection */}
             <div className="text-center mb-8 relative z-10">
-              <div className="hidden w-full max-w-7xl mx-auto md:block md:h-[500px] lg:h-[600px]">
+              <div className="hidden w-full max-w-7xl mx-auto lg:block lg:h-[600px]">
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
-              <h1 className="px-6 pt-32 text-5xl font-black uppercase italic leading-[0.9] tracking-[-0.08em] text-zinc-900 md:hidden">
+              <h1 className="px-6 pt-32 text-5xl font-black uppercase italic leading-[0.9] tracking-[-0.08em] text-zinc-900 lg:hidden">
                 Control Mode
               </h1>
               <p className="mx-auto mt-5 max-w-md px-6 text-base font-semibold leading-7 text-zinc-600 md:-mt-32 md:px-0 md:text-lg lg:-mt-40">
@@ -678,9 +690,50 @@ function HomeContent() {
   );
 }
 
+function HomeFallback() {
+  return (
+    <main className="flex min-h-[calc(100vh-6rem)] items-center justify-center bg-[#030305] px-5 py-16 text-white">
+      <section className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.38),rgba(5,7,14,0.94))] px-5 py-8 text-center shadow-[0_22px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="mx-auto inline-flex rounded-full border border-yellow-300/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100">
+          BaseDare
+        </div>
+        <h1 className="mt-5 text-4xl font-black uppercase italic leading-[0.9] tracking-[-0.06em] sm:text-5xl">
+          Real missions. Real proof.
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/66 sm:text-base">
+          Get paid to complete real-world missions. Show up, prove it with QR + GPS, and get paid in USDC.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link
+            href="/creators/onboard"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300/[0.12] px-5 text-xs font-black uppercase tracking-[0.14em] text-yellow-100"
+          >
+            Join as creator
+          </Link>
+          <Link
+            href="/first-spark"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-5 text-xs font-black uppercase tracking-[0.14em] text-white/72"
+          >
+            Run First Spark
+          </Link>
+          <Link
+            href="/map"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.06] px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100/76"
+          >
+            Open map
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export default function Home() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+    <Suspense fallback={<HomeFallback />}>
       <HomeContent />
     </Suspense>
   );

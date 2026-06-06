@@ -18,8 +18,11 @@ export function getClientPerformanceHints() {
     return {
       deviceMemory: null,
       effectiveType: null,
+      isConstrainedViewport: false,
+      isIOSWebKit: false,
       isLowMemory: false,
       isMobileViewport: false,
+      isTabletViewport: false,
       prefersReducedMotion: false,
       saveData: false,
       slowConnection: false,
@@ -27,6 +30,7 @@ export function getClientPerformanceHints() {
   }
 
   const nav = navigator as NavigatorWithHints;
+  const userAgent = navigator.userAgent || '';
   const connection = nav.connection;
   const effectiveType = connection?.effectiveType ?? null;
   const deviceMemory = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : null;
@@ -34,13 +38,25 @@ export function getClientPerformanceHints() {
   const saveData = Boolean(connection?.saveData);
   const slowConnection = effectiveType === 'slow-2g' || effectiveType === '2g';
   const isMobileViewport = window.innerWidth < 768;
+  const isTouchDevice = navigator.maxTouchPoints > 0;
+  const isIOSWebKit =
+    /iP(ad|hone|od)/.test(userAgent) ||
+    (userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const isTabletViewport =
+    window.innerWidth >= 768 &&
+    window.innerWidth < 1180 &&
+    (isTouchDevice || /Tablet|iPad/.test(userAgent));
+  const isConstrainedViewport = isMobileViewport || isTabletViewport;
   const isLowMemory = typeof deviceMemory === 'number' && deviceMemory <= 4;
 
   return {
     deviceMemory,
     effectiveType,
+    isConstrainedViewport,
+    isIOSWebKit,
     isLowMemory,
     isMobileViewport,
+    isTabletViewport,
     prefersReducedMotion,
     saveData,
     slowConnection,
@@ -49,7 +65,13 @@ export function getClientPerformanceHints() {
 
 export function shouldPreferLightweightClient() {
   const hints = getClientPerformanceHints();
-  return hints.prefersReducedMotion || hints.saveData || hints.slowConnection || hints.isLowMemory;
+  return (
+    hints.prefersReducedMotion ||
+    hints.saveData ||
+    hints.slowConnection ||
+    hints.isLowMemory ||
+    (hints.isIOSWebKit && hints.isConstrainedViewport)
+  );
 }
 
 export function runAfterPageIdle(callback: () => void, timeout = 1600) {

@@ -249,7 +249,7 @@
       "source_file": "reference_code/src/components/ChatSidebar.jsx",
       "source_location": "L1",
       "id": "reference_code_src_components_chatsidebar_jsx",
-      "community": 87
+      "community": 86
     },
     {
       "label": "ChatSidebar()",
@@ -257,7 +257,7 @@
       "source_file": "components/ChatSidebar.tsx",
       "source_location": "L19",
       "id": "chatsidebar_chatsidebar",
-      "community": 87
+      "community": 86
     },
     {
       "label": "Peebare3D.jsx",
@@ -889,7 +889,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L1",
       "id": "reference_code_src_components_ui_pagination_jsx",
-      "community": 81
+      "community": 80
     },
     {
       "label": "Pagination()",
@@ -897,7 +897,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L7",
       "id": "pagination_pagination",
-      "community": 81
+      "community": 80
     },
     {
       "label": "PaginationLink()",
@@ -905,7 +905,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L32",
       "id": "pagination_paginationlink",
-      "community": 81
+      "community": 80
     },
     {
       "label": "PaginationPrevious()",
@@ -913,7 +913,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L48",
       "id": "pagination_paginationprevious",
-      "community": 81
+      "community": 80
     },
     {
       "label": "PaginationNext()",
@@ -921,7 +921,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L63",
       "id": "pagination_paginationnext",
-      "community": 81
+      "community": 80
     },
     {
       "label": "PaginationEllipsis()",
@@ -929,7 +929,7 @@
       "source_file": "reference_code/src/components/ui/pagination.jsx",
       "source_location": "L78",
       "id": "pagination_paginationellipsis",
-      "community": 81
+      "community": 80
     },
     {
       "label": "use-toast.jsx",
@@ -1686,10 +1686,10 @@
     {
       "label": "page.tsx",
       "file_type": "code",
-      "source_file": "basedare/app/page.tsx",
+      "source_file": "app/page.tsx",
       "source_location": "L1",
-      "id": "basedare_app_page_tsx",
-      "community": 4
+      "id": "app_page_tsx",
+      "community": 3
     },
     {
       "label": "fetchDares()",
@@ -1697,7 +1697,7 @@
       "source_file": "app/dares/page.tsx",
       "source_location": "L135",
       "id": "page_fetchdares",
-      "community": 4
+      "community": 3
     },
     {
       "label": "waitlist-client.tsx",
@@ -1945,7 +1945,7 @@
       "source_file": "app/captains/CreatorCaptainApplicationForm.tsx",
       "source_location": "L1",
       "id": "app_captains_creatorcaptainapplicationform_tsx",
-      "community": 96
+      "community": 95
     },
     {
       "label": "toggleCategory()",
@@ -1953,7 +1953,7 @@
       "source_file": "app/captains/CreatorCaptainApplicationForm.tsx",
       "source_location": "L81",
       "id": "creatorcaptainapplicationform_togglecategory",
-      "community": 96
+      "community": 95
     },
     {
       "label": "toggleHelpMode()",
@@ -1961,7 +1961,7 @@
       "source_file": "app/captains/CreatorCaptainApplicationForm.tsx",
       "source_location": "L88",
       "id": "creatorcaptainapplicationform_togglehelpmode",
-      "community": 96
+      "community": 95
     },
     {
       "label": "buildInitialForm()",
@@ -1969,7 +1969,7 @@
       "source_file": "app/captains/CreatorCaptainApplicationForm.tsx",
       "source_location": "L95",
       "id": "creatorcaptainapplicationform_buildinitialform",
-      "community": 96
+      "community": 95
     },
     {
       "label": "CreatorCaptainApplicationForm()",
@@ -1977,7 +1977,7 @@
       "source_file": "app/captains/CreatorCaptainApplicationForm.tsx",
       "source_location": "L105",
       "id": "creatorcaptainapplicationform_creatorcaptainapplicationform",
-      "community": 96
+      "community": 95
     },
     {
       "label": "page.tsx",
@@ -2353,7 +2353,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1",
       "id": "app_brands_portal_page_tsx",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getActivationPackage()",
@@ -2361,7 +2361,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L398",
       "id": "page_getactivationpackage",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getActivationPackageForTier()",
@@ -2369,7 +2369,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L406",
       "id": "page_getactivationpackagefortier",
-      "community": 5
+      "community": 4
     },
     {
       "label": "buildActivationPackageTitle()",
@@ -2377,7 +2377,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L411",
       "id": "page_buildactivationpackagetitle",
-      "community": 5
+      "community": 4
     },
     {
       "label": "buildActivationPackageDescription()",
@@ -2385,7 +2385,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L416",
       "id": "page_buildactivationpackagedescription",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatUsdAmount()",
@@ -2393,7 +2393,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L421",
       "id": "page_formatusdamount",
-      "community": 5
+      "community": 4
     },
     {
       "label": "isCampaignTier()",
@@ -2401,7 +2401,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L428",
       "id": "page_iscampaigntier",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatCompactAudience()",
@@ -2409,7 +2409,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L154",
       "id": "page_formatcompactaudience",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCreatorInitial()",
@@ -2417,7 +2417,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L440",
       "id": "page_getcreatorinitial",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCreatorVenueFitLabel()",
@@ -2425,7 +2425,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L444",
       "id": "page_getcreatorvenuefitlabel",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCreatorReliabilityLabel()",
@@ -2433,7 +2433,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L451",
       "id": "page_getcreatorreliabilitylabel",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCreatorStrengthLabel()",
@@ -2441,7 +2441,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L458",
       "id": "page_getcreatorstrengthlabel",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getVenueRadarClaimTone()",
@@ -2449,7 +2449,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L467",
       "id": "page_getvenueradarclaimtone",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatVenueRadarLocation()",
@@ -2457,7 +2457,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L479",
       "id": "page_formatvenueradarlocation",
-      "community": 5
+      "community": 4
     },
     {
       "label": "buildVenueCreatorChatHref()",
@@ -2465,7 +2465,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L483",
       "id": "page_buildvenuecreatorchathref",
-      "community": 5
+      "community": 4
     },
     {
       "label": "fetchData()",
@@ -2473,7 +2473,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L893",
       "id": "page_fetchdata",
-      "community": 5
+      "community": 4
     },
     {
       "label": "run()",
@@ -2481,7 +2481,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L953",
       "id": "page_run",
-      "community": 5
+      "community": 4
     },
     {
       "label": "handleRegister()",
@@ -2489,7 +2489,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1068",
       "id": "page_handleregister",
-      "community": 5
+      "community": 4
     },
     {
       "label": "handleCreateCampaign()",
@@ -2497,7 +2497,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1097",
       "id": "page_handlecreatecampaign",
-      "community": 5
+      "community": 4
     },
     {
       "label": "addHashtag()",
@@ -2505,7 +2505,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1276",
       "id": "page_addhashtag",
-      "community": 5
+      "community": 4
     },
     {
       "label": "togglePreferredPlatform()",
@@ -2513,7 +2513,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1290",
       "id": "page_togglepreferredplatform",
-      "community": 5
+      "community": 4
     },
     {
       "label": "fetchMatchesForCampaign()",
@@ -2521,7 +2521,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1305",
       "id": "page_fetchmatchesforcampaign",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getDefaultResponseTab()",
@@ -2529,7 +2529,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1350",
       "id": "page_getdefaultresponsetab",
-      "community": 5
+      "community": 4
     },
     {
       "label": "toggleCampaignMatches()",
@@ -2537,7 +2537,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1359",
       "id": "page_togglecampaignmatches",
-      "community": 5
+      "community": 4
     },
     {
       "label": "toggleShortlistCreator()",
@@ -2545,7 +2545,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1376",
       "id": "page_toggleshortlistcreator",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatTargetingPreview()",
@@ -2553,7 +2553,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1389",
       "id": "page_formattargetingpreview",
-      "community": 5
+      "community": 4
     },
     {
       "label": "calculateBudget()",
@@ -2561,7 +2561,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1413",
       "id": "page_calculatebudget",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatWallet()",
@@ -2569,7 +2569,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1459",
       "id": "page_formatwallet",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignIntent()",
@@ -2577,7 +2577,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1462",
       "id": "page_getcampaignintent",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignOutcomeSteps()",
@@ -2585,7 +2585,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1537",
       "id": "page_getcampaignoutcomesteps",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignOutcomeSummary()",
@@ -2593,7 +2593,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1566",
       "id": "page_getcampaignoutcomesummary",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignRecentMovement()",
@@ -2601,7 +2601,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1618",
       "id": "page_getcampaignrecentmovement",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignCompletionHistory()",
@@ -2609,7 +2609,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1680",
       "id": "page_getcampaigncompletionhistory",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getLinkedCreatorHandle()",
@@ -2617,7 +2617,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1732",
       "id": "page_getlinkedcreatorhandle",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getResponseTabCounts()",
@@ -2625,7 +2625,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1742",
       "id": "page_getresponsetabcounts",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getCampaignImpactSummary()",
@@ -2633,7 +2633,7 @@
       "source_file": "app/brands/portal/page.tsx",
       "source_location": "L1753",
       "id": "page_getcampaignimpactsummary",
-      "community": 5
+      "community": 4
     },
     {
       "label": "layout.tsx",
@@ -2809,7 +2809,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1",
       "id": "app_admin_page_tsx",
-      "community": 4
+      "community": 3
     },
     {
       "label": "deriveQueueSummary()",
@@ -2817,7 +2817,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L123",
       "id": "page_derivequeuesummary",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatIdentityPlatformLabel()",
@@ -2825,7 +2825,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L150",
       "id": "page_formatidentityplatformlabel",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatRelativeTime()",
@@ -2833,7 +2833,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L157",
       "id": "page_formatrelativetime",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatProofAge()",
@@ -2841,7 +2841,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L168",
       "id": "page_formatproofage",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatLeadDue()",
@@ -2849,7 +2849,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L174",
       "id": "page_formatleaddue",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatLeadStatus()",
@@ -2857,7 +2857,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L281",
       "id": "page_formatleadstatus",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getPlaceTagReviewToneClass()",
@@ -2865,7 +2865,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L333",
       "id": "page_getplacetagreviewtoneclass",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getPlaceTagReviewFillClass()",
@@ -2873,7 +2873,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L346",
       "id": "page_getplacetagreviewfillclass",
-      "community": 4
+      "community": 3
     },
     {
       "label": "derivePlaceTagQueueSummary()",
@@ -2881,7 +2881,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L359",
       "id": "page_deriveplacetagqueuesummary",
-      "community": 4
+      "community": 3
     },
     {
       "label": "isAdminTab()",
@@ -2889,7 +2889,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L527",
       "id": "page_isadmintab",
-      "community": 4
+      "community": 3
     },
     {
       "label": "readAdminRouteFromSearch()",
@@ -2897,7 +2897,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L531",
       "id": "page_readadminroutefromsearch",
-      "community": 4
+      "community": 3
     },
     {
       "label": "writeAdminRouteToHistory()",
@@ -2905,7 +2905,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L549",
       "id": "page_writeadminroutetohistory",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleTagAction()",
@@ -2913,7 +2913,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1111",
       "id": "page_handletagaction",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleKeydown()",
@@ -2921,7 +2921,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1299",
       "id": "page_handlekeydown",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleSavePlace()",
@@ -2929,7 +2929,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1437",
       "id": "page_handlesaveplace",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleClaimDecision()",
@@ -2937,7 +2937,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1775",
       "id": "page_handleclaimdecision",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleVenueClaimDecision()",
@@ -2945,7 +2945,7 @@
       "source_file": "app/admin/page.tsx",
       "source_location": "L1811",
       "id": "page_handlevenueclaimdecision",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatAddress()",
@@ -2953,7 +2953,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L475",
       "id": "page_formataddress",
-      "community": 4
+      "community": 3
     },
     {
       "label": "page.tsx",
@@ -3441,7 +3441,7 @@
       "source_file": "app/admin/appeals/page.tsx",
       "source_location": "L1",
       "id": "app_admin_appeals_page_tsx",
-      "community": 4
+      "community": 3
     },
     {
       "label": "fetchAppeals()",
@@ -3449,7 +3449,7 @@
       "source_file": "app/admin/appeals/page.tsx",
       "source_location": "L53",
       "id": "page_fetchappeals",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleLogin()",
@@ -3457,7 +3457,7 @@
       "source_file": "app/admin/appeals/page.tsx",
       "source_location": "L104",
       "id": "page_handlelogin",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleResolve()",
@@ -3465,7 +3465,7 @@
       "source_file": "app/admin/appeals/page.tsx",
       "source_location": "L109",
       "id": "page_handleresolve",
-      "community": 4
+      "community": 3
     },
     {
       "label": "page.tsx",
@@ -3769,7 +3769,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L1",
       "id": "app_dashboard_page_tsx",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getProviderLabel()",
@@ -3777,7 +3777,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L238",
       "id": "page_getproviderlabel",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getIdentityStatusLabel()",
@@ -3785,7 +3785,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L249",
       "id": "page_getidentitystatuslabel",
-      "community": 4
+      "community": 3
     },
     {
       "label": "walletsMatch()",
@@ -3793,7 +3793,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L256",
       "id": "page_walletsmatch",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatStatusTimestamp()",
@@ -3801,7 +3801,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L261",
       "id": "page_formatstatustimestamp",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getClaimLoopState()",
@@ -3809,7 +3809,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L271",
       "id": "page_getclaimloopstate",
-      "community": 4
+      "community": 3
     },
     {
       "label": "readStoredDareResponseAuth()",
@@ -3817,7 +3817,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L479",
       "id": "page_readstoreddareresponseauth",
-      "community": 4
+      "community": 3
     },
     {
       "label": "persistDareResponseAuth()",
@@ -3825,7 +3825,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L509",
       "id": "page_persistdareresponseauth",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getDareResponseAuthHeaders()",
@@ -3833,7 +3833,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L514",
       "id": "page_getdareresponseauthheaders",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleConnect()",
@@ -3841,7 +3841,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L555",
       "id": "page_handleconnect",
-      "community": 4
+      "community": 3
     },
     {
       "label": "fetchOpportunities()",
@@ -3849,7 +3849,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L650",
       "id": "page_fetchopportunities",
-      "community": 4
+      "community": 3
     },
     {
       "label": "fetchVenueDashboard()",
@@ -3857,7 +3857,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L683",
       "id": "page_fetchvenuedashboard",
-      "community": 4
+      "community": 3
     },
     {
       "label": "fetchActionCenter()",
@@ -3865,7 +3865,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L714",
       "id": "page_fetchactioncenter",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleClaimOpportunity()",
@@ -3873,7 +3873,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L762",
       "id": "page_handleclaimopportunity",
-      "community": 4
+      "community": 3
     },
     {
       "label": "handleActivationResponse()",
@@ -3881,7 +3881,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L824",
       "id": "page_handleactivationresponse",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getStatusBadge()",
@@ -3889,7 +3889,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L878",
       "id": "page_getstatusbadge",
-      "community": 4
+      "community": 3
     },
     {
       "label": "jumpToActivation()",
@@ -3897,7 +3897,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L1015",
       "id": "page_jumptoactivation",
-      "community": 4
+      "community": 3
     },
     {
       "label": "pushQuickAction()",
@@ -3905,7 +3905,7 @@
       "source_file": "app/dashboard/page.tsx",
       "source_location": "L1026",
       "id": "page_pushquickaction",
-      "community": 4
+      "community": 3
     },
     {
       "label": "BackToMapButton.tsx",
@@ -3945,7 +3945,7 @@
       "source_file": "app/venues/[slug]/layout.tsx",
       "source_location": "L1",
       "id": "app_venues_slug_layout_tsx",
-      "community": 97
+      "community": 96
     },
     {
       "label": "generateMetadata()",
@@ -3953,7 +3953,7 @@
       "source_file": "app/dare/[shortId]/layout.tsx",
       "source_location": "L4",
       "id": "layout_generatemetadata",
-      "community": 97
+      "community": 96
     },
     {
       "label": "VenueLayout()",
@@ -3961,7 +3961,7 @@
       "source_file": "app/venues/[slug]/layout.tsx",
       "source_location": "L45",
       "id": "layout_venuelayout",
-      "community": 97
+      "community": 96
     },
     {
       "label": "page.tsx",
@@ -3969,7 +3969,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L1",
       "id": "app_venues_slug_page_tsx",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getVenueActivationState()",
@@ -3977,7 +3977,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L33",
       "id": "page_getvenueactivationstate",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatVenueLogbookDate()",
@@ -3985,7 +3985,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L60",
       "id": "page_formatvenuelogbookdate",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getReviewSlaClass()",
@@ -3993,7 +3993,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L89",
       "id": "page_getreviewslaclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getReviewSlaFillClass()",
@@ -4001,7 +4001,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L102",
       "id": "page_getreviewslafillclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getPulseState()",
@@ -4009,7 +4009,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L115",
       "id": "page_getpulsestate",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getPulseMeterShellClass()",
@@ -4017,7 +4017,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L128",
       "id": "page_getpulsemetershellclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getPulseMeterFillClass()",
@@ -4025,7 +4025,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L141",
       "id": "page_getpulsemeterfillclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatCompactVenueMetric()",
@@ -4033,7 +4033,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L162",
       "id": "page_formatcompactvenuemetric",
-      "community": 5
+      "community": 4
     },
     {
       "label": "formatMetricDelta()",
@@ -4041,7 +4041,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L169",
       "id": "page_formatmetricdelta",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getMetricDeltaClass()",
@@ -4049,7 +4049,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L175",
       "id": "page_getmetricdeltaclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "getVenueSignalToneClass()",
@@ -4057,7 +4057,7 @@
       "source_file": "app/venues/[slug]/page.tsx",
       "source_location": "L181",
       "id": "page_getvenuesignaltoneclass",
-      "community": 5
+      "community": 4
     },
     {
       "label": "FirstSparkPilotQuickStart.tsx",
@@ -4489,7 +4489,7 @@
       "source_file": "app/dares/page.tsx",
       "source_location": "L1",
       "id": "app_dares_page_tsx",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatTimeLeft()",
@@ -4497,7 +4497,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L38",
       "id": "page_formattimeleft",
-      "community": 4
+      "community": 3
     },
     {
       "label": "page.tsx",
@@ -4505,7 +4505,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L1",
       "id": "app_my_dares_page_tsx",
-      "community": 4
+      "community": 3
     },
     {
       "label": "formatTimelineMoment()",
@@ -4513,7 +4513,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L54",
       "id": "page_formattimelinemoment",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getLifecycleAccent()",
@@ -4521,7 +4521,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L64",
       "id": "page_getlifecycleaccent",
-      "community": 4
+      "community": 3
     },
     {
       "label": "getStatusMoment()",
@@ -4529,7 +4529,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L85",
       "id": "page_getstatusmoment",
-      "community": 4
+      "community": 3
     },
     {
       "label": "fetchMyDares()",
@@ -4537,7 +4537,7 @@
       "source_file": "app/my-dares/page.tsx",
       "source_location": "L138",
       "id": "page_fetchmydares",
-      "community": 4
+      "community": 3
     },
     {
       "label": "page.backup.tsx",
@@ -5273,7 +5273,7 @@
       "source_file": "app/api/admin/venue-claims/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_venue_claims_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "PUT()",
@@ -5281,7 +5281,7 @@
       "source_file": "app/api/live-pot/route.ts",
       "source_location": "L431",
       "id": "route_put",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -5289,7 +5289,7 @@
       "source_file": "app/api/admin/settings/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_settings_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -5305,7 +5305,7 @@
       "source_file": "app/api/admin/scouts/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_scouts_route_ts",
-      "community": 3
+      "community": 7
     },
     {
       "label": "asRecord()",
@@ -5313,7 +5313,7 @@
       "source_file": "app/api/activation-intake/route.ts",
       "source_location": "L122",
       "id": "route_asrecord",
-      "community": 3
+      "community": 7
     },
     {
       "label": "cleanOptional()",
@@ -5321,7 +5321,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L46",
       "id": "route_cleanoptional",
-      "community": 3
+      "community": 7
     },
     {
       "label": "stringArrayValue()",
@@ -5329,7 +5329,7 @@
       "source_file": "app/api/admin/scouts/route.ts",
       "source_location": "L53",
       "id": "route_stringarrayvalue",
-      "community": 3
+      "community": 7
     },
     {
       "label": "hoursSince()",
@@ -5337,7 +5337,7 @@
       "source_file": "app/api/admin/venue-report-leads/route.ts",
       "source_location": "L24",
       "id": "route_hourssince",
-      "community": 3
+      "community": 7
     },
     {
       "label": "formatLabel()",
@@ -5345,7 +5345,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L55",
       "id": "route_formatlabel",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildInviteDraft()",
@@ -5353,7 +5353,7 @@
       "source_file": "app/api/admin/scouts/route.ts",
       "source_location": "L66",
       "id": "route_buildinvitedraft",
-      "community": 3
+      "community": 7
     },
     {
       "label": "mapScoutLeadEvent()",
@@ -5361,7 +5361,7 @@
       "source_file": "app/api/admin/scouts/route.ts",
       "source_location": "L81",
       "id": "route_mapscoutleadevent",
-      "community": 3
+      "community": 7
     },
     {
       "label": "route.ts",
@@ -5417,7 +5417,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_activation_intakes_route_ts",
-      "community": 3
+      "community": 7
     },
     {
       "label": "isRecord()",
@@ -5425,7 +5425,7 @@
       "source_file": "app/api/activation-intake/route.ts",
       "source_location": "L118",
       "id": "route_isrecord",
-      "community": 3
+      "community": 7
     },
     {
       "label": "stringValue()",
@@ -5433,7 +5433,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L111",
       "id": "route_stringvalue",
-      "community": 3
+      "community": 7
     },
     {
       "label": "numberValue()",
@@ -5441,7 +5441,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L115",
       "id": "route_numbervalue",
-      "community": 3
+      "community": 7
     },
     {
       "label": "parseJsonRecord()",
@@ -5449,7 +5449,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L119",
       "id": "route_parsejsonrecord",
-      "community": 3
+      "community": 7
     },
     {
       "label": "normalizeStatus()",
@@ -5457,7 +5457,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L129",
       "id": "route_normalizestatus",
-      "community": 3
+      "community": 7
     },
     {
       "label": "formatUsd()",
@@ -5465,7 +5465,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L142",
       "id": "route_formatusd",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildCreateHref()",
@@ -5473,7 +5473,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L147",
       "id": "route_buildcreatehref",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildScoutHref()",
@@ -5481,7 +5481,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L170",
       "id": "route_buildscouthref",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildReplyDraft()",
@@ -5489,7 +5489,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L59",
       "id": "route_buildreplydraft",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildMailtoHref()",
@@ -5497,7 +5497,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L84",
       "id": "route_buildmailtohref",
-      "community": 3
+      "community": 7
     },
     {
       "label": "formatPackageLabel()",
@@ -5505,7 +5505,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L212",
       "id": "route_formatpackagelabel",
-      "community": 3
+      "community": 7
     },
     {
       "label": "defaultPaymentLink()",
@@ -5513,7 +5513,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L221",
       "id": "route_defaultpaymentlink",
-      "community": 3
+      "community": 7
     },
     {
       "label": "defaultPaymentInstructions()",
@@ -5521,7 +5521,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L229",
       "id": "route_defaultpaymentinstructions",
-      "community": 3
+      "community": 7
     },
     {
       "label": "getMissionIdeas()",
@@ -5529,7 +5529,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L236",
       "id": "route_getmissionideas",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildCreatorScore()",
@@ -5537,7 +5537,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L250",
       "id": "route_buildcreatorscore",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildCreatorCreateHref()",
@@ -5545,7 +5545,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L315",
       "id": "route_buildcreatorcreatehref",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildCreatorRecommendations()",
@@ -5553,7 +5553,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L338",
       "id": "route_buildcreatorrecommendations",
-      "community": 3
+      "community": 7
     },
     {
       "label": "getRoutedMissionPacket()",
@@ -5561,7 +5561,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L404",
       "id": "route_getroutedmissionpacket",
-      "community": 3
+      "community": 7
     },
     {
       "label": "hasRoutedMissionPacket()",
@@ -5569,7 +5569,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L424",
       "id": "route_hasroutedmissionpacket",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildRoutedMissionLines()",
@@ -5577,7 +5577,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L428",
       "id": "route_buildroutedmissionlines",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildSparkRoutePacket()",
@@ -5585,7 +5585,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L450",
       "id": "route_buildsparkroutepacket",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildInvoiceMemo()",
@@ -5593,7 +5593,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L530",
       "id": "route_buildinvoicememo",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildPaymentPacket()",
@@ -5601,7 +5601,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L565",
       "id": "route_buildpaymentpacket",
-      "community": 3
+      "community": 7
     },
     {
       "label": "fetchCreatorCandidates()",
@@ -5609,7 +5609,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L623",
       "id": "route_fetchcreatorcandidates",
-      "community": 3
+      "community": 0
     },
     {
       "label": "fetchActivationReceiptCampaigns()",
@@ -5617,7 +5617,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L793",
       "id": "route_fetchactivationreceiptcampaigns",
-      "community": 3
+      "community": 0
     },
     {
       "label": "findActivationReceiptCampaign()",
@@ -5625,7 +5625,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L868",
       "id": "route_findactivationreceiptcampaign",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildActivationReceipt()",
@@ -5633,7 +5633,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L878",
       "id": "route_buildactivationreceipt",
-      "community": 3
+      "community": 7
     },
     {
       "label": "mapIntakeEvent()",
@@ -5641,7 +5641,7 @@
       "source_file": "app/api/admin/activation-intakes/route.ts",
       "source_location": "L1014",
       "id": "route_mapintakeevent",
-      "community": 3
+      "community": 7
     },
     {
       "label": "route.ts",
@@ -5689,7 +5689,7 @@
       "source_file": "app/api/admin/local-signals/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_local_signals_route_ts",
-      "community": 3
+      "community": 7
     },
     {
       "label": "statusFilter()",
@@ -5697,7 +5697,7 @@
       "source_file": "app/api/admin/local-signals/route.ts",
       "source_location": "L34",
       "id": "route_statusfilter",
-      "community": 3
+      "community": 7
     },
     {
       "label": "route.ts",
@@ -5705,7 +5705,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_creator_captains_route_ts",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildCaptainProofMissionPacket()",
@@ -5713,7 +5713,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L93",
       "id": "route_buildcaptainproofmissionpacket",
-      "community": 3
+      "community": 7
     },
     {
       "label": "mapCaptainEvent()",
@@ -5721,7 +5721,7 @@
       "source_file": "app/api/admin/creator-captains/route.ts",
       "source_location": "L130",
       "id": "route_mapcaptainevent",
-      "community": 3
+      "community": 7
     },
     {
       "label": "route.ts",
@@ -5761,7 +5761,7 @@
       "source_file": "app/api/admin/tags/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_tags_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "deriveIdentityPlatform()",
@@ -5769,7 +5769,7 @@
       "source_file": "app/api/admin/tags/route.ts",
       "source_location": "L37",
       "id": "route_deriveidentityplatform",
-      "community": 3
+      "community": 0
     },
     {
       "label": "deriveIdentityHandle()",
@@ -5777,7 +5777,7 @@
       "source_file": "app/api/admin/tags/route.ts",
       "source_location": "L56",
       "id": "route_deriveidentityhandle",
-      "community": 3
+      "community": 0
     },
     {
       "label": "getDecisionPayload()",
@@ -5785,7 +5785,7 @@
       "source_file": "app/api/admin/tags/route.ts",
       "source_location": "L76",
       "id": "route_getdecisionpayload",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -5833,7 +5833,7 @@
       "source_file": "app/api/admin/appeals/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_appeals_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "awardVotersOnOverride()",
@@ -5841,7 +5841,7 @@
       "source_file": "app/api/admin/appeals/route.ts",
       "source_location": "L240",
       "id": "route_awardvotersonoverride",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -5849,7 +5849,7 @@
       "source_file": "app/api/admin/place-tags/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_place_tags_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -5857,7 +5857,7 @@
       "source_file": "app/api/admin/venue-report-leads/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_venue_report_leads_route_ts",
-      "community": 3
+      "community": 7
     },
     {
       "label": "toIso()",
@@ -5865,7 +5865,7 @@
       "source_file": "app/api/admin/venue-report-leads/route.ts",
       "source_location": "L20",
       "id": "route_toiso",
-      "community": 3
+      "community": 7
     },
     {
       "label": "buildLeadPriority()",
@@ -5873,7 +5873,7 @@
       "source_file": "app/api/admin/venue-report-leads/route.ts",
       "source_location": "L28",
       "id": "route_buildleadpriority",
-      "community": 3
+      "community": 7
     },
     {
       "label": "route.ts",
@@ -5953,7 +5953,7 @@
       "source_file": "app/api/admin/claims/route.ts",
       "source_location": "L1",
       "id": "app_api_admin_claims_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -7305,7 +7305,7 @@
       "source_file": "app/api/notifications/route.ts",
       "source_location": "L1",
       "id": "app_api_notifications_route_ts",
-      "community": 3
+      "community": 0
     },
     {
       "label": "route.ts",
@@ -7449,7 +7449,7 @@
       "source_file": "app/dare/[shortId]/layout.tsx",
       "source_location": "L1",
       "id": "app_dare_shortid_layout_tsx",
-      "community": 97
+      "community": 96
     },
     {
       "label": "DareLayout()",
@@ -7457,7 +7457,7 @@
       "source_file": "app/dare/[shortId]/layout.tsx",
       "source_location": "L62",
       "id": "layout_darelayout",
-      "community": 97
+      "community": 96
     },
     {
       "label": "page.tsx",
@@ -7657,7 +7657,7 @@
       "source_file": "prisma/seed.ts",
       "source_location": "L1",
       "id": "prisma_seed_ts",
-      "community": 98
+      "community": 97
     },
     {
       "label": "minutesAgoDate()",
@@ -7665,7 +7665,7 @@
       "source_file": "prisma/seed.ts",
       "source_location": "L921",
       "id": "seed_minutesagodate",
-      "community": 98
+      "community": 97
     },
     {
       "label": "upsertSeededPlace()",
@@ -7673,7 +7673,7 @@
       "source_file": "prisma/seed.ts",
       "source_location": "L925",
       "id": "seed_upsertseededplace",
-      "community": 98
+      "community": 97
     },
     {
       "label": "seedPilotSession()",
@@ -7681,7 +7681,7 @@
       "source_file": "prisma/seed.ts",
       "source_location": "L1068",
       "id": "seed_seedpilotsession",
-      "community": 98
+      "community": 97
     },
     {
       "label": "main()",
@@ -7689,7 +7689,7 @@
       "source_file": "prisma/seed.ts",
       "source_location": "L1105",
       "id": "seed_main",
-      "community": 98
+      "community": 97
     },
     {
       "label": "hyperbrowser.ts",
@@ -7697,7 +7697,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L1",
       "id": "utils_hyperbrowser_ts",
-      "community": 82
+      "community": 81
     },
     {
       "label": "createBrowserSession()",
@@ -7705,7 +7705,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L22",
       "id": "hyperbrowser_createbrowsersession",
-      "community": 82
+      "community": 81
     },
     {
       "label": "navigateTo()",
@@ -7713,7 +7713,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L51",
       "id": "hyperbrowser_navigateto",
-      "community": 82
+      "community": 81
     },
     {
       "label": "takeScreenshot()",
@@ -7721,7 +7721,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L66",
       "id": "hyperbrowser_takescreenshot",
-      "community": 82
+      "community": 81
     },
     {
       "label": "scrapeBasescan()",
@@ -7729,7 +7729,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L92",
       "id": "hyperbrowser_scrapebasescan",
-      "community": 82
+      "community": 81
     },
     {
       "label": "simulateWalletConnect()",
@@ -7737,7 +7737,7 @@
       "source_file": "utils/hyperbrowser.ts",
       "source_location": "L135",
       "id": "hyperbrowser_simulatewalletconnect",
-      "community": 82
+      "community": 81
     },
     {
       "label": "uploadToIPFS.ts",
@@ -8521,7 +8521,7 @@
       "source_file": "components/ReceiptShareCard.tsx",
       "source_location": "L1",
       "id": "components_receiptsharecard_tsx",
-      "community": 99
+      "community": 98
     },
     {
       "label": "getAbsoluteUrl()",
@@ -8529,7 +8529,7 @@
       "source_file": "components/ReceiptShareCard.tsx",
       "source_location": "L55",
       "id": "receiptsharecard_getabsoluteurl",
-      "community": 99
+      "community": 98
     },
     {
       "label": "formatReceiptTime()",
@@ -8537,7 +8537,7 @@
       "source_file": "components/ReceiptShareCard.tsx",
       "source_location": "L66",
       "id": "receiptsharecard_formatreceipttime",
-      "community": 99
+      "community": 98
     },
     {
       "label": "copyValue()",
@@ -8545,7 +8545,7 @@
       "source_file": "components/ReceiptShareCard.tsx",
       "source_location": "L106",
       "id": "receiptsharecard_copyvalue",
-      "community": 99
+      "community": 98
     },
     {
       "label": "shareToX()",
@@ -8553,7 +8553,7 @@
       "source_file": "components/ReceiptShareCard.tsx",
       "source_location": "L118",
       "id": "receiptsharecard_sharetox",
-      "community": 99
+      "community": 98
     },
     {
       "label": "HallOfFame.tsx",
@@ -8863,7 +8863,7 @@
       "label": "shouldSkipGlobalBackground()",
       "file_type": "code",
       "source_file": "components/BackgroundLayers.tsx",
-      "source_location": "L16",
+      "source_location": "L18",
       "id": "backgroundlayers_shouldskipglobalbackground",
       "community": 194
     },
@@ -8871,7 +8871,7 @@
       "label": "BackgroundLayers()",
       "file_type": "code",
       "source_file": "components/BackgroundLayers.tsx",
-      "source_location": "L26",
+      "source_location": "L28",
       "id": "backgroundlayers_backgroundlayers",
       "community": 194
     },
@@ -9297,7 +9297,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L1",
       "id": "components_premiumbentogrid_tsx",
-      "community": 83
+      "community": 82
     },
     {
       "label": "getStreamerImage()",
@@ -9305,7 +9305,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L132",
       "id": "premiumbentogrid_getstreamerimage",
-      "community": 83
+      "community": 82
     },
     {
       "label": "getDareEmoji()",
@@ -9313,7 +9313,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L138",
       "id": "premiumbentogrid_getdareemoji",
-      "community": 83
+      "community": 82
     },
     {
       "label": "normalizeStatus()",
@@ -9321,7 +9321,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L146",
       "id": "premiumbentogrid_normalizestatus",
-      "community": 83
+      "community": 82
     },
     {
       "label": "calculateTimeRemaining()",
@@ -9329,7 +9329,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L157",
       "id": "premiumbentogrid_calculatetimeremaining",
-      "community": 83
+      "community": 82
     },
     {
       "label": "triggerLoading()",
@@ -9337,7 +9337,7 @@
       "source_file": "components/PremiumBentoGrid.tsx",
       "source_location": "L232",
       "id": "premiumbentogrid_triggerloading",
-      "community": 83
+      "community": 82
     },
     {
       "label": "create-bounty-form.tsx",
@@ -9441,7 +9441,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L1",
       "id": "components_livepotbubble_tsx",
-      "community": 84
+      "community": 83
     },
     {
       "label": "formatCompactUsd()",
@@ -9449,7 +9449,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L39",
       "id": "livepotbubble_formatcompactusd",
-      "community": 84
+      "community": 83
     },
     {
       "label": "formatUsd()",
@@ -9457,7 +9457,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L53",
       "id": "livepotbubble_formatusd",
-      "community": 84
+      "community": 83
     },
     {
       "label": "updatePosition()",
@@ -9465,7 +9465,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L92",
       "id": "livepotbubble_updateposition",
-      "community": 84
+      "community": 83
     },
     {
       "label": "onScroll()",
@@ -9473,7 +9473,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L122",
       "id": "livepotbubble_onscroll",
-      "community": 84
+      "community": 83
     },
     {
       "label": "onKeyDown()",
@@ -9481,7 +9481,7 @@
       "source_file": "components/LivePotBubble.tsx",
       "source_location": "L185",
       "id": "livepotbubble_onkeydown",
-      "community": 84
+      "community": 83
     },
     {
       "label": "SignalRoomCard.tsx",
@@ -9577,7 +9577,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L1",
       "id": "components_circulargallery_tsx",
-      "community": 85
+      "community": 84
     },
     {
       "label": "Media",
@@ -9585,7 +9585,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L7",
       "id": "circulargallery_media",
-      "community": 85
+      "community": 84
     },
     {
       "label": ".constructor()",
@@ -9593,7 +9593,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L9",
       "id": "circulargallery_media_constructor",
-      "community": 85
+      "community": 84
     },
     {
       "label": "App",
@@ -9601,7 +9601,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L14",
       "id": "circulargallery_app",
-      "community": 85
+      "community": 84
     },
     {
       "label": ".constructor()",
@@ -9609,7 +9609,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L19",
       "id": "circulargallery_app_constructor",
-      "community": 85
+      "community": 84
     },
     {
       "label": "handleItemClick()",
@@ -9617,7 +9617,7 @@
       "source_file": "components/CircularGallery.tsx",
       "source_location": "L96",
       "id": "circulargallery_handleitemclick",
-      "community": 85
+      "community": 84
     },
     {
       "label": "GlassSurface.tsx",
@@ -9961,7 +9961,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L1",
       "id": "components_truthoracle_tsx",
-      "community": 86
+      "community": 85
     },
     {
       "label": "getVoteButtonFrameClass()",
@@ -9969,7 +9969,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L39",
       "id": "truthoracle_getvotebuttonframeclass",
-      "community": 86
+      "community": 85
     },
     {
       "label": "getVoteButtonClass()",
@@ -9977,7 +9977,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L48",
       "id": "truthoracle_getvotebuttonclass",
-      "community": 86
+      "community": 85
     },
     {
       "label": "handleVote()",
@@ -9985,7 +9985,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L131",
       "id": "truthoracle_handlevote",
-      "community": 86
+      "community": 85
     },
     {
       "label": "handleSkip()",
@@ -9993,7 +9993,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L194",
       "id": "truthoracle_handleskip",
-      "community": 86
+      "community": 85
     },
     {
       "label": "handleNextAfterVote()",
@@ -10001,7 +10001,7 @@
       "source_file": "components/TruthOracle.tsx",
       "source_location": "L202",
       "id": "truthoracle_handlenextaftervote",
-      "community": 86
+      "community": 85
     },
     {
       "label": "PeeBearConveyor.tsx",
@@ -10313,7 +10313,7 @@
       "source_file": "components/ChatSidebar.tsx",
       "source_location": "L1",
       "id": "components_chatsidebar_tsx",
-      "community": 87
+      "community": 86
     },
     {
       "label": "handleTouchStart()",
@@ -10321,7 +10321,7 @@
       "source_file": "components/ChatSidebar.tsx",
       "source_location": "L151",
       "id": "chatsidebar_handletouchstart",
-      "community": 87
+      "community": 86
     },
     {
       "label": "handleTouchMove()",
@@ -10329,7 +10329,7 @@
       "source_file": "components/ChatSidebar.tsx",
       "source_location": "L156",
       "id": "chatsidebar_handletouchmove",
-      "community": 87
+      "community": 86
     },
     {
       "label": "handleTouchEnd()",
@@ -10337,7 +10337,7 @@
       "source_file": "components/ChatSidebar.tsx",
       "source_location": "L160",
       "id": "chatsidebar_handletouchend",
-      "community": 87
+      "community": 86
     },
     {
       "label": "SentinelBadge.tsx",
@@ -10561,7 +10561,7 @@
       "source_file": "components/LiquidInput.tsx",
       "source_location": "L1",
       "id": "components_liquidinput_tsx",
-      "community": 100
+      "community": 99
     },
     {
       "label": "handleChange()",
@@ -10569,7 +10569,7 @@
       "source_file": "components/LiquidInput.tsx",
       "source_location": "L46",
       "id": "liquidinput_handlechange",
-      "community": 100
+      "community": 99
     },
     {
       "label": "handleSuggestionClick()",
@@ -10577,7 +10577,7 @@
       "source_file": "components/LiquidInput.tsx",
       "source_location": "L66",
       "id": "liquidinput_handlesuggestionclick",
-      "community": 100
+      "community": 99
     },
     {
       "label": "handleKeyDown()",
@@ -10585,7 +10585,7 @@
       "source_file": "components/LiquidInput.tsx",
       "source_location": "L76",
       "id": "liquidinput_handlekeydown",
-      "community": 100
+      "community": 99
     },
     {
       "label": "cn()",
@@ -10593,7 +10593,7 @@
       "source_file": "components/LiquidInput.tsx",
       "source_location": "L118",
       "id": "liquidinput_cn",
-      "community": 100
+      "community": 99
     },
     {
       "label": "RotatingHero.tsx",
@@ -10663,7 +10663,7 @@
       "label": "roarCycle()",
       "file_type": "code",
       "source_file": "components/PeeBearOrb.tsx",
-      "source_location": "L56",
+      "source_location": "L63",
       "id": "peebearorb_roarcycle",
       "community": 367
     },
@@ -10673,7 +10673,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L1",
       "id": "components_premiumdarecard_tsx",
-      "community": 88
+      "community": 87
     },
     {
       "label": "formatTimeRemaining()",
@@ -10681,7 +10681,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L13",
       "id": "premiumdarecard_formattimeremaining",
-      "community": 88
+      "community": 87
     },
     {
       "label": "SentinelSkeleton()",
@@ -10689,7 +10689,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L53",
       "id": "premiumdarecard_sentinelskeleton",
-      "community": 88
+      "community": 87
     },
     {
       "label": "apply()",
@@ -10697,7 +10697,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L111",
       "id": "premiumdarecard_apply",
-      "community": 88
+      "community": 87
     },
     {
       "label": "handleLike()",
@@ -10705,7 +10705,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L126",
       "id": "premiumdarecard_handlelike",
-      "community": 88
+      "community": 87
     },
     {
       "label": "handleCardClick()",
@@ -10713,7 +10713,7 @@
       "source_file": "components/PremiumDareCard.tsx",
       "source_location": "L132",
       "id": "premiumdarecard_handlecardclick",
-      "community": 88
+      "community": 87
     },
     {
       "label": "AnimatedCallout.tsx",
@@ -10777,7 +10777,7 @@
       "source_file": "components/DareGenerator.tsx",
       "source_location": "L1",
       "id": "components_daregenerator_tsx",
-      "community": 101
+      "community": 100
     },
     {
       "label": "inferVenueStory()",
@@ -10785,7 +10785,7 @@
       "source_file": "components/DareGenerator.tsx",
       "source_location": "L167",
       "id": "daregenerator_infervenuestory",
-      "community": 101
+      "community": 100
     },
     {
       "label": "buildVenueAwareSuggestions()",
@@ -10793,7 +10793,7 @@
       "source_file": "components/DareGenerator.tsx",
       "source_location": "L209",
       "id": "daregenerator_buildvenueawaresuggestions",
-      "community": 101
+      "community": 100
     },
     {
       "label": "handleModeChange()",
@@ -10801,7 +10801,7 @@
       "source_file": "components/DareGenerator.tsx",
       "source_location": "L377",
       "id": "daregenerator_handlemodechange",
-      "community": 101
+      "community": 100
     },
     {
       "label": "handleSegmentChange()",
@@ -10809,7 +10809,7 @@
       "source_file": "components/DareGenerator.tsx",
       "source_location": "L382",
       "id": "daregenerator_handlesegmentchange",
-      "community": 101
+      "community": 100
     },
     {
       "label": "Providers.tsx",
@@ -12097,7 +12097,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L1",
       "id": "components_ui_borderglow_tsx",
-      "community": 89
+      "community": 88
     },
     {
       "label": "parseHsl()",
@@ -12105,7 +12105,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L27",
       "id": "borderglow_parsehsl",
-      "community": 89
+      "community": 88
     },
     {
       "label": "buildGlowVars()",
@@ -12113,7 +12113,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L33",
       "id": "borderglow_buildglowvars",
-      "community": 89
+      "community": 88
     },
     {
       "label": "buildGradientVars()",
@@ -12121,7 +12121,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L45",
       "id": "borderglow_buildgradientvars",
-      "community": 89
+      "community": 88
     },
     {
       "label": "easeOutCubic()",
@@ -12129,7 +12129,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L53",
       "id": "borderglow_easeoutcubic",
-      "community": 89
+      "community": 88
     },
     {
       "label": "animateValue()",
@@ -12137,7 +12137,7 @@
       "source_file": "components/ui/BorderGlow.tsx",
       "source_location": "L57",
       "id": "borderglow_animatevalue",
-      "community": 89
+      "community": 88
     },
     {
       "label": "dialog.tsx",
@@ -12505,7 +12505,7 @@
       "source_file": "components/home/HomeMarketSignal.tsx",
       "source_location": "L1",
       "id": "components_home_homemarketsignal_tsx",
-      "community": 102
+      "community": 101
     },
     {
       "label": "normalizeTag()",
@@ -12513,7 +12513,7 @@
       "source_file": "components/home/HomeMarketSignal.tsx",
       "source_location": "L86",
       "id": "homemarketsignal_normalizetag",
-      "community": 102
+      "community": 101
     },
     {
       "label": "getAreaLabel()",
@@ -12521,7 +12521,7 @@
       "source_file": "components/home/HomeMarketSignal.tsx",
       "source_location": "L90",
       "id": "homemarketsignal_getarealabel",
-      "community": 102
+      "community": 101
     },
     {
       "label": "getSkills()",
@@ -12529,7 +12529,7 @@
       "source_file": "components/home/HomeMarketSignal.tsx",
       "source_location": "L101",
       "id": "homemarketsignal_getskills",
-      "community": 102
+      "community": 101
     },
     {
       "label": "mapCreators()",
@@ -12537,63 +12537,47 @@
       "source_file": "components/home/HomeMarketSignal.tsx",
       "source_location": "L120",
       "id": "homemarketsignal_mapcreators",
-      "community": 102
+      "community": 101
     },
     {
       "label": "ReadyCreatorsRail.tsx",
       "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
       "source_location": "L1",
-      "id": "components_home_readycreatorsrail_tsx",
-      "community": 73
+      "id": "basedare_components_home_readycreatorsrail_tsx",
+      "community": 102
     },
     {
       "label": "normalizeTag()",
       "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L114",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L55",
       "id": "readycreatorsrail_normalizetag",
-      "community": 73
+      "community": 102
     },
     {
-      "label": "plainTag()",
+      "label": "isRouteReady()",
       "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L118",
-      "id": "readycreatorsrail_plaintag",
-      "community": 73
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L59",
+      "id": "readycreatorsrail_isrouteready",
+      "community": 102
     },
     {
-      "label": "getAreaLabel()",
+      "label": "toLiveCreators()",
       "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L122",
-      "id": "readycreatorsrail_getarealabel",
-      "community": 73
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L67",
+      "id": "readycreatorsrail_tolivecreators",
+      "community": 102
     },
     {
-      "label": "getSkills()",
+      "label": "load()",
       "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L133",
-      "id": "readycreatorsrail_getskills",
-      "community": 73
-    },
-    {
-      "label": "mapCreators()",
-      "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L152",
-      "id": "readycreatorsrail_mapcreators",
-      "community": 73
-    },
-    {
-      "label": "loadCreators()",
-      "file_type": "code",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L199",
-      "id": "readycreatorsrail_loadcreators",
-      "community": 73
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L94",
+      "id": "readycreatorsrail_load",
+      "community": 102
     },
     {
       "label": "CreatePlaceChallengeButton.tsx",
@@ -12921,7 +12905,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L1",
       "id": "basedare_components_creators_publiccreators_tsx",
-      "community": 74
+      "community": 73
     },
     {
       "label": "clamp()",
@@ -12929,7 +12913,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L80",
       "id": "publiccreators_clamp",
-      "community": 74
+      "community": 73
     },
     {
       "label": "getCreatorAvatarStyle()",
@@ -12937,7 +12921,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L84",
       "id": "publiccreators_getcreatoravatarstyle",
-      "community": 74
+      "community": 73
     },
     {
       "label": "getCreatorAvailability()",
@@ -12945,7 +12929,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L96",
       "id": "publiccreators_getcreatoravailability",
-      "community": 74
+      "community": 73
     },
     {
       "label": "getCreatorAreaLabel()",
@@ -12953,7 +12937,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L128",
       "id": "publiccreators_getcreatorarealabel",
-      "community": 74
+      "community": 73
     },
     {
       "label": "getCreatorSkillChips()",
@@ -12961,7 +12945,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L139",
       "id": "publiccreators_getcreatorskillchips",
-      "community": 74
+      "community": 73
     },
     {
       "label": "fetchCreators()",
@@ -12969,7 +12953,7 @@
       "source_file": "basedare/components/creators/PublicCreators.tsx",
       "source_location": "L172",
       "id": "publiccreators_fetchcreators",
-      "community": 74
+      "community": 73
     },
     {
       "label": "CreatorProofPassport.tsx",
@@ -14041,7 +14025,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L1",
       "id": "lib_venue_profile_ts",
-      "community": 75
+      "community": 74
     },
     {
       "label": "asMetadataRecord()",
@@ -14049,7 +14033,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L137",
       "id": "venue_profile_asmetadatarecord",
-      "community": 75
+      "community": 74
     },
     {
       "label": "readString()",
@@ -14057,7 +14041,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L145",
       "id": "venue_profile_readstring",
-      "community": 75
+      "community": 74
     },
     {
       "label": "readStringArray()",
@@ -14065,7 +14049,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L156",
       "id": "venue_profile_readstringarray",
-      "community": 75
+      "community": 74
     },
     {
       "label": "compactSentence()",
@@ -14073,7 +14057,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L173",
       "id": "venue_profile_compactsentence",
-      "community": 75
+      "community": 74
     },
     {
       "label": "getLegendByKey()",
@@ -14081,7 +14065,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L179",
       "id": "venue_profile_getlegendbykey",
-      "community": 75
+      "community": 74
     },
     {
       "label": "buildVenueProfile()",
@@ -14089,7 +14073,7 @@
       "source_file": "lib/venue-profile.ts",
       "source_location": "L185",
       "id": "venue_profile_buildvenueprofile",
-      "community": 75
+      "community": 74
     },
     {
       "label": "dare-image-auth-server.ts",
@@ -14401,7 +14385,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L1",
       "id": "lib_creator_trust_ts",
-      "community": 90
+      "community": 89
     },
     {
       "label": "clamp()",
@@ -14409,7 +14393,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L17",
       "id": "creator_trust_clamp",
-      "community": 90
+      "community": 89
     },
     {
       "label": "getAudienceScore()",
@@ -14417,7 +14401,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L21",
       "id": "creator_trust_getaudiencescore",
-      "community": 90
+      "community": 89
     },
     {
       "label": "getTrustLabel()",
@@ -14425,7 +14409,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L31",
       "id": "creator_trust_gettrustlabel",
-      "community": 90
+      "community": 89
     },
     {
       "label": "getTrustSummary()",
@@ -14433,7 +14417,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L39",
       "id": "creator_trust_gettrustsummary",
-      "community": 90
+      "community": 89
     },
     {
       "label": "deriveCreatorTrustProfile()",
@@ -14441,7 +14425,7 @@
       "source_file": "lib/creator-trust.ts",
       "source_location": "L63",
       "id": "creator_trust_derivecreatortrustprofile",
-      "community": 90
+      "community": 89
     },
     {
       "label": "proof-submit-auth-server.ts",
@@ -14601,7 +14585,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L1",
       "id": "lib_wallet_action_auth_server_ts",
-      "community": 76
+      "community": 75
     },
     {
       "label": "normalizeWallet()",
@@ -14609,7 +14593,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L37",
       "id": "wallet_action_auth_server_normalizewallet",
-      "community": 76
+      "community": 75
     },
     {
       "label": "getVerifiedSessionWallet()",
@@ -14617,7 +14601,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L42",
       "id": "wallet_action_auth_server_getverifiedsessionwallet",
-      "community": 76
+      "community": 75
     },
     {
       "label": "verifyWalletMessage()",
@@ -14625,7 +14609,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L54",
       "id": "wallet_action_auth_server_verifywalletmessage",
-      "community": 76
+      "community": 75
     },
     {
       "label": "getVerifiedWalletSignature()",
@@ -14633,7 +14617,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L74",
       "id": "wallet_action_auth_server_getverifiedwalletsignature",
-      "community": 76
+      "community": 75
     },
     {
       "label": "getVerifiedWalletSessionSignature()",
@@ -14641,7 +14625,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L107",
       "id": "wallet_action_auth_server_getverifiedwalletsessionsignature",
-      "community": 76
+      "community": 75
     },
     {
       "label": "getAuthorizedWalletForRequest()",
@@ -14649,7 +14633,7 @@
       "source_file": "lib/wallet-action-auth-server.ts",
       "source_location": "L134",
       "id": "wallet_action_auth_server_getauthorizedwalletforrequest",
-      "community": 76
+      "community": 75
     },
     {
       "label": "action-center.ts",
@@ -14977,7 +14961,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L1",
       "id": "lib_captain_missions_server_ts",
-      "community": 77
+      "community": 76
     },
     {
       "label": "asRecord()",
@@ -14985,7 +14969,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L15",
       "id": "captain_missions_server_asrecord",
-      "community": 77
+      "community": 76
     },
     {
       "label": "stringArrayValue()",
@@ -14993,7 +14977,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L19",
       "id": "captain_missions_server_stringarrayvalue",
-      "community": 77
+      "community": 76
     },
     {
       "label": "cleanToken()",
@@ -15001,7 +14985,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L24",
       "id": "captain_missions_server_cleantoken",
-      "community": 77
+      "community": 76
     },
     {
       "label": "mapCaptainMissionEvent()",
@@ -15009,7 +14993,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L28",
       "id": "captain_missions_server_mapcaptainmissionevent",
-      "community": 77
+      "community": 76
     },
     {
       "label": "findCaptainMissionEventByToken()",
@@ -15017,7 +15001,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L91",
       "id": "captain_missions_server_findcaptainmissioneventbytoken",
-      "community": 77
+      "community": 76
     },
     {
       "label": "getCaptainMissionByToken()",
@@ -15025,7 +15009,7 @@
       "source_file": "lib/captain-missions-server.ts",
       "source_location": "L126",
       "id": "captain_missions_server_getcaptainmissionbytoken",
-      "community": 77
+      "community": 76
     },
     {
       "label": "telegram-admin-auth.ts",
@@ -15057,7 +15041,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L1",
       "id": "lib_mission_routing_ts",
-      "community": 91
+      "community": 90
     },
     {
       "label": "appendParam()",
@@ -15065,7 +15049,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L27",
       "id": "mission_routing_appendparam",
-      "community": 91
+      "community": 90
     },
     {
       "label": "normalizeCreator()",
@@ -15073,7 +15057,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L34",
       "id": "mission_routing_normalizecreator",
-      "community": 91
+      "community": 90
     },
     {
       "label": "buildMissionActivationHref()",
@@ -15081,7 +15065,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L40",
       "id": "mission_routing_buildmissionactivationhref",
-      "community": 91
+      "community": 90
     },
     {
       "label": "buildCreatorMissionActivationHref()",
@@ -15089,7 +15073,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L71",
       "id": "mission_routing_buildcreatormissionactivationhref",
-      "community": 91
+      "community": 90
     },
     {
       "label": "buildVenueMissionActivationHref()",
@@ -15097,7 +15081,7 @@
       "source_file": "lib/mission-routing.ts",
       "source_location": "L104",
       "id": "mission_routing_buildvenuemissionactivationhref",
-      "community": 91
+      "community": 90
     },
     {
       "label": "dare-response-auth.ts",
@@ -15199,7 +15183,7 @@
       "label": "shouldPreferLightweightClient()",
       "file_type": "code",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L50",
+      "source_location": "L66",
       "id": "client_performance_shouldpreferlightweightclient",
       "community": 109
     },
@@ -15207,7 +15191,7 @@
       "label": "runAfterPageIdle()",
       "file_type": "code",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L55",
+      "source_location": "L77",
       "id": "client_performance_runafterpageidle",
       "community": 109
     },
@@ -15215,7 +15199,7 @@
       "label": "runAfterFirstInteraction()",
       "file_type": "code",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L83",
+      "source_location": "L105",
       "id": "client_performance_runafterfirstinteraction",
       "community": 109
     },
@@ -15601,7 +15585,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L1",
       "id": "lib_activation_funnel_client_ts",
-      "community": 92
+      "community": 91
     },
     {
       "label": "clean()",
@@ -15609,7 +15593,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L17",
       "id": "activation_funnel_client_clean",
-      "community": 92
+      "community": 91
     },
     {
       "label": "randomId()",
@@ -15617,7 +15601,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L21",
       "id": "activation_funnel_client_randomid",
-      "community": 92
+      "community": 91
     },
     {
       "label": "getActivationFunnelSessionKey()",
@@ -15625,7 +15609,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L28",
       "id": "activation_funnel_client_getactivationfunnelsessionkey",
-      "community": 92
+      "community": 91
     },
     {
       "label": "getActivationFunnelAttribution()",
@@ -15633,7 +15617,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L43",
       "id": "activation_funnel_client_getactivationfunnelattribution",
-      "community": 92
+      "community": 91
     },
     {
       "label": "trackActivationFunnelEvent()",
@@ -15641,7 +15625,7 @@
       "source_file": "lib/activation-funnel-client.ts",
       "source_location": "L74",
       "id": "activation_funnel_client_trackactivationfunnelevent",
-      "community": 92
+      "community": 91
     },
     {
       "label": "first-spark-window.ts",
@@ -16161,7 +16145,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L1",
       "id": "lib_venue_handles_ts",
-      "community": 78
+      "community": 77
     },
     {
       "label": "asRecord()",
@@ -16169,7 +16153,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L19",
       "id": "venue_handles_asrecord",
-      "community": 78
+      "community": 77
     },
     {
       "label": "getMetadataHandle()",
@@ -16177,7 +16161,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L27",
       "id": "venue_handles_getmetadatahandle",
-      "community": 78
+      "community": 77
     },
     {
       "label": "normalizeVenueHandle()",
@@ -16185,7 +16169,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L35",
       "id": "venue_handles_normalizevenuehandle",
-      "community": 78
+      "community": 77
     },
     {
       "label": "deriveVenueHandle()",
@@ -16193,7 +16177,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L48",
       "id": "venue_handles_derivevenuehandle",
-      "community": 78
+      "community": 77
     },
     {
       "label": "formatVenueHandle()",
@@ -16201,7 +16185,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L72",
       "id": "venue_handles_formatvenuehandle",
-      "community": 78
+      "community": 77
     },
     {
       "label": "isBaseCashPilotVenue()",
@@ -16209,7 +16193,7 @@
       "source_file": "lib/venue-handles.ts",
       "source_location": "L77",
       "id": "venue_handles_isbasecashpilotvenue",
-      "community": 78
+      "community": 77
     },
     {
       "label": "creator-captains.ts",
@@ -16305,7 +16289,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L1",
       "id": "lib_place_tags_ts",
-      "community": 93
+      "community": 92
     },
     {
       "label": "isPlaceTagTableMissingError()",
@@ -16313,7 +16297,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L13",
       "id": "place_tags_isplacetagtablemissingerror",
-      "community": 93
+      "community": 92
     },
     {
       "label": "getApprovedTagSummaryMap()",
@@ -16321,7 +16305,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L25",
       "id": "place_tags_getapprovedtagsummarymap",
-      "community": 93
+      "community": 92
     },
     {
       "label": "getVenueTagSummary()",
@@ -16329,7 +16313,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L61",
       "id": "place_tags_getvenuetagsummary",
-      "community": 93
+      "community": 92
     },
     {
       "label": "getRecentApprovedPlaceTagsByVenueId()",
@@ -16337,7 +16321,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L68",
       "id": "place_tags_getrecentapprovedplacetagsbyvenueid",
-      "community": 93
+      "community": 92
     },
     {
       "label": "getRecentPendingPlaceTagsByVenueIdForWallet()",
@@ -16345,7 +16329,7 @@
       "source_file": "lib/place-tags.ts",
       "source_location": "L117",
       "id": "place_tags_getrecentpendingplacetagsbyvenueidforwallet",
-      "community": 93
+      "community": 92
     },
     {
       "label": "scout-creator-leads.ts",
@@ -16657,7 +16641,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L1",
       "id": "lib_campaign_matching_ts",
-      "community": 79
+      "community": 78
     },
     {
       "label": "parseCampaignTargetingCriteria()",
@@ -16665,7 +16649,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L85",
       "id": "campaign_matching_parsecampaigntargetingcriteria",
-      "community": 79
+      "community": 78
     },
     {
       "label": "normalizePlatforms()",
@@ -16673,7 +16657,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L96",
       "id": "campaign_matching_normalizeplatforms",
-      "community": 79
+      "community": 78
     },
     {
       "label": "splitNicheValues()",
@@ -16681,7 +16665,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L100",
       "id": "campaign_matching_splitnichevalues",
-      "community": 79
+      "community": 78
     },
     {
       "label": "candidatePlatforms()",
@@ -16689,7 +16673,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L107",
       "id": "campaign_matching_candidateplatforms",
-      "community": 79
+      "community": 78
     },
     {
       "label": "buildCampaignMatch()",
@@ -16697,7 +16681,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L116",
       "id": "campaign_matching_buildcampaignmatch",
-      "community": 79
+      "community": 78
     },
     {
       "label": "getRankedCampaignMatches()",
@@ -16705,7 +16689,7 @@
       "source_file": "lib/campaign-matching.ts",
       "source_location": "L255",
       "id": "campaign_matching_getrankedcampaignmatches",
-      "community": 79
+      "community": 78
     },
     {
       "label": "web-push.ts",
@@ -18937,7 +18921,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1",
       "id": "lib_venues_ts",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildEmptyReviewSignal()",
@@ -18945,7 +18929,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L80",
       "id": "venues_buildemptyreviewsignal",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildReviewSignalFromRows()",
@@ -18953,7 +18937,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L92",
       "id": "venues_buildreviewsignalfromrows",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getVenueReviewSignalMap()",
@@ -18961,7 +18945,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L129",
       "id": "venues_getvenuereviewsignalmap",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getCuratedVenueDetailFallbackUntil()",
@@ -18969,7 +18953,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L179",
       "id": "venues_getcuratedvenuedetailfallbackuntil",
-      "community": 6
+      "community": 5
     },
     {
       "label": "setCuratedVenueDetailFallbackCooldown()",
@@ -18977,7 +18961,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L183",
       "id": "venues_setcuratedvenuedetailfallbackcooldown",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildEmptyVenueReportPipeline()",
@@ -18985,7 +18969,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L189",
       "id": "venues_buildemptyvenuereportpipeline",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildCuratedVenueDetailFallback()",
@@ -18993,7 +18977,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L208",
       "id": "venues_buildcuratedvenuedetailfallback",
-      "community": 6
+      "community": 5
     },
     {
       "label": "startOfDay()",
@@ -19001,7 +18985,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L304",
       "id": "venues_startofday",
-      "community": 6
+      "community": 5
     },
     {
       "label": "subHours()",
@@ -19009,7 +18993,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L310",
       "id": "venues_subhours",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getBoundingBox()",
@@ -19017,7 +19001,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L314",
       "id": "venues_getboundingbox",
-      "community": 6
+      "community": 5
     },
     {
       "label": "normalizeWalletAddress()",
@@ -19025,7 +19009,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L326",
       "id": "venues_normalizewalletaddress",
-      "community": 6
+      "community": 5
     },
     {
       "label": "mapMemorySummary()",
@@ -19033,7 +19017,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L330",
       "id": "venues_mapmemorysummary",
-      "community": 6
+      "community": 5
     },
     {
       "label": "mapSessionSummary()",
@@ -19041,7 +19025,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L358",
       "id": "venues_mapsessionsummary",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueCommandCenterSummary()",
@@ -19049,7 +19033,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L388",
       "id": "venues_buildvenuecommandcentersummary",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueExperienceModes()",
@@ -19057,7 +19041,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L487",
       "id": "venues_buildvenueexperiencemodes",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueActivationInsight()",
@@ -19065,7 +19049,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L491",
       "id": "venues_buildvenueactivationinsight",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueRoiWindow()",
@@ -19073,7 +19057,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L550",
       "id": "venues_buildvenueroiwindow",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueRoiSnapshot()",
@@ -19081,7 +19065,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L590",
       "id": "venues_buildvenueroisnapshot",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getTopCreatorsForVenueIds()",
@@ -19089,7 +19073,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L625",
       "id": "venues_gettopcreatorsforvenueids",
-      "community": 6
+      "community": 5
     },
     {
       "label": "mapActiveDare()",
@@ -19097,7 +19081,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L744",
       "id": "venues_mapactivedare",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getFeaturedPaidActivation()",
@@ -19105,7 +19089,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L793",
       "id": "venues_getfeaturedpaidactivation",
-      "community": 6
+      "community": 5
     },
     {
       "label": "compactWalletLabel()",
@@ -19113,7 +19097,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L815",
       "id": "venues_compactwalletlabel",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueTimelineMoments()",
@@ -19121,7 +19105,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L819",
       "id": "venues_buildvenuetimelinemoments",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getHandshakeSecret()",
@@ -19129,7 +19113,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L968",
       "id": "venues_gethandshakesecret",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getVenuePassKey()",
@@ -19137,7 +19121,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L979",
       "id": "venues_getvenuepasskey",
-      "community": 6
+      "community": 5
     },
     {
       "label": "encodeTokenPart()",
@@ -19145,7 +19129,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L990",
       "id": "venues_encodetokenpart",
-      "community": 6
+      "community": 5
     },
     {
       "label": "decodeTokenPart()",
@@ -19153,7 +19137,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L998",
       "id": "venues_decodetokenpart",
-      "community": 6
+      "community": 5
     },
     {
       "label": "createVenueSessionKeyHash()",
@@ -19161,7 +19145,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1004",
       "id": "venues_createvenuesessionkeyhash",
-      "community": 6
+      "community": 5
     },
     {
       "label": "deriveVenuePassIv()",
@@ -19169,7 +19153,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1015",
       "id": "venues_derivevenuepassiv",
-      "community": 6
+      "community": 5
     },
     {
       "label": "encryptVenuePassToken()",
@@ -19177,7 +19161,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1039",
       "id": "venues_encryptvenuepasstoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "isVenuePassTokenPayload()",
@@ -19185,7 +19169,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1074",
       "id": "venues_isvenuepasstokenpayload",
-      "community": 6
+      "community": 5
     },
     {
       "label": "decryptVenuePassToken()",
@@ -19193,7 +19177,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1089",
       "id": "venues_decryptvenuepasstoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "safeTokenEquals()",
@@ -19201,7 +19185,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1111",
       "id": "venues_safetokenequals",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getRotationWindow()",
@@ -19209,7 +19193,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1118",
       "id": "venues_getrotationwindow",
-      "community": 6
+      "community": 5
     },
     {
       "label": "createLegacyVenueHandshakeToken()",
@@ -19217,7 +19201,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1136",
       "id": "venues_createlegacyvenuehandshaketoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "createVenueHandshakeToken()",
@@ -19225,7 +19209,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1162",
       "id": "venues_createvenuehandshaketoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "hashHandshakeToken()",
@@ -19233,7 +19217,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1173",
       "id": "venues_hashhandshaketoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "createVenueSessionKey()",
@@ -19241,7 +19225,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1177",
       "id": "venues_createvenuesessionkey",
-      "community": 6
+      "community": 5
     },
     {
       "label": "buildVenueHandshakeValue()",
@@ -19249,7 +19233,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1181",
       "id": "venues_buildvenuehandshakevalue",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getVenueById()",
@@ -19257,7 +19241,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1203",
       "id": "venues_getvenuebyid",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getActiveVenueSessionByVenueId()",
@@ -19265,7 +19249,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1209",
       "id": "venues_getactivevenuesessionbyvenueid",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getVenueQrPayloadByVenueId()",
@@ -19273,7 +19257,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1219",
       "id": "venues_getvenueqrpayloadbyvenueid",
-      "community": 6
+      "community": 5
     },
     {
       "label": "validateVenueHandshakeToken()",
@@ -19281,7 +19265,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1272",
       "id": "venues_validatevenuehandshaketoken",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getFeaturedVenues()",
@@ -19289,7 +19273,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1375",
       "id": "venues_getfeaturedvenues",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getBrandVenueRadar()",
@@ -19297,7 +19281,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1430",
       "id": "venues_getbrandvenueradar",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getNearbyVenues()",
@@ -19305,7 +19289,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1692",
       "id": "venues_getnearbyvenues",
-      "community": 6
+      "community": 5
     },
     {
       "label": "getVenueDetailBySlugFromDatabase()",
@@ -19313,7 +19297,7 @@
       "source_file": "lib/venues.ts",
       "source_location": "L1876",
       "id": "venues_getvenuedetailbyslugfromdatabase",
-      "community": 6
+      "community": 5
     },
     {
       "label": "venue-notifications.ts",
@@ -19425,7 +19409,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1",
       "id": "lib_telegram_ts",
-      "community": 7
+      "community": 6
     },
     {
       "label": "sendMessageToChat()",
@@ -19433,7 +19417,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L55",
       "id": "telegram_sendmessagetochat",
-      "community": 7
+      "community": 6
     },
     {
       "label": "sendMessage()",
@@ -19441,7 +19425,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L129",
       "id": "telegram_sendmessage",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatUSDC()",
@@ -19449,7 +19433,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L141",
       "id": "telegram_formatusdc",
-      "community": 7
+      "community": 6
     },
     {
       "label": "escapeHtml()",
@@ -19457,7 +19441,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L145",
       "id": "telegram_escapehtml",
-      "community": 7
+      "community": 6
     },
     {
       "label": "escapeHtmlAttribute()",
@@ -19465,7 +19449,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L153",
       "id": "telegram_escapehtmlattribute",
-      "community": 7
+      "community": 6
     },
     {
       "label": "appUrl()",
@@ -19473,7 +19457,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L157",
       "id": "telegram_appurl",
-      "community": 7
+      "community": 6
     },
     {
       "label": "htmlLink()",
@@ -19481,7 +19465,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L162",
       "id": "telegram_htmllink",
-      "community": 7
+      "community": 6
     },
     {
       "label": "compactText()",
@@ -19489,7 +19473,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L166",
       "id": "telegram_compacttext",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatVenuePipelineEvent()",
@@ -19497,7 +19481,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L172",
       "id": "telegram_formatvenuepipelineevent",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatVenueAudience()",
@@ -19505,7 +19489,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L183",
       "id": "telegram_formatvenueaudience",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatVenueIntent()",
@@ -19513,7 +19497,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L187",
       "id": "telegram_formatvenueintent",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatOwnerWallet()",
@@ -19521,7 +19505,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L197",
       "id": "telegram_formatownerwallet",
-      "community": 7
+      "community": 6
     },
     {
       "label": "formatRelativeAge()",
@@ -19529,7 +19513,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L202",
       "id": "telegram_formatrelativeage",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertNewDare()",
@@ -19537,7 +19521,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L217",
       "id": "telegram_alertnewdare",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertSignalRoomDare()",
@@ -19545,7 +19529,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L233",
       "id": "telegram_alertsignalroomdare",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertLocalSignalSubmission()",
@@ -19553,7 +19537,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L267",
       "id": "telegram_alertlocalsignalsubmission",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertPlaceTagSubmission()",
@@ -19561,7 +19545,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L302",
       "id": "telegram_alertplacetagsubmission",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertSignalRoomLocalSignal()",
@@ -19569,7 +19553,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L351",
       "id": "telegram_alertsignalroomlocalsignal",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertBigPledge()",
@@ -19577,7 +19561,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L390",
       "id": "telegram_alertbigpledge",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertVerification()",
@@ -19585,7 +19569,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L421",
       "id": "telegram_alertverification",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertDareNeedsReview()",
@@ -19593,7 +19577,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L484",
       "id": "telegram_alertdareneedsreview",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertSentinelReviewRequired()",
@@ -19601,7 +19585,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L506",
       "id": "telegram_alertsentinelreviewrequired",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertSentinelQueueThreshold()",
@@ -19609,7 +19593,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L525",
       "id": "telegram_alertsentinelqueuethreshold",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertSentinelHardPauseToggled()",
@@ -19617,7 +19601,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L540",
       "id": "telegram_alertsentinelhardpausetoggled",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertVenueLeadFollowUpQueue()",
@@ -19625,7 +19609,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L565",
       "id": "telegram_alertvenueleadfollowupqueue",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertInboxSupportMessage()",
@@ -19633,7 +19617,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L614",
       "id": "telegram_alertinboxsupportmessage",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertVenueReportHighIntentEvent()",
@@ -19641,7 +19625,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L638",
       "id": "telegram_alertvenuereporthighintentevent",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertVenueLeadActivationDigest()",
@@ -19649,7 +19633,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L689",
       "id": "telegram_alertvenueleadactivationdigest",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertActivationIntake()",
@@ -19657,7 +19641,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L747",
       "id": "telegram_alertactivationintake",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertCreatorCaptainApplication()",
@@ -19665,7 +19649,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L867",
       "id": "telegram_alertcreatorcaptainapplication",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertCreatorCaptainStatusUpdate()",
@@ -19673,7 +19657,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L913",
       "id": "telegram_alertcreatorcaptainstatusupdate",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertScoutCreatorLead()",
@@ -19681,7 +19665,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L941",
       "id": "telegram_alertscoutcreatorlead",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertScoutCreatorLeadStatusUpdate()",
@@ -19689,7 +19673,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L975",
       "id": "telegram_alertscoutcreatorleadstatusupdate",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertCaptainMissionProofSubmitted()",
@@ -19697,7 +19681,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1005",
       "id": "telegram_alertcaptainmissionproofsubmitted",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertActivationIntakeStatusUpdate()",
@@ -19705,7 +19689,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1028",
       "id": "telegram_alertactivationintakestatusupdate",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertActivationIntakeFollowUpQueue()",
@@ -19713,7 +19697,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1058",
       "id": "telegram_alertactivationintakefollowupqueue",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertClaimRequestSubmission()",
@@ -19721,7 +19705,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1107",
       "id": "telegram_alertclaimrequestsubmission",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertPayout()",
@@ -19729,7 +19713,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1133",
       "id": "telegram_alertpayout",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertExpiringDares()",
@@ -19737,7 +19721,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1165",
       "id": "telegram_alertexpiringdares",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertFlaggedContent()",
@@ -19745,7 +19729,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1192",
       "id": "telegram_alertflaggedcontent",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertError()",
@@ -19753,7 +19737,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1225",
       "id": "telegram_alerterror",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertDailyStats()",
@@ -19761,7 +19745,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1252",
       "id": "telegram_alertdailystats",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertTagClaimSubmission()",
@@ -19769,7 +19753,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1277",
       "id": "telegram_alerttagclaimsubmission",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertTagClaimDecision()",
@@ -19777,7 +19761,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1290",
       "id": "telegram_alerttagclaimdecision",
-      "community": 7
+      "community": 6
     },
     {
       "label": "alertBaseCashCreditPending()",
@@ -19785,7 +19769,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1316",
       "id": "telegram_alertbasecashcreditpending",
-      "community": 7
+      "community": 6
     },
     {
       "label": "testBotConnection()",
@@ -19793,7 +19777,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1361",
       "id": "telegram_testbotconnection",
-      "community": 7
+      "community": 6
     },
     {
       "label": "testSignalRoomConnection()",
@@ -19801,7 +19785,7 @@
       "source_file": "lib/telegram.ts",
       "source_location": "L1370",
       "id": "telegram_testsignalroomconnection",
-      "community": 7
+      "community": 6
     },
     {
       "label": "admin-auth.ts",
@@ -20057,7 +20041,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L1",
       "id": "lib_basecash_shared_ts",
-      "community": 94
+      "community": 93
     },
     {
       "label": "isBaseCashDenomination()",
@@ -20065,7 +20049,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L20",
       "id": "basecash_shared_isbasecashdenomination",
-      "community": 94
+      "community": 93
     },
     {
       "label": "getBaseCashPhpPerUsdc()",
@@ -20073,7 +20057,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L24",
       "id": "basecash_shared_getbasecashphpperusdc",
-      "community": 94
+      "community": 93
     },
     {
       "label": "quoteBaseCashVenueCredit()",
@@ -20081,7 +20065,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L33",
       "id": "basecash_shared_quotebasecashvenuecredit",
-      "community": 94
+      "community": 93
     },
     {
       "label": "formatPhp()",
@@ -20089,7 +20073,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L53",
       "id": "basecash_shared_formatphp",
-      "community": 94
+      "community": 93
     },
     {
       "label": "formatUsdc()",
@@ -20097,7 +20081,7 @@
       "source_file": "lib/basecash-shared.ts",
       "source_location": "L57",
       "id": "basecash_shared_formatusdc",
-      "community": 94
+      "community": 93
     },
     {
       "label": "creator-profile-auth.ts",
@@ -20193,7 +20177,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L1",
       "id": "lib_campaign_payouts_ts",
-      "community": 95
+      "community": 94
     },
     {
       "label": "calculatePayout()",
@@ -20201,7 +20185,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L41",
       "id": "campaign_payouts_calculatepayout",
-      "community": 95
+      "community": 94
     },
     {
       "label": "calculateRakeBreakdown()",
@@ -20209,7 +20193,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L124",
       "id": "campaign_payouts_calculaterakebreakdown",
-      "community": 95
+      "community": 94
     },
     {
       "label": "getSyncStatusMessage()",
@@ -20217,7 +20201,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L151",
       "id": "campaign_payouts_getsyncstatusmessage",
-      "community": 95
+      "community": 94
     },
     {
       "label": "canSubmitSlot()",
@@ -20225,7 +20209,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L171",
       "id": "campaign_payouts_cansubmitslot",
-      "community": 95
+      "community": 94
     },
     {
       "label": "formatTimeRemaining()",
@@ -20233,7 +20217,7 @@
       "source_file": "lib/campaign-payouts.ts",
       "source_location": "L213",
       "id": "campaign_payouts_formattimeremaining",
-      "community": 95
+      "community": 94
     },
     {
       "label": "dare-moderation.ts",
@@ -20625,7 +20609,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L1",
       "id": "lib_campaign_notifications_ts",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignSlotAssigned()",
@@ -20633,7 +20617,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L5",
       "id": "campaign_notifications_notifycampaignslotassigned",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignProofSubmitted()",
@@ -20641,7 +20625,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L28",
       "id": "campaign_notifications_notifycampaignproofsubmitted",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignSlotClaimedForBrand()",
@@ -20649,7 +20633,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L46",
       "id": "campaign_notifications_notifycampaignslotclaimedforbrand",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignVerificationOutcome()",
@@ -20657,7 +20641,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L67",
       "id": "campaign_notifications_notifycampaignverificationoutcome",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignVerificationOutcomeForBrand()",
@@ -20665,7 +20649,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L101",
       "id": "campaign_notifications_notifycampaignverificationoutcomeforbrand",
-      "community": 80
+      "community": 79
     },
     {
       "label": "notifyCampaignSlotVetoed()",
@@ -20673,7 +20657,7 @@
       "source_file": "lib/campaign-notifications.ts",
       "source_location": "L136",
       "id": "campaign_notifications_notifycampaignslotvetoed",
-      "community": 80
+      "community": 79
     },
     {
       "label": "rate-limit.ts",
@@ -23288,12 +23272,12 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "basedare/app/page.tsx",
-      "source_location": "L143",
+      "source_file": "app/page.tsx",
+      "source_location": "L150",
       "weight": 1.0,
-      "_src": "basedare_app_page_tsx",
+      "_src": "app_page_tsx",
       "_tgt": "page_fetchdares",
-      "source": "basedare_app_page_tsx",
+      "source": "app_page_tsx",
       "target": "page_fetchdares",
       "confidence_score": 1.0
     },
@@ -38637,7 +38621,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/BackgroundLayers.tsx",
-      "source_location": "L16",
+      "source_location": "L18",
       "weight": 1.0,
       "_src": "components_backgroundlayers_tsx",
       "_tgt": "backgroundlayers_shouldskipglobalbackground",
@@ -38649,7 +38633,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/BackgroundLayers.tsx",
-      "source_location": "L26",
+      "source_location": "L28",
       "weight": 1.0,
       "_src": "components_backgroundlayers_tsx",
       "_tgt": "backgroundlayers_backgroundlayers",
@@ -38661,7 +38645,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "components/BackgroundLayers.tsx",
-      "source_location": "L28",
+      "source_location": "L30",
       "weight": 1.0,
       "_src": "backgroundlayers_backgroundlayers",
       "_tgt": "backgroundlayers_shouldskipglobalbackground",
@@ -40461,7 +40445,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/PeeBearOrb.tsx",
-      "source_location": "L56",
+      "source_location": "L63",
       "weight": 1.0,
       "_src": "components_peebearorb_tsx",
       "_tgt": "peebearorb_roarcycle",
@@ -43088,85 +43072,61 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L114",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L55",
       "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
+      "_src": "basedare_components_home_readycreatorsrail_tsx",
       "_tgt": "readycreatorsrail_normalizetag",
-      "source": "components_home_readycreatorsrail_tsx",
+      "source": "basedare_components_home_readycreatorsrail_tsx",
       "target": "readycreatorsrail_normalizetag",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L118",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L59",
       "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
-      "_tgt": "readycreatorsrail_plaintag",
-      "source": "components_home_readycreatorsrail_tsx",
-      "target": "readycreatorsrail_plaintag",
+      "_src": "basedare_components_home_readycreatorsrail_tsx",
+      "_tgt": "readycreatorsrail_isrouteready",
+      "source": "basedare_components_home_readycreatorsrail_tsx",
+      "target": "readycreatorsrail_isrouteready",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L122",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L67",
       "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
-      "_tgt": "readycreatorsrail_getarealabel",
-      "source": "components_home_readycreatorsrail_tsx",
-      "target": "readycreatorsrail_getarealabel",
+      "_src": "basedare_components_home_readycreatorsrail_tsx",
+      "_tgt": "readycreatorsrail_tolivecreators",
+      "source": "basedare_components_home_readycreatorsrail_tsx",
+      "target": "readycreatorsrail_tolivecreators",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L133",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L94",
       "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
-      "_tgt": "readycreatorsrail_getskills",
-      "source": "components_home_readycreatorsrail_tsx",
-      "target": "readycreatorsrail_getskills",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L152",
-      "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
-      "_tgt": "readycreatorsrail_mapcreators",
-      "source": "components_home_readycreatorsrail_tsx",
-      "target": "readycreatorsrail_mapcreators",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L199",
-      "weight": 1.0,
-      "_src": "components_home_readycreatorsrail_tsx",
-      "_tgt": "readycreatorsrail_loadcreators",
-      "source": "components_home_readycreatorsrail_tsx",
-      "target": "readycreatorsrail_loadcreators",
+      "_src": "basedare_components_home_readycreatorsrail_tsx",
+      "_tgt": "readycreatorsrail_load",
+      "source": "basedare_components_home_readycreatorsrail_tsx",
+      "target": "readycreatorsrail_load",
       "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "source_file": "components/home/ReadyCreatorsRail.tsx",
-      "source_location": "L207",
+      "source_file": "basedare/components/home/ReadyCreatorsRail.tsx",
+      "source_location": "L101",
       "weight": 1.0,
-      "_src": "readycreatorsrail_loadcreators",
-      "_tgt": "readycreatorsrail_mapcreators",
-      "source": "readycreatorsrail_mapcreators",
-      "target": "readycreatorsrail_loadcreators",
+      "_src": "readycreatorsrail_load",
+      "_tgt": "readycreatorsrail_tolivecreators",
+      "source": "readycreatorsrail_tolivecreators",
+      "target": "readycreatorsrail_load",
       "confidence_score": 1.0
     },
     {
@@ -47313,7 +47273,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L50",
+      "source_location": "L66",
       "weight": 1.0,
       "_src": "lib_client_performance_ts",
       "_tgt": "client_performance_shouldpreferlightweightclient",
@@ -47325,7 +47285,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L55",
+      "source_location": "L77",
       "weight": 1.0,
       "_src": "lib_client_performance_ts",
       "_tgt": "client_performance_runafterpageidle",
@@ -47337,7 +47297,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L83",
+      "source_location": "L105",
       "weight": 1.0,
       "_src": "lib_client_performance_ts",
       "_tgt": "client_performance_runafterfirstinteraction",
@@ -47349,7 +47309,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "lib/client-performance.ts",
-      "source_location": "L51",
+      "source_location": "L67",
       "weight": 1.0,
       "_src": "client_performance_shouldpreferlightweightclient",
       "_tgt": "client_performance_getclientperformancehints",

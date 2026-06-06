@@ -46,11 +46,11 @@ export function DeferredGlobalSearch({ isDesktopApp = false }: { isDesktopApp?: 
     if (shouldLoad) return undefined;
 
     const hints = getClientPerformanceHints();
-    if (hints.saveData || hints.isLowMemory) {
+    if (hints.saveData || hints.isLowMemory || hints.isConstrainedViewport) {
       return undefined;
     }
 
-    return runAfterPageIdle(() => setShouldLoad(true), hints.isMobileViewport ? 3600 : 1800);
+    return runAfterPageIdle(() => setShouldLoad(true), hints.isConstrainedViewport ? 4200 : 1800);
   }, [shouldLoad]);
 
   useEffect(() => {

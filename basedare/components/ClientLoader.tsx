@@ -17,7 +17,7 @@ function shouldShowProtocolLoader() {
   }
 
   const hints = getClientPerformanceHints();
-  if (hints.isMobileViewport || shouldPreferLightweightClient()) {
+  if (hints.isConstrainedViewport || shouldPreferLightweightClient()) {
     return false;
   }
 
@@ -41,14 +41,18 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
       return;
     }
 
-    setIsHydrated(true);
+    const frameId = window.requestAnimationFrame(() => {
+      setIsHydrated(true);
 
-    if (shouldShowProtocolLoader()) {
-      setIsLoading(true);
-      return;
-    }
+      if (shouldShowProtocolLoader()) {
+        setIsLoading(true);
+        return;
+      }
 
-    window.queueMicrotask(handleComplete);
+      window.queueMicrotask(handleComplete);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [handleComplete]);
 
   useEffect(() => {

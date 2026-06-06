@@ -1,11 +1,11 @@
-# Graph Report - basedare  (2026-06-06)
+# Graph Report - basedare  (2026-06-07)
 
 ## Corpus Check
-- 708 files · ~5,952,362 words
+- 708 files · ~5,952,402 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2709 nodes · 3556 edges · 547 communities detected
+- 2707 nodes · 3554 edges · 547 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -586,7 +586,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (154): applyReviewRateLimit(), applyReviewReportRateLimit(), asMetadataRecord(), authorizeInboxRequest(), baseCashReceiptUrl(), buildActionResults(), buildFallbackCreators(), buildLivePotPayload() (+146 more)
+Nodes (161): applyReviewRateLimit(), applyReviewReportRateLimit(), asMetadataRecord(), authorizeInboxRequest(), awardVotersOnOverride(), baseCashReceiptUrl(), buildActionResults(), buildFallbackCreators() (+153 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.03
@@ -597,24 +597,24 @@ Cohesion: 0.03
 Nodes (20): buildBrandPortalLaunchHref(), buildLaunchHandoffMemo(), buildLaunchHref(), buildMissionRouteMemoLines(), buildPatch(), draftNumber(), formatDate(), formatDateTime() (+12 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.08
-Nodes (43): asRecord(), awardVotersOnOverride(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo() (+35 more)
-
-### Community 4 - "Community 4"
 Cohesion: 0.05
 Nodes (17): fetchAppeals(), fetchDares(), formatAddress(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders() (+9 more)
 
-### Community 5 - "Community 5"
+### Community 4 - "Community 4"
 Cohesion: 0.05
 Nodes (14): buildVenueCreatorChatHref(), fetchMatchesForCampaign(), formatCompactAudience(), formatCompactVenueMetric(), formatMetricDelta(), formatVenueRadarLocation(), formatWallet(), getActivationPackage() (+6 more)
 
-### Community 6 - "Community 6"
+### Community 5 - "Community 5"
 Cohesion: 0.09
 Nodes (39): buildCuratedVenueDetailFallback(), buildEmptyReviewSignal(), buildEmptyVenueReportPipeline(), buildReviewSignalFromRows(), buildVenueActivationInsight(), buildVenueCommandCenterSummary(), buildVenueExperienceModes(), buildVenueHandshakeValue() (+31 more)
 
-### Community 7 - "Community 7"
+### Community 6 - "Community 6"
 Cohesion: 0.14
 Nodes (44): alertActivationIntake(), alertActivationIntakeFollowUpQueue(), alertActivationIntakeStatusUpdate(), alertBaseCashCreditPending(), alertBigPledge(), alertCaptainMissionProofSubmitted(), alertClaimRequestSubmission(), alertCreatorCaptainApplication() (+36 more)
+
+### Community 7 - "Community 7"
+Cohesion: 0.1
+Nodes (36): asRecord(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo(), buildLeadPriority() (+28 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.13
@@ -878,43 +878,43 @@ Nodes (2): markAllAsRead(), markAsRead()
 
 ### Community 73 - "Community 73"
 Cohesion: 0.33
-Nodes (2): loadCreators(), mapCreators()
-
-### Community 74 - "Community 74"
-Cohesion: 0.33
 Nodes (2): clamp(), getCreatorAvatarStyle()
 
-### Community 75 - "Community 75"
+### Community 74 - "Community 74"
 Cohesion: 0.48
 Nodes (5): asMetadataRecord(), buildVenueProfile(), compactSentence(), readString(), readStringArray()
 
-### Community 76 - "Community 76"
+### Community 75 - "Community 75"
 Cohesion: 0.71
 Nodes (6): getAuthorizedWalletForRequest(), getVerifiedSessionWallet(), getVerifiedWalletSessionSignature(), getVerifiedWalletSignature(), normalizeWallet(), verifyWalletMessage()
 
-### Community 77 - "Community 77"
+### Community 76 - "Community 76"
 Cohesion: 0.52
 Nodes (6): asRecord(), cleanToken(), findCaptainMissionEventByToken(), getCaptainMissionByToken(), mapCaptainMissionEvent(), stringArrayValue()
 
-### Community 78 - "Community 78"
+### Community 77 - "Community 77"
 Cohesion: 0.52
 Nodes (6): asRecord(), deriveVenueHandle(), formatVenueHandle(), getMetadataHandle(), isBaseCashPilotVenue(), normalizeVenueHandle()
 
-### Community 79 - "Community 79"
+### Community 78 - "Community 78"
 Cohesion: 0.43
 Nodes (4): buildCampaignMatch(), candidatePlatforms(), normalizePlatforms(), splitNicheValues()
 
-### Community 80 - "Community 80"
+### Community 79 - "Community 79"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 81 - "Community 81"
+### Community 80 - "Community 80"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 82 - "Community 82"
+### Community 81 - "Community 81"
 Cohesion: 0.67
 Nodes (5): createBrowserSession(), navigateTo(), scrapeBasescan(), simulateWalletConnect(), takeScreenshot()
+
+### Community 82 - "Community 82"
+Cohesion: 0.33
+Nodes (0): 
 
 ### Community 83 - "Community 83"
 Cohesion: 0.33
@@ -922,79 +922,79 @@ Nodes (0):
 
 ### Community 84 - "Community 84"
 Cohesion: 0.33
-Nodes (0): 
+Nodes (2): App, Media
 
 ### Community 85 - "Community 85"
 Cohesion: 0.33
-Nodes (2): App, Media
+Nodes (0): 
 
 ### Community 86 - "Community 86"
 Cohesion: 0.33
-Nodes (0): 
+Nodes (1): ChatSidebar()
 
 ### Community 87 - "Community 87"
 Cohesion: 0.33
-Nodes (1): ChatSidebar()
-
-### Community 88 - "Community 88"
-Cohesion: 0.33
 Nodes (0): 
 
-### Community 89 - "Community 89"
+### Community 88 - "Community 88"
 Cohesion: 0.4
 Nodes (2): buildGlowVars(), parseHsl()
 
-### Community 90 - "Community 90"
+### Community 89 - "Community 89"
 Cohesion: 0.6
 Nodes (5): clamp(), deriveCreatorTrustProfile(), getAudienceScore(), getTrustLabel(), getTrustSummary()
 
-### Community 91 - "Community 91"
+### Community 90 - "Community 90"
 Cohesion: 0.67
 Nodes (5): appendParam(), buildCreatorMissionActivationHref(), buildMissionActivationHref(), buildVenueMissionActivationHref(), normalizeCreator()
 
-### Community 92 - "Community 92"
+### Community 91 - "Community 91"
 Cohesion: 0.6
 Nodes (5): clean(), getActivationFunnelAttribution(), getActivationFunnelSessionKey(), randomId(), trackActivationFunnelEvent()
 
-### Community 93 - "Community 93"
+### Community 92 - "Community 92"
 Cohesion: 0.53
 Nodes (4): getApprovedTagSummaryMap(), getRecentApprovedPlaceTagsByVenueId(), getRecentPendingPlaceTagsByVenueIdForWallet(), isPlaceTagTableMissingError()
 
-### Community 94 - "Community 94"
+### Community 93 - "Community 93"
 Cohesion: 0.4
 Nodes (2): getBaseCashPhpPerUsdc(), quoteBaseCashVenueCredit()
 
-### Community 95 - "Community 95"
+### Community 94 - "Community 94"
 Cohesion: 0.33
+Nodes (0): 
+
+### Community 95 - "Community 95"
+Cohesion: 0.4
 Nodes (0): 
 
 ### Community 96 - "Community 96"
 Cohesion: 0.4
-Nodes (0): 
-
-### Community 97 - "Community 97"
-Cohesion: 0.4
 Nodes (1): generateMetadata()
 
-### Community 98 - "Community 98"
+### Community 97 - "Community 97"
 Cohesion: 0.6
 Nodes (3): main(), seedPilotSession(), upsertSeededPlace()
 
-### Community 99 - "Community 99"
+### Community 98 - "Community 98"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 100 - "Community 100"
+### Community 99 - "Community 99"
 Cohesion: 0.5
 Nodes (2): handleKeyDown(), handleSuggestionClick()
 
-### Community 101 - "Community 101"
+### Community 100 - "Community 100"
 Cohesion: 0.5
 Nodes (2): buildVenueAwareSuggestions(), inferVenueStory()
 
-### Community 102 - "Community 102"
+### Community 101 - "Community 101"
 Cohesion: 0.4
 Nodes (0): 
+
+### Community 102 - "Community 102"
+Cohesion: 0.5
+Nodes (2): load(), toLiveCreators()
 
 ### Community 103 - "Community 103"
 Cohesion: 0.7
@@ -3419,9 +3419,9 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 3`?**
+- **Why does `GET()` connect `Community 0` to `Community 7`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `POST()` connect `Community 0` to `Community 3`?**
+- **Why does `POST()` connect `Community 0` to `Community 7`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.02 - nodes in this community are weakly interconnected._
@@ -3430,6 +3430,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._

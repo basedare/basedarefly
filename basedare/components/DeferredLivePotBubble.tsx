@@ -32,11 +32,13 @@ export default function DeferredLivePotBubble() {
     const hints = getClientPerformanceHints();
     const load = () => setShouldLoad(true);
     const cancelInteraction =
-      hints.saveData || hints.isLowMemory ? runAfterFirstInteraction(load) : () => {};
+      hints.saveData || hints.isLowMemory || hints.isConstrainedViewport
+        ? runAfterFirstInteraction(load)
+        : () => {};
     const cancelIdle =
-      hints.saveData || hints.isLowMemory
+      hints.saveData || hints.isLowMemory || hints.isConstrainedViewport
         ? () => {}
-        : runAfterPageIdle(load, hints.isMobileViewport ? 4200 : 1400);
+        : runAfterPageIdle(load, hints.isConstrainedViewport ? 5200 : 1400);
 
     return () => {
       cancelInteraction();

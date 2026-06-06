@@ -16,26 +16,34 @@ interface PeeBearOrbProps {
  */
 export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrbProps) {
   const [isRoaring, setIsRoaring] = useState(false);
-  const [allowMotion, setAllowMotion] = useState(true);
+  const [allowMotion, setAllowMotion] = useState(false);
   const [allowLightning, setAllowLightning] = useState(false);
   const [canPlayVideo, setCanPlayVideo] = useState(false);
   const roarCountRef = useRef(0);
   const nextLightningRoarRef = useRef(2); // First lightning on 2nd roar
 
   useEffect(() => {
-    const hints = getClientPerformanceHints();
-    const lightweight = shouldPreferLightweightClient();
-    setAllowMotion(!lightweight);
-    setAllowLightning(!hints.isMobileViewport && !lightweight);
+    let cancelIdle: (() => void) | undefined;
+    const frameId = window.requestAnimationFrame(() => {
+      const hints = getClientPerformanceHints();
+      const lightweight = shouldPreferLightweightClient();
+      setAllowMotion(!lightweight);
+      setAllowLightning(!hints.isConstrainedViewport && !lightweight);
 
-    if (lightweight) {
-      setCanPlayVideo(false);
-      return undefined;
-    }
+      if (lightweight) {
+        setCanPlayVideo(false);
+        return;
+      }
 
-    return runAfterPageIdle(() => {
-      setCanPlayVideo(true);
-    }, hints.isMobileViewport ? 3200 : 1400);
+      cancelIdle = runAfterPageIdle(() => {
+        setCanPlayVideo(true);
+      }, hints.isConstrainedViewport ? 4200 : 1400);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      cancelIdle?.();
+    };
   }, []);
 
   // Notify parent of roar state changes
@@ -46,7 +54,6 @@ export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrb
   // Roar cycle: calm for 4s, then roar for 1.5s, repeat
   useEffect(() => {
     if (!allowMotion) {
-      setIsRoaring(false);
       onLightningRoar?.(false);
       return undefined;
     }

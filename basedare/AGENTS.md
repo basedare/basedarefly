@@ -52,3 +52,8 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - Codex added optional `backHref` / `backLabel` props to `components/control/ControlChrome.tsx` while preserving the default `/?mode=control` behavior.
 - `app/brands/portal/page.tsx` now routes `?from=home` back to `/`, adds a First Spark escape path for disconnected/unregistered visitors, and shows a first-run on-ramp instead of the full `$0` console when a connected brand wallet has no spend, campaigns, proof, payouts, or campaign rows. The "Open console" button reveals the original dashboard.
 - `app/first-spark/page.tsx` uses the ControlChrome back props only for `from=home`; it still avoids `source=` for the plain home on-ramp so the explanation page does not collapse into the intake form.
+
+### Codex iPad WebKit Home Stability (2026-06-06)
+- Codex touched Claude-owned `app/page.tsx` narrowly for a production load blocker: iPad Safari/Chrome were receiving the desktop `md` home hero/background path and could stall on hydration behind a black Suspense fallback.
+- `lib/client-performance.ts` now treats iPad/tablet WebKit viewports as constrained; home and global shell code use that to suppress the heaviest desktop-only animation/canvas/blur layers until larger `lg` viewports or interaction.
+- `app/page.tsx` now has a real static Suspense fallback with creator/venue/map CTAs instead of a blank black screen. This is a stability patch, not a homepage messaging/design ownership change.

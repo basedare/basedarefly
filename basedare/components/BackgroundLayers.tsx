@@ -2,7 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+import { getClientPerformanceHints, shouldPreferLightweightClient } from '@/lib/client-performance';
 
 const HyperspaceBackground = dynamic(() => import('@/components/HyperspaceBackground'), {
   ssr: false,
@@ -26,6 +28,7 @@ function shouldSkipGlobalBackground(pathname: string | null) {
 export default function BackgroundLayers() {
   const pathname = usePathname();
   const shouldSkipAnimatedBackground = shouldSkipGlobalBackground(pathname);
+  const [shouldRenderAnimatedBackground, setShouldRenderAnimatedBackground] = useState(false);
 
   useEffect(() => {
     const targets = [document.documentElement, document.body];
@@ -39,7 +42,23 @@ export default function BackgroundLayers() {
     }
   }, [shouldSkipAnimatedBackground]);
 
-  if (shouldSkipAnimatedBackground) return null;
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      if (shouldSkipAnimatedBackground) {
+        setShouldRenderAnimatedBackground(false);
+        return;
+      }
+
+      const hints = getClientPerformanceHints();
+      setShouldRenderAnimatedBackground(
+        !(hints.isConstrainedViewport || shouldPreferLightweightClient())
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [shouldSkipAnimatedBackground]);
+
+  if (shouldSkipAnimatedBackground || !shouldRenderAnimatedBackground) return null;
 
   return (
     <div className="bd-background-root fixed inset-0 z-0 pointer-events-none overflow-hidden">
