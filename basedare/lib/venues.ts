@@ -23,6 +23,7 @@ import {
   getVenueTagSummary,
 } from '@/lib/place-tags';
 import { getVenueReportPipelineSummary } from '@/lib/venue-report-pipeline';
+import { isVenueReviewTableMissingError } from '@/lib/spot-vault';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getPlaceTagReviewState } from '@/lib/place-tag-review-sla';
@@ -42,6 +43,7 @@ import type {
   VenueExperienceMode,
   VenueMemorySummary,
   VenueQrPayload,
+  VenueReviewSignalSummary,
   VenueSessionSummary,
   VenueTimelineMoment,
   VenueTopCreator,
@@ -52,6 +54,8 @@ const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
 const CURATED_VENUE_DETAIL_TIMEOUT_MS = 900;
 const CURATED_VENUE_DETAIL_FALLBACK_COOLDOWN_MS = 30_000;
 const CURATED_VENUE_DETAIL_TIMEOUT = Symbol('curated-venue-detail-timeout');
+const ACTIVE_VENUE_REVIEW_STATUS = 'ACTIVE';
+const FRESH_REVIEW_WINDOW_MS = 1000 * 60 * 60 * 24 * 7;
 const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
   {
     id: 'classic',
@@ -72,6 +76,101 @@ const DEFAULT_VENUE_MAP_MODES: VenueExperienceMode[] = [
     description: 'LocAR-powered venue twins and floating bounty overlays are planned next.',
   },
 ];
+
+function buildEmptyReviewSignal(checkInCount = 0): VenueReviewSignalSummary {
+  return {
+    count: 0,
+    worthItCount: 0,
+    skipCount: 0,
+    worthItRatio: 0,
+    lastReviewedAt: null,
+    fresh: false,
+    state: checkInCount > 0 ? 'needs-review' : 'none',
+  };
+}
+
+function buildReviewSignalFromRows(
+  reviews: Array<{ verdict: string; createdAt: Date }>,
+  checkInCount = 0
+): VenueReviewSignalSummary {
+  if (reviews.length === 0) {
+    return buildEmptyReviewSignal(checkInCount);
+  }
+
+  const worthItCount = reviews.filter((review) => review.verdict === 'worth_it').length;
+  const skipCount = reviews.filter((review) => review.verdict === 'skip').length;
+  const count = worthItCount + skipCount;
+  const worthItRatio = count > 0 ? worthItCount / count : 0;
+  const lastReviewedAtDate = reviews.reduce<Date | null>(
+    (latest, review) => (!latest || review.createdAt > latest ? review.createdAt : latest),
+    null
+  );
+  const fresh = Boolean(
+    lastReviewedAtDate && Date.now() - lastReviewedAtDate.getTime() <= FRESH_REVIEW_WINDOW_MS
+  );
+  const state =
+    worthItRatio >= 0.72
+      ? 'worth-it'
+      : worthItRatio <= 0.35 && count >= 2
+        ? 'skip'
+        : 'mixed';
+
+  return {
+    count,
+    worthItCount,
+    skipCount,
+    worthItRatio,
+    lastReviewedAt: lastReviewedAtDate?.toISOString() ?? null,
+    fresh,
+    state,
+  };
+}
+
+async function getVenueReviewSignalMap(venueIds: string[], checkInCounts?: Map<string, number>) {
+  const signalMap = new Map<string, VenueReviewSignalSummary>();
+  venueIds.forEach((venueId) => {
+    signalMap.set(venueId, buildEmptyReviewSignal(checkInCounts?.get(venueId) ?? 0));
+  });
+
+  if (venueIds.length === 0) {
+    return signalMap;
+  }
+
+  try {
+    const reviews = await prisma.venueReview.findMany({
+      where: {
+        venueId: { in: venueIds },
+        status: ACTIVE_VENUE_REVIEW_STATUS,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        venueId: true,
+        verdict: true,
+        createdAt: true,
+      },
+    });
+
+    const byVenueId = new Map<string, Array<{ verdict: string; createdAt: Date }>>();
+    reviews.forEach((review) => {
+      const rows = byVenueId.get(review.venueId) ?? [];
+      rows.push({ verdict: review.verdict, createdAt: review.createdAt });
+      byVenueId.set(review.venueId, rows);
+    });
+
+    venueIds.forEach((venueId) => {
+      signalMap.set(
+        venueId,
+        buildReviewSignalFromRows(byVenueId.get(venueId) ?? [], checkInCounts?.get(venueId) ?? 0)
+      );
+    });
+  } catch (error) {
+    if (!isVenueReviewTableMissingError(error)) {
+      throw error;
+    }
+  }
+
+  return signalMap;
+}
 
 type VenueDetailFallbackGlobal = typeof globalThis & {
   __basedareCuratedVenueDetailFallbackUntil?: number;
@@ -158,6 +257,7 @@ function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
     memorySummary,
     memoryHistory,
     tagSummary,
+    reviewSignal: buildEmptyReviewSignal(0),
     activePerk: null,
     firstSparkWindow: null,
     liveSession: null,
@@ -1307,7 +1407,8 @@ export async function getFeaturedVenues(limit = 4) {
     take: limit,
   });
 
-  const tagSummaryMap = await getApprovedTagSummaryMap(venues.map((venue) => venue.id));
+  const venueIds = venues.map((venue) => venue.id);
+  const tagSummaryMap = await getApprovedTagSummaryMap(venueIds);
 
   return venues.map((venue) => ({
     id: venue.id,
@@ -1681,7 +1782,10 @@ export async function getNearbyVenues(input: {
     take: limit * 3,
   });
 
-  const tagSummaryMap = await getApprovedTagSummaryMap(venues.map((venue) => venue.id));
+  const venueIds = venues.map((venue) => venue.id);
+  const tagSummaryMap = await getApprovedTagSummaryMap(venueIds);
+  const checkInCounts = new Map(venues.map((venue) => [venue.id, venue._count.checkIns]));
+  const reviewSignalMap = await getVenueReviewSignalMap(venueIds, checkInCounts);
 
   const nearbyVenues: NearbyVenueItem[] = venues
     .map((venue) => {
@@ -1744,6 +1848,7 @@ export async function getNearbyVenues(input: {
         distanceDisplay: formatDistance(distanceKm),
         memorySummary,
         tagSummary,
+        reviewSignal: reviewSignalMap.get(venue.id) ?? buildEmptyReviewSignal(venue._count.checkIns),
         activePerk,
         firstSparkWindow: getFirstSparkWindow(venue.metadataJson, {
           activePerk,
@@ -1855,6 +1960,11 @@ async function getVenueDetailBySlugFromDatabase(
           },
         },
       },
+      _count: {
+        select: {
+          checkIns: true,
+        },
+      },
     },
   });
 
@@ -1940,6 +2050,10 @@ async function getVenueDetailBySlugFromDatabase(
     }),
   ]);
   const topCreatorsByVenue = await getTopCreatorsForVenueIds([venue.id]);
+  const reviewSignalMap = await getVenueReviewSignalMap(
+    [venue.id],
+    new Map([[venue.id, venue._count.checkIns]])
+  );
 
   const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
   const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
@@ -2096,6 +2210,7 @@ async function getVenueDetailBySlugFromDatabase(
     memorySummary,
     memoryHistory,
     tagSummary,
+    reviewSignal: reviewSignalMap.get(venue.id) ?? buildEmptyReviewSignal(venue._count.checkIns),
     activePerk,
     firstSparkWindow,
     liveSession,

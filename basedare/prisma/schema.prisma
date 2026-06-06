@@ -163,6 +163,7 @@ model Venue {
   memories            VenueMemory[]
   placeTags           PlaceTag[]
   qrSessions          VenueQrSession[]
+  reviews             VenueReview[]
   roomMessages        VenueRoomMessage[]
   roomPresences       VenueRoomPresence[]
   reportEvents        VenueReportEvent[]
@@ -339,12 +340,35 @@ model VenueCheckIn {
   updatedAt         DateTime        @updatedAt
   venue             Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
   session           VenueQrSession? @relation(fields: [venueSessionId], references: [id], onDelete: SetNull)
+  reviews           VenueReview[]
 
   @@index([venueId, scannedAt])
   @@index([venueSessionId])
   @@index([walletAddress, scannedAt])
   @@index([tag])
   @@index([dareId])
+  @@index([status])
+}
+
+model VenueReview {
+  id             String        @id @default(cuid())
+  venueId        String
+  walletAddress  String
+  tag            String?
+  checkInId      String?
+  verdict        String
+  note           String?
+  confirmations  Int           @default(0)
+  status         String        @default("ACTIVE")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  venue          Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checkIn        VenueCheckIn? @relation(fields: [checkInId], references: [id], onDelete: SetNull)
+
+  @@unique([venueId, walletAddress])
+  @@index([venueId, createdAt])
+  @@index([walletAddress, createdAt])
+  @@index([checkInId])
   @@index([status])
 }
 

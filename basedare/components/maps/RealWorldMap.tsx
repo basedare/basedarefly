@@ -116,6 +116,18 @@ type VenueMapMode = {
   description: string;
 };
 
+type VenueReviewSignalState = 'none' | 'needs-review' | 'worth-it' | 'mixed' | 'skip';
+
+type VenueReviewSignal = {
+  count: number;
+  worthItCount: number;
+  skipCount: number;
+  worthItRatio: number;
+  lastReviewedAt: string | null;
+  fresh: boolean;
+  state: VenueReviewSignalState;
+};
+
 type NearbyPlace = {
   id: string;
   slug: string;
@@ -134,10 +146,12 @@ type NearbyPlace = {
     heatScore: number;
     lastTaggedAt: string | null;
   };
+  reviewSignal?: VenueReviewSignal;
   commandCenter?: VenueCommandCenter;
   mapModes?: VenueMapMode[];
   profile?: VenueProfileSummary;
   activeDareCount: number;
+  checkInCount: number;
 };
 
 type SelectedPlace = {
@@ -157,6 +171,7 @@ type SelectedPlace = {
   approvedCount?: number;
   heatScore?: number;
   lastTaggedAt?: string | null;
+  reviewSignal?: VenueReviewSignal;
   activeDareCount?: number;
   commandCenter?: VenueCommandCenter;
   mapModes?: VenueMapMode[];
@@ -164,6 +179,7 @@ type SelectedPlace = {
   checkInRadiusMeters?: number | null;
   memorySummary?: VenueMemorySummary | null;
   liveSession?: VenueSessionSummary | null;
+  checkInCount?: number;
 };
 
 type NearbyResponse = {
@@ -445,6 +461,68 @@ type VenueRoomResponse = {
   error?: string;
   data?: VenueRoomSnapshot;
 };
+type SpotVaultTimelineKind = 'FIRST_PROOF' | 'PROOF' | 'DARE' | 'MEMORY';
+type SpotVaultTimelineTone = 'gold' | 'cyan' | 'emerald' | 'violet';
+type SpotVaultReviewVerdict = 'worth_it' | 'skip';
+type SpotVaultTimelineItem = {
+  id: string;
+  kind: SpotVaultTimelineKind;
+  title: string;
+  body: string;
+  actorLabel: string | null;
+  sourceLabel: string;
+  occurredAt: string;
+  mediaUrl: string | null;
+  href: string | null;
+  badges: string[];
+  tone: SpotVaultTimelineTone;
+};
+type SpotVaultReview = {
+  id: string;
+  walletLabel: string;
+  tag: string | null;
+  verdict: SpotVaultReviewVerdict;
+  note: string | null;
+  confirmations: number;
+  createdAt: string;
+  updatedAt: string;
+  mine: boolean;
+};
+type SpotVaultSnapshot = {
+  venue: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  viewer: {
+    canLeaveSignal: boolean;
+    proofLevel: string | null;
+    lastCheckInAt: string | null;
+    reason: string;
+  };
+  stats: {
+    checkIns: number;
+    qrGpsCheckIns: number;
+    uniqueVisitors: number;
+    proofs: number;
+    firstProofs: number;
+    completedDares: number;
+  };
+  reviews: {
+    count: number;
+    worthItCount: number;
+    skipCount: number;
+    worthItRatio: number;
+    recent: SpotVaultReview[];
+    mine: SpotVaultReview | null;
+  };
+  timeline: SpotVaultTimelineItem[];
+};
+type SpotVaultResponse = {
+  success: boolean;
+  error?: string;
+  data?: SpotVaultSnapshot;
+};
 
 const LOCAL_SIGNAL_CATEGORIES = [
   'surf',
@@ -590,8 +668,10 @@ type VenueDetailResponse = {
         heatScore: number;
         lastTaggedAt: string | null;
       };
+      reviewSignal?: VenueReviewSignal;
       commandCenter: VenueCommandCenter;
       mapModes: VenueMapMode[];
+      checkInCount: number;
       activeDares: Array<{
         id: string;
         shortId: string;
@@ -1061,19 +1141,67 @@ function getMapLibrePulseColor(pulse: PulseState, visualState: PlaceVisualState)
   return '#b87fff';
 }
 
+function getEmptyVenueReviewSignal(checkInCount = 0): VenueReviewSignal {
+  return {
+    count: 0,
+    worthItCount: 0,
+    skipCount: 0,
+    worthItRatio: 0,
+    lastReviewedAt: null,
+    fresh: false,
+    state: checkInCount > 0 ? 'needs-review' : 'none',
+  };
+}
+
+function getVenueReviewSignal(place?: { reviewSignal?: VenueReviewSignal; checkInCount?: number } | null) {
+  return place?.reviewSignal ?? getEmptyVenueReviewSignal(place?.checkInCount ?? 0);
+}
+
+function getReviewSignalHeatContribution(reviewSignal: VenueReviewSignal) {
+  if (reviewSignal.state === 'none') return 0;
+  if (reviewSignal.state === 'needs-review') return 5;
+  if (reviewSignal.state === 'worth-it') return 18 + Math.min(18, reviewSignal.count * 3);
+  if (reviewSignal.state === 'mixed') return 10 + Math.min(12, reviewSignal.count * 2);
+  return 4;
+}
+
+function getReviewSignalColor(reviewSignal: VenueReviewSignal) {
+  if (reviewSignal.fresh && reviewSignal.count > 0) return '#8bffc7';
+  if (reviewSignal.state === 'worth-it') return '#f8dd72';
+  if (reviewSignal.state === 'mixed') return '#b87fff';
+  if (reviewSignal.state === 'skip') return '#fb7185';
+  if (reviewSignal.state === 'needs-review') return '#64748b';
+  return '#67e8f9';
+}
+
+function getReviewSignalLabel(reviewSignal: VenueReviewSignal) {
+  if (reviewSignal.count > 0) {
+    const percent = Math.round(reviewSignal.worthItRatio * 100);
+    return reviewSignal.fresh ? `${percent}% fresh` : `${percent}% worth`;
+  }
+
+  if (reviewSignal.state === 'needs-review') return 'needs review';
+  return 'no reviews';
+}
+
 function getMapLibreSignalLabel({
   activeDareCount,
   approvedCount,
   matched,
+  reviewSignal,
   visualState,
 }: {
   activeDareCount: number;
   approvedCount: number;
   matched: boolean;
+  reviewSignal: VenueReviewSignal;
   visualState: PlaceVisualState;
 }) {
   if (activeDareCount > 1) return `${activeDareCount} live`;
   if (activeDareCount === 1) return 'live dare';
+  if (reviewSignal.fresh && reviewSignal.count > 0) return 'fresh signal';
+  if (reviewSignal.state === 'worth-it') return 'worth it';
+  if (reviewSignal.state === 'needs-review') return 'needs review';
   if (matched) return 'for you';
   if (approvedCount > 1) return `${approvedCount} proofs`;
   if (approvedCount === 1) return 'first proof';
@@ -1086,8 +1214,9 @@ function getChaosLevelForPlace(place: NearbyPlace) {
   const heatScore = place.tagSummary.heatScore;
   const liveSignal = place.activeDareCount * 22;
   const memorySignal = approvedCount * 7;
+  const reviewSignal = getReviewSignalHeatContribution(getVenueReviewSignal(place));
 
-  return Math.min(100, Math.max(8, heatScore + liveSignal + memorySignal));
+  return Math.min(100, Math.max(8, heatScore + liveSignal + memorySignal + reviewSignal));
 }
 
 function buildVenueSignalCollection({
@@ -1109,6 +1238,7 @@ function buildVenueSignalCollection({
         lastTaggedAt: place.tagSummary.lastTaggedAt,
       });
       const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+      const reviewSignal = getVenueReviewSignal(place);
       const matched = showMatchedLayer && matchedVenueIndex.has(place.slug);
       const selected =
         Boolean(selectedPlace?.placeId && selectedPlace.placeId === place.id) ||
@@ -1125,17 +1255,22 @@ function buildVenueSignalCollection({
           visualState,
           approvedCount: place.tagSummary.approvedCount,
           heatScore: place.tagSummary.heatScore,
+          reviewCount: reviewSignal.count,
+          worthItRatio: reviewSignal.worthItRatio,
+          reviewSignalState: reviewSignal.state,
+          reviewFresh: reviewSignal.fresh,
           activeDareCount: place.activeDareCount,
           liveSignal: place.activeDareCount > 0 ? Math.min(9, place.activeDareCount) : 0,
           chaosLevel,
           matched,
           selected,
           activated: isVenueActivated(place.commandCenter),
-          pulseColor: getMapLibrePulseColor(pulse, visualState),
+          pulseColor: reviewSignal.state !== 'none' ? getReviewSignalColor(reviewSignal) : getMapLibrePulseColor(pulse, visualState),
           signalLabel: getMapLibreSignalLabel({
             activeDareCount: place.activeDareCount,
             approvedCount: place.tagSummary.approvedCount,
             matched,
+            reviewSignal,
             visualState,
           }),
         },
@@ -1166,10 +1301,13 @@ function buildChaosZoneCollection({
           lastTaggedAt: place.tagSummary.lastTaggedAt,
         });
         const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+        const reviewSignal = getVenueReviewSignal(place);
         const matched = showMatchedLayer && matchedVenueIndex.has(place.slug);
         const chaosLevel = getChaosLevelForPlace(place);
         const hasZone =
           chaosLevel >= 22 ||
+          reviewSignal.state === 'worth-it' ||
+          reviewSignal.fresh ||
           place.activeDareCount > 0 ||
           matched ||
           visualState === 'hot' ||
@@ -1188,8 +1326,11 @@ function buildChaosZoneCollection({
             visualState,
             matched,
             chaosLevel,
+            reviewSignalState: reviewSignal.state,
+            reviewFresh: reviewSignal.fresh,
+            reviewCount: reviewSignal.count,
             activeDareCount: place.activeDareCount,
-            pulseColor: getMapLibrePulseColor(pulse, visualState),
+            pulseColor: reviewSignal.state !== 'none' ? getReviewSignalColor(reviewSignal) : getMapLibrePulseColor(pulse, visualState),
           },
         });
       })
@@ -1473,6 +1614,16 @@ function ensureMapLibreDareLayers(
           'case',
           ['>', ['get', 'activeDareCount'], 0],
           '#f8dd72',
+          ['==', ['get', 'reviewFresh'], true],
+          '#8bffc7',
+          ['==', ['get', 'reviewSignalState'], 'worth-it'],
+          '#f8dd72',
+          ['==', ['get', 'reviewSignalState'], 'mixed'],
+          '#b87fff',
+          ['==', ['get', 'reviewSignalState'], 'skip'],
+          '#fb7185',
+          ['==', ['get', 'reviewSignalState'], 'needs-review'],
+          '#64748b',
           ['==', ['get', 'matched'], true],
           '#67e8f9',
           [
@@ -1516,6 +1667,16 @@ function ensureMapLibreDareLayers(
           'case',
           ['>', ['get', 'activeDareCount'], 0],
           '#f8dd72',
+          ['==', ['get', 'reviewFresh'], true],
+          '#8bffc7',
+          ['==', ['get', 'reviewSignalState'], 'worth-it'],
+          '#fff1a8',
+          ['==', ['get', 'reviewSignalState'], 'mixed'],
+          '#d8b4fe',
+          ['==', ['get', 'reviewSignalState'], 'skip'],
+          '#fda4af',
+          ['==', ['get', 'reviewSignalState'], 'needs-review'],
+          '#94a3b8',
           ['==', ['get', 'matched'], true],
           '#a5f3fc',
           [
@@ -1599,17 +1760,30 @@ function ensureMapLibreDareLayers(
           ['+', 26, ['*', ['get', 'liveSignal'], 7]],
         ],
         'circle-color': [
-          'match',
-          ['get', 'visualState'],
-          'hot',
-          '#ff2d55',
-          'active',
-          '#22d3ee',
-          'first-mark',
+          'case',
+          ['==', ['get', 'reviewFresh'], true],
+          '#8bffc7',
+          ['==', ['get', 'reviewSignalState'], 'worth-it'],
           '#f8dd72',
-          'pending',
-          '#f59e0b',
+          ['==', ['get', 'reviewSignalState'], 'mixed'],
           '#b87fff',
+          ['==', ['get', 'reviewSignalState'], 'skip'],
+          '#fb7185',
+          ['==', ['get', 'reviewSignalState'], 'needs-review'],
+          '#64748b',
+          [
+            'match',
+            ['get', 'visualState'],
+            'hot',
+            '#ff2d55',
+            'active',
+            '#22d3ee',
+            'first-mark',
+            '#f8dd72',
+            'pending',
+            '#f59e0b',
+            '#b87fff',
+          ],
         ],
         'circle-opacity': [
           'interpolate',
@@ -1621,9 +1795,23 @@ function ensureMapLibreDareLayers(
           preset === 'noir' ? 0.075 : 0.12,
         ],
         'circle-blur': 0.52,
-        'circle-stroke-width': ['case', ['>', ['get', 'activeDareCount'], 0], 1.6, 0],
-        'circle-stroke-color': '#f8dd72',
-        'circle-stroke-opacity': ['case', ['>', ['get', 'activeDareCount'], 0], 0.5, 0],
+        'circle-stroke-width': [
+          'case',
+          ['>', ['get', 'activeDareCount'], 0],
+          1.6,
+          ['>', ['get', 'reviewCount'], 0],
+          1.1,
+          0,
+        ],
+        'circle-stroke-color': ['case', ['>', ['get', 'reviewCount'], 0], '#8bffc7', '#f8dd72'],
+        'circle-stroke-opacity': [
+          'case',
+          ['>', ['get', 'activeDareCount'], 0],
+          0.5,
+          ['>', ['get', 'reviewCount'], 0],
+          0.38,
+          0,
+        ],
       },
     },
     firstSymbolLayerId
@@ -1717,9 +1905,18 @@ function ensureMapLibreDareLayers(
           '#f8dd72',
           ['>', ['get', 'activeDareCount'], 0],
           '#22d3ee',
+          ['>', ['get', 'reviewCount'], 0],
+          '#8bffc7',
           '#b87fff',
         ],
-        'circle-opacity': ['case', ['>', ['get', 'approvedCount'], 0], 0.9, 0.34],
+        'circle-opacity': [
+          'case',
+          ['>', ['get', 'approvedCount'], 0],
+          0.9,
+          ['>', ['get', 'reviewCount'], 0],
+          0.78,
+          0.34,
+        ],
         'circle-stroke-width': 1,
         'circle-stroke-color': 'rgba(255,255,255,0.72)',
         'circle-stroke-opacity': 0.42,
@@ -1762,6 +1959,8 @@ function ensureMapLibreDareLayers(
       'any',
       ['>', ['get', 'activeDareCount'], 0],
       ['>', ['get', 'approvedCount'], 0],
+      ['>', ['get', 'reviewCount'], 0],
+      ['==', ['get', 'reviewSignalState'], 'needs-review'],
       ['==', ['get', 'matched'], true],
       ['==', ['get', 'selected'], true],
     ],
@@ -1781,6 +1980,14 @@ function ensureMapLibreDareLayers(
         'case',
         ['>', ['get', 'activeDareCount'], 0],
         '#f8dd72',
+        ['==', ['get', 'reviewFresh'], true],
+        '#bbf7d0',
+        ['==', ['get', 'reviewSignalState'], 'worth-it'],
+        '#fff1a8',
+        ['==', ['get', 'reviewSignalState'], 'skip'],
+        '#fecdd3',
+        ['==', ['get', 'reviewSignalState'], 'needs-review'],
+        '#cbd5e1',
         ['==', ['get', 'matched'], true],
         '#67e8f9',
         '#f4e8ff',
@@ -2007,6 +2214,36 @@ function getRoomReceiptTitle(receiptType: string | null) {
       return 'Payout receipt';
     default:
       return 'BaseDare receipt';
+  }
+}
+
+function getSpotVaultKindLabel(kind: SpotVaultTimelineKind) {
+  switch (kind) {
+    case 'FIRST_PROOF':
+      return 'First Proof';
+    case 'PROOF':
+      return 'Proof';
+    case 'DARE':
+      return 'Dare';
+    case 'MEMORY':
+      return 'Memory';
+    default:
+      return 'Signal';
+  }
+}
+
+function getSpotVaultToneClass(tone: SpotVaultTimelineTone) {
+  switch (tone) {
+    case 'gold':
+      return 'border-[#f5c518]/22 bg-[#f5c518]/[0.08] text-[#f8dd72]';
+    case 'cyan':
+      return 'border-cyan-300/18 bg-cyan-500/[0.08] text-cyan-100';
+    case 'emerald':
+      return 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100';
+    case 'violet':
+      return 'border-violet-300/18 bg-violet-500/[0.08] text-violet-100';
+    default:
+      return 'border-white/10 bg-white/[0.04] text-white/60';
   }
 }
 
@@ -2837,6 +3074,7 @@ function createPeebearMarkerHtml({
   activated = false,
   activationLabel,
   legends,
+  reviewSignal = getEmptyVenueReviewSignal(),
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -2850,11 +3088,14 @@ function createPeebearMarkerHtml({
   activated?: boolean;
   activationLabel?: string;
   legends?: VenueLegend[];
+  reviewSignal?: VenueReviewSignal;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
   const showCount = approvedCount > 0;
   const showPulseChip = !compact && heatScore > 0;
+  const showReviewSignal = !compact && reviewSignal.state !== 'none';
+  const reviewSignalLabel = getReviewSignalLabel(reviewSignal);
   const hasChallengeLive = challengeLiveCount > 0;
   const showChallengeLiveChrome = hasChallengeLive && !compact;
   const showMatchBadge = matched && !compact;
@@ -2878,7 +3119,8 @@ function createPeebearMarkerHtml({
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}`;
+  const safeReviewSignalLabel = escapeMarkerAttribute(reviewSignalLabel);
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${reviewSignal.state}:${reviewSignal.count}:${reviewSignal.fresh ? 'fresh' : 'stale'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -2886,7 +3128,7 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} peebear-marker--review-${reviewSignal.state} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${showReviewSignal ? 'has-review-signal' : ''} ${reviewSignal.fresh ? 'is-review-fresh' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
@@ -2894,6 +3136,7 @@ function createPeebearMarkerHtml({
       }
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
+      ${showReviewSignal ? `<span class="peebear-review-aura" aria-hidden="true"></span><span class="peebear-review-signal">${safeReviewSignalLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
       ${
@@ -3198,6 +3441,14 @@ export default function RealWorldMap() {
   const [venueRoomVisible, setVenueRoomVisible] = useState(false);
   const [venueRoomExpanded, setVenueRoomExpanded] = useState(false);
   const [venueRoomState, setVenueRoomState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
+  const [spotVault, setSpotVault] = useState<SpotVaultSnapshot | null>(null);
+  const [spotVaultLoading, setSpotVaultLoading] = useState(false);
+  const [spotVaultError, setSpotVaultError] = useState<string | null>(null);
+  const [spotVaultReviewVerdict, setSpotVaultReviewVerdict] = useState<SpotVaultReviewVerdict>('worth_it');
+  const [spotVaultReviewNote, setSpotVaultReviewNote] = useState('');
+  const [spotVaultReviewSubmitting, setSpotVaultReviewSubmitting] = useState(false);
+  const [spotVaultReviewReportingId, setSpotVaultReviewReportingId] = useState<string | null>(null);
+  const [spotVaultReviewState, setSpotVaultReviewState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [pendingCommandAction, setPendingCommandAction] = useState<SelectedCommandAction | null>(null);
   const mapPreset: MapPreset = 'classic';
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -3775,7 +4026,9 @@ export default function RealWorldMap() {
           approvedCount: venue.tagSummary.approvedCount,
           heatScore: venue.tagSummary.heatScore,
           lastTaggedAt: venue.tagSummary.lastTaggedAt,
+          reviewSignal: venue.reviewSignal,
           activeDareCount: venue.activeDares.length,
+          checkInCount: venue.checkInCount,
           commandCenter: venue.commandCenter,
           mapModes: venue.mapModes,
           profile: venue.profile,
@@ -5138,7 +5391,9 @@ export default function RealWorldMap() {
       approvedCount: place.tagSummary.approvedCount,
       heatScore: place.tagSummary.heatScore,
       lastTaggedAt: place.tagSummary.lastTaggedAt,
+      reviewSignal: place.reviewSignal,
       activeDareCount: place.activeDareCount,
+      checkInCount: place.checkInCount,
       commandCenter: place.commandCenter,
       mapModes: place.mapModes ?? DEFAULT_VENUE_MAP_MODES,
       profile: place.profile,
@@ -5186,7 +5441,9 @@ export default function RealWorldMap() {
             approvedCount: venue.tagSummary.approvedCount,
             heatScore: venue.tagSummary.heatScore,
             lastTaggedAt: venue.tagSummary.lastTaggedAt,
+            reviewSignal: venue.reviewSignal,
             activeDareCount: venue.activeDares.length,
+            checkInCount: venue.checkInCount,
             commandCenter: venue.commandCenter,
             mapModes: venue.mapModes,
             profile: venue.profile,
@@ -5354,6 +5611,254 @@ export default function RealWorldMap() {
       }
     },
     [address, applyVenueRoomSnapshot, signMessageAsync, userLocation]
+  );
+
+  const loadSelectedSpotVault = useCallback(
+    async (slug: string, signal?: AbortSignal, options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      try {
+        if (!silent) {
+          setSpotVaultLoading(true);
+        }
+        setSpotVaultError(null);
+
+        const params = new URLSearchParams({ limit: '14' });
+        if (address) {
+          params.set('walletAddress', address);
+        }
+
+        const headers = address
+          ? await buildWalletActionAuthHeaders({
+              walletAddress: address,
+              action: 'spot-vault:read',
+              resource: `venue:${slug}:vault`,
+              allowSignPrompt: false,
+              signMessageAsync,
+            })
+          : {};
+
+        const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/vault?${params.toString()}`, {
+          headers,
+          signal,
+        });
+        const payload = (await response.json().catch(() => null)) as SpotVaultResponse | null;
+
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(payload?.error || 'Unable to load spot vault');
+        }
+
+        setSpotVault(payload.data);
+        setSpotVaultReviewVerdict(payload.data.reviews.mine?.verdict ?? 'worth_it');
+        setSpotVaultReviewNote(payload.data.reviews.mine?.note ?? '');
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        console.error('[REAL_WORLD_MAP] Spot vault failed:', error);
+        setSpotVault(null);
+        setSpotVaultError('Vault unavailable right now.');
+      } finally {
+        if (!signal?.aborted && !silent) {
+          setSpotVaultLoading(false);
+        }
+      }
+    },
+    [address, signMessageAsync]
+  );
+
+  const handleSubmitSpotVaultReview = useCallback(async () => {
+    const slug = selectedPlace?.slug;
+
+    if (!slug || spotVaultReviewSubmitting) {
+      return;
+    }
+
+    if (!address || !isConnected) {
+      setSpotVaultReviewState({ type: 'error', message: 'Connect your wallet to leave vault signal.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    if (!spotVault?.viewer.canLeaveSignal) {
+      setSpotVaultReviewState({ type: 'error', message: 'Check in here before writing to the vault.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    setSpotVaultReviewSubmitting(true);
+    setSpotVaultReviewState(null);
+
+    try {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        action: 'spot-vault:review',
+        resource: `venue:${slug}:reviews`,
+        allowSignPrompt: true,
+        signMessageAsync,
+      });
+
+      const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          verdict: spotVaultReviewVerdict,
+          note: spotVaultReviewNote,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as SpotVaultResponse | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Unable to save vault review');
+      }
+
+      setSpotVault(payload.data);
+      setSpotVaultReviewVerdict(payload.data.reviews.mine?.verdict ?? spotVaultReviewVerdict);
+      setSpotVaultReviewNote(payload.data.reviews.mine?.note ?? '');
+      setSpotVaultReviewState({ type: 'info', message: 'Vault signal saved.' });
+      triggerHaptic('success');
+    } catch (error) {
+      setSpotVaultReviewState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to save vault review.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setSpotVaultReviewSubmitting(false);
+    }
+  }, [
+    address,
+    isConnected,
+    selectedPlace?.slug,
+    signMessageAsync,
+    spotVault?.viewer.canLeaveSignal,
+    spotVaultReviewNote,
+    spotVaultReviewSubmitting,
+    spotVaultReviewVerdict,
+  ]);
+
+  const handleRetractSpotVaultReview = useCallback(async () => {
+    const slug = selectedPlace?.slug;
+
+    if (!slug || spotVaultReviewSubmitting) {
+      return;
+    }
+
+    if (!address || !isConnected) {
+      setSpotVaultReviewState({ type: 'error', message: 'Connect your wallet to retract vault signal.' });
+      triggerHaptic('warning');
+      return;
+    }
+
+    setSpotVaultReviewSubmitting(true);
+    setSpotVaultReviewState(null);
+
+    try {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: address,
+        action: 'spot-vault:review',
+        resource: `venue:${slug}:reviews`,
+        allowSignPrompt: true,
+        signMessageAsync,
+      });
+
+      const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/reviews`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as SpotVaultResponse | null;
+
+      if (!response.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || 'Unable to retract vault review');
+      }
+
+      setSpotVault(payload.data);
+      setSpotVaultReviewVerdict('worth_it');
+      setSpotVaultReviewNote('');
+      setSpotVaultReviewState({ type: 'info', message: 'Vault signal retracted.' });
+      triggerHaptic('success');
+    } catch (error) {
+      setSpotVaultReviewState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unable to retract vault review.',
+      });
+      triggerHaptic('warning');
+    } finally {
+      setSpotVaultReviewSubmitting(false);
+    }
+  }, [address, isConnected, selectedPlace?.slug, signMessageAsync, spotVaultReviewSubmitting]);
+
+  const handleReportSpotVaultReview = useCallback(
+    async (reviewId: string, reason: 'spam' | 'abuse' | 'inaccurate' = 'inaccurate') => {
+      const slug = selectedPlace?.slug;
+
+      if (!slug || spotVaultReviewReportingId) {
+        return;
+      }
+
+      if (!address || !isConnected) {
+        setSpotVaultReviewState({ type: 'error', message: 'Connect your wallet to flag vault signal.' });
+        triggerHaptic('warning');
+        return;
+      }
+
+      setSpotVaultReviewReportingId(reviewId);
+      setSpotVaultReviewState(null);
+
+      try {
+        const headers = await buildWalletActionAuthHeaders({
+          walletAddress: address,
+          action: 'spot-vault:review-report',
+          resource: `venue:${slug}:reviews:${reviewId}`,
+          allowSignPrompt: true,
+          signMessageAsync,
+        });
+
+        const response = await fetch(
+          `/api/venues/${encodeURIComponent(slug)}/reviews/${encodeURIComponent(reviewId)}/report`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...headers,
+            },
+            body: JSON.stringify({
+              walletAddress: address,
+              reason,
+            }),
+          }
+        );
+        const payload = (await response.json().catch(() => null)) as SpotVaultResponse | null;
+
+        if (!response.ok || !payload?.success || !payload.data) {
+          throw new Error(payload?.error || 'Unable to flag vault signal');
+        }
+
+        setSpotVault(payload.data);
+        setSpotVaultReviewState({ type: 'info', message: 'Signal flagged for Sentinel review.' });
+        triggerHaptic('success');
+      } catch (error) {
+        setSpotVaultReviewState({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Unable to flag vault signal.',
+        });
+        triggerHaptic('warning');
+      } finally {
+        setSpotVaultReviewReportingId(null);
+      }
+    },
+    [address, isConnected, selectedPlace?.slug, signMessageAsync, spotVaultReviewReportingId]
   );
 
   const handlePostVenueRoomMessage = useCallback(async () => {
@@ -5557,6 +6062,31 @@ export default function RealWorldMap() {
 
     return () => controller.abort();
   }, [address, loadSelectedVenueRoom, selectedPlace?.placeId, selectedPlace?.slug, userLocation?.latitude, userLocation?.longitude]);
+
+  useEffect(() => {
+    const slug = selectedPlace?.slug;
+
+    if (!slug || isCuratedFallbackVenueId(selectedPlace?.placeId)) {
+      setSpotVault(null);
+      setSpotVaultLoading(false);
+      setSpotVaultError(null);
+      setSpotVaultReviewState(null);
+      setSpotVaultReviewVerdict('worth_it');
+      setSpotVaultReviewNote('');
+      setSpotVaultReviewReportingId(null);
+      return;
+    }
+
+    setSpotVaultReviewState(null);
+    setSpotVaultReviewVerdict('worth_it');
+    setSpotVaultReviewNote('');
+    setSpotVaultReviewReportingId(null);
+
+    const controller = new AbortController();
+    void loadSelectedSpotVault(slug, controller.signal);
+
+    return () => controller.abort();
+  }, [address, loadSelectedSpotVault, selectedPlace?.placeId, selectedPlace?.slug]);
 
   useEffect(() => {
     const slug = selectedPlace?.slug;
@@ -7055,6 +7585,13 @@ export default function RealWorldMap() {
       reasons.push(`${selectedPlace?.approvedCount} verified ${selectedPlace?.approvedCount === 1 ? 'proof is' : 'proofs are'} already here.`);
     }
 
+    const reviewSignal = getVenueReviewSignal(selectedPlace);
+    if (reviewSignal.count > 0) {
+      reasons.push(`${Math.round(reviewSignal.worthItRatio * 100)}% worth-it from ${reviewSignal.count} field ${reviewSignal.count === 1 ? 'note' : 'notes'}.`);
+    } else if (reviewSignal.state === 'needs-review') {
+      reasons.push('Verified visitors have shown up, but nobody has left a field review yet.');
+    }
+
     if (selectedPlaceMatch && showMatchedLayer) {
       reasons.push('Your creator history already fits this venue.');
     }
@@ -7516,6 +8053,7 @@ export default function RealWorldMap() {
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
+      reviewSignal: selectedPlace.reviewSignal,
     });
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
@@ -7742,12 +8280,14 @@ export default function RealWorldMap() {
         approvedCount: place.tagSummary.approvedCount,
         lastTaggedAt: place.tagSummary.lastTaggedAt,
       });
+      const reviewSignal = getVenueReviewSignal(place);
       const isActive = selectedPlace?.placeId === place.id;
       const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
       const activatedVenue = isVenueActivated(place.commandCenter);
       const highSignalVenue =
         activatedVenue ||
         isMatchedVenue ||
+        reviewSignal.state !== 'none' ||
         place.activeDareCount > 0 ||
         place.tagSummary.approvedCount > 0 ||
         getVenueClusterScore(place) >= 20;
@@ -7770,6 +8310,7 @@ export default function RealWorldMap() {
           activated: activatedVenue,
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
+          reviewSignal,
         }),
         className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
         anchor: 'bottom',
@@ -7809,6 +8350,7 @@ export default function RealWorldMap() {
                 lastTaggedAt: mark.submittedAt,
               },
               activeDareCount: 0,
+              checkInCount: 0,
             });
           },
         });
@@ -8660,6 +9202,279 @@ export default function RealWorldMap() {
           {venueRoomState.message}
         </p>
       ) : null}
+    </div>
+  ) : null;
+
+  const spotVaultWorthItPercent = spotVault?.reviews.count
+    ? Math.round(spotVault.reviews.worthItRatio * 100)
+    : null;
+  const spotVaultReviewActionLabel = spotVault?.reviews.mine ? 'Update signal' : 'Leave signal';
+
+  const selectedSpotVaultRail = selectedPlace?.slug ? (
+    <div className="map-panel-section mt-3 rounded-[22px] border border-[#f5c518]/16 bg-[linear-gradient(180deg,rgba(245,197,24,0.10)_0%,rgba(12,10,18,0.94)_34%,rgba(6,7,12,0.96)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-[#f8dd72]/82">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#f8dd72]" />
+            Spot Vault
+          </div>
+          <p className="mt-1.5 truncate text-sm font-semibold text-white">
+            {spotVaultLoading
+              ? 'Reading permanent signal...'
+              : spotVault?.timeline.length
+                ? 'Permanent proof trail.'
+                : 'No vault signal yet.'}
+          </p>
+        </div>
+        <span className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+          {spotVault?.timeline.length ?? 0} signal
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Proof</p>
+          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.proofs ?? selectedPlace.approvedCount ?? 0}</p>
+        </div>
+        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Visitors</p>
+          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.uniqueVisitors ?? 0}</p>
+        </div>
+        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Wins</p>
+          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.completedDares ?? 0}</p>
+        </div>
+      </div>
+
+      <div className="mt-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 text-xs leading-5 text-white/58">
+            {spotVault?.viewer.reason ?? 'Open this spot to read the vault. Check in to leave permanent signal later.'}
+          </p>
+          {spotVault?.viewer.canLeaveSignal ? (
+            <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100">
+              unlocked
+            </span>
+          ) : (
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/42">
+              read-only
+            </span>
+          )}
+        </div>
+      </div>
+
+      {!spotVaultLoading && !spotVaultError && spotVault ? (
+        <div className="mt-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/38">Field reviews</p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {spotVault.reviews.count > 0
+                  ? `${spotVaultWorthItPercent}% worth it`
+                  : 'No reviews yet'}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/48">
+              {spotVault.reviews.count} note{spotVault.reviews.count === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {spotVault.viewer.canLeaveSignal ? (
+            <div className="mt-3 rounded-[16px] border border-[#f5c518]/14 bg-[#f5c518]/[0.055] px-2.5 py-2.5">
+              <div className="grid grid-cols-2 gap-2">
+                {(['worth_it', 'skip'] as const).map((verdict) => {
+                  const selected = spotVaultReviewVerdict === verdict;
+                  return (
+                    <button
+                      key={verdict}
+                      type="button"
+                      onClick={() => {
+                        setSpotVaultReviewVerdict(verdict);
+                        triggerHaptic('selection');
+                      }}
+                      className={`rounded-[14px] border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+                        selected
+                          ? verdict === 'worth_it'
+                            ? 'border-[#f5c518]/48 bg-[#f5c518]/18 text-[#fff1a8] shadow-[0_8px_22px_rgba(245,197,24,0.12)]'
+                            : 'border-rose-200/36 bg-rose-500/[0.11] text-rose-100'
+                          : 'border-white/10 bg-black/18 text-white/44 hover:border-white/18 hover:text-white/72'
+                      }`}
+                      disabled={spotVaultReviewSubmitting}
+                    >
+                      {verdict === 'worth_it' ? '🔥 Worth it' : '💀 Skip'}
+                    </button>
+                  );
+                })}
+              </div>
+              <textarea
+                value={spotVaultReviewNote}
+                onChange={(event) => setSpotVaultReviewNote(event.target.value)}
+                maxLength={180}
+                rows={2}
+                placeholder="One clean line for the next explorer..."
+                className="mt-2 w-full resize-none rounded-[14px] border border-white/10 bg-black/24 px-3 py-2 text-xs leading-5 text-white/82 outline-none transition placeholder:text-white/30 focus:border-[#f5c518]/34 focus:bg-black/34"
+                disabled={spotVaultReviewSubmitting}
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleSubmitSpotVaultReview()}
+                  disabled={spotVaultReviewSubmitting}
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full border border-[#f5c518]/36 bg-[#f5c518] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-black shadow-[0_10px_26px_rgba(245,197,24,0.18)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {spotVaultReviewSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {spotVaultReviewActionLabel}
+                </button>
+                {spotVault.reviews.mine ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleRetractSpotVaultReview()}
+                    disabled={spotVaultReviewSubmitting}
+                    className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 text-white/48 transition hover:border-rose-200/24 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                    aria-label="Retract vault signal"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+              {spotVaultReviewState ? (
+                <p className={`mt-2 text-xs leading-5 ${spotVaultReviewState.type === 'error' ? 'text-rose-200/82' : 'text-[#fff1a8]/76'}`}>
+                  {spotVaultReviewState.message}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {spotVault.reviews.recent.length ? (
+            <div className="mt-3 space-y-1.5">
+              {spotVault.reviews.recent.slice(0, 3).map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-[14px] border border-white/8 bg-white/[0.035] px-2.5 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs font-semibold text-white/76">
+                      {review.walletLabel}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
+                        review.verdict === 'worth_it'
+                          ? 'border-[#f5c518]/22 bg-[#f5c518]/[0.1] text-[#fff1a8]'
+                          : 'border-rose-200/18 bg-rose-500/[0.08] text-rose-100/80'
+                      }`}>
+                        {review.verdict === 'worth_it' ? 'Worth it' : 'Skip'}
+                      </span>
+                      {!review.mine ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleReportSpotVaultReview(review.id)}
+                          disabled={Boolean(spotVaultReviewReportingId)}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/18 text-white/36 transition hover:border-rose-200/24 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
+                          aria-label="Flag vault review"
+                        >
+                          {spotVaultReviewReportingId === review.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-3 w-3" />
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {review.note ? (
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/54">{review.note}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {spotVaultReviewState && !spotVault.viewer.canLeaveSignal ? (
+            <p className={`mt-2 text-xs leading-5 ${spotVaultReviewState.type === 'error' ? 'text-rose-200/82' : 'text-[#fff1a8]/76'}`}>
+              {spotVaultReviewState.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-2 space-y-2">
+        {spotVaultLoading ? (
+          <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3 text-xs text-white/48">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#f8dd72]" />
+            Reading the vault...
+          </div>
+        ) : spotVaultError ? (
+          <p className="rounded-[18px] border border-rose-300/14 bg-rose-500/[0.08] px-3 py-3 text-xs leading-5 text-rose-100/78">
+            {spotVaultError}
+          </p>
+        ) : spotVault?.timeline.length ? (
+          spotVault.timeline.slice(0, 5).map((item) => (
+            <Link
+              key={item.id}
+              href={item.href ?? `/venues/${selectedPlace.slug}`}
+              className="block rounded-[18px] border border-white/8 bg-white/[0.035] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[#f5c518]/18 hover:bg-white/[0.05]"
+            >
+              <div className="flex items-start gap-3">
+                {item.mediaUrl ? (
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-black/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.mediaUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover opacity-90"
+                    />
+                  </div>
+                ) : (
+                  <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border ${getSpotVaultToneClass(item.tone)}`}>
+                    {item.kind === 'DARE' ? (
+                      <Zap className="h-4 w-4" />
+                    ) : item.kind === 'MEMORY' ? (
+                      <Users className="h-4 w-4" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="line-clamp-1 text-sm font-semibold text-white">{item.title}</p>
+                    <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
+                      {getCompactTimeAgo(item.occurredAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/58">{item.body}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${getSpotVaultToneClass(item.tone)}`}>
+                      {getSpotVaultKindLabel(item.kind)}
+                    </span>
+                    {item.actorLabel ? (
+                      <span className="max-w-[8rem] truncate rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/46">
+                        {item.actorLabel}
+                      </span>
+                    ) : null}
+                    {item.badges.slice(0, 2).map((badge) => (
+                      <span
+                        key={`${item.id}:${badge}`}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/40"
+                      >
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3">
+            <p className="text-sm font-semibold text-white">Vault is empty.</p>
+            <p className="mt-1.5 text-xs leading-5 text-white/54">
+              First proof or a verified mission turns this spot into a real BaseDare trail.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   ) : null;
 
@@ -9813,6 +10628,8 @@ export default function RealWorldMap() {
                   {selectedPlacePresenceRail}
 
                   {selectedVenueRoomRail}
+
+                  {selectedSpotVaultRail}
 
                   <div className="map-command-console hidden">
                     <div className="map-command-console-header">
@@ -14541,6 +15358,110 @@ export default function RealWorldMap() {
             0 0 18px rgba(245, 197, 24, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           white-space: nowrap;
+        }
+
+        .basedare-maplibre-map :global(.peebear-review-aura) {
+          position: absolute;
+          left: 50%;
+          top: 10px;
+          z-index: 0;
+          width: 72px;
+          height: 72px;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          background:
+            radial-gradient(circle, rgba(139, 255, 199, 0.2) 0%, rgba(139, 255, 199, 0.08) 42%, transparent 72%);
+          filter: blur(5px);
+          opacity: 0.84;
+          pointer-events: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-review-signal) {
+          position: absolute;
+          left: 50%;
+          top: 72px;
+          z-index: 6;
+          max-width: 118px;
+          transform: translateX(-50%);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          border-radius: 9999px;
+          border: 1px solid rgba(139, 255, 199, 0.26);
+          background:
+            linear-gradient(180deg, rgba(139, 255, 199, 0.11), rgba(139, 255, 199, 0.05)),
+            linear-gradient(180deg, rgba(7, 14, 18, 0.94), rgba(4, 7, 12, 0.96));
+          padding: 3px 8px;
+          color: rgba(221, 255, 239, 0.9);
+          font-size: 6.5px;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+          line-height: 1;
+          text-transform: uppercase;
+          box-shadow:
+            0 10px 16px rgba(0, 0, 0, 0.28),
+            0 0 16px rgba(139, 255, 199, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          pointer-events: none;
+          backdrop-filter: blur(8px);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-worth-it .peebear-review-aura) {
+          background:
+            radial-gradient(circle, rgba(245, 197, 24, 0.22) 0%, rgba(245, 197, 24, 0.09) 44%, transparent 72%);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-worth-it .peebear-review-signal) {
+          border-color: rgba(245, 197, 24, 0.3);
+          color: #fff1a8;
+          box-shadow:
+            0 10px 16px rgba(0, 0, 0, 0.28),
+            0 0 16px rgba(245, 197, 24, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-mixed .peebear-review-aura) {
+          background:
+            radial-gradient(circle, rgba(184, 127, 255, 0.2) 0%, rgba(184, 127, 255, 0.08) 44%, transparent 72%);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-mixed .peebear-review-signal) {
+          border-color: rgba(184, 127, 255, 0.32);
+          color: #ead7ff;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-skip .peebear-review-aura) {
+          background:
+            radial-gradient(circle, rgba(251, 113, 133, 0.2) 0%, rgba(251, 113, 133, 0.08) 44%, transparent 72%);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-skip .peebear-review-signal) {
+          border-color: rgba(251, 113, 133, 0.28);
+          color: #fecdd3;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-needs-review .peebear-review-aura) {
+          background:
+            radial-gradient(circle, rgba(148, 163, 184, 0.16) 0%, rgba(148, 163, 184, 0.06) 44%, transparent 72%);
+          opacity: 0.64;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--review-needs-review .peebear-review-signal) {
+          border-color: rgba(148, 163, 184, 0.24);
+          color: rgba(226, 232, 240, 0.78);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-review-fresh .peebear-review-signal) {
+          border-color: rgba(139, 255, 199, 0.34);
+          color: #ddffef;
+          box-shadow:
+            0 10px 16px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(139, 255, 199, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.has-review-signal .peebear-core) {
+          border-color: rgba(139, 255, 199, 0.48);
         }
 
         .basedare-maplibre-map :global(.peebear-meta) {

@@ -21,6 +21,18 @@ export type VenueTagSummary = {
   lastTaggedAt: string | null;
 };
 
+export type VenueReviewSignalState = 'none' | 'needs-review' | 'worth-it' | 'mixed' | 'skip';
+
+export type VenueReviewSignalSummary = {
+  count: number;
+  worthItCount: number;
+  skipCount: number;
+  worthItRatio: number;
+  lastReviewedAt: string | null;
+  fresh: boolean;
+  state: VenueReviewSignalState;
+};
+
 export type VenueRecentTag = {
   id: string;
   creatorTag: string | null;
@@ -305,6 +317,7 @@ export type NearbyVenueItem = {
   memorySummary: VenueMemorySummary | null;
   profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
+  reviewSignal: VenueReviewSignalSummary;
   activePerk: VenuePerkLite | null;
   firstSparkWindow: FirstSparkWindowSummary | null;
   liveSession: VenueSessionSummary | null;
@@ -338,6 +351,7 @@ export type VenueDetail = {
   profile: VenueProfileSummary;
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
+  reviewSignal: VenueReviewSignalSummary;
   activePerk: VenuePerkLite | null;
   firstSparkWindow: FirstSparkWindowSummary | null;
   liveSession: VenueSessionSummary | null;

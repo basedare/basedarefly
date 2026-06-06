@@ -13,6 +13,7 @@ export const REPORT_EVENT_TYPES = [
   'CLAIM_STARTED',
   'ACTIVATION_LAUNCHED',
   'REPEAT_LAUNCHED',
+  'REVIEW_FLAGGED',
 ] as const;
 
 type ReportEventType = (typeof REPORT_EVENT_TYPES)[number];
