@@ -96,6 +96,9 @@ export const ROUTE_READY_MISSIONS: MissionId[] = ['claim_signal', 'tune_radar', 
 export const MIN_MISSION_STYLES = 3;
 export const MAX_MISSION_STYLES = 5;
 
+/** Signal Points awarded for a proof-gated vault review (reputation only). */
+export const VAULT_REVIEW_POINTS = 40;
+
 export type PassportMissionState = MissionDef & { complete: boolean };
 
 export type ComposedPassport = {

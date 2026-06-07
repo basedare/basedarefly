@@ -86,11 +86,17 @@ function resolveMissionCompletion(
   return complete;
 }
 
-function buildComposed(passport: PassportRow, completed: Set<MissionId>, hasTag: boolean): ComposedPassport {
-  const signalPoints = STARTER_MISSIONS.reduce(
+function buildComposed(
+  passport: PassportRow,
+  completed: Set<MissionId>,
+  hasTag: boolean,
+  ledgerPoints: number
+): ComposedPassport {
+  const missionPoints = STARTER_MISSIONS.reduce(
     (total, mission) => (completed.has(mission.id) ? total + mission.points : total),
     0
   );
+  const signalPoints = missionPoints + Math.max(0, ledgerPoints);
   const routeReady = ROUTE_READY_MISSIONS.every((id) => completed.has(id));
 
   return {
@@ -107,6 +113,20 @@ function buildComposed(passport: PassportRow, completed: Set<MissionId>, hasTag:
     missions: STARTER_MISSIONS.map((mission) => ({ ...mission, complete: completed.has(mission.id) })),
     hasTag,
   };
+}
+
+/** Sum of the Signal Points ledger (vault contributions etc.). Graceful if the
+ * PointsEvent table isn't migrated yet — returns 0 instead of throwing. */
+async function sumLedgerPoints(wallet: string): Promise<number> {
+  try {
+    const result = await prisma.pointsEvent.aggregate({
+      where: { walletAddress: wallet },
+      _sum: { points: true },
+    });
+    return result._sum.points ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 const PASSPORT_SELECT = {
@@ -133,7 +153,8 @@ export async function composePassport(walletInput: string): Promise<ComposedPass
 
   const signals = await detectDataSignals(wallet);
   const completed = resolveMissionCompletion(passport, signals);
-  const composed = buildComposed(passport, completed, signals.hasTag);
+  const ledgerPoints = await sumLedgerPoints(wallet);
+  const composed = buildComposed(passport, completed, signals.hasTag, ledgerPoints);
 
   await prisma.creatorPassport.update({
     where: { walletAddress: wallet },

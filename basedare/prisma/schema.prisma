@@ -767,6 +767,21 @@ model CreatorPassport {
   @@index([signalPoints])
 }
 
+// Auditable Signal Points ledger (reputation only — no token/cash value).
+// One row per awarded action; the unique key makes awards idempotent (no
+// double-award / farm-by-retry). Passport.signalPoints = mission points + sum here.
+model PointsEvent {
+  id            String   @id @default(cuid())
+  walletAddress String
+  type          String // e.g. 'vault_review'
+  sourceId      String // dedupe scope (e.g. venueId) — one award per (wallet,type,sourceId)
+  points        Int
+  createdAt     DateTime @default(now())
+
+  @@unique([walletAddress, type, sourceId])
+  @@index([walletAddress])
+}
+
 // ============================================================================
 // IN-APP NOTIFICATIONS
 // ============================================================================
