@@ -22,7 +22,14 @@ Confirmed live (desktop, dpr 2): pixelRatio is capped to 1 (`getStableMapPixelRa
 3. **Host isolation reverted to `auto`** — consider `isolation: isolate` on `.map-canvas-host` so marker repaints don't re-composite the canvas layer.
 Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing + Layer borders**, zoom WITH markers present, see what repaints.
 
+### ⚡ Signal Points seam is now WIRED (Claude, 2026-06) — Codex action needed
+- `lib/vault-contributions.ts` `onVaultContribution` is **no longer a no-op** — a proof-gated review now awards `VAULT_REVIEW_POINTS` once per (wallet, venue) via a new **`PointsEvent`** ledger (idempotent, anti-farm), then recomputes `CreatorPassport.signalPoints`. It never throws, so your review route call is safe.
+- **ACTION: run `npx prisma db push`** — it adds the new `PointsEvent` table. Until then, points award is skipped gracefully (passport reads still work).
+- For your live smoke: after db push, a venue review should increment that wallet's `signalPoints` (visible via `GET /api/creators/passport?wallet=`).
+
 ### Recently shipped by Claude (on main)
+- `5ab5e483` /creators/onboard wired to live Passport API (GET/PATCH/POST + wallet auth); home rail CTA → /creators/onboard.
+- `db66d85f` Signal Points: PointsEvent ledger + onVaultContribution wired (needs `prisma db push`).
 - `d8d33bc1` Creator Passport backend (model + lib + API). Needs `prisma db push` before live.
 - `e7af76c3` IA Phase 1: `/creators` canonical, `/streamers` redirect, nav 7→5.
 - `cb66333e` reconcile off-chain fee-splitter P2P to 4% (matches BaseDareBountyV2).
