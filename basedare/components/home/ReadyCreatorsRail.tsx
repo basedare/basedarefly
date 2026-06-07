@@ -135,7 +135,7 @@ export default function ReadyCreatorsRail() {
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href="/claim-tag?source=home-founding-creator"
+                href="/creators/onboard?source=home-founding-creator"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/30 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200"
               >
                 Join as founding creator

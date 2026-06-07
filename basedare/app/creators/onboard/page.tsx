@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useAccount, useSignMessage } from 'wagmi';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
 import { ClaimTagModule } from '@/components/ClaimTagModule';
@@ -10,6 +11,7 @@ import { controlPanel, controlInset, controlHairline } from '@/components/contro
 import { MissionChecklist } from '@/components/creators/MissionChecklist';
 import { CreatorPassportCard } from '@/components/creators/CreatorPassportCard';
 import { SignalPointsBadge } from '@/components/creators/SignalPointsBadge';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import {
   STARTER_MISSIONS,
   MISSION_STYLE_OPTIONS,
@@ -20,11 +22,15 @@ import {
   MAX_MISSION_STYLES,
   type MissionId,
   type PassportMissionState,
+  type ComposedPassport,
 } from '@/lib/creator-passport-constants';
 
 /**
- * Creator Passport onboarding wizard (PREVIEW — local state only, not yet wired
- * to the live passport API; persistence ships once the DB migration is applied).
+ * Creator Passport onboarding wizard.
+ * - Wallet connected: hydrates from /api/creators/passport, persists radar/
+ *   availability via PATCH, records explicit missions via POST. Server is the
+ *   source of truth for Signal Points / route-ready / mission completion.
+ * - No wallet: local preview (so the funnel still explains itself).
  */
 
 const RADIUS_OPTIONS = [2, 5, 10, 25];
@@ -37,6 +43,10 @@ function toggle<T>(list: T[], value: T, max?: number): T[] {
 }
 
 export default function CreatorOnboardPage() {
+  const { address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const connected = Boolean(address);
+
   const [step, setStep] = useState(0);
   const [claimed, setClaimed] = useState(false);
   const [missionStyles, setMissionStyles] = useState<string[]>([]);
@@ -48,7 +58,98 @@ export default function CreatorOnboardPage() {
   const [payoutReady, setPayoutReady] = useState(false);
   const [explicitDone, setExplicitDone] = useState<MissionId[]>([]);
 
-  const completed = useMemo(() => {
+  // Server-composed passport (source of truth when connected).
+  const [server, setServer] = useState<ComposedPassport | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const applyServer = useCallback((data: ComposedPassport) => setServer(data), []);
+
+  // Hydrate from the live passport when a wallet connects.
+  useEffect(() => {
+    if (!address) {
+      setServer(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/creators/passport?wallet=${address}`, { cache: 'no-store' });
+        const json = await res.json();
+        if (!cancelled && json?.success && json.data) {
+          const data = json.data as ComposedPassport;
+          setMissionStyles(data.missionStyles ?? []);
+          setAvailability(data.availability ?? []);
+          setRadiusKm(data.radiusKm ?? null);
+          setHomeZone(data.homeZone ?? '');
+          setVibeLine(data.vibeLine ?? '');
+          setPingsEnabled(Boolean(data.pingsEnabled));
+          if (data.hasTag) setClaimed(true);
+          applyServer(data);
+        }
+      } catch (error) {
+        console.error('Failed to hydrate passport', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address, applyServer]);
+
+  const authedFetch = useCallback(
+    async (path: string, init: RequestInit) => {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: address ?? null,
+        action: 'creator:passport:update',
+        resource: `passport:${(address ?? '').toLowerCase()}`,
+        signMessageAsync,
+      });
+      return fetch(path, {
+        ...init,
+        headers: { 'content-type': 'application/json', ...headers, ...(init.headers ?? {}) },
+      });
+    },
+    [address, signMessageAsync]
+  );
+
+  const savePassport = useCallback(
+    async (patch: Record<string, unknown>) => {
+      if (!address) return;
+      setSaving(true);
+      try {
+        const res = await authedFetch('/api/creators/passport', {
+          method: 'PATCH',
+          body: JSON.stringify({ walletAddress: address, ...patch }),
+        });
+        const json = await res.json();
+        if (json?.success && json.data) applyServer(json.data);
+      } catch (error) {
+        console.error('Failed to save passport', error);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [address, authedFetch, applyServer]
+  );
+
+  const recordMission = useCallback(
+    async (missionId: MissionId) => {
+      if (!address) return;
+      try {
+        const res = await authedFetch('/api/creators/passport/mission', {
+          method: 'POST',
+          body: JSON.stringify({ walletAddress: address, missionId }),
+        });
+        const json = await res.json();
+        if (json?.success && json.data) applyServer(json.data);
+      } catch (error) {
+        console.error('Failed to record mission', error);
+      }
+    },
+    [address, authedFetch, applyServer]
+  );
+
+  // Local (preview) computation — used only when no wallet is connected.
+  const localCompleted = useMemo(() => {
     const set = new Set<MissionId>();
     if (claimed) set.add('claim_signal');
     if (missionStyles.length >= MIN_MISSION_STYLES && (radiusKm ?? 0) > 0) set.add('tune_radar');
@@ -58,23 +159,49 @@ export default function CreatorOnboardPage() {
     return set;
   }, [claimed, missionStyles, radiusKm, pingsEnabled, payoutReady, explicitDone]);
 
-  const missions: PassportMissionState[] = useMemo(
-    () => STARTER_MISSIONS.map((mission) => ({ ...mission, complete: completed.has(mission.id) })),
-    [completed]
-  );
+  const missions: PassportMissionState[] = useMemo(() => {
+    if (server) return server.missions;
+    return STARTER_MISSIONS.map((mission) => ({ ...mission, complete: localCompleted.has(mission.id) }));
+  }, [server, localCompleted]);
 
-  const signalPoints = useMemo(
-    () => STARTER_MISSIONS.reduce((total, mission) => (completed.has(mission.id) ? total + mission.points : total), 0),
-    [completed]
-  );
-  const routeReady = completed.has('claim_signal') && completed.has('tune_radar') && completed.has('payout_ready');
+  const signalPoints = server
+    ? server.signalPoints
+    : STARTER_MISSIONS.reduce((total, mission) => (localCompleted.has(mission.id) ? total + mission.points : total), 0);
+  const routeReady = server
+    ? server.routeReady
+    : localCompleted.has('claim_signal') && localCompleted.has('tune_radar') && localCompleted.has('payout_ready');
 
-  const markExplicit = (id: MissionId) => setExplicitDone((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  const markExplicit = (id: MissionId) => {
+    setExplicitDone((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    if (connected) void recordMission(id);
+  };
+
+  const togglePings = () => {
+    const next = !pingsEnabled;
+    setPingsEnabled(next);
+    if (connected) void savePassport({ pingsEnabled: next });
+  };
 
   const canContinue =
     step === 0 ? claimed
     : step === 1 ? missionStyles.length >= MIN_MISSION_STYLES && (radiusKm ?? 0) > 0
     : true;
+
+  const handleContinue = () => {
+    if (!canContinue) return;
+    if (connected && step === 1) {
+      void savePassport({
+        missionStyles,
+        radiusKm,
+        homeZone: homeZone || null,
+        vibeLine: vibeLine || null,
+      });
+    }
+    if (connected && step === 2) {
+      void savePassport({ availability });
+    }
+    setStep((value) => Math.min(STEPS.length - 1, value + 1));
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#030305] px-4 py-8 text-white sm:px-6 lg:px-10 lg:py-10">
@@ -97,11 +224,7 @@ export default function CreatorOnboardPage() {
         <div className="grid grid-cols-4 gap-2">
           {STEPS.map((label, index) => (
             <div key={label} className="flex flex-col gap-1.5">
-              <div
-                className={`h-1.5 rounded-full transition ${
-                  index <= step ? 'bg-yellow-300' : 'bg-white/10'
-                }`}
-              />
+              <div className={`h-1.5 rounded-full transition ${index <= step ? 'bg-yellow-300' : 'bg-white/10'}`} />
               <span className={`text-[9px] font-black uppercase tracking-[0.14em] ${index <= step ? 'text-white/70' : 'text-white/34'}`}>
                 {label}
               </span>
@@ -208,18 +331,20 @@ export default function CreatorOnboardPage() {
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setPingsEnabled((value) => !value)}
+                    onClick={togglePings}
                     className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${pingsEnabled ? 'border-emerald-300/40 bg-emerald-400/[0.12] text-emerald-100' : 'border-white/12 bg-white/[0.05] text-white/60 hover:text-white'}`}
                   >
                     {pingsEnabled ? <Check className="mr-1 inline h-3 w-3" /> : null}Mission Pings
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPayoutReady((value) => !value)}
-                    className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${payoutReady ? 'border-emerald-300/40 bg-emerald-400/[0.12] text-emerald-100' : 'border-white/12 bg-white/[0.05] text-white/60 hover:text-white'}`}
-                  >
-                    {payoutReady ? <Check className="mr-1 inline h-3 w-3" /> : null}Payout Ready
-                  </button>
+                  {!connected ? (
+                    <button
+                      type="button"
+                      onClick={() => setPayoutReady((value) => !value)}
+                      className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${payoutReady ? 'border-emerald-300/40 bg-emerald-400/[0.12] text-emerald-100' : 'border-white/12 bg-white/[0.05] text-white/60 hover:text-white'}`}
+                    >
+                      {payoutReady ? <Check className="mr-1 inline h-3 w-3" /> : null}Payout Ready
+                    </button>
+                  ) : null}
                   <Link
                     href="/map?source=onboard"
                     onClick={() => markExplicit('open_grid')}
@@ -253,7 +378,7 @@ export default function CreatorOnboardPage() {
                 </div>
 
                 <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/34">
-                  Preview — not saved yet
+                  {connected ? (saving ? 'Saving…' : 'Saved to your passport') : 'Preview — connect wallet to save'}
                 </p>
               </div>
             ) : null}
@@ -272,7 +397,7 @@ export default function CreatorOnboardPage() {
               {step < STEPS.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() => canContinue && setStep((value) => Math.min(STEPS.length - 1, value + 1))}
+                  onClick={handleContinue}
                   disabled={!canContinue}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-300/30 bg-yellow-300 px-6 text-xs font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-40"
                 >
