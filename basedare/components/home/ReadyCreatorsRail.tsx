@@ -18,6 +18,8 @@ type ApiCreator = {
   tag: string;
   status: string;
   completedDares: number;
+  signalPoints?: number;
+  routeReady?: boolean;
   trust?: { label?: string; score?: number };
   businessMetrics?: { venueReach?: number; firstMarks?: number };
 };
@@ -29,6 +31,7 @@ type LiveCreator = {
   plainTag: string;
   verified: boolean;
   proofs: number;
+  signalPoints: number;
 };
 
 const ROLE_CARDS = [
@@ -57,6 +60,9 @@ function normalizeTag(tag: string) {
 }
 
 function isRouteReady(creator: ApiCreator) {
+  // Prefer the real passport route-ready flag; fall back to a proxy for older
+  // payloads / fallback seeds that don't carry passport data.
+  if (typeof creator.routeReady === 'boolean') return creator.routeReady;
   return (
     creator.status === 'VERIFIED' ||
     creator.completedDares > 0 ||
@@ -69,6 +75,7 @@ function toLiveCreators(creators: ApiCreator[]): LiveCreator[] {
     .filter(isRouteReady)
     .sort(
       (left, right) =>
+        (right.signalPoints ?? 0) - (left.signalPoints ?? 0) ||
         (right.trust?.score ?? 0) - (left.trust?.score ?? 0) ||
         right.completedDares - left.completedDares
     )
@@ -80,6 +87,7 @@ function toLiveCreators(creators: ApiCreator[]): LiveCreator[] {
         plainTag: tag.replace('@', '').toLowerCase(),
         verified: creator.status === 'VERIFIED',
         proofs: creator.completedDares,
+        signalPoints: creator.signalPoints ?? 0,
       };
     });
 }
@@ -164,7 +172,9 @@ export default function ReadyCreatorsRail() {
                       {creator.verified ? <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-300" /> : null}
                     </div>
                     <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200/70">Route-ready</p>
-                    <p className="mt-3 text-sm font-black text-white">{creator.proofs} proofs</p>
+                    <p className="mt-3 text-sm font-black text-white">
+                      {creator.signalPoints} signal{creator.proofs > 0 ? ` · ${creator.proofs} proofs` : ''}
+                    </p>
                     <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/56 transition group-hover:text-white">
                       View profile
                       <ArrowRight className="h-3.5 w-3.5" />

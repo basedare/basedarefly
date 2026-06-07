@@ -99,6 +99,8 @@ function buildFallbackCreators(tagFilter?: string) {
                 venueReach: contribution.uniqueVenues,
                 firstMarks: contribution.firstMarks,
             },
+            signalPoints: 0,
+            routeReady: false,
             trust: deriveCreatorTrustProfile({
                 approvedMissions: metrics.approved,
                 settledMissions: creator.completedDares,
@@ -254,11 +256,35 @@ async function fetchHydratedCreators(tagFilter?: string) {
         // Safe fallback for environments where the review table is not migrated yet.
     }
 
+    const passportMetrics = new Map<string, { signalPoints: number; routeReady: boolean }>();
+    try {
+        const wallets = streamers
+            .map((streamer) => streamer.walletAddress?.trim().toLowerCase())
+            .filter((wallet): wallet is string => Boolean(wallet));
+        if (wallets.length > 0) {
+            const passports = await prisma.creatorPassport.findMany({
+                where: { walletAddress: { in: wallets } },
+                select: { walletAddress: true, signalPoints: true, routeReady: true },
+            });
+            passports.forEach((passport) => {
+                passportMetrics.set(passport.walletAddress.toLowerCase(), {
+                    signalPoints: passport.signalPoints,
+                    routeReady: passport.routeReady,
+                });
+            });
+        }
+    } catch {
+        // Safe fallback for environments where the creator passport table is not migrated yet.
+    }
+
     return streamers
         .map((streamer) => {
             const normalizedTag = normalizeCreatorHandle(streamer.tag) || '';
             const metrics = dareMetrics.get(normalizedTag);
             const contribution = contributionMetrics.get(normalizedTag);
+            const passport = streamer.walletAddress
+                ? passportMetrics.get(streamer.walletAddress.toLowerCase())
+                : undefined;
             const totalEarned = Math.max(streamer.totalEarned, metrics?.totalEarned ?? 0);
             const completedDares = Math.max(streamer.completedDares, metrics?.completedDares ?? 0);
             const approvedMissions = Math.max(completedDares + (metrics?.payoutQueued ?? 0), metrics?.approvedMissions ?? 0);
@@ -285,6 +311,8 @@ async function fetchHydratedCreators(tagFilter?: string) {
                             ? Math.round((review.ratingTotal / review.count) * 10) / 10
                             : null,
                 },
+                signalPoints: passport?.signalPoints ?? 0,
+                routeReady: passport?.routeReady ?? false,
                 trust: deriveCreatorTrustProfile({
                     approvedMissions,
                     settledMissions: completedDares,
@@ -295,8 +323,11 @@ async function fetchHydratedCreators(tagFilter?: string) {
             };
         })
         .sort((left, right) => {
-            const trustDelta = (right.trust?.score ?? 0) - (left.trust?.score ?? 0);
-            if (trustDelta !== 0) return trustDelta;
+            // Route-ready + Signal Points lift creators up (route-ready earns more
+            // mission points), without a hard reorder away from trust.
+            const leftScore = (left.trust?.score ?? 0) + (left.signalPoints ?? 0);
+            const rightScore = (right.trust?.score ?? 0) + (right.signalPoints ?? 0);
+            if (rightScore !== leftScore) return rightScore - leftScore;
             return right.totalEarned - left.totalEarned;
         });
 }

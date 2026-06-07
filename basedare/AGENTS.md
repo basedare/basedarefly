@@ -28,6 +28,7 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - For your live smoke: after db push, a venue review should increment that wallet's `signalPoints` (visible via `GET /api/creators/passport?wallet=`).
 
 ### Recently shipped by Claude (on main)
+- `/api/creators` now returns `signalPoints` + `routeReady` per creator (joined from CreatorPassport, graceful if unmigrated) and folds signalPoints into its sort so route-ready creators rank up. **Codex, optional:** you can now weight `creatorScore` in `app/scouts/dashboard/page.tsx` by `creator.signalPoints` / `creator.routeReady` for the radar — the fields are in the payload. Home Founding-Creators rail flips cold→live on the real `routeReady` (≥6).
 - `5ab5e483` /creators/onboard wired to live Passport API (GET/PATCH/POST + wallet auth); home rail CTA → /creators/onboard.
 - `db66d85f` Signal Points: PointsEvent ledger + onVaultContribution wired (needs `prisma db push`).
 - `d8d33bc1` Creator Passport backend (model + lib + API). Needs `prisma db push` before live.
