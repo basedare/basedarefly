@@ -140,26 +140,45 @@ const PASSPORT_SELECT = {
   completedMissions: true,
 } as const;
 
-/** Read (creating if missing), recompute points/readiness, persist denormalized fields. */
-export async function composePassport(walletInput: string): Promise<ComposedPassport> {
+/**
+ * Compose a passport view. READ-ONLY by default — never creates or mutates a
+ * row (so an unauthenticated GET can't spawn passports / award starter points
+ * for arbitrary wallets). Pass `{ persist: true }` ONLY from authenticated
+ * write paths to upsert the denormalized signalPoints/routeReady.
+ */
+export async function composePassport(
+  walletInput: string,
+  { persist = false }: { persist?: boolean } = {}
+): Promise<ComposedPassport> {
   const wallet = normalizeWallet(walletInput);
 
-  const passport = await prisma.creatorPassport.upsert({
+  const existing = await prisma.creatorPassport.findUnique({
     where: { walletAddress: wallet },
-    update: {},
-    create: { walletAddress: wallet },
     select: PASSPORT_SELECT,
   });
+  const passport: PassportRow = existing ?? {
+    walletAddress: wallet,
+    homeZone: null,
+    vibeLine: null,
+    missionStyles: [],
+    availability: [],
+    radiusKm: null,
+    pingsEnabled: false,
+    completedMissions: [],
+  };
 
   const signals = await detectDataSignals(wallet);
   const completed = resolveMissionCompletion(passport, signals);
   const ledgerPoints = await sumLedgerPoints(wallet);
   const composed = buildComposed(passport, completed, signals.hasTag, ledgerPoints);
 
-  await prisma.creatorPassport.update({
-    where: { walletAddress: wallet },
-    data: { signalPoints: composed.signalPoints, routeReady: composed.routeReady },
-  });
+  if (persist) {
+    await prisma.creatorPassport.upsert({
+      where: { walletAddress: wallet },
+      update: { signalPoints: composed.signalPoints, routeReady: composed.routeReady },
+      create: { walletAddress: wallet, signalPoints: composed.signalPoints, routeReady: composed.routeReady },
+    });
+  }
 
   return composed;
 }
@@ -180,7 +199,7 @@ export async function updatePassport(walletInput: string, patch: PassportPatch):
     update: patch,
     create: { walletAddress: wallet, ...patch },
   });
-  return composePassport(wallet);
+  return composePassport(wallet, { persist: true });
 }
 
 /** Record an explicit (client-reported) mission, then recompute. */
@@ -191,7 +210,7 @@ export async function recordExplicitMission(
   const wallet = normalizeWallet(walletInput);
   if (!EXPLICIT_MISSIONS.includes(missionId)) {
     // Non-explicit missions are derived; just recompute.
-    return composePassport(wallet);
+    return composePassport(wallet, { persist: true });
   }
 
   const existing = await prisma.creatorPassport.upsert({
@@ -208,5 +227,5 @@ export async function recordExplicitMission(
     });
   }
 
-  return composePassport(wallet);
+  return composePassport(wallet, { persist: true });
 }

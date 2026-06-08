@@ -41,7 +41,7 @@ export async function onVaultContribution(input: VaultContributionInput): Promis
     });
 
     // Recompute + persist denormalized signalPoints on the passport.
-    await composePassport(wallet);
+    await composePassport(wallet, { persist: true });
   } catch (error) {
     console.error('[VAULT_POINTS] Signal Points award failed (non-fatal):', error);
   }
