@@ -63,7 +63,8 @@ type PassportRow = {
 
 function resolveMissionCompletion(
   passport: PassportRow,
-  signals: { hasTag: boolean; hasProof: boolean; hasMark: boolean }
+  signals: { hasTag: boolean; hasProof: boolean; hasMark: boolean },
+  hasRow: boolean
 ): Set<MissionId> {
   const complete = new Set<MissionId>();
   const explicit = new Set(passport.completedMissions);
@@ -76,8 +77,9 @@ function resolveMissionCompletion(
     complete.add('tune_radar');
   }
   if (passport.pingsEnabled) complete.add('mission_pings');
-  // Payout ready: a connected wallet that owns this passport.
-  complete.add('payout_ready');
+  // Payout ready: only once the wallet has actually engaged (a passport row
+  // exists from an authenticated save) — never for an arbitrary read-only GET.
+  if (hasRow) complete.add('payout_ready');
 
   for (const id of EXPLICIT_MISSIONS) {
     if (explicit.has(id)) complete.add(id);
@@ -168,7 +170,7 @@ export async function composePassport(
   };
 
   const signals = await detectDataSignals(wallet);
-  const completed = resolveMissionCompletion(passport, signals);
+  const completed = resolveMissionCompletion(passport, signals, existing !== null);
   const ledgerPoints = await sumLedgerPoints(wallet);
   const composed = buildComposed(passport, completed, signals.hasTag, ledgerPoints);
 
