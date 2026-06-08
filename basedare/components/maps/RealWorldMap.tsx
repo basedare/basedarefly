@@ -921,7 +921,14 @@ function sanitizeOpenFreeMapStyle(style: StyleSpecification): StyleSpecification
   };
 }
 
-function getDefaultMapCamera(isMobileViewport: boolean) {
+function getDefaultMapCamera(isMobileViewport: boolean, stabilizeDesktopChromium = false) {
+  if (stabilizeDesktopChromium) {
+    return {
+      bearing: 0,
+      pitch: 0,
+    };
+  }
+
   return {
     bearing: isMobileViewport ? DEFAULT_MOBILE_MAP_BEARING : DEFAULT_DESKTOP_MAP_BEARING,
     pitch: isMobileViewport ? DEFAULT_MOBILE_MAP_PITCH : DEFAULT_DESKTOP_MAP_PITCH,
@@ -1016,6 +1023,10 @@ function projectLatLngToWorldPoint(latitude: number, longitude: number, zoom: nu
     x: ((longitude + 180) / 360) * scale,
     y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
   };
+}
+
+function clampDesktopChromeFallbackPercent(value: number) {
+  return Math.min(96, Math.max(4, value));
 }
 
 function createMarkerElement(html: string, className: string) {
@@ -3454,6 +3465,7 @@ export default function RealWorldMap() {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
+  const useStableDesktopChromeCamera = isDesktopChromiumMapRenderer(isMobileViewport);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
@@ -3575,10 +3587,22 @@ export default function RealWorldMap() {
       window.clearTimeout(desktopMapSettlingTimerRef.current);
     }
 
+    if (mapInteractionQuietTimerRef.current !== null) {
+      window.clearTimeout(mapInteractionQuietTimerRef.current);
+      mapInteractionQuietTimerRef.current = null;
+    }
+
+    setMapInteractionQuiet(true);
+
     desktopMapSettlingTimerRef.current = window.setTimeout(() => {
       desktopMapSettlingRef.current = false;
       desktopMapSettlingTimerRef.current = null;
     }, durationMs);
+
+    mapInteractionQuietTimerRef.current = window.setTimeout(() => {
+      setMapInteractionQuiet(false);
+      mapInteractionQuietTimerRef.current = null;
+    }, durationMs + 120);
   }, []);
 
   const armMapClickSuppression = useCallback((durationMs = 180) => {
@@ -4936,6 +4960,18 @@ export default function RealWorldMap() {
     const container = mapCanvasRef.current;
     if (!container || mapInstanceRef.current) return undefined;
 
+    const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
+    const isDesktopChromiumRenderer = isDesktopChromiumMapRenderer(isMobileRenderer);
+
+    if (isDesktopChromiumRenderer) {
+      setMapRuntimeError(null);
+      setMapReady(true);
+      return () => {
+        setMapReady(false);
+        setMapInteractionQuiet(false);
+      };
+    }
+
     if (!browserCanStartMapRenderer()) {
       setMapReady(false);
       setMapRuntimeError(
@@ -4954,9 +4990,7 @@ export default function RealWorldMap() {
       mapInteractionQuietTimerRef.current = null;
     };
 
-    const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
-    const isDesktopChromiumRenderer = isDesktopChromiumMapRenderer(isMobileRenderer);
-    const initialCamera = getDefaultMapCamera(isMobileRenderer);
+    const initialCamera = getDefaultMapCamera(isMobileRenderer, isDesktopChromiumRenderer);
     const stablePixelRatio = getStableMapPixelRatio(isMobileRenderer);
     const startMap = async () => {
       const mapStyle = await loadOpenFreeMapStyle();
@@ -4972,24 +5006,25 @@ export default function RealWorldMap() {
           pitch: initialCamera.pitch,
           bearing: initialCamera.bearing,
           attributionControl: { compact: true },
-          dragRotate: true,
-          touchZoomRotate: true,
+          interactive: !isDesktopChromiumRenderer,
+          dragRotate: !isDesktopChromiumRenderer,
+          touchZoomRotate: !isDesktopChromiumRenderer,
           // Desktop Chromium is the problem renderer here. Crossfaded tiles add
           // another transient WebGL layer, which makes Chrome more likely to
           // present stale tile regions while the page composites.
           fadeDuration: isMobileRenderer || isDesktopChromiumRenderer ? 0 : 150,
-          maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
+          maxPitch: isDesktopChromiumRenderer ? 0 : isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
           pixelRatio: stablePixelRatio,
           trackResize: false,
-          // Opaque WebGL context. Without alpha:false the canvas composites
-          // against the page every repaint (which only happens during pan/zoom),
-          // which Chrome desktop renders as flicker. The map is fully opaque
-          // anyway (base layer, z-0), so nothing shows through.
+          // Opaque WebGL context. Desktop Chrome also keeps the drawing buffer:
+          // without it, Chromium can capture/present black rectangular regions on
+          // initial tile composition. Camera movement is disabled below for the
+          // same renderer, so the retained buffer stays bounded to static redraws.
           canvasContextAttributes: {
             alpha: false,
             premultipliedAlpha: false,
             antialias: false,
-            preserveDrawingBuffer: false,
+            preserveDrawingBuffer: isDesktopChromiumRenderer,
             failIfMajorPerformanceCaveat: false,
             powerPreference: isDesktopChromiumRenderer ? 'high-performance' : 'default',
           },
@@ -5009,10 +5044,24 @@ export default function RealWorldMap() {
 
       mapInstanceRef.current = map;
       if (isDesktopChromiumRenderer) {
-        map.repaint = true;
+        map.scrollZoom.disable();
+        map.boxZoom.disable();
+        map.dragPan.disable();
+        map.dragRotate.disable();
+        map.keyboard.disable();
+        map.doubleClickZoom.disable();
+        map.touchZoomRotate.disable();
+        map.touchZoomRotate.disableRotation();
+      } else {
+        map.scrollZoom.enable();
+        map.boxZoom.enable();
+        map.dragPan.enable();
+        map.dragRotate.enable();
+        map.keyboard.enable();
+        map.doubleClickZoom.enable();
+        map.touchZoomRotate.enable();
+        map.touchZoomRotate.enableRotation();
       }
-      map.dragRotate.enable();
-      map.touchZoomRotate.enableRotation();
 
       const syncViewport = () => {
         const center = map.getCenter();
@@ -5258,6 +5307,7 @@ export default function RealWorldMap() {
       targetCenter[1].toFixed(5),
       targetZoom ?? 'current',
       isMobileViewport ? 'mobile' : 'desktop',
+      useStableDesktopChromeCamera ? 'stable-chrome' : 'rich-camera',
       isMobileViewport && isImmersiveMobile ? (selectedPlacePanelExpanded ? 'expanded' : 'peek') : selectedOffsetMode,
     ].join(':');
 
@@ -5266,7 +5316,24 @@ export default function RealWorldMap() {
     }
 
     lastTargetCameraKeyRef.current = targetCameraKey;
-    const targetCamera = getDefaultMapCamera(isMobileViewport);
+    if (useStableDesktopChromeCamera) {
+      const repaintStableMap = () => {
+        if (mapInstanceRef.current !== map) return;
+        map.resize();
+        map.triggerRepaint();
+      };
+
+      setTargetCenter(null);
+      setTargetZoom(null);
+      setMapBearing(0);
+      setMapPitch(0);
+      window.requestAnimationFrame(repaintStableMap);
+      window.setTimeout(repaintStableMap, 120);
+      window.setTimeout(repaintStableMap, 360);
+      return;
+    }
+
+    const targetCamera = getDefaultMapCamera(isMobileViewport, useStableDesktopChromeCamera);
     const targetOffset = isMobileViewport
       ? ([
           0,
@@ -5285,7 +5352,7 @@ export default function RealWorldMap() {
         center: [targetCenter[1], targetCenter[0]],
         zoom: targetZoom ?? map.getZoom(),
         pitch: targetCamera.pitch,
-        bearing: map.getBearing(),
+        bearing: useStableDesktopChromeCamera ? targetCamera.bearing : map.getBearing(),
       });
       return;
     }
@@ -5295,7 +5362,7 @@ export default function RealWorldMap() {
       center: [targetCenter[1], targetCenter[0]],
       zoom: targetZoom ?? map.getZoom(),
       pitch: targetCamera.pitch,
-      bearing: map.getBearing(),
+      bearing: useStableDesktopChromeCamera ? targetCamera.bearing : map.getBearing(),
       duration: 900,
       essential: true,
       ...(targetOffset ? { offset: targetOffset } : {}),
@@ -5309,6 +5376,7 @@ export default function RealWorldMap() {
     targetCenter,
     targetZoom,
     markDesktopMapSettling,
+    useStableDesktopChromeCamera,
   ]);
 
   useEffect(() => {
@@ -5352,10 +5420,8 @@ export default function RealWorldMap() {
     const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resizeMap) : null;
     resizeObserver?.observe(container);
     window.addEventListener('resize', resizeMap);
-    window.addEventListener('scroll', resizeMap, { passive: true });
     window.addEventListener('orientationchange', resizeMap);
     window.visualViewport?.addEventListener('resize', resizeMap);
-    window.visualViewport?.addEventListener('scroll', resizeMap);
 
     return () => {
       if (resizeFrame !== null) {
@@ -5364,10 +5430,8 @@ export default function RealWorldMap() {
       window.clearTimeout(settleTimeoutId);
       resizeObserver?.disconnect();
       window.removeEventListener('resize', resizeMap);
-      window.removeEventListener('scroll', resizeMap);
       window.removeEventListener('orientationchange', resizeMap);
       window.visualViewport?.removeEventListener('resize', resizeMap);
-      window.visualViewport?.removeEventListener('scroll', resizeMap);
     };
   }, [mapReady]);
 
@@ -8003,14 +8067,28 @@ export default function RealWorldMap() {
       const map = mapInstanceRef.current;
       if (!map) return;
 
-      const minPitch = isMobileViewport ? 24 : 0;
-      const maxPitch = isMobileViewport ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH;
-      const defaultCamera = getDefaultMapCamera(isMobileViewport);
+      const defaultCamera = getDefaultMapCamera(isMobileViewport, useStableDesktopChromeCamera);
+      const minPitch = useStableDesktopChromeCamera ? 0 : isMobileViewport ? 24 : 0;
+      const maxPitch = useStableDesktopChromeCamera
+        ? 0
+        : isMobileViewport
+          ? MAX_MOBILE_MAP_PITCH
+          : MAX_DESKTOP_MAP_PITCH;
       const nextPitch = reset
         ? defaultCamera.pitch
         : Math.min(maxPitch, Math.max(minPitch, map.getPitch() + pitchDelta));
-      const nextBearing = reset ? defaultCamera.bearing : map.getBearing() + bearingDelta;
+      const nextBearing = reset || useStableDesktopChromeCamera
+        ? defaultCamera.bearing
+        : map.getBearing() + bearingDelta;
       const center = selectedPlace ? ([selectedPlace.longitude, selectedPlace.latitude] as [number, number]) : map.getCenter();
+      if (!isMobileViewport) {
+        markDesktopMapSettling(reset ? 820 : 640);
+      }
+
+      if (useStableDesktopChromeCamera && !reset) {
+        triggerHaptic('selection');
+        return;
+      }
 
       setMapBearing(nextBearing);
       setMapPitch(nextPitch);
@@ -8023,7 +8101,42 @@ export default function RealWorldMap() {
       });
       triggerHaptic('selection');
     },
-    [isMobileViewport, selectedPlace]
+    [isMobileViewport, markDesktopMapSettling, selectedPlace, useStableDesktopChromeCamera]
+  );
+
+  const zoomMapCamera = useCallback(
+    (zoomDelta: number) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+
+      if (!isMobileViewport) {
+        markDesktopMapSettling(620);
+      }
+
+      if (useStableDesktopChromeCamera) {
+        const nextZoom = map.getZoom() + zoomDelta;
+        map.stop();
+        map.jumpTo({
+          center: map.getCenter(),
+          zoom: nextZoom,
+          bearing: 0,
+          pitch: 0,
+        });
+        setMapZoom(nextZoom);
+        setMapBearing(0);
+        setMapPitch(0);
+        triggerHaptic('selection');
+        return;
+      }
+
+      map.easeTo({
+        zoom: map.getZoom() + zoomDelta,
+        duration: 420,
+        essential: true,
+      });
+      triggerHaptic('selection');
+    },
+    [isMobileViewport, markDesktopMapSettling, useStableDesktopChromeCamera]
   );
 
   const mapCameraBearingLabel = `${Math.round(((mapBearing % 360) + 360) % 360)} deg`;
@@ -8059,6 +8172,81 @@ export default function RealWorldMap() {
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
+  );
+  const desktopChromeFallbackPlaces = useMemo(() => {
+    const sourcePlaces = filteredNearbyPlaces.length > 0 ? filteredNearbyPlaces : nearbyPlaces;
+
+    return [...sourcePlaces]
+      .filter((place) => isUsableMapCoordinate(place.latitude, place.longitude))
+      .sort((a, b) => {
+        const activeDelta = (b.activeDareCount ?? 0) - (a.activeDareCount ?? 0);
+        if (activeDelta !== 0) return activeDelta;
+
+        const activatedDelta =
+          Number(isVenueActivated(b.commandCenter)) - Number(isVenueActivated(a.commandCenter));
+        if (activatedDelta !== 0) return activatedDelta;
+
+        return getVenueClusterScore(b) - getVenueClusterScore(a);
+      })
+      .slice(0, 34);
+  }, [filteredNearbyPlaces, nearbyPlaces]);
+  const desktopChromeFallbackBounds = useMemo(() => {
+    const points = desktopChromeFallbackPlaces.map((place) => ({
+      latitude: place.latitude,
+      longitude: place.longitude,
+    }));
+
+    if (selectedPlace && isUsableMapCoordinate(selectedPlace.latitude, selectedPlace.longitude)) {
+      points.push({
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+      });
+    }
+
+    if (userLocation && isUsableMapCoordinate(userLocation.latitude, userLocation.longitude)) {
+      points.push(userLocation);
+    }
+
+    if (points.length === 0) {
+      points.push({
+        latitude: DEFAULT_CENTER[0],
+        longitude: DEFAULT_CENTER[1],
+      });
+    }
+
+    const latitudes = points.map((point) => point.latitude);
+    const longitudes = points.map((point) => point.longitude);
+    const minLatRaw = Math.min(...latitudes);
+    const maxLatRaw = Math.max(...latitudes);
+    const minLngRaw = Math.min(...longitudes);
+    const maxLngRaw = Math.max(...longitudes);
+    const latSpan = Math.max(maxLatRaw - minLatRaw, 0.045);
+    const lngSpan = Math.max(maxLngRaw - minLngRaw, 0.055);
+    const latPad = Math.max(latSpan * 0.22, 0.012);
+    const lngPad = Math.max(lngSpan * 0.18, 0.014);
+
+    return {
+      minLat: minLatRaw - latPad,
+      maxLat: maxLatRaw + latPad,
+      minLng: minLngRaw - lngPad,
+      maxLng: maxLngRaw + lngPad,
+    };
+  }, [desktopChromeFallbackPlaces, selectedPlace, userLocation]);
+  const projectDesktopChromeFallbackPoint = useCallback(
+    (latitude: number, longitude: number) => {
+      const lngSpan = Math.max(desktopChromeFallbackBounds.maxLng - desktopChromeFallbackBounds.minLng, 0.0001);
+      const latSpan = Math.max(desktopChromeFallbackBounds.maxLat - desktopChromeFallbackBounds.minLat, 0.0001);
+      const left =
+        ((longitude - desktopChromeFallbackBounds.minLng) / lngSpan) * 100;
+      const top =
+        ((desktopChromeFallbackBounds.maxLat - latitude) / latSpan) * 100;
+
+      return {
+        left: clampDesktopChromeFallbackPercent(left),
+        top: clampDesktopChromeFallbackPercent(top),
+      };
+    },
+    [desktopChromeFallbackBounds]
   );
 
   useEffect(() => {
@@ -9825,11 +10013,130 @@ export default function RealWorldMap() {
             <div
               ref={mapCanvasRef}
               className="map-canvas-host absolute inset-0 z-0"
-              aria-label="BaseDare MapLibre 3D city grid"
+              aria-label={
+                useStableDesktopChromeCamera
+                  ? 'BaseDare MapLibre stable desktop grid'
+                  : 'BaseDare MapLibre 3D city grid'
+              }
             />
+            {useStableDesktopChromeCamera ? (
+              <div
+                className="desktop-chrome-map-fallback absolute inset-0 z-[1]"
+                aria-label="BaseDare stable venue grid"
+              >
+                <svg
+                  className="desktop-chrome-map-fallback-lines pointer-events-none absolute inset-0 h-full w-full"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <radialGradient id="fallbackLandGlow" cx="44%" cy="50%" r="62%">
+                      <stop offset="0%" stopColor="rgba(36,28,70,0.62)" />
+                      <stop offset="62%" stopColor="rgba(12,16,34,0.54)" />
+                      <stop offset="100%" stopColor="rgba(4,6,18,0)" />
+                    </radialGradient>
+                  </defs>
+                  <path
+                    d="M0 20 C14 18 20 32 30 28 C42 23 44 34 54 30 C63 26 70 36 82 31 C90 28 95 34 100 31 L100 100 L0 100 Z"
+                    fill="url(#fallbackLandGlow)"
+                    opacity="0.82"
+                  />
+                  <path
+                    d="M18 0 C22 16 21 28 28 43 C34 58 31 73 39 100"
+                    className="desktop-chrome-map-fallback-road desktop-chrome-map-fallback-road--main"
+                  />
+                  <path
+                    d="M0 70 C18 62 29 64 42 56 C55 48 65 48 78 42"
+                    className="desktop-chrome-map-fallback-road"
+                  />
+                  <path
+                    d="M45 98 C45 82 50 70 56 61 C64 49 62 38 68 27"
+                    className="desktop-chrome-map-fallback-road"
+                  />
+                  <path
+                    d="M28 45 C37 47 43 50 51 53 C60 57 69 55 79 61"
+                    className="desktop-chrome-map-fallback-road desktop-chrome-map-fallback-road--thin"
+                  />
+                </svg>
+                <div className="desktop-chrome-map-fallback-grid pointer-events-none absolute inset-0" />
+                <div className="absolute inset-0">
+                  {desktopChromeFallbackPlaces.map((place) => {
+                    const projected = projectDesktopChromeFallbackPoint(place.latitude, place.longitude);
+                    const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
+                    const visualState = getPlaceVisualState({
+                      approvedCount: place.tagSummary.approvedCount,
+                      lastTaggedAt: place.tagSummary.lastTaggedAt,
+                    });
+                    const reviewSignal = getVenueReviewSignal(place);
+                    const isActive = selectedPlace?.placeId === place.id;
+                    const activatedVenue = isVenueActivated(place.commandCenter);
+                    const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
+                    const highSignalVenue =
+                      activatedVenue ||
+                      isMatchedVenue ||
+                      reviewSignal.state !== 'none' ||
+                      place.activeDareCount > 0 ||
+                      place.tagSummary.approvedCount > 0 ||
+                      getVenueClusterScore(place) >= 20;
+                    const compact = !isActive && !highSignalVenue;
+
+                    return (
+                      <button
+                        key={`desktop-chrome-fallback:${place.id}`}
+                        type="button"
+                        className="basedare-maplibre-marker basedare-maplibre-marker--venue desktop-chrome-fallback-marker"
+                        style={{
+                          left: `${projected.left}%`,
+                          top: `${projected.top}%`,
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          focusExistingPlace(place);
+                        }}
+                        aria-label={`Open ${place.name}`}
+                        title={place.name}
+                      >
+                        <span
+                          className="desktop-chrome-fallback-marker-inner"
+                          dangerouslySetInnerHTML={{
+                            __html: createPeebearMarkerHtml({
+                              pulse,
+                              approvedCount: place.tagSummary.approvedCount,
+                              heatScore: place.tagSummary.heatScore,
+                              active: isActive,
+                              visualState,
+                              challengeLiveCount: place.activeDareCount,
+                              venueName: place.name,
+                              matched: isMatchedVenue,
+                              compact,
+                              activated: activatedVenue,
+                              activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
+                              legends: place.profile?.legends,
+                              reviewSignal,
+                            }),
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                  {userLocation ? (
+                    <span
+                      className="desktop-chrome-user-location"
+                      style={{
+                        left: `${projectDesktopChromeFallbackPoint(userLocation.latitude, userLocation.longitude).left}%`,
+                        top: `${projectDesktopChromeFallbackPoint(userLocation.latitude, userLocation.longitude).top}%`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
             <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
-              3D Map
+              {useStableDesktopChromeCamera ? 'Stable Map' : '3D Map'}
             </div>
             {isMobileViewport ? (
               <button
@@ -10291,80 +10598,84 @@ export default function RealWorldMap() {
                   <LocateFixed className="h-4 w-4" />
                 )}
               </button>
-              <div className="overflow-hidden rounded-[20px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,10,20,0.92)_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] md:rounded-[22px]">
-                <button
-                  type="button"
-                  onClick={() => mapInstanceRef.current?.zoomIn()}
-                  className="flex h-10 w-10 items-center justify-center border-b border-white/10 text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
-                  aria-label="Zoom in"
-                  title="Zoom in"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => mapInstanceRef.current?.zoomOut()}
-                  className="flex h-10 w-10 items-center justify-center text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
-                  aria-label="Zoom out"
-                  title="Zoom out"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="hidden overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur lg:block lg:rounded-[22px]">
-                <div className="hidden items-center justify-between border-b border-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/70 md:flex">
-                  <span>3D</span>
-                  <span>{mapCameraPitchLabel}</span>
-                </div>
-                <div className="grid grid-cols-2">
+              {!useStableDesktopChromeCamera ? (
+                <div className="overflow-hidden rounded-[20px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(10,10,20,0.92)_100%)] shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] md:rounded-[22px]">
                   <button
                     type="button"
-                    onClick={() => easeMapCamera({ bearingDelta: -28 })}
-                    className="flex h-9 w-10 items-center justify-center border-b border-r border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
-                    aria-label="Orbit map left"
-                    title="Orbit left"
+                    onClick={() => zoomMapCamera(1)}
+                    className="flex h-10 w-10 items-center justify-center border-b border-white/10 text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
+                    aria-label="Zoom in"
+                    title="Zoom in"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => easeMapCamera({ bearingDelta: 28 })}
-                    className="flex h-9 w-10 items-center justify-center border-b border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
-                    aria-label="Orbit map right"
-                    title="Orbit right"
+                    onClick={() => zoomMapCamera(-1)}
+                    className="flex h-10 w-10 items-center justify-center text-white/82 transition hover:bg-white/[0.08] hover:text-white md:h-11 md:w-11"
+                    aria-label="Zoom out"
+                    title="Zoom out"
                   >
-                    <RotateCw className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ pitchDelta: -10 })}
-                    className="flex h-9 w-10 items-center justify-center border-r border-white/10 text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
-                    aria-label="Tilt map down"
-                    title="Tilt down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ pitchDelta: 10 })}
-                    className="flex h-9 w-10 items-center justify-center text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
-                    aria-label="Tilt map up"
-                    title="Tilt up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
+                    <Minus className="h-4 w-4" />
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => easeMapCamera({ reset: true })}
-                  className="flex h-8 w-full items-center justify-center gap-1 border-t border-white/10 px-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/70 transition hover:bg-cyan-300/[0.12] hover:text-cyan-50 md:h-9"
-                  aria-label="Reset map camera north"
-                  title={`Reset camera north · ${mapCameraBearingLabel}`}
-                >
-                  <span>North</span>
-                  <span className="hidden text-white/36 md:inline">{mapCameraBearingLabel}</span>
-                </button>
-              </div>
+              ) : null}
+              {!useStableDesktopChromeCamera ? (
+                <div className="hidden overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur lg:block lg:rounded-[22px]">
+                  <div className="hidden items-center justify-between border-b border-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/70 md:flex">
+                    <span>3D</span>
+                    <span>{mapCameraPitchLabel}</span>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => easeMapCamera({ bearingDelta: -28 })}
+                      className="flex h-9 w-10 items-center justify-center border-b border-r border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
+                      aria-label="Orbit map left"
+                      title="Orbit left"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => easeMapCamera({ bearingDelta: 28 })}
+                      className="flex h-9 w-10 items-center justify-center border-b border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
+                      aria-label="Orbit map right"
+                      title="Orbit right"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => easeMapCamera({ pitchDelta: -10 })}
+                      className="flex h-9 w-10 items-center justify-center border-r border-white/10 text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
+                      aria-label="Tilt map down"
+                      title="Tilt down"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => easeMapCamera({ pitchDelta: 10 })}
+                      className="flex h-9 w-10 items-center justify-center text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
+                      aria-label="Tilt map up"
+                      title="Tilt up"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => easeMapCamera({ reset: true })}
+                    className="flex h-8 w-full items-center justify-center gap-1 border-t border-white/10 px-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/70 transition hover:bg-cyan-300/[0.12] hover:text-cyan-50 md:h-9"
+                    aria-label="Reset map camera north"
+                    title={`Reset camera north · ${mapCameraBearingLabel}`}
+                  >
+                    <span>North</span>
+                    <span className="hidden text-white/36 md:inline">{mapCameraBearingLabel}</span>
+                  </button>
+                </div>
+              ) : null}
             </div>
             {!mapReady ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgba(3,5,12,0.74)] backdrop-blur-sm">
@@ -11987,6 +12298,99 @@ export default function RealWorldMap() {
           overflow: hidden;
           background:
             radial-gradient(circle at 58% 44%, rgba(42, 24, 78, 0.92) 0%, rgba(8, 5, 22, 1) 54%, rgba(2, 2, 8, 1) 100%);
+        }
+
+        .desktop-chrome-map-fallback {
+          overflow: hidden;
+          background:
+            radial-gradient(circle at 42% 32%, rgba(34, 211, 238, 0.12), transparent 28%),
+            radial-gradient(circle at 60% 56%, rgba(184, 127, 255, 0.2), transparent 38%),
+            radial-gradient(ellipse at 24% 68%, rgba(245, 197, 24, 0.06), transparent 34%),
+            linear-gradient(180deg, #090d29 0%, #050819 100%);
+          contain: layout paint style;
+        }
+
+        .desktop-chrome-map-fallback::before {
+          content: '';
+          position: absolute;
+          inset: -10%;
+          background:
+            radial-gradient(circle at 30% 42%, rgba(245, 197, 24, 0.06), transparent 24%),
+            radial-gradient(circle at 68% 28%, rgba(34, 211, 238, 0.06), transparent 22%),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+          background-size: auto, auto, 72px 72px, 72px 72px;
+          opacity: 0.94;
+        }
+
+        .desktop-chrome-map-fallback-lines {
+          opacity: 1;
+        }
+
+        .desktop-chrome-map-fallback-road {
+          fill: none;
+          stroke: rgba(114, 87, 234, 0.9);
+          stroke-width: 0.86;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          filter: drop-shadow(0 0 6px rgba(104, 76, 218, 0.46));
+        }
+
+        .desktop-chrome-map-fallback-road--main {
+          stroke: rgba(139, 111, 255, 0.98);
+          stroke-width: 1.18;
+        }
+
+        .desktop-chrome-map-fallback-road--thin {
+          stroke: rgba(184, 127, 255, 0.42);
+          stroke-dasharray: 1.4 1.2;
+          stroke-width: 0.45;
+        }
+
+        .desktop-chrome-map-fallback-grid {
+          background:
+            radial-gradient(circle at 52% 48%, transparent 0 38%, rgba(0, 0, 0, 0.24) 76%),
+            linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.22) 100%);
+        }
+
+        .desktop-chrome-fallback-marker {
+          position: absolute;
+          z-index: 9;
+          display: flex;
+          width: 92px;
+          height: 92px;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          transform: translate(-50%, -50%);
+          transform-origin: 50% 50%;
+        }
+
+        .desktop-chrome-fallback-marker-inner {
+          display: block;
+          transform: translateZ(0) scale(0.84);
+          transform-origin: 50% 50%;
+        }
+
+        .desktop-chrome-fallback-marker:focus-visible {
+          outline: 2px solid rgba(34, 211, 238, 0.78);
+          outline-offset: 34px;
+        }
+
+        .desktop-chrome-user-location {
+          position: absolute;
+          z-index: 10;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(190, 249, 255, 0.86);
+          border-radius: 999px;
+          background: rgba(34, 211, 238, 0.82);
+          box-shadow:
+            0 0 0 7px rgba(34, 211, 238, 0.12),
+            0 0 20px rgba(34, 211, 238, 0.4);
+          transform: translate(-50%, -50%);
         }
 
         @media (min-width: 768px) {
@@ -14720,11 +15124,13 @@ export default function RealWorldMap() {
             isolation: isolate !important;
             contain: layout paint style !important;
             background: #050617 !important;
+            backface-visibility: hidden !important;
           }
 
           .basedare-maplibre-map :global(.maplibregl-canvas-container) {
             contain: paint !important;
             background: #050617 !important;
+            backface-visibility: hidden !important;
           }
 
           .basedare-maplibre-map :global(.maplibregl-canvas) {

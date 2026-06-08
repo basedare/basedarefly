@@ -65,3 +65,8 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - Codex touched Claude-owned `app/page.tsx` narrowly for a production load blocker: iPad Safari/Chrome were receiving the desktop `md` home hero/background path and could stall on hydration behind a black Suspense fallback.
 - `lib/client-performance.ts` now treats iPad/tablet WebKit viewports as constrained; home and global shell code use that to suppress the heaviest desktop-only animation/canvas/blur layers until larger `lg` viewports or interaction.
 - `app/page.tsx` now has a real static Suspense fallback with creator/venue/map CTAs instead of a blank black screen. This is a stability patch, not a homepage messaging/design ownership change.
+
+### Codex Desktop Chrome Map Fallback (2026-06-08)
+- Desktop Chrome/Chromium kept dropping MapLibre's WebGL base layer during marker/camera interaction even after DPR caps, canvas isolation, fade tuning, and camera-noop patches. The stable fix is now a Chrome-only DOM/SVG fallback inside `components/maps/RealWorldMap.tsx`.
+- In desktop Chromium only, `RealWorldMap` skips MapLibre startup, marks the map ready, renders `.desktop-chrome-map-fallback` with projected venue markers, and keeps marker clicks opening the normal venue side panel. Safari, mobile Chrome, and mobile Safari still use the MapLibre path.
+- Do not remove this fallback just because the MapLibre code still exists nearby; it is intentionally browser-gated to avoid Chrome's WebGL compositor flicker/black-tile bug.
