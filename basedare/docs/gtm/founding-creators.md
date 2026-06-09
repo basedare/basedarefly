@@ -20,9 +20,19 @@
 
 ## The Founding Creator offer (what they get)
 - **Founder badge** — permanent, "I was here first."
-- **Signal Points** — reputation that compounds; ranks you up in Creator Radar so venues/brands route *you* first. (Reputation only — no token or cash promise.)
-- **First dibs** on paid venue missions (First Spark) as they go live.
-- **We subsidize your first 1–2 missions** so you earn real USDC on day one.
+- **First paid missions** — first dibs on paid venue missions (First Spark) as they go live, and **we subsidize your first 1–2** so you earn real USDC on day one.
+- **Signal Points** — reputation that compounds; ranks you up in Creator Radar so venues/brands route *you* first.
+- **Early $BARE consideration** — founders are first in line for any future $BARE. (Signal Points are reputation today; no token is live and nothing is promised or guaranteed.)
+
+> Copy-discipline: frame $BARE only as "consideration / first in line," never a guaranteed value or amount. Keep it reputation-first.
+
+## Why join now (shareable one-pager)
+**BaseDare — Founding Creator (Siargao)**
+Get paid in USDC to do real-world missions: show up at a spot, prove it (QR + GPS), get paid. No cringe content quotas — real IRL stuff.
+- **Why now:** we're picking the **first ~20 founding creators** in Siargao. Early = Founder badge, first paid gigs, and Signal Points that rank you up before anyone else.
+- **What you do:** claim your tag → pick your mission styles → show up when a venue funds a mission → drop proof → cash out.
+- **The catch:** none. Onchain, instant payout, your reputation travels with you.
+- **Start (2 min):** basedare.xyz/creators/onboard
 
 ## The funnel (where you send them)
 **`basedare.xyz/creators/onboard`** → Claim tag → Tune radar (3–5 mission styles + radius) → Set availability → Unlock first missions. ~2 minutes. Tell them to connect a wallet so it saves (Coinbase/Base smart wallet is easiest).
@@ -58,11 +68,11 @@
 ---
 
 ## Tracker (duplicate this)
-| Handle | Channel | Archetype | Status | Claimed? | Route-ready? | Notes |
+| Handle | Niche | Location | Fit (1-5) | DM status | Reply | Next step |
 |---|---|---|---|---|---|---|
-| @example | IG DM | surf local | contacted | – | – | warm intro via X |
+| @example | surf local | General Luna | 5 | sent (IG) | – | follow up Tue |
 
-**Status flow:** contacted → replied → claimed tag → route-ready → first mission funded → first proof.
+**DM status flow:** sent → replied → claimed tag → route-ready → first mission funded → first proof.
 
 ## Daily rhythm (first 2 weeks)
 - 5–10 targeted DMs/day (quality > volume).
@@ -70,4 +80,4 @@
 - Fund 1–2 real starter missions/day so the map shows motion.
 - Post every completed mission as a **receipt** (real video + payout) — that's your best recruiting ad.
 
-**Done = ~20 claimed, ~10 route-ready, the map visibly alive in Siargao.**
+**North star this week (keep it this plain): get 10 real people through `/creators/onboard` and run 1 real paid test loop. Everything else is secondary.**
