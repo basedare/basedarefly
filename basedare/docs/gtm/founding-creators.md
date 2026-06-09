@@ -39,6 +39,69 @@ Get paid in USDC to do real-world missions: show up at a spot, prove it (QR + GP
 
 ---
 
+## Day-one operating sheet
+Use this when you sit down to send the first batch. Keep it narrow: **10 high-fit people before any broad posting.**
+
+### Fit score
+Score each person 1-5 before messaging:
+- **5:** already posts/hosts IRL in Siargao, physically shows up, knows venues or scenes, likely to do a mission this week.
+- **4:** local regular with visible activity, good personality fit, smaller audience but high reliability.
+- **3:** could work, but unclear if they will show up or connect a wallet.
+- **1-2:** mostly online, tourist passing through, big influencer energy, or needs too much explanation.
+
+Only send the first batch to **4s and 5s**.
+
+### First 10 target mix
+| Slot | Type | Why |
+|---|---|---|
+| 1-2 | Surf / beach locals | Natural fit for daytime venue and beach-route missions. |
+| 3-4 | Nightlife regulars | Fastest path to visible social proof and late-window missions. |
+| 5-6 | Cafe / food crawlers | Good for simple check-in, review, and receipt missions. |
+| 7-8 | Hostel / event connectors | They recruit others if the first payout feels real. |
+| 9-10 | Local micro-creators | Useful for receipt content after the first mission lands. |
+
+### Personalization tokens
+Add one real detail so it does not feel blasted:
+- "Saw you at / posting from [spot]."
+- "You seem plugged into [surf/nightlife/food/events]."
+- "This is very [their usual thing], but paid and verified."
+- "I am starting with a tiny Siargao founding crew, not a public launch."
+
+### Send format
+1. One human opener.
+2. One plain BaseDare sentence.
+3. One founder benefit.
+4. One action: claim tag.
+
+Example:
+> Yo [name] — saw your [surf/night/cafe] posts around [spot]. This is exactly the type of IRL signal BaseDare is built for: paid missions where you show up, prove it with QR/GPS, and get paid in USDC. I am picking the first ~20 Siargao founding creators, and founders get first paid venue routes. Claim your tag here, takes 2 min: basedare.xyz/creators/onboard
+
+### Reply triage
+| Reply | What it means | Your answer |
+|---|---|---|
+| "What is this?" | Interested but confused | Send the one-liner + offer to walk them through. |
+| "How much?" | Money-motivated | "Early missions vary, but first paid tests are real USDC. The first goal is getting you route-ready." |
+| "No wallet" | Setup friction | "No problem, Base smart wallet takes about 30s. I can walk you through it." |
+| "Sounds cool" | Move immediately | "Claim tag now and send me a screenshot when route-ready." |
+| No reply | Unknown | Follow up once after ~48h, then stop. |
+
+### When someone says yes
+Send:
+> Perfect. Do this now while I have founding slots open:
+> 1. Open basedare.xyz/creators/onboard
+> 2. Connect wallet
+> 3. Claim your tag
+> 4. Pick mission styles + availability
+> 5. Send me a screenshot when it says route-ready
+
+Then mark them in the tracker as **replied → claimed tag → route-ready**.
+
+### First mission promise
+Do not promise a specific payout until a funded mission exists. Say:
+> I am lining up the first paid venue tests now. Route-ready creators get first look. The first real proof receipt matters more than chasing a big payout.
+
+This keeps the offer exciting without overcommitting.
+
 ## Outreach messages (copy-paste, keep them human)
 
 **Instagram / TikTok DM (cold):**
