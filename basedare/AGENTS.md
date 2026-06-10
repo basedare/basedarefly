@@ -7,6 +7,9 @@ Rules:
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - After modifying code files in this session, run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` to keep the graph current
 
+## Product philosophy (read before building features / writing copy)
+Build *from* `docs/PHILOSOPHY.md` — BaseDare's durable principles: proof-of-presence is the moat; the map is the feed (anti-viral); lead with connection/adventure/belonging, back it with verified+paid; one city / one loop / one receipt; subtraction over addition; reputation now / token later; working beats perfect (verify before shipping). Market evidence lives in `brain-vault/03-insights/`.
+
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
