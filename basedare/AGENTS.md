@@ -11,9 +11,12 @@ Rules:
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### 🛑 MAP OWNERSHIP CHANGED (2026-06-09) — Claude now owns the map
+Codex's `4704b999 "stabilize desktop Chrome map rendering"` **broke the desktop-Chrome map** (froze the renderer via `preserveDrawingBuffer:isDesktopChromiumRenderer` + "camera movement disabled / static redraws" → tiles never composite after the first frame; only road lines + DOM markers showed). It was reverted (restored `RealWorldMap.tsx` to pre-`4704b999`). **Codex: do NOT edit `components/maps/RealWorldMap.tsx` or `app/map/*` anymore** — Claude owns the map + the proper flicker fix now. Do not re-attempt renderer-freezing. The correct flicker approach is marker-animation pausing during gesture + `isolation: isolate` on the canvas host (NOT disabling camera/redraws).
+
 ### Ownership right now
-- **Codex owns:** the map + control chrome — `components/maps/RealWorldMap.tsx`, `app/map/*`, `components/control/ControlChrome.tsx`, `components/BackgroundLayers.tsx`, and the map/control-portal styling in `app/first-spark/page.tsx` + `app/scouts/dashboard/page.tsx`. (Recent: "Stabilize desktop Chrome map rendering", "align control portals".)
-- **Claude owns:** creator surfaces + onboarding — `app/creators/*`, `components/creators/*`, `app/claim-tag/*`, `app/creator/[tag]/*`, the Creator Passport / Signal Points onboarding, **the homepage `app/page.tsx` (role-clarity GTM rewrite — claimed 2026-06)**, `docs/gtm/*`, and wiring the Signal Points side of Codex's `lib/vault-contributions.ts` `onVaultContribution` seam. The shared design kit lives in `components/control/` (tokens) — coordinate before changing tokens.
+- **Claude owns:** **the map** (`components/maps/RealWorldMap.tsx`, `app/map/*`) + creator surfaces + onboarding — `app/creators/*`, `components/creators/*`, `app/claim-tag/*`, `app/creator/[tag]/*`, the Creator Passport / Signal Points onboarding, the homepage `app/page.tsx`, `docs/gtm/*`, and the Signal Points side of `lib/vault-contributions.ts`. Shared design kit in `components/control/` (tokens) — coordinate before changing tokens.
+- **Codex owns:** control chrome (`components/control/ControlChrome.tsx`, `components/BackgroundLayers.tsx`), venue/vault read+write (`lib/spot-vault.ts`, `lib/venues.ts`, `app/api/venues/*`), and the map/control-portal *styling* in `app/first-spark` + `app/scouts/dashboard`. **Not** the map renderer.
 
 ### Map flicker — Claude diagnosis for Codex (2026-06-04)
 Confirmed live (desktop, dpr 2): pixelRatio is capped to 1 (`getStableMapPixelRatio` ✓, canvas backing 1198×576 = CSS size) and the canvas is layer-promoted (`transform: translateZ(0)`, `contain: paint`) — good. Residual flicker is most likely NOT the canvas itself now. Prioritized remaining suspects:
