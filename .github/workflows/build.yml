@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: basedare
     
     steps:
       - name: Checkout code
@@ -20,6 +23,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: basedare/package-lock.json
       
       - name: Install dependencies
         run: npm ci
@@ -39,5 +43,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: .next
+          path: basedare/.next
           retention-days: 7
