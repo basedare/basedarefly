@@ -954,6 +954,9 @@ function getStableMapPixelRatio(isMobileRenderer: boolean) {
   return Math.min(devicePixelRatio, 1);
 }
 
+// Tile crossfade for desktop Chromium. 0 = hard-pop on zoom (old behavior).
+const DESKTOP_CHROMIUM_TILE_FADE_MS = 120;
+
 function loadOpenFreeMapStyle() {
   if (!openFreeMapStylePromise) {
     openFreeMapStylePromise = fetch(OPENFREEMAP_LIBERTY_STYLE_URL)
@@ -3361,7 +3364,6 @@ export default function RealWorldMap() {
   } | null>(null);
   const lastTargetCameraKeyRef = useRef<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [mapInteractionQuiet, setMapInteractionQuiet] = useState(false);
   const [mapRuntimeError, setMapRuntimeError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -4954,6 +4956,20 @@ export default function RealWorldMap() {
       mapInteractionQuietTimerRef.current = null;
     };
 
+    // data-map-moving drives the gesture calm-down CSS (pause marker animations,
+    // hide crosshair/badges). Toggled imperatively on the wrapper instead of via
+    // React state: a state flip here re-rendered the entire component at gesture
+    // start/end, which itself read as flicker on desktop Chrome.
+    const setMapMovingAttribute = (moving: boolean) => {
+      const node = mapViewportRef.current;
+      if (!node) return;
+      if (moving) {
+        node.setAttribute('data-map-moving', 'true');
+      } else {
+        node.removeAttribute('data-map-moving');
+      }
+    };
+
     const isMobileRenderer = window.matchMedia('(max-width: 767px)').matches;
     const isDesktopChromiumRenderer = isDesktopChromiumMapRenderer(isMobileRenderer);
     const initialCamera = getDefaultMapCamera(isMobileRenderer);
@@ -4977,7 +4993,9 @@ export default function RealWorldMap() {
           // Desktop Chromium is the problem renderer here. Crossfaded tiles add
           // another transient WebGL layer, which makes Chrome more likely to
           // present stale tile regions while the page composites.
-          fadeDuration: isMobileRenderer || isDesktopChromiumRenderer ? 0 : 150,
+          // Desktop Chromium: a short tile crossfade so zoom-level swaps don't
+          // hard-pop (reads as flicker). Set to 0 to A/B the old behavior.
+          fadeDuration: isMobileRenderer ? 0 : isDesktopChromiumRenderer ? DESKTOP_CHROMIUM_TILE_FADE_MS : 150,
           maxPitch: isMobileRenderer ? MAX_MOBILE_MAP_PITCH : MAX_DESKTOP_MAP_PITCH,
           pixelRatio: stablePixelRatio,
           trackResize: false,
@@ -5059,7 +5077,7 @@ export default function RealWorldMap() {
         }
 
         clearMapInteractionQuietTimer();
-        setMapInteractionQuiet(true);
+        setMapMovingAttribute(true);
 
         if (!isMobileRenderer) {
           markDesktopMapSettling(540);
@@ -5073,14 +5091,14 @@ export default function RealWorldMap() {
         if (!isMobileRenderer) {
           markDesktopMapSettling(260);
           mapInteractionQuietTimerRef.current = window.setTimeout(() => {
-            setMapInteractionQuiet(false);
+            setMapMovingAttribute(false);
             mapInteractionQuietTimerRef.current = null;
           }, 180);
           return;
         }
 
         mapInteractionQuietTimerRef.current = window.setTimeout(() => {
-          setMapInteractionQuiet(false);
+          setMapMovingAttribute(false);
           mapInteractionQuietTimerRef.current = null;
         }, 140);
       };
@@ -5226,7 +5244,7 @@ export default function RealWorldMap() {
           mapInstanceRef.current = null;
         }
         setMapReady(false);
-        setMapInteractionQuiet(false);
+        setMapMovingAttribute(false);
       };
     };
 
@@ -5238,7 +5256,7 @@ export default function RealWorldMap() {
       cleanupMap?.();
       cleanupMap = null;
       setMapReady(false);
-      setMapInteractionQuiet(false);
+      setMapMovingAttribute(false);
     };
   }, [markDesktopMapSettling]);
 
@@ -9815,7 +9833,6 @@ export default function RealWorldMap() {
             ref={mapViewportRef}
             data-map-preset={mapPreset}
             data-crosshair={!isMobileViewport ? 'true' : undefined}
-            data-map-moving={mapInteractionQuiet ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
                 ? 'map-container-wrapper--immersive min-h-0 flex-1'
@@ -9851,7 +9868,9 @@ export default function RealWorldMap() {
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />
             <div className="scanlines pointer-events-none absolute inset-0 z-[6]" />
             <div className="glass-haze pointer-events-none absolute inset-0 z-[7]" />
-            {!isMobileViewport && !mapInteractionQuiet ? (
+            {!isMobileViewport ? (
+              // Stays mounted during gestures; [data-map-moving='true'] CSS hides
+              // it. Unmount/remount per gesture was itself a visible pop.
               <MapCrosshair
                 containerRef={mapViewportRef}
                 horizontalColor="rgba(184, 127, 255, 0.82)"
@@ -16094,7 +16113,10 @@ export default function RealWorldMap() {
           filter: blur(2px);
         }
 
-        @media (max-width: 767px) {
+        /* Gesture calm-down: was mobile-only, now ALL viewports — desktop Chrome's
+           residual flicker is marker animations repainting over the canvas during
+           pan/zoom. Only active while data-map-moving='true'. */
+        @media (min-width: 0px) {
           .basedare-maplibre-map[data-map-moving='true'] {
             --mesh-opacity: 0.045;
             --links-opacity: 0.055;
