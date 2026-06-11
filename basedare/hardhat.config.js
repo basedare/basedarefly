@@ -1,11 +1,28 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config({ path: '.env.local' });
 
-// Use REFEREE_PRIVATE_KEY as fallback if DEPLOYER_PRIVATE_KEY not set
+function normalizePrivateKey(key) {
+  if (!key) return null;
+  const normalized = key
+    .trim()
+    .replace(/^['"`]|['"`]$/g, '')
+    .replace(/[\[\]\s\u200B-\u200D\uFEFF]/g, '');
+
+  if (/^[a-fA-F0-9]{64}$/.test(normalized)) {
+    return `0x${normalized}`;
+  }
+
+  return /^0x[a-fA-F0-9]{64}$/.test(normalized) ? normalized : null;
+}
+
+// Prefer an explicit deployer, then the dedicated referee hot wallet, then legacy fallback.
 const getPrivateKey = () => {
-  const key = process.env.DEPLOYER_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
-  if (!key) return [];
-  return [key.trim().replace(/[\[\]]/g, '')];
+  const key =
+    process.env.DEPLOYER_PRIVATE_KEY ||
+    process.env.REFEREE_HOT_WALLET_PRIVATE_KEY ||
+    process.env.REFEREE_PRIVATE_KEY;
+  const normalized = normalizePrivateKey(key);
+  return normalized ? [normalized] : [];
 };
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -59,7 +76,6 @@ module.exports = {
     ],
   },
 };
-
 
 
 

@@ -4,6 +4,35 @@ const hre = require("hardhat");
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS || "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PLATFORM_WALLET = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS;
 
+function normalizePrivateKey(key) {
+  if (!key) return null;
+  const normalized = key
+    .trim()
+    .replace(/^['"`]|['"`]$/g, '')
+    .replace(/[\[\]\s\u200B-\u200D\uFEFF]/g, '');
+
+  if (/^[a-fA-F0-9]{64}$/.test(normalized)) {
+    return `0x${normalized}`;
+  }
+
+  return /^0x[a-fA-F0-9]{64}$/.test(normalized) ? normalized : null;
+}
+
+function getRefereeAddress(fallbackAddress) {
+  if (process.env.REFEREE_HOT_WALLET_ADDRESS) {
+    return process.env.REFEREE_HOT_WALLET_ADDRESS;
+  }
+
+  const refereeKey = normalizePrivateKey(
+    process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY
+  );
+  if (!refereeKey) {
+    return fallbackAddress;
+  }
+
+  return new hre.ethers.Wallet(refereeKey).address;
+}
+
 async function main() {
   const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
@@ -38,14 +67,11 @@ async function main() {
   console.log("SUCCESS! BaseDareBountyV2 deployed to:", deployedAddress);
   console.log("=======================================================");
 
-  if (process.env.REFEREE_HOT_WALLET_ADDRESS) {
-    console.log("\nSetting AI Referee Address...");
-    const tx = await bounty.setAIRefereeAddress(process.env.REFEREE_HOT_WALLET_ADDRESS);
-    await tx.wait();
-    console.log("AI Referee set to:", process.env.REFEREE_HOT_WALLET_ADDRESS);
-  } else {
-    console.log("\nREFEREE_HOT_WALLET_ADDRESS not set. Run setAIRefereeAddress manually before payout/refund.");
-  }
+  const refereeAddress = getRefereeAddress(deployer.address);
+  console.log("\nSetting AI Referee Address...");
+  const tx = await bounty.setAIRefereeAddress(refereeAddress);
+  await tx.wait();
+  console.log("AI Referee set to:", refereeAddress);
 
   console.log("\nUpdate deployment env when ready to cut over:");
   console.log(`NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS=${deployedAddress}`);
