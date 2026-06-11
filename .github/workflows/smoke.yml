@@ -1,0 +1,59 @@
+name: Launch Smoke Loop
+
+# Nightly guardrail for the money rails + funnel: runs `npm run smoke` against
+# the deployed app. Fails (and notifies) only on BLOCKED checks.
+#
+# Required repo SECRETS (Settings → Secrets → Actions):
+#   DATABASE_URL        – Supabase pooled connection (table checks)
+#   PINATA_JWT          – proof media storage check
+# Optional secret: DIRECT_URL
+#
+# Required repo VARIABLES (Settings → Variables → Actions):
+#   SMOKE_URL                             – e.g. https://www.basedare.xyz
+#   NEXT_PUBLIC_NETWORK                   – mainnet | sepolia
+#   NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS   – live BaseDareBountyV2
+#   NEXT_PUBLIC_USDC_ADDRESS
+#   NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS
+#   REFEREE_HOT_WALLET_ADDRESS            – ADDRESS ONLY. The referee private
+#                                           key must NEVER be added to CI.
+#   SIMULATE_BOUNTIES / NEXT_PUBLIC_SIMULATE_BOUNTIES – "false" in prod
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # 21:00 UTC = 05:00 Asia/Manila
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: basedare
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: basedare/package-lock.json
+
+      # postinstall runs `prisma generate` (schema only — no DB connection needed)
+      - run: npm ci
+
+      - name: Run launch smoke
+        run: npm run smoke
+        env:
+          BASEDARE_SMOKE_ENV: ci
+          BASEDARE_SMOKE_URL: ${{ vars.SMOKE_URL || 'https://www.basedare.xyz' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          NEXT_PUBLIC_NETWORK: ${{ vars.NEXT_PUBLIC_NETWORK }}
+          NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS: ${{ vars.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS }}
+          NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.NEXT_PUBLIC_USDC_ADDRESS }}
+          NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS: ${{ vars.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS }}
+          REFEREE_HOT_WALLET_ADDRESS: ${{ vars.REFEREE_HOT_WALLET_ADDRESS }}
+          SIMULATE_BOUNTIES: ${{ vars.SIMULATE_BOUNTIES }}
+          NEXT_PUBLIC_SIMULATE_BOUNTIES: ${{ vars.NEXT_PUBLIC_SIMULATE_BOUNTIES }}
