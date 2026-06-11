@@ -37,6 +37,11 @@ npx prisma studio                            # Visual DB editor
 - `app/api/verify-proof/route.ts` - AI Referee endpoint
 - `components/Providers.tsx` - Wagmi/OnchainKit/TanStack Query setup
 
+## RTK
+Use `rtk` for broad codebase inspection to avoid flooding context:
+`rtk rg`, `rtk grep`, `rtk find`, `rtk ls`, `rtk git diff`.
+Use normal commands for builds, tests, deployments, migrations, commits, pushes, and exact targeted file ranges (sed/Read after locating code).
+
 ## Rules
 - **Architecture**: See `.claude/rules/architecture.md` - frontend patterns, contract interaction, component organization, state management, API conventions
 - **Security**: See `.claude/rules/security.md` - mandatory Zod validation, nonReentrant guards, private key handling, address validation
