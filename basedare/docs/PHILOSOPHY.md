@@ -32,5 +32,22 @@ The **"IRL economy"** — younger people investing in offline experiences and hu
 - **Run water through the pipes.** Plumbing isn't proven until a real signed wallet action completes the loop end-to-end. Features are secondary to one proven loop.
 - **Two agents, one repo:** respect ownership in `AGENTS.md`; coordinate on shared files.
 
+## Operating loops (not feature queues)
+
+BaseDare grows by tightening loops, not by adding surfaces. Before building anything, name which loop it strengthens and whether that loop has already run with a real human.
+
+1. **Launch smoke loop:** before outreach or deploy confidence, run `npm run smoke`. It checks env, routes, passport/vault protections, creator payload shape, chain config, and payout fee sanity.
+2. **Creator onboarding loop:** a real person claims a tag, tunes their Passport, becomes route-ready, and can be routed into paid missions.
+3. **Venue pilot loop:** a venue funds one First Spark or micro-mission and sees verified arrivals or usable proof.
+4. **Paid proof loop:** fund -> show up -> QR/GPS proof -> verify -> USDC payout/refund. This is the product heartbeat.
+5. **Receipt loop:** each completion becomes a shareable proof artifact. Manual until the first 10 real completions.
+6. **Reputation loop:** Signal Points rank trustworthy creators and gate better opportunities. Token talk stays later and carefully hedged.
+7. **Spot vault loop:** a verified visitor leaves honest place signal, making the map more useful for the next explorer.
+8. **Safety loop:** every money or IRL action has policy, moderation, and rollback paths before scale.
+9. **Learning loop:** every DM, venue objection, and proof run creates an insight in `brain-vault/`, not a new feature request by default.
+10. **Expansion loop:** only repeat to a new city after one city has repeat venues, active creators, and receipts without founder hand-holding.
+
+Hard rule: **no new product surface until it either unblocks the paid proof loop or improves a loop that has already produced real-world evidence.**
+
 ## The north star (right now)
 **Get 10 real creators through `/creators/onboard` and run 1 real paid loop.** Everything else is secondary.

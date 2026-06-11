@@ -14,6 +14,7 @@ Use this at the start of any BaseDare Brain session.
 - [[00-control/today]]
 - [[00-control/scorecard]]
 - [[00-control/open-loops]]
+- [[05-playbooks/loop-map]]
 
 ## 2. Pick The Highest-Leverage Objective
 

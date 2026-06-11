@@ -22,7 +22,8 @@
     "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
     "safety:ux": "node scripts/launch-gauntlet.mjs",
     "push:keys": "node scripts/generate-vapid-keys.mjs",
-    "safety:static": "node scripts/static-production-safety.mjs"
+    "safety:static": "node scripts/static-production-safety.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
