@@ -951,7 +951,12 @@ function getStableMapPixelRatio(isMobileRenderer: boolean) {
     return devicePixelRatio;
   }
 
-  return Math.min(devicePixelRatio, 1);
+  // Cap at 2, not 1: rendering the canvas at half resolution on retina
+  // displays forces Chrome to upscale every frame, which reads as shimmer
+  // during pan/zoom — the same hardware runs Safari at full DPR without
+  // artifacts. The gesture-time load this cap originally guarded against is
+  // now handled by data-map-moving calm-down + the zoom-band declutter.
+  return Math.min(devicePixelRatio, 2);
 }
 
 // Tile crossfade for desktop Chromium. 0 = hard-pop on zoom (old behavior).
@@ -9078,7 +9083,7 @@ export default function RealWorldMap() {
       <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Who&apos;s Here</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">In the room</span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/46">
               {venueRoomWhoHere.length}
             </span>
@@ -9204,7 +9209,7 @@ export default function RealWorldMap() {
             ) : (
               <EyeOff className="h-3.5 w-3.5" />
             )}
-            {venueRoomVisible ? "Visible in Who's Here" : "Hidden from Who's Here"}
+            {venueRoomVisible ? 'Visible in the room' : 'Hidden from the room'}
           </button>
         </div>
       ) : (
@@ -9212,15 +9217,17 @@ export default function RealWorldMap() {
           <p className="min-w-0 text-xs leading-5 text-white/52">
             {venueRoomAccess?.reason ?? 'Check in or get nearby to open this room.'}
           </p>
-          <button
-            type="button"
-            onClick={requestApproximateLocation}
-            disabled={locating}
-            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-violet-300/24 bg-violet-500/[0.1] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100 transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-          >
-            {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-            Locate
-          </button>
+          {userLocation ? (
+            <button
+              type="button"
+              onClick={requestApproximateLocation}
+              disabled={locating}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-violet-300/24 bg-violet-500/[0.1] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100 transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+              {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+              Refresh
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -9236,6 +9243,18 @@ export default function RealWorldMap() {
     ? Math.round(spotVault.reviews.worthItRatio * 100)
     : null;
   const spotVaultReviewActionLabel = spotVault?.reviews.mine ? 'Update signal' : 'Leave signal';
+  // One empty-state, not four: when the vault has zero proof/visitors/wins,
+  // zero timeline, and zero reviews, the header line carries the message and
+  // the zero-count stat grid + "No reviews yet" + "Vault is empty" all hide.
+  const spotVaultIsEmpty =
+    !spotVaultLoading &&
+    !spotVaultError &&
+    Boolean(spotVault) &&
+    (spotVault?.timeline.length ?? 0) === 0 &&
+    (spotVault?.reviews.count ?? 0) === 0 &&
+    (spotVault?.stats.proofs ?? selectedPlace?.approvedCount ?? 0) === 0 &&
+    (spotVault?.stats.uniqueVisitors ?? 0) === 0 &&
+    (spotVault?.stats.completedDares ?? 0) === 0;
 
   const selectedSpotVaultRail = selectedPlace?.slug ? (
     <div className="map-panel-section mt-3 rounded-[22px] border border-[#f5c518]/16 bg-[linear-gradient(180deg,rgba(245,197,24,0.10)_0%,rgba(12,10,18,0.94)_34%,rgba(6,7,12,0.96)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
@@ -9250,7 +9269,7 @@ export default function RealWorldMap() {
               ? 'Reading permanent signal...'
               : spotVault?.timeline.length
                 ? 'Permanent proof trail.'
-                : 'No vault signal yet.'}
+                : 'No proof yet — be the first to check in.'}
           </p>
         </div>
         <span className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
@@ -9258,6 +9277,7 @@ export default function RealWorldMap() {
         </span>
       </div>
 
+      {spotVaultIsEmpty ? null : (
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Proof</p>
@@ -9272,6 +9292,7 @@ export default function RealWorldMap() {
           <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.completedDares ?? 0}</p>
         </div>
       </div>
+      )}
 
       <div className="mt-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
@@ -9290,7 +9311,7 @@ export default function RealWorldMap() {
         </div>
       </div>
 
-      {!spotVaultLoading && !spotVaultError && spotVault ? (
+      {!spotVaultLoading && !spotVaultError && spotVault && (!spotVaultIsEmpty || spotVault.viewer.canLeaveSignal) ? (
         <div className="mt-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -9493,7 +9514,7 @@ export default function RealWorldMap() {
               </div>
             </Link>
           ))
-        ) : (
+        ) : spotVaultIsEmpty ? null : (
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3">
             <p className="text-sm font-semibold text-white">Vault is empty.</p>
             <p className="mt-1.5 text-xs leading-5 text-white/54">
