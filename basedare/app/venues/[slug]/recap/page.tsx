@@ -3,19 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowRight,
-  BadgeCheck,
   BarChart3,
   CheckCircle2,
   Clock3,
   Film,
-  Flame,
   MapPin,
-  QrCode,
-  ShieldCheck,
-  Sparkles,
-  Trophy,
-  Users,
-  Wallet,
   Waves,
 } from 'lucide-react';
 import { getVenueDetailBySlug } from '@/lib/venues';
@@ -24,7 +16,7 @@ import {
   buildVenueActivationIntakeHref,
   buildVenueChallengeCreateHref,
 } from '@/lib/venue-launch';
-import type { VenueDetail, VenueTimelineMoment } from '@/lib/venue-types';
+import type { VenueTimelineMoment } from '@/lib/venue-types';
 import VenuePageShell from '../../VenuePageShell';
 import VenueReportTrackedLink from '../report/VenueReportTrackedLink';
 import VenueRecapActions from './VenueRecapActions';
@@ -58,15 +50,6 @@ function formatRecapDate(value: string | null | undefined) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  });
-}
-
-function formatRecapTime(value: string | null | undefined) {
-  if (!value) return 'Waiting';
-
-  return new Date(value).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
   });
 }
 
@@ -109,32 +92,6 @@ function getRecapStatusCopy(status: RecapStatus) {
         className: 'border-[#f5c518]/24 bg-[#f5c518]/[0.1] text-[#f8dd72]',
       };
   }
-}
-
-function buildContactHref(input: {
-  topic: string;
-  venue: VenueDetail;
-  intent: string;
-}) {
-  const params = new URLSearchParams({
-    topic: input.topic,
-    venue: input.venue.name,
-    venueSlug: input.venue.slug,
-    source: 'venue-recap',
-    intent: input.intent,
-  });
-  if (input.venue.city) params.set('city', input.venue.city);
-  return `/contact?${params.toString()}`;
-}
-
-function buildSponsorVenueHref(venue: VenueDetail) {
-  const params = new URLSearchParams({
-    venue: venue.slug,
-    compose: '1',
-    source: 'venue-recap',
-    objective: `Sponsor a BaseDare activation at ${venue.name}. Bring people into the room, capture proof, and leave a receipt the venue can repost.`,
-  });
-  return `/brands/portal?${params.toString()}`;
 }
 
 function getMomentTone(moment: VenueTimelineMoment) {
@@ -215,12 +172,6 @@ export default async function VenueRecapPage(
       offerId: 'first-spark',
       source: 'venue',
     });
-  const upgradeVenueMemoryHref = buildContactHref({
-    topic: 'venue-memory',
-    venue,
-    intent: 'upgrade',
-  });
-  const sponsorVenueHref = buildSponsorVenueHref(venue);
   const consoleHref = venue.commandCenter.consoleUrl ?? `/venues/${encodeURIComponent(venue.slug)}/console`;
 
   const last7DayWindow = venue.roiSnapshot.windows.last7Days;
@@ -284,73 +235,6 @@ export default async function VenueRecapPage(
       detail: `${venue.activeDares.length} live drop${venue.activeDares.length === 1 ? '' : 's'}`,
       tone: 'text-emerald-100',
       currency: true,
-    },
-  ];
-
-  const deliveredLoop = [
-    {
-      label: 'Venue Page',
-      title: 'Live place memory',
-      detail: `${venue.name} has a public venue node with map presence, creator marks, and a replayable story surface.`,
-      complete: true,
-      icon: <MapPin className="h-4 w-4" />,
-    },
-    {
-      label: 'Venue Pass',
-      title: venue.liveSession?.status === 'LIVE' ? 'QR rail live' : 'QR rail ready',
-      detail: `BaseDare Venue Pass supports encrypted QR + GPS presence inside ${venue.checkInRadiusMeters}m with ${venue.qrRotationSeconds}s rotation.`,
-      complete: Boolean(venue.liveSession) || venue.commandCenter.status === 'live',
-      icon: <QrCode className="h-4 w-4" />,
-    },
-    {
-      label: 'Funded Drop',
-      title: venue.activeDares.length > 0 ? `${venue.activeDares.length} money route${venue.activeDares.length === 1 ? '' : 's'}` : 'First drop open',
-      detail: venue.activeDares[0]
-        ? `${venue.activeDares[0].title} is the current funded reason to show up.`
-        : 'The next buyer can fund the first drop and own the cleanest signal at this venue.',
-      complete: venue.activeDares.length > 0,
-      icon: <Wallet className="h-4 w-4" />,
-    },
-    {
-      label: 'Proof Trail',
-      title: proofCount > 0 ? `${proofCount} proof signal${proofCount === 1 ? '' : 's'}` : 'Waiting for proof',
-      detail: proofCount > 0
-        ? 'Proof is visible enough to send the buyer a concrete recap instead of a vague campaign update.'
-        : 'One completed dare, mark, or scan will give this activation its first proof relic.',
-      complete: proofCount > 0,
-      icon: <BadgeCheck className="h-4 w-4" />,
-    },
-  ];
-
-  const closeCards = [
-    {
-      label: 'Run another Spark',
-      title: venue.activationInsight.repeatReady ? 'Repeat the proven pattern' : 'Start the first paid pilot',
-      detail: venue.activationInsight.repeatReady
-        ? 'Use the best existing venue signal and run it again with cleaner creator routing.'
-        : 'Launch a 7-day First Spark so the venue sees people, proof, and a clean recap.',
-      href: runAnotherSparkHref,
-      intent: 'repeat' as const,
-      className: 'border-[#f5c518]/24 bg-[#f5c518]/[0.12] text-[#f8dd72]',
-      icon: <Flame className="h-4 w-4" />,
-    },
-    {
-      label: 'Upgrade Venue Memory',
-      title: 'Turn the pilot into owned venue history',
-      detail: 'Claim the QR console, proof archive, recurring activations, and featured map placement after value is visible.',
-      href: upgradeVenueMemoryHref,
-      intent: 'activation' as const,
-      className: 'border-cyan-400/24 bg-cyan-500/[0.1] text-cyan-100',
-      icon: <ShieldCheck className="h-4 w-4" />,
-    },
-    {
-      label: 'Sponsor this venue',
-      title: 'Put brand money behind the next night',
-      detail: 'Route a sponsor into the venue while the receipt gives them proof that this place can move people.',
-      href: sponsorVenueHref,
-      intent: 'activation' as const,
-      className: 'border-fuchsia-400/24 bg-fuchsia-500/[0.1] text-fuchsia-100',
-      icon: <Sparkles className="h-4 w-4" />,
     },
   ];
 
@@ -444,50 +328,6 @@ export default async function VenueRecapPage(
                 <p className="mt-2 text-sm leading-5 text-white/52">{metric.detail}</p>
               </div>
             ))}
-          </div>
-
-          <div className={`${raisedPanelClass} px-5 py-6 sm:px-7`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_92%_12%,rgba(245,197,24,0.1),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_42%,rgba(0,0,0,0.24)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
-            <div className="relative">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/58">
-                    Activation Loop Delivered
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">
-                    Not an impression report. A proof receipt.
-                  </h2>
-                </div>
-                <Link
-                  href={reportHref}
-                  className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-                >
-                  Open report card
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {deliveredLoop.map((item) => (
-                  <div key={item.label} className={`${insetCardClass} flex min-h-[13rem] flex-col px-4 py-4`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-                        item.complete
-                          ? 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-100'
-                          : 'border-white/10 bg-white/[0.04] text-white/48'
-                      }`}>
-                        {item.icon}
-                        {item.label}
-                      </span>
-                      <CheckCircle2 className={`h-4 w-4 ${item.complete ? 'text-emerald-200' : 'text-white/22'}`} />
-                    </div>
-                    <p className="mt-4 text-xl font-black text-white">{item.title}</p>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-white/58">{item.detail}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
@@ -587,6 +427,7 @@ export default async function VenueRecapPage(
             </div>
 
             <div className="space-y-6">
+              {mediaMoments.length > 0 ? (
               <div className={`${softCardClass} p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center gap-2">
@@ -599,8 +440,7 @@ export default async function VenueRecapPage(
                 </p>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  {mediaMoments.length > 0 ? (
-                    mediaMoments.map((moment) => (
+                  {mediaMoments.map((moment) => (
                       <div key={`media-${moment.id}`} className={`${insetCardClass} overflow-hidden`}>
                         <div className="relative h-40 overflow-hidden border-b border-white/10 bg-black/30">
                           {moment.mediaUrl && moment.mediaType === 'IMAGE' ? (
@@ -623,109 +463,10 @@ export default async function VenueRecapPage(
                           </p>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className={`${insetCardClass} px-4 py-5`}>
-                      <p className="text-sm leading-6 text-white/58">
-                        No reusable media is attached yet. The recap still works as a proof rail, but the next Spark should force one clear content deliverable.
-                      </p>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
-
-              <div className={`${softCardClass} p-6`}>
-                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-[#f8dd72]" />
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Creator Signal</p>
-                </div>
-                <h2 className="mt-2 text-2xl font-bold">
-                  {bestCreator?.creatorTag ?? 'Local legend still forming'}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-white/58">
-                  {bestCreator
-                    ? `${bestCreator.creatorTag} currently has the strongest venue-specific proof signal: ${bestCreator.marksHere} marks here, ${bestCreator.completedDares} completed dares, and ${formatCurrency(bestCreator.totalEarned)} earned.`
-                    : 'One more proof moment will make the strongest creator route easier to sell to the venue or sponsor.'}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Top creator</p>
-                    <p className="mt-2 truncate text-lg font-black text-white">{bestCreator?.creatorTag ?? 'Emerging'}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Trust</p>
-                    <p className="mt-2 text-lg font-black text-cyan-100">
-                      {bestCreator ? `${bestCreator.trustLabel} L${bestCreator.trustLevel}` : 'Building'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${softCardClass} p-6`}>
-                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-cyan-200" />
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Ops Snapshot</p>
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div className={`${insetCardClass} flex items-center justify-between gap-4 px-4 py-4`}>
-                    <span className="text-sm text-white/55">Last check-in</span>
-                    <span className="font-semibold text-white">{formatRecapTime(venue.liveSession?.lastCheckInAt)}</span>
-                  </div>
-                  <div className={`${insetCardClass} flex items-center justify-between gap-4 px-4 py-4`}>
-                    <span className="text-sm text-white/55">QR session</span>
-                    <span className="font-semibold text-white">{venue.liveSession?.status ?? 'Ready'}</span>
-                  </div>
-                  <div className={`${insetCardClass} flex items-center justify-between gap-4 px-4 py-4`}>
-                    <span className="text-sm text-white/55">Scans last hour</span>
-                    <span className="font-semibold text-white">{venue.liveStats.scansLastHour}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`${raisedPanelClass} px-5 py-6 sm:px-7`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.13),transparent_34%),radial-gradient(circle_at_92%_20%,rgba(168,85,247,0.12),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_42%,rgba(0,0,0,0.24)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/35 to-transparent" />
-            <div className="relative">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#f8dd72]/70">
-                    Close The Loop
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">
-                    The receipt should sell the next move.
-                  </h2>
-                </div>
-                <span className="w-fit rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/52">
-                  pilot to paid ladder
-                </span>
-              </div>
-
-              <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                {closeCards.map((card) => (
-                  <div key={card.label} className={`${insetCardClass} flex min-h-[18rem] flex-col px-5 py-5`}>
-                    <span className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] ${card.className}`}>
-                      {card.icon}
-                      {card.label}
-                    </span>
-                    <h3 className="mt-4 text-xl font-black text-white">{card.title}</h3>
-                    <p className="mt-2 flex-1 text-sm leading-6 text-white/58">{card.detail}</p>
-                    <VenueReportTrackedLink
-                      href={card.href}
-                      venueSlug={venue.slug}
-                      audience={audience}
-                      intent={card.intent}
-                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-                    >
-                      Open rail
-                      <ArrowRight className="h-4 w-4" />
-                    </VenueReportTrackedLink>
-                  </div>
-                ))}
-              </div>
+              ) : null}
             </div>
           </div>
 
