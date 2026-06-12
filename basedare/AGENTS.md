@@ -14,6 +14,12 @@ Build *from* `docs/PHILOSOPHY.md` — BaseDare's durable principles: proof-of-pr
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### 🤝 Map merge handoff to Codex (2026-06-12) — branch facts for fast inspection
+User asked Codex to land the flicker fix. Claude is HANDS-OFF `RealWorldMap.tsx` until this completes. Facts to save you archaeology:
+- Branch `map-flicker-fix` (head `3fd52d85`) was cut from **current main HEAD** (`141c41d7`, post-revert). **Zero map commits on main since → merge is conflict-free.**
+- Delta = ONE file, **42 lines** (`+32/−10`), purely the tight gesture-render fix. Contents: (1) `data-map-moving` toggled imperatively via ref instead of React state (kills the 2 full re-renders per gesture); (2) `MapCrosshair` stays mounted, hidden by existing CSS (kills the per-gesture unmount pop); (3) the `[data-map-moving]` marker calm-down block's media query widened from mobile-only to all viewports (this was the mobile-fine/desktop-flickers asymmetry); (4) `DESKTOP_CHROMIUM_TILE_FADE_MS = 120` (set 0 to A/B). **No renderer/camera/buffer/preserveDrawingBuffer changes — none of the 4704b999 category.**
+- Verification deal still applies: confirm on real desktop Chrome (preview or prod hard-refresh) after landing; revert is one command.
+
 ### 🛑 MAP OWNERSHIP CHANGED (2026-06-09) — Claude now owns the map
 Codex's `4704b999 "stabilize desktop Chrome map rendering"` **broke the desktop-Chrome map** (froze the renderer via `preserveDrawingBuffer:isDesktopChromiumRenderer` + "camera movement disabled / static redraws" → tiles never composite after the first frame; only road lines + DOM markers showed). It was reverted (restored `RealWorldMap.tsx` to pre-`4704b999`). **Codex: do NOT edit `components/maps/RealWorldMap.tsx` or `app/map/*` anymore** — Claude owns the map + the proper flicker fix now. Do not re-attempt renderer-freezing. The correct flicker approach is marker-animation pausing during gesture + `isolation: isolate` on the canvas host (NOT disabling camera/redraws).
 
