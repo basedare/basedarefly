@@ -526,23 +526,14 @@ export default async function VenueDetailPage(
                 <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Next move</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Run a live pilot</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">You&apos;re here</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Leave proof, earn the perk</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      One venue, one perk, one proof path, one recap.
+                      {venue.activePerk
+                        ? `Live perk: ${venue.activePerk.title}`
+                        : 'Proof goes in the vault. Perks unlock when the venue is live.'}
                     </p>
                     <div className="mt-5 grid gap-2">
-                      <SquircleLink
-                        href={activateVenueHref}
-                        label="Run First Spark"
-                        tone="yellow"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.64rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
-                      >
-                        Run First Spark
-                        <Sparkles className="h-4 w-4" />
-                      </SquircleLink>
                       <VenueMarkButton
                         placeId={venue.id}
                         placeName={venue.name}
@@ -555,17 +546,6 @@ export default async function VenueDetailPage(
                         buttonVariant="jelly"
                       />
                       <SquircleLink
-                        href={fundChallengeHref}
-                        label="Fund dare"
-                        tone="purple"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.78rem] tracking-[0.1em] sm:text-[0.84rem]"
-                      >
-                        Fund dare
-                        <ArrowRight className="h-4 w-4" />
-                      </SquircleLink>
-                      <SquircleLink
                         href={guestMissionPageHref}
                         label="Guest mission"
                         tone="teal"
@@ -576,55 +556,61 @@ export default async function VenueDetailPage(
                         Guest mission
                         <Users className="h-4 w-4" />
                       </SquircleLink>
-                      <SquircleLink
-                        href={baseCashHref}
-                        label="BaseCash"
-                        tone="blue"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.74rem] tracking-[0.09em] sm:text-[0.82rem]"
-                      >
-                        BaseCash
-                        <CreditCard className="h-4 w-4" />
-                      </SquircleLink>
                     </div>
                   </div>
-                  <div className={`${softCardClass} hidden px-5 py-4 md:block`}>
+                  <div className={`${softCardClass} px-5 py-4`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Owner / ops</p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Owner / host</p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-lg font-bold">
                         {venue.commandCenter.consoleUrl
                           ? 'Console ready'
                           : venue.commandCenter.claimState === 'pending'
                             ? 'Claim pending'
-                            : 'Claim this venue'}
+                            : 'Run this place'}
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-white/58">{venue.commandCenter.summary}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link
-                        href={venueReportHref}
-                        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
+                    <div className="mt-4 grid gap-2">
+                      <SquircleLink
+                        href={activateVenueHref}
+                        label="Run First Spark"
+                        tone="yellow"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.64rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
                       >
-                        <BarChart3 className="h-4 w-4" />
-                        Report
-                      </Link>
-                      <Link
-                        href={venueRecapHref}
-                        className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Receipt
-                      </Link>
-                      {repeatActivationHref ? (
-                        <Link
-                          href={repeatActivationHref}
-                          className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
-                        >
-                          Re-run Activation
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
+                        Run First Spark
+                        <Sparkles className="h-4 w-4" />
+                      </SquircleLink>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {venue.commandCenter.consoleUrl ? (
+                        <>
+                          <Link
+                            href={venueReportHref}
+                            className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                            Report
+                          </Link>
+                          <Link
+                            href={venueRecapHref}
+                            className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Receipt
+                          </Link>
+                          {repeatActivationHref ? (
+                            <Link
+                              href={repeatActivationHref}
+                              className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
+                            >
+                              Re-run Activation
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          ) : null}
+                        </>
                       ) : null}
                       {venue.commandCenter.consoleUrl ? (
                         <Link
@@ -651,27 +637,42 @@ export default async function VenueDetailPage(
                         {venue.commandCenter.contactLabel}
                       </Link>
                     </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-white/45">
+                      <Link href={fundChallengeHref} className="inline-flex items-center gap-1.5 transition hover:text-white">
+                        <ArrowRight className="h-3 w-3" />
+                        Fund a dare here
+                      </Link>
+                      <Link href={baseCashHref} className="inline-flex items-center gap-1.5 transition hover:text-white">
+                        <CreditCard className="h-3 w-3" />
+                        BaseCash
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
-                <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Challenges</p>
-                  <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
+              {venue.activeDares.length > 0 ||
+              totalActiveChallengeFunding > 0 ||
+              venue.tagSummary.heatScore > 0 ||
+              venue.tagSummary.approvedCount > 0 ? (
+                <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Challenges</p>
+                    <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Rewards</p>
+                    <p className="mt-2 text-2xl font-black">${totalActiveChallengeFunding.toFixed(0)}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Heat</p>
+                    <p className={`mt-2 text-2xl font-black ${currentPulseState.className}`}>{venue.tagSummary.heatScore}</p>
+                  </div>
+                  <div className={`${insetCardClass} px-4 py-4`}>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Proofs</p>
+                    <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
+                  </div>
                 </div>
-                <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Rewards</p>
-                  <p className="mt-2 text-2xl font-black">${totalActiveChallengeFunding.toFixed(0)}</p>
-                </div>
-                <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Heat</p>
-                  <p className={`mt-2 text-2xl font-black ${currentPulseState.className}`}>{venue.tagSummary.heatScore}</p>
-                </div>
-                <div className={`${insetCardClass} px-4 py-4`}>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Proofs</p>
-                  <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
-                </div>
-              </div>
+              ) : null}
             </div>
           </div>
 
@@ -1004,21 +1005,11 @@ export default async function VenueDetailPage(
                   <>
                     <p className="mt-3 text-2xl font-black text-white">No local legend yet</p>
                     <p className="mt-2 text-sm leading-relaxed text-white/62">
-                      Fund the next drop and the creator-routing layer starts ranking who can own this place.
+                      <Link href={fundChallengeHref} className="text-[#f8dd72] underline-offset-2 transition hover:underline">
+                        Fund the next drop
+                      </Link>{' '}
+                      and the creator-routing layer starts ranking who can own this place.
                     </p>
-                    <div className="mt-4">
-                      <SquircleLink
-                        href={fundChallengeHref}
-                        label="Fund dare"
-                        tone="yellow"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.72rem] tracking-[0.1em]"
-                      >
-                        Fund dare
-                        <ArrowRight className="h-4 w-4" />
-                      </SquircleLink>
-                    </div>
                   </>
                 )}
                 <div className="mt-4 rounded-[18px] border border-white/8 bg-black/20 px-3 py-3">
@@ -1408,23 +1399,12 @@ export default async function VenueDetailPage(
                 {topCreatorRoutes.length === 0 ? (
                   <div className={`${insetCardClass} mt-5 px-4 py-5`}>
                     <p className="text-sm text-white/78">
-                      No strong venue-fit creator yet. Fund the next drop and this recommendation layer will start filling itself in.
+                      No strong venue-fit creator yet.{' '}
+                      <Link href={fundChallengeHref} className="text-[#f8dd72] underline-offset-2 transition hover:underline">
+                        Fund the next drop
+                      </Link>{' '}
+                      and this recommendation layer will start filling itself in.
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href={fundChallengeHref}
-                        className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
-                      >
-                        Fund dare
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        href={mapHref}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-                      >
-                        Open on map
-                      </Link>
-                    </div>
                   </div>
                 ) : (
                   <div className="mt-5 grid gap-3 xl:grid-cols-2">
@@ -1670,16 +1650,6 @@ export default async function VenueDetailPage(
                             buttonVariant="jelly"
                           />
                         </div>
-                        <SquircleLink
-                          href={fundChallengeHref}
-                          label="Fund dare"
-                          tone="yellow"
-                          height={46}
-                          labelClassName="text-[0.7rem] tracking-[0.1em]"
-                        >
-                          Fund dare
-                          <ArrowRight className="h-4 w-4" />
-                        </SquircleLink>
                         <Link
                           href={mapHref}
                           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white/72 transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"

@@ -471,7 +471,7 @@ function buildVenueCommandCenterSummary(input: {
     activeCampaignCount: 0,
     consoleUrl: null,
     contactUrl: claimUrl,
-    contactLabel: 'Claim venue',
+    contactLabel: 'Talk to BaseDare',
     operatorTag: null,
     metrics: {
       approvedMarks: input.approvedMarks,
