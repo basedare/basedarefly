@@ -14,6 +14,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMess
 import { parseUnits } from 'viem';
 import { formatDistanceToNow } from 'date-fns';
 import LiquidBackground from '@/components/LiquidBackground';
+import SafetyWaiver from '@/components/SafetyWaiver';
 import DareVisual from '@/components/DareVisual';
 import DareStatusTimeline from '@/components/DareStatusTimeline';
 import SentinelBadge from '@/components/SentinelBadge';
@@ -220,6 +221,7 @@ export default function DareDetailPage() {
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
+  const [claimWaiverAccepted, setClaimWaiverAccepted] = useState(false);
 
   // Wagmi tx hooks
   const { writeContract: writeApprove, data: approveHash, isPending: approvePending } = useWriteContract();
@@ -987,9 +989,12 @@ export default function DareDetailPage() {
                 : 'You can request to accept this dare and earn the full bounty.'}
             </p>
             {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
+            <div className="mb-3">
+              <SafetyWaiver checked={claimWaiverAccepted} onChange={setClaimWaiverAccepted} context="claim" />
+            </div>
             <CosmicButton
               onClick={handleClaimRequest}
-              disabled={claimLoading || claimSuccess}
+              disabled={claimLoading || claimSuccess || !claimWaiverAccepted}
               variant="gold"
               size="md"
               fullWidth

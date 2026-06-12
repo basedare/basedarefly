@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import ShareWinButton from '@/components/ShareWinButton';
 import ReceiptShareCard from '@/components/ReceiptShareCard';
 import CosmicButton from '@/components/ui/CosmicButton';
+import SafetyWaiver from '@/components/SafetyWaiver';
 import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
 
@@ -64,6 +65,7 @@ export default function SubmitEvidence({
   } | null>(null);
   const [appealText, setAppealText] = useState('');
   const [appealSubmitted, setAppealSubmitted] = useState(false);
+  const [proofWaiverAccepted, setProofWaiverAccepted] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -784,12 +786,13 @@ export default function SubmitEvidence({
                   {error}
                 </div>
               )}
+              <SafetyWaiver checked={proofWaiverAccepted} onChange={setProofWaiverAccepted} context="proof" />
               <CosmicButton
                 onClick={(e) => {
                   e.stopPropagation();
                   handleUploadAndVerify();
                 }}
-                disabled={!!error}
+                disabled={!!error || !proofWaiverAccepted}
                 variant="gold"
                 size="md"
                 fullWidth
