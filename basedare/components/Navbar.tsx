@@ -17,11 +17,12 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 // Learn (/how-it-works) and Verify (/verify) live in the footer; Control is
 // reached via the FAN/CONTROL toggle.
 const NAV_LINKS = [
+  // Label-only clarity pass: routes unchanged for stability.
   { name: "HOME", href: "/" },
   { name: "MAP", href: "/map" },
-  { name: "CREATE", href: "/create" },
-  { name: "DASHBOARD", href: "/dashboard" },
-  { name: "CREATORS", href: "/creators" },
+  { name: "FUND", href: "/create" },
+  { name: "PASSPORT", href: "/dashboard" },
+  { name: "EARN", href: "/creators" },
 ];
 
 const NAV_LINK_PREFETCH = false;

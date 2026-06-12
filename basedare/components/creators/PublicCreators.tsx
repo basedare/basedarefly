@@ -282,14 +282,14 @@ export default function CreatorsPage() {
               </div>
 
               <h1 className="mt-5 text-4xl md:text-6xl font-black text-white tracking-tight">
-                Turn Dares Into{" "}
+                Get paid to{" "}
                 <span className="mt-1 block whitespace-nowrap text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.2)] sm:mt-0 sm:inline sm:bg-gradient-to-r sm:from-yellow-300 sm:via-yellow-400 sm:to-amber-500 sm:bg-clip-text sm:text-transparent sm:drop-shadow-none">
-                  Dollars
+                  show up
                 </span>
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Claim your tag, complete live dares, and build verified momentum on the grid.
+                Claim your tag, complete live missions, and build verified momentum on the grid.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
@@ -300,7 +300,7 @@ export default function CreatorsPage() {
                   >
                     <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
                     <UserRoundPlus className="w-4 h-4 text-cyan-200" />
-                    Apply as Captain
+                    Become a Host
                   </motion.button>
                 </Link>
                 <LiquidMetalButton
@@ -476,7 +476,7 @@ export default function CreatorsPage() {
                             href="/captains?source=creators-empty-state"
                             className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
                           >
-                            Apply as Captain
+                            Become a Host
                           </Link>
                           <button
                             type="button"
@@ -581,7 +581,7 @@ export default function CreatorsPage() {
                       href="/captains?source=creators-empty-state"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
                     >
-                      Apply as Captain <ArrowRight className="w-4 h-4" />
+                      Become a Host <ArrowRight className="w-4 h-4" />
                     </Link>
                     <button
                       onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}

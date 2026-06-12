@@ -325,7 +325,7 @@ export default function CreatorOnboardPage() {
               <div className="mt-3">
                 <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Unlock first missions</h1>
                 <p className="mt-2 text-sm font-bold leading-6 text-white/58">
-                  Each one makes you more discoverable, reachable, or route-ready. Signal Points are reputation only.
+                  Each one makes you more discoverable, reachable, or route-ready. Signal is reputation only.
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2">

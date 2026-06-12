@@ -278,10 +278,13 @@ function HomeContent() {
                 </h2>
               </div>
 
-              {/* First-touch clarity: plain value prop + the 5 beats + role entry points */}
+              {/* First-touch clarity: working headline + the 5 beats + role entry points */}
               <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
-                <p className="text-base font-bold leading-7 text-white/74 sm:text-lg">
-                  Get paid to complete real-world missions — show up, prove it with QR + GPS, get paid in USDC.
+                <p className="text-2xl font-black italic tracking-[-0.03em] text-white sm:text-3xl">
+                  Show up. Prove it. <span className="text-[#f5c518]">Get paid.</span>
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-white/60 sm:text-base">
+                  Real-world missions, verified by being there — paid out instantly.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
                   {['Fund a mission', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'Venue gets signal'].map((beat, index) => (

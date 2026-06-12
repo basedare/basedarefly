@@ -10,7 +10,7 @@ import ActivationFunnelTracker from '../activations/ActivationFunnelTracker';
 import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 
 export const metadata: Metadata = {
-  title: 'Run First Spark | BaseDare',
+  title: 'Run a Mission Night | BaseDare',
   description:
     'Pick a slow venue window, add one perk, route people through QR proof, and get a Spark Receipt.',
 };
@@ -224,10 +224,10 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             <div className="relative grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-                  For venues with one quiet slot
+                  First Spark pilot — for venues with one quiet slot
                 </div>
                 <h1 className="mt-2 max-w-3xl text-3xl font-black leading-[0.95] tracking-[-0.045em] text-white sm:text-5xl">
-                  Run a First Spark pilot
+                  Run a Mission Night
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base">
                   Pick the quiet slot. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.
