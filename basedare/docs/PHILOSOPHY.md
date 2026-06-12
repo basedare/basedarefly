@@ -26,6 +26,26 @@ The **"IRL economy"** — younger people investing in offline experiences and hu
 
 8. **Group & social is the fundable shape.** Solo missions work, but group missions / curated **Dare Routes** (multi-stop, hosted, social) are where the IRL economy concentrates value (WeRoad = 8–15-person curated journeys). v1.1 direction — *after* the single loop is proven.
 
+## The machine (the company in five lines)
+**Someone funds attention. A host gathers people. Players show up. BaseDare proves it happened. Everyone gets a receipt.**
+That machine is the product. The app is the receipt printer; the protocol is the moat. Near-term mental model: *an events company with a verification protocol.*
+
+## The four roles (use this language everywhere)
+- **Players** join missions — anyone with legs and a phone. (Never "creators": that imports influencer baggage and shrinks supply.)
+- **Hosts** run missions — the real creators: they create nights, routes, rituals, scenes. Hosts are the expansion engine and the retained side of the marketplace. (Product note: the existing "captains" infrastructure IS the host program — rename, don't rebuild.)
+- **Venues / brands** fund missions — they buy verified foot traffic (eventually as **CPV: cost per verified visit**, the ad unit we're inventing).
+- **BaseDare** verifies and pays.
+
+## Wedge vs. machine (don't let the wedge shrink the ambition)
+Hostels/Siargao are the **wedge**, not the company: easiest cold-start (strangers who want to meet, weekly churn, activity desks, venues nearby). The machine — **anchor + host + mission + verified receipt + payer** — travels: campus club, run club, coworking hub, nightlife strip, festival, mall pop-up. The city-entry algorithm is one question: **"Where do people already want a reason to go out together, and who already pays to attract them?"**
+
+Roadmap as *narrative* (phases are gated by behavior, not calendar — the do-not-build list survives this):
+1. **Events company** — run Mission Nights manually; prove show-up, payment, receipts.
+2. **Host network** — best players become hosts; *begins when a host runs a night without the founder.*
+3. **CPV product** — *begins when a venue asks to buy visits instead of an event.*
+4. **City playbook** — one local density anchor per city, same machine.
+5. **Verified presence graph** — the billion-dollar layer: who showed up, where, with whom, how often, for which sponsor. Valuable to venues, brands, tourism boards, loyalty programs, and AI systems trying to understand the physical world.
+
 ## Build discipline (hard-won)
 - **Working beats perfect, especially pre-launch.** Don't trade a functioning surface for a marginal polish that risks breaking it. (See the desktop-map renderer-freeze regression — a minor flicker fix that blanked the map.)
 - **Verify before shipping** anything temporal/visual (map, animations) in a real browser. No blind edits to the 15K-line map.
