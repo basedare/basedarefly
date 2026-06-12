@@ -18,14 +18,15 @@ interface PeeBearConveyorProps {
   dares?: Dare[];
 }
 
-// Sample dares - EXACT MATCH with HeroEllipticalStream FEATURED_DARES
+// Sample dares - EXACT MATCH with HeroEllipticalStream FEATURED_DARES.
+// Fictional Peebear-universe handles only: never real people on fake bounties.
 const SAMPLE_DARES = [
-  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@KaiCenat", status: "active", expiry_timer: "🔥 HOT" },
-  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@Speed", status: "active", expiry_timer: "😈 LIVE" },
-  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@xQc", status: "active", expiry_timer: "💀 PERM" },
-  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@Adin", status: "active", expiry_timer: "🤮 NOW" },
-  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@Poki", status: "active", expiry_timer: "💔 YOLO" },
-  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@Ludwig", status: "active", expiry_timer: "✂️ GONE" },
+  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@peebear", status: "active", expiry_timer: "🔥 HOT" },
+  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@gridghost", status: "active", expiry_timer: "😈 LIVE" },
+  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@permabear", status: "active", expiry_timer: "💀 PERM" },
+  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@whiskerz", status: "active", expiry_timer: "🤮 NOW" },
+  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@heartbroke", status: "active", expiry_timer: "💔 YOLO" },
+  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@baldwin", status: "active", expiry_timer: "✂️ GONE" },
 ];
 
 // Helper function to format bounty

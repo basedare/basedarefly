@@ -75,7 +75,7 @@ const CreateBountySchema = z.object({
   streamerTag: z
     .string()
     .max(20, 'Tag must be 20 characters or less')
-    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ (e.g., @KaiCenat)')
+    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ (e.g., @peebear)')
     .optional()
     .or(z.literal('')), // Allow empty string for open bounties
   title: z

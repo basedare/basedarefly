@@ -7,14 +7,15 @@ import PortalVortex from "./PortalVortex";
 
 const SPEED = 0.005;
 
-// Featured dares - attention grabbing examples
+// Featured dares — Peebear-universe legend deck. Fictional handles only:
+// never put real people's names on fake funded bounties.
 const FEATURED_DARES = [
-  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@KaiCenat", expiry_timer: "🔥 HOT" },
-  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@Speed", expiry_timer: "😈 LIVE" },
-  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@xQc", expiry_timer: "💀 PERM" },
-  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@Adin", expiry_timer: "🤮 NOW" },
-  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@Poki", expiry_timer: "💔 YOLO" },
-  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@Ludwig", expiry_timer: "✂️ GONE" },
+  { id: '1', description: "LICK A CACTUS", stake_amount: 50000, streamer_name: "@peebear", expiry_timer: "🔥 HOT" },
+  { id: '2', description: "CALL MOM & CONFESS", stake_amount: 25000, streamer_name: "@gridghost", expiry_timer: "😈 LIVE" },
+  { id: '3', description: "TATTOO VIEWER'S NAME", stake_amount: 100000, streamer_name: "@permabear", expiry_timer: "💀 PERM" },
+  { id: '4', description: "EAT CAT FOOD ON CAM", stake_amount: 10000, streamer_name: "@whiskerz", expiry_timer: "🤮 NOW" },
+  { id: '5', description: "DM YOUR EX 'I MISS U'", stake_amount: 15000, streamer_name: "@heartbroke", expiry_timer: "💔 YOLO" },
+  { id: '6', description: "SHAVE HEAD BALD", stake_amount: 250000, streamer_name: "@baldwin", expiry_timer: "✂️ GONE" },
 ];
 
 interface HeroProps {
