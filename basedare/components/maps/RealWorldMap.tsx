@@ -5038,7 +5038,16 @@ export default function RealWorldMap() {
         const nextPitch = map.getPitch();
         setMapBearing((current) => (Math.abs(current - nextBearing) < 0.05 ? current : nextBearing));
         setMapPitch((current) => (Math.abs(current - nextPitch) < 0.05 ? current : nextPitch));
-        handleViewportChangeRef.current(center.lat, center.lng, map.getZoom());
+        const zoom = map.getZoom();
+        // Zoom band drives label declutter via CSS only (no re-render): far =
+        // bears + lit pins speak; mid = lit/warm labels; near = everything.
+        // Updated on moveend/load, never per-frame.
+        const band = zoom < 14.2 ? 'far' : zoom < 15.8 ? 'mid' : 'near';
+        const viewportNode = mapViewportRef.current;
+        if (viewportNode && viewportNode.getAttribute('data-zoom-band') !== band) {
+          viewportNode.setAttribute('data-zoom-band', band);
+        }
+        handleViewportChangeRef.current(center.lat, center.lng, zoom);
       };
 
       let loadHandled = false;
@@ -16168,6 +16177,79 @@ export default function RealWorldMap() {
             transition: none !important;
             will-change: auto !important;
           }
+        }
+
+        /* ================================================================
+           P0 MAP CLARITY PASS — signal hierarchy + label declutter.
+           Three states only: Lit (proven/funded/live), Warm (ready/claimable),
+           Unlit (no proof yet). CSS-only: opacity/scale/visibility, no new
+           animations, no DOM changes — also reduces composite load per frame
+           (fewer shadowed labels over WebGL = less Chrome shimmer).
+           ================================================================ */
+
+        /* Unlit: no proof yet — quiet, almost off. Hover/selection restores. */
+        .basedare-maplibre-map :global(.peebear-marker--unmarked) {
+          opacity: 0.52;
+        }
+        .basedare-maplibre-map :global(.peebear-marker--unmarked .peebear-core) {
+          filter: saturate(0.55) brightness(0.82);
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        .basedare-maplibre-map :global(.peebear-marker--unmarked:hover),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.is-active),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.is-activated-venue),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.has-challenge-live) {
+          opacity: 1;
+        }
+        .basedare-maplibre-map :global(.peebear-marker--unmarked:hover .peebear-core),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.is-active .peebear-core),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.is-activated-venue .peebear-core),
+        .basedare-maplibre-map :global(.peebear-marker--unmarked.has-challenge-live .peebear-core) {
+          filter: none;
+        }
+
+        /* Label declutter by zoom band (set imperatively in syncViewport).
+           FAR: only Lit pins + the selected pin speak; everything else is bears. */
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-pulse-pill),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-state),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-count),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-footprint),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-review-signal),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-match-badge),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.venue-legend-chip),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.place-cluster-match),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.place-cluster-live) {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          transition: none !important;
+        }
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--hot .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--active .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.has-challenge-live .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.is-activated-venue .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.has-challenge-live .peebear-challenge-pill),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker:hover .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-active .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-active .peebear-state) {
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+
+        /* MID: Unlit pins stay label-silent; Lit/Warm speak. */
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked .peebear-pulse-pill),
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked .peebear-state),
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked .peebear-footprint) {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          transition: none !important;
+        }
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked:hover .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked.is-active .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked.is-active .peebear-state) {
+          opacity: 1 !important;
+          visibility: visible !important;
         }
 
         .basedare-maplibre-map :global(.maplibregl-ctrl-group),
