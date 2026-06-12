@@ -31,8 +31,9 @@ The **"IRL economy"** — younger people investing in offline experiences and hu
 That machine is the product. The app is the receipt printer; the protocol is the moat. Near-term mental model: *an events company with a verification protocol.*
 
 ## The four roles (use this language everywhere)
-- **Players** join missions — anyone with legs and a phone. (Never "creators": that imports influencer baggage and shrinks supply.)
-- **Hosts** run missions — the real creators: they create nights, routes, rituals, scenes. Hosts are the expansion engine and the retained side of the marketplace. (Product note: the existing "captains" infrastructure IS the host program — rename, don't rebuild.)
+- **Players** join missions — anyone with legs and a phone. Consumer-facing participation language.
+- **Creators** — used contextually: for content/proof output and when recruiting people who want to earn (the Earn funnel). Not the default word for participants.
+- **Hosts** run missions — they create nights, routes, rituals, scenes. Hosts are the expansion engine and the retained side of the marketplace. "Captain" is dead as a label. (Product note: the existing "captains" infrastructure IS the host program — rename, don't rebuild.)
 - **Venues / brands** fund missions — they buy verified foot traffic (eventually as **CPV: cost per verified visit**, the ad unit we're inventing).
 - **BaseDare** verifies and pays.
 
