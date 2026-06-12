@@ -67,7 +67,7 @@ export default function ClaimVenueButton({
   if (!canSubmit && status !== 'loading') {
     return (
       <Link href="/claim-tag" className={requireAuthClassName ?? className}>
-        {isConnected ? 'Reconnect session' : 'Claim venue'}
+        {isConnected ? 'Sign in to claim' : 'Claim venue'}
       </Link>
     );
   }
