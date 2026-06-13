@@ -1505,16 +1505,14 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
           return;
         }
 
+        // Arterials run dim gold so the road network reads as the veins of a
+        // city you light up — pins stay the brightest gold on the map.
         const roadColor = muted ? '#2b2b33' : '#332a66';
-        const arterialColor = muted ? '#3b3941' : '#7a55c7';
-        map.setPaintProperty(
-          layer.id,
-          'line-color',
-          layerId.includes('major') || layerId.includes('primary') || layerId.includes('motorway')
-            ? arterialColor
-            : roadColor
-        );
-        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : 0.72);
+        const arterialColor = muted ? '#3b3941' : '#9c7a25';
+        const isArterial =
+          layerId.includes('major') || layerId.includes('primary') || layerId.includes('motorway');
+        map.setPaintProperty(layer.id, 'line-color', isArterial ? arterialColor : roadColor);
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : isArterial ? 0.66 : 0.72);
       }
 
       if (layer.type === 'symbol') {
@@ -3069,6 +3067,27 @@ function getMarkerVenueLabel(value?: string | null) {
   return normalized.length > 30 ? `${normalized.slice(0, 27).trim()}...` : normalized;
 }
 
+// General Luna's weekly venue-night rotation (founder field intel:
+// brain-vault/03-insights/city-signals/siargao-venue-night-map.md). Each venue
+// owns a night; the map surfaces the island's real rhythm — never synthetic
+// activity. Keyed by Date.getDay() (0 = Sunday).
+const VENUE_NIGHT_ROTATION: Record<number, RegExp> = {
+  0: /happiness/i,
+  1: /mama[\s-]?coco/i,
+  2: /barbosa|barrel/i,
+  3: /mama[\s-]?coco|barbosa/i,
+  4: /bed[\s-]?(?:and|&|n)[\s-]?brew/i,
+  5: /barbosa/i,
+  6: /harana/i,
+};
+
+function isVenueNightTonight(name?: string | null, slug?: string | null) {
+  if (typeof window === 'undefined') return false;
+  const pattern = VENUE_NIGHT_ROTATION[new Date().getDay()];
+  if (!pattern) return false;
+  return pattern.test(name ?? '') || pattern.test(slug ?? '');
+}
+
 function createPeebearMarkerHtml({
   pulse,
   approvedCount,
@@ -3083,6 +3102,7 @@ function createPeebearMarkerHtml({
   activationLabel,
   legends,
   reviewSignal = getEmptyVenueReviewSignal(),
+  liveTonight = false,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -3097,6 +3117,7 @@ function createPeebearMarkerHtml({
   activationLabel?: string;
   legends?: VenueLegend[];
   reviewSignal?: VenueReviewSignal;
+  liveTonight?: boolean;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
@@ -3128,7 +3149,7 @@ function createPeebearMarkerHtml({
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
   const safeReviewSignalLabel = escapeMarkerAttribute(reviewSignalLabel);
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${reviewSignal.state}:${reviewSignal.count}:${reviewSignal.fresh ? 'fresh' : 'stale'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${reviewSignal.state}:${reviewSignal.count}:${reviewSignal.fresh ? 'fresh' : 'stale'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3136,12 +3157,13 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} peebear-marker--review-${reviewSignal.state} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${showReviewSignal ? 'has-review-signal' : ''} ${reviewSignal.fresh ? 'is-review-fresh' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} peebear-marker--review-${reviewSignal.state} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${showReviewSignal ? 'has-review-signal' : ''} ${reviewSignal.fresh ? 'is-review-fresh' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
           : ''
       }
+      ${liveTonight ? `<span class="peebear-tonight-ring" aria-hidden="true"></span>${compact ? '' : '<span class="peebear-tonight-pill">TONIGHT</span>'}` : ''}
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
       ${showReviewSignal ? `<span class="peebear-review-aura" aria-hidden="true"></span><span class="peebear-review-signal">${safeReviewSignalLabel}</span>` : ''}
@@ -8086,6 +8108,7 @@ export default function RealWorldMap() {
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
       reviewSignal: selectedPlace.reviewSignal,
+      liveTonight: isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
     });
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
@@ -8343,6 +8366,7 @@ export default function RealWorldMap() {
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
           reviewSignal,
+          liveTonight: isVenueNightTonight(place.name, place.slug),
         }),
         className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
         anchor: 'bottom',
@@ -14449,6 +14473,7 @@ export default function RealWorldMap() {
           .basedare-maplibre-map :global(.peebear-ripple),
           .basedare-maplibre-map :global(.peebear-challenge-aura),
           .basedare-maplibre-map :global(.peebear-challenge-ring),
+          .basedare-maplibre-map :global(.peebear-tonight-ring),
           .basedare-maplibre-map :global(.current-location-pulse),
           .basedare-maplibre-map :global(.current-location-bear) {
             animation: none !important;
@@ -14797,8 +14822,14 @@ export default function RealWorldMap() {
             transition: none !important;
           }
 
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-tonight-ring) {
+            animation-play-state: paused !important;
+            box-shadow: none !important;
+          }
+
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-venue-label),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-pulse-pill),
+          .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-tonight-pill),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
           .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
@@ -15407,6 +15438,59 @@ export default function RealWorldMap() {
             0 0 18px rgba(245, 197, 24, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           white-space: nowrap;
+        }
+
+        /* Tonight's venue per the General Luna weekly rotation: a slow dashed
+           gold orbit — deliberately distinct from the solid challenge ring
+           (live money). Rotation is transform-only so it stays on the
+           compositor; paused during gestures via the data-map-moving rules. */
+        .basedare-maplibre-map :global(.peebear-tonight-ring) {
+          position: absolute;
+          top: -1px;
+          left: 50%;
+          z-index: 0;
+          width: 92px;
+          height: 92px;
+          margin-left: -46px;
+          border-radius: 9999px;
+          border: 2px dashed rgba(255, 214, 92, 0.62);
+          box-shadow:
+            0 0 18px rgba(245, 197, 24, 0.2),
+            inset 0 0 16px rgba(245, 197, 24, 0.08);
+          pointer-events: none;
+          animation: peebearTonightOrbit 16s linear infinite;
+        }
+
+        .basedare-maplibre-map :global(.peebear-tonight-pill) {
+          position: absolute;
+          left: -6px;
+          top: 10px;
+          z-index: 4;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 214, 92, 0.4);
+          background:
+            linear-gradient(180deg, rgba(255, 233, 157, 0.22), rgba(245, 197, 24, 0.16)),
+            linear-gradient(180deg, rgba(60, 38, 8, 0.97), rgba(24, 15, 5, 0.97));
+          padding: 3px 8px;
+          font-size: 7px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0.17em;
+          color: rgba(255, 243, 200, 0.98);
+          box-shadow:
+            0 10px 18px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(245, 197, 24, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          white-space: nowrap;
+        }
+
+        @keyframes peebearTonightOrbit {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .basedare-maplibre-map :global(.peebear-review-aura) {
@@ -16250,11 +16334,28 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-zoom-band='far'] :global(.has-challenge-live .peebear-venue-label),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.is-activated-venue .peebear-venue-label),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.has-challenge-live .peebear-challenge-pill),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.is-live-tonight .peebear-venue-label),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker:hover .peebear-venue-label),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-active .peebear-venue-label),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-active .peebear-state) {
           opacity: 1 !important;
           visibility: visible !important;
+        }
+
+        /* FAR: Lit pins bloom — the island reads as a constellation of proof.
+           Static drop-shadow only (no animation); killed during gestures by
+           the data-map-moving calm-down. */
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--blazing .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--igniting .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--hot .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker--first-mark .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.has-challenge-live .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-activated-venue .peebear-core),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-live-tonight .peebear-core) {
+          filter: drop-shadow(0 0 10px rgba(245, 197, 24, 0.5)) drop-shadow(0 0 26px rgba(245, 197, 24, 0.22));
+        }
+        .basedare-maplibre-map[data-map-moving='true'][data-zoom-band='far'] :global(.peebear-core) {
+          filter: none !important;
         }
 
         /* MID: Unlit pins stay label-silent; Lit/Warm speak. */
