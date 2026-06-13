@@ -36,7 +36,6 @@ type ActivationComposerProps = {
   formData: CampaignFormData;
   handleCreateCampaign: () => Promise<void>;
   hashtagInput: string;
-  openActivationBuilder: () => void;
   placeLoading: boolean;
   placeQuery: string;
   placeResults: PlaceSearchResult[];
@@ -75,7 +74,6 @@ export default function ActivationComposer({
   formData,
   handleCreateCampaign,
   hashtagInput,
-  openActivationBuilder,
   placeLoading,
   placeQuery,
   placeResults,
@@ -841,27 +839,7 @@ export default function ActivationComposer({
             </div>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={openActivationBuilder}
-            className="activation-shell group mb-8 w-full rounded-[28px] border p-5 text-left transition hover:border-[#f5c518]/[0.35] md:p-6"
-          >
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[#ffe785]">
-                  Ready to launch
-                </div>
-                <div className="mt-1 text-xl font-black text-white">
-                  Fund one venue mission from the current radar pick.
-                </div>
-              </div>
-              <span className="activation-raised-gold inline-flex min-h-11 items-center justify-center rounded-full border px-5 py-2 text-xs font-black uppercase tracking-[0.12em] transition group-active:translate-y-[1px]">
-                Launch venue activation
-              </span>
-            </div>
-          </button>
-        )}
+        ) : null}
     </>
   );
 }

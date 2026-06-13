@@ -411,15 +411,20 @@ export default function ResponseRail({
                 Track the activation, route creators, inspect proof, and repeat the venues that are already moving.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openActivationBuilder}
-              className="activation-raised-gold inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
-            >
-              Launch new route
-            </button>
+            {/* Empty state owns the single launch CTA; the header button only
+                appears once there are routes to sit alongside. */}
+            {campaigns.length > 0 ? (
+              <button
+                type="button"
+                onClick={openActivationBuilder}
+                className="activation-raised-gold inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
+              >
+                Launch new route
+              </button>
+            ) : null}
           </div>
 
+          {campaigns.length > 0 ? (
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="activation-inset rounded-2xl border border-[#f5c518]/20 px-4 py-3">
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ffe785]">Claim queue</div>
@@ -442,6 +447,7 @@ export default function ResponseRail({
               <div className="text-xs text-zinc-400">{payoutQueuedCount} queued</div>
             </div>
           </div>
+          ) : null}
 
           {campaigns.length === 0 ? (
             <div className="activation-inset rounded-[24px] border border-white/10 px-5 py-10 text-center">

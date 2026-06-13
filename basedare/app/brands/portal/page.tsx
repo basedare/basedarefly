@@ -1418,7 +1418,6 @@ export default function BrandPortalPage() {
           formData={formData}
           handleCreateCampaign={handleCreateCampaign}
           hashtagInput={hashtagInput}
-          openActivationBuilder={openActivationBuilder}
           placeLoading={placeLoading}
           placeQuery={placeQuery}
           placeResults={placeResults}

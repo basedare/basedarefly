@@ -25,6 +25,18 @@ export default function PortalStats({
   payoutQueuedCount,
   proofsSubmittedCount,
 }: PortalStatsProps) {
+  // Hide the whole stat grid until there is something to report. A brand with
+  // no spend and no activations only sees $0/0/0/0 — noise, not a dashboard.
+  const totalActivations = campaignSummary?.total ?? campaigns.length;
+  const hasSignal =
+    (brand?.totalSpend ?? 0) > 0 ||
+    totalActivations > 0 ||
+    liveCampaignCount > 0 ||
+    creatorMovementCount > 0 ||
+    paidOutCount > 0;
+
+  if (!hasSignal) return null;
+
   return (
     <>
         {/* Stats */}
