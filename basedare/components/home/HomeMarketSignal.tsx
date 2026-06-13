@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Briefcase, MapPin, Radio } from 'lucide-react';
+import { ArrowRight, Briefcase, MapPin, Radio, Users } from 'lucide-react';
 
 import { cloneActiveVenueFallbacks, type ActiveVenueCard } from '@/lib/home-active-venues';
 import { buildCreatorMissionActivationHref } from '@/lib/mission-routing';
@@ -221,12 +221,14 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
   const quietSignals = [
     ...venues.slice(0, 2).map((venue) => ({
       key: `venue-${venue.slug}`,
+      kind: 'venue' as const,
       label: venue.name,
       meta: venue.checkInsToday > 0 ? `${venue.checkInsToday} check-ins` : venue.activityLabel,
       href: venue.primaryHref,
     })),
     ...creators.slice(0, 2).map((creator) => ({
       key: `creator-${creator.key}`,
+      kind: 'creator' as const,
       label: creator.name,
       meta: creator.availability,
       href: creator.inviteHref,
@@ -308,20 +310,45 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {quietSignals.map((signal) => (
-              <Link
-                key={signal.key}
-                href={signal.href}
-                prefetch={false}
-                className="group flex min-h-[5.25rem] items-center justify-between gap-3 rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(160deg,rgba(255,255,255,0.035),rgba(3,4,10,0.5))] px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-12px_16px_rgba(0,0,0,0.16)] transition hover:border-cyan-200/18 hover:bg-white/[0.045]"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-white/86">{signal.label}</span>
-                  <span className="mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.14em] text-white/34">{signal.meta}</span>
-                </span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-white/28 transition group-hover:translate-x-0.5 group-hover:text-cyan-100/70" />
-              </Link>
-            ))}
+            {quietSignals.map((signal) => {
+              const isVenue = signal.kind === 'venue';
+              const Icon = isVenue ? MapPin : Users;
+              return (
+                <Link
+                  key={signal.key}
+                  href={signal.href}
+                  prefetch={false}
+                  className={`group flex min-h-[5.25rem] items-center gap-3 rounded-[1.35rem] border border-white/[0.075] bg-[linear-gradient(160deg,rgba(255,255,255,0.035),rgba(3,4,10,0.5))] px-3.5 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-12px_16px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.045] ${
+                    isVenue ? 'hover:border-cyan-200/22' : 'hover:border-[#f5c518]/22'
+                  }`}
+                >
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${
+                      isVenue
+                        ? 'border-cyan-200/18 bg-cyan-300/[0.08] text-cyan-200/80'
+                        : 'border-[#f5c518]/20 bg-[#f5c518]/[0.09] text-[#f9e27a]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black text-white/86">{signal.label}</span>
+                    <span
+                      className={`mt-1 block truncate text-[10px] font-bold uppercase tracking-[0.14em] ${
+                        isVenue ? 'text-cyan-100/40' : 'text-[#f9e27a]/45'
+                      }`}
+                    >
+                      {isVenue ? 'Venue' : 'Creator'} · {signal.meta}
+                    </span>
+                  </span>
+                  <ArrowRight
+                    className={`h-4 w-4 shrink-0 text-white/28 transition group-hover:translate-x-0.5 ${
+                      isVenue ? 'group-hover:text-cyan-100/70' : 'group-hover:text-[#f9e27a]'
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

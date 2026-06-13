@@ -31,7 +31,7 @@ export default function TruthProtocol() {
     },
     {
       id: 'location',
-      badge: '04 // FORT',
+      badge: '04 // PLACE',
       title: 'LOCATION',
       description: 'Venue anchors and nearby proof turn dares into place-bound missions with real-world context.',
       color: '#22D3EE'
@@ -87,9 +87,23 @@ export default function TruthProtocol() {
             {staticCards.map((card) => (
               <div
                 key={card.id}
-                className="rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(8,8,14,0.9)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.22)]"
+                className="relative overflow-hidden rounded-[22px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(8,8,14,0.9)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_16px_rgba(0,0,0,0.22)]"
+                style={{ borderColor: `color-mix(in srgb, ${card.color} 16%, rgba(255,255,255,0.08))` }}
               >
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/38">{card.badge}</p>
+                {/* Persistent per-step color wash + top accent (matches BubbleCard) */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background: `radial-gradient(circle 120px at 16% -8%, color-mix(in srgb, ${card.color} 18%, transparent) 0%, transparent 60%)`,
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-4 top-0 h-0.5 rounded-b-[3px]"
+                  style={{ background: `linear-gradient(90deg, transparent, ${card.color}, transparent)`, opacity: 0.6 }}
+                />
+                <p className="relative text-[10px] font-black uppercase tracking-[0.18em] text-white/38">{card.badge}</p>
                 <h3 className="mt-3 text-lg font-black text-white" style={{ color: card.color }}>
                   {card.title}
                 </h3>

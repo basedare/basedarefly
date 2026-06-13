@@ -19,6 +19,7 @@ function generateGradientColors(baseColor: string): string[] {
     '#A855F7': ['#A855F7', '#E879F9', '#C084FC'], // Purple
     '#FACC15': ['#FACC15', '#FDE68A', '#F59E0B'], // Gold/Yellow
     '#3B82F6': ['#3B82F6', '#93C5FD', '#60A5FA'], // Blue
+    '#22D3EE': ['#22D3EE', '#A5F3FC', '#67E8F9'], // Cyan
   };
 
   return colorMap[baseColor] || [baseColor, '#FFFFFF', baseColor];

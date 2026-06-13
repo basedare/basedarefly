@@ -122,6 +122,14 @@ function fallbackResponse(tagFilter: string | undefined, warning: string) {
     return response;
 }
 
+// Test/smoke wallets (e.g. @smokeTest from the launch smoke) carry real
+// StreamerTag rows but must never surface in public creator feeds.
+function isTestCreatorTag(tag: string | null | undefined) {
+  const normalized = (tag ?? '').trim().toLowerCase().replace(/^@/, '');
+  return /^(smoke[-_]?test|test|demo|e2e|qa|sample|placeholder)$/.test(normalized) ||
+    normalized.includes('smoketest');
+}
+
 async function fetchHydratedCreators(tagFilter?: string) {
     const [streamers, creatorDares] = await Promise.all([
         prisma.streamerTag.findMany({
@@ -329,7 +337,8 @@ async function fetchHydratedCreators(tagFilter?: string) {
             const rightScore = (right.trust?.score ?? 0) + (right.signalPoints ?? 0);
             if (rightScore !== leftScore) return rightScore - leftScore;
             return right.totalEarned - left.totalEarned;
-        });
+        })
+        .filter((creator) => !isTestCreatorTag(creator.tag));
 }
 
 export async function GET(request: NextRequest) {
