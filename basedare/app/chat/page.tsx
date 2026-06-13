@@ -24,7 +24,7 @@ import {
 import { isAddress } from 'viem';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
-import LiquidBackground from '@/components/LiquidBackground';
+import ParticleNetwork from '@/components/ParticleNetwork';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -389,10 +389,18 @@ function ChatInbox() {
 
   return (
     <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-3 py-5 text-white sm:px-6 sm:py-8 lg:px-10">
-      <LiquidBackground veilOpacity={0.78} />
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <ParticleNetwork
+          particleCount={84}
+          minDist={124}
+          particleColor="rgba(194, 133, 255, 0.46)"
+          lineColor="rgba(255, 211, 86, 0.18)"
+          speed={0.22}
+        />
+      </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_12%,rgba(168,85,247,0.11),transparent_34%),radial-gradient(circle_at_12%_18%,rgba(245,197,24,0.045),transparent_24%),linear-gradient(180deg,rgba(0,0,0,0.54)_0%,rgba(0,0,0,0.38)_34%,rgba(0,0,0,0.66)_100%)] mix-blend-normal"
+        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_10%,rgba(168,85,247,0.14),transparent_38%),radial-gradient(circle_at_14%_16%,rgba(245,197,24,0.05),transparent_26%),linear-gradient(180deg,rgba(2,2,4,0.32)_0%,rgba(2,2,4,0.14)_36%,rgba(2,2,4,0.46)_100%)]"
       />
       <GradualBlurOverlay />
 
@@ -693,12 +701,14 @@ function ChatInbox() {
                     disabled={sending || !canSendMessage}
                     className={`group relative inline-flex h-12 w-14 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[1.05rem] border px-0 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-px sm:h-14 sm:w-auto sm:min-w-40 sm:px-5 ${
                       sendReady
-                        ? 'border-[#fff2a8]/70 bg-[linear-gradient(180deg,#fff2a8_0%,#f5c518_42%,#a46b08_100%)] text-black shadow-[0_16px_28px_rgba(0,0,0,0.32),0_0_26px_rgba(245,197,24,0.25),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-10px_16px_rgba(74,46,4,0.34)] hover:brightness-105'
-                        : 'border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(248,221,114,0.18)_0%,rgba(245,197,24,0.11)_46%,rgba(83,54,10,0.18)_100%)] text-[#fff4be]/45 shadow-[0_12px_22px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_16px_rgba(0,0,0,0.22)]'
+                        ? 'border-[#f5c518]/60 bg-[linear-gradient(180deg,#ffe9a0_0%,#f5c518_100%)] text-black shadow-[0_14px_26px_rgba(245,197,24,0.22),0_0_22px_rgba(245,197,24,0.2),inset_0_1px_0_rgba(255,255,255,0.6)] hover:brightness-[1.06]'
+                        : 'border-white/10 bg-white/[0.05] text-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                     } disabled:cursor-not-allowed`}
                     aria-label="Send message"
                   >
-                    <span className="pointer-events-none absolute inset-x-3 top-1 h-px rounded-full bg-white/55 sm:inset-x-5" />
+                    {sendReady ? (
+                      <span className="pointer-events-none absolute inset-x-4 top-1 h-px rounded-full bg-white/70 sm:inset-x-6" />
+                    ) : null}
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                     <span className="hidden sm:inline">Send</span>
                     <ArrowRight className="hidden h-4 w-4 sm:block" />
