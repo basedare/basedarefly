@@ -82,8 +82,8 @@ const CREATOR_POINTS = [
   },
   {
     icon: Film,
-    title: "Submit proof on-platform",
-    description: "Upload proof so the action can be reviewed.",
+    title: "Check in, then submit proof",
+    description: "Check in with QR + GPS and your proof clears instantly — no referee. Without a check-in, it waits for review.",
   },
   {
     icon: DollarSign,

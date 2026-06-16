@@ -122,7 +122,7 @@ export default function TagPlaceButton({
     venueName: string;
     actorLabel: string | null;
     timestamp: string;
-    tone: 'gold' | 'violet';
+    tone: 'gold' | 'violet' | 'emerald';
   } | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -433,6 +433,7 @@ export default function TagPlaceButton({
         error?: string;
         data?: {
           message?: string;
+          presenceBacked?: boolean;
           tagId?: string;
           status?: string;
           proofMediaUrl?: string | null;
@@ -471,25 +472,37 @@ export default function TagPlaceButton({
       const actorLabel = payload.data?.creatorTag
         ? `@${payload.data.creatorTag.replace(/^@/, '')}`
         : normalizedConnectedWallet ?? sessionWallet;
+      // Presence-backed marks (a confirmed QR+GPS check-in) clear instantly —
+      // no referee. Reflect that in the receipt instead of "waiting for review".
+      const presenceVerified =
+        payload.data?.presenceBacked === true || payload.data?.status === 'APPROVED';
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
       setSubmittedReceipt({
-        title: payload.data?.firstMark ? `First proof submitted at ${venueName}` : `Proof submitted at ${venueName}`,
-        detail: payload.data?.firstMark
-          ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
-          : 'This is waiting for review. If approved, the venue updates automatically.',
+        title: presenceVerified
+          ? payload.data?.firstMark
+            ? `First proof verified at ${venueName}`
+            : `Proof verified at ${venueName}`
+          : payload.data?.firstMark
+            ? `First proof submitted at ${venueName}`
+            : `Proof submitted at ${venueName}`,
+        detail: presenceVerified
+          ? 'Your venue check-in verified it instantly — it’s live on the map now.'
+          : payload.data?.firstMark
+            ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
+            : 'This is waiting for review. If approved, the venue updates automatically.',
         href: venueSlug ? `/venues/${encodeURIComponent(venueSlug)}` : '/map',
         venueName,
         actorLabel,
         timestamp: submittedAt,
-        tone: payload.data?.firstMark ? 'gold' : 'violet',
+        tone: presenceVerified ? 'emerald' : payload.data?.firstMark ? 'gold' : 'violet',
       });
       setFile(null);
       clearFileInputs();
       setCaption('');
       setVibeTags('');
       toast({
-        title: 'Proof submitted',
+        title: presenceVerified ? 'Proof verified' : 'Proof submitted',
         description: payload.data?.message || `${placeName} is waiting for review.`,
       });
     } catch (error) {

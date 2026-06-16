@@ -14,6 +14,14 @@ import {
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { alertPlaceTagSubmission } from '@/lib/telegram';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
+import { createWalletNotification } from '@/lib/notifications';
+
+// A proof mark auto-approves when the same wallet has a CONFIRMED venue
+// check-in (QR + GPS, replay-protected) at this venue within this window —
+// presence is provable, so no referee is needed. Marks with no such backing
+// stay PENDING for exception review. This is the IRL instance of
+// "verification -> auto-settle": the human performs, the rail clears it.
+const PRESENCE_BACKED_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — one outing
 
 type WalletSession = {
   token?: string;
@@ -370,12 +378,37 @@ export async function POST(
       },
     });
 
+    // Presence-backed auto-approval: a confirmed QR+GPS check-in by this wallet
+    // at this venue within the window proves they were physically here, so the
+    // mark clears with no referee. A miss (or a lookup error) safely falls back
+    // to PENDING for exception review.
+    let presenceBacked = false;
+    try {
+      const presenceCheckIn = await prisma.venueCheckIn.findFirst({
+        where: {
+          venueId: id,
+          walletAddress,
+          status: 'CONFIRMED',
+          scannedAt: { gte: new Date(Date.now() - PRESENCE_BACKED_WINDOW_MS) },
+        },
+        select: { id: true },
+      });
+      presenceBacked = Boolean(presenceCheckIn);
+    } catch (presenceError) {
+      console.error('[PLACE_TAGS_POST] Presence lookup failed; defaulting to PENDING:', presenceError);
+    }
+
     const tag = await prisma.placeTag.create({
       data: {
         venueId: id,
         walletAddress,
         creatorTag: creatorProfile?.tag ?? null,
-        status: 'PENDING',
+        status: presenceBacked ? 'APPROVED' : 'PENDING',
+        reviewedAt: presenceBacked ? new Date() : null,
+        reviewerWallet: presenceBacked ? 'system:presence' : null,
+        reviewReason: presenceBacked
+          ? 'Auto-approved: confirmed venue check-in (QR + GPS)'
+          : null,
         caption,
         vibeTags,
         proofMediaUrl: upload.url,
@@ -404,40 +437,70 @@ export async function POST(
       },
     });
 
-    const alertDelivered = await alertPlaceTagSubmission({
-      tagId: tag.id,
-      venueSlug: place.slug,
-      venueName: place.name,
-      city: place.city,
-      country: place.country,
-      creatorTag: tag.creatorTag,
-      walletAddress,
-      caption,
-      vibeTags,
-      proofMediaUrl: tag.proofMediaUrl,
-      firstMark: tag.firstMark,
-      geoDistanceMeters,
-    });
-
-    if (!alertDelivered) {
-      console.error('[PLACE_TAGS_POST] Telegram alert was not delivered for pending tag:', tag.id);
-    }
-
     const actorLabel = tag.creatorTag || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
-    await publishVenueRoomReceipt({
-      venueId: place.id,
-      actorWallet: walletAddress,
-      actorLabel,
-      receiptType: 'mark-submitted',
-      sourceId: tag.id,
-      body: `${actorLabel} submitted ${tag.firstMark ? 'the first mark' : 'a new mark'} for referee review.`,
-      href: `/venues/${encodeURIComponent(place.slug)}`,
-      tone: tag.firstMark ? 'gold' : 'violet',
-    }).catch((receiptError) => {
-      const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
-      console.error('[PLACE_TAGS_POST] Room receipt failed:', receiptMessage);
-      return null;
-    });
+    let alertDelivered = false;
+
+    if (presenceBacked) {
+      // Auto-approved — skip the referee alert. Tell the user it's live and post
+      // the verified receipt to the venue room (mirrors the manual-approve path).
+      await createWalletNotification({
+        wallet: walletAddress,
+        type: 'PLACE_TAG_APPROVED',
+        title: 'Your mark is live',
+        message: `Your check-in proof at "${place.name}" is verified and on the map.`,
+        link: `/venues/${place.slug}`,
+        pushTopic: 'venues',
+      }).catch(() => {});
+
+      await publishVenueRoomReceipt({
+        venueId: place.id,
+        actorWallet: walletAddress,
+        actorLabel,
+        receiptType: 'mark-approved',
+        sourceId: tag.id,
+        body: `${tag.firstMark ? 'First mark verified' : 'Mark verified'} for ${actorLabel} — confirmed on-site presence.`,
+        href: `/venues/${encodeURIComponent(place.slug)}`,
+        tone: tag.firstMark ? 'gold' : 'emerald',
+      }).catch((receiptError) => {
+        const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+        console.error('[PLACE_TAGS_POST] Room receipt failed:', receiptMessage);
+        return null;
+      });
+    } else {
+      alertDelivered = await alertPlaceTagSubmission({
+        tagId: tag.id,
+        venueSlug: place.slug,
+        venueName: place.name,
+        city: place.city,
+        country: place.country,
+        creatorTag: tag.creatorTag,
+        walletAddress,
+        caption,
+        vibeTags,
+        proofMediaUrl: tag.proofMediaUrl,
+        firstMark: tag.firstMark,
+        geoDistanceMeters,
+      });
+
+      if (!alertDelivered) {
+        console.error('[PLACE_TAGS_POST] Telegram alert was not delivered for pending tag:', tag.id);
+      }
+
+      await publishVenueRoomReceipt({
+        venueId: place.id,
+        actorWallet: walletAddress,
+        actorLabel,
+        receiptType: 'mark-submitted',
+        sourceId: tag.id,
+        body: `${actorLabel} submitted ${tag.firstMark ? 'the first mark' : 'a new mark'} for referee review.`,
+        href: `/venues/${encodeURIComponent(place.slug)}`,
+        tone: tag.firstMark ? 'gold' : 'violet',
+      }).catch((receiptError) => {
+        const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
+        console.error('[PLACE_TAGS_POST] Room receipt failed:', receiptMessage);
+        return null;
+      });
+    }
 
     return NextResponse.json(
       {
@@ -451,7 +514,10 @@ export async function POST(
           venueSlug: place.slug,
           venueName: place.name,
           adminAlertDelivered: alertDelivered,
-          message: 'Tag submitted. It is now waiting for referee review.',
+          presenceBacked,
+          message: presenceBacked
+            ? 'Mark verified by your venue check-in — it is live on the map.'
+            : 'Tag submitted. It is now waiting for referee review.',
         },
       },
       { status: 201 }
