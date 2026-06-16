@@ -383,17 +383,23 @@ export async function POST(
     // mark clears with no referee. A miss (or a lookup error) safely falls back
     // to PENDING for exception review.
     let presenceBacked = false;
+    let presenceCheckInId: string | null = null;
     try {
+      // Require QR_AND_GPS specifically — a CONFIRMED check-in can be QR_ONLY,
+      // and QR+GPS is the unfakeable guarantee the auto-approval rests on.
       const presenceCheckIn = await prisma.venueCheckIn.findFirst({
         where: {
           venueId: id,
           walletAddress,
           status: 'CONFIRMED',
+          proofLevel: 'QR_AND_GPS',
           scannedAt: { gte: new Date(Date.now() - PRESENCE_BACKED_WINDOW_MS) },
         },
+        orderBy: { scannedAt: 'desc' },
         select: { id: true },
       });
       presenceBacked = Boolean(presenceCheckIn);
+      presenceCheckInId = presenceCheckIn?.id ?? null;
     } catch (presenceError) {
       console.error('[PLACE_TAGS_POST] Presence lookup failed; defaulting to PENDING:', presenceError);
     }
@@ -426,6 +432,10 @@ export async function POST(
           fileName: file.name,
           mimeType: file.type,
           fileSize: file.size,
+          // Audit trail: which presence event cleared this proof (fraud/reputation).
+          ...(presenceBacked && presenceCheckInId
+            ? { presenceCheckInId, presenceVerifiedAt: new Date().toISOString() }
+            : {}),
         },
       },
       select: {

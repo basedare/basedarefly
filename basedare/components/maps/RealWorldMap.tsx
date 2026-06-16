@@ -8666,6 +8666,19 @@ export default function RealWorldMap() {
           setTargetZoom(15);
         }}
         onTagSubmitted={(tag) => {
+          // Presence-backed marks return APPROVED — they're already live, so skip
+          // the pending overlay, refresh the gallery, and celebrate "verified now".
+          if (tag.status === 'APPROVED') {
+            void loadSelectedPlaceTags(selectedPlace?.placeId ?? tag.placeId, undefined, { silent: true });
+            setCeremonyState({
+              kind: tag.firstMark ? 'first-spark' : 'alive-upgrade',
+              title: tag.firstMark ? 'First proof — verified live' : 'Proof verified — live now',
+              body: tag.firstMark
+                ? 'Your check-in cleared it instantly. This place now has its first verified proof.'
+                : 'Your check-in cleared it instantly. It’s on the map now.',
+            });
+            return;
+          }
           setPendingPlaceTags((current) => [
             {
               ...tag,

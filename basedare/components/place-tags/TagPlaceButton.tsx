@@ -115,6 +115,7 @@ export default function TagPlaceButton({
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<'idle' | 'success'>('idle');
   const [submittedFirstMark, setSubmittedFirstMark] = useState(false);
+  const [submittedVerified, setSubmittedVerified] = useState(false);
   const [submittedReceipt, setSubmittedReceipt] = useState<{
     title: string;
     detail: string;
@@ -478,6 +479,7 @@ export default function TagPlaceButton({
         payload.data?.presenceBacked === true || payload.data?.status === 'APPROVED';
       setSubmitState('success');
       setSubmittedFirstMark(Boolean(payload.data?.firstMark));
+      setSubmittedVerified(presenceVerified);
       setSubmittedReceipt({
         title: presenceVerified
           ? payload.data?.firstMark
@@ -604,17 +606,29 @@ export default function TagPlaceButton({
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pb-6 sm:pt-6">
               {submitState === 'success' ? (
                 <div className="bd-puncture-surface bd-puncture-surface--emerald rounded-[24px] border border-emerald-500/20 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">Proof pending</p>
-                  <p className="mt-3 text-lg font-bold text-white">Your proof is in review.</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">
+                    {submittedVerified ? 'Proof verified' : 'Proof pending'}
+                  </p>
+                  <p className="mt-3 text-lg font-bold text-white">
+                    {submittedVerified ? "Your proof is live on the map." : 'Your proof is in review.'}
+                  </p>
                   <p className="mt-2 text-sm text-white/65">
-                    {submittedFirstMark
-                      ? 'If this clears, you become the first verified proof here.'
-                      : 'If this clears, the venue updates automatically.'}
+                    {submittedVerified
+                      ? submittedFirstMark
+                        ? 'Your check-in verified it instantly — you’re the first verified proof here.'
+                        : 'Your check-in verified it instantly. The venue is already updated.'
+                      : submittedFirstMark
+                        ? 'If this clears, you become the first verified proof here.'
+                        : 'If this clears, the venue updates automatically.'}
                   </p>
                   <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">What happens next</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">
+                      {submittedVerified ? 'Why it cleared' : 'What happens next'}
+                    </p>
                     <p className="mt-2 text-sm text-white/70">
-                      Referees review it. If it passes, the map shows your verified proof.
+                      {submittedVerified
+                        ? 'Your QR + GPS check-in proves you were here, so it cleared with no referee.'
+                        : 'Referees review it. If it passes, the map shows your verified proof.'}
                     </p>
                   </div>
                   {submittedReceipt ? (
