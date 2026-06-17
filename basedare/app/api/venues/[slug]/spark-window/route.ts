@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { writeFirstSparkWindowToMetadata } from '@/lib/first-spark-window';
 import { prisma } from '@/lib/prisma';
+import { resolveVenueRole } from '@/lib/venue-role';
 
 type VenueSparkWindowSession = {
   token?: string;
@@ -80,8 +81,20 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Venue not found' }, { status: 404 });
     }
 
-    if (!venue.claimedBy || venue.claimedBy.toLowerCase() !== walletAddress) {
-      return NextResponse.json({ success: false, error: 'Only the claimed venue wallet can edit First Spark Window' }, { status: 403 });
+    // Claim-by-presence: the verified owner OR a provisional host (on-site
+    // QR+GPS check-in + venue reputation, on an unclaimed venue) can run the
+    // tonight loop. Running a Spark Window is a lightweight host power — not
+    // profile/QR/money, which stay owner-only.
+    const venueRole = await resolveVenueRole(walletAddress, venue.id);
+    if (venueRole.role !== 'verified_owner' && venueRole.role !== 'provisional_host') {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'To run a Spark Window here, check in on-site (QR + GPS) and build a little venue reputation — or claim the venue.',
+        },
+        { status: 403 }
+      );
     }
 
     const { metadata, firstSparkWindow } = writeFirstSparkWindowToMetadata(venue.metadataJson, {
