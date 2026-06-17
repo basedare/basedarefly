@@ -83,6 +83,14 @@ export function IdentityButton() {
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const walletPickerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 8 });
+  // Lazy + SSR-safe: only affects the wallet picker (closed on first paint),
+  // so no hydration mismatch even though the server resolves this to false.
+  const [isMobile] = useState(() => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    const touchMac = (navigator.maxTouchPoints ?? 0) > 1 && /Mac/.test(navigator.platform || '');
+    return /Android|iPhone|iPad|iPod/i.test(ua) || touchMac;
+  });
   const { trigger } = useFeedback();
 
   const updateMenuPosition = useCallback(() => {
@@ -132,6 +140,19 @@ export function IdentityButton() {
       })
     ).values()
   );
+
+  // On mobile, extension wallets (MetaMask/Brave injected) don't work in a
+  // normal browser and the Coinbase Smart Wallet popup is flaky — so surface
+  // WalletConnect first (it deep-links straight into any installed wallet app,
+  // including Coinbase Wallet), then Coinbase, then the rest. Desktop keeps the
+  // existing order where injected/extension wallets are the common path.
+  const MOBILE_CONNECTOR_PRIORITY: Record<string, number> = { walletconnect: 0, coinbase: 1 };
+  const orderedConnectors = isMobile
+    ? [...uniqueConnectors].sort(
+        (a, b) =>
+          (MOBILE_CONNECTOR_PRIORITY[a.meta.key] ?? 9) - (MOBILE_CONNECTOR_PRIORITY[b.meta.key] ?? 9)
+      )
+    : uniqueConnectors;
 
   const handleClick = () => {
     if (isConnected) {
@@ -209,7 +230,12 @@ export function IdentityButton() {
             {connectError}
           </div>
         ) : null}
-        {uniqueConnectors.map(({ connector, meta }) => {
+        {isMobile && orderedConnectors.length > 0 ? (
+          <p className="px-3 pb-1 pt-0.5 text-[10px] leading-4 text-white/40">
+            On mobile? Pick WalletConnect to open your wallet app directly.
+          </p>
+        ) : null}
+        {orderedConnectors.map(({ connector, meta }) => {
           const finalMeta = meta;
           const isConnectingThisWallet = isPending && pendingConnectorUid === connector.uid;
 
