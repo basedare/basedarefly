@@ -35,13 +35,15 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const location = [venue.city, venue.country].filter(Boolean).join(' · ');
 
   return renderProofCard({
-    eyebrow: 'PROOF OF PRESENCE',
+    eyebrow: 'VERIFIED RECEIPT',
     title: venue.name,
     location: location || undefined,
+    // Buyer-led: lead with commercially obvious proof, keep the cooler brand
+    // language (#HumanOnly) as footer texture.
     stats: [
-      { value: String(proofCount), label: proofCount === 1 ? 'verified proof' : 'verified proofs' },
-      { value: String(checkIns), label: checkIns === 1 ? 'check-in' : 'check-ins' },
-      { value: '#HumanOnly', label: 'unfakeable' },
+      { value: String(checkIns), label: checkIns === 1 ? 'verified visit' : 'verified visits' },
+      { value: String(proofCount), label: proofCount === 1 ? 'proof captured' : 'proofs captured' },
     ],
+    footerNote: 'Receipt by BaseDare · #HumanOnly',
   });
 }

@@ -493,7 +493,9 @@ export default function TagPlaceButton({
           : payload.data?.firstMark
             ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
             : 'This is waiting for review. If approved, the venue updates automatically.',
-        href: venueSlug ? `/venues/${encodeURIComponent(venueSlug)}` : '/map',
+        // Point at the recap — the most receipt-like surface, where the proof
+        // OG card unfurls when the link is shared.
+        href: venueSlug ? `/venues/${encodeURIComponent(venueSlug)}/recap` : '/map',
         venueName,
         actorLabel,
         timestamp: submittedAt,
@@ -641,6 +643,9 @@ export default function TagPlaceButton({
                       actorLabel={submittedReceipt.actorLabel}
                       timestamp={submittedReceipt.timestamp}
                       tone={submittedReceipt.tone}
+                      emphasizeShare={submittedVerified}
+                      shareLabel="Share your proof"
+                      analyticsSource={submittedVerified ? 'place_tag_verified' : 'place_tag_pending'}
                       className="mt-4"
                     />
                   ) : null}

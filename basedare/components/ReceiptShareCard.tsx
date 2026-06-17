@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Check, Clock3, Copy, ExternalLink, MapPin, ReceiptText, Share2, UserRound } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { trackClientEvent } from '@/lib/analytics';
 
 export type ReceiptShareTone = 'cyan' | 'emerald' | 'gold' | 'violet';
 
@@ -23,6 +24,12 @@ type ReceiptShareCardProps = {
   stats?: ReceiptShareStat[];
   compact?: boolean;
   className?: string;
+  /** Source tag for share analytics (e.g. 'place_tag_verified'). */
+  analyticsSource?: string;
+  /** Render a prominent primary "Share your proof" CTA (use at the magic moment). */
+  emphasizeShare?: boolean;
+  /** Label for the prominent share CTA when emphasizeShare is on. */
+  shareLabel?: string;
 };
 
 const toneClasses: Record<ReceiptShareTone, { shell: string; badge: string; icon: string; button: string }> = {
@@ -87,6 +94,9 @@ export default function ReceiptShareCard({
   stats = [],
   compact = false,
   className = '',
+  analyticsSource = 'receipt_share',
+  emphasizeShare = false,
+  shareLabel = 'Share your proof',
 }: ReceiptShareCardProps) {
   const [copied, setCopied] = useState<'caption' | 'link' | null>(null);
   const { toast } = useToast();
@@ -103,9 +113,23 @@ export default function ReceiptShareCard({
     return [title, detail, ...context, shareUrl].filter(Boolean).join('\n\n');
   }, [actorLabel, detail, receiptTime, shareUrl, title, venueName]);
 
+  // Native share wants the URL in its own field (it renders the unfurl), so the
+  // text body omits the trailing link to avoid a duplicate.
+  const shareTextNoUrl = useMemo(() => {
+    const context = [
+      venueName ? `Venue: ${venueName}` : null,
+      actorLabel ? `By: ${actorLabel}` : null,
+    ].filter(Boolean);
+    return [title, detail, ...context].filter(Boolean).join('\n\n');
+  }, [actorLabel, detail, title, venueName]);
+
+  const trackShare = (method: string) =>
+    trackClientEvent('proof_shared', { source: analyticsSource, method, tone });
+
   const copyValue = async (kind: 'caption' | 'link') => {
     const value = kind === 'caption' ? shareText : shareUrl;
     await navigator.clipboard.writeText(value);
+    trackShare(kind === 'caption' ? 'copy_caption' : 'copy_link');
     setCopied(kind);
     window.setTimeout(() => setCopied(null), 1600);
     toast({
@@ -116,7 +140,25 @@ export default function ReceiptShareCard({
   };
 
   const shareToX = () => {
+    trackShare('x');
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank', 'width=700,height=620');
+  };
+
+  // One-tap share: native sheet on mobile (IG / WhatsApp / Messages), X intent
+  // as the desktop fallback. The whole point of the magic moment.
+  const shareProof = async () => {
+    const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    if (canNativeShare) {
+      trackShare('native');
+      try {
+        await navigator.share({ title, text: shareTextNoUrl, url: shareUrl });
+        return;
+      } catch (error) {
+        // User dismissed the sheet — not an error, don't fall through.
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
+    }
+    shareToX();
   };
 
   return (
@@ -179,31 +221,63 @@ export default function ReceiptShareCard({
         </div>
       ) : null}
 
-      <div className={`relative ${compact ? 'mt-3 grid-cols-3 gap-1.5' : 'mt-4 grid-cols-1 gap-2 sm:grid-cols-3'} grid`}>
-        <button
-          type="button"
-          onClick={() => void copyValue('link')}
-          className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
-        >
-          <Copy className="h-3.5 w-3.5" />
-          {copied === 'link' ? 'Copied' : 'Copy'}
-        </button>
-        <button
-          type="button"
-          onClick={shareToX}
-          className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${classes.button}`}
-        >
-          <Share2 className="h-3.5 w-3.5" />
-          X
-        </button>
-        <Link
-          href={href}
-          className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Open
-        </Link>
-      </div>
+      {emphasizeShare ? (
+        <div className={`relative ${compact ? 'mt-3' : 'mt-4'} space-y-2`}>
+          <button
+            type="button"
+            onClick={() => void shareProof()}
+            className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[16px] border px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] transition ${classes.button}`}
+          >
+            <Share2 className="h-4 w-4" />
+            {shareLabel}
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => void copyValue('link')}
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {copied === 'link' ? 'Copied' : 'Copy link'}
+            </button>
+            <Link
+              href={href}
+              onClick={() => trackShare('open')}
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className={`relative ${compact ? 'mt-3 grid-cols-3 gap-1.5' : 'mt-4 grid-cols-1 gap-2 sm:grid-cols-3'} grid`}>
+          <button
+            type="button"
+            onClick={() => void copyValue('link')}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copied === 'link' ? 'Copied' : 'Copy'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void shareProof()}
+            className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${classes.button}`}
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
+          </button>
+          <Link
+            href={href}
+            onClick={() => trackShare('open')}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/68 transition hover:border-white/20 hover:text-white"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
