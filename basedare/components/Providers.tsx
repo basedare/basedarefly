@@ -8,6 +8,7 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
 import WalletAutoReconnect from './WalletAutoReconnect';
+import PostHogProvider from './PostHogProvider';
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
 const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
@@ -39,6 +40,7 @@ export function Providers({ children }: { children: ReactNode }) {
   if (!apiKey) console.warn('Missing OnchainKit API key!');
 
   return (
+    <PostHogProvider>
     <SessionProvider>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
@@ -58,5 +60,6 @@ export function Providers({ children }: { children: ReactNode }) {
         </QueryClientProvider>
       </WagmiProvider>
     </SessionProvider>
-  ); 
+    </PostHogProvider>
+  );
 }

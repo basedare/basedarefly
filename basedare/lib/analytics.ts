@@ -1,24 +1,20 @@
 'use client';
 
+import posthog from 'posthog-js';
+
 type AnalyticsPayloadValue = string | number | boolean | null | undefined;
 
 export type AnalyticsPayload = Record<string, AnalyticsPayloadValue>;
-
-declare global {
-  interface Window {
-    posthog?: {
-      capture: (event: string, properties?: Record<string, unknown>) => void;
-    };
-  }
-}
 
 export function trackClientEvent(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === 'undefined') {
     return;
   }
 
-  if (window.posthog?.capture) {
-    window.posthog.capture(event, payload);
+  // PostHog is only initialized when NEXT_PUBLIC_POSTHOG_KEY is set
+  // (see components/PostHogProvider.tsx). Until then this safely no-ops.
+  if (posthog.__loaded) {
+    posthog.capture(event, payload);
     return;
   }
 
