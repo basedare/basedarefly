@@ -46,28 +46,10 @@ type CreatorsResponse = {
   data?: CreatorFromApi[];
 };
 
+// Placeholder creators shown before the live /api/creators data hydrates.
+// Kept strictly to the CREATOR role — captains live in the hero CTA, and scouts
+// aren't a self-serve role yet — so the chips never mislabel a role.
 const fallbackCreators: ReadyCreatorSignal[] = [
-  {
-    key: 'founding-captains',
-    name: 'Founding captains',
-    area: 'Siargao / city pilots',
-    availability: 'Apply now',
-    metric: 'Captain intake open',
-    inviteHref: '/captains?source=home-market-signal',
-  },
-  {
-    key: 'venue-scouts',
-    name: 'Venue scouts',
-    area: 'Local radius',
-    availability: 'Open this week',
-    metric: 'Mark places first',
-    inviteHref: buildCreatorMissionActivationHref({
-      creator: '@venue-scout',
-      source: 'home-market-signal',
-      city: 'Local radius',
-      skills: ['Venue scout', 'First spark', 'QR proof'],
-    }),
-  },
   {
     key: 'proof-creators',
     name: 'Proof creators',
@@ -79,6 +61,32 @@ const fallbackCreators: ReadyCreatorSignal[] = [
       source: 'home-market-signal',
       city: 'Area shared after invite',
       skills: ['UGC', 'Fast clips', 'Check-ins'],
+    }),
+  },
+  {
+    key: 'recap-creators',
+    name: 'Recap creators',
+    area: 'Siargao / city pilots',
+    availability: 'Available tonight',
+    metric: 'Clips + venue recaps',
+    inviteHref: buildCreatorMissionActivationHref({
+      creator: '@recap-creator',
+      source: 'home-market-signal',
+      city: 'Siargao / city pilots',
+      skills: ['Recap', 'Fast clips', 'Proof'],
+    }),
+  },
+  {
+    key: 'first-spark-creators',
+    name: 'First-spark creators',
+    area: 'Local radius',
+    availability: 'Open this week',
+    metric: 'Activate a new venue',
+    inviteHref: buildCreatorMissionActivationHref({
+      creator: '@first-spark',
+      source: 'home-market-signal',
+      city: 'Local radius',
+      skills: ['First spark', 'Check-ins', 'Proof'],
     }),
   },
 ];
@@ -274,7 +282,8 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
               Venues ready to turn bounties into proof.
             </h3>
             <p className="mx-auto mt-3 max-w-3xl text-sm font-bold leading-6 text-white/48">
-              Open venues are where bounties become receipts: check-ins, guest missions, and creator routes.
+              Open venues turn bounties into receipts — check-ins, missions, and proof. Captains are the
+              operators who run them.
             </p>
           </div>
 
@@ -292,7 +301,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(245,197,24,0.07))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#f9e27a] shadow-[0_14px_24px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:border-[#f5c518]/45 sm:min-w-[11.5rem]"
             >
               <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              Captain intake
+              Become a captain
             </Link>
           </div>
         </div>
