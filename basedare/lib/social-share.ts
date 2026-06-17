@@ -26,7 +26,7 @@ export function getBaseDareUrl(path?: string | null) {
   const origin =
     typeof window !== 'undefined'
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+      : process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz';
 
   if (!path) {
     return origin;

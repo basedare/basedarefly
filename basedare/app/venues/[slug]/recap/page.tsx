@@ -122,7 +122,7 @@ export async function generateMetadata(
     openGraph: {
       title,
       description,
-      url: `https://basedare.xyz/venues/${slug}/recap`,
+      url: `https://www.basedare.xyz/venues/${slug}/recap`,
       siteName: 'BaseDare',
       type: 'website',
     },

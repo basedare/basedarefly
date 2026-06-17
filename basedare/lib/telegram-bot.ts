@@ -6,7 +6,7 @@ import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderati
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz';
 const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || process.env.ADMIN_SECRET;
 const BOT_STAKER_ADDRESS =

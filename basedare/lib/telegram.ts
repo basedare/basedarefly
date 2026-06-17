@@ -34,7 +34,7 @@ const TELEGRAM_SIGNAL_CHAT_ID = normalizeSignalRoomChatId(
   process.env.TELEGRAM_SIGNAL_CHAT_ID || process.env.TELEGRAM_PUBLIC_CHAT_ID
 );
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz';
 const EXPLORER_URL = process.env.NEXT_PUBLIC_NETWORK === 'mainnet'
   ? 'https://basescan.org'
   : 'https://sepolia.basescan.org';

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: 'BaseDare Creators — Get Paid for IRL and Online Dares',
     description:
       'Claim your tag, verify your identity, and earn from BaseDare completions across IRL missions and online dares.',
-    url: 'https://basedare.xyz/creators',
+    url: 'https://www.basedare.xyz/creators',
     siteName: 'BaseDare',
     type: 'website',
   },

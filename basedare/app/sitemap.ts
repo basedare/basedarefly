@@ -5,67 +5,67 @@ export const dynamic = 'force-dynamic';
 
 const staticRoutes: MetadataRoute.Sitemap = [
   {
-    url: 'https://basedare.xyz',
+    url: 'https://www.basedare.xyz',
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 1,
   },
   {
-    url: 'https://basedare.xyz/map',
+    url: 'https://www.basedare.xyz/map',
     lastModified: new Date(),
     changeFrequency: 'hourly',
     priority: 0.9,
   },
   {
-    url: 'https://basedare.xyz/activations',
+    url: 'https://www.basedare.xyz/activations',
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.9,
   },
   {
-    url: 'https://basedare.xyz/first-spark',
+    url: 'https://www.basedare.xyz/first-spark',
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.92,
   },
   {
-    url: 'https://basedare.xyz/creators',
+    url: 'https://www.basedare.xyz/creators',
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 0.8,
   },
   {
-    url: 'https://basedare.xyz/verify',
+    url: 'https://www.basedare.xyz/verify',
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 0.75,
   },
   {
-    url: 'https://basedare.xyz/leaderboard',
+    url: 'https://www.basedare.xyz/leaderboard',
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 0.75,
   },
   {
-    url: 'https://basedare.xyz/about',
+    url: 'https://www.basedare.xyz/about',
     lastModified: new Date(),
     changeFrequency: 'monthly',
     priority: 0.5,
   },
   {
-    url: 'https://basedare.xyz/faq',
+    url: 'https://www.basedare.xyz/faq',
     lastModified: new Date(),
     changeFrequency: 'monthly',
     priority: 0.45,
   },
   {
-    url: 'https://basedare.xyz/privacy',
+    url: 'https://www.basedare.xyz/privacy',
     lastModified: new Date(),
     changeFrequency: 'monthly',
     priority: 0.3,
   },
   {
-    url: 'https://basedare.xyz/terms',
+    url: 'https://www.basedare.xyz/terms',
     lastModified: new Date(),
     changeFrequency: 'monthly',
     priority: 0.3,
@@ -91,13 +91,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...staticRoutes,
       ...venues.map((venue) => ({
-        url: `https://basedare.xyz/venues/${venue.slug}`,
+        url: `https://www.basedare.xyz/venues/${venue.slug}`,
         lastModified: venue.updatedAt,
         changeFrequency: 'daily' as const,
         priority: 0.7,
       })),
       ...venues.map((venue) => ({
-        url: `https://basedare.xyz/venues/${venue.slug}/recap`,
+        url: `https://www.basedare.xyz/venues/${venue.slug}/recap`,
         lastModified: venue.updatedAt,
         changeFrequency: 'daily' as const,
         priority: 0.68,
@@ -105,7 +105,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...dares
         .filter((dare) => Boolean(dare.shortId))
         .map((dare) => ({
-          url: `https://basedare.xyz/dare/${dare.shortId}`,
+          url: `https://www.basedare.xyz/dare/${dare.shortId}`,
           lastModified: dare.updatedAt,
           changeFrequency: 'hourly' as const,
           priority: 0.6,

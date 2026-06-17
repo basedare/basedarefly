@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/dashboard', '/brands/portal', '/admin'],
     },
-    sitemap: 'https://basedare.xyz/sitemap.xml',
+    sitemap: 'https://www.basedare.xyz/sitemap.xml',
   };
 }

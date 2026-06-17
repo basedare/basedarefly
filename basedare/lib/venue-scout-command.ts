@@ -77,7 +77,7 @@ const STAGE_PRIORITY: PipelineStageKey[] = [
 ];
 
 const ACTIVE_LEAD_STATUSES = ['NEW', 'FOLLOWING_UP', 'WAITING'];
-const PUBLIC_APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz').replace(/\/$/, '');
+const PUBLIC_APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz').replace(/\/$/, '');
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null;

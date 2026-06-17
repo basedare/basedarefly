@@ -80,7 +80,7 @@ function normalizeStatus(value: unknown) {
 }
 
 function appBaseUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://basedare.xyz').replace(/\/$/, '');
+  return (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://www.basedare.xyz').replace(/\/$/, '');
 }
 
 function tokenSecret() {

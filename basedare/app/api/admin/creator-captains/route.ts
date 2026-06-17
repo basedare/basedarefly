@@ -387,7 +387,7 @@ export async function PUT(request: NextRequest) {
       const venueLead = stringValue(metadata.venueLead);
       const token = stringValue(existingMission.token) || randomUUID().replace(/-/g, '');
       const missionPath = buildCaptainMissionPath({ token });
-      const missionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz'}${missionPath}`;
+      const missionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz'}${missionPath}`;
 
       nextMission = {
         ...nextMission,

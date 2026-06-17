@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: 'BaseDare Map — Find Live Dares Near You',
     description:
       'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
-    url: 'https://basedare.xyz/map',
+    url: 'https://www.basedare.xyz/map',
     siteName: 'BaseDare',
     type: 'website',
   },
