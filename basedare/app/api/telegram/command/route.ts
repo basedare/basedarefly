@@ -11,7 +11,7 @@ import { forbiddenTelegramAdminResponse, hasValidTelegramAdminSecret } from '@/l
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz';
 
 async function sendMessage(text: string) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) return;

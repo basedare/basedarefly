@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
             policy: 'Founding scouts earn a manually approved percentage when referred creators produce paid BaseDare earnings.',
           },
           captainInvitePath,
-          captainInviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz'}${captainInvitePath}`,
+          captainInviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz'}${captainInvitePath}`,
           clientIp,
         } satisfies Prisma.InputJsonValue,
       },

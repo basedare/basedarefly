@@ -1187,7 +1187,7 @@ export function buildVenueHandshakeValue(input: {
   expiresAt: Date;
 }) {
   const scope = input.scope ?? 'VENUE_CHECKIN';
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://basedare.xyz').replace(/\/$/, '');
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://www.basedare.xyz').replace(/\/$/, '');
   const params = new URLSearchParams({
     scope,
     venue: input.venueSlug,

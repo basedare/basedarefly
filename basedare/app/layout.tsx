@@ -98,7 +98,7 @@ try {
 `;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://basedare.xyz"),
+  metadataBase: new URL("https://www.basedare.xyz"),
   title: "BaseDare — Own the Grid",
   description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
   applicationName: "BaseDare",
@@ -114,7 +114,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "BaseDare — Own the Grid",
     description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
-    url: "https://basedare.xyz",
+    url: "https://www.basedare.xyz",
     siteName: "BaseDare",
     images: [
       {

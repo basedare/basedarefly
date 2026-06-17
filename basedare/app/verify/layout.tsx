@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: 'BaseDare Truth Protocol — Community Verification',
     description:
       'Review proof, feed referee signal, and help route valid BaseDare completions toward settlement.',
-    url: 'https://basedare.xyz/verify',
+    url: 'https://www.basedare.xyz/verify',
     siteName: 'BaseDare',
     type: 'website',
   },

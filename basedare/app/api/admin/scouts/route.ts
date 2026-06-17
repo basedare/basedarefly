@@ -102,7 +102,7 @@ function mapScoutLeadEvent(event: {
   const captainInvitePath = stringValue(metadata.captainInvitePath) || `/captains?scout=${encodeURIComponent(scoutCode)}`;
   const captainInviteUrl =
     stringValue(metadata.captainInviteUrl) ||
-    `${process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz'}${captainInvitePath}`;
+    `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz'}${captainInvitePath}`;
   const creatorPlatform = stringValue(metadata.creatorPlatform);
   const relationshipStrength = stringValue(metadata.relationshipStrength);
   const rewardSharePct = numberValue(reward.rewardSharePct) || DEFAULT_SCOUT_REWARD_SHARE_PCT;
@@ -347,7 +347,7 @@ export async function PUT(request: NextRequest) {
     if (input.action === 'launch_mission') {
       const token = stringValue(existingMission.token) || randomUUID().replace(/-/g, '');
       const missionPath = buildCaptainMissionPath({ token });
-      const missionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz'}${missionPath}`;
+      const missionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz'}${missionPath}`;
       nextMission = {
         ...nextMission,
         token,

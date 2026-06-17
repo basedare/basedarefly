@@ -19,7 +19,7 @@ import { handleTelegramUpdate, validateTelegramWebhookSecret, type TelegramUpdat
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://basedare.xyz';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz';
 
 function escapeHtml(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '';
