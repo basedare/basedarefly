@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/activation-intakes",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/scout-active-rake",
+      "schedule": "0 6 1 * *"
     }
   ]
 }

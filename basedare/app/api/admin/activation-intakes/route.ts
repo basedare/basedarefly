@@ -12,6 +12,7 @@ import {
 import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { prisma } from '@/lib/prisma';
+import { accrueScoutRakeForVenuePayment } from '@/lib/scout-accrual';
 import { alertActivationIntakeStatusUpdate } from '@/lib/telegram';
 
 const INTAKE_STATUSES = [
@@ -36,6 +37,10 @@ const IntakeUpdateSchema = z.object({
   nextActionAt: z.string().datetime().nullable().optional(),
   paymentLink: z.string().max(500).nullable().optional(),
   paymentReference: z.string().max(180).nullable().optional(),
+  // The COMMISSIONABLE amount BaseDare rakes from on this paid activation (the
+  // margin, not the gross invoice). Entered at the PAID_CONFIRMED step; drives
+  // scout-rake accrual.
+  paidConfirmedAmountUsd: z.number().positive().max(1_000_000).optional(),
   closeRoomAction: z.enum(['sent']).optional(),
 });
 
@@ -1390,6 +1395,7 @@ export async function PUT(request: NextRequest) {
     if (input.nextActionAt !== undefined) nextOperator.nextActionAt = input.nextActionAt;
     if (input.paymentLink !== undefined) nextOperator.paymentLink = cleanOptional(input.paymentLink);
     if (input.paymentReference !== undefined) nextOperator.paymentReference = cleanOptional(input.paymentReference);
+    if (input.paidConfirmedAmountUsd !== undefined) nextOperator.paidConfirmedAmountUsd = input.paidConfirmedAmountUsd;
     if (input.closeRoomAction === 'sent') {
       const now = new Date().toISOString();
       nextOperator.closeRoomSentAt = now;
@@ -1451,6 +1457,39 @@ export async function PUT(request: NextRequest) {
       fetchActivationReceiptCampaigns(),
     ]);
     const mappedIntake = mapIntakeEvent(updated, creatorCandidates, activationCampaigns);
+
+    // Scout rake accrual (scout-engine slice 4): the first time an activation is
+    // confirmed paid, accrue the venue's bound scout(s) a cut of the
+    // COMMISSIONABLE amount entered (the margin, not gross). Idempotent on the
+    // activation id; best-effort — never blocks the admin action.
+    if (
+      nextStatus === 'PAID_CONFIRMED' &&
+      currentStatus !== 'PAID_CONFIRMED' &&
+      typeof input.paidConfirmedAmountUsd === 'number' &&
+      input.paidConfirmedAmountUsd > 0
+    ) {
+      const venueRef = typeof nextOperator.assignedVenue === 'string' ? nextOperator.assignedVenue.trim() : '';
+      if (venueRef) {
+        try {
+          const venue = await prisma.venue.findFirst({
+            where: { OR: [{ slug: venueRef }, { id: venueRef }] },
+            select: { id: true },
+          });
+          if (venue) {
+            const accrual = await accrueScoutRakeForVenuePayment({
+              venueId: venue.id,
+              sourceId: event.id,
+              commissionableAmountUsd: input.paidConfirmedAmountUsd,
+            });
+            console.log(`[ACTIVATION_PAID] scout rake for ${venueRef}: accrued=${accrual.accrued} (${accrual.reason})`);
+          } else {
+            console.warn(`[ACTIVATION_PAID] assigned venue not found for scout accrual: ${venueRef}`);
+          }
+        } catch (accrualError) {
+          console.error('[ACTIVATION_PAID] scout rake accrual failed (non-blocking):', accrualError);
+        }
+      }
+    }
 
     if (nextStatus !== currentStatus) {
       const funnelEventType = activationFunnelEventTypeForStatus(nextStatus);

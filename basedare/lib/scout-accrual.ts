@@ -67,8 +67,13 @@ export async function accrueScoutRakeForVenuePayment(input: {
   venueId: string;
   /** The settled payment id — the idempotency key. */
   sourceId: string;
-  /** Gross B2B amount that settled. */
-  amount: number;
+  /**
+   * The COMMISSIONABLE base — the amount BaseDare actually rakes from (the B2B
+   * margin), NOT the gross invoice. Strip pass-through costs (prizes, host fees,
+   * reimbursables) before passing this in, or scouts get paid on money that
+   * isn't margin.
+   */
+  commissionableAmountUsd: number;
 }): Promise<ScoutAccrualResult> {
   const venue = await prisma.venue.findUnique({
     where: { id: input.venueId },
@@ -78,7 +83,7 @@ export async function accrueScoutRakeForVenuePayment(input: {
   const discoveryScoutId = venue?.discoveryScoutId ?? null;
   const activeScoutId = venue?.activeScoutId ?? null;
 
-  const split = computeScoutRake(input.amount, {
+  const split = computeScoutRake(input.commissionableAmountUsd, {
     hasDiscoveryScout: Boolean(discoveryScoutId),
     hasActiveScout: Boolean(activeScoutId),
   });

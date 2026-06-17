@@ -3,6 +3,7 @@ import { isAddress } from 'viem';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { bindScoutToVenue, getScoutVenues } from '@/lib/scout-venues';
+import { resolveVenueRole } from '@/lib/venue-role';
 
 const SignUpVenueSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Invalid wallet address'),
@@ -27,6 +28,19 @@ export async function POST(request: NextRequest) {
     });
     if (!venue) {
       return NextResponse.json({ success: false, error: 'Venue not found' }, { status: 404 });
+    }
+
+    // Anti-squat gate: a scout can only self-claim a venue they have proof-of-
+    // presence at (a CONFIRMED QR+GPS check-in → resolveVenueRole !== visitor).
+    // QR is venue-bound, rotating, and replay-blocked, so this can't be faked
+    // remotely — you must have physically sourced the venue. (The activation-paid
+    // path binds server-side via the deal itself and does not use this route.)
+    const role = await resolveVenueRole(parsed.data.walletAddress, venue.id);
+    if (role.role === 'visitor') {
+      return NextResponse.json(
+        { success: false, error: 'Check in at this venue (QR + GPS) before claiming it as a scout.' },
+        { status: 403 }
+      );
     }
 
     const result = await bindScoutToVenue({
