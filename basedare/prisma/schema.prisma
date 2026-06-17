@@ -154,6 +154,9 @@ model Venue {
   moderatorNote       String?
   hoursJson           Json?
   metadataJson        Json?
+  discoveryScoutId    String?
+  activeScoutId       String?
+  activeRakeReviewedAt DateTime?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   dares               Dare[]
@@ -170,6 +173,8 @@ model Venue {
   reportLeads         VenueReportLead[]
   founderEvents       FounderEvent[]
   baseCashCredits     BaseCashVenueCredit[]
+  discoveryScout      Scout?              @relation("VenueDiscoveryScout", fields: [discoveryScoutId], references: [id])
+  activeScout         Scout?              @relation("VenueActiveScout", fields: [activeScoutId], references: [id])
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -177,6 +182,8 @@ model Venue {
   @@index([city, status])
   @@index([claimRequestStatus])
   @@index([claimedBy])
+  @@index([discoveryScoutId])
+  @@index([activeScoutId])
 }
 
 model BaseCashVenueCredit {
@@ -633,6 +640,32 @@ model Scout {
   slots              CampaignSlot[]
   activeCreators     ScoutCreator[] @relation("ActiveScout")
   discoveredCreators ScoutCreator[] @relation("DiscoveryScout")
+  discoveredVenues   Venue[]          @relation("VenueDiscoveryScout")
+  activeVenues       Venue[]          @relation("VenueActiveScout")
+  rakeEvents         ScoutRakeEvent[]
+}
+
+// Money ledger for scout rake — auditable, idempotent, clawback-able.
+// Every cent traces to a settled B2B payment, vests, and can be reversed.
+// Scout.totalDiscoveryRake / totalActiveRake become denormalized sums of this.
+model ScoutRakeEvent {
+  id         String    @id @default(cuid())
+  scoutId    String
+  venueId    String?
+  kind       String    // DISCOVERY | ACTIVE
+  sourceType String    @default("B2B_PAYMENT")
+  sourceId   String    // the settled payment id
+  amount     Float
+  status     String    @default("PENDING") // PENDING | VESTED | CLAWED_BACK
+  vestsAt    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  scout      Scout     @relation(fields: [scoutId], references: [id])
+
+  @@unique([scoutId, sourceId, kind])
+  @@index([scoutId])
+  @@index([venueId])
+  @@index([status])
 }
 
 model ScoutCreator {
