@@ -10,7 +10,6 @@ import {
   Camera,
   BadgeCheck,
   CheckCircle2,
-  ClipboardCheck,
   Zap,
   MapPin,
   MessageSquare,
@@ -56,14 +55,14 @@ const OVERVIEW_STEPS = [
   {
     icon: Camera,
     title: "Complete",
-    description: "A creator claims the mission, does the action, and uploads proof.",
+    description: "A creator shows up, does the action, and captures proof — checking in with QR + GPS.",
     color: "text-purple-400",
     glow: "rgba(168,85,247,0.12)",
   },
   {
     icon: BadgeCheck,
     title: "Payout",
-    description: "Approved proof releases USDC to the creator wallet.",
+    description: "Verified proof releases USDC to the creator — instantly when a check-in backs it.",
     color: "text-emerald-400",
     glow: "rgba(52,211,153,0.12)",
   },
@@ -193,23 +192,6 @@ const QUICKSTART_TRACKS = [
       { icon: BarChart3, label: "Receipt", detail: "Track proof and recap." },
     ],
     targets: ["Control switch", "Plan Activation card", "Brand Portal"],
-  },
-  {
-    audience: "Operator",
-    title: "Review marks and alerts",
-    summary: "Review place proof, alerts, and push health.",
-    href: "/admin?tab=placeTags",
-    cta: "Open queue",
-    pillClass: "border-fuchsia-300/20 bg-fuchsia-400/[0.08] text-fuchsia-100",
-    iconClass: "text-fuchsia-300",
-    lineColor: "rgba(244,114,182,0.58)",
-    steps: [
-      { icon: ClipboardCheck, label: "Queue", detail: "Open place tags." },
-      { icon: Camera, label: "Proof", detail: "Review photo or video." },
-      { icon: CheckCircle2, label: "Decide", detail: "Approve or reject." },
-      { icon: Bell, label: "Push", detail: "Check notification health." },
-    ],
-    targets: ["Admin tab bar", "Chaos inbox", "Push diagnostics"],
   },
 ];
 

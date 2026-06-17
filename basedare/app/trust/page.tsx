@@ -33,8 +33,8 @@ const TRUST_CARDS = [
     tone: 'text-[#f8dd72] border-[#f5c518]/20 bg-[#f5c518]/[0.08]',
   },
   {
-    title: 'Proof gets checked',
-    body: 'Submitted proof does not instantly trigger payout. It moves through review first, so fake, weak, or incomplete submissions can be stopped before settlement.',
+    title: 'Proof has to be real',
+    body: 'Proof backed by a verified check-in (QR + GPS) is unfakeable, so it clears instantly. Anything that can’t be auto-verified moves through review first, so weak or fake submissions get stopped before settlement.',
     icon: ShieldCheck,
     tone: 'text-fuchsia-100 border-fuchsia-400/18 bg-fuchsia-500/[0.08]',
   },
@@ -54,9 +54,9 @@ const TRUST_CARDS = [
 
 const FLOW = [
   'Fund or target the dare',
-  'Creator accepts or claims it',
-  'Proof is submitted and reviewed',
-  'Approved missions settle from escrow',
+  'Creator accepts and does it',
+  'Proof clears instantly with a verified check-in — otherwise it’s reviewed',
+  'Escrow settles to the creator wallet',
 ];
 
 const PROTOCOL_CARDS = [
@@ -68,7 +68,7 @@ const PROTOCOL_CARDS = [
   },
   {
     title: 'Verifiable truth',
-    body: 'Proof is reviewed before payout. The point is not instant vibes. The point is making sure the mission actually happened before money moves.',
+    body: 'Trust comes from unfakeable proof, not a slow reviewer. When presence is proven, settlement is instant. When it can’t be, escrow holds and review decides — so money only moves on a real outcome.',
     icon: Shield,
     tone: 'text-cyan-100 border-cyan-400/18 bg-cyan-500/[0.08]',
   },
@@ -132,7 +132,7 @@ export default function TrustPage() {
                   BaseDare Runs On
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffe27a] to-[#c39106]">
-                    Escrow, Review,
+                    Escrow, Proof,
                   </span>
                   <br />
                   And Real Outcomes
