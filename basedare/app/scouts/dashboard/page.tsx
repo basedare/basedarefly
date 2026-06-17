@@ -21,6 +21,7 @@ import { ControlChrome } from '@/components/control/ControlChrome';
 import { ControlStatRow, type ControlStatItem } from '@/components/control/ControlStat';
 import { ControlChip } from '@/components/control/ControlChip';
 import { controlPanel, controlInset, controlSoftCard } from '@/components/control/tokens';
+import ScoutVenuesPanel from '@/components/scouts/ScoutVenuesPanel';
 
 type Creator = {
   tag: string;
@@ -277,6 +278,8 @@ export default function CreatorRadarPage() {
       </section>
 
       <ControlStatRow items={summaryMetrics} columnsClass="grid-cols-2 sm:grid-cols-4" />
+
+      <ScoutVenuesPanel />
 
       {/* Toolbar: search + filters + sort */}
       <section className={`${controlPanel} p-4 sm:p-5`}>
