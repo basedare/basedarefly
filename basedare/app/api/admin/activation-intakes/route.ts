@@ -13,6 +13,7 @@ import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import { prisma } from '@/lib/prisma';
 import { accrueScoutRakeForVenuePayment } from '@/lib/scout-accrual';
+import { clawbackScoutRakeForPayment } from '@/lib/scout-vesting';
 import { alertActivationIntakeStatusUpdate } from '@/lib/telegram';
 
 const INTAKE_STATUSES = [
@@ -1488,6 +1489,20 @@ export async function PUT(request: NextRequest) {
         } catch (accrualError) {
           console.error('[ACTIVATION_PAID] scout rake accrual failed (non-blocking):', accrualError);
         }
+      }
+    }
+
+    // Reversal: if a (possibly paid) activation is rejected, claw back any scout
+    // rake accrued for it and reverse the denormalized totals. Self-guards — no
+    // ledger events for this activation = a clean no-op. Best-effort.
+    if (nextStatus === 'REJECTED' && currentStatus !== 'REJECTED') {
+      try {
+        const clawback = await clawbackScoutRakeForPayment(event.id);
+        if (clawback.clawedBack > 0) {
+          console.log(`[ACTIVATION_REJECTED] clawed back ${clawback.clawedBack} scout rake event(s) for ${event.id}`);
+        }
+      } catch (clawbackError) {
+        console.error('[ACTIVATION_REJECTED] scout rake clawback failed (non-blocking):', clawbackError);
       }
     }
 

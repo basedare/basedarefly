@@ -223,6 +223,7 @@ type IntakeDraft = {
 type IntakeUpdatePatch = Partial<Omit<IntakeDraft, 'nextActionAt'>> & {
   nextActionAt?: string | null;
   status?: IntakeStatus;
+  paidConfirmedAmountUsd?: number;
   closeRoomAction?: 'sent';
 };
 
@@ -710,16 +711,33 @@ export default function ActivationIntakesPage() {
 
   const confirmPaid = async (intake: ActivationIntake) => {
     const draft = drafts[intake.id] ?? {};
+    // Capture the COMMISSIONABLE amount (the margin BaseDare rakes from — exclude
+    // pass-through like prizes/host fees) so scout rake accrues correctly. Blank
+    // = confirm payment without firing scout rake.
+    const entered =
+      typeof window !== 'undefined'
+        ? window.prompt(
+            `Commissionable amount for "${intake.company || 'this activation'}" (USD) — the margin BaseDare rakes from, excluding pass-through costs. Leave blank to skip scout rake.`,
+            intake.amount ? String(intake.amount) : ''
+          )
+        : null;
+    const parsed = entered != null && entered.trim() !== '' ? Number(entered.trim()) : null;
+    const paidConfirmedAmountUsd =
+      parsed != null && Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+
     await updateIntake(intake.id, {
       assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
       assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
       paymentLink: draft.paymentLink ?? intake.paymentLink,
       paymentReference: draft.paymentReference ?? intake.paymentReference,
       status: 'PAID_CONFIRMED',
+      ...(paidConfirmedAmountUsd !== undefined ? { paidConfirmedAmountUsd } : {}),
       nextActionAt: null,
       operatorNote: appendOperatorNote(
         draft.operatorNote ?? intake.operatorNote,
-        'Payment confirmed. Open Brand Portal launch with the assigned venue and creator prefilled.'
+        paidConfirmedAmountUsd !== undefined
+          ? `Payment confirmed ($${paidConfirmedAmountUsd} commissionable). Open Brand Portal launch with the assigned venue and creator prefilled.`
+          : 'Payment confirmed. Open Brand Portal launch with the assigned venue and creator prefilled.'
       ),
     });
   };
